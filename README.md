@@ -232,7 +232,6 @@ Help keep DockerDiscordControl growing and improving across all platforms:
 
 - **[Buy Me A Coffee](https://buymeacoffee.com/dockerdiscordcontrol)** - Quick one-time support
 - **[PayPal Donation](https://www.paypal.com/donate/?hosted_button_id=XKVC6SFXU2GW4)** - Direct contribution  
-- **[GitHub Sponsors](https://github.com/sponsors/DockerDiscordControl)** - Ongoing support (coming soon)
 
 Your support helps maintain DDC across **Windows, Linux, macOS, and Universal** versions, develop new features, and keep it zero-vulnerability secure! 
 
