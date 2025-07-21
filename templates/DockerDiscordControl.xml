@@ -3,8 +3,8 @@
   <Name>DockerDiscordControl</Name>
   <Repository>dockerdiscordcontrol/dockerdiscordcontrol:latest</Repository>
   <Registry>https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol</Registry>
+  <Default>latest</Default>
   <Network>bridge</Network>
-  <MyIP/>
   <Shell>sh</Shell>
   <Privileged>false</Privileged>
   <Support>https://github.com/DockerDiscordControl/DockerDiscordControl</Support>
