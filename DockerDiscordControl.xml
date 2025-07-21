@@ -14,9 +14,7 @@
   <WebUI>http://[IP]:[PORT:9374]</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/DockerDiscordControl/DockerDiscordControl/main/templates/DockerDiscordControl.xml</TemplateURL>
   <Icon>https://raw.githubusercontent.com/DockerDiscordControl/DockerDiscordControl/main/app/static/favicon.png</Icon>
-  <ExtraParams>--restart unless-stopped</ExtraParams>
-  <CPUset/>
-  <DateInstalled/>
+    <ExtraParams>--restart unless-stopped</ExtraParams>
   <DonateText>Support DDC Development ☕</DonateText>
   <DonateLink>https://buymeacoffee.com/dockerdiscordcontrol</DonateLink>
   <Requires>Docker socket access for container management</Requires>
