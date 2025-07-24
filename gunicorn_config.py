@@ -98,8 +98,7 @@ worker_class = "gevent"  # Use Gevent for asynchronous processing
 worker_connections = 200  # OPTIMIZED: Reduced from 1000 to 200 (Discord Bot usage)
 threads = 1  # For Gevent workers: Use 1 thread
 
-# Timeouts - OPTIMIZED
-timeout = 60  # OPTIMIZED: Reduced from previous values
+# Timeouts - OPTIMIZED (using the configurable timeout from above)
 graceful_timeout = 10  # Time workers get to terminate
 keepalive = 3  # OPTIMIZED: Reduced from 5s to 3s for faster resource cleanup
 

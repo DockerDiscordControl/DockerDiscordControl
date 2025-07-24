@@ -154,13 +154,13 @@ class SchedulerService:
             
             # First pass: Find all due tasks
             for task in tasks:
-                if not task.enabled:
+                if not task.is_active:  # Fixed: was task.enabled
                     continue
                 
-                if task.next_run and task.next_run <= current_time:
+                if task.next_run_ts and datetime.fromtimestamp(task.next_run_ts) <= current_time:  # Fixed: convert timestamp to datetime
                     # Skip if task is already running
-                    if task.id in self.active_tasks:
-                        logger.debug(f"Task {task.name} (ID: {task.id}) is already running, skipping")
+                    if task.task_id in self.active_tasks:  # Fixed: was task.id
+                        logger.debug(f"Task {task.container_name} (ID: {task.task_id}) is already running, skipping")  # Fixed: was task.name and task.id
                         self.task_execution_stats['total_skipped'] += 1
                         continue
                     
@@ -207,25 +207,27 @@ class SchedulerService:
         async def execute_single_task(task: ScheduledTask):
             """Execute a single task with proper error handling and tracking."""
             task_start_time = time.time()
-            self.active_tasks.add(task.id)
+            self.active_tasks.add(task.task_id)
             
             try:
-                logger.info(f"Executing task: {task.name} (ID: {task.id})")
+                logger.info(f"Executing task: {task.container_name} (ID: {task.task_id})")
                 await execute_task(task)
                 
-                # Update next run time
-                task.update_next_run()
-                update_task(task)
+                # Update task's next run time after successful execution
+                try:
+                    update_task(task)  # Use the imported function instead of task.update_next_run()
+                except Exception as update_error:
+                    logger.warning(f"Failed to update next run time for task {task.task_id}: {update_error}")
                 
                 self.task_execution_stats['total_executed'] += 1
                 execution_time = time.time() - task_start_time
-                logger.info(f"Task {task.name} completed successfully in {execution_time:.2f}s")
+                logger.info(f"Task {task.container_name} completed successfully in {execution_time:.2f}s")
                 
             except Exception as e:
-                logger.error(f"Error executing task {task.name} (ID: {task.id}): {e}")
+                logger.error(f"Error executing task {task.container_name} (ID: {task.task_id}): {e}")
                 logger.error(traceback.format_exc())
             finally:
-                self.active_tasks.discard(task.id)
+                self.active_tasks.discard(task.task_id)
         
         # Execute all tasks in the batch concurrently
         if tasks:
