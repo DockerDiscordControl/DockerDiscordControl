@@ -250,9 +250,17 @@ async def get_docker_client():
                 # Only ping if cache is expired
                 if current_time - _client_ping_cache > _PING_CACHE_TTL:
                     try:
-                        await asyncio.to_thread(_docker_client.ping)
+                        logger.debug("Pinging existing Docker client with 3s timeout...")
+                        await asyncio.wait_for(
+                            asyncio.to_thread(_docker_client.ping),
+                            timeout=3.0
+                        )
                         _client_ping_cache = current_time
                         logger.debug("Docker client ping successful (cached)")
+                    except asyncio.TimeoutError:
+                        logger.warning("Docker client ping timed out, recreating client")
+                        _docker_client = None
+                        _client_ping_cache = 0
                     except Exception as e:
                         logger.warning(f"Docker client ping failed, recreating client: {e}")
                         _docker_client = None
@@ -261,24 +269,35 @@ async def get_docker_client():
                 if _docker_client is not None:
                     return _docker_client
     
-    # Create new client if needed (with thread safety)
+    # Create new client if needed (with thread safety and timeout)
     with _docker_client_lock:
         # Double-check pattern to avoid race conditions
         if _docker_client is None:
             logger.info(f"Creating new DockerClient with base_url='unix:///var/run/docker.sock'. Current DOCKER_HOST env: {os.environ.get('DOCKER_HOST')}")
             try:
-                client_instance = await asyncio.to_thread(docker.DockerClient, base_url='unix:///var/run/docker.sock', timeout=15) # Erhöht von 10 auf 15
+                # Add timeout to prevent hanging
+                logger.debug("Creating Docker client with 10s timeout...")
+                client_instance = await asyncio.wait_for(
+                    asyncio.to_thread(docker.DockerClient, base_url='unix:///var/run/docker.sock', timeout=10),
+                    timeout=10.0
+                )
                 logger.info("Successfully created DockerClient instance.")
                 
-                # Initial ping for new client
-                logger.debug("Performing initial ping for new Docker client...")
-                await asyncio.to_thread(client_instance.ping)
+                # Initial ping for new client with timeout
+                logger.debug("Performing initial ping for new Docker client with 5s timeout...")
+                await asyncio.wait_for(
+                    asyncio.to_thread(client_instance.ping),
+                    timeout=5.0
+                )
                 logger.info("Successfully pinged Docker daemon.")
                 
                 _docker_client = client_instance
                 _client_last_used = current_time
                 _client_ping_cache = current_time
                 return _docker_client
+            except asyncio.TimeoutError:
+                logger.error("Docker client creation or ping timed out - Docker daemon may be unresponsive")
+                return None
             except Exception as e:
                 logger.error(f"Error creating (or pinging) DockerClient with base_url='unix:///var/run/docker.sock': {e}", exc_info=True)
                 return None
