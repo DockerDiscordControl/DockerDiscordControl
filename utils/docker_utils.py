@@ -274,35 +274,62 @@ async def get_docker_client():
         # Double-check pattern to avoid race conditions
         if _docker_client is None:
             logger.info(f"Creating new DockerClient with base_url='unix:///var/run/docker.sock'. Current DOCKER_HOST env: {os.environ.get('DOCKER_HOST')}")
-            try:
-                # Add timeout to prevent hanging
-                logger.debug("Creating Docker client with 10s timeout...")
-                client_instance = await asyncio.wait_for(
-                    asyncio.to_thread(docker.DockerClient, base_url='unix:///var/run/docker.sock', timeout=10),
-                    timeout=10.0
-                )
-                logger.info("Successfully created DockerClient instance.")
-                
-                # Initial ping for new client with timeout
-                logger.debug("Performing initial ping for new Docker client with 5s timeout...")
-                await asyncio.wait_for(
-                    asyncio.to_thread(client_instance.ping),
-                    timeout=5.0
-                )
-                logger.info("Successfully pinged Docker daemon.")
-                
-                _docker_client = client_instance
-                _client_last_used = current_time
-                _client_ping_cache = current_time
-                return _docker_client
-            except asyncio.TimeoutError:
-                logger.error("Docker client creation or ping timed out - Docker daemon may be unresponsive")
-                return None
-            except Exception as e:
-                logger.error(f"Error creating (or pinging) DockerClient with base_url='unix:///var/run/docker.sock': {e}", exc_info=True)
-                return None
-    
-    return _docker_client
+            
+            # Try multiple connection methods with fallbacks
+            connection_methods = [
+                ('unix:///var/run/docker.sock', 10),
+                ('unix://var/run/docker.sock', 8), 
+                (None, 6)  # docker.from_env() fallback
+            ]
+            
+            for i, (base_url, timeout) in enumerate(connection_methods):
+                try:
+                    logger.debug(f"Attempt {i+1}/3: Creating Docker client (base_url={base_url}, timeout={timeout}s)...")
+                    
+                    if base_url is None:
+                        # Fallback to docker.from_env()
+                        client_instance = await asyncio.wait_for(
+                            asyncio.to_thread(docker.from_env, timeout=timeout),
+                            timeout=float(timeout)
+                        )
+                        logger.info("Successfully created DockerClient using docker.from_env()")
+                    else:
+                        client_instance = await asyncio.wait_for(
+                            asyncio.to_thread(docker.DockerClient, base_url=base_url, timeout=timeout),
+                            timeout=float(timeout)
+                        )
+                        logger.info(f"Successfully created DockerClient with base_url={base_url}")
+                    
+                    # Test the client with a quick ping
+                    logger.debug(f"Testing Docker client with {timeout//2}s ping timeout...")
+                    await asyncio.wait_for(
+                        asyncio.to_thread(client_instance.ping),
+                        timeout=float(timeout//2)
+                    )
+                    logger.info("Successfully pinged Docker daemon - client is working")
+                    
+                    _docker_client = client_instance
+                    _client_last_used = current_time
+                    _client_ping_cache = current_time
+                    return _docker_client
+                    
+                except asyncio.TimeoutError:
+                    logger.warning(f"Docker client method {i+1} timed out after {timeout}s")
+                    if i < len(connection_methods) - 1:
+                        logger.info("Trying next connection method...")
+                        continue
+                    else:
+                        logger.error("All Docker client connection methods timed out")
+                        return None
+                        
+                except Exception as e:
+                    logger.warning(f"Docker client method {i+1} failed: {e}")
+                    if i < len(connection_methods) - 1:
+                        logger.info("Trying next connection method...")
+                        continue
+                    else:
+                        logger.error(f"All Docker client connection methods failed. Last error: {e}")
+                        return None
 
 async def release_docker_client():
     """Closes the current Docker client if idle for too long."""
