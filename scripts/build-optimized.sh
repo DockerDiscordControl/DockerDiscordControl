@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 # Configuration
 IMAGE_NAME="ddc-optimized"
 TAG="alpine-ultra"
-DOCKERFILE="Dockerfile.alpine-optimized"
+DOCKERFILE="../Dockerfile.alpine-optimized"
 
 echo -e "${BLUE}=== DDC Ultra-Optimized Alpine Build ===${NC}"
 echo "Building optimized DDC image with maximum performance..."
@@ -38,7 +38,7 @@ docker build \
     --tag "${IMAGE_NAME}:${TAG}" \
     --progress=plain \
     --no-cache \
-    . || {
+    .. || {
     echo -e "${RED}Build failed!${NC}"
     exit 1
 }

@@ -56,9 +56,9 @@ echo -e "${GREEN}✅ Cache directories cleaned${NC}"
 sleep 1
 
 # 🐳 Build Docker image
-echo -e "${BLUE}🐳 Rebuilding Alpine image dockerdiscordcontrol (without cache)...${NC}"
+echo -e "${BLUE}🐳 Rebuilding OPTIMIZED Alpine image dockerdiscordcontrol (without cache)...${NC}"
 echo -e "${CYAN}⏳ This may take a few minutes...${NC}"
-if docker build --no-cache -t dockerdiscordcontrol . 2>/dev/null; then
+if docker build --no-cache -f Dockerfile.alpine-optimized -t dockerdiscordcontrol .; then
     echo -e "${GREEN}✅ Docker image built successfully!${NC}"
 else
     echo -e "${RED}❌ Docker build failed${NC}"

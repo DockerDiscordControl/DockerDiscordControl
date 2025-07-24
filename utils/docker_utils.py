@@ -256,7 +256,7 @@ def get_docker_client():
         
         _client_last_used = current_time
         return _docker_client
-        
+
     except Exception as e1:
         logger.warning(f"docker.from_env() failed: {e1}")
         
