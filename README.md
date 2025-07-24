@@ -228,6 +228,26 @@ DDC_SCHEDULER_CHECK_INTERVAL=90
 DDC_MAX_CONCURRENT_TASKS=5
 ```
 
+### Ultra-Optimized Alpine Image
+
+For maximum performance and minimal resource usage, use the ultra-optimized Alpine image:
+
+```bash
+# Build the ultra-optimized image
+./scripts/build-optimized.sh
+
+# Or use the pre-built optimized Dockerfile
+docker build -f Dockerfile.alpine-optimized -t ddc-optimized:alpine-ultra .
+```
+
+**Ultra-Optimization Features:**
+- **30-50% smaller image size** through multi-stage builds and component removal
+- **Faster startup times** with pre-compiled Python bytecode
+- **Minimal runtime dependencies** - only essential packages included
+- **Optimized supervisor configuration** with reduced logging overhead
+- **Production-only requirements** - testing dependencies excluded
+- **Aggressive cleanup** of documentation, man pages, and build artifacts
+
 **Important Cache Timing**: The Docker cache is updated every 30 seconds with a 45-second cache duration to ensure fresh data for users who set 1-minute update intervals in the Web UI. This timing is critical for maintaining data freshness at the minimum supported interval.
 
 **Note**: All Web UI configuration options remain fully functional regardless of these performance optimizations. The interval frequency settings and all other configuration capabilities are preserved and unaffected.

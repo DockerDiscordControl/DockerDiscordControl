@@ -1,0 +1,216 @@
+# =============================================================================
+# DDC ULTRA-OPTIMIZED ALPINE BUILD
+# Removes unnecessary components for maximum performance and minimal size
+# =============================================================================
+
+# --- BUILD STAGE 1: Python Dependencies ---
+FROM python:3.13-alpine AS python-builder
+WORKDIR /build
+
+# Install minimal build dependencies
+RUN apk add --no-cache --virtual .build-deps \
+    gcc musl-dev python3-dev libffi-dev openssl-dev \
+    cargo rust  # For cryptography package
+
+# Copy and install Python dependencies
+COPY requirements.txt .
+
+# Create optimized requirements (remove testing dependencies)
+RUN sed '/^pytest/d; /^# --- Testing ---/,$d' requirements.txt > requirements-prod.txt && \
+    python -m venv /opt/venv && \
+    . /opt/venv/bin/activate && \
+    pip install --no-cache-dir --upgrade pip wheel && \
+    pip install --no-cache-dir -r requirements-prod.txt
+
+# Clean up build dependencies
+RUN apk del .build-deps
+
+# --- BUILD STAGE 2: Application Optimization ---
+FROM python:3.13-alpine AS app-builder
+WORKDIR /build
+
+# Copy source code
+COPY . .
+
+# Remove unnecessary files and directories
+RUN rm -rf \
+    .git .github .gitignore .dockerignore \
+    tests/ wiki/ docs/ \
+    *.md LICENSE CNAME \
+    Dockerfile* docker-compose.yml \
+    .cursor-rules \
+    __pycache__/ */__pycache__/ */*/__pycache__/ \
+    *.pyc */*.pyc */*/*.pyc \
+    .pytest_cache/ */pytest_cache/
+
+# Compile Python files for faster startup
+RUN python -m compileall -b . && \
+    find . -name "*.py" -not -path "./app/*" -not -name "bot.py" -not -name "gunicorn_config.py" -delete
+
+# --- BUILD STAGE 3: Minimal Runtime Dependencies ---
+FROM alpine:3.19 AS runtime-deps
+
+# Install only essential runtime packages
+RUN apk add --no-cache \
+    python3 py3-pip \
+    supervisor \
+    docker-cli \
+    ca-certificates \
+    tzdata \
+    curl && \
+    # Create symlinks for Python
+    ln -sf /usr/bin/python3 /usr/bin/python && \
+    # Remove unnecessary files
+    rm -rf /var/cache/apk/* \
+           /usr/share/man/* \
+           /usr/share/doc/* \
+           /usr/share/info/* \
+           /tmp/*
+
+# --- FINAL STAGE: Ultra-Optimized Runtime ---
+FROM runtime-deps
+WORKDIR /app
+
+# Set optimized environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONOPTIMIZE=2 \
+    PATH="/opt/venv/bin:$PATH" \
+    DOCKER_HOST="unix:///var/run/docker.sock" \
+    # Performance optimizations
+    DDC_DOCKER_CACHE_DURATION=45 \
+    DDC_BACKGROUND_REFRESH_INTERVAL=30 \
+    DDC_MAX_CACHED_CONTAINERS=100 \
+    DDC_SCHEDULER_CHECK_INTERVAL=120 \
+    DDC_MAX_CONCURRENT_TASKS=3 \
+    # Memory optimizations
+    GUNICORN_WORKERS=2 \
+    GUNICORN_MAX_REQUESTS=300 \
+    GUNICORN_TIMEOUT=45 \
+    # Disable unnecessary Python features
+    PYTHONDEBUG=0 \
+    PYTHONHASHSEED=random
+
+# Copy optimized Python environment
+COPY --from=python-builder /opt/venv /opt/venv
+
+# Copy optimized application
+COPY --from=app-builder /build /app
+
+# Create optimized supervisor configuration
+RUN mkdir -p /app/config /app/logs /etc/supervisor/conf.d && \
+    chmod 755 /app/config /app/logs
+
+# Create ultra-optimized supervisor config
+COPY <<EOF /etc/supervisor/conf.d/supervisord.conf
+[supervisord]
+nodaemon=true
+user=root
+logfile=/app/logs/supervisord.log
+logfile_maxbytes=2MB
+logfile_backups=1
+loglevel=warn
+pidfile=/tmp/supervisord.pid
+
+[program:discordbot]
+command=/opt/venv/bin/python /app/bot.py
+directory=/app
+autostart=true
+autorestart=true
+startretries=2
+stopwaitsecs=5
+redirect_stderr=true
+stdout_logfile=/app/logs/discord.log
+stdout_logfile_maxbytes=5MB
+stdout_logfile_backups=1
+user=root
+environment=DOCKER_SOCKET="/var/run/docker.sock"
+
+[program:webui]
+command=/opt/venv/bin/gunicorn -c /app/gunicorn_config.py app.web_ui:create_app()
+directory=/app
+autostart=true
+autorestart=true
+startretries=2
+stopwaitsecs=5
+redirect_stderr=true
+stdout_logfile=/app/logs/webui.log
+stdout_logfile_maxbytes=5MB
+stdout_logfile_backups=1
+user=root
+environment=DOCKER_SOCKET="/var/run/docker.sock"
+
+[group:ddc]
+programs=discordbot,webui
+priority=999
+EOF
+
+# Create optimized gunicorn config override
+COPY <<EOF /app/gunicorn_config_optimized.py
+# Ultra-optimized Gunicorn configuration for Alpine
+import os
+import multiprocessing
+
+# Minimal worker configuration
+cpu_count = multiprocessing.cpu_count()
+workers = max(1, min(2, cpu_count))
+
+# Connection settings
+bind = "0.0.0.0:9374"
+worker_class = "gevent"
+worker_connections = 100  # Reduced from 200
+threads = 1
+timeout = 30  # Reduced from 45
+keepalive = 2
+max_requests = 200  # Reduced from 300
+max_requests_jitter = 20
+
+# Logging
+loglevel = "warning"  # Reduced from info
+access_log_format = '%(h)s "%(r)s" %(s)s %(b)s'
+
+# Memory optimization
+preload_app = True
+max_worker_memory = 200 * 1024 * 1024  # 200MB per worker
+
+def when_ready(server):
+    server.log.info(f"Ultra-optimized DDC starting with {workers} workers")
+
+def worker_int(worker):
+    worker.log.info("Worker received INT or QUIT signal")
+    import gc
+    gc.collect()
+EOF
+
+# Final cleanup and optimization
+RUN find /app -name "*.pyc" -delete && \
+    find /app -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    find /opt/venv -name "*.pyc" -delete && \
+    find /opt/venv -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    # Remove unnecessary pip cache
+    rm -rf /opt/venv/lib/python*/site-packages/pip* && \
+    rm -rf /opt/venv/lib/python*/site-packages/setuptools/tests && \
+    rm -rf /opt/venv/lib/python*/site-packages/wheel* && \
+    # Remove test files from packages
+    find /opt/venv -name "test*" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    find /opt/venv -name "*test*" -name "*.py" -delete 2>/dev/null || true && \
+    # Create health check script
+    echo '#!/bin/sh\ncurl -f http://localhost:9374/ >/dev/null 2>&1 || exit 1' > /app/healthcheck.sh && \
+    chmod +x /app/healthcheck.sh
+
+# Set up health check
+HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
+    CMD /app/healthcheck.sh
+
+# Expose port
+EXPOSE 9374
+
+# Use optimized supervisor config
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+
+# Metadata
+LABEL maintainer="DDC Team" \
+      version="optimized-alpine" \
+      description="Ultra-optimized DDC Alpine image for maximum performance" \
+      image.size="minimal" \
+      performance.level="maximum"

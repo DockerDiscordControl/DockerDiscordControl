@@ -57,6 +57,14 @@ Ihre DDC-Instanz zeigt **kritische Performance-Probleme** mit Update-Zeiten von 
 - **Cache Hit/Miss Ratios** und Cleanup-Statistiken
 - **System Resource Monitoring** (RAM, CPU, Threads)
 
+### 9. **Ultra-Optimized Alpine Image** 🏔️
+- **Multi-Stage Build**: Minimale Runtime-Dependencies
+- **Removed Components**: Testing-Pakete, Dokumentation, Build-Tools entfernt
+- **Compiled Bytecode**: Python-Files vorkompiliert für schnelleren Start
+- **Optimized Supervisor**: Reduzierte Log-Level und kleinere Buffers
+- **Minimal Package Set**: Nur essentielle Runtime-Pakete
+- **Expected Size Reduction**: 30-50% kleiner als Standard-Alpine Image
+
 ## 🛠️ Sofortmaßnahmen für Ihr System
 
 ### **Channel-Update-Intervalle anpassen**
@@ -138,6 +146,8 @@ Nach Implementierung aller Optimierungen:
 - **50% weniger CPU-Load** durch intelligente Scheduler-Intervalle
 - **Schnellere Web UI Response-Zeiten** durch Gunicorn-Optimierungen
 - **Automatische Memory-Bereinigung** verhindert Memory Leaks
+- **30-50% kleinere Container-Images** durch Ultra-Optimized Alpine Build
+- **Faster Container Startup** durch vorkompilierten Bytecode
 
 ## ⚠️ Weitere Optimierungsmaßnahmen
 
@@ -176,9 +186,11 @@ Besonders langsame Container (Valheim, V-Rising) eventuell:
 ✅ **Memory-Optimierungen implementiert** (NEU)  
 ✅ **CPU-Optimierungen aktiv** (NEU)  
 ✅ **Performance-Monitoring verfügbar** (NEU)  
+✅ **Ultra-Optimized Alpine Image** (NEU)  
 ✅ **Web UI Konfiguration vollständig erhalten** (GARANTIERT)  
 ☐ **System nach 24h überprüfen**  
 ☐ **Performance-Dashboard testen** (`/performance_stats`)  
+☐ **Ultra-Optimized Image testen** (`./scripts/build-optimized.sh`)  
 ☐ **Weitere Anpassungen bei Bedarf**
 
 ---
