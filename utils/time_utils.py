@@ -31,10 +31,19 @@ def get_current_time(tz_name: Optional[str] = None) -> datetime:
     """
     if tz_name:
         try:
-            tz = pytz.timezone(tz_name)
+            # Validate timezone name before using it
+            if not isinstance(tz_name, str) or not tz_name.strip():
+                logger.warning(f"Invalid timezone name type or empty: {tz_name}")
+                return datetime.now(timezone.utc)
+                
+            tz = pytz.timezone(tz_name.strip())
             return datetime.now(tz)
+        except pytz.exceptions.UnknownTimeZoneError as e:
+            logger.warning(f"Unknown timezone '{tz_name}': {e}, falling back to UTC")
+            return datetime.now(timezone.utc)
         except Exception as e:
-            logger.warning(f"Invalid timezone '{tz_name}', falling back to UTC: {e}")
+            logger.error(f"Unexpected error with timezone '{tz_name}': {e}, falling back to UTC")
+            return datetime.now(timezone.utc)
     
     return datetime.now(timezone.utc)
 
@@ -53,16 +62,39 @@ def timestamp_to_datetime(timestamp: float, tz_name: Optional[str] = None) -> da
     Returns:
         Timezone-aware datetime object
     """
-    dt = datetime.fromtimestamp(timestamp, timezone.utc)
-    
-    if tz_name:
-        try:
-            target_tz = pytz.timezone(tz_name)
-            return dt.astimezone(target_tz)
-        except Exception as e:
-            logger.warning(f"Invalid timezone '{tz_name}', returning UTC: {e}")
-    
-    return dt
+    try:
+        # Validate timestamp
+        if not isinstance(timestamp, (int, float)):
+            logger.error(f"Invalid timestamp type: {type(timestamp)}")
+            raise ValueError(f"Timestamp must be numeric, got {type(timestamp)}")
+            
+        # Check for reasonable timestamp range (not too far in past/future)
+        current_time = time.time()
+        if timestamp < 0 or timestamp > current_time + (365 * 24 * 3600 * 10):  # 10 years in future
+            logger.warning(f"Timestamp {timestamp} is outside reasonable range")
+            
+        dt = datetime.fromtimestamp(timestamp, timezone.utc)
+        
+        if tz_name:
+            try:
+                if not isinstance(tz_name, str) or not tz_name.strip():
+                    logger.warning(f"Invalid timezone name: {tz_name}, using UTC")
+                    return dt
+                    
+                target_tz = pytz.timezone(tz_name.strip())
+                return dt.astimezone(target_tz)
+            except pytz.exceptions.UnknownTimeZoneError as e:
+                logger.warning(f"Unknown timezone '{tz_name}': {e}, returning UTC")
+                return dt
+            except Exception as e:
+                logger.error(f"Error converting to timezone '{tz_name}': {e}, returning UTC")
+                return dt
+        
+        return dt
+    except (OSError, ValueError) as e:
+        logger.error(f"Error converting timestamp {timestamp}: {e}")
+        # Return current time as fallback
+        return datetime.now(timezone.utc)
 
 def datetime_to_timestamp(dt: datetime) -> float:
     """

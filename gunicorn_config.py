@@ -74,10 +74,24 @@ def when_ready(server):
     logger.info(f"[Gunicorn Master {os.getpid()}] Server ready. Performing initial cache population...")
 
     try:
-        # Fill initial cache synchronously (keep this part)
+        # Fill initial cache synchronously with proper error handling
         logger.info(f"[Gunicorn Master {os.getpid()}] Performing initial Docker cache update...")
-        get_docker_containers_live(logger) # Pass the logger
-        logger.info(f"[Gunicorn Master {os.getpid()}] Initial cache update complete.")
+        
+        # Validate that we can safely access Docker before populating cache
+        import docker
+        try:
+            # Test Docker connection first
+            test_client = docker.from_env()
+            test_client.ping()
+            test_client.close()
+            
+            # Now populate cache safely
+            get_docker_containers_live(logger) # Pass the logger
+            logger.info(f"[Gunicorn Master {os.getpid()}] Initial cache update complete.")
+        except docker.errors.DockerException as docker_err:
+            logger.warning(f"[Gunicorn Master {os.getpid()}] Docker not available during startup: {docker_err}")
+        except Exception as cache_err:
+            logger.error(f"[Gunicorn Master {os.getpid()}] Error populating Docker cache: {cache_err}")
 
     except Exception as e:
         logger.error(f"[Gunicorn Master {os.getpid()}] Error during initial cache population: {e}", exc_info=True)

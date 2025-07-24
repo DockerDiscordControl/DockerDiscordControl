@@ -3,6 +3,7 @@ import logging
 import sys
 import os
 import time
+import threading
 from typing import Optional
 from datetime import datetime, timezone
 
@@ -10,12 +11,14 @@ from datetime import datetime, timezone
 DEFAULT_LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 DEBUG_LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s [%(filename)s:%(lineno)d]'
 
-# Global variable for debug status
+# Global variable for debug status with thread safety
 _debug_mode_enabled = None
 # New variables for temporary debug mode
 _temp_debug_mode_enabled = False
 _temp_debug_expiry = 0  # Timestamp when temp debug expires
 _last_debug_status_log = None
+# Thread lock for debug mode variables
+_debug_lock = threading.Lock()
 
 def is_debug_mode_enabled() -> bool:
     """
@@ -27,45 +30,46 @@ def is_debug_mode_enabled() -> bool:
     """
     global _debug_mode_enabled, _temp_debug_mode_enabled, _temp_debug_expiry, _last_debug_status_log
     
-    # Check if temporary debug mode is active and not expired
-    current_time = time.time()
-    if _temp_debug_mode_enabled and current_time < _temp_debug_expiry:
-        # Print a message every few seconds to confirm temp debug is active
-        if _last_debug_status_log is None or (current_time - _last_debug_status_log > 10):
-            print(f"TEMP DEBUG MODE IS ACTIVE! Expires in {int((_temp_debug_expiry - current_time) / 60)} minutes and {int((_temp_debug_expiry - current_time) % 60)} seconds")
-            _last_debug_status_log = current_time
-        return True
-    elif _temp_debug_mode_enabled and current_time >= _temp_debug_expiry:
-        # Temp debug mode has expired, reset it
-        _temp_debug_mode_enabled = False
-        print(f"Temporary debug mode expired")
-    
-    try:
-        # Store previous value to detect changes
-        previous_value = _debug_mode_enabled
+    with _debug_lock:
+        # Check if temporary debug mode is active and not expired
+        current_time = time.time()
+        if _temp_debug_mode_enabled and current_time < _temp_debug_expiry:
+            # Print a message every few seconds to confirm temp debug is active
+            if _last_debug_status_log is None or (current_time - _last_debug_status_log > 10):
+                print(f"TEMP DEBUG MODE IS ACTIVE! Expires in {int((_temp_debug_expiry - current_time) / 60)} minutes and {int((_temp_debug_expiry - current_time) % 60)} seconds")
+                _last_debug_status_log = current_time
+            return True
+        elif _temp_debug_mode_enabled and current_time >= _temp_debug_expiry:
+            # Temp debug mode has expired, reset it
+            _temp_debug_mode_enabled = False
+            print(f"Temporary debug mode expired")
         
-        # Load config without force invalidation (cache will be used if available)
-        from utils.config_loader import load_config
-        config = load_config()
+        try:
+            # Store previous value to detect changes
+            previous_value = _debug_mode_enabled
+            
+            # Load config without force invalidation (cache will be used if available)
+            from utils.config_loader import load_config
+            config = load_config()
+            
+            # Use the cached value of debug mode if available
+            _debug_mode_enabled = config.get('scheduler_debug_mode', False)
+            
+            # Only output debug message when loaded for the first time or when the value changes
+            if previous_value != _debug_mode_enabled or (_last_debug_status_log is None) or (current_time - _last_debug_status_log > 300):
+                # Only log if debug mode actually changed or it's the first time loading
+                if previous_value != _debug_mode_enabled or _last_debug_status_log is None:
+                    print(f"Debug status loaded from configuration: {_debug_mode_enabled}")
+                _last_debug_status_log = current_time
+        except Exception as e:
+            # Fallback on errors
+            print(f"Error loading debug status: {e}")
+            if _debug_mode_enabled is None:  # Only set to False if currently None
+                _debug_mode_enabled = False
         
-        # Use the cached value of debug mode if available
-        _debug_mode_enabled = config.get('scheduler_debug_mode', False)
-        
-        # Only output debug message when loaded for the first time or when the value changes
-        if previous_value != _debug_mode_enabled or (_last_debug_status_log is None) or (current_time - _last_debug_status_log > 300):
-            # Only log if debug mode actually changed or it's the first time loading
-            if previous_value != _debug_mode_enabled or _last_debug_status_log is None:
-                print(f"Debug status loaded from configuration: {_debug_mode_enabled}")
-            _last_debug_status_log = current_time
-    except Exception as e:
-        # Fallback on errors
-        print(f"Error loading debug status: {e}")
-        if _debug_mode_enabled is None:  # Only set to False if currently None
-            _debug_mode_enabled = False
-    
-    # Check once more if temporary debug mode is active
-    result = _debug_mode_enabled or _temp_debug_mode_enabled
-    return result
+        # Check once more if temporary debug mode is active
+        result = _debug_mode_enabled or _temp_debug_mode_enabled
+        return result
 
 # A filter that only allows DEBUG logs when debug mode is enabled
 class DebugModeFilter(logging.Filter):

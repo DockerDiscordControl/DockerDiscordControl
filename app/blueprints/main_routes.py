@@ -495,15 +495,18 @@ def config_page():
 @auth.login_required
 def save_config_api():
     logger = current_app.logger
-    print("[CONFIG-DEBUG] save_config_api endpoint called")
-    logger.info("save_config_api (blueprint) called...")
-    result = {'success': False, 'message': 'An unexpected error occurred.'}
-    
     try:
+        # Remove sensitive debug logging
+        logger.debug("save_config_api endpoint called")
+        
+        result = {'success': False, 'message': 'An unexpected error occurred.'}
+        
         from utils.config_loader import (
             process_config_form, BOT_CONFIG_FILE, DOCKER_CONFIG_FILE, 
             CHANNELS_CONFIG_FILE, WEB_CONFIG_FILE
         )
+        
+        # Get form data
         
         # Explicitly import server_order utilities
         try:

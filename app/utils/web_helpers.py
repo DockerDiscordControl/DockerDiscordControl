@@ -10,6 +10,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import json
 from datetime import datetime, timedelta
 import flask
+from typing import Optional, List, Dict, Any, Tuple
 
 # Gevent-compatible Thread/Lock implementation
 try:
@@ -147,7 +148,7 @@ def hash_container_data(container_data):
         # In case of errors, return a random hash, which leads to reevaluation
         return time.time()
 
-def get_docker_containers_live(logger, force_refresh=False, container_name=None):
+def get_docker_containers_live(logger, force_refresh: bool = False, container_name: Optional[str] = None) -> Tuple[List[Dict[str, Any]], Optional[str]]:
     """
     Enhanced function to retrieve Docker container information with advanced caching features.
     

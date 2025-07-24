@@ -14,6 +14,7 @@ Eliminates redundant code between different modules.
 from typing import Dict, Any, List, Optional, Union, Tuple
 from utils.logging_utils import get_module_logger
 from utils.time_utils import get_datetime_imports, format_duration
+import asyncio
 
 # Central datetime imports
 datetime, timedelta, timezone, time = get_datetime_imports()
@@ -281,35 +282,41 @@ def deep_merge_dicts(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> Dict[str, 
     
     return result
 
-def retry_on_exception(max_retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
+async def retry_with_backoff(func, max_attempts=3, base_delay=1.0, max_delay=30.0, backoff_factor=2.0):
     """
-    Decorator for retrying functions on exception.
+    Retry a function with exponential backoff.
     
     Args:
-        max_retries: Maximum number of retries
-        delay: Initial delay between retries
-        backoff: Backoff multiplier for delay
+        func: Function to retry (can be sync or async)
+        max_attempts: Maximum number of retry attempts
+        base_delay: Initial delay in seconds
+        max_delay: Maximum delay in seconds
+        backoff_factor: Multiplier for delay after each attempt
         
     Returns:
-        Decorator function
+        Result of the function if successful
+        
+    Raises:
+        Last exception if all attempts fail
     """
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            current_delay = delay
-            last_exception = None
+    last_exception = None
+    
+    for attempt in range(max_attempts):
+        try:
+            if asyncio.iscoroutinefunction(func):
+                return await func()
+            else:
+                return func()
+        except Exception as e:
+            last_exception = e
             
-            for attempt in range(max_retries + 1):
-                try:
-                    return func(*args, **kwargs)
-                except Exception as e:
-                    last_exception = e
-                    if attempt < max_retries:
-                        logger.warning(f"Attempt {attempt + 1} failed for {func.__name__}: {e}. Retrying in {current_delay}s...")
-                        time.sleep(current_delay)
-                        current_delay *= backoff
-                    else:
-                        logger.error(f"All {max_retries + 1} attempts failed for {func.__name__}")
-                        
-            raise last_exception
-        return wrapper
-    return decorator 
+            if attempt < max_attempts - 1:  # Don't sleep on last attempt
+                # Calculate delay with exponential backoff
+                current_delay = min(base_delay * (backoff_factor ** attempt), max_delay)
+                logger.debug(f"Attempt {attempt + 1} failed, retrying in {current_delay:.2f}s: {e}")
+                await asyncio.sleep(current_delay)
+            else:
+                logger.error(f"All {max_attempts} attempts failed, giving up: {e}")
+    
+    # Re-raise the last exception if all attempts failed
+    raise last_exception 

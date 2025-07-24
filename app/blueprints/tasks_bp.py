@@ -497,25 +497,49 @@ def edit_task_route(task_id):
                         if task.cycle == 'weekly':
                             # For weekly tasks, day is a weekday string
                             weekday_map = {'Mon': 0, 'Tue': 1, 'Wed': 2, 'Thu': 3, 'Fri': 4, 'Sat': 5, 'Sun': 6}
-                            task.weekday_val = weekday_map.get(schedule_details['day'])
+                            day_value = schedule_details['day']
+                            if day_value in weekday_map:
+                                task.weekday_val = weekday_map[day_value]
+                            else:
+                                current_app.logger.warning(f"Invalid weekday value: {day_value}")
+                                return jsonify({"success": False, "error": f"Invalid weekday: {day_value}"}), 400
                         else:
                             # For other cycles, day is a number
                             try:
-                                task.day_val = int(schedule_details['day'])
+                                day_num = int(schedule_details['day'])
+                                if 1 <= day_num <= 31:  # Basic day validation
+                                    task.day_val = day_num
+                                else:
+                                    current_app.logger.warning(f"Invalid day number: {day_num}")
+                                    return jsonify({"success": False, "error": f"Invalid day number: {day_num}"}), 400
                             except (ValueError, TypeError):
-                                pass
+                                current_app.logger.warning(f"Could not convert day to integer: {schedule_details['day']}")
+                                return jsonify({"success": False, "error": "Day must be a valid number"}), 400
                     
                     if 'month' in schedule_details:
                         try:
-                            task.month_val = int(schedule_details['month'])
+                            month_num = int(schedule_details['month'])
+                            if 1 <= month_num <= 12:  # Valid month range
+                                task.month_val = month_num
+                            else:
+                                current_app.logger.warning(f"Invalid month number: {month_num}")
+                                return jsonify({"success": False, "error": f"Invalid month number: {month_num}"}), 400
                         except (ValueError, TypeError):
-                            pass
+                            current_app.logger.warning(f"Could not convert month to integer: {schedule_details['month']}")
+                            return jsonify({"success": False, "error": "Month must be a valid number"}), 400
                     
                     if 'year' in schedule_details:
                         try:
-                            task.year_val = int(schedule_details['year'])
+                            year_num = int(schedule_details['year'])
+                            current_year = datetime.now().year
+                            if current_year <= year_num <= current_year + 10:  # Reasonable year range
+                                task.year_val = year_num
+                            else:
+                                current_app.logger.warning(f"Invalid year: {year_num}")
+                                return jsonify({"success": False, "error": f"Invalid year: {year_num}"}), 400
                         except (ValueError, TypeError):
-                            pass
+                            current_app.logger.warning(f"Could not convert year to integer: {schedule_details['year']}")
+                            return jsonify({"success": False, "error": "Year must be a valid number"}), 400
             
             # Update timezone if provided
             if 'timezone_str' in data:

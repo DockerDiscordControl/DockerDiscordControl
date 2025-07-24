@@ -57,7 +57,7 @@ class ScheduleCommandsMixin:
     """
     
     # Helfer-Funktion zum Umwandeln von Monatszahlen in lokalisierte Monatsnamen
-    def _get_localized_month_name(self, month_int: int, language: str = "de") -> str:
+    def _get_localized_month_name(self, month_int: int, language: str = "en") -> str:
         """
         Konvertiert eine Monatszahl (1-12) in einen lokalisierten Monatsnamen.
         
@@ -73,12 +73,19 @@ class ScheduleCommandsMixin:
         months_en = ["January", "February", "March", "April", "May", "June",
                     "July", "August", "September", "October", "November", "December"]
         
-        if 1 <= month_int <= 12:
+        # Validate month_int to prevent index errors
+        if not isinstance(month_int, int) or not (1 <= month_int <= 12):
+            logger.warning(f"Invalid month value: {month_int}. Using fallback.")
+            return str(month_int)  # Fallback for invalid values
+            
+        try:
             if language.lower() == "de":
                 return months_de[month_int - 1]
             else:
                 return months_en[month_int - 1]
-        return str(month_int)  # Fallback bei ungültigen Werten
+        except IndexError:
+            logger.error(f"Index error for month {month_int}, language {language}")
+            return str(month_int)  # Fallback for any unexpected errors
     
     # --- Schedule Helper Methods ---
     async def _format_schedule_embed(self, tasks: List[ScheduledTask], title: str, description: str = "") -> discord.Embed:

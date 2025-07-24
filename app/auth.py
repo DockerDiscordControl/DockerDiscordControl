@@ -73,16 +73,23 @@ def init_limiter(app):
                 app.logger.warning(f"Rate limit exceeded for auth from IP: {client_ip}")
                 return jsonify(error="Too many login attempts. Please try again later."), 429
 
+# Cache for default password hash to avoid recomputation
+_default_hash_cache = None
+
 @auth.verify_password
 def verify_password(username, password):
+    global _default_hash_cache
     logger = current_app.logger
     config = load_config()
     stored_user = config.get('web_ui_user', "admin") 
     stored_hash = config.get('web_ui_password_hash')
+    
     if stored_hash is None:
-        default_hash_for_check = generate_password_hash("admin", method="pbkdf2:sha256") 
+        # Use cached default hash or compute once
+        if _default_hash_cache is None:
+            _default_hash_cache = generate_password_hash("admin", method="pbkdf2:sha256", salt_length=16)
         logger.warning("web_ui_password_hash not found in config, using default hash for check.")
-        if username == stored_user and check_password_hash(default_hash_for_check, password):
+        if username == stored_user and check_password_hash(_default_hash_cache, password):
              return username
     elif username == stored_user and check_password_hash(stored_hash, password):
         return username 

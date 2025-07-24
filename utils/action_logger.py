@@ -78,12 +78,29 @@ def log_user_action(action: str, target: str, user: str = "System", source: str 
         details: Additional details about the action
     """
     try:
+        # Sanitize all input parameters to prevent log injection attacks
+        def sanitize_log_input(value: str, max_length: int = 200) -> str:
+            """Sanitize input for logging to prevent injection attacks."""
+            if not isinstance(value, str):
+                value = str(value)
+            # Remove or replace potentially dangerous characters
+            sanitized = value.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
+            # Limit length to prevent log file bloat
+            return sanitized[:max_length] if len(sanitized) > max_length else sanitized
+        
+        # Sanitize all parameters
+        safe_action = sanitize_log_input(action, 50)
+        safe_target = sanitize_log_input(target, 100)
+        safe_user = sanitize_log_input(user, 100)
+        safe_source = sanitize_log_input(source, 50)
+        safe_details = sanitize_log_input(details, 200)
+        
         if user_action_logger:
-            user_action_logger.info(f"{action}|{target}|{user}|{source}|{details}")
+            user_action_logger.info(f"{safe_action}|{safe_target}|{safe_user}|{safe_source}|{safe_details}")
         else:
             # Fallback to standard logger
             logging.getLogger("ddc.action_logger").warning(
-                f"Unable to log user action: {action} by {user} on {target}"
+                f"Unable to log user action: {safe_action} by {safe_user} on {safe_target}"
             )
     except Exception as e:
         # Silent error handling for robustness in all environments

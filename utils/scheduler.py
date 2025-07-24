@@ -10,6 +10,7 @@ import asyncio
 import uuid
 import os
 import logging  # Added for logging.DEBUG constants
+import fcntl  # Added for file locking
 from typing import Dict, Any, List, Optional, Tuple, Union
 import calendar
 from functools import lru_cache  # Import for caching
@@ -102,23 +103,38 @@ def _is_tasks_file_modified() -> bool:
         return _last_file_modified_time != 0  # Force reload if previously had data but file now gone
     
     try:
-        # Optimize stat access for network file systems by getting all stats at once
-        file_stat = os.stat(TASKS_FILE_PATH)
-        current_mtime = file_stat.st_mtime
-        
-        # Track file size as well for more accurate change detection
-        if not hasattr(_is_tasks_file_modified, "_last_size"):
-            _is_tasks_file_modified._last_size = 0
-        
-        current_size = file_stat.st_size
-        size_changed = current_size != _is_tasks_file_modified._last_size
-        time_changed = current_mtime > _last_file_modified_time
-        
-        # Update size tracking
-        if size_changed:
-            _is_tasks_file_modified._last_size = current_size
-            
-        return size_changed or time_changed
+        # Use file locking to prevent race conditions during file access
+        with open(TASKS_FILE_PATH, 'r') as f:
+            try:
+                fcntl.flock(f.fileno(), fcntl.LOCK_SH | fcntl.LOCK_NB)  # Shared, non-blocking lock
+                
+                # Optimize stat access for network file systems by getting all stats at once
+                file_stat = os.fstat(f.fileno())
+                current_mtime = file_stat.st_mtime
+                
+                # Track file size as well for more accurate change detection
+                if not hasattr(_is_tasks_file_modified, "_last_size"):
+                    _is_tasks_file_modified._last_size = 0
+                
+                current_size = file_stat.st_size
+                size_changed = current_size != _is_tasks_file_modified._last_size
+                time_changed = current_mtime > _last_file_modified_time
+                
+                # Update size tracking
+                if size_changed:
+                    _is_tasks_file_modified._last_size = current_size
+                    
+                return size_changed or time_changed
+                
+            except (OSError, IOError):
+                # File is locked by another process, assume it's being modified
+                return True
+            finally:
+                try:
+                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)  # Release lock
+                except (OSError, IOError):
+                    pass  # Ignore unlock errors
+                    
     except (IOError, OSError) as e:
         logger.warning(f"Error checking file modification for {TASKS_FILE_PATH}: {e}")
         return True  # Force reload on errors

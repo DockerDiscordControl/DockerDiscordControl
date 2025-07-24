@@ -1596,14 +1596,33 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
 
     # Method to update global docker status cache from instance cache
     def update_global_status_cache(self):
-        """Updates the global docker_status_cache from the instance's status_cache."""
-        global docker_status_cache
+        """Updates the global status cache with current container statuses."""
         try:
-            # Copy the instance cache to the global variable
-            docker_status_cache = self.status_cache.copy()
-            logger.debug(f"Updated global docker_status_cache with {len(docker_status_cache)} entries")
+            # Use a lock to prevent race conditions during cache updates
+            if not hasattr(self, '_cache_lock'):
+                import threading
+                self._cache_lock = threading.Lock()
+            
+            with self._cache_lock:
+                global docker_status_cache
+                current_time = datetime.now(timezone.utc)
+                
+                # Clear old cache entries
+                docker_status_cache.clear()
+                
+                # Update with current status
+                for server in self.config.get('servers', []):
+                    docker_name = server.get('docker_name')
+                    if docker_name:
+                        docker_status_cache[docker_name] = {
+                            'last_updated': current_time,
+                            'status': 'unknown',  # Will be updated by actual status calls
+                            'updating': False
+                        }
+                        
+                logger.debug(f"Updated global status cache for {len(docker_status_cache)} containers")
         except Exception as e:
-            logger.error(f"Error updating global docker_status_cache: {e}")
+            logger.error(f"Error updating global status cache: {e}")
 
     # Accessor method to get the current status cache
     def get_status_cache(self) -> Dict[str, Any]:

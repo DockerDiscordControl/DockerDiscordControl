@@ -32,6 +32,10 @@ _PBKDF2_ITERATIONS = 260000 # Number of iterations for PBKDF2
 _CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_DIR = os.path.abspath(os.path.join(_CURRENT_DIR, "..", "config"))
 
+# Validate config directory path to prevent directory traversal
+if not CONFIG_DIR.startswith(os.path.abspath(os.path.join(_CURRENT_DIR, ".."))):
+    raise ConfigError("Invalid config directory path detected")
+
 # Configuration files
 BOT_CONFIG_FILE = os.path.join(CONFIG_DIR, "bot_config.json")
 DOCKER_CONFIG_FILE = os.path.join(CONFIG_DIR, "docker_config.json")
@@ -78,7 +82,7 @@ DEFAULT_CHANNELS_CONFIG = {
 
 DEFAULT_WEB_CONFIG = {
     "web_ui_user": "admin",
-    "web_ui_password_hash": generate_password_hash("admin", method="pbkdf2:sha256"),
+    "web_ui_password_hash": generate_password_hash("admin", method="pbkdf2:sha256", salt_length=16),
     "scheduler_debug_mode": False  # Default to false for production systems
 }
 
@@ -215,8 +219,8 @@ def process_config_form(form_data, current_config: Dict[str, Any]) -> Tuple[Dict
             if isinstance(guild_id, list): guild_id = guild_id[0] if guild_id else ''
             guild_id = str(guild_id).strip()
             if guild_id:
-                if not guild_id.isdigit() or len(guild_id) < 17:
-                    return current_config, False, "Guild ID appears invalid"
+                if not guild_id.isdigit() or len(guild_id) < 15 or len(guild_id) > 20:
+                    return current_config, False, "Guild ID appears invalid (must be 15-20 digits)"
                 new_config['guild_id'] = guild_id
             else:
                 new_config['guild_id'] = None
@@ -255,10 +259,9 @@ def process_config_form(form_data, current_config: Dict[str, Any]) -> Tuple[Dict
 
         # DEBUG: Show all allow_* keys in form_data
         allow_keys = [key for key in form_data.keys() if key.startswith('allow_')]
-        print(f"[CONFIG-DEBUG] All allow_* keys in form_data: {allow_keys}")
-        logger.info(f"[CONFIG] All allow_* keys in form_data: {allow_keys}")
-        print(f"[CONFIG-DEBUG] Processing servers in order: {final_server_order}")
-        logger.info(f"[CONFIG] Processing servers in order: {final_server_order}")
+        # Remove sensitive debug logging that could expose form data
+        logger.debug(f"[CONFIG] Processing {len(allow_keys)} permission keys")
+        logger.debug(f"[CONFIG] Processing servers in order: {final_server_order}")
 
         for idx, docker_name in enumerate(final_server_order):
             if docker_name in selected_docker_names_set:

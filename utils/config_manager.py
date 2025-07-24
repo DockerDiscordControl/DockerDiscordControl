@@ -271,12 +271,18 @@ class ConfigManager:
         key = base64.urlsafe_b64encode(kdf.derive(password_hash.encode('utf-8')))
         return key
     
-    def _decrypt_token(self, encrypted_token_str: Optional[str], password_hash: str) -> Optional[str]:
-        """Attempts to decrypt the bot token string using a key derived from the password hash."""
-        if not encrypted_token_str:
+    def _decrypt_token(self, encrypted_token_str: str, password_hash: str) -> Optional[str]:
+        """Decrypts a bot token using a key derived from the password hash."""
+        if not encrypted_token_str or not password_hash:
             return None
-
-        # For the bot token: Direct decryption attempt without locks and cache,
+        
+        # Check cache first, but validate the hash source for security
+        if (self._token_cache and 
+            self._token_cache_hash_source == password_hash and
+            len(self._token_cache) > 10):  # Basic token length validation
+            return self._token_cache
+        
+        # Decrypt the token if cache miss or invalid
         # since the bot mainly reads the token but doesn't write it
         try:
             derived_key = self._derive_encryption_key(password_hash)
@@ -284,7 +290,12 @@ class ConfigManager:
             decrypted_token_bytes = f.decrypt(encrypted_token_str.encode('utf-8'))
             decrypted_token = decrypted_token_bytes.decode('utf-8')
             
-            # Simplified cache update without lock acquisition
+            # Validate decrypted token format (basic Discord bot token validation)
+            if not self._is_valid_discord_token(decrypted_token):
+                logger.warning("Decrypted token does not appear to be a valid Discord bot token")
+                return None
+            
+            # Update cache with validated token
             try:
                 self._token_cache = decrypted_token
                 self._token_cache_hash_source = password_hash
@@ -302,6 +313,22 @@ class ConfigManager:
         except Exception as e:
             logger.error(f"Failed to decrypt token: Unexpected error: {e}")
             return None
+    
+    def _is_valid_discord_token(self, token: str) -> bool:
+        """Basic validation for Discord bot token format."""
+        if not token or not isinstance(token, str):
+            return False
+        
+        # Discord bot tokens typically start with specific patterns and have minimum length
+        if len(token) < 50:  # Discord tokens are typically much longer
+            return False
+            
+        # Basic format check (Discord tokens contain alphanumeric chars, dots, underscores, hyphens)
+        import re
+        if not re.match(r'^[A-Za-z0-9._-]+$', token):
+            return False
+            
+        return True
     
     def _encrypt_token(self, plaintext_token: str, password_hash: str) -> Optional[str]:
         """Encrypts a bot token using a key derived from the password hash."""

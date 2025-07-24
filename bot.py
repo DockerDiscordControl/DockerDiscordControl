@@ -63,7 +63,11 @@ init_config_cache(loaded_main_config)
 timezone_str = loaded_main_config.get('timezone', 'Europe/Berlin')
 try:
     tz = pytz.timezone(timezone_str)
-except:
+except pytz.exceptions.UnknownTimeZoneError as e:
+    logger.warning(f"Unknown timezone '{timezone_str}': {e}. Falling back to Europe/Berlin")
+    tz = pytz.timezone('Europe/Berlin')  # Fallback timezone
+except Exception as e:
+    logger.error(f"Unexpected error setting timezone '{timezone_str}': {e}. Falling back to Europe/Berlin")
     tz = pytz.timezone('Europe/Berlin')  # Fallback timezone
 
 # Explicitly refresh debug status on bot start
@@ -142,61 +146,59 @@ async def action_select(ctx, current):
     
     # Extract the container name from the context
     container_name = None
-    if hasattr(ctx, 'data') and isinstance(ctx.data, dict) and 'options' in ctx.data:
-        # discord.py style - Interaction object
-        options = ctx.data.get('options', [])
-        container_option = next((opt for opt in options if opt.get('name') == 'container_name'), None)
-        if container_option and container_option.get('value'):
-            container_name = container_option.get('value')
-    elif hasattr(ctx, 'options') and hasattr(ctx, 'focused'):
-        # PyCord style - AutocompleteContext with options/focused
-        try:
+    try:
+        if hasattr(ctx, 'data') and isinstance(ctx.data, dict) and 'options' in ctx.data:
+            # discord.py style - Interaction object
+            options = ctx.data.get('options', [])
+            container_option = next((opt for opt in options if opt.get('name') == 'container_name'), None)
+            if container_option and container_option.get('value'):
+                container_name = container_option.get('value')
+    except (AttributeError, TypeError, KeyError) as e:
+        logger.debug(f"Error extracting container name from context: {e}")
+        container_name = None
+    
+    # Extract the search text (current) from the context
+    search_text = ""
+    try:
+        if isinstance(current, str):
+            search_text = current.lower().strip()
+    except (AttributeError, TypeError):
+        search_text = ""
+    
+    # Handle PyCord style contexts
+    try:
+        if hasattr(ctx, 'options') and hasattr(ctx, 'focused'):
+            # PyCord style - AutocompleteContext with options/focused
             for key, value in ctx.options.items():
                 if key == 'container_name' and value:
                     container_name = value
                     break
-        except (AttributeError, TypeError):
-            pass
+    except (AttributeError, TypeError) as e:
+        logger.debug(f"Error extracting from PyCord context: {e}")
     
-    # Extract the search text (current) from the context
-    search_text = ""
-    if isinstance(current, str):
-        # discord.py style (for Interaction)
-        search_text = current
-    else:
-        # PyCord style (for AutocompleteContext)
+    # Get available actions for the container
+    available_actions = []
+    if container_name:
         try:
-            # Try to extract the value from the context
-            search_text = ctx.value or ""
-        except (AttributeError, TypeError):
-            # Fallback for other contexts
-            _import_logger.debug(f"Unknown autocomplete context type: {type(ctx)}, current type: {type(current)}")
-            search_text = ""
+            servers = config.get('servers', [])
+            for server in servers:
+                if server.get('docker_name') == container_name:
+                    available_actions = server.get('allowed_actions', [])
+                    break
+        except (KeyError, TypeError) as e:
+            logger.debug(f"Error getting allowed actions for container {container_name}: {e}")
     
-    # Determine the actions to display
-    if not container_name:
-        # If no container is selected, show default actions
-        actions = ["start", "stop", "restart"]
-    else:
-        # Container is selected, get allowed actions for this container
-        servers = config.get('servers', [])
-        server_conf = next((s for s in servers if s.get('docker_name') == container_name), None)
-        
-        if server_conf:
-            actions = server_conf.get('allowed_actions', ["start", "stop", "restart"])
-        else:
-            # Container not found, show default actions
-            actions = ["start", "stop", "restart"]
+    # If no container specified or no specific actions, return all valid actions
+    if not available_actions:
+        available_actions = ['start', 'stop', 'restart', 'status']
     
-    # Filter based on input (if any)
-    if search_text:
-        # Safe string matching
-        search_text_lower = search_text.lower() if hasattr(search_text, 'lower') else str(search_text).lower()
-        actions = [action for action in actions if search_text_lower in action.lower()]
+    # Filter actions based on search text and limit results to prevent memory issues
+    filtered_actions = [
+        action for action in available_actions 
+        if search_text in action.lower()
+    ][:10]  # Limit to 10 results to prevent memory issues
     
-    # Return a simple list of strings - NOT dict or Choice objects
-    logger.debug(f"action_select: Returning {len(actions)} items as simple strings")
-    return actions[:25]
+    return filtered_actions
 
 # Function to set up application commands with slash command choices and autocomplete
 def setup_app_commands():

@@ -69,7 +69,7 @@ def create_app(test_config=None):
 
     # Configure App
     app.config.from_mapping(
-        SECRET_KEY=os.getenv('FLASK_SECRET_KEY', 'fallback-secret-key-for-dev-if-not-set'),
+        SECRET_KEY=os.getenv('FLASK_SECRET_KEY', os.urandom(32).hex()),
         SESSION_COOKIE_SECURE=False,
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE='Lax',

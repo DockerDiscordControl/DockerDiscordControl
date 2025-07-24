@@ -56,7 +56,9 @@ async def container_select(original_ctx, original_current):
     if hasattr(original_current, 'value') and not isinstance(original_current, str):
         logger.info(f"  Treating original_current as AutocompleteContext. Accessing original_current.value.")
         try:
-            search_text = original_current.value or ""
+            raw_value = original_current.value or ""
+            # Sanitize the search text to prevent injection attacks
+            search_text = str(raw_value).strip()[:100] if raw_value else ""  # Limit length and sanitize
             logger.info(f"  Search text from original_current.value: '{search_text}'")
         except Exception as e:
             logger.error(f"  Error accessing original_current.value: {e}. Defaulting search_text.")
@@ -65,7 +67,9 @@ async def container_select(original_ctx, original_current):
         # Fallback if original_ctx is an AutocompleteContext (e.g. PyCord standard)
         logger.info(f"  Treating original_ctx as AutocompleteContext. Accessing original_ctx.value.")
         try:
-            search_text = original_ctx.value or ""
+            raw_value = original_ctx.value or ""
+            # Sanitize the search text to prevent injection attacks
+            search_text = str(raw_value).strip()[:100] if raw_value else ""  # Limit length and sanitize
             logger.info(f"  Search text from original_ctx.value: '{search_text}'")
         except Exception as e:
             logger.error(f"  Error accessing original_ctx.value: {e}. Defaulting search_text.")
@@ -73,7 +77,8 @@ async def container_select(original_ctx, original_current):
     elif isinstance(original_current, str):
         # Standard discord.py: original_current is the string value, original_ctx is Interaction
         logger.info(f"  Treating original_current as string value: '{original_current}'")
-        search_text = original_current
+        # Sanitize the search text to prevent injection attacks
+        search_text = str(original_current).strip()[:100] if original_current else ""
     else:
         logger.warning(f"  Could not reliably determine search_text. Defaulting to empty. original_ctx type: {type(original_ctx)}, original_current type: {type(original_current)}")
         search_text = ""

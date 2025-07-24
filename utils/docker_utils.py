@@ -228,68 +228,64 @@ def get_container_type_info(container_name: str) -> dict:
         'config_source': 'default'
     }
 
-async def get_docker_client():
-    """
-    Returns a Docker client from the pool or creates a new one.
-    Optimized with reduced ping frequency and longer client lifetime.
-    """
-    global _docker_client, _client_last_used, _client_ping_cache
+def get_docker_client():
+    """Get or create a Docker client with proper connection management."""
+    global _docker_client, _client_last_used
     
     current_time = time.time()
     
-    # Check if we have a client and if it's still valid
-    if _docker_client is not None:
-        # If client was used recently, return it without ping
-        if current_time - _client_last_used < _CLIENT_TIMEOUT:
-            _client_last_used = current_time
-            
-            # Only ping if cache is expired
-            if current_time - _client_ping_cache > _PING_CACHE_TTL:
-                try:
-                    await asyncio.to_thread(_docker_client.ping)
-                    _client_ping_cache = current_time
-                    logger.debug("Docker client ping successful (cached)")
-                except Exception as e:
-                    logger.warning(f"Docker client ping failed, recreating client: {e}")
-                    _docker_client = None
-                    _client_ping_cache = 0
-            
-            if _docker_client is not None:
-                return _docker_client
-    
-    # Create new client if needed
-    if _docker_client is None:
-        logger.info(f"Creating new DockerClient with base_url='unix:///var/run/docker.sock'. Current DOCKER_HOST env: {os.environ.get('DOCKER_HOST')}")
+    # Close and recreate client if it's too old or invalid
+    if (_docker_client is None or 
+        current_time - _client_last_used > _CLIENT_TIMEOUT or
+        not _is_client_healthy(_docker_client)):
+        
+        # Close existing client if it exists
+        if _docker_client is not None:
+            try:
+                _docker_client.close()
+            except Exception as e:
+                logger.warning(f"Error closing old Docker client: {e}")
+            finally:
+                _docker_client = None
+        
         try:
-            client_instance = await asyncio.to_thread(docker.DockerClient, base_url='unix:///var/run/docker.sock', timeout=15) # Erhöht von 10 auf 15
-            logger.info("Successfully created DockerClient instance.")
-            
-            # Initial ping for new client
-            logger.debug("Performing initial ping for new Docker client...")
-            await asyncio.to_thread(client_instance.ping)
-            logger.info("Successfully pinged Docker daemon.")
-            
-            _docker_client = client_instance
+            _docker_client = docker.from_env()
             _client_last_used = current_time
-            _client_ping_cache = current_time
-            return _docker_client
+            logger.debug("Created new Docker client")
         except Exception as e:
-            logger.error(f"Error creating (or pinging) DockerClient with base_url='unix:///var/run/docker.sock': {e}", exc_info=True)
-            return None
+            logger.error(f"Failed to create Docker client: {e}")
+            raise
+    else:
+        _client_last_used = current_time
     
     return _docker_client
+
+def _is_client_healthy(client):
+    """Check if Docker client is healthy and responsive."""
+    if client is None:
+        return False
+    try:
+        # Quick ping to check if client is responsive
+        client.ping()
+        return True
+    except Exception:
+        return False
 
 async def release_docker_client():
     """Closes the current Docker client if idle for too long."""
     global _docker_client, _client_last_used
     
-    if _docker_client is not None and (time.time() - _client_last_used > _CLIENT_TIMEOUT):
+    current_time = time.time()
+    if (_docker_client is not None and 
+        current_time - _client_last_used > _CLIENT_TIMEOUT):
         try:
             await asyncio.to_thread(_docker_client.close)
-            logger.info("Released Docker client due to inactivity.")
-            _docker_client = None
+            logger.debug("Released idle Docker client")
         except Exception as e:
-            logger.debug(f"Error during client release: {e}")
+            logger.warning(f"Error releasing Docker client: {e}")
+        finally:
+            _docker_client = None
+            _client_last_used = 0
 
 class DockerError(Exception):
     """Custom exception class for Docker-related errors."""
@@ -369,23 +365,59 @@ async def get_docker_stats(docker_container_name: str) -> Tuple[Optional[str], O
         logger.error(f"Error getting Docker stats for {docker_container_name}: {e}", exc_info=True)
         return None, None
 
-async def get_docker_info(docker_container_name: str) -> Optional[Dict[str, Any]]:
-    if not docker_container_name:
-        logger.warning("get_docker_info called without container name.")
-        return None
+async def get_docker_info(container_name: str, timeout_config: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
+    """
+    Retrieves detailed information about a Docker container.
+    
+    Args:
+        container_name: Name of the container
+        timeout_config: Optional timeout configuration
+        
+    Returns:
+        Dictionary containing container information
+    """
     try:
-        client = await get_docker_client()
-        if not client:
-            logger.warning(f"get_docker_info: Could not get Docker client for {docker_container_name}.")
-            return None
-        container = await asyncio.to_thread(client.containers.get, docker_container_name)
-        return container.attrs
+        # Get timeout configuration
+        if timeout_config is None:
+            timeout_config = get_container_timeouts(container_name)
+        
+        info_timeout = timeout_config.get('info_timeout', DEFAULT_SLOW_INFO_TIMEOUT)
+        
+        # Get Docker client (now synchronous)
+        client = await asyncio.to_thread(get_docker_client)
+        if client is None:
+            raise DockerError("Failed to get Docker client")
+        
+        # Get container info with timeout
+        container_info = await asyncio.wait_for(
+            asyncio.to_thread(client.containers.get, container_name),
+            timeout=info_timeout
+        )
+        
+        # Extract relevant information
+        info = {
+            'name': container_info.name,
+            'id': container_info.id[:12],
+            'status': container_info.status,
+            'image': container_info.image.tags[0] if container_info.image.tags else container_info.image.id[:12],
+            'created': container_info.attrs.get('Created', ''),
+            'ports': container_info.attrs.get('NetworkSettings', {}).get('Ports', {}),
+            'environment': container_info.attrs.get('Config', {}).get('Env', []),
+            'mounts': container_info.attrs.get('Mounts', []),
+            'restart_policy': container_info.attrs.get('HostConfig', {}).get('RestartPolicy', {}),
+        }
+        
+        return info
+        
+    except asyncio.TimeoutError:
+        logger.warning(f"Timeout getting info for container '{container_name}' (timeout: {info_timeout}s)")
+        raise DockerError(f"Timeout getting container info (>{info_timeout}s)")
     except docker.errors.NotFound:
-        logger.warning(f"Container '{docker_container_name}' not found.")
-        return None
+        logger.warning(f"Container '{container_name}' not found")
+        raise DockerError(f"Container '{container_name}' not found")
     except Exception as e:
-        logger.error(f"Unexpected error in get_docker_info for '{docker_container_name}': {e}", exc_info=True)
-        return None
+        logger.error(f"Error getting info for container '{container_name}': {e}")
+        raise DockerError(f"Failed to get container info: {e}")
 
 async def docker_action(docker_container_name: str, action: str) -> bool:
     valid_actions = {
