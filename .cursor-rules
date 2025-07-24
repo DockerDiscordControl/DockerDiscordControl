@@ -1,0 +1,78 @@
+# Cursor Agent Rules - DockerDiscordControl
+
+## CRITICAL ASYNC RULES - NEVER VIOLATE
+
+### 🚨 NEVER CONVERT THESE TO SYNC:
+- `get_docker_client()` - MUST remain `async def`
+- `docker_action()` - MUST remain `async def`  
+- `get_docker_stats()` - MUST remain `async def`
+- `list_docker_containers()` - MUST remain `async def`
+- `is_container_exists()` - MUST remain `async def`
+
+### 🔒 THREAD SAFETY REQUIREMENTS:
+- Always use `_docker_client_lock` when accessing `_docker_client`
+- Never remove `with _docker_client_lock:` patterns
+- Keep `threading.Lock()` imports where present
+
+### 🧵 ASYNC/AWAIT PATTERNS:
+- If function calls Docker API → make it `async def`
+- If function is called from Discord.py → make it `async def`
+- Use `await asyncio.to_thread()` for blocking Docker calls
+- Use `await get_docker_client()` NOT `get_docker_client()`
+
+### 🚫 FORBIDDEN PATTERNS:
+```python
+# ❌ DON'T DO THIS:
+def get_docker_client():  # Should be async def
+    return docker.from_env()
+
+client = get_docker_client()  # Missing await
+
+except:  # Too broad - use specific exceptions
+    pass
+
+time.sleep()  # In async context - use asyncio.sleep()
+```
+
+### ✅ REQUIRED PATTERNS:
+```python
+# ✅ DO THIS:
+async def get_docker_client():
+    with _docker_client_lock:
+        # implementation
+
+client = await get_docker_client()
+
+except docker.errors.DockerException as e:
+    logger.error(f"Docker error: {e}")
+
+await asyncio.sleep(1)  # Non-blocking
+```
+
+### 📁 FILE-SPECIFIC RULES:
+
+#### utils/docker_utils.py
+- ALL Docker functions MUST be async
+- ALWAYS use thread locks for shared state
+- NEVER remove caching mechanisms
+
+#### cogs/docker_control.py  
+- All Discord command handlers are async
+- Use direct `await` calls to docker_utils
+
+#### utils/scheduler.py
+- NEVER add unconditional `import fcntl`
+- Use cross-platform file operations
+- Keep existing async patterns
+
+## BEFORE MAKING CHANGES:
+1. Read ASYNC_ARCHITECTURE_GUIDELINES.md
+2. Check if function has `_lock` variables
+3. Verify all callers support your changes
+4. Test both async and sync contexts
+
+## ERROR PREVENTION:
+- TypeError with "can't be used in 'await'" → Function signature mismatch
+- ImportError with "fcntl" → Cross-platform compatibility issue
+- Race conditions → Missing thread locks
+- Blocking → Using sync calls in async context 
