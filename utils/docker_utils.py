@@ -295,8 +295,8 @@ async def release_docker_client():
                 await asyncio.to_thread(_docker_client.close)
                 logger.info("Released Docker client due to inactivity.")
                 _docker_client = None
-        except Exception as e:
-            logger.debug(f"Error during client release: {e}")
+            except Exception as e:
+                logger.debug(f"Error during client release: {e}")
 
 class DockerError(Exception):
     """Custom exception class for Docker-related errors."""
