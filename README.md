@@ -155,15 +155,15 @@ DDC now includes advanced performance optimization settings that can be configur
 
 #### Memory Optimization
 ```bash
-# Docker Cache Settings
+# Docker Cache Settings - Optimized for 1-minute Web UI updates
 DDC_MAX_CACHED_CONTAINERS=100          # Maximum containers in cache (default: 100)
-DDC_CACHE_CLEANUP_INTERVAL=300         # Cache cleanup interval in seconds (default: 300)
-DDC_DOCKER_CACHE_DURATION=75           # Cache duration in seconds (default: 75)
-DDC_DOCKER_MAX_CACHE_AGE=150          # Maximum cache age before forced refresh (default: 150)
+DDC_DOCKER_CACHE_DURATION=45           # Cache duration in seconds (default: 45, supports 1-min updates)
+DDC_DOCKER_MAX_CACHE_AGE=90            # Maximum cache age before forced refresh (default: 90)
+DDC_CACHE_CLEANUP_INTERVAL=300         # Memory cleanup interval in seconds (default: 300)
 
-# Background Refresh Settings
+# Background Refresh Settings - CRITICAL for 1-minute Web UI updates
 DDC_ENABLE_BACKGROUND_REFRESH=true     # Enable background Docker cache refresh (default: true)
-DDC_BACKGROUND_REFRESH_INTERVAL=30     # Background refresh interval (default: 30)
+DDC_BACKGROUND_REFRESH_INTERVAL=30     # Background refresh interval (default: 30, required for 1-min updates)
 ```
 
 #### CPU Optimization
@@ -227,6 +227,8 @@ DDC_MAX_CACHED_CONTAINERS=200
 DDC_SCHEDULER_CHECK_INTERVAL=90
 DDC_MAX_CONCURRENT_TASKS=5
 ```
+
+**Important Cache Timing**: The Docker cache is updated every 30 seconds with a 45-second cache duration to ensure fresh data for users who set 1-minute update intervals in the Web UI. This timing is critical for maintaining data freshness at the minimum supported interval.
 
 **Note**: All Web UI configuration options remain fully functional regardless of these performance optimizations. The interval frequency settings and all other configuration capabilities are preserved and unaffected.
 

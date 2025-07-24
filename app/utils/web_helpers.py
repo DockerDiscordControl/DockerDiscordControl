@@ -49,19 +49,22 @@ ACTION_LOG_FILE = os.path.join(LOG_DIR, 'user_actions.log')
 DISCORD_LOG_FILE = os.path.join(LOG_DIR, 'discord.log')
 
 # Improved cache configuration
-# Default: 75 seconds cache duration to match DockerControlCog cache
-DEFAULT_CACHE_DURATION = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', 75))
+# CRITICAL: Cache duration MUST be shorter than minimum update interval (1 minute)
+# Keep at 45 seconds to ensure fresh data for 1-minute Web UI updates
+DEFAULT_CACHE_DURATION = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', 45))
 # Minimum time between Docker API requests in seconds
 DOCKER_QUERY_COOLDOWN = float(os.environ.get('DDC_DOCKER_QUERY_COOLDOWN', 1.0))
 # Maximum age for container data before forced update in seconds
-MAX_CACHE_AGE = int(os.environ.get('DDC_DOCKER_MAX_CACHE_AGE', 150))
+# Keep at 90 seconds (1.5x cache duration) to support 1-minute updates
+MAX_CACHE_AGE = int(os.environ.get('DDC_DOCKER_MAX_CACHE_AGE', 90))
 # Flag to enable background refresh
 ENABLE_BACKGROUND_REFRESH = os.environ.get('DDC_ENABLE_BACKGROUND_REFRESH', 'true').lower() == 'true'
-# Background refresh interval (more frequent than Discord bot queries)
+# Background refresh interval - MUST be frequent for 1-minute update intervals
+# Keep at 30 seconds to support minimum 1-minute Web UI update intervals
 BACKGROUND_REFRESH_INTERVAL = int(os.environ.get('DDC_BACKGROUND_REFRESH_INTERVAL', 30))
 # Memory optimization: Limit maximum containers in cache
 MAX_CACHED_CONTAINERS = int(os.environ.get('DDC_MAX_CACHED_CONTAINERS', 100))
-# Memory optimization: Cache cleanup interval
+# Memory optimization: Cache cleanup interval (can be longer since it's just cleanup)
 CACHE_CLEANUP_INTERVAL = int(os.environ.get('DDC_CACHE_CLEANUP_INTERVAL', 300))  # 5 minutes
 
 # Extended cache structure with TTL and container-specific timestamps
@@ -317,7 +320,8 @@ def _cleanup_docker_cache(logger, current_time):
     logger.info("Performing Docker cache memory cleanup")
     
     # Clean up old container timestamps and hashes
-    cutoff_time = current_time - (MAX_CACHE_AGE * 2)  # Keep data for 2x max cache age
+    # Use longer cutoff for cleanup (10 minutes) since this is just memory management
+    cutoff_time = current_time - 600  # Keep data for 10 minutes
     
     old_timestamps = docker_cache['container_timestamps'].copy()
     old_hashes = docker_cache['container_hashes'].copy()

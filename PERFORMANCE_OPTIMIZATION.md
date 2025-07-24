@@ -33,7 +33,9 @@ Ihre DDC-Instanz zeigt **kritische Performance-Probleme** mit Update-Zeiten von 
 
 ### 5. **Enhanced Docker Container Cache** 🐳
 - **Container-Limit**: Maximal 100 Container im Cache (konfigurierbar)
-- **Periodische Bereinigung** alle 5 Minuten
+- **Cache-Update**: Alle 30 Sekunden (unterstützt 1-Minuten Web UI Updates)
+- **Cache-Dauer**: 45 Sekunden (optimiert für schnelle Updates)
+- **Speicher-Bereinigung** alle 5 Minuten
 - **Optimierte Datenstrukturen** für Ports und Labels
 - **Batch-Processing** für Cache-Updates
 
@@ -74,10 +76,16 @@ Ihr Channel `1360187769682657293` hat ein **extrem aggressives 1-Minuten-Interva
 - **Monitoring only**: 60+ Minuten
 
 ### **Neue Environment Variables für Tuning:**
+
+⚠️ **WICHTIG**: Cache-Timing für 1-Minuten Web UI Updates optimiert!
+
 ```bash
-# Docker Cache Optimierung
+# Docker Cache Optimierung - KRITISCH für schnelle Updates
 DDC_MAX_CACHED_CONTAINERS=100          # Maximale Container im Cache
-DDC_CACHE_CLEANUP_INTERVAL=300         # Cache-Bereinigung (Sekunden)
+DDC_DOCKER_CACHE_DURATION=45           # Cache-Dauer (MUSS < 1 Minute für Web UI)
+DDC_BACKGROUND_REFRESH_INTERVAL=30     # Cache-Update (MUSS < 1 Minute für Web UI)
+DDC_DOCKER_MAX_CACHE_AGE=90            # Maximales Cache-Alter vor Zwangs-Update
+DDC_CACHE_CLEANUP_INTERVAL=300         # Speicher-Bereinigung (kann länger sein)
 
 # Scheduler Optimierung  
 DDC_SCHEDULER_CHECK_INTERVAL=120       # Scheduler Check-Interval (Sekunden)
