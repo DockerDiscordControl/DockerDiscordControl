@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 import os
 import logging
 import time
+import threading
 from typing import Dict, Any, List, Optional, Tuple, Union
 
 # Import app_commands using central utility
@@ -68,6 +69,7 @@ logger = setup_logger('ddc.docker_control', level=logging.DEBUG)
 
 # Global variable for Docker status cache to allow access from other modules
 docker_status_cache = {}
+docker_status_cache_lock = threading.Lock()  # Thread safety for global status cache
 
 class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin, CommandHandlersMixin):
     """Cog for DockerDiscordControl container management via Discord."""
@@ -1599,9 +1601,10 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         """Updates the global docker_status_cache from the instance's status_cache."""
         global docker_status_cache
         try:
-            # Copy the instance cache to the global variable
-            docker_status_cache = self.status_cache.copy()
-            logger.debug(f"Updated global docker_status_cache with {len(docker_status_cache)} entries")
+            # Thread-safe update of global status cache
+            with docker_status_cache_lock:
+                docker_status_cache = self.status_cache.copy()
+                logger.debug(f"Updated global docker_status_cache with {len(docker_status_cache)} entries")
         except Exception as e:
             logger.error(f"Error updating global docker_status_cache: {e}")
 

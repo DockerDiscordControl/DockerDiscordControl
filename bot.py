@@ -63,7 +63,8 @@ init_config_cache(loaded_main_config)
 timezone_str = loaded_main_config.get('timezone', 'Europe/Berlin')
 try:
     tz = pytz.timezone(timezone_str)
-except:
+except (pytz.exceptions.UnknownTimeZoneError, Exception) as e:
+    logger.warning(f"Invalid timezone '{timezone_str}': {e}. Using fallback 'Europe/Berlin'")
     tz = pytz.timezone('Europe/Berlin')  # Fallback timezone
 
 # Explicitly refresh debug status on bot start

@@ -134,7 +134,8 @@ def log_user_action(action: str, target: str, source: str = "Web UI", details: s
             if user_action_logger:
                 user_logger_msg = f"{action}|{target}|Web UI|{source}|{details}"
                 user_action_logger.info(user_logger_msg)
-        except:
+        except (OSError, IOError, AttributeError) as e:
+            # Ignore logging errors but be specific about which ones
             pass
 
 def hash_container_data(container_data):

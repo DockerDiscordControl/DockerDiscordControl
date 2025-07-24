@@ -738,7 +738,7 @@ class ScheduleCommandsMixin:
                 return
             
             # Use current year for yearly tasks
-            current_year = datetime.now().year
+            current_year = datetime.now(timezone.utc).year
             
             # Validate the inputs using existing function
             is_valid_input, error_message = validate_new_task_input(

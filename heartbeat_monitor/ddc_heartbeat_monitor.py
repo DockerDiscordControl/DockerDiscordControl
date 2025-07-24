@@ -386,8 +386,9 @@ class HeartbeatMonitor(discord.Client):
                 color=discord.Color.orange(),
                 is_startup=True
             )
-        except:
-            pass  # Ignore errors during shutdown
+        except (discord.HTTPException, discord.Forbidden, ConnectionError) as e:
+            # Ignore specific Discord errors during shutdown
+            pass
         
         # Close client
         if not self.is_closed():

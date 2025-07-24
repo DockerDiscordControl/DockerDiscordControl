@@ -91,6 +91,12 @@ def _get_cached_translations(lang: str) -> dict:
             'detail_denied_text': _("Detailed status not allowed."),
             'last_update_text': _("Last update")
         }
+        
+        # Prevent cache from growing too large (keep last 10 languages)
+        if len(_translation_cache) > 10:
+            oldest_key = next(iter(_translation_cache))
+            del _translation_cache[oldest_key]
+            
     return _translation_cache[lang]
 
 # =============================================================================
@@ -111,6 +117,13 @@ def _get_cached_box_elements(display_name: str, box_width: int = 28) -> dict:
             'header_line': f"┌{header_text}{'─' * padding_width}",
             'footer_line': f"└{'─' * (box_width - 1)}"
         }
+        
+        # Prevent cache from growing too large (keep last 50 entries)
+        if len(_box_element_cache) > 50:
+            keys_to_remove = list(_box_element_cache.keys())[:10]
+            for key in keys_to_remove:
+                del _box_element_cache[key]
+                
     return _box_element_cache[cache_key]
 
 # =============================================================================
@@ -128,6 +141,12 @@ def _get_container_static_data(display_name: str, docker_name: str) -> dict:
             'box_elements': _get_cached_box_elements(display_name, 28),
             'short_name': display_name[:20] + "..." if len(display_name) > 23 else display_name
         }
+        
+        # Prevent cache from growing too large (keep last 100 containers)
+        if len(_container_static_data) > 100:
+            oldest_key = next(iter(_container_static_data))
+            del _container_static_data[oldest_key]
+            
     return _container_static_data[display_name]
 
 # =============================================================================

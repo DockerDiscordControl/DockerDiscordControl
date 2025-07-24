@@ -89,7 +89,7 @@ def log_user_action(action: str, target: str, user: str = "System", source: str 
         # Silent error handling for robustness in all environments
         try:
             print(f"ERROR: Failed to log user action: {e}", file=sys.stderr)
-        except:
-            pass  # Last resort: Ignore all errors
+        except (OSError, IOError):
+            pass  # Last resort: Ignore I/O errors only
 
 # The test code has been removed as it is no longer needed 

@@ -10,7 +10,7 @@ from flask import current_app, jsonify, request
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import check_password_hash, generate_password_hash
 from utils.config_loader import load_config
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import threading
 
 auth = HTTPBasicAuth()
@@ -25,7 +25,7 @@ class SimpleRateLimiter:
     
     def is_rate_limited(self, ip):
         """Checks if an IP has exceeded the rate limit"""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         with self.lock:
             # Delete old entries
             self.cleanup_old_entries(now)

@@ -813,8 +813,8 @@ def _save_raw_tasks_to_file(tasks_data: List[Dict[str, Any]]) -> bool:
                 # Clean up the temporary file in case of error
                 try:
                     os.unlink(temp_path)
-                except:
-                    pass
+                except (OSError, IOError) as cleanup_error:
+                    logger.debug(f"Failed to cleanup temporary file {temp_path}: {cleanup_error}")
                 raise e
                 
         except (IOError, OSError) as e:
@@ -1226,6 +1226,11 @@ def validate_new_task_input( # Primarily used by the Discord Bot
     if not container_name:
         return False, "Container name is required"
     
+    # Import and validate container name format
+    from utils.common_helpers import validate_container_name
+    if not validate_container_name(container_name):
+        return False, f"Invalid container name format: {container_name}"
+    
     if action not in VALID_ACTIONS:
         return False, f"Invalid action: {action}. Must be one of: {', '.join(VALID_ACTIONS)}"
     
@@ -1264,7 +1269,7 @@ def validate_new_task_input( # Primarily used by the Discord Bot
             if day is None or not (1 <= day <= 31): return False, f"Day must be between 1 and 31 for yearly tasks."
             try: 
                 # Validate the date with current year to ensure it's valid (e.g., Feb 29 would fail in non-leap years)
-                current_year = datetime.now().year
+                current_year = datetime.now(timezone.utc).year
                 datetime(current_year, month, day, hour, minute)
             except ValueError as e: 
                 # Check if it's Feb 29 in a non-leap year

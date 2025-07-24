@@ -9,6 +9,7 @@ from utils.logging_utils import setup_logger
 import time
 import os
 import json
+import threading
 
 # Logger for Docker utils
 logger = setup_logger('ddc.docker_utils', level=logging.INFO)
@@ -19,6 +20,7 @@ _client_last_used = 0
 _CLIENT_TIMEOUT = 300  # Erhöht von 60 auf 300 Sekunden (5 Minuten)
 _client_ping_cache = 0  # Cache für Ping-Ergebnisse
 _PING_CACHE_TTL = 120   # Ping-Cache für 2 Minuten
+_docker_client_lock = threading.Lock()  # Thread safety for Docker client
 
 # PERFORMANCE OPTIMIZATION: Flexible container timeout configuration
 # Environment variables for timeout configuration (can be overridden)
@@ -237,45 +239,49 @@ async def get_docker_client():
     
     current_time = time.time()
     
-    # Check if we have a client and if it's still valid
-    if _docker_client is not None:
-        # If client was used recently, return it without ping
-        if current_time - _client_last_used < _CLIENT_TIMEOUT:
-            _client_last_used = current_time
-            
-            # Only ping if cache is expired
-            if current_time - _client_ping_cache > _PING_CACHE_TTL:
-                try:
-                    await asyncio.to_thread(_docker_client.ping)
-                    _client_ping_cache = current_time
-                    logger.debug("Docker client ping successful (cached)")
-                except Exception as e:
-                    logger.warning(f"Docker client ping failed, recreating client: {e}")
-                    _docker_client = None
-                    _client_ping_cache = 0
-            
-            if _docker_client is not None:
-                return _docker_client
+    # Thread-safe access to Docker client
+    with _docker_client_lock:
+        # Check if we have a client and if it's still valid
+        if _docker_client is not None:
+            # If client was used recently, return it without ping
+            if current_time - _client_last_used < _CLIENT_TIMEOUT:
+                _client_last_used = current_time
+                
+                # Only ping if cache is expired
+                if current_time - _client_ping_cache > _PING_CACHE_TTL:
+                    try:
+                        await asyncio.to_thread(_docker_client.ping)
+                        _client_ping_cache = current_time
+                        logger.debug("Docker client ping successful (cached)")
+                    except Exception as e:
+                        logger.warning(f"Docker client ping failed, recreating client: {e}")
+                        _docker_client = None
+                        _client_ping_cache = 0
+                
+                if _docker_client is not None:
+                    return _docker_client
     
-    # Create new client if needed
-    if _docker_client is None:
-        logger.info(f"Creating new DockerClient with base_url='unix:///var/run/docker.sock'. Current DOCKER_HOST env: {os.environ.get('DOCKER_HOST')}")
-        try:
-            client_instance = await asyncio.to_thread(docker.DockerClient, base_url='unix:///var/run/docker.sock', timeout=15) # Erhöht von 10 auf 15
-            logger.info("Successfully created DockerClient instance.")
-            
-            # Initial ping for new client
-            logger.debug("Performing initial ping for new Docker client...")
-            await asyncio.to_thread(client_instance.ping)
-            logger.info("Successfully pinged Docker daemon.")
-            
-            _docker_client = client_instance
-            _client_last_used = current_time
-            _client_ping_cache = current_time
-            return _docker_client
-        except Exception as e:
-            logger.error(f"Error creating (or pinging) DockerClient with base_url='unix:///var/run/docker.sock': {e}", exc_info=True)
-            return None
+    # Create new client if needed (with thread safety)
+    with _docker_client_lock:
+        # Double-check pattern to avoid race conditions
+        if _docker_client is None:
+            logger.info(f"Creating new DockerClient with base_url='unix:///var/run/docker.sock'. Current DOCKER_HOST env: {os.environ.get('DOCKER_HOST')}")
+            try:
+                client_instance = await asyncio.to_thread(docker.DockerClient, base_url='unix:///var/run/docker.sock', timeout=15) # Erhöht von 10 auf 15
+                logger.info("Successfully created DockerClient instance.")
+                
+                # Initial ping for new client
+                logger.debug("Performing initial ping for new Docker client...")
+                await asyncio.to_thread(client_instance.ping)
+                logger.info("Successfully pinged Docker daemon.")
+                
+                _docker_client = client_instance
+                _client_last_used = current_time
+                _client_ping_cache = current_time
+                return _docker_client
+            except Exception as e:
+                logger.error(f"Error creating (or pinging) DockerClient with base_url='unix:///var/run/docker.sock': {e}", exc_info=True)
+                return None
     
     return _docker_client
 
@@ -283,11 +289,12 @@ async def release_docker_client():
     """Closes the current Docker client if idle for too long."""
     global _docker_client, _client_last_used
     
-    if _docker_client is not None and (time.time() - _client_last_used > _CLIENT_TIMEOUT):
-        try:
-            await asyncio.to_thread(_docker_client.close)
-            logger.info("Released Docker client due to inactivity.")
-            _docker_client = None
+    with _docker_client_lock:
+        if _docker_client is not None and (time.time() - _client_last_used > _CLIENT_TIMEOUT):
+            try:
+                await asyncio.to_thread(_docker_client.close)
+                logger.info("Released Docker client due to inactivity.")
+                _docker_client = None
         except Exception as e:
             logger.debug(f"Error during client release: {e}")
 
@@ -398,6 +405,12 @@ async def docker_action(docker_container_name: str, action: str) -> bool:
     if not docker_container_name:
         logger.error("Docker action failed: No container name provided")
         return False
+    
+    # Validate container name format for security
+    from utils.common_helpers import validate_container_name
+    if not validate_container_name(docker_container_name):
+        logger.error(f"Docker action failed: Invalid container name format: {docker_container_name}")
+        return False
     try:
         client = await get_docker_client()
         if not client:
@@ -418,6 +431,7 @@ async def docker_action(docker_container_name: str, action: str) -> bool:
 _containers_cache = None
 _cache_timestamp = 0
 _CACHE_TTL = 10  # seconds
+_containers_cache_lock = threading.Lock()  # Thread safety for container cache
 
 async def list_docker_containers() -> List[Dict[str, Any]]:
     try:
@@ -467,9 +481,12 @@ async def is_container_exists(docker_container_name: str) -> bool:
 async def get_containers_data() -> List[Dict[str, Any]]:
     global _containers_cache, _cache_timestamp
     current_time = time.time()
-    if _containers_cache is not None and (current_time - _cache_timestamp < _CACHE_TTL):
-        logger.debug("Using cached container data")
-        return _containers_cache
+    
+    # Thread-safe cache access
+    with _containers_cache_lock:
+        if _containers_cache is not None and (current_time - _cache_timestamp < _CACHE_TTL):
+            logger.debug("Using cached container data")
+            return _containers_cache.copy()  # Return copy to avoid modification
     try:
         client = await get_docker_client()
         if not client:
@@ -513,8 +530,12 @@ async def get_containers_data() -> List[Dict[str, Any]]:
                     "error": str(e_inner)
                 })
         sorted_result = sorted(result, key=lambda x: x.get("name", "").lower())
-        _containers_cache = sorted_result
-        _cache_timestamp = current_time
+        
+        # Thread-safe cache update
+        with _containers_cache_lock:
+            _containers_cache = sorted_result
+            _cache_timestamp = current_time
+            
         return sorted_result
     except Exception as e:
         logger.error(f"Error in get_containers_data: {e}", exc_info=True)

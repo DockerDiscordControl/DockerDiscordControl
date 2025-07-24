@@ -5,7 +5,7 @@ These functions provide dropdown suggestions for command arguments.
 """
 import logging
 import discord
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Union, Optional, Callable, Any
 from functools import lru_cache
 import time
@@ -335,7 +335,7 @@ async def schedule_year_select(
     ctx: discord.AutocompleteContext
 ):
     value_being_typed = ctx.value
-    current_year = datetime.now().year
+    current_year = datetime.now(timezone.utc).year
     years_str = [str(current_year + i) for i in range(6)] 
     
     return _filter_choices(value_being_typed, years_str)

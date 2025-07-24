@@ -126,7 +126,7 @@ class HeartbeatMonitor(discord.Client):
         # State tracking
         self.last_heartbeat_time = None
         self.alert_sent = False
-        self.start_time = datetime.datetime.now()
+        self.start_time = datetime.now(timezone.utc)
         
         # Start monitoring loop
         self.heartbeat_check.start()
@@ -154,7 +154,7 @@ class HeartbeatMonitor(discord.Client):
             "❤️" in message.content):
             
             # Update last heartbeat time
-            self.last_heartbeat_time = datetime.datetime.now()
+            self.last_heartbeat_time = datetime.now(timezone.utc)
             logger.debug(f"Heartbeat detected at {{self.last_heartbeat_time.isoformat()}}")
             
             # If we previously sent an alert, send recovery notification
@@ -173,7 +173,7 @@ class HeartbeatMonitor(discord.Client):
             title=title,
             description=description,
             color=color,
-            timestamp=datetime.datetime.now()
+                            timestamp=datetime.now(timezone.utc)
         )
         embed.set_footer(text="DDC Heartbeat Monitor | https://ddc.bot")
         
@@ -190,7 +190,7 @@ class HeartbeatMonitor(discord.Client):
     @tasks.loop(seconds=30)
     async def heartbeat_check(self):
         '''Check if heartbeat has been received within the timeout period'''
-        now = datetime.datetime.now()
+        now = datetime.now(timezone.utc)
         
         if not self.last_heartbeat_time:
             # No heartbeat received yet since startup
@@ -210,7 +210,7 @@ class HeartbeatMonitor(discord.Client):
             return  # Don't spam alerts
         
         # Calculate elapsed time
-        now = datetime.datetime.now()
+        now = datetime.now(timezone.utc)
         if self.last_heartbeat_time:
             elapsed_seconds = (now - self.last_heartbeat_time).total_seconds()
             last_heartbeat_time_str = self.last_heartbeat_time.isoformat()
@@ -351,7 +351,7 @@ def config_page():
         init_config_cache(fresh_config)
         config = fresh_config
     
-    now = datetime.now().strftime("%Y%m%d%H%M%S") # datetime is now imported
+    now = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S") # datetime is now imported
     live_containers_list, cache_error = get_docker_containers_live(logger)
     
     configured_servers = {}

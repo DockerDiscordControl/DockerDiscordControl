@@ -12,6 +12,7 @@ Eliminates redundant code between different modules.
 """
 
 from typing import Dict, Any, List, Optional, Union, Tuple
+import asyncio
 from utils.logging_utils import get_module_logger
 from utils.time_utils import get_datetime_imports, format_duration
 
@@ -306,6 +307,39 @@ def retry_on_exception(max_retries: int = 3, delay: float = 1.0, backoff: float 
                     if attempt < max_retries:
                         logger.warning(f"Attempt {attempt + 1} failed for {func.__name__}: {e}. Retrying in {current_delay}s...")
                         time.sleep(current_delay)
+                        current_delay *= backoff
+                    else:
+                        logger.error(f"All {max_retries + 1} attempts failed for {func.__name__}")
+                        
+            raise last_exception
+        return wrapper
+    return decorator
+
+def async_retry_with_backoff(max_retries=3, initial_delay=1.0, backoff=2.0):
+    """
+    Async version of retry_with_backoff decorator that uses asyncio.sleep.
+    
+    Args:
+        max_retries: Maximum number of retry attempts
+        initial_delay: Initial delay between retries in seconds
+        backoff: Multiplier for delay after each retry
+    """
+    def decorator(func):
+        async def wrapper(*args, **kwargs):
+            current_delay = initial_delay
+            last_exception = None
+            
+            for attempt in range(max_retries + 1):
+                try:
+                    if asyncio.iscoroutinefunction(func):
+                        return await func(*args, **kwargs)
+                    else:
+                        return func(*args, **kwargs)
+                except Exception as e:
+                    last_exception = e
+                    if attempt < max_retries:
+                        logger.warning(f"Attempt {attempt + 1} failed for {func.__name__}: {e}. Retrying in {current_delay}s...")
+                        await asyncio.sleep(current_delay)
                         current_delay *= backoff
                     else:
                         logger.error(f"All {max_retries + 1} attempts failed for {func.__name__}")
