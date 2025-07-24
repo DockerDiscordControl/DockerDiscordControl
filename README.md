@@ -147,6 +147,89 @@ docker run -d --name ddc \
 3. **Configure**: Bot token, Guild ID, container permissions
 4. **Restart**: `docker compose restart` after initial setup
 
+## Environment Variables
+
+### Performance Optimization Variables (New in 2025)
+
+DDC now includes advanced performance optimization settings that can be configured via environment variables:
+
+#### Memory Optimization
+```bash
+# Docker Cache Settings
+DDC_MAX_CACHED_CONTAINERS=100          # Maximum containers in cache (default: 100)
+DDC_CACHE_CLEANUP_INTERVAL=300         # Cache cleanup interval in seconds (default: 300)
+DDC_DOCKER_CACHE_DURATION=75           # Cache duration in seconds (default: 75)
+DDC_DOCKER_MAX_CACHE_AGE=150          # Maximum cache age before forced refresh (default: 150)
+
+# Background Refresh Settings
+DDC_ENABLE_BACKGROUND_REFRESH=true     # Enable background Docker cache refresh (default: true)
+DDC_BACKGROUND_REFRESH_INTERVAL=30     # Background refresh interval (default: 30)
+```
+
+#### CPU Optimization
+```bash
+# Scheduler Service Settings
+DDC_SCHEDULER_CHECK_INTERVAL=120       # Scheduler check interval in seconds (default: 120)
+DDC_MAX_CONCURRENT_TASKS=3             # Maximum concurrent tasks (default: 3)
+DDC_TASK_BATCH_SIZE=5                  # Task batch processing size (default: 5)
+```
+
+#### Web Server Optimization
+```bash
+# Gunicorn Settings
+GUNICORN_WORKERS=2                     # Number of worker processes (default: adaptive 1-3)
+GUNICORN_MAX_REQUESTS=300              # Requests per worker before recycling (default: 300)
+GUNICORN_MAX_REQUESTS_JITTER=30        # Random jitter for worker recycling (default: 30)
+GUNICORN_TIMEOUT=45                    # Request timeout in seconds (default: 45)
+GUNICORN_LOG_LEVEL=info                # Logging level (default: info)
+```
+
+#### Cache Control
+```bash
+# Configuration Cache
+DDC_CONFIG_CACHE_AGE_MINUTES=15        # Config cache age in minutes (default: 15)
+
+# Docker Query Settings
+DDC_DOCKER_QUERY_COOLDOWN=1.0          # Minimum time between Docker API requests (default: 1.0)
+```
+
+### Performance Monitoring
+
+Access real-time performance statistics via the Web UI at `/performance_stats` (requires authentication). This endpoint provides:
+
+- **Memory Usage**: RAM consumption of all components
+- **Cache Statistics**: Hit/miss ratios and cleanup times
+- **System Resources**: CPU, memory, and thread monitoring
+- **Scheduler Stats**: Task execution and batching metrics
+
+### Recommended Settings by Deployment Size
+
+#### Small Deployment (1-2 CPU cores, <2GB RAM)
+```bash
+GUNICORN_WORKERS=1
+DDC_MAX_CACHED_CONTAINERS=50
+DDC_SCHEDULER_CHECK_INTERVAL=180
+DDC_MAX_CONCURRENT_TASKS=2
+```
+
+#### Medium Deployment (2-4 CPU cores, 2-4GB RAM)
+```bash
+GUNICORN_WORKERS=2
+DDC_MAX_CACHED_CONTAINERS=100
+DDC_SCHEDULER_CHECK_INTERVAL=120
+DDC_MAX_CONCURRENT_TASKS=3
+```
+
+#### Large Deployment (4+ CPU cores, 4GB+ RAM)
+```bash
+GUNICORN_WORKERS=3
+DDC_MAX_CACHED_CONTAINERS=200
+DDC_SCHEDULER_CHECK_INTERVAL=90
+DDC_MAX_CONCURRENT_TASKS=5
+```
+
+**Note**: All Web UI configuration options remain fully functional regardless of these performance optimizations. The interval frequency settings and all other configuration capabilities are preserved and unaffected.
+
 ## System Requirements
 
 ### **Minimum Requirements**

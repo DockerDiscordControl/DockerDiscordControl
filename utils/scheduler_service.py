@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import threading
 from typing import Dict, List, Optional, Any
 import traceback
+import os
 
 from utils.scheduler import (
     load_tasks, 
@@ -19,18 +20,30 @@ from utils.logging_utils import setup_logger
 # Logger for Scheduler Service
 logger = setup_logger('ddc.scheduler_service', level=logging.DEBUG)
 
-# Check interval in seconds
-CHECK_INTERVAL = 60  # Checks every 60 seconds (much more reasonable for task scheduling)
+# CPU-OPTIMIZED: Increased check interval from 60 to 120 seconds (50% CPU reduction)
+# Task scheduling doesn't need to be checked every minute for most use cases
+CHECK_INTERVAL = int(os.environ.get('DDC_SCHEDULER_CHECK_INTERVAL', '120'))  # 2 minutes default
+
+# CPU-OPTIMIZED: Batch processing settings
+MAX_CONCURRENT_TASKS = int(os.environ.get('DDC_MAX_CONCURRENT_TASKS', '3'))  # Limit concurrent task execution
+TASK_BATCH_SIZE = int(os.environ.get('DDC_TASK_BATCH_SIZE', '5'))  # Process tasks in batches
 
 class SchedulerService:
-    """Service for managing and executing scheduled tasks."""
+    """Service for managing and executing scheduled tasks with CPU optimization."""
     
     def __init__(self):
-        """Initializes the Scheduler Service."""
+        """Initializes the Scheduler Service with performance optimizations."""
         self.running = False
         self.thread = None
         self.event_loop = None
         self.last_check_time = None
+        self.active_tasks = set()  # Track active tasks to prevent overload
+        self.task_execution_stats = {
+            'total_executed': 0,
+            'total_skipped': 0,
+            'last_batch_size': 0,
+            'avg_execution_time': 0.0
+        }
 
     def start(self):
         """Starts the Scheduler Service as a background process."""
@@ -42,7 +55,7 @@ class SchedulerService:
         self.thread = threading.Thread(target=self._run_service)
         self.thread.daemon = True  # Daemon thread terminates when the main program ends
         self.thread.start()
-        logger.info("Scheduler Service started.")
+        logger.info(f"CPU-optimized Scheduler Service started (check interval: {CHECK_INTERVAL}s, max concurrent: {MAX_CONCURRENT_TASKS})")
         return True
     
     def stop(self):
@@ -55,7 +68,10 @@ class SchedulerService:
         if self.thread:
             self.thread.join(timeout=2.0)  # Wait maximum 2 seconds for thread termination
             self.thread = None
-        logger.info("Scheduler Service stopped.")
+        
+        # Log final statistics
+        stats = self.task_execution_stats
+        logger.info(f"Scheduler Service stopped. Stats: {stats['total_executed']} executed, {stats['total_skipped']} skipped")
         return True
     
     def _run_service(self):
@@ -77,112 +93,196 @@ class SchedulerService:
             logger.info("Scheduler Service loop ended.")
     
     async def _service_loop(self):
-        """Main loop of the service, which regularly checks and executes tasks."""
-        logger.info("Scheduler Service loop started.")
+        """Main loop of the service with CPU optimization."""
+        logger.info(f"CPU-optimized Scheduler Service loop started (interval: {CHECK_INTERVAL}s)")
         
         while self.running:
             try:
+                start_time = time.time()
                 await self._check_and_execute_tasks()
+                execution_time = time.time() - start_time
+                
+                # Update statistics
+                self.task_execution_stats['avg_execution_time'] = (
+                    (self.task_execution_stats['avg_execution_time'] * 0.9) + (execution_time * 0.1)
+                )
+                
                 self.last_check_time = time.time()
                 
-                # Wait until the next check interval
-                await asyncio.sleep(CHECK_INTERVAL)
+                # CPU-OPTIMIZED: Dynamic sleep interval based on load
+                sleep_interval = self._calculate_optimal_sleep_interval(execution_time)
+                logger.debug(f"Scheduler check completed in {execution_time:.2f}s, sleeping for {sleep_interval}s")
+                
+                await asyncio.sleep(sleep_interval)
             except Exception as e:
                 logger.error(f"Error checking or executing tasks: {e}")
                 logger.error(traceback.format_exc())
-                await asyncio.sleep(CHECK_INTERVAL)  # Wait anyway before the next attempt
+                # CPU-OPTIMIZED: Longer sleep on error to prevent error loops
+                await asyncio.sleep(min(CHECK_INTERVAL * 2, 300))  # Max 5 minutes
+    
+    def _calculate_optimal_sleep_interval(self, last_execution_time: float) -> int:
+        """
+        Calculates optimal sleep interval based on system load and execution time.
+        
+        Args:
+            last_execution_time: Time taken for last task check cycle
+            
+        Returns:
+            Optimal sleep interval in seconds
+        """
+        base_interval = CHECK_INTERVAL
+        
+        # If execution took a long time, increase sleep interval
+        if last_execution_time > 5.0:  # If check took more than 5 seconds
+            return min(base_interval * 2, 300)  # Double interval, max 5 minutes
+        
+        # If we have many active tasks, increase interval
+        if len(self.active_tasks) >= MAX_CONCURRENT_TASKS:
+            return min(base_interval + 30, 180)  # Add 30s, max 3 minutes
+        
+        return base_interval
     
     async def _check_and_execute_tasks(self):
-        """Checks all tasks and executes those that are due."""
+        """Checks all tasks and executes those that are due with CPU optimization."""
         try:
             tasks = load_tasks()
             if not tasks:
                 return
             
-            logger.debug(f"Checking {len(tasks)} scheduled tasks")
-            current_time = time.time()
+            current_time = datetime.now()
+            due_tasks = []
             
-            # Track executed tasks in this cycle to prevent re-execution
-            executed_task_ids = set()
-            
-            # First collect all tasks to be executed
-            pending_tasks = []
+            # First pass: Find all due tasks
             for task in tasks:
-                # Skip inactive tasks
-                if not task.is_active:
+                if not task.enabled:
                     continue
+                
+                if task.next_run and task.next_run <= current_time:
+                    # Skip if task is already running
+                    if task.id in self.active_tasks:
+                        logger.debug(f"Task {task.name} (ID: {task.id}) is already running, skipping")
+                        self.task_execution_stats['total_skipped'] += 1
+                        continue
                     
-                if not task.next_run_ts:
-                    # Task has no next execution time (e.g., expired)
-                    continue
-                
-                # Check if we already executed this task in this cycle
-                if task.task_id in executed_task_ids:
-                    logger.debug(f"Skipping task {task.task_id} - already executed in this cycle")
-                    continue
-                
-                if current_time >= task.next_run_ts:
-                    # Task is due and should be executed
-                    logger.info(f"Task {task.task_id} ({task.container_name} {task.action}) marked for execution")
-                    pending_tasks.append(task)
-                    executed_task_ids.add(task.task_id)
+                    due_tasks.append(task)
             
-            # Sort tasks by container and action for more efficient grouping
-            if pending_tasks:
-                # Group by container
-                container_groups = {}
-                for task in pending_tasks:
-                    if task.container_name not in container_groups:
-                        container_groups[task.container_name] = []
-                    container_groups[task.container_name].append(task)
+            if not due_tasks:
+                logger.debug("No tasks due for execution")
+                return
+            
+            # CPU-OPTIMIZED: Process tasks in batches to prevent system overload
+            for i in range(0, len(due_tasks), TASK_BATCH_SIZE):
+                batch = due_tasks[i:i + TASK_BATCH_SIZE]
                 
-                # Execute tasks grouped by container
-                for container_name, container_tasks in container_groups.items():
-                    logger.info(f"Processing {len(container_tasks)} tasks for container '{container_name}'")
-                    
-                    # Sort by action - starts first, then restarts, then stops
-                    action_priority = {"start": 0, "restart": 1, "stop": 2}
-                    container_tasks.sort(key=lambda t: action_priority.get(t.action, 99))
-                    
-                    # Execute all tasks for this container sequentially
-                    for task in container_tasks:
-                        logger.info(f"Executing task {task.task_id} ({task.container_name} {task.action})")
-                        
-                        # Execute the task
-                        success = await execute_task(task)
-                        
-                        if success:
-                            logger.info(f"Task {task.task_id} executed successfully")
-                            # CRITICAL: Reload the task to get the updated next_run_ts
-                            updated_task = find_task_by_id(task.task_id)
-                            if updated_task:
-                                logger.debug(f"Task {task.task_id} next run updated from {task.next_run_ts} to {updated_task.next_run_ts}")
-                        else:
-                            logger.error(f"Task {task.task_id} could not be executed")
-                        
-                        # Short pause between tasks for the same container
-                        await asyncio.sleep(1.0)
-        
+                # Check if we have room for more concurrent tasks
+                available_slots = MAX_CONCURRENT_TASKS - len(self.active_tasks)
+                if available_slots <= 0:
+                    logger.info(f"Maximum concurrent tasks ({MAX_CONCURRENT_TASKS}) reached, deferring {len(due_tasks) - i} tasks")
+                    break
+                
+                # Execute batch with concurrency limit
+                batch_to_execute = batch[:available_slots]
+                self.task_execution_stats['last_batch_size'] = len(batch_to_execute)
+                
+                logger.info(f"Executing batch of {len(batch_to_execute)} tasks (active: {len(self.active_tasks)})")
+                
+                # Execute tasks concurrently within the batch
+                await self._execute_task_batch(batch_to_execute)
+                
+                # Small delay between batches to prevent system overload
+                if i + TASK_BATCH_SIZE < len(due_tasks):
+                    await asyncio.sleep(1.0)
+            
         except Exception as e:
-            logger.error(f"Unexpected error checking tasks: {e}")
+            logger.error(f"Error in _check_and_execute_tasks: {e}")
             logger.error(traceback.format_exc())
+    
+    async def _execute_task_batch(self, tasks: List[ScheduledTask]):
+        """
+        Executes a batch of tasks concurrently with proper resource management.
+        
+        Args:
+            tasks: List of tasks to execute
+        """
+        async def execute_single_task(task: ScheduledTask):
+            """Execute a single task with proper error handling and tracking."""
+            task_start_time = time.time()
+            self.active_tasks.add(task.id)
+            
+            try:
+                logger.info(f"Executing task: {task.name} (ID: {task.id})")
+                await execute_task(task)
+                
+                # Update next run time
+                task.update_next_run()
+                update_task(task)
+                
+                self.task_execution_stats['total_executed'] += 1
+                execution_time = time.time() - task_start_time
+                logger.info(f"Task {task.name} completed successfully in {execution_time:.2f}s")
+                
+            except Exception as e:
+                logger.error(f"Error executing task {task.name} (ID: {task.id}): {e}")
+                logger.error(traceback.format_exc())
+            finally:
+                self.active_tasks.discard(task.id)
+        
+        # Execute all tasks in the batch concurrently
+        if tasks:
+            await asyncio.gather(*[execute_single_task(task) for task in tasks], return_exceptions=True)
+    
+    def get_service_stats(self) -> Dict[str, Any]:
+        """
+        Gets current service statistics for monitoring.
+        
+        Returns:
+            Dictionary with service statistics
+        """
+        return {
+            'running': self.running,
+            'active_tasks_count': len(self.active_tasks),
+            'last_check_time': self.last_check_time,
+            'check_interval': CHECK_INTERVAL,
+            'max_concurrent_tasks': MAX_CONCURRENT_TASKS,
+            'task_batch_size': TASK_BATCH_SIZE,
+            **self.task_execution_stats
+        }
 
-# Singleton instance of the Scheduler Service
-_scheduler_service_instance = None
-
-def get_scheduler_service() -> SchedulerService:
-    """Returns the singleton instance of the Scheduler Service."""
-    global _scheduler_service_instance
-    if _scheduler_service_instance is None:
-        _scheduler_service_instance = SchedulerService()
-    return _scheduler_service_instance
+# Global service instance
+_scheduler_service = SchedulerService()
 
 def start_scheduler_service() -> bool:
-    """Starts the Scheduler Service if it's not already running."""
-    service = get_scheduler_service()
-    return service.start()
+    """
+    Starts the global scheduler service.
+    
+    Returns:
+        True if started successfully, False otherwise
+    """
+    return _scheduler_service.start()
 
 def stop_scheduler_service() -> bool:
-    """Stops the Scheduler Service if it's running."""
-    service = get_scheduler_service()
-    return service.stop() 
+    """
+    Stops the global scheduler service.
+    
+    Returns:
+        True if stopped successfully, False otherwise
+    """
+    return _scheduler_service.stop()
+
+def get_scheduler_service() -> SchedulerService:
+    """
+    Gets the global scheduler service instance.
+    
+    Returns:
+        The global SchedulerService instance
+    """
+    return _scheduler_service
+
+def get_scheduler_stats() -> Dict[str, Any]:
+    """
+    Gets current scheduler service statistics.
+    
+    Returns:
+        Dictionary with scheduler statistics
+    """
+    return _scheduler_service.get_service_stats() 

@@ -8,8 +8,10 @@
 
 import threading
 import logging
+import sys
+import gc
 from typing import Dict, Any, Optional, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 logger = logging.getLogger('ddc.config_cache')
 
@@ -17,12 +19,15 @@ class ConfigCache:
     """
     Thread-safe configuration cache for performance optimization.
     Reduces filesystem I/O by caching frequently accessed config data.
+    Enhanced with memory optimization features.
     """
     
-    def __init__(self):
+    def __init__(self, max_cache_age_minutes: int = 30):
         self._cache: Dict[str, Any] = {}
         self._lock = threading.RLock()
         self._last_update: Optional[datetime] = None
+        self._max_cache_age = timedelta(minutes=max_cache_age_minutes)
+        self._access_count = 0
         
     def set_config(self, config: Dict[str, Any]) -> None:
         """
@@ -32,19 +37,82 @@ class ConfigCache:
             config: The configuration dictionary to cache
         """
         with self._lock:
-            self._cache = config.copy() if config else {}
+            # Clear old cache first to free memory
+            self._cache.clear()
+            
+            # Store only essential config data to minimize memory usage
+            self._cache = self._optimize_config_for_memory(config.copy() if config else {})
             self._last_update = datetime.now(timezone.utc)
-            logger.debug(f"Config cache updated at {self._last_update}")
+            self._access_count = 0
+            logger.debug(f"Config cache updated at {self._last_update} (size: {self._get_cache_size_mb():.2f} MB)")
+    
+    def _optimize_config_for_memory(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Optimizes config data for memory usage by removing unnecessary data.
+        
+        Args:
+            config: Original configuration dictionary
+            
+        Returns:
+            Memory-optimized configuration dictionary
+        """
+        # Remove large, rarely-used data that can be loaded on demand
+        optimized = config.copy()
+        
+        # Remove encrypted token data from cache (can be loaded when needed)
+        if 'bot_token_encrypted' in optimized:
+            del optimized['bot_token_encrypted']
+        
+        # Keep only essential server data in cache
+        if 'servers' in optimized and isinstance(optimized['servers'], list):
+            essential_servers = []
+            for server in optimized['servers']:
+                if isinstance(server, dict):
+                    # Keep only essential fields for autocomplete and basic operations
+                    essential_server = {
+                        'name': server.get('name', ''),
+                        'docker_name': server.get('docker_name', ''),
+                        'allowed_actions': server.get('allowed_actions', [])
+                    }
+                    essential_servers.append(essential_server)
+            optimized['servers'] = essential_servers
+        
+        return optimized
+    
+    def _get_cache_size_mb(self) -> float:
+        """Returns approximate cache size in MB."""
+        try:
+            return sys.getsizeof(self._cache) / (1024 * 1024)
+        except:
+            return 0.0
     
     def get_config(self) -> Dict[str, Any]:
         """
-        Gets the cached configuration.
+        Gets the cached configuration with automatic cleanup.
         
         Returns:
             The cached configuration dictionary
         """
         with self._lock:
+            self._access_count += 1
+            
+            # Perform periodic cleanup every 100 accesses
+            if self._access_count % 100 == 0:
+                self._cleanup_if_needed()
+            
             return self._cache.copy()
+    
+    def _cleanup_if_needed(self) -> None:
+        """Performs memory cleanup if cache is old or too large."""
+        now = datetime.now(timezone.utc)
+        
+        # Clear cache if it's too old
+        if (self._last_update and 
+            now - self._last_update > self._max_cache_age):
+            logger.info("Config cache expired, clearing for memory optimization")
+            self._cache.clear()
+            self._last_update = None
+            gc.collect()  # Force garbage collection
     
     def get_servers(self) -> List[Dict[str, Any]]:
         """
@@ -119,7 +187,12 @@ class ConfigCache:
             True if cache is valid, False otherwise
         """
         with self._lock:
-            return bool(self._cache and self._last_update)
+            if not self._cache or not self._last_update:
+                return False
+            
+            # Check if cache has expired
+            now = datetime.now(timezone.utc)
+            return now - self._last_update <= self._max_cache_age
     
     def get_last_update(self) -> Optional[datetime]:
         """
@@ -132,14 +205,32 @@ class ConfigCache:
             return self._last_update
     
     def clear(self) -> None:
-        """Clears the cache."""
+        """Clears the cache and forces garbage collection."""
         with self._lock:
             self._cache.clear()
             self._last_update = None
-            logger.debug("Config cache cleared")
+            self._access_count = 0
+            gc.collect()  # Force garbage collection
+            logger.debug("Config cache cleared and garbage collected")
+    
+    def get_memory_stats(self) -> Dict[str, Any]:
+        """
+        Gets memory usage statistics for the cache.
+        
+        Returns:
+            Dictionary with memory statistics
+        """
+        with self._lock:
+            return {
+                'cache_size_mb': self._get_cache_size_mb(),
+                'access_count': self._access_count,
+                'last_update': self._last_update.isoformat() if self._last_update else None,
+                'is_valid': self.is_valid(),
+                'entries_count': len(self._cache)
+            }
 
-# Global instance
-_config_cache = ConfigCache()
+# Global instance with memory optimization
+_config_cache = ConfigCache(max_cache_age_minutes=15)  # Reduced from 30 to 15 minutes
 
 def get_config_cache() -> ConfigCache:
     """
@@ -158,7 +249,7 @@ def init_config_cache(config: Dict[str, Any]) -> None:
         config: The configuration dictionary to cache
     """
     _config_cache.set_config(config)
-    logger.info("Global config cache initialized")
+    logger.info("Global config cache initialized with memory optimization")
 
 def get_cached_config() -> Dict[str, Any]:
     """
@@ -171,7 +262,7 @@ def get_cached_config() -> Dict[str, Any]:
         return _config_cache.get_config()
     else:
         # Fallback to loading from file
-        logger.warning("Config cache is empty, falling back to load_config()")
+        logger.warning("Config cache is empty or expired, falling back to load_config()")
         from utils.config_loader import load_config
         config = load_config()
         _config_cache.set_config(config)
@@ -203,4 +294,13 @@ def get_cached_guild_id() -> Optional[int]:
         guild_id_str = config.get('guild_id')
         if guild_id_str and isinstance(guild_id_str, str) and guild_id_str.isdigit():
             return int(guild_id_str)
-        return None 
+        return None
+
+def get_cache_memory_stats() -> Dict[str, Any]:
+    """
+    Gets memory usage statistics for the global config cache.
+    
+    Returns:
+        Dictionary with memory statistics
+    """
+    return _config_cache.get_memory_stats() 

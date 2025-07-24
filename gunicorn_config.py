@@ -50,9 +50,10 @@ except ImportError as e:
 # Most users access Web UI rarely and individually, not concurrently
 cpu_count = multiprocessing.cpu_count()
 # OPTIMIZED: 2-3 workers max (was 8), minimum 2 for reliability
-optimized_workers = max(2, min(3, cpu_count // 2 + 1))
+# Further reduced for memory optimization - single worker for small deployments
+optimized_workers = max(1, min(2, cpu_count // 2)) if cpu_count <= 2 else max(2, min(3, cpu_count // 2 + 1))
 workers = int(os.getenv('GUNICORN_WORKERS', optimized_workers))
-logger.info(f"Gunicorn starting with {workers} RAM-optimized workers (was up to 8) based on {cpu_count} CPU cores")
+logger.info(f"Gunicorn starting with {workers} RAM-optimized workers (adaptive based on {cpu_count} CPU cores)")
 
 # Address and port Gunicorn should listen on
 bind = "0.0.0.0:9374"
@@ -61,7 +62,11 @@ bind = "0.0.0.0:9374"
 worker_class = "gevent"
 
 # OPTIMIZED: Reduced timeout for faster resource cycling
-timeout = int(os.getenv('GUNICORN_TIMEOUT', '60'))  # Reduced from 120s
+timeout = int(os.getenv('GUNICORN_TIMEOUT', '45'))  # Reduced from 60s to 45s
+
+# MEMORY-OPTIMIZED: Faster worker recycling to prevent memory leaks
+max_requests = int(os.getenv('GUNICORN_MAX_REQUESTS', '300'))  # Reduced from 500 to 300
+max_requests_jitter = int(os.getenv('GUNICORN_MAX_REQUESTS_JITTER', '30'))  # Reduced from 50 to 30
 
 # Logging - Gunicorn logs go to stdout/stderr, which Supervisor catches
 accesslog = "-"
@@ -102,9 +107,8 @@ keepalive = 3  # OPTIMIZED: Reduced from 5s to 3s for faster resource cleanup
 bind = "0.0.0.0:9374"  # Host:Port for binding
 backlog = 512  # OPTIMIZED: Reduced from 2048 to 512
 
-# HTTP Settings - RAM OPTIMIZED
-max_requests = 500  # OPTIMIZED: Reduced from 1000 to 500 (faster worker recycling)
-max_requests_jitter = 50  # OPTIMIZED: Reduced from 100 to 50
+# HTTP Settings - RAM OPTIMIZED (moved to top section)
+# max_requests and max_requests_jitter now defined above
 
 # Logging
 accesslog = "/app/logs/gunicorn_access.log"

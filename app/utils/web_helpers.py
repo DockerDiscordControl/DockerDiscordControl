@@ -59,6 +59,10 @@ MAX_CACHE_AGE = int(os.environ.get('DDC_DOCKER_MAX_CACHE_AGE', 150))
 ENABLE_BACKGROUND_REFRESH = os.environ.get('DDC_ENABLE_BACKGROUND_REFRESH', 'true').lower() == 'true'
 # Background refresh interval (more frequent than Discord bot queries)
 BACKGROUND_REFRESH_INTERVAL = int(os.environ.get('DDC_BACKGROUND_REFRESH_INTERVAL', 30))
+# Memory optimization: Limit maximum containers in cache
+MAX_CACHED_CONTAINERS = int(os.environ.get('DDC_MAX_CACHED_CONTAINERS', 100))
+# Memory optimization: Cache cleanup interval
+CACHE_CLEANUP_INTERVAL = int(os.environ.get('DDC_CACHE_CLEANUP_INTERVAL', 300))  # 5 minutes
 
 # Extended cache structure with TTL and container-specific timestamps
 docker_cache = {
@@ -68,7 +72,9 @@ docker_cache = {
     'container_timestamps': {},       # Timestamp per container
     'container_hashes': {},           # Hash per container to detect changes
     'bg_refresh_running': False,      # Flag for background refresh
-    'priority_containers': set()      # Set of containers with higher refresh priority
+    'priority_containers': set(),     # Set of containers with higher refresh priority
+    'last_cleanup': None,             # Timestamp of last cache cleanup
+    'access_count': 0                 # Access counter for optimization
 }
 cache_lock = GLock()  # Use Gevent-compatible lock
 last_docker_query_time = 0
@@ -212,10 +218,11 @@ def get_docker_containers_live(logger, force_refresh=False, container_name=None)
             return list(docker_cache['containers']), docker_cache['error']
 
 def update_docker_cache(logger):
-    """Updates the Docker container cache with current data"""
+    """Updates the Docker container cache with current data and memory optimization"""
     global last_docker_query_time, docker_cache
+    import gc
     
-    logger.info("Updating Docker cache")
+    logger.info("Updating Docker cache with memory optimization")
     last_docker_query_time = time.time()  # Update query time immediately
     
     client = None
@@ -227,11 +234,25 @@ def update_docker_cache(logger):
         
         # Process containers and update cache
         with cache_lock:
+            # Increment access counter for optimization tracking
+            docker_cache['access_count'] += 1
+            
+            # Perform periodic cleanup every 50 cache updates
+            if docker_cache['access_count'] % 50 == 0:
+                _cleanup_docker_cache(logger, time.time())
+            
             # Empty the list for a complete refresh
+            old_container_count = len(docker_cache['containers'])
             docker_cache['containers'] = []
             
+            # Limit containers to prevent memory bloat
+            containers_limited = containers_to_process[:MAX_CACHED_CONTAINERS] if len(containers_to_process) > MAX_CACHED_CONTAINERS else containers_to_process
+            if len(containers_to_process) > MAX_CACHED_CONTAINERS:
+                logger.warning(f"Docker cache: Limiting to {MAX_CACHED_CONTAINERS} containers (found {len(containers_to_process)})")
+            
             current_time = time.time()
-            for container in containers_to_process:
+            for container in containers_limited:
+                # Create optimized container data (only essential fields)
                 container_data = {
                     'id': container.id[:12],
                     'name': container.name,
@@ -259,7 +280,12 @@ def update_docker_cache(logger):
             docker_cache['error'] = None
             
             container_count = len(docker_cache['containers'])
-            logger.info(f"Docker cache updated with {container_count} containers.")
+            memory_saved = old_container_count - container_count if old_container_count > container_count else 0
+            logger.info(f"Docker cache updated with {container_count} containers (memory optimization: {memory_saved} containers removed)")
+            
+            # Force garbage collection periodically
+            if docker_cache['access_count'] % 20 == 0:
+                gc.collect()
             
     except docker.errors.DockerException as e_outer:
         error_msg = f"Docker connection error during live query: {str(e_outer)}"
@@ -277,6 +303,40 @@ def update_docker_cache(logger):
                 client.close()
             except Exception as close_err:
                 logger.debug(f"Error closing Docker client after live query: {close_err}")
+
+def _cleanup_docker_cache(logger, current_time):
+    """Performs memory cleanup on Docker cache"""
+    if not docker_cache.get('last_cleanup'):
+        docker_cache['last_cleanup'] = current_time
+        return
+    
+    # Only cleanup if enough time has passed
+    if current_time - docker_cache['last_cleanup'] < CACHE_CLEANUP_INTERVAL:
+        return
+    
+    logger.info("Performing Docker cache memory cleanup")
+    
+    # Clean up old container timestamps and hashes
+    cutoff_time = current_time - (MAX_CACHE_AGE * 2)  # Keep data for 2x max cache age
+    
+    old_timestamps = docker_cache['container_timestamps'].copy()
+    old_hashes = docker_cache['container_hashes'].copy()
+    
+    # Remove old entries
+    for container_name in list(old_timestamps.keys()):
+        if old_timestamps[container_name] < cutoff_time:
+            docker_cache['container_timestamps'].pop(container_name, None)
+            docker_cache['container_hashes'].pop(container_name, None)
+    
+    removed_count = len(old_timestamps) - len(docker_cache['container_timestamps'])
+    if removed_count > 0:
+        logger.info(f"Docker cache cleanup: Removed {removed_count} old container entries")
+    
+    docker_cache['last_cleanup'] = current_time
+    
+    # Force garbage collection after cleanup
+    import gc
+    gc.collect()
 
 def background_refresh_worker(logger):
     """Background worker for regular Docker cache updates"""
