@@ -2,7 +2,7 @@
 
 **Homepage:** [https://ddc.bot](https://ddc.bot) | **[Complete Documentation](../../wiki)**
 
-Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is a stable, ~500MB Alpine Linux build with the latest security patches.
+Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is an ultra-optimized, ~200MB Alpine Linux build with the latest security patches and enhanced performance.
 
 ![Version](https://img.shields.io/badge/version-v1.1.1--alpine-blue)
 ![Security](https://img.shields.io/badge/security-CVE%20free-brightgreen)
