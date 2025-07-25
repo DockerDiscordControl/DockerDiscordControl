@@ -5,7 +5,6 @@
 Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is a stable, ~500MB Alpine Linux build with the latest security patches.
 
 ![Version](https://img.shields.io/badge/version-v1.1.1--alpine-blue)
-![Docker Image Size](https://img.shields.io/badge/docker%20size-~200MB-green)
 ![Security](https://img.shields.io/badge/security-CVE%20free-brightgreen)
 ![Alpine](https://img.shields.io/badge/base-Alpine%203.22.1-blue)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/DockerDiscordControl/DockerDiscordControl/blob/main/LICENSE)
