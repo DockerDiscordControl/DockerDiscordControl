@@ -19,7 +19,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 COPY requirements-alpine.txt .
 
 # Install Python packages
-RUN pip install --no-cache-dir --upgrade pip && \
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements-alpine.txt
 
 # Verify the installation immediately
