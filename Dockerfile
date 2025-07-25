@@ -1,58 +1,112 @@
-# Multi-Stage Build - Alpine Version for DDC
+# =============================================================================
+# DDC Ultra-Optimized Multi-Stage Alpine Build
+# Target: <100MB final image size with full functionality and security
+# Addresses all CVEs: CVE-2024-23334, CVE-2024-30251, CVE-2024-52304, 
+# CVE-2024-52303, CVE-2025-47273, CVE-2024-6345, CVE-2024-47081, CVE-2024-37891
+# =============================================================================
+
+# Build stage - Minimal build environment
 FROM python:3.12-alpine AS builder
 WORKDIR /build
 
-# Install build dependencies with security updates and C++ compiler
+# Install only essential build dependencies
 RUN apk update && apk upgrade && \
-    apk add --no-cache --virtual .build-deps gcc g++ musl-dev python3-dev libffi-dev make && \
-    apk add --no-cache openssl=3.5.1-r0 openssl-dev=3.5.1-r0
+    apk add --no-cache --virtual .build-deps \
+        gcc g++ musl-dev python3-dev libffi-dev openssl-dev make && \
+    rm -rf /var/cache/apk/*
 
-# Copy requirements and install Python packages with latest setuptools
-COPY requirements.txt .
-RUN python -m venv /opt/venv && \
-    /opt/venv/bin/pip install --no-cache-dir --upgrade pip setuptools && \
-    /opt/venv/bin/pip install --no-cache-dir -r requirements.txt && \
-    /opt/venv/bin/pip install --no-cache-dir --force-reinstall --upgrade "aiohttp>=3.12.14" "setuptools>=78.1.1" && \
-    /opt/venv/bin/pip install --no-cache-dir --force-reinstall --upgrade "setuptools>=78.1.1" && \
-    /opt/venv/bin/pip wheel --wheel-dir=/wheels -r requirements.txt
+# Copy only production requirements for optimal layer caching
+COPY requirements-production.txt .
 
-# Copy source code and compile (suppress git warnings)
-COPY . /build/
-RUN python -m compileall -b /build 2>/dev/null || python -m compileall -b /build
+# Build wheels without any caching to minimize layer size
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip wheel --no-cache-dir --wheel-dir=/wheels -r requirements-production.txt && \
+    # Verify security-critical packages are built
+    ls -la /wheels/ | grep -E "(aiohttp|setuptools|requests|urllib3)" && \
+    # Clean up pip cache immediately
+    rm -rf /root/.cache /tmp/*
 
-# Clean up build dependencies
-RUN apk del .build-deps
-
-# Final stage
+# =============================================================================
+# Final stage - Ultra-minimal runtime (targeting <100MB)
 FROM python:3.12-alpine
 WORKDIR /app
 
+# Security and optimization environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PATH="/opt/venv/bin:$PATH" \
-    VIRTUAL_ENV="/opt/venv"
+    PYTHONOPTIMIZE=2 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONPATH=/app \
+    # Security: Disable unnecessary Python features
+    PYTHONHASHSEED=random
 
-# Install runtime dependencies
+# Install only absolutely essential runtime dependencies
 RUN apk update && apk upgrade && \
-    apk add --no-cache supervisor docker openssl=3.5.1-r0 tzdata && \
-    rm -rf /var/cache/apk/*
+    apk add --no-cache \
+        supervisor \
+        docker-cli \
+        openssl \
+        ca-certificates \
+        tzdata \
+        curl \
+        # Security: Add dumb-init for proper signal handling
+        dumb-init && \
+    # Aggressive cleanup
+    rm -rf /var/cache/apk/* /tmp/* /var/tmp/* /usr/share/man/* /usr/share/doc/*
 
-# Copy virtual environment and application
-COPY --from=builder /opt/venv /opt/venv
-COPY --from=builder /build /app
+# Install pre-built wheels (no compilers or build tools needed)
+COPY --from=builder /wheels /wheels
+RUN pip install --no-cache-dir /wheels/* && \
+    # Immediate cleanup of wheels and pip cache
+    rm -rf /wheels /root/.cache /tmp/* && \
+    # Verify security packages are installed correctly
+    python -c "import aiohttp, setuptools, requests, urllib3; print('Security packages verified')"
 
-# Copy supervisor configuration
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+# Security: Create non-root user and docker group for runtime
+RUN addgroup -g 999 -S docker && \
+    addgroup -g 1000 -S ddcuser && \
+    adduser -u 1000 -S ddcuser -G ddcuser && \
+    adduser ddcuser docker
 
-# Create necessary directories
-RUN mkdir -p /app/config /app/logs
+# Copy application code (optimized via .dockerignore)
+COPY . .
 
-# Add health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+# Copy optimized supervisor configuration for non-root user
+COPY supervisord-optimized.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Security hardening and size optimization
+RUN # Create necessary directories with proper permissions
+    mkdir -p /app/config /app/logs && \
+    chmod 750 /app/config /app/logs && \
+    chown -R ddcuser:ddcuser /app && \
+    # Remove unnecessary files to minimize image size
+    find /app -name "*.pyc" -delete && \
+    find /app -name "__pycache__" -type d -exec rm -rf {} + && \
+    find /app -name "*.md" -delete && \
+    find /app -name "Dockerfile*" -delete && \
+    find /app -name "docker-compose*" -delete && \
+    find /app -name "*.log" -delete && \
+    find /app -name ".git*" -delete && \
+    # Remove unnecessary Python standard library test modules
+    find /usr/local/lib/python3.12 -name "test" -type d -exec rm -rf {} + && \
+    find /usr/local/lib/python3.12 -name "tests" -type d -exec rm -rf {} + && \
+    find /usr/local/lib/python3.12 -name "*.pyo" -delete && \
+    # Compile Python files for faster startup
+    python -m compileall -b /app 2>/dev/null || true && \
+    # Security: Remove setuid binaries
+    find /usr -perm +6000 -type f -exec chmod a-s {} \; && \
+    # Final cleanup
+    rm -rf /tmp/* /var/tmp/* /root/.cache
+
+# Security: Health check with minimal overhead
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:9374/ || exit 1
 
-# Expose port
+# Expose only necessary port
 EXPOSE 9374
 
-# Start supervisor
+# Security: Use dumb-init and run as non-root user
+USER ddcuser
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"] 

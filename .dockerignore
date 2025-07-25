@@ -1,9 +1,15 @@
-# Git files
+# =============================================================================
+# DDC .dockerignore - Optimized for Minimal Image Size
+# Excludes all non-essential files to reduce image size dramatically
+# =============================================================================
+
+# Git files and version control
 .git/
 .gitignore
 .github/
+.gitattributes
 
-# Documentation
+# Documentation and markdown files
 README.md
 *.md
 CONTRIBUTING.md
@@ -11,20 +17,37 @@ SECURITY.md
 TROUBLESHOOTING.md
 UNRAID.md
 WEB_UI_DESIGN_DOCUMENTATION.txt
+VERIFICATION_REPORT.md
+ALPINE_OPTIMIZATION_COMPARISON.md
+ASYNC_ARCHITECTURE_GUIDELINES.md
+PERFORMANCE_OPTIMIZATION.md
 
-# Development files
+# Development and IDE files
 .cursor-rules
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+
+# Log files and temporary files
 *.log
 *.tmp
+logs/
+.DS_Store
+Thumbs.db
 
-# Test files
+# Test files and testing infrastructure
 tests/
 test_*
 *_test.py
+pytest.ini
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
 
-# Build artifacts
+# Build artifacts and Python cache
 __pycache__/
 *.pyc
 *.pyo
@@ -45,24 +68,53 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.mypy_cache/
+.dmypy.json
+dmypy.json
 
 # Virtual environments
 venv/
 env/
 ENV/
+.venv/
 
-# Docker files (if any)
+# Docker files (keep only the optimized one)
 Dockerfile.*
+!Dockerfile
 docker-compose*.yml
 
-# OS files
-.DS_Store
-Thumbs.db
-
-# Local config (only for development)
+# Development environment files
 .env.local
 .env.development
+.env.test
 
-# Wiki and docs
+# Documentation directories
 wiki/
 docs/
+
+# Development requirements (only include production)
+requirements.txt
+requirements-alpine.txt
+!requirements-production.txt
+
+# Unraid specific files
+DockerDiscordControl.xml
+CNAME
+
+# Development tools and configs
+Makefile
+supervisord.conf
+!supervisord-optimized.conf
+gunicorn_config.dev.py
+
+# Editor and system files
+*.bak
+*.orig
+.sass-cache/
+node_modules/
+npm-debug.log*
+
+# Additional optimization files not needed in container
+ALPINE_OPTIMIZATION_COMPARISON.md
+ASYNC_ARCHITECTURE_GUIDELINES.md
+PERFORMANCE_OPTIMIZATION.md
