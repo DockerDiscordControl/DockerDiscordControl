@@ -43,7 +43,7 @@ Control your Docker containers directly from Discord! This application provides 
 ## Features
 
 - **Discord Bot**: Slash commands, status monitoring, container controls
-- **Web Interface**: Secure configuration, permissions, logs, and monitoring
+- **Web Interface**: Secure configuration, permissions, logs, and monitoring  
 - **Task System**: Schedule automated container actions (daily, weekly, monthly, one-time)
 - **Security**: All dependencies updated to the latest secure versions.
 - **Multi-Language**: English, German, French support
@@ -245,6 +245,23 @@ The default build for this repository is now the stable, optimized Alpine image.
 **Important Cache Timing**: The Docker cache is updated every 30 seconds with a 45-second cache duration to ensure fresh data for users who set 1-minute update intervals in the Web UI. This timing is critical for maintaining data freshness at the minimum supported interval.
 
 **Note**: All Web UI configuration options remain fully functional regardless of these performance optimizations. The interval frequency settings and all other configuration capabilities are preserved and unaffected.
+
+## 🐳 Docker Images
+
+**Ultra-optimized Alpine Linux image:**
+- **Size:** ~150MB (84% smaller than previous versions)
+- **Base:** Alpine Linux 3.22.1 (latest secure version)
+- **Security:** Latest Flask 3.1.1 & Werkzeug 3.1.3 (all CVEs fixed)
+- **Performance:** Optimized for minimal resource usage
+
+```bash
+docker pull dockerdiscordcontrol/dockerdiscordcontrol:alpine-optimized
+```
+
+**Standard image:**
+```bash
+docker pull dockerdiscordcontrol/dockerdiscordcontrol:latest
+```
 
 ## System Requirements
 

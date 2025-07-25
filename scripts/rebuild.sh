@@ -55,11 +55,11 @@ find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 echo -e "${GREEN}✅ Cache directories cleaned${NC}"
 sleep 1
 
-# 🐳 Build Docker image
-echo -e "${BLUE}🐳 Rebuilding OPTIMIZED Alpine image dockerdiscordcontrol (without cache)...${NC}"
-echo -e "${CYAN}⏳ This may take a few minutes...${NC}"
+# 🐳 Build the new, ultra-optimized Docker image
+echo -e "${BLUE}🐳 Rebuilding Ultra-Optimized image 'dockerdiscordcontrol' (using Dockerfile.alpine-optimized)...${NC}"
+echo -e "${YELLOW}⏳ This may take a few minutes...${NC}"
 if docker build --no-cache -f Dockerfile.alpine-optimized -t dockerdiscordcontrol .; then
-    echo -e "${GREEN}✅ Docker image built successfully!${NC}"
+    echo -e "${GREEN}✅ Docker image built successfully${NC}"
 else
     echo -e "${RED}❌ Docker build failed${NC}"
     exit 1
@@ -106,8 +106,8 @@ docker run -d \
   --name ddc \
   -p 8374:9374 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v ./config:/app/config \
-  -v ./logs:/app/logs \
+  -v /mnt/user/appdata/dockerdiscordcontrol/config:/app/config \
+  -v /mnt/user/appdata/dockerdiscordcontrol/logs:/app/logs \
   -e FLASK_SECRET_KEY="${FLASK_SECRET_KEY}" \
   -e ENV_FLASK_SECRET_KEY="${FLASK_SECRET_KEY}" \
   -e PYTHONWARNINGS="ignore" \
@@ -143,3 +143,10 @@ else
     echo -e "${RED}❌ Failed to start container${NC}"
     exit 1
 fi
+
+# ⚠️ Permissions Reminder
+echo -e "\n${YELLOW}⚠️  IMPORTANT: Permissions Notice${NC}"
+echo -e "${WHITE}The new container runs as a non-root user ('ddcuser' with UID 1000).${NC}"
+echo -e "${WHITE}Please ensure the '${PWD}/config' and '${PWD}/logs' directories on your Unraid host are writable by this user.${NC}"
+echo -e "${WHITE}You may need to run: ${CYAN}chown -R 1000:1000 ./config ./logs${NC}"
+echo -e "${WHITE}or adjust permissions via the Unraid UI.${NC}"

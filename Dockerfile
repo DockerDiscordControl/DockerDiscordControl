@@ -49,9 +49,7 @@ RUN apk update && apk upgrade && \
         openssl \
         ca-certificates \
         tzdata \
-        curl \
-        # Security: Add dumb-init for proper signal handling
-        dumb-init && \
+        curl && \
     # Aggressive cleanup
     rm -rf /var/cache/apk/* /tmp/* /var/tmp/* /usr/share/man/* /usr/share/doc/*
 
@@ -69,16 +67,25 @@ RUN addgroup -g 997 -S docker && \
     adduser -u 1000 -S ddcuser -G ddcuser && \
     adduser ddcuser docker
 
+# Install dumb-init and su-exec in the final stage
+RUN apk add --no-cache dumb-init su-exec
+
 # Copy application code (optimized via .dockerignore)
 COPY . .
 
 # Copy optimized supervisor configuration for non-root user
 COPY supervisord-optimized.conf /etc/supervisor/conf.d/supervisord.conf
 
+# Create necessary directories and set permissions BEFORE switching user
+RUN mkdir -p /app/config /app/logs && \
+    chown -R ddcuser:ddcuser /app/config && \
+    # Logs directory needs to be writable by root (for supervisord.log) and ddcuser (for app logs)
+    chown -R root:ddcuser /app/logs && \
+    chmod -R 775 /app/logs
+
 # Security hardening and size optimization
 RUN mkdir -p /app/config /app/logs && \
-    chmod 750 /app/config /app/logs && \
-    chown -R ddcuser:ddcuser /app && \
+    chown -R ddcuser:ddcuser /app /app/config /app/logs && \
     # Remove unnecessary files to minimize image size
     find /app -name "*.pyc" -delete && \
     find /app -name "__pycache__" -type d -exec rm -rf {} + && \
@@ -98,6 +105,9 @@ RUN mkdir -p /app/config /app/logs && \
     # Final cleanup
     rm -rf /tmp/* /var/tmp/* /root/.cache
 
+# PROOF THAT THIS DOCKERFILE IS BEING USED
+RUN echo "Build successful with the CORRECT Dockerfile from $(date)" > /BUILD_PROOF.txt
+
 # Security: Health check with minimal overhead
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:9374/ || exit 1
@@ -105,10 +115,10 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 # Expose only necessary port
 EXPOSE 9374
 
-# Start supervisor as root, it will drop privileges for child processes
-USER root
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Create necessary directories
+RUN mkdir -p /app/config /app/logs && \
+    chown -R ddcuser:ddcuser /app
 
-# Switch to non-root user for any subsequent commands (e.g., docker exec)
-USER ddcuser 
+# Security: Use dumb-init and run supervisord as root
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"] 

@@ -2,7 +2,7 @@
 from flask import Blueprint, Response, current_app, request
 import docker
 import logging
-from app.auth import auth
+from app.auth import auth 
 
 log_bp = Blueprint('log_bp', __name__)
 

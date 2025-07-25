@@ -54,17 +54,16 @@ jobs:
           type=raw,value=unraid,enable={{is_default_branch}}
           type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
 
-    - name: 🚀 Build and push Docker image
+    - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
         context: .
         file: ./Dockerfile.alpine-optimized
-        platforms: linux/amd64,linux/arm64
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/dockerdiscordcontrol:latest
+          ${{ secrets.DOCKER_USERNAME }}/dockerdiscordcontrol:alpine-optimized
+          ${{ secrets.DOCKER_USERNAME }}/dockerdiscordcontrol:v1.1.1
 
     - name: 🧪 Test Docker image
       if: github.event_name == 'pull_request'

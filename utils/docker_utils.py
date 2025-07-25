@@ -231,12 +231,15 @@ def get_container_type_info(container_name: str) -> dict:
     }
 
 def get_docker_client():
-    """Get or create a Docker client with simple fallback and no hanging."""
+    """
+    Get Docker client with immediate fallback and connection caching.
+    Returns None if all methods fail.
+    """
     global _docker_client, _client_last_used
     
     current_time = time.time()
     
-    # Simple client reuse check
+    # Return cached client if still valid
     if (_docker_client is not None and 
         current_time - _client_last_used < _CLIENT_TIMEOUT):
         _client_last_used = current_time
@@ -478,11 +481,13 @@ async def get_containers_data() -> List[Dict[str, Any]]:
         if _containers_cache is not None and (current_time - _cache_timestamp < _CACHE_TTL):
             logger.debug("Using cached container data")
             return _containers_cache.copy()  # Return copy to avoid modification
+    
     try:
         client = get_docker_client()
         if not client:
             logger.warning("get_containers_data: Could not get Docker client.")
             return []
+        
         containers_api_list = await asyncio.to_thread(client.api.containers, all=True, Lstat=True) # Use low-level API for more resilience
         result = []
         for c_data in containers_api_list:
