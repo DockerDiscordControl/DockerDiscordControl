@@ -1,37 +1,50 @@
+# =============================================================================
+# DDC STANDARD PRODUCTION/DEVELOPMENT REQUIREMENTS
+# Based on the stable Alpine configuration, with C-extensions for performance.
+# =============================================================================
+
 # --- Main package for Discord Bot ---
 py-cord==2.6.1
 
 # --- SECURITY FIXES: Override py-cord dependencies ---
-aiohttp>=3.12.14  # Security fix: CVE-2024-23334, CVE-2024-30251, CVE-2024-52304, CVE-2024-52303 - Latest secure version
-setuptools>=78.1.1,<81.0.0  # Security fix: CVE-2025-47273, CVE-2024-6345 - Pin below 81 to avoid pkg_resources deprecation warnings
+aiohttp>=3.12.14  # Security fix: CVE-2024-23334, CVE-2024-30251, CVE-2024-52304, CVE-2024-52303
+setuptools>=78.1.1,<81.0.0  # Security fix: CVE-2025-47273, CVE-2024-6345
 
 # --- Web UI and Translations ---
-Flask==3.1.1
+Flask==2.3.3  # Pinned to known stable version
 Flask-HTTPAuth==4.8.0
+Werkzeug==2.3.8  # Pinned to known stable version compatible with Flask 2.3.3
+Jinja2>=3.1.4  # Template engine for Flask
+MarkupSafe>=2.1.5  # Safe string handling for Jinja2
+itsdangerous>=2.2.0  # Secure cookie signing
+click>=8.1.7  # Command line interface framework
+blinker>=1.8.2  # Fast & simple object-to-object and broadcast signaling
 gunicorn==23.0.0
-gevent>=24.2.0  # Updated for Python 3.13 compatibility - was 23.9.1
-docker==7.1.0  # For Docker API access - Updated from 6.1.3 for latest features and security
-Werkzeug==3.1.0  # Required by Flask - Security fix for RCE vulnerability, updated for Flask 3.1.0 compatibility
-requests==2.32.4  # Security fix: CVE-2024-47081 - netrc credential leak fix
-urllib3>=2.5.0  # Security fix: CVE-2024-37891 & CVE-2024-47081 - Latest secure version with all vulnerability patches
+gevent>=24.2.0  # Updated for Python 3.13 compatibility
+docker==7.1.0  # For Docker API access
+requests==2.32.4  # Security fix: CVE-2024-47081
+urllib3>=2.5.0  # Security fix: CVE-2024-37891 & CVE-2024-47081
 
 # --- Background Jobs and Utilities ---
 APScheduler==3.10.4  # Job scheduling
-pytz==2023.3.post1  # Timezone support for the timezone setting
+pytz==2023.3.post1  # Timezone support
 python-dotenv==1.0.0
-psutil==6.1.1  # Memory and system monitoring for optimization
 PyYAML==6.0.1      
 python-json-logger==2.0.7
-cryptography>=45.0.5  # For token encryption - Updated from 41.0.5 for security fixes, latest stable version
+cryptography>=45.0.5  # For token encryption
 
-# --- Performance Optimizations ---
-ujson==5.8.0  # Faster JSON processing
-uvloop==0.19.0  # Faster asyncio event loop
+# --- Caching (Pure Python - Alpine Compatible) ---
 cachetools==5.3.2  # For better in-memory caching
-# supervisor-memory-monitor==0.4.0  # For memmon in supervisord - Not available on PyPI
-superlance==2.0.0  # Contains memmon for supervisord and more
+
+# --- Performance Optimizations (Standard environment only) ---
+ujson==5.8.0      # Faster JSON processing
+uvloop==0.19.0    # Faster asyncio event loop
+psutil==6.1.1     # Memory and system monitoring
+
+# --- Supervisor Extensions (Production Only) ---
+superlance==2.0.0  # Contains memmon for supervisord memory monitoring
 
 # --- Testing ---
 pytest==7.4.3
 pytest-flask==1.2.0
-pytest-asyncio==0.21.1  # For async tests in the Bot
+pytest-asyncio==0.21.1
