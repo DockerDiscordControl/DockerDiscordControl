@@ -3,28 +3,15 @@
 # Removes unnecessary components for maximum performance and minimal size
 # =============================================================================
 
-# --- BUILD STAGE 1: Python Dependencies ---
-FROM python:3.13-alpine AS python-builder
+# --- BUILD STAGE 1: Python Dependencies (Simplified) ---
+FROM python:3.11-alpine AS python-builder
 WORKDIR /build
 
-# Install minimal build dependencies
-RUN apk add --no-cache --virtual .build-deps \
-    gcc musl-dev python3-dev libffi-dev openssl-dev \
-    cargo rust  # For cryptography package
-
-# Copy requirements for dependency preparation
-COPY requirements.txt .
+# Just copy requirements for reference
 COPY requirements-alpine.txt .
 
-# Pre-download wheels (but don't install in venv here)
-RUN pip install --no-cache-dir --upgrade pip wheel && \
-    pip wheel --wheel-dir=/wheels -r requirements-alpine.txt
-
-# Clean up build dependencies  
-RUN apk del .build-deps
-
 # --- BUILD STAGE 2: Application Optimization ---
-FROM python:3.13-alpine AS app-builder
+FROM python:3.11-alpine AS app-builder
 WORKDIR /build
 
 # Copy source code
@@ -43,19 +30,27 @@ RUN rm -rf \
 
 # Compile Python files for faster startup
 RUN python -m compileall -b . && \
-    find . -name "*.py" -not -path "./app/*" -not -name "bot.py" -not -name "gunicorn_config.py" -delete
+    # Only delete test files and documentation, keep all essential Python modules
+    find . -name "test_*.py" -delete && \
+    find . -name "*_test.py" -delete && \
+    find . -path "*/tests/*" -name "*.py" -delete
 
 # --- BUILD STAGE 3: Minimal Runtime Dependencies ---
 FROM alpine:3.19 AS runtime-deps
 
-# Install only essential runtime packages
+# Install only essential runtime packages including Python 3.11
 RUN apk add --no-cache \
-    python3 py3-pip \
+    python3 \
+    py3-pip \
     supervisor \
     docker-cli \
     ca-certificates \
     tzdata \
-    curl && \
+    curl \
+    gcc \
+    musl-dev \
+    python3-dev \
+    libffi-dev && \
     # Create symlinks for Python
     ln -sf /usr/bin/python3 /usr/bin/python && \
     # Remove unnecessary files
@@ -90,18 +85,23 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONDEBUG=0 \
     PYTHONHASHSEED=random
 
-# Copy pre-built wheels and application
-COPY --from=python-builder /wheels /wheels
+# Copy application
 COPY --from=app-builder /build /app
+COPY --from=python-builder /build/requirements-alpine.txt /app/
 
-# Create virtual environment and install packages in final stage
+# Create virtual environment and install packages (direct installation)
 RUN python -m venv /opt/venv && \
-    /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
-    /opt/venv/bin/pip install --no-cache-dir --no-index --find-links=/wheels /wheels/*.whl && \
-    # Install any missing packages directly
-    /opt/venv/bin/pip install --no-cache-dir py-cord==2.6.1 Flask==3.1.1 gunicorn==23.0.0 gevent PyYAML python-dotenv APScheduler pytz cryptography requests urllib3 aiohttp setuptools python-json-logger cachetools Flask-HTTPAuth docker Werkzeug superlance && \
-    # Clean up
-    rm -rf /wheels /root/.cache/pip
+    # Ensure pip is properly installed
+    /opt/venv/bin/python -m ensurepip --upgrade && \
+    /opt/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    # Install packages with verbose output for debugging
+    /opt/venv/bin/pip install --no-cache-dir --verbose -r requirements-alpine.txt && \
+    # Verify critical imports work
+    /opt/venv/bin/python -c "import flask; import werkzeug.security; import discord; print('All imports successful')" && \
+    # Clean up build dependencies after installation
+    apk del gcc musl-dev python3-dev libffi-dev && \
+    # Clean up pip cache
+    rm -rf /root/.cache/pip
 
 # Create optimized supervisor configuration
 RUN mkdir -p /app/config /app/logs /etc/supervisor/conf.d && \

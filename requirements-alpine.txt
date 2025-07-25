@@ -13,10 +13,15 @@ setuptools>=78.1.1,<81.0.0  # Security fix: CVE-2025-47273, CVE-2024-6345
 # --- Web UI and Translations ---
 Flask==3.1.1
 Flask-HTTPAuth==4.8.0
+Werkzeug==3.1.0  # Explicit Werkzeug version for Flask compatibility
+Jinja2>=3.1.4  # Template engine for Flask
+MarkupSafe>=2.1.5  # Safe string handling for Jinja2
+itsdangerous>=2.2.0  # Secure cookie signing
+click>=8.1.7  # Command line interface framework
+blinker>=1.8.2  # Fast & simple object-to-object and broadcast signaling
 gunicorn==23.0.0
 gevent>=24.2.0  # Updated for Python 3.13 compatibility
 docker==7.1.0  # For Docker API access
-Werkzeug==3.1.0  # Required by Flask - Security fix for RCE vulnerability
 requests==2.32.4  # Security fix: CVE-2024-47081
 urllib3>=2.5.0  # Security fix: CVE-2024-37891 & CVE-2024-47081
 
@@ -24,7 +29,6 @@ urllib3>=2.5.0  # Security fix: CVE-2024-37891 & CVE-2024-47081
 APScheduler==3.10.4  # Job scheduling
 pytz==2023.3.post1  # Timezone support
 python-dotenv==1.0.0
-psutil==6.1.1  # Memory and system monitoring for optimization
 PyYAML==6.0.1      
 python-json-logger==2.0.7
 cryptography>=45.0.5  # For token encryption
@@ -39,6 +43,7 @@ superlance==2.0.0  # Contains memmon for supervisord memory monitoring
 # REMOVED FOR ALPINE COMPATIBILITY:
 # - ujson==5.8.0      (requires C compilation - use standard json instead)
 # - uvloop==0.19.0    (requires C compilation - use standard asyncio instead)
+# - psutil==6.1.1     (requires C compilation - system monitoring optional)
 # =============================================================================
 
 # NOTE: Testing dependencies (pytest, pytest-flask, pytest-asyncio) excluded for production
