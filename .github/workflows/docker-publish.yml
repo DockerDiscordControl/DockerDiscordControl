@@ -59,11 +59,9 @@ jobs:
       with:
         context: .
         file: ./Dockerfile.alpine-optimized
-        push: true
-        tags: |
-          ${{ secrets.DOCKER_USERNAME }}/dockerdiscordcontrol:latest
-          ${{ secrets.DOCKER_USERNAME }}/dockerdiscordcontrol:alpine-optimized
-          ${{ secrets.DOCKER_USERNAME }}/dockerdiscordcontrol:v1.1.1
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
 
     - name: 🧪 Test Docker image
       if: github.event_name == 'pull_request'
