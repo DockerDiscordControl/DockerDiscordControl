@@ -1,26 +1,28 @@
-# Simplified Single-Stage Optimized Alpine Build
-FROM python:3.11-alpine
+# Use the latest stable Alpine image as a base
+FROM alpine:3.22.1
 
 WORKDIR /app
 
-# Install build and runtime dependencies
-# We install build deps here and remove them later
+# Install Python, pip, and other essential runtime and build dependencies
 RUN apk add --no-cache --virtual .build-deps \
         gcc musl-dev python3-dev libffi-dev \
     && apk add --no-cache \
+        python3 py3-pip \
         supervisor docker-cli ca-certificates tzdata curl
 
 # Create and activate virtual environment
 ENV VIRTUAL_ENV=/opt/venv
-RUN python -m venv $VIRTUAL_ENV
+RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# Upgrade core packaging tools to the latest secure versions FIRST
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
 # Copy requirements first to leverage Docker cache
 COPY requirements-alpine.txt .
 
-# Install Python packages
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements-alpine.txt
+# Install Python packages from requirements file
+RUN pip install --no-cache-dir -r requirements-alpine.txt
 
 # Verify the installation immediately
 RUN python -c "from werkzeug.test import Client; from flask import Flask; print('Werkzeug and Flask full import OK')"
