@@ -11,9 +11,9 @@ aiohttp>=3.12.14  # Security fix: CVE-2024-23334, CVE-2024-30251, CVE-2024-52304
 setuptools>=78.1.1,<81.0.0  # Security fix: CVE-2025-47273, CVE-2024-6345
 
 # --- Web UI and Translations ---
-Flask==2.3.3  # Pinned to known stable version
+Flask==3.0.3  # Pinned to fix Werkzeug RCE vulnerability
 Flask-HTTPAuth==4.8.0
-Werkzeug==2.3.8  # Pinned to known stable version compatible with Flask 2.3.3
+Werkzeug==3.0.3  # Pinned to fix RCE vulnerability (GHSA-2g68-c3qc-8985)
 Jinja2>=3.1.4  # Template engine for Flask
 MarkupSafe>=2.1.5  # Safe string handling for Jinja2
 itsdangerous>=2.2.0  # Secure cookie signing
