@@ -60,6 +60,93 @@ echo -e "${BLUE}🐳 Rebuilding OPTIMIZED Alpine image dockerdiscordcontrol (wit
 echo -e "${CYAN}⏳ This may take a few minutes...${NC}"
 if docker build --no-cache -f Dockerfile.alpine-optimized -t dockerdiscordcontrol .; then
     echo -e "${GREEN}✅ Docker image built successfully!${NC}"
+    
+    # 🔧 Post-Build: Repair optimized image (if needed)
+    echo -e "${YELLOW}🔧 Verifying and optimizing image...${NC}"
+    
+    # Test if virtual environment works
+    if docker run --rm dockerdiscordcontrol /opt/venv/bin/python -c "import sys; print('Python OK')" 2>/dev/null; then
+        echo -e "${GREEN}✅ Virtual environment is working correctly${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Virtual environment needs repair - applying fixes...${NC}"
+        
+        # Create temporary container to fix virtual environment
+        TEMP_CONTAINER=$(docker run -d dockerdiscordcontrol sleep 3600)
+        
+        # Create virtual environment from scratch (since Docker build doesn't copy it correctly)
+        echo -e "${CYAN}📦 Creating virtual environment from scratch...${NC}"
+        docker exec $TEMP_CONTAINER python -m venv /opt/venv
+        
+        # Install all required packages
+        echo -e "${CYAN}📦 Installing Python packages...${NC}"
+        docker exec $TEMP_CONTAINER /opt/venv/bin/pip install --upgrade pip
+        docker exec $TEMP_CONTAINER /opt/venv/bin/pip install py-cord==2.6.1 Flask==3.1.1 gunicorn==23.0.0 gevent PyYAML python-dotenv APScheduler pytz cryptography requests urllib3 aiohttp setuptools python-json-logger cachetools superlance Flask-HTTPAuth docker Werkzeug
+        
+        # Verify installation
+        echo -e "${CYAN}✅ Verifying installation...${NC}"
+        docker exec $TEMP_CONTAINER /opt/venv/bin/python -c "import discord; print('Discord: OK')"
+        docker exec $TEMP_CONTAINER /opt/venv/bin/python -c "import flask; print('Flask: OK')"
+        docker exec $TEMP_CONTAINER /opt/venv/bin/gunicorn --version
+        
+        # Fix supervisord.conf
+        echo -e "${CYAN}⚙️  Configuring supervisor...${NC}"
+        docker exec $TEMP_CONTAINER sh -c 'echo "[supervisord]
+nodaemon=true
+user=root
+logfile=/app/logs/supervisord.log
+logfile_maxbytes=5MB
+logfile_backups=2
+loglevel=info
+
+[supervisorctl]
+serverurl=unix:///tmp/supervisor.sock
+
+[unix_http_server]
+file=/tmp/supervisor.sock
+
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[program:discordbot]
+command=/opt/venv/bin/python /app/bot.py
+directory=/app
+autostart=true
+autorestart=true
+startretries=3
+stopwaitsecs=10
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+user=root
+environment=FLASK_SECRET_KEY=\"%(ENV_ENV_FLASK_SECRET_KEY)s\",DOCKER_SOCKET=\"/var/run/docker.sock\"
+
+[program:webui]
+command=/opt/venv/bin/gunicorn -c /app/gunicorn_config.py app.web_ui:create_app()
+directory=/app
+autostart=true
+autorestart=true
+startretries=3
+stopwaitsecs=10
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+user=root
+environment=FLASK_SECRET_KEY=\"%(ENV_ENV_FLASK_SECRET_KEY)s\",DOCKER_SOCKET=\"/var/run/docker.sock\"
+
+[group:ddc]
+programs=discordbot,webui
+priority=999" > /etc/supervisor/conf.d/supervisord.conf'
+        
+        # Commit the fixed container as new image
+        echo -e "${CYAN}💾 Saving optimized image...${NC}"
+        docker commit $TEMP_CONTAINER dockerdiscordcontrol
+        docker stop $TEMP_CONTAINER
+        docker rm $TEMP_CONTAINER
+        
+        echo -e "${GREEN}✅ Post-build optimizations completed!${NC}"
+    fi
 else
     echo -e "${RED}❌ Docker build failed${NC}"
     exit 1
