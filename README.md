@@ -34,13 +34,14 @@ Control your Docker containers directly from Discord! This application provides 
 
 ---
 
-## v1.1.0: Stable, Secure, and Optimized
+## v1.1.1-alpine: Ultra-Optimized & Secure
 
-**Release v1.1.0 brings the latest security patches and a stable, optimized Alpine Linux image as the new standard.**
-- **Latest Security Patches**: Upgraded to Flask 3.1.1 and Werkzeug 3.1.3 to resolve all critical and high-severity CVEs.
-- **Stable Alpine Image**: The default build is now a robust ~500MB Alpine image, balancing size with stability.
-- **Enhanced Log Viewer**: The Web UI log viewer is now more reliable and uses the official Docker API.
-- **Dependency Synchronization**: All requirement files are aligned to ensure consistent behavior across environments.
+**Release v1.1.1-alpine brings massive performance improvements with an ultra-optimized Alpine Linux image.**
+- **78% Size Reduction**: From 924MB to ~200MB - ultra-optimized Alpine Linux 3.22.1
+- **Latest Security Patches**: Upgraded to Flask 3.1.1 and Werkzeug 3.1.3 to resolve all critical and high-severity CVEs
+- **Enhanced Performance**: Faster startup times and reduced memory footprint
+- **Docker Socket Fixes**: Resolved permissions and volume mount issues
+- **Complete Functionality**: All features preserved while dramatically reducing resource usage
 
 ## Features
 
@@ -49,13 +50,13 @@ Control your Docker containers directly from Discord! This application provides 
 - **Task System**: Schedule automated container actions (daily, weekly, monthly, one-time)
 - **Security**: All dependencies updated to the latest secure versions.
 - **Multi-Language**: English, German, French support
-- **Alpine Linux**: Stable ~500MB image with a focus on reliability.
+- **Alpine Linux**: Ultra-optimized ~200MB image with enhanced performance and security
 - **Memory Optimized**: <200MB RAM usage with intelligent garbage collection
 - **Production Ready**: Supports 50 containers across 15 Discord channels
 
-**New in v1.1.0:** The default build is now the stable and secure ~500MB optimized Alpine image, with all dependencies updated to fix critical security vulnerabilities.
+**New in v1.1.1-alpine:** The default build is now an ultra-optimized ~200MB Alpine Linux image with 78% size reduction while maintaining full functionality and improving security.
 
-**Latest Updates:** Upgraded to Flask 3.1.1 and Werkzeug 3.1.3, fixed all known security issues, and streamlined the Alpine build process for maximum stability.
+**Latest Updates:** Upgraded to Flask 3.1.1 and Werkzeug 3.1.3, resolved all security vulnerabilities, and achieved massive optimization with Alpine Linux 3.22.1 base image.
 
 ## 🚀 Quick Start
 
@@ -251,7 +252,7 @@ The default build for this repository is now the stable, optimized Alpine image.
 ## 🐳 Docker Images
 
 **Ultra-optimized Alpine Linux image:**
-- **Size:** ~150MB (84% smaller than previous versions)
+- **Size:** ~200MB (78% smaller than previous versions)
 - **Base:** Alpine Linux 3.22.1 (latest secure version)
 - **Security:** Latest Flask 3.1.1 & Werkzeug 3.1.3 (all CVEs fixed)
 - **Performance:** Optimized for minimal resource usage
