@@ -33,7 +33,8 @@ def get_container_logs(container_name):
         return Response(f"Error: Container '{container_name}' not found.", status=404, mimetype='text/plain')
     except docker.errors.APIError as e:
         logger.error(f"Docker API error when fetching logs for {container_name}: {e}")
-        return Response(f"Error: Docker API returned an error: {e}", status=500, mimetype='text/plain')
+        # Return a generic error to the user to avoid exposing internal details
+        return Response("Error: Could not retrieve logs due to a Docker API error.", status=500, mimetype='text/plain')
     except Exception as e:
         logger.error(f"An unexpected error occurred when fetching logs for {container_name}: {e}", exc_info=True)
-        return Response(f"An unexpected error occurred.", status=500, mimetype='text/plain') 
+        return Response("An unexpected error occurred.", status=500, mimetype='text/plain') 
