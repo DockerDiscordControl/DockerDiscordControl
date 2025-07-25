@@ -105,7 +105,10 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 # Expose only necessary port
 EXPOSE 9374
 
-# Security: Use dumb-init and run as non-root user
-USER ddcuser
+# Start supervisor as root, it will drop privileges for child processes
+USER root
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"] 
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+
+# Switch to non-root user for any subsequent commands (e.g., docker exec)
+USER ddcuser 
