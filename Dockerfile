@@ -64,7 +64,7 @@ RUN pip install --no-cache-dir /wheels/* && \
     python -c "import aiohttp, setuptools, requests, urllib3; print('Security packages verified')"
 
 # Security: Create non-root user and docker group for runtime
-RUN addgroup -g 999 -S docker && \
+RUN addgroup -g 997 -S docker && \
     addgroup -g 1000 -S ddcuser && \
     adduser -u 1000 -S ddcuser -G ddcuser && \
     adduser ddcuser docker
@@ -76,8 +76,7 @@ COPY . .
 COPY supervisord-optimized.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Security hardening and size optimization
-RUN # Create necessary directories with proper permissions
-    mkdir -p /app/config /app/logs && \
+RUN mkdir -p /app/config /app/logs && \
     chmod 750 /app/config /app/logs && \
     chown -R ddcuser:ddcuser /app && \
     # Remove unnecessary files to minimize image size
