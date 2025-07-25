@@ -2,11 +2,11 @@
 
 **Homepage:** [https://ddc.bot](https://ddc.bot) | **[Complete Documentation](../../wiki)**
 
-Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with comprehensive performance optimizations and stability improvements. Built on Alpine Linux for enhanced security and minimal resource usage.
+Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is a stable, ~500MB Alpine Linux build with the latest security patches.
 
-[![Version](https://img.shields.io/badge/version-1.0.6-blue.svg)](https://github.com/DockerDiscordControl/DockerDiscordControl)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/DockerDiscordControl/DockerDiscordControl)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/DockerDiscordControl/DockerDiscordControl/blob/main/LICENSE)
-[![Alpine Linux](https://img.shields.io/badge/Alpine_Linux-327MB-0D597F.svg?logo=alpine-linux)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol)
+[![Alpine Linux](https://img.shields.io/badge/Alpine_Linux-~500MB-0D597F.svg?logo=alpine-linux)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol)
 [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol.svg)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol)
 [![Memory Optimized](https://img.shields.io/badge/RAM-<200MB-green.svg)](../../wiki/Memory‐Optimization)
 [![Unraid](https://img.shields.io/badge/Unraid-Community_Apps-orange.svg)](UNRAID.md)
@@ -32,38 +32,28 @@ Control your Docker containers directly from Discord! This application provides 
 
 ---
 
-## Ultimate Performance & Stability Release
+## v1.1.0: Stable, Secure, and Optimized
 
-**Major Performance Optimizations in v1.0.6:**
-- **Memory Usage**: Optimized with smart caching and garbage collection
-- **CPU Performance**: 50% reduction with optimized task scheduling (120s intervals)
-- **Docker Cache**: Optimized for sub-minute updates (45s cache, 30s refresh)
-- **1-Minute Web UI Support**: Real-time configuration updates
-- **Task Processing**: Batching and concurrent execution limits
-- **Worker Efficiency**: Gunicorn recycling optimized (300 max requests vs 500)
-
-**Comprehensive Stability Improvements:**
-- **63+ Bug Fixes**: Automated code analysis and vulnerability remediation
-- **Cross-Platform Compatibility**: Enhanced Unix/Windows file locking
-- **Docker Client Robustness**: Multiple connection fallback methods
-- **Scheduler Reliability**: Proper task attribute handling and error recovery
-- **Async Architecture**: Consistent async/await implementation throughout
+**Release v1.1.0 brings the latest security patches and a stable, optimized Alpine Linux image as the new standard.**
+- **Latest Security Patches**: Upgraded to Flask 3.1.1 and Werkzeug 3.1.3 to resolve all critical and high-severity CVEs.
+- **Stable Alpine Image**: The default build is now a robust ~500MB Alpine image, balancing size with stability.
+- **Enhanced Log Viewer**: The Web UI log viewer is now more reliable and uses the official Docker API.
+- **Dependency Synchronization**: All requirement files are aligned to ensure consistent behavior across environments.
 
 ## Features
 
 - **Discord Bot**: Slash commands, status monitoring, container controls
-- **Web Interface**: Secure configuration, permissions, logs, and monitoring  
-- **Ultra-Fast Performance**: Advanced bulk processing and intelligent caching
+- **Web Interface**: Secure configuration, permissions, logs, and monitoring
 - **Task System**: Schedule automated container actions (daily, weekly, monthly, one-time)
-- **Security**: Channel-based permissions, rate limiting, comprehensive framework
+- **Security**: All dependencies updated to the latest secure versions.
 - **Multi-Language**: English, German, French support
-- **Alpine Linux**: 327MB image, 94% fewer vulnerabilities than Debian-based containers
+- **Alpine Linux**: Stable ~500MB image with a focus on reliability.
 - **Memory Optimized**: <200MB RAM usage with intelligent garbage collection
 - **Production Ready**: Supports 50 containers across 15 Discord channels
 
-**New in v1.0.6:** Comprehensive performance optimizations, 63+ bug fixes, ultra-optimized Alpine image, 1-minute Web UI support, enhanced cross-platform compatibility, and production-grade stability improvements.
+**New in v1.1.0:** The default build is now the stable and secure ~500MB optimized Alpine image, with all dependencies updated to fix critical security vulnerabilities.
 
-**Latest Updates:** Ultimate performance release, extensive bug remediation, Alpine Linux optimization, enhanced Unraid Community Applications support, and platform-specific optimized versions.
+**Latest Updates:** Upgraded to Flask 3.1.1 and Werkzeug 3.1.3, fixed all known security issues, and streamlined the Alpine build process for maximum stability.
 
 ## 🚀 Quick Start
 
@@ -238,23 +228,19 @@ DDC_MAX_CONCURRENT_TASKS=5
 
 ### Ultra-Optimized Alpine Image
 
-For maximum performance and minimal resource usage, use the ultra-optimized Alpine image:
+The default build for this repository is now the stable, optimized Alpine image. To build it locally, simply use the standard rebuild script:
 
 ```bash
-# Build the ultra-optimized image
-./scripts/build-optimized.sh
-
-# Or use the pre-built optimized Dockerfile
-docker build -f Dockerfile.alpine-optimized -t ddc-optimized:alpine-ultra .
+# This script now uses the optimized Dockerfile by default
+./scripts/rebuild.sh
 ```
 
-**Ultra-Optimization Features:**
-- **30-50% smaller image size** through multi-stage builds and component removal
-- **Faster startup times** with pre-compiled Python bytecode
-- **Minimal runtime dependencies** - only essential packages included
-- **Optimized supervisor configuration** with reduced logging overhead
-- **Production-only requirements** - testing dependencies excluded
-- **Aggressive cleanup** of documentation, man pages, and build artifacts
+**Optimization Features:**
+- **~50% smaller image size** compared to older Debian-based builds.
+- **Stable and reliable** single-stage Docker build process.
+- **Minimal runtime dependencies** - only essential packages included.
+- **Production-only requirements** - testing dependencies excluded.
+- **Latest security patches** for all dependencies.
 
 **Important Cache Timing**: The Docker cache is updated every 30 seconds with a 45-second cache duration to ensure fresh data for users who set 1-minute update intervals in the Web UI. This timing is critical for maintaining data freshness at the minimum supported interval.
 
