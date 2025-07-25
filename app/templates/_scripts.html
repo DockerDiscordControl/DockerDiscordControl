@@ -463,12 +463,16 @@
             if (refreshLogsBtn) refreshLogsBtn.disabled = true;
             
             try {
-                const response = await fetch("{{ url_for('log_bp.get_logs') }}");
+                // MODIFIED: Use the new, dynamic endpoint for the 'ddc' container
+                const response = await fetch("{{ url_for('log_bp.get_container_logs', container_name='ddc') }}");
                 if (response.ok) {
                     rawLogsCache = await response.text(); // Store full logs
                     updateMinimalLogsCache(rawLogsCache); // Update the minimal logs cache
                     displayFilteredLogs(); // Display filtered logs
                     return true;
+                } else if (response.status === 404) {
+                    rawLogsCache = `Error: Container 'ddc' not found. Is it running?`;
+                    logContentElement.textContent = rawLogsCache;
                 } else if (response.status === 429) {
                     console.warn('Too many log requests, will retry later');
                     // For 429, don't overwrite the cache, just silently skip without showing a warning
