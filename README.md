@@ -1,4 +1,12 @@
-# DockerDiscordControl (DDC)
+# DockerDiscordControl 🐳
+
+[![Version](https://img.shields.io/badge/Version-v1.1.3-blue.svg)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v1.1.3)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Performance Optimized](https://img.shields.io/badge/Performance-Optimized-brightgreen.svg)](#-v30-performance-optimizations)
+[![Security Patched](https://img.shields.io/badge/Security-Patched-red.svg)](#-security-notice)
+[![Platform: Universal](https://img.shields.io/badge/Platform-Universal-lightgrey.svg)](#-platform-support)
+
+A powerful Discord bot and web interface to manage Docker containers remotely. This application bridges the gap between Discord and your Docker environment, allowing container monitoring and control directly through Discord channels.
 
 **Homepage:** [https://ddc.bot](https://ddc.bot) | **[Complete Documentation](../../wiki)**
 
@@ -355,3 +363,29 @@ Help keep DockerDiscordControl growing and improving across all platforms:
 Your support helps maintain DDC across **Windows, Linux, macOS, and Universal** versions, develop new features, and keep it zero-vulnerability secure! 
 
 **Built for every platform - optimized for your environment!** 
+
+## 🆕 Latest Updates (v1.1.3)
+
+### ✅ **v1.1.3 - Security & Performance Update**
+
+🔐 **Security Fixes:**
+- **CRITICAL:** Added secure Flask secret key generation to prevent session hijacking vulnerabilities.
+- Resolved CVE vulnerability related to fallback secret keys.
+
+🚀 **Performance Optimizations:**
+- Discord API timeout protection (5s max vs 17+ seconds before).
+- Intelligent batch distribution for slow containers.
+- Offline container update optimization (5min intervals vs 1min).
+- Enhanced inactivity timeout handling (10min vs 2min).
+
+🔧 **Critical Bug Fixes:**
+- Resolved infinite config reload loops in Web UI.
+- Fixed maximum recursion depth errors in debug system.
+- Eliminated status cache KeyError crashes.
+- Improved multi-worker process synchronization.
+
+🏥 **Monitoring & Stability:**
+- Added `/health` endpoint for Docker health checks.
+- Supervisor config verified for stability.
+
+**🎉 Ready for production deployment on any Unraid, Linux, or Docker environment!**
