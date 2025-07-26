@@ -141,6 +141,13 @@ class ConfigManager:
             # PERFORMANCE: Add file modification tracking
             self._file_mtimes = {}
             
+            # Cache invalidation control
+            self._last_cache_invalidation = 0
+            self._min_invalidation_interval = 1.0  # Minimum 1 second between invalidations
+            
+            # Configuration change subscribers
+            self._subscribers = []
+            
             self._initialized = True
             
             # Initial load of configuration
@@ -630,6 +637,47 @@ class ConfigManager:
                          self.CHANNELS_CONFIG_FILE, self.WEB_CONFIG_FILE]:
             results[file_path] = self._check_file_permissions(file_path)
         return results
+    
+    def _notify_subscribers(self, config: Dict[str, Any]) -> None:
+        """
+        Notify all registered subscribers about configuration changes.
+        
+        Args:
+            config: The updated configuration
+        """
+        try:
+            for subscriber in self._subscribers:
+                try:
+                    if callable(subscriber):
+                        subscriber(config)
+                    else:
+                        logger.warning(f"Invalid subscriber found: {subscriber}")
+                except Exception as e:
+                    logger.error(f"Error notifying subscriber {subscriber}: {e}")
+        except Exception as e:
+            logger.error(f"Error in _notify_subscribers: {e}")
+    
+    def add_subscriber(self, callback) -> None:
+        """
+        Add a subscriber callback for configuration changes.
+        
+        Args:
+            callback: Callable that will be called with the new config
+        """
+        if callable(callback) and callback not in self._subscribers:
+            self._subscribers.append(callback)
+            logger.debug(f"Added configuration subscriber: {callback}")
+    
+    def remove_subscriber(self, callback) -> None:
+        """
+        Remove a subscriber callback.
+        
+        Args:
+            callback: Callback to remove
+        """
+        if callback in self._subscribers:
+            self._subscribers.remove(callback)
+            logger.debug(f"Removed configuration subscriber: {callback}")
 
 
 # Create the global config manager instance
