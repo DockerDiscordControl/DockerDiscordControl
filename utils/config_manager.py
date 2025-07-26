@@ -541,14 +541,14 @@ class ConfigManager:
                 # Reset rate limiting to prevent immediate reload detection
                 self._last_cache_invalidation = current_time
                 
-                                # Notify subscribers
+                # Notify subscribers
                 self._notify_subscribers(config)
                 logger.info("Configuration saved successfully")
                 
                 # Clear save flag
                 self._save_in_progress = False
                 return True
-
+            
             logger.error("Failed to save one or more configuration files")
             # Clear save flag on failure
             self._save_in_progress = False

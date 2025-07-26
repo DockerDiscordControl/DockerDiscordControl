@@ -1,57 +1,37 @@
-# =============================================================================
-# DDC STANDARD PRODUCTION/DEVELOPMENT REQUIREMENTS - Latest Stable Versions
-# Based on the stable Alpine configuration, with C-extensions for performance.
-# Updated with latest security fixes and stable versions
-# =============================================================================
+# DDC LOCAL DEVELOPMENT REQUIREMENTS
+# These packages are for local testing and development.
+# The production dependencies are installed directly in the Dockerfile.
 
-# --- Main package for Discord Bot ---
+# --- Core Dependencies (for linting & type checking) ---
+Flask==3.1.1
+Werkzeug==3.1.3
 py-cord==2.6.1
-
-# --- SECURITY FIXES: Override py-cord dependencies ---
-aiohttp>=3.12.14  # Security fix: CVE-2024-23334, CVE-2024-30251, CVE-2024-52304, CVE-2024-52303
-setuptools>=78.1.1,<81.0.0  # Security fix: CVE-2025-47273, CVE-2024-6345
-
-# --- Web UI and Translations (LATEST VERSIONS) ---
-Flask==3.1.1  # Latest stable version with all security fixes
-Flask-HTTPAuth==4.8.0
-Werkzeug==3.1.3  # Latest stable version with all security fixes
-Jinja2>=3.1.4  # Template engine for Flask
-MarkupSafe>=2.1.5  # Safe string handling for Jinja2
-itsdangerous>=2.2.0  # Secure cookie signing
-click>=8.1.7  # Command line interface framework
-blinker>=1.8.2  # Fast & simple object-to-object and broadcast signaling
 gunicorn==23.0.0
-gevent>=24.2.0  # Updated for Python 3.13 compatibility
-docker==7.1.0  # For Docker API access
-requests==2.32.4  # Security fix: CVE-2024-47081
-urllib3>=2.5.0  # Security fix: CVE-2024-37891 & CVE-2024-47081
-
-# --- Background Jobs and Utilities ---
-APScheduler==3.10.4  # Job scheduling
-pytz==2023.3.post1  # Timezone support
-python-dotenv==1.0.0
-PyYAML==6.0.1      
+gevent==24.11.1
+docker==7.1.0
+cryptography>=45.0.5
+APScheduler==3.10.4
+python-dotenv==1.0.1
+PyYAML==6.0.1
+requests==2.32.4
+aiohttp>=3.12.14
+Flask-HTTPAuth==4.8.0
+Jinja2>=3.1.4
 python-json-logger==2.0.7
-cryptography>=45.0.5  # For token encryption
-
-# --- Caching (Pure Python - Alpine Compatible) ---
-cachetools==5.3.2  # For better in-memory caching
-
-# --- Performance packages (C-extensions for standard builds) ---
-ujson==5.8.0  # Fast JSON parsing (excluded in Alpine)
-uvloop==0.19.0  # Fast asyncio event loop (excluded in Alpine)
-psutil==6.1.1  # System monitoring (excluded in Alpine)
-
-# --- Supervisor Extensions (Production Only) ---
-superlance==2.0.0  # Contains memmon for supervisord memory monitoring
+pytz==2024.2
+cachetools==5.3.2
+itsdangerous>=2.2.0
+click>=8.1.7
+blinker>=1.8.2
+MarkupSafe>=2.1.5
+flask-limiter>=3.5.0
+limits>=3.9.0
+greenlet>=3.0.3
+zope.event>=5.0
+zope.interface>=6.2
+superlance==2.0.0
 
 # --- Development/Testing Dependencies ---
 pytest==8.3.4
 pytest-flask==1.3.0
 pytest-asyncio==0.24.0
-
-# =============================================================================
-# NOTE: This file includes performance packages (ujson, uvloop, psutil) that
-# require C compilation. These are excluded in requirements-alpine.txt for
-# better Alpine Linux compatibility.
-# =============================================================================
