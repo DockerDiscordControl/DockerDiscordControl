@@ -1,4 +1,4 @@
-name: 🐳 Build and Push Docker Images
+name: 🐳🌍 Universal Docker Hub Push (Alpine)
 
 on:
   push:
