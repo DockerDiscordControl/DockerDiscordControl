@@ -143,7 +143,7 @@ class ConfigManager:
             
             # Cache invalidation control
             self._last_cache_invalidation = 0
-            self._min_invalidation_interval = 1.0  # Minimum 1 second between invalidations
+            self._min_invalidation_interval = 5.0  # Minimum 5 seconds between invalidations to prevent loops
             
             # Configuration change subscribers
             self._subscribers = []
@@ -422,9 +422,16 @@ class ConfigManager:
         try:
             # Return cache if valid and no force_reload
             if self._config_cache is not None and not force_reload:
-                # Only check for file changes every 60 seconds
-                if time.time() - self._cache_timestamp > 60 and self._has_files_changed():
+                # Only check for file changes every 60 seconds AND respect rate limiting
+                current_time = time.time()
+                time_since_cache = current_time - self._cache_timestamp
+                time_since_invalidation = current_time - self._last_cache_invalidation
+                
+                if (time_since_cache > 60 and 
+                    time_since_invalidation > self._min_invalidation_interval and 
+                    self._has_files_changed()):
                     logger.info("Configuration files changed on disk, reloading...")
+                    self._last_cache_invalidation = current_time
                     return self._load_config_from_disk()
                 return self._config_cache.copy()
             
@@ -518,8 +525,18 @@ class ConfigManager:
             if success:
                 # Update cache
                 self._config_cache = config.copy()
-                self._cache_timestamp = time.time()
+                current_time = time.time()
+                self._cache_timestamp = current_time
+                
+                # Small delay to ensure file system has finished writing
+                import time as time_module
+                time_module.sleep(0.1)
+                
+                # Update file modification times after save
                 self._update_file_mtimes()
+                
+                # Reset rate limiting to prevent immediate reload detection
+                self._last_cache_invalidation = current_time
                 
                 # Notify subscribers
                 self._notify_subscribers(config)

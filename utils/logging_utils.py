@@ -27,6 +27,11 @@ def is_debug_mode_enabled() -> bool:
     """
     global _debug_mode_enabled, _temp_debug_mode_enabled, _temp_debug_expiry, _last_debug_status_log
     
+    # Recursion guard - prevent infinite loops during config loading
+    if hasattr(is_debug_mode_enabled, '_loading'):
+        return _debug_mode_enabled or False
+    is_debug_mode_enabled._loading = True
+    
     # Check if temporary debug mode is active and not expired
     current_time = time.time()
     if _temp_debug_mode_enabled and current_time < _temp_debug_expiry:
@@ -67,6 +72,11 @@ def is_debug_mode_enabled() -> bool:
     
     # Check once more if temporary debug mode is active
     result = _debug_mode_enabled or _temp_debug_mode_enabled
+    
+    # Clear recursion guard
+    if hasattr(is_debug_mode_enabled, '_loading'):
+        delattr(is_debug_mode_enabled, '_loading')
+    
     return result
 
 # A filter that only allows DEBUG logs when debug mode is enabled
