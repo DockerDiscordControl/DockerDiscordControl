@@ -1,10 +1,6 @@
 # DockerDiscordControl 🐳
 
-[![Version](https://img.shields.io/badge/Version-v1.1.3-blue.svg)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v1.1.3)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Performance Optimized](https://img.shields.io/badge/Performance-Optimized-brightgreen.svg)](#-v30-performance-optimizations)
-[![Security Patched](https://img.shields.io/badge/Security-Patched-red.svg)](#-security-notice)
-[![Platform: Universal](https://img.shields.io/badge/Platform-Universal-lightgrey.svg)](#-platform-support)
+[![Version](https://img.shields.io/github/v/release/DockerDiscordControl/DockerDiscordControl?style=for-the-badge&label=Version)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/latest) [![Security](https://img.shields.io/badge/Security-Patched-red?style=for-the-badge)](#-security-notice) [![Base Image](https://img.shields.io/badge/Base-Alpine%20Linux-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![License](https://img.shields.io/github/license/DockerDiscordControl/DockerDiscordControl?style=for-the-badge)](./LICENSE) [![Unraid](https://img.shields.io/badge/Unraid-Ready-blue?style=for-the-badge)](./UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
 
 A powerful Discord bot and web interface to manage Docker containers remotely. This application bridges the gap between Discord and your Docker environment, allowing container monitoring and control directly through Discord channels.
 
