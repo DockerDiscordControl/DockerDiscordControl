@@ -1082,7 +1082,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 
             logger.debug("Running status_update_loop to refresh Docker container status cache")
             
-            # Get server configurations
+            # OPTIMIZATION: Use the cached config from self.config
+            # No need to reload config from disk, we use the instance variable
             servers = self.config.get('servers', [])
             if not servers:
                 logger.debug("No servers configured, status cache update skipped")

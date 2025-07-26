@@ -40,13 +40,14 @@ def is_debug_mode_enabled() -> bool:
         _temp_debug_mode_enabled = False
         print(f"Temporary debug mode expired")
     
+    # Use a non-blocking approach to get debug status
     try:
         # Store previous value to detect changes
         previous_value = _debug_mode_enabled
         
         # Load config without force invalidation (cache will be used if available)
-        from utils.config_loader import load_config
-        config = load_config()
+        from utils.config_manager import get_config_manager
+        config = get_config_manager().get_config(force_reload=False)
         
         # Use the cached value of debug mode if available
         _debug_mode_enabled = config.get('scheduler_debug_mode', False)
@@ -57,6 +58,7 @@ def is_debug_mode_enabled() -> bool:
             if previous_value != _debug_mode_enabled or _last_debug_status_log is None:
                 print(f"Debug status loaded from configuration: {_debug_mode_enabled}")
             _last_debug_status_log = current_time
+            
     except Exception as e:
         # Fallback on errors
         print(f"Error loading debug status: {e}")
@@ -202,29 +204,34 @@ def refresh_debug_status():
     """
     global _debug_mode_enabled
     
-    # Reset the cache
-    _debug_mode_enabled = None
-    
-    # Force cache invalidation to ensure we get the latest config
     try:
-        from utils.config_manager import get_config_manager
-        get_config_manager().invalidate_cache()
+        # Reset the cache
+        _debug_mode_enabled = None
+        
+        # Force cache invalidation to ensure we get the latest config
+        try:
+            from utils.config_manager import get_config_manager
+            get_config_manager().invalidate_cache()
+        except Exception as e:
+            print(f"Failed to invalidate config cache: {e}")
+        
+        # Reload the debug status
+        debug_enabled = is_debug_mode_enabled()
+        
+        # Create a logger for this function
+        logger = logging.getLogger('ddc.config')
+        
+        # Output the debug status
+        if debug_enabled:
+            logger.info("Debug mode has been ENABLED - DEBUG messages will be displayed")
+        else:
+            logger.info("Debug mode has been DISABLED - DEBUG messages will be suppressed")
+        
+        return debug_enabled
+            
     except Exception as e:
-        print(f"Failed to invalidate config cache: {e}")
-    
-    # Reload the debug status
-    debug_enabled = is_debug_mode_enabled()
-    
-    # Create a logger for this function
-    logger = logging.getLogger('ddc.config')
-    
-    # Output the debug status
-    if debug_enabled:
-        logger.info("Debug mode has been ENABLED - DEBUG messages will be displayed")
-    else:
-        logger.info("Debug mode has been DISABLED - DEBUG messages will be suppressed")
-    
-    return debug_enabled
+        print(f"Error refreshing debug status: {e}")
+        return False
 
 def enable_temporary_debug(duration_minutes=10):
     """

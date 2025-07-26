@@ -33,6 +33,11 @@ RUN apk add --no-cache --virtual .build-deps \
         click>=8.1.7 \
         blinker>=1.8.2 \
         MarkupSafe>=2.1.5 \
+        flask-limiter>=3.5.0 \
+        limits>=3.9.0 \
+        greenlet>=3.0.3 \
+        zope.event>=5.0 \
+        zope.interface>=6.2 \
     && apk del .build-deps python3-dev \
     && rm -rf /root/.cache/pip \
     && rm -rf /tmp/* \

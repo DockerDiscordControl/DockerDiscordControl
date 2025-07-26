@@ -15,18 +15,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 # Import your existing utils
 from utils.logging_utils import setup_logger
 
-# Gevent-compatible lock implementation - if gevent is used
-try:
-    import gevent
-    from gevent.lock import RLock as GRLock
-    from gevent.lock import BoundedSemaphore as GLock
-    HAS_GEVENT = True
-except ImportError:
-    # Fallback to standard threading
-    from threading import Lock as GLock
-    from threading import RLock as GRLock
-    HAS_GEVENT = False
-
 # Setup logger for this module
 logger = setup_logger('ddc.config_manager', level=logging.INFO)
 
@@ -124,198 +112,42 @@ class ConfigManager:
     Provides thread-safe caching and consistent access to configuration.
     """
     _instance = None
-    _init_lock = GRLock()  # Use Gevent-compatible locks
     _is_initialized = False  # Class attribute to prevent multiple initialization
-    _stale_config_return_count = 0  # Counter for failed lock acquisitions
     
     def __new__(cls):
-        with cls._init_lock:
-            if cls._instance is None:
-                cls._instance = super(ConfigManager, cls).__new__(cls)
-                cls._instance._initialized = False
-            return cls._instance
+        if cls._instance is None:
+            cls._instance = super(ConfigManager, cls).__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
     
     def __init__(self):
         if self._initialized:
             return
             
-        with self._init_lock:
-            if not self._initialized:
-                # Ensure the configuration directory exists before initialization
-                ensure_config_directory()
-                
-                # Configuration files
-                self.BOT_CONFIG_FILE = os.path.join(CONFIG_DIR, "bot_config.json")
-                self.DOCKER_CONFIG_FILE = os.path.join(CONFIG_DIR, "docker_config.json")
-                self.CHANNELS_CONFIG_FILE = os.path.join(CONFIG_DIR, "channels_config.json")
-                self.WEB_CONFIG_FILE = os.path.join(CONFIG_DIR, "web_config.json")
-                
-                # Cache state
-                self._config_cache = None
-                self._cache_lock = GLock()  # Use Gevent-compatible locks
-                self._cache_timestamp = 0
-                self._cache_ttl = 30  # Cache TTL in seconds
-                
-                # Log throttling timestamps
-                self._last_full_log_time = None
-                self._last_lang_log_time = None
-
-                # Cache protection (anti-thrashing)
-                self._last_cache_invalidation = 0
-                self._min_invalidation_interval = 5.0  # Minimum seconds between invalidations
-                self._force_reload_count = 0
-                self._last_force_reload_reset = 0
-                self._max_force_reloads = 10  # Maximum force reloads per minute
-                
-                # Token decryption cache
-                self._token_cache = None
-                self._token_cache_hash_source = None
-                
-                # Config change subscribers
-                self._subscribers = set()
-                
-                self._initialized = True
-                
-                if HAS_GEVENT:
-                    logger.debug("ConfigManager initialized with Gevent support")
-                else:
-                    logger.debug("ConfigManager initialized with standard threading")
-                
-                # Check file permissions on startup
-                self._check_startup_permissions()
-    
-    def _check_startup_permissions(self) -> None:
-        """
-        Check file permissions on startup and log warnings.
-        """
-        try:
-            permission_issues = []
+        if not self._initialized:
+            # Ensure the configuration directory exists before initialization
+            ensure_config_directory()
             
-            # Check permissions for all configuration files
-            permission_results = self.check_all_permissions()
+            # Configuration files
+            self.BOT_CONFIG_FILE = os.path.join(CONFIG_DIR, "bot_config.json")
+            self.DOCKER_CONFIG_FILE = os.path.join(CONFIG_DIR, "docker_config.json")
+            self.CHANNELS_CONFIG_FILE = os.path.join(CONFIG_DIR, "channels_config.json")
+            self.WEB_CONFIG_FILE = os.path.join(CONFIG_DIR, "web_config.json")
             
-            for file_path, (has_permission, error_msg) in permission_results.items():
-                if not has_permission:
-                    permission_issues.append(error_msg)
+            # Cache state
+            self._config_cache = None
+            self._cache_timestamp = 0
             
-            if permission_issues:
-                logger.warning("=" * 60)
-                logger.warning("CONFIGURATION FILE PERMISSION ISSUES DETECTED!")
-                logger.warning("The following files have incorrect permissions:")
-                for issue in permission_issues:
-                    logger.warning(f"  - {issue}")
-                logger.warning("=" * 60)
-                logger.warning("This will prevent saving configuration changes.")
-                logger.warning("To fix, run these commands on your server:")
-                logger.warning("  docker exec ddc chmod 644 /app/config/*.json")
-                logger.warning("Or on the host:")
-                logger.warning("  chmod 644 /mnt/user/appdata/dockerdiscordcontrol/config/*.json")
-                logger.warning("  chown nobody:users /mnt/user/appdata/dockerdiscordcontrol/config/*.json")
-                logger.warning("=" * 60)
-                
-        except Exception as e:
-            logger.error(f"Error checking startup permissions: {e}")
-    
-    def subscribe_to_changes(self, callback_fn) -> None:
-        """
-        Subscribe to configuration changes. The callback function will be called
-        whenever the configuration is saved.
-        
-        Args:
-            callback_fn: Function to call when configuration changes.
-                         Should accept a single argument (the new config).
-        """
-        self._subscribers.add(callback_fn)
-        logger.debug(f"Added subscriber: {callback_fn}")
-    
-    def unsubscribe_from_changes(self, callback_fn) -> None:
-        """
-        Unsubscribe from configuration changes.
-        
-        Args:
-            callback_fn: Function to remove from subscribers.
-        """
-        if callback_fn in self._subscribers:
-            self._subscribers.remove(callback_fn)
-            logger.debug(f"Removed subscriber: {callback_fn}")
-    
-    def _notify_subscribers(self, config: Dict[str, Any]) -> None:
-        """
-        Notify all subscribers about a configuration change.
-        
-        Args:
-            config: The new configuration dictionary.
-        """
-        config_copy = config.copy()  # Make a copy to prevent modifications
-        
-        # In Gevent environment, use a gevent-safe approach
-        subscribers = list(self._subscribers)
-        for subscriber in subscribers:
-            try:
-                subscriber(config_copy)
-            except Exception as e:
-                logger.error(f"Error notifying subscriber {subscriber}: {e}")
-    
-    def _derive_encryption_key(self, password_hash: str) -> bytes:
-        """Derives a Fernet-compatible encryption key from the password hash using PBKDF2."""
-        if not password_hash or not isinstance(password_hash, str):
-            logger.error("Cannot derive encryption key: Invalid password_hash provided.")
-            raise ValueError("Cannot derive encryption key from invalid password hash")
-
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=_TOKEN_ENCRYPTION_SALT,
-            iterations=_PBKDF2_ITERATIONS,
-        )
-        key = base64.urlsafe_b64encode(kdf.derive(password_hash.encode('utf-8')))
-        return key
-    
-    def _decrypt_token(self, encrypted_token_str: Optional[str], password_hash: str) -> Optional[str]:
-        """Attempts to decrypt the bot token string using a key derived from the password hash."""
-        if not encrypted_token_str:
-            return None
-
-        # For the bot token: Direct decryption attempt without locks and cache,
-        # since the bot mainly reads the token but doesn't write it
-        try:
-            derived_key = self._derive_encryption_key(password_hash)
-            f = Fernet(derived_key)
-            decrypted_token_bytes = f.decrypt(encrypted_token_str.encode('utf-8'))
-            decrypted_token = decrypted_token_bytes.decode('utf-8')
+            # PERFORMANCE: Add file modification tracking
+            self._file_mtimes = {}
             
-            # Simplified cache update without lock acquisition
-            try:
-                self._token_cache = decrypted_token
-                self._token_cache_hash_source = password_hash
-            except Exception:
-                # Ignore cache errors, as the token value is more important
-                pass
-                
-            return decrypted_token
-        except InvalidToken:
-            logger.warning("Failed to decrypt token: Invalid token or key (password change?)")
-            return None
-        except ValueError as e:
-            logger.error(f"Failed to decrypt bot token due to key derivation error: {e}")
-            return None
-        except Exception as e:
-            logger.error(f"Failed to decrypt token: Unexpected error: {e}")
-            return None
-    
-    def _encrypt_token(self, plaintext_token: str, password_hash: str) -> Optional[str]:
-        """Encrypts a bot token using a key derived from the password hash."""
-        if not plaintext_token or not password_hash:
-            return None
+            self._initialized = True
             
-        try:
-            derived_key = self._derive_encryption_key(password_hash)
-            f = Fernet(derived_key)
-            encrypted_token = f.encrypt(plaintext_token.encode('utf-8')).decode('utf-8')
-            return encrypted_token
-        except Exception as e:
-            logger.error(f"Failed to encrypt token: {e}")
-            return None
+            # Initial load of configuration
+            self._load_config_from_disk()
+            
+            # Check file permissions on startup
+            self._check_startup_permissions()
     
     def _load_json_file(self, file_path: str) -> Optional[Dict[str, Any]]:
         """Load and parse a JSON file, with error handling."""
@@ -336,7 +168,7 @@ class ConfigManager:
         except Exception as e:
             logger.error(f"Error reading {file_path}: {e}")
             return None
-    
+
     def _check_file_permissions(self, file_path: str) -> Tuple[bool, str]:
         """
         Check if a file has proper read/write permissions.
@@ -366,19 +198,6 @@ class ConfigManager:
             
         except Exception as e:
             return False, f"Error checking permissions for {file_path}: {str(e)}"
-    
-    def check_all_permissions(self) -> Dict[str, Tuple[bool, str]]:
-        """
-        Check permissions for all configuration files.
-        
-        Returns:
-            Dict mapping file paths to (has_permission, error_message) tuples
-        """
-        results = {}
-        for file_path in [self.BOT_CONFIG_FILE, self.DOCKER_CONFIG_FILE, 
-                          self.CHANNELS_CONFIG_FILE, self.WEB_CONFIG_FILE]:
-            results[file_path] = self._check_file_permissions(file_path)
-        return results
 
     def _save_json_file(self, file_path: str, data: Dict[str, Any]) -> bool:
         """Save data to a JSON file atomically, with error handling."""
@@ -424,10 +243,168 @@ class ConfigManager:
             logger.error(f"Error writing to {file_path}: {e}")
             traceback.print_exc()
             return False
+
+    def _derive_encryption_key(self, password_hash: str) -> bytes:
+        """Derives a Fernet-compatible encryption key from the password hash using PBKDF2."""
+        if not password_hash or not isinstance(password_hash, str):
+            logger.error("Cannot derive encryption key: Invalid password_hash provided.")
+            raise ValueError("Cannot derive encryption key from invalid password hash")
+
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=_TOKEN_ENCRYPTION_SALT,
+            iterations=_PBKDF2_ITERATIONS,
+        )
+        key = base64.urlsafe_b64encode(kdf.derive(password_hash.encode('utf-8')))
+        return key
+
+    def _decrypt_token(self, encrypted_token_str: Optional[str], password_hash: str) -> Optional[str]:
+        """Attempts to decrypt the bot token string using a key derived from the password hash."""
+        if not encrypted_token_str:
+            return None
+
+        try:
+            derived_key = self._derive_encryption_key(password_hash)
+            f = Fernet(derived_key)
+            decrypted_token_bytes = f.decrypt(encrypted_token_str.encode('utf-8'))
+            decrypted_token = decrypted_token_bytes.decode('utf-8')
+            
+            # Simplified cache update without lock acquisition
+            try:
+                self._token_cache = decrypted_token
+                self._token_cache_hash_source = password_hash
+            except Exception:
+                # Ignore cache errors, as the token value is more important
+                pass
+                
+            return decrypted_token
+        except InvalidToken:
+            logger.warning("Failed to decrypt token: Invalid token or key (password change?)")
+            return None
+        except ValueError as e:
+            logger.error(f"Failed to decrypt bot token due to key derivation error: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Failed to decrypt token: Unexpected error: {e}")
+            return None
+
+    def _encrypt_token(self, plaintext_token: str, password_hash: str) -> Optional[str]:
+        """Encrypts a bot token using a key derived from the password hash."""
+        if not plaintext_token or not password_hash:
+            return None
+            
+        try:
+            derived_key = self._derive_encryption_key(password_hash)
+            f = Fernet(derived_key)
+            encrypted_token = f.encrypt(plaintext_token.encode('utf-8')).decode('utf-8')
+            return encrypted_token
+        except Exception as e:
+            logger.error(f"Failed to encrypt token: {e}")
+            return None
+
+    def _check_startup_permissions(self) -> None:
+        """
+        Check file permissions on startup and log warnings.
+        """
+        try:
+            permission_issues = []
+            
+            # Check permissions for all configuration files
+            permission_results = self.check_all_permissions()
+            
+            for file_path, (has_permission, error_msg) in permission_results.items():
+                if not has_permission:
+                    permission_issues.append(error_msg)
+            
+            if permission_issues:
+                logger.warning("=" * 60)
+                logger.warning("CONFIGURATION FILE PERMISSION ISSUES DETECTED!")
+                logger.warning("The following files have incorrect permissions:")
+                for issue in permission_issues:
+                    logger.warning(f"  - {issue}")
+                logger.warning("=" * 60)
+                logger.warning("This will prevent saving configuration changes.")
+                logger.warning("To fix, run these commands on your server:")
+                logger.warning("  docker exec ddc chmod 644 /app/config/*.json")
+                logger.warning("Or on the host:")
+                logger.warning("  chmod 644 /mnt/user/appdata/dockerdiscordcontrol/config/*.json")
+                logger.warning("  chown nobody:users /mnt/user/appdata/dockerdiscordcontrol/config/*.json")
+                logger.warning("=" * 60)
+                
+        except Exception as e:
+            logger.error(f"Error checking startup permissions: {e}")
+    
+    def _has_files_changed(self) -> bool:
+        """Check if any config files have been modified since last load."""
+        try:
+            for file_path in [self.BOT_CONFIG_FILE, self.DOCKER_CONFIG_FILE, 
+                            self.CHANNELS_CONFIG_FILE, self.WEB_CONFIG_FILE]:
+                if os.path.exists(file_path):
+                    current_mtime = os.path.getmtime(file_path)
+                    last_mtime = self._file_mtimes.get(file_path)
+                    if last_mtime is None or current_mtime > last_mtime:
+                        return True
+            return False
+        except Exception:
+            return True  # On error, assume files changed
+    
+    def _update_file_mtimes(self) -> None:
+        """Update stored modification times of config files."""
+        for file_path in [self.BOT_CONFIG_FILE, self.DOCKER_CONFIG_FILE, 
+                         self.CHANNELS_CONFIG_FILE, self.WEB_CONFIG_FILE]:
+            if os.path.exists(file_path):
+                self._file_mtimes[file_path] = os.path.getmtime(file_path)
+    
+    def _load_config_from_disk(self) -> Dict[str, Any]:
+        """Load configuration from disk and update cache."""
+        logger.debug("Loading configuration from disk...")
+        
+        try:
+            bot_config_raw = self._load_json_file(self.BOT_CONFIG_FILE) or {}
+            docker_config_raw = self._load_json_file(self.DOCKER_CONFIG_FILE) or {}
+            channels_config_raw = self._load_json_file(self.CHANNELS_CONFIG_FILE) or {}
+            web_config_raw = self._load_json_file(self.WEB_CONFIG_FILE) or {}
+            
+            # Merge with defaults
+            config = {**DEFAULT_CONFIG, **bot_config_raw, **docker_config_raw, 
+                     **channels_config_raw, **web_config_raw}
+            
+            # Decrypt token if needed
+            token_to_decrypt = config.get('bot_token')
+            current_hash = config.get('web_ui_password_hash')
+            if token_to_decrypt and current_hash:
+                config['bot_token_decrypted_for_usage'] = self._decrypt_token(token_to_decrypt, current_hash)
+            
+            # Update cache and timestamps
+            self._config_cache = config.copy()
+            self._cache_timestamp = time.time()
+            self._update_file_mtimes()
+            
+            # Load debug status without blocking
+            try:
+                debug_mode = config.get('scheduler_debug_mode', False)
+                logger.info(f"Debug status loaded from configuration: {debug_mode}")
+                
+                # Update logging settings if needed
+                try:
+                    from utils.logging_utils import refresh_debug_status
+                    refresh_debug_status()
+                except ImportError:
+                    pass
+            except Exception as e:
+                logger.error(f"Error loading debug status: {e}")
+            
+            logger.info(f"Configuration loaded from disk. Language: {config.get('language')}")
+            return config
+            
+        except Exception as e:
+            logger.error(f"Error loading configuration from disk: {e}")
+            return DEFAULT_CONFIG.copy()
     
     def get_config(self, force_reload: bool = False) -> Dict[str, Any]:
         """
-        Get the application configuration with caching.
+        Get the application configuration. Uses in-memory cache unless forced to reload.
         
         Args:
             force_reload: If True, bypass the cache and reload from disk.
@@ -436,174 +413,21 @@ class ConfigManager:
             Dict containing the full configuration.
         """
         try:
-            # Anti-thrashing: Limit excessive force_reload requests
-            current_time = time.time()
-            if force_reload:
-                # Reset counter every minute
-                if current_time - self._last_force_reload_reset > 60:
-                    self._force_reload_count = 0
-                    self._last_force_reload_reset = current_time
-                
-                # If too many force reloads in the last minute, ignore this one
-                self._force_reload_count += 1
-                if self._force_reload_count > self._max_force_reloads:
-                    logger.debug(f"Ignoring force_reload request (exceeded {self._max_force_reloads}/minute)")
-                    force_reload = False  # Downgrade to normal request
-            
-            # Quick cache check without lock for better performance
-            cache_age = current_time - self._cache_timestamp if self._cache_timestamp > 0 else 0
-            
-            # Fast path: If cache is valid and no force reload is needed, return cache
-            if not force_reload and self._config_cache is not None and cache_age < self._cache_ttl:
+            # Return cache if valid and no force_reload
+            if self._config_cache is not None and not force_reload:
+                # Only check for file changes every 60 seconds
+                if time.time() - self._cache_timestamp > 60 and self._has_files_changed():
+                    logger.info("Configuration files changed on disk, reloading...")
+                    return self._load_config_from_disk()
                 return self._config_cache.copy()
             
-            # Here we need an exclusive lock
-            cache_lock_acquired = False
-            
-            try:
-                # Try to acquire the lock with timeout
-                lock_timeout = 0.2  # Reduce timeout for better responsiveness
-                
-                if HAS_GEVENT:
-                    try:
-                        from gevent.timeout import Timeout
-                        with Timeout(lock_timeout, False):  # 200ms timeout
-                            cache_lock_acquired = self._cache_lock.acquire(blocking=True)
-                    except Exception as e:
-                        if self._stale_config_return_count % 100 == 0:  # Only output every 100th message
-                            logger.debug(f"Gevent timeout during cache lock acquisition: {e}")
-                else:
-                    cache_lock_acquired = self._cache_lock.acquire(timeout=lock_timeout)
-                
-                if not cache_lock_acquired:
-                    # Increase cache miss counter
-                    self._stale_config_return_count += 1
-                    
-                    # In case of high lock contention (indicated by multiple cache misses):
-                    # Output a warning, but only every 500 failed attempts
-                    if self._stale_config_return_count % 500 == 0:
-                        logger.warning(f"High lock contention detected ({self._stale_config_return_count} misses). Consider increasing cache TTL.")
-                    
-                    # If we can't get the lock, use the existing cache
-                    # or return an empty config object
-                    if self._config_cache is not None:
-                        # Debug instead of Warning, as this can occur frequently
-                        logger.debug("Using stale cache due to lock timeout")
-                        return self._config_cache.copy()
-                    else:
-                        # If no cache is available, create one with the fallback method
-                        return self._get_config_fallback()
-                
-                # Check again within the lock block, in case another thread
-                # has updated the cache in the meantime
-                cache_age = time.time() - self._cache_timestamp if self._cache_timestamp > 0 else 0
-                if not force_reload and self._config_cache is not None and cache_age < self._cache_ttl:
-                    logger.debug("Using cached configuration (refreshed by another thread)")
-                    return self._config_cache.copy()
-                
-                # Reset the counter if we successfully obtained the lock
-                self._stale_config_return_count = 0
-                
-                # Only log full file loading every few seconds to reduce spam
-                if force_reload or self._last_full_log_time is None or (time.time() - self._last_full_log_time) > 10:
-                    logger.info(f"Loading configuration from files (cache age: {cache_age:.1f}s)")
-                    self._last_full_log_time = time.time()
-                else:
-                    logger.debug(f"Loading configuration from files (cache age: {cache_age:.1f}s)")
-                
-                # Set a short timeout for file operations
-                start_time = time.time()
-                
-                # Load configurations from individual files
-                bot_config_raw = self._load_json_file(self.BOT_CONFIG_FILE) or {}
-                docker_config_raw = self._load_json_file(self.DOCKER_CONFIG_FILE) or {}
-                channels_config_raw = self._load_json_file(self.CHANNELS_CONFIG_FILE) or {}
-                web_config_raw = self._load_json_file(self.WEB_CONFIG_FILE) or {}
-                
-                load_time = time.time() - start_time
-                logger.debug(f"Loaded raw configs in {load_time:.3f}s")
-                
-                # Simple merge with defaults
-                config = {}
-                
-                # Bot configuration with minimal validation
-                for key, default_value in DEFAULT_BOT_CONFIG.items():
-                    config[key] = bot_config_raw.get(key, default_value)
-                
-                # Docker configuration
-                for key, default_value in DEFAULT_DOCKER_CONFIG.items():
-                    config[key] = docker_config_raw.get(key, default_value)
-                
-                # Basic validation for servers list
-                if isinstance(config.get("servers"), list):
-                    validated_servers = []
-                    for s_data in config["servers"]:
-                        if isinstance(s_data, dict) and validate_server_config(s_data):
-                            validated_servers.append(s_data.copy())
-                    config["servers"] = validated_servers
-                else:
-                    config["servers"] = []
-                
-                # Channels configuration (basic)
-                for key, default_value in DEFAULT_CHANNELS_CONFIG.items():
-                    config[key] = channels_config_raw.get(key, default_value)
-                
-                # Web configuration
-                for key, default_value in DEFAULT_WEB_CONFIG.items():
-                    config[key] = web_config_raw.get(key, default_value)
-                
-                # Update cache
-                self._config_cache = config.copy()
-                self._cache_timestamp = current_time
-                
-                # Return from the lock before decrypting the token,
-                # to minimize lock time
-                return_config = config.copy()
-            finally:
-                if cache_lock_acquired:
-                    self._cache_lock.release()
-            
-            # Token decryption outside the main lock block
-            # to avoid blocking
-            token_to_decrypt = return_config.get('bot_token')
-            current_hash = return_config.get('web_ui_password_hash')
-            
-            if token_to_decrypt and current_hash:
-                try:
-                    decrypted_token = self._decrypt_token(token_to_decrypt, current_hash)
-                    return_config['bot_token_decrypted_for_usage'] = decrypted_token
-                except Exception as e:
-                    logger.error(f"Error decrypting token: {e}")
-                    return_config['bot_token_decrypted_for_usage'] = None
-            else:
-                return_config['bot_token_decrypted_for_usage'] = None
-            
-            # Create default files if they don't exist (minimal version)
-            # This operation can be done outside the lock
-            for filename, defaults, config_section in [
-                (self.BOT_CONFIG_FILE, DEFAULT_BOT_CONFIG, {k: return_config[k] for k in DEFAULT_BOT_CONFIG if k in return_config}),
-                (self.DOCKER_CONFIG_FILE, DEFAULT_DOCKER_CONFIG, {k: return_config[k] for k in DEFAULT_DOCKER_CONFIG if k in return_config}),
-                (self.CHANNELS_CONFIG_FILE, DEFAULT_CHANNELS_CONFIG, {k: return_config[k] for k in DEFAULT_CHANNELS_CONFIG if k in return_config}),
-                (self.WEB_CONFIG_FILE, DEFAULT_WEB_CONFIG, {k: return_config[k] for k in DEFAULT_WEB_CONFIG if k in return_config})
-            ]:
-                if not os.path.exists(filename):
-                    logger.info(f"Creating default config file: {filename}")
-                    self._save_json_file(filename, config_section)
-            
-            # Only log full message occasionally to reduce spam
-            if force_reload or self._last_lang_log_time is None or (time.time() - self._last_lang_log_time) > 10:
-                logger.info(f"Configuration loaded with language: {return_config.get('language')}")
-                self._last_lang_log_time = time.time()
-            else:
-                logger.debug(f"Configuration loaded with language: {return_config.get('language')}")
-                
-            return return_config
+            # Load from disk if cache is empty or force_reload
+            return self._load_config_from_disk()
                 
         except Exception as e:
-            logger.error(f"Critical error loading configuration: {e}")
-            logger.error(traceback.format_exc())
-            # Return empty config with defaults in case of failure
-            return DEFAULT_CONFIG.copy()
+            logger.error(f"Error getting configuration: {e}")
+            # Return a safe fallback configuration
+            return self._get_config_fallback()
     
     def _get_config_fallback(self) -> Dict[str, Any]:
         """
@@ -650,139 +474,56 @@ class ConfigManager:
             return DEFAULT_CONFIG.copy()
     
     def save_config(self, config_data: Dict[str, Any]) -> bool:
-        """
-        Save a complete configuration, splitting it into component files.
-        
-        Args:
-            config_data: Complete configuration to save.
-            
-        Returns:
-            bool: Success or failure
-        """
+        """Save configuration to disk and update cache."""
         try:
-            # Create a deep copy to avoid modifying the input
             config = config_data.copy()
             
-            # Check for new password
+            # Handle password change
             new_password = config.pop('new_web_ui_password', None)
+            if new_password:
+                password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
+                config['web_ui_password_hash'] = password_hash
+                
+                # Re-encrypt bot token with new password if needed
+                token_value = config.get('bot_token')
+                if token_value:
+                    encrypted_token = self._encrypt_token(token_value, password_hash)
+                    if encrypted_token:
+                        config['bot_token'] = encrypted_token
             
-            # Split config into component files based on structure
-            # and the default configuration sections
-            
-            # Handle the bot_token decryption marker (remove it before saving)
+            # Remove runtime-only fields
             if 'bot_token_decrypted_for_usage' in config:
                 del config['bot_token_decrypted_for_usage']
             
-            # Simple split by keys found in the default components
+            # Split and save component files
             bot_config = {k: config.get(k) for k in DEFAULT_BOT_CONFIG}
             docker_config = {k: config.get(k) for k in DEFAULT_DOCKER_CONFIG}
             channels_config = {k: config.get(k) for k in DEFAULT_CHANNELS_CONFIG}
             web_config = {k: config.get(k) for k in DEFAULT_WEB_CONFIG}
             
-            # DEBUG: Log what's being saved to docker_config
-            print(f"[CONFIG-DEBUG] Saving docker_config with {len(docker_config.get('servers', []))} servers")
-            logger.info(f"[CONFIG] Saving docker_config with servers: {docker_config.get('servers', [])}")
-            if docker_config.get('servers'):
-                for server in docker_config['servers']:
-                    print(f"[CONFIG-DEBUG] Server '{server.get('docker_name')}' allowed_actions: {server.get('allowed_actions', [])}")
-                    logger.info(f"[CONFIG] Server '{server.get('docker_name')}' allowed_actions: {server.get('allowed_actions', [])}")
-            
-            # Handle password change if needed
-            if new_password:
-                # Hash the new password
-                password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
-                web_config['web_ui_password_hash'] = password_hash
-                
-                # If there's a bot token to be saved, it must be encrypted with the new password
-                encrypted_token = None
-                token_value = config.get('bot_token')
-                if token_value:
-                    encrypted_token = self._encrypt_token(token_value, password_hash)
-                    if encrypted_token:
-                        bot_config['bot_token'] = encrypted_token
-                        logger.info("Bot token encrypted with new password.")
-            
-            # Save each component file
-            success = True
-            errors = []
-            permission_errors = []
-            
-            for filename, data, section_name in [
-                (self.BOT_CONFIG_FILE, bot_config, "bot"),
-                (self.DOCKER_CONFIG_FILE, docker_config, "docker"),
-                (self.CHANNELS_CONFIG_FILE, channels_config, "channels"),
-                (self.WEB_CONFIG_FILE, web_config, "web")
-            ]:
-                # Check permissions before attempting to save
-                has_permission, perm_error = self._check_file_permissions(filename)
-                if not has_permission:
-                    permission_errors.append(f"{section_name}: {perm_error}")
-                
-                if not self._save_json_file(filename, data):
-                    success = False
-                    errors.append(f"Failed to save {section_name} config to {filename}")
-            
-            # Log permission errors prominently
-            if permission_errors:
-                logger.error("=" * 60)
-                logger.error("CONFIGURATION SAVE FAILED - PERMISSION ERRORS:")
-                for error in permission_errors:
-                    logger.error(f"  - {error}")
-                logger.error("=" * 60)
-                logger.error("FIX: Run these commands on your server:")
-                logger.error("  chmod 644 /app/config/*.json")
-                logger.error("  chown nobody:users /app/config/*.json")
-                logger.error("=" * 60)
+            success = all([
+                self._save_json_file(self.BOT_CONFIG_FILE, bot_config),
+                self._save_json_file(self.DOCKER_CONFIG_FILE, docker_config),
+                self._save_json_file(self.CHANNELS_CONFIG_FILE, channels_config),
+                self._save_json_file(self.WEB_CONFIG_FILE, web_config)
+            ])
             
             if success:
                 # Update cache
-                merged_config = {**bot_config, **docker_config, **channels_config, **web_config}
-                with self._cache_lock:
-                    self._config_cache = merged_config
-                    self._cache_timestamp = time.time()
+                self._config_cache = config.copy()
+                self._cache_timestamp = time.time()
+                self._update_file_mtimes()
                 
                 # Notify subscribers
-                try:
-                    self._notify_subscribers(merged_config)
-                    
-                    # Check if debug status has changed and update logger settings
-                    if 'scheduler_debug_mode' in web_config:
-                        try:
-                            # If logging utils can be imported, update the debug status
-                            from utils.logging_utils import refresh_debug_status
-                            debug_mode = web_config.get('scheduler_debug_mode', False)
-                            logger.info(f"Debug status updated: {debug_mode}")
-                            
-                            # Explicitly save the debug status in the configuration file
-                            # Make sure the file is written again with debug_mode properly set
-                            web_config['scheduler_debug_mode'] = debug_mode
-                            saved = self._save_json_file(self.WEB_CONFIG_FILE, web_config)
-                            if not saved:
-                                logger.error(f"Failed to save debug status to {self.WEB_CONFIG_FILE}")
-                            else:
-                                logger.info(f"Debug status {debug_mode} explicitly saved to {self.WEB_CONFIG_FILE}")
-                            
-                            # Update the debug status in the logging settings
-                            refresh_debug_status()
-                        except ImportError:
-                            logger.debug("Could not import refresh_debug_status.")
-                        except Exception as e:
-                            logger.error(f"Error updating debug status: {e}", exc_info=True)
-                    
-                except Exception as e:
-                    logger.error(f"Error notifying subscribers: {e}")
-                
-                # Final notification for UX
-                logger.info("Configuration saved successfully.")
+                self._notify_subscribers(config)
+                logger.info("Configuration saved successfully")
                 return True
-            else:
-                error_message = "; ".join(errors)
-                logger.error(f"Configuration save failed: {error_message}")
-                return False
-                
+            
+            logger.error("Failed to save one or more configuration files")
+            return False
+            
         except Exception as e:
             logger.error(f"Error saving configuration: {e}")
-            logger.error(traceback.format_exc())
             return False
     
     def get_server_config(self, server_name: str) -> Optional[Dict[str, Any]]:
@@ -856,12 +597,11 @@ class ConfigManager:
             logger.debug(f"Ignoring cache invalidation request (too frequent: {since_last_invalidation:.1f}s < {self._min_invalidation_interval:.1f}s)")
             return
             
-        with self._cache_lock:
-            self._config_cache = None
-            self._cache_timestamp = 0
-            self._last_full_log_time = None
-            self._last_lang_log_time = None
-            self._last_cache_invalidation = current_time
+        self._config_cache = None
+        self._cache_timestamp = 0
+        self._last_full_log_time = None
+        self._last_lang_log_time = None
+        self._last_cache_invalidation = current_time
             
         logger.debug("Configuration cache invalidated")
     
@@ -875,9 +615,21 @@ class ConfigManager:
         if seconds < 0:
             seconds = 0
             
-        with self._cache_lock:
-            self._cache_ttl = seconds
+        self._cache_ttl = seconds
         logger.debug(f"Cache TTL set to {seconds} seconds")
+
+    def check_all_permissions(self) -> Dict[str, Tuple[bool, str]]:
+        """
+        Check permissions for all configuration files.
+        
+        Returns:
+            Dict mapping file paths to (has_permission, error_message) tuples
+        """
+        results = {}
+        for file_path in [self.BOT_CONFIG_FILE, self.DOCKER_CONFIG_FILE, 
+                         self.CHANNELS_CONFIG_FILE, self.WEB_CONFIG_FILE]:
+            results[file_path] = self._check_file_permissions(file_path)
+        return results
 
 
 # Create the global config manager instance
