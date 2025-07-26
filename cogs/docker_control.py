@@ -213,6 +213,39 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                             logger.info(f"Direct Cog Periodic Edit Loop: Skipping edit for '{display_name}' - container is pending (duration: {pending_duration:.1f}s)")
                             continue  # Skip this container
                     
+                    # PERFORMANCE OPTIMIZATION: Smart offline container handling
+                    current_server_conf = next((s for s in self.config.get('servers', []) if s.get('name', s.get('docker_name')) == display_name), None)
+                    if current_server_conf and display_name != "overview":
+                        docker_name = current_server_conf.get('docker_name')
+                        if docker_name:
+                                                         # Check if container is offline from status cache
+                             cached_status = self.status_cache.get(docker_name)
+                             if cached_status:
+                                 try:
+                                     # Handle different cache formats: (display_name, is_running, cpu, ram, uptime, details_allowed)
+                                     if len(cached_status) >= 6:
+                                         _, is_running, _, _, _, _ = cached_status
+                                     elif len(cached_status) >= 2:
+                                         _, is_running = cached_status[:2]  # Take only first 2 values
+                                     else:
+                                         logger.debug(f"Unexpected cache format for {docker_name}: {len(cached_status)} values")
+                                         continue
+                                 except (ValueError, TypeError) as e:
+                                     logger.debug(f"Error unpacking cache for {docker_name}: {e}")
+                                     continue
+                                 
+                                 if not is_running:
+                                    # For offline containers, use reduced update interval (5 minutes instead of 1)
+                                    offline_interval_minutes = 5
+                                    last_offline_update = self.last_message_update_time.get(channel_id, {}).get(display_name)
+                                    if last_offline_update:
+                                        time_since_offline_update = now_utc - last_offline_update
+                                        offline_threshold = timedelta(minutes=offline_interval_minutes)
+                                        
+                                        if time_since_offline_update < offline_threshold:
+                                            logger.debug(f"Direct Cog Periodic Edit Loop: Skipping offline container '{display_name}' - last update {time_since_offline_update} ago (offline interval: {offline_interval_minutes}m)")
+                                            continue  # Skip offline container update
+                    
                     allow_toggle_for_channel = _channel_has_permission(channel_id, 'control', self.config)
                     # Special case for overview message
                     if display_name == "overview":
@@ -248,15 +281,61 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             none_results_count = 0
             
             try:
-                # IMPROVED: Run message edits in batches to reduce Discord API pressure
+                # IMPROVED: Intelligent batch distribution based on historical performance
                 BATCH_SIZE = 3  # Process 3 messages at a time instead of all at once
-                logger.info(f"Direct Cog Periodic Edit Loop: Running {total_tasks} message edits in BATCHED mode (batch size: {BATCH_SIZE})")
                 
-                # Process tasks in batches
-                for i in range(0, total_tasks, BATCH_SIZE):
-                    batch_tasks = tasks_to_run[i:i + BATCH_SIZE]
-                    batch_num = (i // BATCH_SIZE) + 1
-                    total_batches = (total_tasks + BATCH_SIZE - 1) // BATCH_SIZE
+                # Known slow containers that should be distributed across batches
+                KNOWN_SLOW_CONTAINERS = {'Satisfactory', 'V-Rising', 'Valheim', 'ProjectZomboid'}
+                
+                # Separate tasks into fast and slow
+                slow_tasks = []
+                fast_tasks = []
+                
+                for task in tasks_to_run:
+                    # Extract container name from task (assuming it's the second argument)
+                    if hasattr(task, '_coro') and hasattr(task._coro, 'cr_frame'):
+                        # Try to extract display_name from coroutine arguments
+                        try:
+                            frame_locals = task._coro.cr_frame.f_locals
+                            display_name = frame_locals.get('display_name', '')
+                            if display_name in KNOWN_SLOW_CONTAINERS:
+                                slow_tasks.append(task)
+                            else:
+                                fast_tasks.append(task)
+                        except:
+                            fast_tasks.append(task)  # Default to fast if we can't determine
+                    else:
+                        fast_tasks.append(task)  # Default to fast if we can't determine
+                
+                # Create balanced batches: distribute slow containers evenly
+                balanced_batches = []
+                batch_count = (total_tasks + BATCH_SIZE - 1) // BATCH_SIZE
+                
+                # Distribute slow tasks first (one per batch if possible)
+                slow_distribution = [[] for _ in range(batch_count)]
+                for i, slow_task in enumerate(slow_tasks):
+                    batch_index = i % batch_count
+                    slow_distribution[batch_index].append(slow_task)
+                
+                # Fill remaining slots with fast tasks
+                fast_task_index = 0
+                for batch_index in range(batch_count):
+                    current_batch = slow_distribution[batch_index][:]
+                    
+                    # Fill up to BATCH_SIZE with fast tasks
+                    while len(current_batch) < BATCH_SIZE and fast_task_index < len(fast_tasks):
+                        current_batch.append(fast_tasks[fast_task_index])
+                        fast_task_index += 1
+                    
+                    if current_batch:  # Only add non-empty batches
+                        balanced_batches.append(current_batch)
+                
+                logger.info(f"Direct Cog Periodic Edit Loop: Running {total_tasks} message edits in INTELLIGENT BATCHED mode (batch size: {BATCH_SIZE}, slow containers distributed)")
+                logger.info(f"Performance optimization: {len(slow_tasks)} slow containers distributed across {len(balanced_batches)} batches")
+                
+                # Process balanced batches
+                for batch_num, batch_tasks in enumerate(balanced_batches, 1):
+                    total_batches = len(balanced_batches)
                     
                     logger.info(f"Direct Cog Periodic Edit Loop: Processing batch {batch_num}/{total_batches} with {len(batch_tasks)} tasks")
                     
@@ -274,7 +353,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                             none_results_count += 1
                     
                     # Small delay between batches to reduce API pressure
-                    if i + BATCH_SIZE < total_tasks:  # Don't delay after last batch
+                    if batch_num < total_batches:  # Don't delay after last batch
                         await asyncio.sleep(0.5)
                         logger.debug(f"Direct Cog Periodic Edit Loop: Completed batch {batch_num}/{total_batches}, brief pause before next batch")
                 

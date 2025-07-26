@@ -985,7 +985,18 @@ class StatusHandlersMixin:
                 # Content unchanged - skip Discord API call
                 self.update_stats['skipped'] += 1
                 elapsed_time = (time.time() - start_time) * 1000
-                logger.debug(f"_edit_single_message: SKIPPED edit for '{display_name}' - content unchanged ({elapsed_time:.1f}ms)")
+                # Enhanced logging for offline containers
+                cached_status = getattr(self, 'status_cache', {}).get(server_conf.get('docker_name'))
+                is_offline = False
+                if cached_status:
+                    try:
+                        # Handle different cache formats safely
+                        if len(cached_status) >= 2:
+                            is_offline = not cached_status[1]  # Second value is is_running
+                    except (TypeError, IndexError):
+                        pass  # Ignore cache format issues for logging
+                status_info = " [OFFLINE]" if is_offline else ""
+                logger.debug(f"_edit_single_message: SKIPPED edit for '{display_name}'{status_info} - content unchanged ({elapsed_time:.1f}ms)")
                 
                 # Log performance stats every 50 skipped updates
                 if self.update_stats['skipped'] % 50 == 0:
@@ -1013,7 +1024,19 @@ class StatusHandlersMixin:
             # This creates a message object without API call - edit() works on partial messages
             message_to_edit = channel.get_partial_message(message_id)  # No API call
 
-            await message_to_edit.edit(embed=embed, view=view if view and view.children else None)
+            # PERFORMANCE FIX: Add timeout to prevent slow Discord API calls from blocking the system
+            try:
+                await asyncio.wait_for(
+                    message_to_edit.edit(embed=embed, view=view if view and view.children else None),
+                    timeout=5.0  # 5 second timeout for Discord API calls
+                )
+            except asyncio.TimeoutError:
+                elapsed_time = (time.time() - start_time) * 1000
+                logger.error(f"_edit_single_message: TIMEOUT for '{display_name}' after 5000ms (total time: {elapsed_time:.1f}ms)")
+                # For timeout cases, still update the cache to prevent immediate retry
+                self.last_sent_content[cache_key] = current_content
+                self.update_stats['sent'] += 1  # Count as attempt even if timeout
+                return False  # Return failure but don't crash
             
             # Store the new content for future comparison
             self.last_sent_content[cache_key] = current_content
