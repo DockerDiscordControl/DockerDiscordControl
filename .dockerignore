@@ -92,10 +92,8 @@ docker-compose*.yml
 wiki/
 docs/
 
-# Development requirements (only include production)
-requirements.txt
-requirements-alpine.txt
-!requirements-production.txt
+# Development requirements (production dependencies are in Dockerfile)
+requirements*.txt
 
 # Unraid specific files
 DockerDiscordControl.xml
@@ -103,8 +101,6 @@ CNAME
 
 # Development tools and configs
 Makefile
-supervisord.conf
-!supervisord-optimized.conf
 gunicorn_config.dev.py
 
 # Editor and system files
