@@ -4,7 +4,7 @@
 
 Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is an ultra-optimized, ~200MB Alpine Linux build with the latest security patches and enhanced performance.
 
-![Version](https://img.shields.io/badge/version-v1.1.1--alpine-blue)
+![Version](https://img.shields.io/badge/version-v1.1.2--alpine-blue)
 ![Security](https://img.shields.io/badge/security-CVE%20free-brightgreen)
 ![Alpine](https://img.shields.io/badge/base-Alpine%203.22.1-blue)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/DockerDiscordControl/DockerDiscordControl/blob/main/LICENSE)
@@ -34,9 +34,9 @@ Control your Docker containers directly from Discord! This application provides 
 
 ---
 
-## v1.1.1-alpine: Ultra-Optimized & Secure
+## v1.1.2-alpine: Ultra-Optimized & Secure
 
-**Release v1.1.1-alpine brings massive performance improvements with an ultra-optimized Alpine Linux image.**
+**Release v1.1.2-alpine brings massive performance improvements with an ultra-optimized Alpine Linux image.**
 - **78% Size Reduction**: From 924MB to ~200MB - ultra-optimized Alpine Linux 3.22.1
 - **Latest Security Patches**: Upgraded to Flask 3.1.1 and Werkzeug 3.1.3 to resolve all critical and high-severity CVEs
 - **Enhanced Performance**: Faster startup times and reduced memory footprint
@@ -54,7 +54,7 @@ Control your Docker containers directly from Discord! This application provides 
 - **Memory Optimized**: <200MB RAM usage with intelligent garbage collection
 - **Production Ready**: Supports 50 containers across 15 Discord channels
 
-**New in v1.1.1-alpine:** The default build is now an ultra-optimized ~200MB Alpine Linux image with 78% size reduction while maintaining full functionality and improving security.
+**New in v1.1.2-alpine:** The default build is now an ultra-optimized ~200MB Alpine Linux image with 78% size reduction while maintaining full functionality and improving security.
 
 **Latest Updates:** Upgraded to Flask 3.1.1 and Werkzeug 3.1.3, resolved all security vulnerabilities, and achieved massive optimization with Alpine Linux 3.22.1 base image.
 
