@@ -990,10 +990,17 @@ class StatusHandlersMixin:
                 is_offline = False
                 if cached_status:
                     try:
-                        # Handle different cache formats safely
-                        if len(cached_status) >= 2:
-                            is_offline = not cached_status[1]  # Second value is is_running
-                    except (TypeError, IndexError):
+                        # Handle both cache formats: direct tuple or {'data': tuple, 'timestamp': datetime}
+                        if isinstance(cached_status, dict) and 'data' in cached_status:
+                            status_data = cached_status['data']
+                        else:
+                            status_data = cached_status
+                        
+                        # Check if status_data is valid and has enough elements
+                        if (hasattr(status_data, '__getitem__') and hasattr(status_data, '__len__') and 
+                            len(status_data) >= 2):
+                            is_offline = not status_data[1]  # Second value is is_running
+                    except (TypeError, IndexError, KeyError):
                         pass  # Ignore cache format issues for logging
                 status_info = " [OFFLINE]" if is_offline else ""
                 logger.debug(f"_edit_single_message: SKIPPED edit for '{display_name}'{status_info} - content unchanged ({elapsed_time:.1f}ms)")

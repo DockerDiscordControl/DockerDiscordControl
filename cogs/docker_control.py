@@ -222,15 +222,28 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                              cached_status = self.status_cache.get(docker_name)
                              if cached_status:
                                  try:
-                                     # Handle different cache formats: (display_name, is_running, cpu, ram, uptime, details_allowed)
-                                     if len(cached_status) >= 6:
-                                         _, is_running, _, _, _, _ = cached_status
-                                     elif len(cached_status) >= 2:
-                                         _, is_running = cached_status[:2]  # Take only first 2 values
+                                     # Handle both cache formats: direct tuple or {'data': tuple, 'timestamp': datetime}
+                                     if isinstance(cached_status, dict) and 'data' in cached_status:
+                                         # New format: extract data from dict
+                                         status_data = cached_status['data']
                                      else:
-                                         logger.debug(f"Unexpected cache format for {docker_name}: {len(cached_status)} values")
+                                         # Old format: direct tuple
+                                         status_data = cached_status
+                                     
+                                     # Ensure status_data is subscriptable (list, tuple, etc.)
+                                     if not hasattr(status_data, '__getitem__') or not hasattr(status_data, '__len__'):
+                                         logger.debug(f"Cache data for {docker_name} is not subscriptable: {type(status_data)}")
                                          continue
-                                 except (ValueError, TypeError) as e:
+                                     
+                                     # Handle different tuple formats: (display_name, is_running, cpu, ram, uptime, details_allowed)
+                                     if len(status_data) >= 6:
+                                         _, is_running, _, _, _, _ = status_data
+                                     elif len(status_data) >= 2:
+                                         _, is_running = status_data[:2]  # Take only first 2 values
+                                     else:
+                                         logger.debug(f"Unexpected cache data format for {docker_name}: {len(status_data)} values")
+                                         continue
+                                 except (ValueError, TypeError, KeyError, IndexError) as e:
                                      logger.debug(f"Error unpacking cache for {docker_name}: {e}")
                                      continue
                                  
