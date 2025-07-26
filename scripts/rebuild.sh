@@ -56,9 +56,9 @@ echo -e "${GREEN}✅ Cache directories cleaned${NC}"
 sleep 1
 
 # 🐳 Build the new, ultra-optimized Docker image
-echo -e "${BLUE}🐳 Rebuilding Ultra-Optimized image 'dockerdiscordcontrol' (using Dockerfile.alpine-optimized)...${NC}"
+echo -e "${BLUE}🐳 Rebuilding Ultra-Optimized image 'dockerdiscordcontrol' (using standard Dockerfile)...${NC}"
 echo -e "${YELLOW}⏳ This may take a few minutes...${NC}"
-if docker build --no-cache -f Dockerfile.alpine-optimized -t dockerdiscordcontrol .; then
+if docker build --no-cache -t dockerdiscordcontrol .; then
     echo -e "${GREEN}✅ Docker image built successfully${NC}"
 else
     echo -e "${RED}❌ Docker build failed${NC}"
