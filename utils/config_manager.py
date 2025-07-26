@@ -535,10 +535,6 @@ class ConfigManager:
                 current_time = time.time()
                 self._cache_timestamp = current_time
                 
-                # Small delay to ensure file system has finished writing
-                import time as time_module
-                time_module.sleep(0.1)
-                
                 # Update file modification times after save
                 self._update_file_mtimes()
                 
