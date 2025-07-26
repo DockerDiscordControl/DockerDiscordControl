@@ -252,10 +252,12 @@ def create_app(test_config=None):
             
         except Exception as e:
             # Ensure health endpoint always returns something, even on error
+            # Log the actual error for debugging but don't expose it to users
+            app.logger.error(f"Health check failed: {str(e)}")
             error_data = {
                 "status": "error",
                 "service": "DockerDiscordControl", 
-                "error": str(e),
+                "error": "Service temporarily unavailable",
                 "timestamp": datetime.now(timezone.utc).isoformat()
             }
             return jsonify(error_data), 500
