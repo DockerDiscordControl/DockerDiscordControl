@@ -1,5 +1,4 @@
 # docker-compose.yml
-version: '3.8' # Defines the Compose file version
 
 services:
   ddc: # Name of the service (freely selectable, here 'ddc')
