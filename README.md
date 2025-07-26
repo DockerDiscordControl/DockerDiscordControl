@@ -8,15 +8,31 @@ A powerful Discord bot and web interface to manage Docker containers remotely. T
 
 Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is an ultra-optimized, ~200MB Alpine Linux build with the latest security patches and enhanced performance.
 
-![Version](https://img.shields.io/badge/version-v1.1.2--alpine-blue)
-![Security](https://img.shields.io/badge/security-CVE%20free-brightgreen)
-![Alpine](https://img.shields.io/badge/base-Alpine%203.22.1-blue)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/DockerDiscordControl/DockerDiscordControl/blob/main/LICENSE)
-[![Alpine Linux](https://img.shields.io/badge/Alpine_Linux-~200MB-0D597F.svg?logo=alpine-linux)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol)
-[![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol.svg)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol)
-[![Memory Optimized](https://img.shields.io/badge/RAM-<200MB-green.svg)](../../wiki/Memory‐Optimization)
-[![Unraid](https://img.shields.io/badge/Unraid-Community_Apps-orange.svg)](UNRAID.md)
-[![Wiki](https://img.shields.io/badge/documentation-wiki-blue.svg)](../../wiki)
+## 🆕 Latest Updates (v1.1.3)
+
+### ✅ **v1.1.3 - Security & Performance Update**
+
+🔐 **Security Fixes:**
+- **CRITICAL:** Added secure Flask secret key generation to prevent session hijacking vulnerabilities.
+- Resolved CVE vulnerability related to fallback secret keys.
+
+🚀 **Performance Optimizations:**
+- Discord API timeout protection (5s max vs 17+ seconds before).
+- Intelligent batch distribution for slow containers.
+- Offline container update optimization (5min intervals vs 1min).
+- Enhanced inactivity timeout handling (10min vs 2min).
+
+🔧 **Critical Bug Fixes:**
+- Resolved infinite config reload loops in Web UI.
+- Fixed maximum recursion depth errors in debug system.
+- Eliminated status cache KeyError crashes.
+- Improved multi-worker process synchronization.
+
+🏥 **Monitoring & Stability:**
+- Added `/health` endpoint for Docker health checks.
+- Supervisor config verified for stability.
+
+**🎉 Ready for production deployment on any Unraid, Linux, or Docker environment!**
 
 ## Platform Selection
 
@@ -358,30 +374,4 @@ Help keep DockerDiscordControl growing and improving across all platforms:
 
 Your support helps maintain DDC across **Windows, Linux, macOS, and Universal** versions, develop new features, and keep it zero-vulnerability secure! 
 
-**Built for every platform - optimized for your environment!** 
-
-## 🆕 Latest Updates (v1.1.3)
-
-### ✅ **v1.1.3 - Security & Performance Update**
-
-🔐 **Security Fixes:**
-- **CRITICAL:** Added secure Flask secret key generation to prevent session hijacking vulnerabilities.
-- Resolved CVE vulnerability related to fallback secret keys.
-
-🚀 **Performance Optimizations:**
-- Discord API timeout protection (5s max vs 17+ seconds before).
-- Intelligent batch distribution for slow containers.
-- Offline container update optimization (5min intervals vs 1min).
-- Enhanced inactivity timeout handling (10min vs 2min).
-
-🔧 **Critical Bug Fixes:**
-- Resolved infinite config reload loops in Web UI.
-- Fixed maximum recursion depth errors in debug system.
-- Eliminated status cache KeyError crashes.
-- Improved multi-worker process synchronization.
-
-🏥 **Monitoring & Stability:**
-- Added `/health` endpoint for Docker health checks.
-- Supervisor config verified for stability.
-
-**🎉 Ready for production deployment on any Unraid, Linux, or Docker environment!**
+**Built for every platform - optimized for your environment!**
