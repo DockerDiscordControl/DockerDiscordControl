@@ -619,6 +619,65 @@ class ConfigManager:
         # Save the updated config
         return self.save_config(config)
     
+    def get_server_info_config(self, server_name: str) -> Dict[str, Any]:
+        """
+        Get info configuration for a specific server.
+        
+        Args:
+            server_name: Name or docker_name of the server
+            
+        Returns:
+            Dict with info configuration (with defaults if not set)
+        """
+        server_config = self.get_server_config(server_name)
+        if not server_config:
+            return self._get_default_info_config()
+        
+        info_config = server_config.get('info', {})
+        default_config = self._get_default_info_config()
+        
+        # Merge with defaults
+        for key, default_value in default_config.items():
+            if key not in info_config:
+                info_config[key] = default_value
+        
+        return info_config
+    
+    def update_server_info_config(self, server_name: str, info_config: Dict[str, Any]) -> bool:
+        """
+        Update info configuration for a specific server.
+        
+        Args:
+            server_name: Name or docker_name of the server
+            info_config: Info configuration to update
+            
+        Returns:
+            bool: Success or failure
+        """
+        # Validate info configuration
+        test_server_config = {"name": "test", "docker_name": "test", "allowed_actions": ["status"], "info": info_config}
+        if not validate_server_config(test_server_config):
+            logger.error(f"Invalid info configuration for '{server_name}'")
+            return False
+        
+        server_config = self.get_server_config(server_name)
+        if not server_config:
+            logger.error(f"Server '{server_name}' not found")
+            return False
+        
+        # Update info configuration
+        server_config['info'] = info_config
+        return self.update_server_config(server_name, server_config)
+    
+    def _get_default_info_config(self) -> Dict[str, Any]:
+        """Get default info configuration for new servers."""
+        return {
+            "enabled": False,
+            "show_ip": False,
+            "custom_ip": "",
+            "custom_text": ""
+        }
+    
     def invalidate_cache(self) -> None:
         """
         Invalidate the configuration cache, forcing reload on next access.

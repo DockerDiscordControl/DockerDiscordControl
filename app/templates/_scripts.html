@@ -694,6 +694,7 @@
                             el.disabled = !isActive;
                         });
                         updateOrderNumbers(serverTableBody); // <<< Update numbering here
+                        updateContainerInfoVisibility(); // Update info configuration visibility
                         showUnsavedChangesAlert(true); // Server selection requires restart
                     }
                 }
@@ -782,6 +783,115 @@
             updateOrderNumbers(serverTableBody); // Set initial numbering
         }
         // --- END: Server Table Sorting ---
+
+        // --- Container Info Configuration Logic ---
+        function updateContainerInfoVisibility() {
+            const containerInfoConfig = document.getElementById('container-info-config');
+            const containerInfoPlaceholder = document.getElementById('container-info-placeholder');
+            
+            if (!containerInfoConfig || !containerInfoPlaceholder) return;
+            
+            // Get all selected containers
+            const selectedContainers = [];
+            const serverCheckboxes = document.querySelectorAll('.server-checkbox:checked');
+            serverCheckboxes.forEach(checkbox => {
+                const row = checkbox.closest('tr');
+                if (row) {
+                    const containerName = row.getAttribute('data-container-name');
+                    if (containerName) {
+                        selectedContainers.push(containerName);
+                    }
+                }
+            });
+            
+            // Show/hide container info items based on selection
+            const containerInfoItems = document.querySelectorAll('.container-info-item');
+            let visibleCount = 0;
+            
+            containerInfoItems.forEach(item => {
+                const containerName = item.getAttribute('data-container-name');
+                const shouldShow = selectedContainers.includes(containerName);
+                
+                if (shouldShow) {
+                    item.style.display = 'block';
+                    // Enable form elements
+                    const formElements = item.querySelectorAll('input, textarea');
+                    formElements.forEach(el => el.disabled = false);
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                    // Disable form elements
+                    const formElements = item.querySelectorAll('input, textarea');
+                    formElements.forEach(el => el.disabled = true);
+                }
+            });
+            
+            // Show/hide the entire section
+            if (visibleCount > 0) {
+                containerInfoConfig.style.display = 'block';
+                containerInfoPlaceholder.style.display = 'none';
+            } else {
+                containerInfoConfig.style.display = 'none';
+                containerInfoPlaceholder.style.display = 'block';
+            }
+        }
+        
+        // Character counter for info text areas
+        function setupCharacterCounters() {
+            const textareas = document.querySelectorAll('textarea[maxlength="250"]');
+            textareas.forEach(textarea => {
+                const counterId = textarea.getAttribute('id');
+                const counter = document.querySelector(`[data-target="${counterId}"]`);
+                
+                if (counter) {
+                    // Update counter on input
+                    textarea.addEventListener('input', function() {
+                        const currentLength = this.value.length;
+                        counter.textContent = currentLength;
+                        
+                        // Change color based on length
+                        if (currentLength > 225) {
+                            counter.style.color = '#dc3545'; // Red
+                        } else if (currentLength > 200) {
+                            counter.style.color = '#fd7e14'; // Orange
+                        } else {
+                            counter.style.color = ''; // Default
+                        }
+                    });
+                    
+                    // Set initial count
+                    counter.textContent = textarea.value.length;
+                }
+            });
+        }
+        
+        // Auto-enable /command when /control is checked (permission logic)
+        function setupPermissionLogic() {
+            const controlCheckboxes = document.querySelectorAll('.cmd-control');
+            controlCheckboxes.forEach(controlCheckbox => {
+                controlCheckbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        // Find corresponding /command checkbox (legacy behavior)
+                        const rowId = this.name.match(/\d+$/);
+                        if (rowId) {
+                            const commandCheckbox = document.querySelector(`input[name="cmd_command_${rowId[0]}"]`);
+                            if (commandCheckbox) {
+                                commandCheckbox.checked = true;
+                                commandCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        }
+                    }
+                });
+            });
+        }
+        
+        // Initialize container info functionality
+        if (serverTableBody) {
+            updateContainerInfoVisibility();
+            setupCharacterCounters();
+            setupPermissionLogic();
+        }
+        // --- END: Container Info Configuration Logic ---
 
         // --- Docker Container Refresh Button ---
         const refreshDockerButton = document.getElementById('refresh-docker-list');

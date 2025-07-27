@@ -950,6 +950,17 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         # Simply delegate to the implementation in CommandHandlersMixin
         await self._impl_command(ctx, container_name, action)
 
+    async def info_edit(self, ctx: discord.ApplicationContext, 
+                       container_name: str):
+        """
+        Slash command to edit container information.
+        
+        The implementation logic has been moved to the CommandHandlersMixin class 
+        in command_handlers.py. This command delegates to the _impl_info_edit method there.
+        """
+        # Simply delegate to the implementation in CommandHandlersMixin
+        await self._impl_info_edit(ctx, container_name)
+
     # Decorator adjusted
     @commands.slash_command(name="help", description=_("Displays help for available commands"), guild_ids=get_guild_id())
     async def help_command(self, ctx: discord.ApplicationContext):

@@ -522,12 +522,22 @@ class ControlView(View):
         allowed_actions = server_config.get('allowed_actions', [])
         details_allowed = server_config.get('allow_detailed_status', True)
         is_expanded = cog_instance.expanded_states.get(display_name, False)
+        info_config = server_config.get('info', {})
+
+        # Check if channel has info permission
+        from utils.config_cache import get_cached_config
+        config = get_cached_config()
+        channel_has_info_permission = self._channel_has_info_permission(channel_has_control_permission, config)
 
         # Add buttons based on state and permissions
         if is_running:
             # Toggle button for running containers with details allowed
             if details_allowed and self.allow_toggle:
                 self.add_item(ToggleButton(cog_instance, server_config, is_running=True, row=0))
+            
+            # Info button (next to toggle button, always on row 0)
+            if channel_has_info_permission and info_config.get('enabled', False):
+                self.add_item(InfoButton(cog_instance, server_config, row=0))
 
             # Action buttons when expanded and channel has control
             if channel_has_control_permission and is_expanded:
@@ -540,6 +550,234 @@ class ControlView(View):
             # Start button for offline containers
             if channel_has_control_permission and "start" in allowed_actions:
                 self.add_item(ActionButton(cog_instance, server_config, "start", discord.ButtonStyle.secondary, None, "▶️", row=0))
+            
+            # Info button for offline containers (if enabled)
+            if channel_has_info_permission and info_config.get('enabled', False):
+                self.add_item(InfoButton(cog_instance, server_config, row=0))
+    
+    def _channel_has_info_permission(self, channel_has_control_permission: bool, config: dict) -> bool:
+        """Check if channel has info permission (control permission also grants info access)."""
+        from .control_helpers import _channel_has_permission
+        # If we already know they have control permission, they can access info
+        if channel_has_control_permission:
+            return True
+        # Otherwise check specifically for info permission
+        # Note: We need the actual channel_id, but we don't have it in this context
+        # This will be handled properly in the InfoButton callback
+        return True  # Let InfoButton handle the actual permission check
+
+# =============================================================================
+# INFO BUTTON COMPONENT
+# =============================================================================
+
+class InfoButton(Button):
+    """Button for displaying container information."""
+    
+    def __init__(self, cog_instance: 'DockerControlCog', server_config: dict, row: int):
+        self.cog = cog_instance
+        self.server_config = server_config
+        self.docker_name = server_config.get('docker_name')
+        self.display_name = server_config.get('name', self.docker_name)
+        
+        super().__init__(
+            style=discord.ButtonStyle.secondary,
+            label=None,
+            emoji="ℹ️",
+            custom_id=f"info_{self.docker_name}",
+            row=row
+        )
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Display container info modal."""
+        try:
+            from utils.config_cache import get_cached_config
+            from utils.common_helpers import get_public_ip
+            
+            config = get_cached_config()
+            channel_id = interaction.channel.id if interaction.channel else None
+            
+            # Check if channel has info permission
+            if not self._channel_has_info_permission(channel_id, config):
+                await interaction.response.send_message(
+                    "❌ You don't have permission to view container info in this channel.",
+                    ephemeral=True
+                )
+                return
+            
+            # Get info configuration
+            info_config = self.server_config.get('info', {})
+            if not info_config.get('enabled', False):
+                await interaction.response.send_message(
+                    "ℹ️ Container info is not configured for this container.",
+                    ephemeral=True
+                )
+                return
+            
+            # Check if channel has control permission for editing
+            channel_has_control = self._channel_has_control_permission(channel_id, config)
+            
+            # Create and show modal
+            modal = ContainerInfoModal(
+                self.cog,
+                self.server_config,
+                info_config,
+                can_edit=channel_has_control
+            )
+            await interaction.response.send_modal(modal)
+            
+        except Exception as e:
+            logger.error(f"[INFO_BTN] Error showing info for '{self.display_name}': {e}")
+            await interaction.response.send_message(
+                "❌ Error displaying container info. Please try again.",
+                ephemeral=True
+            )
+    
+    def _channel_has_info_permission(self, channel_id: int, config: dict) -> bool:
+        """Check if channel has info permission."""
+        from .control_helpers import _channel_has_permission
+        return _channel_has_permission(channel_id, 'info', config)
+    
+    def _channel_has_control_permission(self, channel_id: int, config: dict) -> bool:
+        """Check if channel has control permission."""
+        from .control_helpers import _channel_has_permission
+        return _channel_has_permission(channel_id, 'control', config)
+
+# =============================================================================
+# CONTAINER INFO MODAL
+# =============================================================================
+
+class ContainerInfoModal(discord.ui.Modal):
+    """Modal for displaying and editing container information."""
+    
+    def __init__(self, cog_instance: 'DockerControlCog', server_config: dict, info_config: dict, can_edit: bool = False):
+        self.cog = cog_instance
+        self.server_config = server_config
+        self.info_config = info_config
+        self.can_edit = can_edit
+        self.docker_name = server_config.get('docker_name')
+        self.display_name = server_config.get('name', self.docker_name)
+        
+        title = f"📋 Container Info: {self.display_name}"
+        if len(title) > 45:  # Discord modal title limit
+            title = f"📋 Info: {self.display_name[:35]}..."
+        
+        super().__init__(title=title, timeout=300)
+        
+        # Build info content
+        info_content = self._build_info_content()
+        
+        # Add text input for info content
+        self.info_text = discord.ui.TextInput(
+            label="Container Information",
+            style=discord.TextStyle.long,
+            value=info_content,
+            max_length=2000,
+            required=False,
+            placeholder="Container information will be displayed here..."
+        )
+        
+        if can_edit:
+            # Make it editable
+            self.info_text.placeholder = "Edit container information (IP settings changed in web UI)"
+            custom_text = info_config.get('custom_text', '')
+            if len(custom_text) <= 250:  # Only allow editing if within limit
+                self.info_text.value = custom_text
+                self.info_text.label = "Custom Info Text (250 chars max)"
+                self.info_text.max_length = 250
+        else:
+            # Make it read-only (Discord doesn't have true read-only, but we handle it in on_submit)
+            self.info_text.placeholder = "This information is read-only"
+        
+        self.add_item(self.info_text)
+    
+    def _build_info_content(self) -> str:
+        """Build the info content to display."""
+        content_parts = []
+        
+        # Add IP information if enabled
+        if self.info_config.get('show_ip', False):
+            custom_ip = self.info_config.get('custom_ip', '').strip()
+            if custom_ip:
+                content_parts.append(f"🌐 IP: {custom_ip}")
+            else:
+                # Try to get public IP
+                from utils.common_helpers import get_public_ip
+                try:
+                    public_ip = get_public_ip()
+                    if public_ip:
+                        content_parts.append(f"🌐 IP: {public_ip}")
+                    else:
+                        content_parts.append("🌐 IP: Unable to detect")
+                except Exception:
+                    content_parts.append("🌐 IP: Detection failed")
+        
+        # Add custom text
+        custom_text = self.info_config.get('custom_text', '').strip()
+        if custom_text:
+            if content_parts:  # Add separator if we have IP info
+                content_parts.append("")
+            content_parts.append("📝 Info:")
+            content_parts.append(custom_text)
+        
+        if not content_parts:
+            return "No information configured for this container."
+        
+        return "\n".join(content_parts)
+    
+    async def on_submit(self, interaction: discord.Interaction):
+        """Handle modal submission."""
+        if not self.can_edit:
+            await interaction.response.send_message(
+                "ℹ️ Container information is read-only in this channel.",
+                ephemeral=True
+            )
+            return
+        
+        try:
+            new_text = self.info_text.value.strip()
+            
+            # Validate length
+            if len(new_text) > 250:
+                await interaction.response.send_message(
+                    f"❌ Text too long ({len(new_text)}/250 characters). Please shorten it.",
+                    ephemeral=True
+                )
+                return
+            
+            # Update configuration
+            from utils.config_manager import get_config_manager
+            config_manager = get_config_manager()
+            
+            # Get current info config and update custom text
+            current_info = config_manager.get_server_info_config(self.docker_name)
+            current_info['custom_text'] = new_text
+            
+            # Save updated config
+            if config_manager.update_server_info_config(self.docker_name, current_info):
+                await interaction.response.send_message(
+                    f"✅ Container info updated for **{self.display_name}**",
+                    ephemeral=True
+                )
+                
+                # Log the action
+                from utils.action_logger import log_user_action
+                log_user_action(
+                    action="INFO_EDIT",
+                    user=interaction.user,
+                    details=f"Container: {self.docker_name}, Length: {len(new_text)} chars"
+                )
+            else:
+                await interaction.response.send_message(
+                    "❌ Failed to save container info. Please try again.",
+                    ephemeral=True
+                )
+        
+        except Exception as e:
+            logger.error(f"[INFO_MODAL] Error saving info for '{self.display_name}': {e}")
+            await interaction.response.send_message(
+                "❌ Error saving container info. Please try again.",
+                ephemeral=True
+            )
 
 # =============================================================================
 # TASK DELETE COMPONENTS (UNVERÄNDERT)

@@ -125,6 +125,35 @@ def validate_server_config(server_data: Dict[str, Any]) -> bool:
             print(f"VALIDATE_SERVER: Invalid action '{action}' in 'allowed_actions'")
             return False
     
+    # Validate info configuration (optional)
+    if "info" in server_data:
+        info_config = server_data["info"]
+        if not isinstance(info_config, dict):
+            print("VALIDATE_SERVER: 'info' must be a dictionary")
+            return False
+        
+        # Validate info fields
+        if "enabled" in info_config and not isinstance(info_config["enabled"], bool):
+            print("VALIDATE_SERVER: 'info.enabled' must be a boolean")
+            return False
+        
+        if "show_ip" in info_config and not isinstance(info_config["show_ip"], bool):
+            print("VALIDATE_SERVER: 'info.show_ip' must be a boolean")
+            return False
+        
+        if "custom_ip" in info_config and not isinstance(info_config["custom_ip"], str):
+            print("VALIDATE_SERVER: 'info.custom_ip' must be a string")
+            return False
+        
+        if "custom_text" in info_config:
+            custom_text = info_config["custom_text"]
+            if not isinstance(custom_text, str):
+                print("VALIDATE_SERVER: 'info.custom_text' must be a string")
+                return False
+            if len(custom_text) > 250:
+                print("VALIDATE_SERVER: 'info.custom_text' must be 250 characters or less")
+                return False
+    
     return True
 
 # For backward compatibility, we use ConfigManager import and functions here
@@ -330,10 +359,47 @@ def process_config_form(form_data, current_config: Dict[str, Any]) -> Tuple[Dict
                 print(f"[CONFIG-DEBUG] Container '{docker_name}' final allowed_actions: {allowed_actions}")
                 logger.info(f"[CONFIG] Container '{docker_name}' final allowed_actions: {allowed_actions}")
                 
+                # Process info configuration
+                info_config = {}
+                
+                # Process info enabled checkbox
+                info_enabled = form_data.get(f'info_enabled_{docker_name}')
+                if isinstance(info_enabled, list):
+                    info_enabled = info_enabled[0] if info_enabled else None
+                info_config['enabled'] = str(info_enabled).lower() in ['1', 'on', 'true', 'yes'] if info_enabled else False
+                
+                # Process show IP checkbox
+                info_show_ip = form_data.get(f'info_show_ip_{docker_name}')
+                if isinstance(info_show_ip, list):
+                    info_show_ip = info_show_ip[0] if info_show_ip else None
+                info_config['show_ip'] = str(info_show_ip).lower() in ['1', 'on', 'true', 'yes'] if info_show_ip else False
+                
+                # Process custom IP
+                info_custom_ip = form_data.get(f'info_custom_ip_{docker_name}', '')
+                if isinstance(info_custom_ip, list):
+                    info_custom_ip = info_custom_ip[0] if info_custom_ip else ''
+                info_config['custom_ip'] = str(info_custom_ip).strip()
+                
+                # Process custom text
+                info_custom_text = form_data.get(f'info_custom_text_{docker_name}', '')
+                if isinstance(info_custom_text, list):
+                    info_custom_text = info_custom_text[0] if info_custom_text else ''
+                info_custom_text = str(info_custom_text).strip()
+                
+                # Validate text length
+                if len(info_custom_text) > 250:
+                    return current_config, False, f"Info text for '{docker_name}' exceeds 250 character limit"
+                
+                info_config['custom_text'] = info_custom_text
+                
+                print(f"[CONFIG-DEBUG] Container '{docker_name}' info config: {info_config}")
+                logger.info(f"[CONFIG] Container '{docker_name}' info config: {info_config}")
+                
                 server_entry = {
                     "name": display_name, 
                     "docker_name": docker_name, 
                     "allowed_actions": allowed_actions,
+                    "info": info_config,
                     "order": idx  # Save the order as a field in the server configuration
                 }
                 if not validate_server_config(server_entry):
@@ -379,9 +445,13 @@ def process_config_form(form_data, current_config: Dict[str, Any]) -> Tuple[Dict
             if not channel_name: channel_name = f'Channel {channel_id}'
 
             commands = {}
-            for cmd_key in ['serverstatus', 'command', 'control', 'schedule']:
+            for cmd_key in ['serverstatus', 'command', 'control', 'schedule', 'info']:
                 cmd_val = form_data.get(f'cmd_{cmd_key}_{index}') or form_data.get(f'channel_{index}_commands_{cmd_key}')
                 commands[cmd_key] = cmd_val in ['1', 'on', 'true', True, 'True']
+            
+            # Auto-enable command when control is enabled (per specification)
+            if commands.get('control', False):
+                commands['command'] = True
 
             def get_bool_form_val(key_prefix, default_val):
                 val = form_data.get(f'{key_prefix}_{index}') or form_data.get(f'channel_{index}_{key_prefix}')

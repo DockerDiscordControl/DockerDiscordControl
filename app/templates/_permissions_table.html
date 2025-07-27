@@ -8,10 +8,10 @@
                 <th scope="col" style="width: 12%;">Channel Name<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" title="A display name to help you remember which channel this is"></i></th>
                 <th scope="col" style="width: 12%;">Channel ID<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" title="The Discord channel ID. Enable Developer Mode in Discord, then right-click the channel and select Copy ID"></i></th>
                 <th scope="col" class="text-center" style="width: 7%;" data-bs-toggle="tooltip" title="Allows /serverstatus and /ss commands">/serverstatus<i class="bi bi-question-circle help-icon"></i></th>
-                <th scope="col" class="text-center" style="width: 7%;" data-bs-toggle="tooltip" title="Allows /command command...">/command<i class="bi bi-question-circle help-icon"></i></th>
-                <th scope="col" class="text-center" style="width: 7%;" data-bs-toggle="tooltip" title="Allows /control command...">/control<i class="bi bi-question-circle help-icon"></i></th>
-                <th scope="col" class="text-center" style="width: 7%;" data-bs-toggle="tooltip" title="Allows all task commands (/task_once, /task_daily, etc.)...">/task<i class="bi bi-question-circle help-icon"></i></th>
                 <th scope="col" class="text-center border-start border-secondary-subtle" style="width: 8%;" data-bs-toggle="tooltip" title="Post initial status/control messages on bot start?">Initial<i class="bi bi-question-circle help-icon"></i></th>
+                <th scope="col" class="text-center" style="width: 7%;" data-bs-toggle="tooltip" title="Allows container info button display and editing">Info<i class="bi bi-question-circle help-icon"></i></th>
+                <th scope="col" class="text-center" style="width: 7%;" data-bs-toggle="tooltip" title="Allows /control command (automatically enables /command)">/control<i class="bi bi-question-circle help-icon"></i></th>
+                <th scope="col" class="text-center" style="width: 7%;" data-bs-toggle="tooltip" title="Allows all task commands (/task_once, /task_daily, etc.)...">/task<i class="bi bi-question-circle help-icon"></i></th>
                 <th scope="col" class="text-center refresh-group-start" style="width: 9%;" data-bs-toggle="tooltip" title="Enable periodic status updates?">Refresh<i class="bi bi-question-circle help-icon"></i></th>
                 <th scope="col" class="refresh-group-end" style="width: 7%;" data-bs-toggle="tooltip" title="Update status messages every X minutes (if refresh is enabled).">Minutes</th>
                 <th scope="col" class="text-center recreate-group-start" style="width: 9%;" data-bs-toggle="tooltip" title="If enabled, checks if the bot's last activity in the channel is older than the timeout. If yes, AND the actual last message in the channel is NOT from the bot, the bot will delete its old messages and post fresh ones to bring them back to the bottom.">Recreate<i class="bi bi-question-circle help-icon"></i></th>
@@ -35,10 +35,16 @@
                             <label class="form-check-label visually-hidden">/serverstatus</label>
                         </div>
                     </td>
+                    <td class="text-center border-start border-secondary-subtle">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="post_initial_1" value="1" {% if defaults.post_initial %}checked{% endif %}>
+                            <label class="form-check-label visually-hidden">Initial</label>
+                        </div>
+                    </td>
                     <td class="text-center">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="cmd_command_1" value="1" {% if defaults.commands.command %}checked{% endif %}>
-                            <label class="form-check-label visually-hidden">/command</label>
+                            <input class="form-check-input cmd-info" type="checkbox" name="cmd_info_1" value="1">
+                            <label class="form-check-label visually-hidden">Info</label>
                         </div>
                     </td>
                     <td class="text-center">
@@ -51,12 +57,6 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="cmd_schedule_1" value="1" {% if defaults.commands.schedule %}checked{% endif %}>
                             <label class="form-check-label visually-hidden">/task</label>
-                        </div>
-                    </td>
-                    <td class="text-center border-start border-secondary-subtle">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="post_initial_1" value="1" {% if defaults.post_initial %}checked{% endif %}>
-                            <label class="form-check-label visually-hidden">Initial</label>
                         </div>
                     </td>
                     <td class="text-center refresh-group-start">
@@ -93,10 +93,16 @@
                             <label class="form-check-label visually-hidden">/serverstatus</label>
                         </div>
                     </td>
+                    <td class="text-center border-start border-secondary-subtle">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="post_initial_{{ loop.index }}" value="1" {% if channel_data.post_initial %}checked{% endif %}>
+                            <label class="form-check-label visually-hidden">Initial</label>
+                        </div>
+                    </td>
                     <td class="text-center">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="cmd_command_{{ loop.index }}" value="1" {% if channel_data.commands.command %}checked{% endif %}>
-                            <label class="form-check-label visually-hidden">/command</label>
+                            <input class="form-check-input cmd-info" type="checkbox" name="cmd_info_{{ loop.index }}" value="1" {% if channel_data.commands.info %}checked{% endif %}>
+                            <label class="form-check-label visually-hidden">Info</label>
                         </div>
                     </td>
                     <td class="text-center">
@@ -109,12 +115,6 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="cmd_schedule_{{ loop.index }}" value="1" {% if channel_data.commands.schedule %}checked{% endif %}>
                             <label class="form-check-label visually-hidden">/task</label>
-                        </div>
-                    </td>
-                    <td class="text-center border-start border-secondary-subtle">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="post_initial_{{ loop.index }}" value="1" {% if channel_data.post_initial %}checked{% endif %}>
-                            <label class="form-check-label visually-hidden">Initial</label>
                         </div>
                     </td>
                     <td class="text-center refresh-group-start">

@@ -256,8 +256,26 @@ def setup_app_commands():
                     action: Option(str, "The action to perform", autocomplete=action_select)
                 ):
                     await bot.get_cog('DockerControlCog').command(ctx, container_name, action)
+                
+                @bot.slash_command(name="ddc", description="DDC commands")
+                async def ddc(ctx):
+                    """Base command for DDC subcommands."""
+                    await ctx.respond("Use `/ddc info edit <container>` to edit container information.", ephemeral=True)
+                
+                @ddc.command(name="info")
+                async def ddc_info(ctx):
+                    """Info subcommand group."""
+                    await ctx.respond("Use `/ddc info edit <container>` to edit container information.", ephemeral=True)
+                
+                @ddc_info.command(name="edit")
+                async def ddc_info_edit(
+                    ctx,
+                    container: Option(str, "The Docker container to edit info for", autocomplete=container_select)
+                ):
+                    """Edit container information."""
+                    await bot.get_cog('DockerControlCog').info_edit(ctx, container)
                     
-                logger.info("Added /command to bot with autocomplete (PyCord style)")
+                logger.info("Added /command and /ddc info edit to bot with autocomplete (PyCord style)")
             except ImportError:
                 # Fallback to normal registration without Option
                 @bot.slash_command(name="command", description="Controls a Docker container")
@@ -267,8 +285,26 @@ def setup_app_commands():
                     action: discord.Option(str, "The action to perform", autocomplete=action_select)
                 ):
                     await bot.get_cog('DockerControlCog').command(ctx, container_name, action)
+                
+                @bot.slash_command(name="ddc", description="DDC commands")
+                async def ddc(ctx):
+                    """Base command for DDC subcommands."""
+                    await ctx.respond("Use `/ddc info edit <container>` to edit container information.", ephemeral=True)
+                
+                @ddc.command(name="info")
+                async def ddc_info(ctx):
+                    """Info subcommand group."""
+                    await ctx.respond("Use `/ddc info edit <container>` to edit container information.", ephemeral=True)
+                
+                @ddc_info.command(name="edit")
+                async def ddc_info_edit(
+                    ctx,
+                    container: discord.Option(str, "The Docker container to edit info for", autocomplete=container_select)
+                ):
+                    """Edit container information."""
+                    await bot.get_cog('DockerControlCog').info_edit(ctx, container)
                     
-                logger.info("Added /command to bot with autocomplete (PyCord fallback style)")
+                logger.info("Added /command and /ddc info edit to bot with autocomplete (PyCord fallback style)")
         
         else:
             logger.error("Could not set up application commands: Bot instance lacks expected attributes")

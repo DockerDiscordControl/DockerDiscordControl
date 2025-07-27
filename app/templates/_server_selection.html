@@ -95,4 +95,63 @@
         </small>
         <div class="form-text mt-1" id="cache-status-text" style="display: none;">Container list cache is initializing...</div>
     </div>
+</div>
+
+{# Container Info Configuration Section #}
+<hr class="my-4">
+<div class="mb-3 card p-3">
+    <h4>Container Info Configuration</h4>
+    <p class="form-text">Configure container information display for the Discord info button.</p>
+    
+    <div id="container-info-config" style="display: none;">
+        {% if all_containers %}
+            {% for container in all_containers %}
+                {% set server_config = configured_servers.get(container.name, {}) %}
+                {% set info_config = server_config.get('info', {}) %}
+                {% set is_selected = container.name in configured_servers %}
+                
+                <div class="container-info-item card mb-3 p-3" data-container-name="{{ container.name }}" {% if not is_selected %}style="display: none;"{% endif %}>
+                    <h5><code class="text-info">{{ container.name }}</code> Info Settings</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="info_enabled_{{ container.name }}" value="1" id="info_enabled_{{ container.id }}" {% if info_config.get('enabled', False) %}checked{% endif %} {% if not is_selected %}disabled{% endif %}>
+                                <label class="form-check-label" for="info_enabled_{{ container.id }}">
+                                    Enable Info Button
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="info_show_ip_{{ container.name }}" value="1" id="info_show_ip_{{ container.id }}" {% if info_config.get('show_ip', False) %}checked{% endif %} {% if not is_selected %}disabled{% endif %}>
+                                <label class="form-check-label" for="info_show_ip_{{ container.id }}">
+                                    Show IP Address
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <label for="info_custom_ip_{{ container.id }}" class="form-label">Custom IP/URL Override</label>
+                                <input type="text" class="form-control form-control-sm" name="info_custom_ip_{{ container.name }}" id="info_custom_ip_{{ container.id }}" value="{{ info_config.get('custom_ip', '') }}" placeholder="e.g., mydomain.com:7777" {% if not is_selected %}disabled{% endif %}>
+                                <div class="form-text">Leave empty to use auto-detected public IP</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-2">
+                        <label for="info_custom_text_{{ container.id }}" class="form-label">Custom Info Text</label>
+                        <textarea class="form-control" name="info_custom_text_{{ container.name }}" id="info_custom_text_{{ container.id }}" rows="3" maxlength="250" placeholder="Password: mypass123&#10;Mods: ModName1, ModName2&#10;Max Players: 8" {% if not is_selected %}disabled{% endif %}>{{ info_config.get('custom_text', '') }}</textarea>
+                        <div class="form-text">
+                            <span class="char-counter" data-target="info_custom_text_{{ container.id }}">{{ info_config.get('custom_text', '')|length }}</span>/250 characters
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+    
+    <div class="alert alert-info" id="container-info-placeholder">
+        <i class="bi bi-info-circle"></i> Select containers above to configure their info settings.
+    </div>
 </div> 

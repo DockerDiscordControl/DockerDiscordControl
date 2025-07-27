@@ -72,7 +72,13 @@ class ConfigCache:
                     essential_server = {
                         'name': server.get('name', ''),
                         'docker_name': server.get('docker_name', ''),
-                        'allowed_actions': server.get('allowed_actions', [])
+                        'allowed_actions': server.get('allowed_actions', []),
+                        'info': server.get('info', {
+                            'enabled': False,
+                            'show_ip': False,
+                            'custom_ip': '',
+                            'custom_text': ''
+                        })
                     }
                     essential_servers.append(essential_server)
             optimized['servers'] = essential_servers
