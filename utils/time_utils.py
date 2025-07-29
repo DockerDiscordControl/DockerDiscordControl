@@ -164,6 +164,8 @@ def format_datetime_with_timezone(dt: datetime,
     Returns:
         Formatted datetime string with timezone information
     """
+
+    
     if not dt:
         return "N/A"
     
@@ -179,7 +181,8 @@ def format_datetime_with_timezone(dt: datetime,
             test_dt = datetime.now(timezone.utc)
             test_dt.astimezone(target_tz)
         else:
-            target_tz = timezone.utc # Fall back to UTC if no timezone specified
+            # Hardcode fallback to Europe/Berlin instead of UTC
+            target_tz = pytz.timezone('Europe/Berlin')
         
         # Convert to target timezone
         dt_in_target_tz = dt.astimezone(target_tz)
@@ -188,13 +191,13 @@ def format_datetime_with_timezone(dt: datetime,
         return dt_in_target_tz.strftime(fmt)
     except Exception as e:
         logger.error(f"Error formatting datetime with timezone '{timezone_name}': {e}")
-        target_tz = timezone.utc # Ensure fallback on generic error too
+        # Hardcode fallback to Europe/Berlin instead of UTC
         try:
-            # Fallback to UTC formatting if localization fails
-            dt_in_utc = dt.astimezone(timezone.utc)
-            return dt_in_utc.strftime(fmt) + " UTC"
+            target_tz = pytz.timezone('Europe/Berlin')
+            dt_in_berlin = dt.astimezone(target_tz)
+            return dt_in_berlin.strftime(fmt)
         except Exception as inner_e:
-            logger.error(f"Failed even with UTC fallback: {inner_e}")
+            logger.error(f"Failed even with Berlin fallback: {inner_e}")
             return str(dt)
             
 def parse_timestamp(timestamp_str: str) -> Optional[datetime]:
