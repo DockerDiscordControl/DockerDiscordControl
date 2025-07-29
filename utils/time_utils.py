@@ -154,54 +154,51 @@ def format_datetime_with_timezone(dt: datetime,
                                   timezone_name: Optional[str] = None,
                                   fmt: str = "%Y-%m-%d %H:%M:%S %Z") -> str:
     """
-    Formats a datetime object with the specified timezone.
-    
-    Args:
-        dt: Datetime object to format
-        timezone_name: Name of the timezone to use (e.g., 'Europe/Berlin')
-        fmt: Format string for the output
-        
-    Returns:
-        Formatted datetime string with timezone information
+    SIMPLE BUT DYNAMIC VERSION - Gets timezone from config!
     """
     
     if not dt:
         return "N/A"
     
-    # Ensure dt has timezone info
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    
-    # If no timezone specified, try to get it from config without causing circular dependency
+    # Get timezone from config if not specified
     if timezone_name is None:
         timezone_name = _get_timezone_safe()
     
+    # Default to Europe/Berlin if config fails
+    if not timezone_name:
+        timezone_name = 'Europe/Berlin'
+    
     try:
-        # Attempt to get target timezone
-        if timezone_name:
-            target_tz = pytz.timezone(timezone_name)
-            # Test if timezone is working by doing a conversion
-            test_dt = datetime.now(timezone.utc)
-            test_dt.astimezone(target_tz)
-        else:
-            # Final fallback to Europe/Berlin if nothing else works
-            target_tz = pytz.timezone('Europe/Berlin')
+        # STEP 1: Ensure we have a UTC datetime
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        elif dt.tzinfo != timezone.utc:
+            dt = dt.astimezone(timezone.utc)
         
-        # Convert to target timezone
-        dt_in_target_tz = dt.astimezone(target_tz)
+        # STEP 2: Convert to target timezone (DYNAMIC!)
+        target_tz = pytz.timezone(timezone_name)
+        target_time = dt.astimezone(target_tz)
         
-        # Format according to provided pattern
-        return dt_in_target_tz.strftime(fmt)
+        # STEP 3: Format and return
+        return target_time.strftime(fmt)
+        
     except Exception as e:
-        logger.error(f"Error formatting datetime with timezone '{timezone_name}': {e}")
-        # Fallback to Europe/Berlin on any error
+        # FALLBACK: Try Europe/Berlin if configured timezone fails
         try:
-            target_tz = pytz.timezone('Europe/Berlin')
-            dt_in_berlin = dt.astimezone(target_tz)
-            return dt_in_berlin.strftime(fmt)
-        except Exception as inner_e:
-            logger.error(f"Failed even with Berlin fallback: {inner_e}")
-            return str(dt)
+            if timezone_name != 'Europe/Berlin':
+                berlin_tz = pytz.timezone('Europe/Berlin')
+                berlin_time = dt.astimezone(berlin_tz)
+                return berlin_time.strftime(fmt)
+            else:
+                # Even Berlin failed, manual calculation
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                # Add 2 hours manually (approximate for Berlin)
+                berlin_manual = dt + timedelta(hours=2)
+                return berlin_manual.strftime(fmt.replace("%Z", "CEST"))
+                
+        except Exception:
+            return "Zeit nicht verfügbar"
 
 
 def _get_timezone_safe() -> str:

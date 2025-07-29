@@ -67,12 +67,14 @@ COPY --chown=ddcuser:ddcuser cogs/ cogs/
 COPY --chown=ddcuser:ddcuser gunicorn_config.py .
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
+
 # Final cleanup and permissions
 RUN mkdir -p /app/config /app/logs /app/scripts \
     && chown -R ddcuser:ddcuser /app \
     && find /app -name "*.pyc" -delete \
     && find /app -name "__pycache__" -exec rm -rf {} + || true \
     && chmod 644 /etc/supervisor/conf.d/supervisord.conf \
+
     && mkdir -p /app/config/info /app/config/tasks \
     && chmod -R 777 /app/config \
     && chmod -R 777 /app/logs

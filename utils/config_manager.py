@@ -22,6 +22,9 @@ logger = setup_logger('ddc.config_manager', level=logging.INFO)
 _TOKEN_ENCRYPTION_SALT = b'ddc-salt-for-token-encryption-key-v1'
 _PBKDF2_ITERATIONS = 260000  # Number of iterations for PBKDF2
 
+# Global cache for failed decrypt attempts to prevent endless loops
+_GLOBAL_FAILED_DECRYPT_CACHE = set()
+
 # Determine paths
 _CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_DIR = os.path.abspath(os.path.join(_CURRENT_DIR, "..", "config"))
@@ -272,9 +275,14 @@ class ConfigManager:
         if not encrypted_token_str:
             return None
 
-        # Check if we've already failed to decrypt this token/hash combination
+        # If token doesn't start with 'gAAAAA', it's likely plaintext - return as is
+        if not encrypted_token_str.startswith('gAAAAA'):
+            logger.info("Token appears to be plaintext, returning as-is")
+            return encrypted_token_str
+
+        # Check if we've already failed to decrypt this token/hash combination (global cache)
         cache_key = f"{encrypted_token_str[:20]}:{password_hash[:20]}"
-        if hasattr(self, '_failed_decrypt_cache') and cache_key in self._failed_decrypt_cache:
+        if cache_key in _GLOBAL_FAILED_DECRYPT_CACHE:
             return None
 
         try:
@@ -294,10 +302,8 @@ class ConfigManager:
             return decrypted_token
         except InvalidToken:
             logger.warning("Failed to decrypt token: Invalid token or key (password change?)")
-            # Cache the failure to prevent endless retries
-            if not hasattr(self, '_failed_decrypt_cache'):
-                self._failed_decrypt_cache = set()
-            self._failed_decrypt_cache.add(cache_key)
+            # Cache the failure globally to prevent endless retries
+            _GLOBAL_FAILED_DECRYPT_CACHE.add(cache_key)
             return None
         except ValueError as e:
             logger.error(f"Failed to decrypt bot token due to key derivation error: {e}")
@@ -516,10 +522,9 @@ class ConfigManager:
                 password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
                 config['web_ui_password_hash'] = password_hash
                 
-                # Clear failed decrypt cache since password changed
-                if hasattr(self, '_failed_decrypt_cache'):
-                    self._failed_decrypt_cache.clear()
-                    logger.info("Cleared failed decrypt cache due to password change")
+                # Clear global failed decrypt cache since password changed
+                _GLOBAL_FAILED_DECRYPT_CACHE.clear()
+                logger.info("Cleared global failed decrypt cache due to password change")
                 
                 # Re-encrypt bot token with new password if needed
                 token_value = config.get('bot_token')

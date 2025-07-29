@@ -65,11 +65,13 @@ try:
     tz = pytz.timezone(timezone_str)
     print(f"Timezone set to: {timezone_str}")
 except pytz.exceptions.UnknownTimeZoneError:
-    print(f"Unknown timezone '{timezone_str}'. Falling back to UTC.")
-    tz = pytz.timezone('UTC')
+    print(f"Unknown timezone '{timezone_str}'. Keeping configured timezone for later use.")
+    # Don't fallback to UTC - keep the configured timezone for the cogs to use
+    tz = None  # Will be handled by format_datetime_with_timezone function
 except Exception as e:
-    print(f"Error setting timezone '{timezone_str}': {e}. Falling back to UTC.")
-    tz = pytz.timezone('UTC')
+    print(f"Error setting timezone '{timezone_str}': {e}. Keeping configured timezone for later use.")
+    # Don't fallback to UTC - keep the configured timezone for the cogs to use
+    tz = None  # Will be handled by format_datetime_with_timezone function
 
 # Explicitly refresh debug status on bot start
 try:
@@ -537,12 +539,15 @@ def get_decrypted_bot_token():
         logger.info(f"Using bot token from initial config loading")
         return token
         
-    # 2. Third method: Use ConfigManager directly
+    # 2. Third method: Use ConfigManager directly (use global instance to preserve cache)
     if config_manager_available:
         try:
             logger.info("Attempting to use ConfigManager for token decryption")
-            config_manager = get_config_manager()
-            config = config_manager.get_config(force_reload=True)
+            # Use global config_manager instance to preserve _failed_decrypt_cache
+            global config_manager_instance
+            if 'config_manager_instance' not in globals():
+                config_manager_instance = get_config_manager()
+            config = config_manager_instance.get_config(force_reload=True)
             token = config.get('bot_token_decrypted_for_usage')
             if token:
                 logger.info("Successfully decrypted token using ConfigManager")

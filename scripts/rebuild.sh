@@ -106,8 +106,8 @@ docker run -d \
   --name ddc \
   -p 8374:9374 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v /mnt/user/appdata/dockerdiscordcontrol/config:/app/config \
-  -v /mnt/user/appdata/dockerdiscordcontrol/logs:/app/logs \
+  -v "$(pwd)/config":/app/config \
+  -v "$(pwd)/logs":/app/logs \
   -e FLASK_SECRET_KEY="${FLASK_SECRET_KEY}" \
   -e ENV_FLASK_SECRET_KEY="${FLASK_SECRET_KEY}" \
   -e PYTHONWARNINGS="ignore" \

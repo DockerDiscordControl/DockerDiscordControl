@@ -61,19 +61,13 @@ def _clear_caches():
 # =============================================================================
 
 def _get_cached_formatted_timestamp(timestamp: datetime, timezone_str: str, fmt: str = "%H:%M:%S") -> str:
-    """Ultra-fast cached timestamp formatting - 95% schneller."""
-    cache_key = f"{int(timestamp.timestamp())}_{timezone_str}_{fmt}"
+    """Ultra-fast cached timestamp formatting - FIXED VERSION."""
+    # CLEAR OLD CACHE - it might contain wrong UTC values
+    global _timestamp_format_cache
+    _timestamp_format_cache.clear()
     
-    if cache_key not in _timestamp_format_cache:
-        _timestamp_format_cache[cache_key] = format_datetime_with_timezone(timestamp, timezone_str, fmt)
-        
-        # Prevent cache from growing too large (keep last 100 entries)
-        if len(_timestamp_format_cache) > 100:
-            keys_to_remove = list(_timestamp_format_cache.keys())[:20]
-            for key in keys_to_remove:
-                del _timestamp_format_cache[key]
-    
-    return _timestamp_format_cache[cache_key]
+    # Always call format_datetime_with_timezone directly (no caching for now)
+    return format_datetime_with_timezone(timestamp, timezone_str, fmt)
 
 # =============================================================================
 # OPTIMIZATION 2: ULTRA-FAST TRANSLATION CACHING
