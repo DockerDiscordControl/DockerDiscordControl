@@ -175,6 +175,9 @@ def format_datetime_with_timezone(dt: datetime,
         # Attempt to get target timezone
         if timezone_name:
             target_tz = pytz.timezone(timezone_name)
+            # Test if timezone is working by doing a conversion
+            test_dt = datetime.now(timezone.utc)
+            test_dt.astimezone(target_tz)
         else:
             target_tz = timezone.utc # Fall back to UTC if no timezone specified
         
@@ -184,7 +187,7 @@ def format_datetime_with_timezone(dt: datetime,
         # Format according to provided pattern
         return dt_in_target_tz.strftime(fmt)
     except Exception as e:
-        logger.error(f"Error formatting datetime with timezone: {e}")
+        logger.error(f"Error formatting datetime with timezone '{timezone_name}': {e}")
         target_tz = timezone.utc # Ensure fallback on generic error too
         try:
             # Fallback to UTC formatting if localization fails

@@ -60,12 +60,16 @@ loaded_main_config = load_config()
 init_config_cache(loaded_main_config)
 
 # Set timezone for logging from configuration
-timezone_str = loaded_main_config.get('timezone', 'Europe/Berlin')
+timezone_str = loaded_main_config.get('timezone', 'Europe/Berlin')  # Use configured timezone
 try:
     tz = pytz.timezone(timezone_str)
-except (pytz.exceptions.UnknownTimeZoneError, Exception) as e:
-    logger.warning(f"Invalid timezone '{timezone_str}': {e}. Using fallback 'Europe/Berlin'")
-    tz = pytz.timezone('Europe/Berlin')  # Fallback timezone
+    print(f"Timezone set to: {timezone_str}")
+except pytz.exceptions.UnknownTimeZoneError:
+    print(f"Unknown timezone '{timezone_str}'. Falling back to UTC.")
+    tz = pytz.timezone('UTC')
+except Exception as e:
+    print(f"Error setting timezone '{timezone_str}': {e}. Falling back to UTC.")
+    tz = pytz.timezone('UTC')
 
 # Explicitly refresh debug status on bot start
 try:
@@ -120,7 +124,7 @@ try:
     bot = discord.Bot(intents=intents)
     logger.info("Successfully created bot with discord.Bot")
 except (AttributeError, ImportError) as e:
-    logger.warning(f"Could not create bot with discord.Bot: {e}")
+    print(f"Could not create bot with discord.Bot: {e}")
     try:
         # Fallback to commands.Bot (discord.py style)
         logger.info("Falling back to commands.Bot (discord.py style)...")
@@ -447,7 +451,7 @@ async def on_ready():
                         except Exception as fallback_error:
                             logger.error(f"Fallback registration failed: {fallback_error}")
             else:
-                logger.warning("No guild ID configured, skipping command synchronization")
+                print("No guild ID configured, skipping command synchronization")
                         
             logger.info("App Commands synchronization process completed")
         except Exception as e:
@@ -459,7 +463,7 @@ async def on_ready():
             if start_scheduler_service():
                 logger.info("Scheduler Service started successfully.")
             else:
-                logger.warning("Scheduler Service could not be started or was already running.")
+                print("Scheduler Service could not be started or was already running.")
         except Exception as e:
             logger.error(f"Error starting Scheduler Service: {e}", exc_info=True)
 
@@ -510,13 +514,30 @@ async def on_command_error(ctx, error):
 # Improved function to decrypt the bot token with multiple fallback methods
 def get_decrypted_bot_token():
     """Attempts to decrypt the bot token in various ways for DockerDiscordControl."""
-    # 1. First method: Directly from loaded configuration
+    
+    # 0. First method: Try direct plaintext token from bot_config.json
+    try:
+        config_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config")
+        bot_config_file = os.path.join(config_dir, "bot_config.json")
+        
+        if os.path.exists(bot_config_file):
+            with open(bot_config_file, 'r') as f:
+                bot_config = json.load(f)
+            
+            plaintext_token = bot_config.get('bot_token')
+            if plaintext_token and not plaintext_token.startswith('gAAAAA'):  # Not encrypted
+                logger.info("Using plaintext bot token from bot_config.json")
+                return plaintext_token
+    except Exception as e:
+        logger.debug(f"Could not read plaintext token: {e}")
+    
+    # 1. Second method: Directly from loaded configuration
     token = loaded_main_config.get('bot_token_decrypted_for_usage')
     if token:
         logger.info(f"Using bot token from initial config loading")
         return token
         
-    # 2. Second method: Use ConfigManager directly
+    # 2. Third method: Use ConfigManager directly
     if config_manager_available:
         try:
             logger.info("Attempting to use ConfigManager for token decryption")
@@ -529,7 +550,7 @@ def get_decrypted_bot_token():
         except Exception as e:
             logger.warning(f"Error using ConfigManager: {e}")
     
-    # 3. Third method: Try direct decryption
+    # 3. Fourth method: Try direct decryption
     try:
         logger.info("Attempting manual token decryption")
         # Load bot configuration and web configuration
@@ -564,14 +585,13 @@ def get_decrypted_bot_token():
 def main():
     logger.info("Main process started.")
     
-    # Improved token decryption
+    # Use proper token decryption method
     bot_token = get_decrypted_bot_token()
 
     if not bot_token:
-        logger.error("FATAL: No valid bot token found in configuration after decryption.")
-        logger.info("Please configure the bot token via the Web UI and ensure the password is correct.")
-        # Exit the script - supervisord will handle restart attempts
-        sys.exit(1) 
+        logger.error("FATAL: Bot token not found or could not be decrypted.")
+        logger.error("Please configure the bot token in the Web UI or check the configuration files.")
+        sys.exit(1)
 
     try:
         logger.info(f"Starting bot with token ending in: ...{bot_token[-4:]}")

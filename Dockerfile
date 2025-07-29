@@ -8,7 +8,7 @@ RUN apk add --no-cache --virtual .build-deps \
         gcc musl-dev libffi-dev openssl-dev rust cargo \
     && apk add --no-cache \
         python3 python3-dev py3-pip \
-        supervisor docker-cli ca-certificates \
+        supervisor docker-cli ca-certificates tzdata \
     && python3 -m venv /venv \
     && /venv/bin/pip install --no-cache-dir --upgrade pip \
     && /venv/bin/pip install --no-cache-dir \
@@ -68,16 +68,19 @@ COPY --chown=ddcuser:ddcuser gunicorn_config.py .
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Final cleanup and permissions
-RUN mkdir -p /app/config /app/logs \
+RUN mkdir -p /app/config /app/logs /app/scripts \
     && chown -R ddcuser:ddcuser /app \
     && find /app -name "*.pyc" -delete \
-    && find /app -name "__pycache__" -exec rm -rf {} + || true
+    && find /app -name "__pycache__" -exec rm -rf {} + || true \
+    && chmod 644 /etc/supervisor/conf.d/supervisord.conf \
+    && mkdir -p /app/config/info /app/config/tasks \
+    && chmod -R 777 /app/config \
+    && chmod -R 777 /app/logs
 
 # Set environment
 ENV PATH="/venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-USER ddcuser
 EXPOSE 9374
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

@@ -272,6 +272,11 @@ class ConfigManager:
         if not encrypted_token_str:
             return None
 
+        # Check if we've already failed to decrypt this token/hash combination
+        cache_key = f"{encrypted_token_str[:20]}:{password_hash[:20]}"
+        if hasattr(self, '_failed_decrypt_cache') and cache_key in self._failed_decrypt_cache:
+            return None
+
         try:
             derived_key = self._derive_encryption_key(password_hash)
             f = Fernet(derived_key)
@@ -289,6 +294,10 @@ class ConfigManager:
             return decrypted_token
         except InvalidToken:
             logger.warning("Failed to decrypt token: Invalid token or key (password change?)")
+            # Cache the failure to prevent endless retries
+            if not hasattr(self, '_failed_decrypt_cache'):
+                self._failed_decrypt_cache = set()
+            self._failed_decrypt_cache.add(cache_key)
             return None
         except ValueError as e:
             logger.error(f"Failed to decrypt bot token due to key derivation error: {e}")
@@ -382,7 +391,9 @@ class ConfigManager:
             token_to_decrypt = config.get('bot_token')
             current_hash = config.get('web_ui_password_hash')
             if token_to_decrypt and current_hash:
-                config['bot_token_decrypted_for_usage'] = self._decrypt_token(token_to_decrypt, current_hash)
+                decrypted_token = self._decrypt_token(token_to_decrypt, current_hash)
+                if decrypted_token:  # Only set if decryption was successful
+                    config['bot_token_decrypted_for_usage'] = decrypted_token
             
             # Update cache and timestamps
             self._config_cache = config.copy()
@@ -505,12 +516,42 @@ class ConfigManager:
                 password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
                 config['web_ui_password_hash'] = password_hash
                 
+                # Clear failed decrypt cache since password changed
+                if hasattr(self, '_failed_decrypt_cache'):
+                    self._failed_decrypt_cache.clear()
+                    logger.info("Cleared failed decrypt cache due to password change")
+                
                 # Re-encrypt bot token with new password if needed
                 token_value = config.get('bot_token')
                 if token_value:
-                    encrypted_token = self._encrypt_token(token_value, password_hash)
-                    if encrypted_token:
-                        config['bot_token'] = encrypted_token
+                    # First, try to get the plaintext token
+                    plaintext_token = None
+                    
+                    # Check if it's already plaintext (not encrypted)
+                    if not token_value.startswith('gAAAAA'):  # Fernet tokens start with gAAAAA
+                        plaintext_token = token_value
+                        logger.info("Using existing plaintext token for re-encryption")
+                    else:
+                        # Try to decrypt with old password hash first
+                        old_password_hash = self._config_cache.get('web_ui_password_hash') if self._config_cache else None
+                        if old_password_hash:
+                            try:
+                                plaintext_token = self._decrypt_token(token_value, old_password_hash)
+                                if plaintext_token:
+                                    logger.info("Successfully decrypted token with old password for re-encryption")
+                            except Exception as e:
+                                logger.warning(f"Could not decrypt token with old password: {e}")
+                    
+                    # Re-encrypt with new password if we have plaintext
+                    if plaintext_token:
+                        encrypted_token = self._encrypt_token(plaintext_token, password_hash)
+                        if encrypted_token:
+                            config['bot_token'] = encrypted_token
+                            logger.info("Successfully re-encrypted bot token with new password")
+                        else:
+                            logger.error("Failed to encrypt token with new password")
+                    else:
+                        logger.error("Could not obtain plaintext token for re-encryption - token may become unusable")
             
             # Remove runtime-only fields
             if 'bot_token_decrypted_for_usage' in config:
