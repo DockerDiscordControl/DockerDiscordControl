@@ -463,8 +463,8 @@ class ToggleButton(Button):
             description = _get_description_ultra_fast(template_key, **template_args)
             
             # OPTIMIZATION 1: Ultra-fast cached timestamp formatting (95% schneller)
-            # Hardcode timezone to avoid circular dependency issues - TODO: fix properly
-            timezone_str = 'Europe/Berlin'
+            # Get timezone from config (format_datetime_with_timezone will handle fallbacks)
+            timezone_str = current_config.get('timezone')
             current_time = _get_cached_formatted_timestamp(cached_entry['timestamp'], timezone_str, fmt="%H:%M:%S")
             timestamp_line = f"{translations['last_update_text']}: {current_time}"
             

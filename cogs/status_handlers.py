@@ -591,8 +591,8 @@ class StatusHandlersMixin:
         - force_collapse: Whether to force the status to be collapsed
         """
         lang = current_config.get('language', 'de')
-        # Hardcode timezone to avoid circular dependency issues - TODO: fix properly
-        timezone_str = 'Europe/Berlin'
+        # Get timezone from config (format_datetime_with_timezone will handle fallbacks)
+        timezone_str = current_config.get('timezone')
         all_servers_config = current_config.get('servers', [])
 
         logger.debug(f"[_GEN_EMBED] Generating embed for '{display_name}' in channel {channel_id}, lang={lang}, allow_toggle={allow_toggle}, force_collapse={force_collapse}")

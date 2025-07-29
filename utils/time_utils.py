@@ -164,14 +164,17 @@ def format_datetime_with_timezone(dt: datetime,
     Returns:
         Formatted datetime string with timezone information
     """
-
     
     if not dt:
         return "N/A"
     
-    # Ensure dt is timezone-aware - if naive, assume UTC
+    # Ensure dt has timezone info
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
+    
+    # If no timezone specified, try to get it from config without causing circular dependency
+    if timezone_name is None:
+        timezone_name = _get_timezone_safe()
     
     try:
         # Attempt to get target timezone
@@ -181,7 +184,7 @@ def format_datetime_with_timezone(dt: datetime,
             test_dt = datetime.now(timezone.utc)
             test_dt.astimezone(target_tz)
         else:
-            # Hardcode fallback to Europe/Berlin instead of UTC
+            # Final fallback to Europe/Berlin if nothing else works
             target_tz = pytz.timezone('Europe/Berlin')
         
         # Convert to target timezone
@@ -191,7 +194,7 @@ def format_datetime_with_timezone(dt: datetime,
         return dt_in_target_tz.strftime(fmt)
     except Exception as e:
         logger.error(f"Error formatting datetime with timezone '{timezone_name}': {e}")
-        # Hardcode fallback to Europe/Berlin instead of UTC
+        # Fallback to Europe/Berlin on any error
         try:
             target_tz = pytz.timezone('Europe/Berlin')
             dt_in_berlin = dt.astimezone(target_tz)
@@ -199,6 +202,30 @@ def format_datetime_with_timezone(dt: datetime,
         except Exception as inner_e:
             logger.error(f"Failed even with Berlin fallback: {inner_e}")
             return str(dt)
+
+
+def _get_timezone_safe() -> str:
+    """
+    Safely get timezone from config without causing circular dependencies.
+    Returns Europe/Berlin as fallback.
+    """
+    try:
+        # Try to read timezone directly from config file without using the logging system
+        import os
+        import json
+        
+        config_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config")
+        config_file = os.path.join(config_dir, "bot_config.json")
+        
+        if os.path.exists(config_file):
+            with open(config_file, 'r') as f:
+                config = json.load(f)
+            return config.get('timezone', 'Europe/Berlin')
+    except Exception:
+        # Any error -> fallback silently
+        pass
+    
+    return 'Europe/Berlin'
             
 def parse_timestamp(timestamp_str: str) -> Optional[datetime]:
     """
