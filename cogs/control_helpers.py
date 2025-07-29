@@ -148,7 +148,8 @@ def _get_pending_embed(display_name: str) -> discord.Embed:
     # Add footer similar to the normal status message
     now_footer = datetime.now(timezone.utc)
     last_update_text = _("Pending since")
-    current_time = format_datetime_with_timezone(now_footer, config.get('timezone'), fmt="%H:%M:%S")
+    # Hardcode timezone to avoid circular dependency issues - TODO: fix properly
+    current_time = format_datetime_with_timezone(now_footer, 'Europe/Berlin', fmt="%H:%M:%S")
     
     # Insert timestamp above the code block
     timestamp_line = f"{last_update_text}: {current_time}"
