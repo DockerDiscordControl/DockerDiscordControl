@@ -21,6 +21,7 @@ import discord
 from utils.logging_utils import setup_logger, get_module_logger
 from utils.docker_utils import get_docker_info, get_docker_stats
 from utils.time_utils import format_datetime_with_timezone
+from utils.config_loader import load_config
 
 # Import helper functions
 from .control_helpers import _channel_has_permission, _get_pending_embed
@@ -590,7 +591,8 @@ class StatusHandlersMixin:
         - force_collapse: Whether to force the status to be collapsed
         """
         lang = current_config.get('language', 'de')
-        timezone_str = current_config.get('timezone')
+        # Hardcode timezone to avoid circular dependency issues - TODO: fix properly
+        timezone_str = 'Europe/Berlin'
         all_servers_config = current_config.get('servers', [])
 
         logger.debug(f"[_GEN_EMBED] Generating embed for '{display_name}' in channel {channel_id}, lang={lang}, allow_toggle={allow_toggle}, force_collapse={force_collapse}")

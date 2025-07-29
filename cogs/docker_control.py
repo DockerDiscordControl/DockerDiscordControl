@@ -988,7 +988,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
 
         # Build server status lines
         now_utc = datetime.now(timezone.utc)
-        timezone_str = config.get('timezone')
+        # Hardcode timezone to avoid circular dependency issues - TODO: fix properly
+        timezone_str = 'Europe/Berlin'
         current_time = format_datetime_with_timezone(now_utc, timezone_str, fmt="%H:%M:%S")
         
         # Add timestamp at the top
