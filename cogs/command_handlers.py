@@ -147,4 +147,61 @@ class CommandHandlersMixin:
             # Update status message
             await asyncio.sleep(1)
             logger.debug(f"[COMMAND] Triggering main status message update for {display_name} in {ctx.channel.name} after failed action.")
-            await self.send_server_status(ctx.channel, server_conf, self.config) 
+            await self.send_server_status(ctx.channel, server_conf, self.config)
+    
+    async def _impl_info_edit(self, ctx: discord.ApplicationContext, container_name: str):
+        """
+        Implementation of the info edit command.
+        Opens a modal to edit container information.
+        
+        Parameters:
+        - ctx: Discord ApplicationContext
+        - container_name: The name of the Docker container to edit info for
+        """
+        # Validate channel
+        if not ctx.channel or not isinstance(ctx.channel, discord.TextChannel):
+            await ctx.respond(_("This command can only be used in server channels."), ephemeral=True)
+            return
+
+        # Check permissions - info edit requires control permission
+        config = self.config
+        if not _channel_has_permission(ctx.channel.id, 'control', config):
+            await ctx.respond(_("You do not have permission to edit container info in this channel."), ephemeral=True)
+            return
+
+        # Find server configuration
+        docker_name = container_name
+        server_conf = next((s for s in config.get('servers', []) if s.get('docker_name') == docker_name), None)
+
+        if not server_conf:
+            await ctx.respond(_("Error: Server configuration for '{docker_name}' not found.").format(docker_name=docker_name), ephemeral=True)
+            return
+
+        display_name = server_conf.get('name', docker_name)
+        info_config = server_conf.get('info', {})
+
+        # Check if info is enabled
+        if not info_config.get('enabled', False):
+            await ctx.respond(_("Container info is not enabled for **{display_name}**. Enable it in the web UI first.").format(display_name=display_name), ephemeral=True)
+            return
+
+        # Log the action
+        logger.info(f"Info edit for {display_name} requested by {ctx.author} in {ctx.channel.name}")
+        log_user_action(
+            action="INFO_EDIT_CMD", 
+            target=display_name, 
+            user=str(ctx.author), 
+            source="Discord Command", 
+            details=f"Channel: {ctx.channel.name}"
+        )
+
+        # Create and show modal
+        from .control_ui import ContainerInfoModal
+        modal = ContainerInfoModal(
+            self,
+            server_conf,
+            info_config,
+            can_edit=True
+        )
+        
+        await ctx.response.send_modal(modal) 
