@@ -1378,7 +1378,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                         logger.debug(f"Will regenerate with mode: {regeneration_mode}")
                         
                         # Attempt channel regeneration
-                        await self._regenerate_channel(channel, regeneration_mode)
+                        await self._regenerate_channel(channel, regeneration_mode, self.config)
                         
                         # Reset activity timer
                         self.last_channel_activity[channel_id] = now_utc
@@ -1456,7 +1456,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         channel_to_regenerate = ctx.channel
         async def run_regeneration():
             try:
-                await self._regenerate_channel(channel_to_regenerate, 'control')
+                await self._regenerate_channel(channel_to_regenerate, 'control', self.config)
                 logger.info(f"Background regeneration for channel {channel_to_regenerate.name} completed.")
             except Exception as e_regen:
                 logger.error(f"Error during background regeneration for channel {channel_to_regenerate.name}: {e_regen}")
