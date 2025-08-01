@@ -10,6 +10,12 @@ import os
 import sys
 import asyncio
 import logging
+# Fix for audioop module in Python 3.13
+try:
+    import audioop
+except ImportError:
+    import audioop_lts as audioop
+    sys.modules['audioop'] = audioop
 import discord
 import json
 import random
