@@ -149,7 +149,7 @@ def _get_pending_embed(display_name: str) -> discord.Embed:
     now_footer = datetime.now(timezone.utc)
     last_update_text = _("Pending since")
     # Get timezone from config (format_datetime_with_timezone will handle fallbacks)
-    current_time = format_datetime_with_timezone(now_footer, config.get('timezone'), fmt="%H:%M:%S")
+    current_time = format_datetime_with_timezone(now_footer, config.get('timezone'), time_only=True)
     
     # Insert timestamp above the code block
     timestamp_line = f"{last_update_text}: {current_time}"

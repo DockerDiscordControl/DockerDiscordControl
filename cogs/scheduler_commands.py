@@ -546,21 +546,33 @@ class ScheduleCommandsMixin:
                                   period: str = "all"):
         """Shows information about scheduled tasks."""
         try:
+            # Defer immediately to prevent timeout - even before other checks
+            await ctx.defer()
+        except Exception as defer_error:
+            logger.error(f"Failed to defer task_info interaction: {defer_error}")
+            # Try to respond with error if defer failed
+            try:
+                await ctx.respond(_("Command timeout. Please try again."), ephemeral=True)
+            except:
+                pass
+            return
+        
+        try:
             # Check channel permissions
             if not ctx.channel or not isinstance(ctx.channel, discord.TextChannel):
-                await ctx.respond(_("This command can only be used in server channels."), ephemeral=True)
+                await ctx.followup.send(_("This command can only be used in server channels."), ephemeral=True)
                 return
             
             config = self.config
             if not _channel_has_permission(ctx.channel.id, 'schedule', self.config):
-                await ctx.respond(_("This channel does not have permission to use this command."), ephemeral=True)
+                await ctx.followup.send(_("This channel does not have permission to use this command."), ephemeral=True)
                 return
 
             # Get all existing tasks
             all_tasks = load_tasks()
             logger.info(f"Total tasks found: {len(all_tasks)}")
             if not all_tasks:
-                await ctx.respond(_("No scheduled tasks found."))
+                await ctx.followup.send(_("No scheduled tasks found."))
                 return
 
             now = datetime.now(pytz.timezone(config.get('timezone', 'Europe/Berlin')))
@@ -687,16 +699,19 @@ class ScheduleCommandsMixin:
                 title = _("All active scheduled tasks")
             
             if not filtered_tasks:
-                await ctx.respond(_("No active scheduled tasks found for the specified period."))
+                await ctx.followup.send(_("No active scheduled tasks found for the specified period."))
                 return
                 
             embed = await self._format_schedule_embed(filtered_tasks, title)
-            await ctx.respond(embed=embed)
+            await ctx.followup.send(embed=embed)
             
         except Exception as e:
             logger.error(f"Error executing schedule_info command: {e}")
             logger.error(traceback.format_exc())
-            await ctx.respond(_("An error occurred while fetching scheduled tasks. Please check the logs."))
+            try:
+                await ctx.followup.send(_("An error occurred while fetching scheduled tasks. Please check the logs."))
+            except:
+                pass  # Interaction might already be dead
 
     # Implementation for yearly tasks
     async def _impl_schedule_yearly_command(self, ctx: discord.ApplicationContext, 

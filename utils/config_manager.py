@@ -67,7 +67,7 @@ except ImportError:
                 "schedule": False
             },
             "post_initial": False,
-            "update_interval_minutes": 5,
+            "update_interval_minutes": 10,
             "inactivity_timeout_minutes": 10,
             "enable_auto_refresh": True,
             "recreate_messages_on_inactivity": True
@@ -277,7 +277,7 @@ class ConfigManager:
 
         # If token doesn't start with 'gAAAAA', it's likely plaintext - return as is
         if not encrypted_token_str.startswith('gAAAAA'):
-            logger.info("Token appears to be plaintext, returning as-is")
+            logger.debug("Token appears to be plaintext, returning as-is")
             return encrypted_token_str
 
         # Check if we've already failed to decrypt this token/hash combination (global cache)
@@ -401,15 +401,14 @@ class ConfigManager:
                 if decrypted_token:  # Only set if decryption was successful
                     config['bot_token_decrypted_for_usage'] = decrypted_token
             
-            # Update cache and timestamps
-            self._config_cache = config.copy()
+            # Update timestamps
             self._cache_timestamp = time.time()
             self._update_file_mtimes()
             
             # Load debug status without blocking
             try:
                 debug_mode = config.get('scheduler_debug_mode', False)
-                logger.info(f"Debug status loaded from configuration: {debug_mode}")
+                logger.debug(f"Debug status loaded from configuration: {debug_mode}")
                 
                 # Update logging settings if needed
                 try:
@@ -420,7 +419,7 @@ class ConfigManager:
             except Exception as e:
                 logger.error(f"Error loading debug status: {e}")
             
-            logger.info(f"Configuration loaded from disk. Language: {config.get('language')}")
+            logger.debug(f"Configuration loaded from disk. Language: {config.get('language')}")
             return config
             
         except Exception as e:
@@ -444,21 +443,34 @@ class ConfigManager:
                 if self._save_in_progress:
                     return self._config_cache.copy()
                 
-                # Only check for file changes every 300 seconds (5 minutes) AND respect rate limiting
+                # Only check for file changes every 60 seconds (1 minute) AND respect rate limiting
                 current_time = time.time()
                 time_since_cache = current_time - self._cache_timestamp
                 time_since_invalidation = current_time - self._last_cache_invalidation
                 
-                if (time_since_cache > 300 and 
-                    time_since_invalidation > self._min_invalidation_interval and 
-                    self._has_files_changed()):
-                    logger.info("Configuration files changed on disk, reloading...")
-                    self._last_cache_invalidation = current_time
-                    return self._load_config_from_disk()
+                # Reduziere die Cache-Prüfungsintervalle
+                if (time_since_cache > 60 and  # 1 Minute statt 5 Minuten
+                    time_since_invalidation > self._min_invalidation_interval):
+                    
+                    # Prüfe ob Dateien wirklich geändert wurden
+                    if self._has_files_changed():
+                        logger.debug("Configuration files changed on disk, reloading...")
+                        self._last_cache_invalidation = current_time
+                        config = self._load_config_from_disk()
+                        self._config_cache = config.copy()
+                        self._cache_timestamp = current_time
+                        return config
+                    else:
+                        # Aktualisiere nur den Zeitstempel wenn keine Änderungen
+                        self._cache_timestamp = current_time
+                        
                 return self._config_cache.copy()
             
             # Load from disk if cache is empty or force_reload
-            return self._load_config_from_disk()
+            config = self._load_config_from_disk()
+            self._config_cache = config.copy()
+            self._cache_timestamp = time.time()
+            return config
                 
         except Exception as e:
             logger.error(f"Error getting configuration: {e}")

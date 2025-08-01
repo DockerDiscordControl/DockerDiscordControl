@@ -369,8 +369,20 @@ def config_page():
     logger.debug(f"Selected servers in config: {config.get('selected_servers', [])}")
     logger.debug(f"Active container names for task form: {active_container_names}")
 
-    # Get configured timezone first
+    # Get and validate timezone
     timezone_str = config.get('timezone', 'Europe/Berlin')
+    try:
+        # Validate timezone using zoneinfo first
+        from zoneinfo import ZoneInfo
+        ZoneInfo(timezone_str)
+    except Exception as e:
+        try:
+            # Fallback to pytz
+            import pytz
+            pytz.timezone(timezone_str)
+        except Exception as e2:
+            logger.error(f"Invalid timezone {timezone_str}: {e2}")
+            timezone_str = 'Europe/Berlin'
     
     # Format cache timestamp for display using configured timezone
     last_cache_update = docker_cache.get('timestamp')
@@ -411,6 +423,7 @@ def config_page():
         if task.next_run_ts:
             next_run_dt = datetime.utcfromtimestamp(task.next_run_ts)
             if timezone_str:
+                import pytz  # Ensure pytz is available in this scope
                 tz = pytz.timezone(timezone_str)
                 next_run_dt = next_run_dt.replace(tzinfo=pytz.UTC).astimezone(tz)
             next_run = next_run_dt.strftime("%Y-%m-%d %H:%M %Z")
@@ -419,6 +432,7 @@ def config_page():
         if task.last_run_ts:
             last_run_dt = datetime.utcfromtimestamp(task.last_run_ts)
             if timezone_str:
+                import pytz  # Ensure pytz is available in this scope
                 tz = pytz.timezone(timezone_str)
                 last_run_dt = last_run_dt.replace(tzinfo=pytz.UTC).astimezone(tz)
             last_run = last_run_dt.strftime("%Y-%m-%d %H:%M %Z")

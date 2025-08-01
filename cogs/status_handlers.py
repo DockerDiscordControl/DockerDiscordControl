@@ -448,7 +448,21 @@ class StatusHandlersMixin:
             logger.info(f"[INTELLIGENT_BULK_FETCH] Fast adaptive fetch completed in {total_elapsed:.1f}ms: "
                        f"{successful_fetches}/{len(container_names)} containers with complete data")
         
-        return status_results
+        # CRITICAL FIX: The function must return a dictionary where the value is a tuple of 3 elements.
+        # The previous implementation sometimes returned a tuple of 6 elements.
+        final_results = {}
+        for name, data_tuple in status_results.items():
+            if isinstance(data_tuple, tuple) and len(data_tuple) == 6:
+                # This is the full status tuple, wrap it properly for the loop
+                final_results[name] = ('success', data_tuple, None)
+            elif isinstance(data_tuple, tuple) and len(data_tuple) == 3:
+                # Already in the correct format
+                final_results[name] = data_tuple
+            else:
+                # Handle unexpected format, maybe an error
+                final_results[name] = ('error', None, data_tuple)
+
+        return final_results
 
     async def bulk_update_status_cache(self, container_names: List[str]):
         """
@@ -463,10 +477,12 @@ class StatusHandlersMixin:
         now = datetime.now(timezone.utc)
         containers_needing_update = []
         
+        # Pre-process server configurations
+        servers = self.config.get('servers', [])
+        servers_by_docker_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
+        
         for docker_name in container_names:
-            # Find display name
-            servers = self.config.get('servers', [])
-            server_config = next((s for s in servers if s.get('docker_name') == docker_name), None)
+            server_config = servers_by_docker_name.get(docker_name)
             if not server_config:
                 continue
                 
@@ -489,21 +505,32 @@ class StatusHandlersMixin:
         
         logger.info(f"[BULK_UPDATE] Updating cache for {len(containers_needing_update)}/{len(container_names)} containers with missing cache")
         
-        # Bulk fetch only the containers with no cache
-        bulk_results = await self.bulk_fetch_container_status(containers_needing_update)
-        
-        # Update cache with results
-        for docker_name, status_tuple in bulk_results.items():
-            # Find display name
-            servers = self.config.get('servers', [])
-            server_config = next((s for s in servers if s.get('docker_name') == docker_name), None)
-            if server_config:
-                display_name = server_config.get('name', docker_name)
-                self.status_cache[display_name] = {
-                    'data': status_tuple,
-                    'timestamp': now
-                }
-                logger.debug(f"[BULK_UPDATE] Updated missing cache for {display_name}")
+        try:
+            # Bulk fetch only the containers with no cache
+            bulk_results = await self.bulk_fetch_container_status(containers_needing_update)
+            
+            # Update cache with results
+            for docker_name, (status, data, error) in bulk_results.items():
+                server_config = servers_by_docker_name.get(docker_name)
+                if server_config:
+                    display_name = server_config.get('name', docker_name)
+                    if status == 'success':
+                        self.status_cache[display_name] = {
+                            'data': data,
+                            'timestamp': now,
+                            'error': None
+                        }
+                        logger.debug(f"[BULK_UPDATE] Updated cache for {display_name}")
+                    else:
+                        # Cache error state to prevent constant retries
+                        self.status_cache[display_name] = {
+                            'data': None,
+                            'timestamp': now,
+                            'error': error
+                        }
+                        logger.warning(f"[BULK_UPDATE] Failed to update {display_name}: {error}")
+        except Exception as e:
+            logger.error(f"[BULK_UPDATE] Error during bulk update: {e}", exc_info=True)
 
     async def get_status(self, server_config: Dict[str, Any]) -> Union[Tuple[str, bool, str, str, str, bool], Exception]:
         """
@@ -577,7 +604,10 @@ class StatusHandlersMixin:
             logger.error(f"Error getting status for {docker_name}: {e}", exc_info=True)
             return e # Return the exception itself
     
-    async def _generate_status_embed_and_view(self, channel_id: int, display_name: str, server_conf: dict, current_config: dict, allow_toggle: bool, force_collapse: bool) -> tuple[Optional[discord.Embed], Optional[discord.ui.View], bool]:
+    async def _generate_status_embed_and_view(self, channel_id: int, display_name: str,
+                                       server_conf: Dict[str, Any], current_config: Dict[str, Any],
+                                       allow_toggle: bool = True,
+                                       force_collapse: bool = False) -> Tuple[discord.Embed, Optional[discord.ui.View], bool]:
         """
         Generates the status embed and view based on cache and settings.
         Returns: (embed, view, running_status)
@@ -592,7 +622,7 @@ class StatusHandlersMixin:
         """
         lang = current_config.get('language', 'de')
         # Get timezone from config (format_datetime_with_timezone will handle fallbacks)
-        timezone_str = current_config.get('timezone')
+        timezone_str = current_config.get('timezone_str', 'Europe/Berlin')
         all_servers_config = current_config.get('servers', [])
 
         logger.debug(f"[_GEN_EMBED] Generating embed for '{display_name}' in channel {channel_id}, lang={lang}, allow_toggle={allow_toggle}, force_collapse={force_collapse}")
@@ -801,11 +831,12 @@ class StatusHandlersMixin:
             embed = discord.Embed(description=description, color=status_color)
             now_footer = datetime.now(timezone.utc)
             last_update_text = cached_translations['last_update_text']
-            current_time = format_datetime_with_timezone(now_footer, timezone_str, fmt="%H:%M:%S")
+            # Get formatted time using the new time_only parameter
+            current_time = format_datetime_with_timezone(now_footer, timezone_str, time_only=True)
             
             # Enhanced timestamp with cache age info
             if 'embed_cache_age' in locals() and embed_cache_age > self.cache_ttl_seconds:
-                timestamp_line = f"{last_update_text}: {current_time} (data: {int(embed_cache_age)}s ago)"
+                timestamp_line = f"{last_update_text}: {current_time} (data: {int(embed_cache_age)}s alt)"
             else:
                 timestamp_line = f"{last_update_text}: {current_time}"
             

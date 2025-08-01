@@ -839,7 +839,15 @@ def load_tasks() -> List[ScheduledTask]:
     
     # Always ensure task file exists
     if not os.path.exists(TASKS_FILE_PATH):
-        logger.debug(f"Tasks file {TASKS_FILE_PATH} does not exist, creating empty list")
+        logger.debug(f"Tasks file {TASKS_FILE_PATH} does not exist, creating empty file")
+        # Create empty tasks file
+        try:
+            os.makedirs(os.path.dirname(TASKS_FILE_PATH), exist_ok=True)
+            with open(TASKS_FILE_PATH, 'w', encoding='utf-8') as f:
+                json.dump([], f)
+            logger.info(f"Created empty tasks file at {TASKS_FILE_PATH}")
+        except Exception as e:
+            logger.error(f"Failed to create tasks file: {e}")
         return tasks
     
     # eXecute task loading with error handling

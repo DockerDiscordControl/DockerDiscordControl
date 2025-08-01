@@ -253,20 +253,14 @@ def init_config_cache(config: Dict[str, Any]) -> None:
 
 def get_cached_config() -> Dict[str, Any]:
     """
-    Gets the cached configuration. Falls back to load_config() if cache is empty.
+    Gets the cached configuration. Uses ConfigManager directly for better performance.
     
     Returns:
         The configuration dictionary
     """
-    if _config_cache.is_valid():
-        return _config_cache.get_config()
-    else:
-        # Fallback to loading from file
-        logger.warning("Config cache is empty or expired, falling back to load_config()")
-        from utils.config_loader import load_config
-        config = load_config()
-        _config_cache.set_config(config)
-        return config
+    # Use ConfigManager directly instead of multiple cache layers
+    from utils.config_manager import get_config_manager
+    return get_config_manager().get_config()
 
 def get_cached_servers() -> List[Dict[str, Any]]:
     """

@@ -27,7 +27,7 @@ if 'DDC_DISCORD_SKIP_TOKEN_LOCK' not in os.environ:
     os.environ['DDC_DISCORD_SKIP_TOKEN_LOCK'] = 'true'
 
 # Import custom modules
-from utils.config_loader import load_config, save_config, get_server_config, update_server_config
+from utils.config_loader import load_config, save_config
 from utils.logging_utils import setup_logger, refresh_debug_status, setup_all_loggers
 from utils.config_cache import init_config_cache, get_cached_config
 # Import the internal translation system
@@ -60,37 +60,24 @@ loaded_main_config = load_config()
 init_config_cache(loaded_main_config)
 
 # Set timezone for logging from configuration
-timezone_str = loaded_main_config.get('timezone', 'Europe/Berlin')  # Use configured timezone
+timezone_str = loaded_main_config.get('timezone', 'Europe/Berlin')
 try:
+    # Use a preliminary print statement because logger is not yet available
+    print(f"Attempting to set timezone to: {timezone_str}")
     tz = pytz.timezone(timezone_str)
-    print(f"Timezone set to: {timezone_str}")
+    print(f"Successfully set timezone to: {tz}")
 except pytz.exceptions.UnknownTimeZoneError:
-    print(f"Unknown timezone '{timezone_str}'. Keeping configured timezone for later use.")
-    # Don't fallback to UTC - keep the configured timezone for the cogs to use
-    tz = None  # Will be handled by format_datetime_with_timezone function
+    print(f"WARNING: Unknown timezone '{timezone_str}'. Falling back to UTC for this session.")
+    tz = pytz.timezone('UTC')
 except Exception as e:
-    print(f"Error setting timezone '{timezone_str}': {e}. Keeping configured timezone for later use.")
-    # Don't fallback to UTC - keep the configured timezone for the cogs to use
-    tz = None  # Will be handled by format_datetime_with_timezone function
+    print(f"ERROR setting timezone '{timezone_str}': {e}. Falling back to UTC for this session.")
+    tz = pytz.timezone('UTC')
 
-# Explicitly refresh debug status on bot start
-try:
-    debug_mode = refresh_debug_status()
-    print(f"Bot startup: Debug mode is {'ENABLED' if debug_mode else 'DISABLED'}")
-except Exception as e:
-    print(f"Error refreshing debug status during bot startup: {e}")
-
-# Custom formatter with timezone
-class TimezoneFormatter(logging.Formatter):
-    def formatTime(self, record, datefmt=None):
-        dt = datetime.fromtimestamp(record.created, tz=timezone.utc)
-        dt = dt.astimezone(tz)
-        if datefmt:
-            return dt.strftime(datefmt)
-        return dt.strftime("%Y-%m-%d %H:%M:%S")
-
-# Setup logging
+# Setup logging (NOW the logger is available)
 logger = setup_logger('ddc.bot', level=logging.INFO)
+
+# Now we can safely log the outcome
+logger.info(f"Final effective timezone for logging and operations: {tz}")
 
 # Language configuration
 # Log config object WITHOUT the token for safety
@@ -513,6 +500,26 @@ async def on_command_error(ctx, error):
         logger.error(f"Unexpected Command Error in '{ctx.command}': {error}")
         traceback.print_exc()
 
+# Helper function to mask sensitive data in config for logging
+def _mask_token_in_config(config):
+    """Masks sensitive data in config for safe logging."""
+    if not config:
+        return {}
+    
+    masked_config = config.copy()
+    
+    # Mask bot token
+    if 'bot_token' in masked_config:
+        masked_config['bot_token'] = '********'
+    if 'bot_token_decrypted_for_usage' in masked_config:
+        masked_config['bot_token_decrypted_for_usage'] = '********'
+        
+    # Mask web UI password hash if present
+    if 'web_ui_password_hash' in masked_config:
+        masked_config['web_ui_password_hash'] = '********'
+        
+    return masked_config
+
 # Improved function to decrypt the bot token with multiple fallback methods
 def get_decrypted_bot_token():
     """Attempts to decrypt the bot token in various ways for DockerDiscordControl."""
@@ -588,17 +595,42 @@ def get_decrypted_bot_token():
 
 # --- Main execution / Start ---
 def main():
-    logger.info("Main process started.")
-    
-    # Use proper token decryption method
-    bot_token = get_decrypted_bot_token()
-
-    if not bot_token:
-        logger.error("FATAL: Bot token not found or could not be decrypted.")
-        logger.error("Please configure the bot token in the Web UI or check the configuration files.")
-        sys.exit(1)
-
+    """Main entry point for the Discord bot."""
     try:
+        # Initialize timezone from environment or config
+        timezone_name = os.environ.get('TZ', 'Europe/Berlin')
+        logger.info(f"Attempting to set timezone to: {timezone_name}")
+        
+        try:
+            # Try to use tzdata directly instead of pytz
+            import zoneinfo
+            tz = zoneinfo.ZoneInfo(timezone_name)
+            logger.info(f"Successfully set timezone to {timezone_name} using zoneinfo")
+        except ImportError:
+            try:
+                # Fallback to pytz
+                tz = pytz.timezone(timezone_name)
+                logger.info(f"Successfully set timezone to {timezone_name} using pytz")
+            except Exception as e:
+                logger.warning(f"Could not set timezone {timezone_name}: {e}")
+                logger.info("Using UTC as fallback")
+                tz = timezone.utc
+
+        # Set for all datetime operations
+        datetime.now().astimezone(tz)
+        
+        # Try to get language from config
+        config = get_cached_config()
+        logger.info(f"Attempting to get language from config. Config object (token masked): {_mask_token_in_config(config)}")
+        
+        # Use proper token decryption method
+        bot_token = get_decrypted_bot_token()
+
+        if not bot_token:
+            logger.error("FATAL: Bot token not found or could not be decrypted.")
+            logger.error("Please configure the bot token in the Web UI or check the configuration files.")
+            sys.exit(1)
+
         logger.info(f"Starting bot with token ending in: ...{bot_token[-4:]}")
         # Run the bot - this blocks until the bot stops
         bot.run(bot_token)
@@ -625,4 +657,55 @@ def main():
             logger.error(f"Error stopping Scheduler Service: {e}", exc_info=True)
 
 if __name__ == "__main__":
-    main()
+    try:
+        # Ensure we're not in an event loop already
+        try:
+            loop = asyncio.get_running_loop()
+            logger.error("Event loop already running - this should not happen!")
+            sys.exit(1)
+        except RuntimeError:
+            # No running loop - this is what we want
+            pass
+            
+        # Create a new event loop with proper policy
+        if sys.platform == 'win32':
+            # Windows needs a different event loop policy
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        else:
+            # Try to use uvloop on Unix systems if available
+            try:
+                import uvloop
+                asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+                logger.info("Using uvloop for better performance")
+            except ImportError:
+                # Fallback to default policy
+                pass
+        
+        # Create and set the event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        try:
+            # Run the main function
+            loop.run_until_complete(main())
+        except KeyboardInterrupt:
+            logger.info("Received keyboard interrupt - shutting down gracefully")
+        except Exception as e:
+            logger.error(f"Error in main event loop: {e}", exc_info=True)
+        finally:
+            # Clean up tasks
+            pending = asyncio.all_tasks(loop)
+            for task in pending:
+                task.cancel()
+            
+            # Wait for tasks to finish
+            if pending:
+                loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+            
+            # Close the loop
+            loop.close()
+            asyncio.set_event_loop(None)
+            
+    except Exception as e:
+        logger.error(f"Critical error in event loop setup: {e}", exc_info=True)
+        sys.exit(1)
