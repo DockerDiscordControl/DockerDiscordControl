@@ -1,6 +1,6 @@
 # DockerDiscordControl 🐳
 
-[![Version](https://img.shields.io/github/v/release/DockerDiscordControl/DockerDiscordControl?style=for-the-badge&label=Version)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/latest) [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-blue?style=for-the-badge)](https://python.org) [![Security](https://img.shields.io/badge/Security-CVE--2025--54388%20Patched-red?style=for-the-badge)](#-security-notice) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.22-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Ready-blue?style=for-the-badge)](./UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
+[![Version](https://img.shields.io/github/v/release/DockerDiscordControl/DockerDiscordControl?style=for-the-badge&label=Version)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/latest) [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.22-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Ready-blue?style=for-the-badge)](./UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
 
 A powerful Discord bot and web interface to manage Docker containers remotely. This application bridges the gap between Discord and your Docker environment, allowing container monitoring and control directly through Discord channels.
 
@@ -23,10 +23,10 @@ Control your Docker containers directly from Discord! This application provides 
 - Streamlined dependency management for multiple Python versions
 
 🔐 **Security & Stability Enhancements:**
-- **CVE-2025-54388:** Added secure Docker Compose configuration with localhost-only binding
 - Fixed channel regeneration errors with missing config parameters
 - Improved Discord command timeout handling with proper defer() implementation
 - Resolved Web UI 500 errors and pytz compatibility issues
+- Enhanced secure configuration handling and token encryption
 
 🔧 **Bug Fixes & Optimizations:**
 - Fixed scheduled tasks loading and display issues
