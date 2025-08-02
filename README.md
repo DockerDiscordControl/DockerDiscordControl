@@ -384,7 +384,7 @@ Your support helps maintain DDC across **Windows, Linux, macOS, and Universal** 
 ## Credits & Contributors
 
 **DockerDiscordControl** is developed and maintained by:
-- **Lead Developer**: MAX / Gruber Systems
+- **Lead Developer**: MAX
 - **Contributors**: Community contributions welcome via [Pull Requests](../../pulls)
 - **Special Thanks**: All users who report bugs, suggest features, and support the project
 
