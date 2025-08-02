@@ -1,11 +1,11 @@
 # Installation Guide
 
-This comprehensive guide covers installing DockerDiscordControl on various platforms.
+This guide covers installing DockerDiscordControl on various platforms.
 
 ## Prerequisites
 
 ### Discord Bot Setup
-Before installing DDC, you need a Discord bot. Follow our [📖 Discord Bot Setup Guide](Discord-Bot-Setup) to:
+Before installing DDC, you need a Discord bot. Follow the [Discord Bot Setup Guide](Discord-Bot-Setup) to:
 - Create Discord application and bot
 - Get bot token and guild ID
 - Configure permissions and intents
@@ -336,5 +336,5 @@ docker stop ddc && docker rm ddc
 ## Next Steps
 
 - [⚙️ Configuration Guide](Configuration) - Configure DDC settings
-- [🔧 Troubleshooting](Troubleshooting) - Solve common problems  
+- [Troubleshooting](Troubleshooting) - Solve common problems  
 - [🔒 Security Guide](Security) - Secure your installation 

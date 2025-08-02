@@ -1,6 +1,6 @@
 # Task System Guide
 
-DDC includes a powerful task system to automate container management through scheduled actions.
+DDC includes a flexible task system to automate container management through scheduled actions.
 
 ## Overview
 
@@ -371,5 +371,5 @@ Tasks respect container permissions:
 ## Next Steps
 
 - [⚙️ Configuration](Configuration) - Configure container permissions
-- [🚀 Performance](Performance-and-Architecture) - Optimize task performance
-- [🔧 Troubleshooting](Troubleshooting) - Resolve task issues 
+- [Performance](Performance-and-Architecture) - Optimize task performance
+- [Troubleshooting](Troubleshooting) - Resolve task issues 

@@ -37,16 +37,16 @@ Create a sidebar by adding a page called `_Sidebar` with this content:
 ## 📚 DDC Documentation
 
 ### Getting Started
-- [🚀 Installation Guide](Installation-Guide)
+- [Installation Guide](Installation-Guide)
 - [🤖 Discord Bot Setup](Discord-Bot-Setup)
 - [⚙️ Configuration](Configuration)
 
 ### Features  
 - [📅 Task System](Task-System)
-- [🚀 Performance](Performance-and-Architecture)
+- [Performance](Performance-and-Architecture)
 
 ### Help & Support
-- [🔧 Troubleshooting](Troubleshooting)
+- [Troubleshooting](Troubleshooting)
 - [🔒 Security](Security)
 - [👩‍💻 Development](Development)
 

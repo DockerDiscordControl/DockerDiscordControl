@@ -1,8 +1,8 @@
-# 💾 Memory Optimization Guide
+# Memory Optimization Guide
 
 DockerDiscordControl has been extensively optimized for minimal memory usage while maintaining full functionality. This guide covers memory optimization techniques, monitoring, and troubleshooting.
 
-## 📊 Memory Usage Overview
+## Memory Usage Overview
 
 ### **Current Performance**
 - **Typical Usage**: 150-180MB RAM
@@ -17,7 +17,7 @@ After Optimization:   150-180MB (stable)
 Memory Reduction:     20-40MB (15-20% improvement)
 ```
 
-## 🔧 Built-in Memory Optimizations
+## Built-in Memory Optimizations
 
 ### **Python-Level Optimizations**
 
@@ -142,14 +142,14 @@ For advanced monitoring, DDC exposes memory metrics:
   metrics_path: '/metrics'
 ```
 
-## 🛠️ Advanced Memory Tuning
+## Advanced Memory Tuning
 
 ### **Environment Variable Tuning**
 
 Fine-tune memory behavior for your environment:
 
 ```bash
-# Ultra-low memory (experimental)
+# Highly low memory (experimental)
 DDC_MEMORY_LIMIT_MB=150
 DDC_GC_THRESHOLD_MB=120
 DDC_MEMORY_CHECK_INTERVAL=30
@@ -310,7 +310,7 @@ DDC_MEMORY_LIMIT_MB=180
 DDC_ENABLE_BACKGROUND_REFRESH=false
 ```
 
-## 🎯 Best Practices
+## Best Practices
 
 ### **Production Deployment**
 
@@ -351,4 +351,4 @@ DDC_ENABLE_BACKGROUND_REFRESH=false
 
 ---
 
-**💾 Optimized for efficiency!** DDC runs lean while maintaining full functionality. 
+**Optimized for efficiency!** DDC runs lean while maintaining full functionality. 

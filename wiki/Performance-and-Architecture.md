@@ -1,6 +1,6 @@
 # Performance and Architecture Guide
 
-This guide covers DDC v1.1.3c's revolutionary performance optimizations and architectural improvements.
+This guide covers DDC v1.1.3c's  performance optimizations and architectural improvements.
 
 ## Current Version Performance Revolution
 
@@ -131,10 +131,10 @@ DDC v1.1.3c introduces **90% performance improvements** through intelligent cach
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Ultra-Performance Discord UI Optimizations (Latest)
+### Highly Performance Discord UI Optimizations (Latest)
 
-**Revolutionary Toggle-Button Performance (v1.1.3c+):**
-DDC v1.1.3c introduces groundbreaking Discord UI optimizations with **85-90% performance improvements** for toggle operations.
+**Optimized Toggle-Button Performance (v1.1.3c+):**
+DDC v1.1.3c introduces  Discord UI optimizations with **85-90% performance improvements** for toggle operations.
 
 **Performance Metrics:**
 | Operation | Before | After | Improvement |
@@ -146,7 +146,7 @@ DDC v1.1.3c introduces groundbreaking Discord UI optimizations with **85-90% per
 
 **Implementation Details:**
 ```python
-# Ultra-Fast Timestamp Caching
+# Highly Fast Timestamp Caching
 _timestamp_format_cache = {}  # Global cache for formatted timestamps
 
 def _get_cached_formatted_timestamp(timestamp: datetime, timezone_str: str, fmt: str = "%H:%M:%S") -> str:
@@ -163,7 +163,7 @@ def _get_cached_formatted_timestamp(timestamp: datetime, timezone_str: str, fmt:
     
     return _timestamp_format_cache[cache_key]
 
-# Ultra-Fast Permission Caching  
+# Highly Fast Permission Caching  
 _permission_cache = {}  # Global cache for channel permissions
 
 def _get_cached_channel_permission(channel_id: int, permission_key: str, current_config: dict) -> bool:
