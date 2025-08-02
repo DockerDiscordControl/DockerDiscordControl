@@ -8,7 +8,11 @@
       "Bash(chmod:*)",
       "Bash(docker exec:*)",
       "Bash(git add:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git tag:*)",
+      "Bash(git fetch:*)",
+      "Bash(gh release create:*)",
+      "Bash(sed:*)"
     ],
     "deny": []
   }
