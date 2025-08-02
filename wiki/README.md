@@ -24,7 +24,7 @@ This directory contains the detailed documentation content that should be copied
 | **Installation-Guide** | `Installation-Guide.md` | Detailed installation for all platforms |
 | **Configuration** | `Configuration.md` | Web UI configuration guide |
 | **Task-System** | `Task-System.md` | Automated scheduling system |
-| **Performance-and-Architecture** | `Performance-and-Architecture.md` | V3.0 optimizations & monitoring |
+| **Performance-and-Architecture** | `Performance-and-Architecture.md` | Performance optimizations & monitoring |
 | **Troubleshooting** | `Troubleshooting.md` | Common issues & solutions |
 | **Development** | `Development.md` | Contributing & development setup |
 | **Security** | `Security.md` | Best practices & considerations |

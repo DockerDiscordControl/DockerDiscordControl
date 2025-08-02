@@ -95,7 +95,7 @@ Use case: Basic start/stop without advanced features
 
 ### Performance Settings
 
-DDC v3.0 includes ultra-optimized performance settings:
+DDC includes ultra-optimized performance settings:
 
 **Cache Settings:**
 - **Docker Cache Duration**: How long to cache container info (default: 75s)

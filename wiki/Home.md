@@ -23,7 +23,7 @@ DockerDiscordControl (DDC) is a powerful application that bridges Discord and Do
 
 ### 🎯 Features & Usage
 - **[📅 Task System](Task-System)** - Schedule automated container actions
-- **[🚀 Performance & Architecture](Performance-and-Architecture)** - V3.0 optimizations and monitoring
+- **[🚀 Performance & Architecture](Performance-and-Architecture)** - Performance optimizations and monitoring
 - **[🏔️ Alpine Linux Migration](Alpine-Linux-Migration)** - Security benefits and migration guide
 - **[💾 Memory Optimization](Memory-Optimization)** - Resource management and optimization
 - **[🛡️ Security](Security)** - Best practices and security considerations
@@ -46,7 +46,7 @@ DockerDiscordControl (DDC) is a powerful application that bridges Discord and Do
 - **Real-time Logs**: Live log viewing and monitoring
 - **Permission Management**: Granular control over container access
 
-### ⚡ Ultra-Fast Performance (V3.0)
+### ⚡ Ultra-Fast Performance
 - **Intelligent Caching**: Smart cache invalidation and refresh strategies
 - **Batch Processing**: Efficient bulk operations
 - **Background Refresh**: Proactive status updates
@@ -81,14 +81,14 @@ DockerDiscordControl (DDC) is a powerful application that bridges Discord and Do
 | 🛠️ **Installation Issues** | [Installation Guide](Installation-Guide) |
 | 🔒 **Security Questions** | [Security Guide](Security) |
 
-## 🌟 What's New in V3.0
+## 🌟 What's New in v1.1.3c
 
-- **🚀 Revolutionary Performance**: 90% improvement in Discord response times
-- **🛡️ Complete Security Overhaul**: Comprehensive vulnerability remediation
-- **🌍 Full English Documentation**: 100% English documentation coverage
-- **📱 Modern UI**: Completely redesigned web interface
-- **⚡ Intelligent Caching**: Smart cache strategies for optimal performance
-- **🔧 Enhanced Task System**: More flexible scheduling options
+- **🐍 Python 3.13 Support**: Full compatibility with latest Python version
+- **🐳 Docker Build Improvements**: Fixed build issues and enhanced caching
+- **🔧 Bug Fixes**: Channel regeneration, scheduled tasks, message tracking
+- **📚 Documentation**: Cleaned up fake scripts, added version clarity
+- **🔒 Security**: Enhanced configuration handling and token encryption
+- **⚡ Performance**: Improved Discord timeout handling and stability
 
 ## 🔥 Latest Updates (Alpine Migration)
 
@@ -110,4 +110,4 @@ DockerDiscordControl (DDC) is a powerful application that bridges Discord and Do
 
 **Ready to get started?** Jump into our [📖 Installation Guide](Installation-Guide) and have DDC running in minutes!
 
-**Homepage:** [https://ddc.bot](https://ddc.bot) | **License:** [MIT](../../blob/main/LICENSE) | **Version:** 3.0.0 
+**Homepage:** [https://ddc.bot](https://ddc.bot) | **License:** [MIT](../../blob/main/LICENSE) | **Version:** 1.1.3c 
