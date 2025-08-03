@@ -33,16 +33,16 @@ fi
 # Exits the script immediately if a command fails (except those with || true)
 set -e
 
-echo -e "${YELLOW}🛑 Stopping container ddc...${NC}"
-if docker stop ddc 2>/dev/null; then
+echo -e "${YELLOW}🛑 Stopping container DockerDiscordControl...${NC}"
+if docker stop DockerDiscordControl 2>/dev/null; then
     echo -e "${GREEN}✅ Container stopped successfully${NC}"
 else
     echo -e "${CYAN}ℹ️  Container was not running${NC}"
 fi
 sleep 1
 
-echo -e "${YELLOW}🗑️  Removing container ddc...${NC}"
-if docker rm ddc 2>/dev/null; then
+echo -e "${YELLOW}🗑️  Removing container DockerDiscordControl...${NC}"
+if docker rm DockerDiscordControl 2>/dev/null; then
     echo -e "${GREEN}✅ Container removed successfully${NC}"
 else
     echo -e "${CYAN}ℹ️  Container did not exist${NC}"
@@ -101,9 +101,9 @@ if [ -z "$FLASK_SECRET_KEY" ]; then
 fi
 
 # 🚀 Start the container
-echo -e "${GREEN}🚀 Starting new container ddc...${NC}"
+echo -e "${GREEN}🚀 Starting new container DockerDiscordControl...${NC}"
 docker run -d \
-  --name ddc \
+  --name DockerDiscordControl \
   -p 8374:9374 \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v "$(pwd)/config":/app/config \
@@ -127,7 +127,7 @@ docker run -d \
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Container started successfully!${NC}"
     sleep 1
-    echo -e "${BLUE}📋 Script finished! Check the logs with: ${WHITE}docker logs ddc -f${NC}"
+    echo -e "${BLUE}📋 Script finished! Check the logs with: ${WHITE}docker logs DockerDiscordControl -f${NC}"
     echo ""
     echo -e "${PURPLE}🌐 Web UI available at:${NC}"
     
