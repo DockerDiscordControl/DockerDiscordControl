@@ -29,11 +29,11 @@ If using Community Apps:
 #### Solution 3: Manual Docker Run (Alternative)
 ```bash
 docker run -d \
-  --name ddc \
+  --name DockerDiscordControl \
   -p 8374:9374 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v /mnt/user/appdata/ddc/config:/app/config \
-  -v /mnt/user/appdata/ddc/logs:/app/logs \
+  -v /mnt/user/appdata/dockerdiscordcontrol/config:/app/config \
+  -v /mnt/user/appdata/dockerdiscordcontrol/logs:/app/logs \
   --restart unless-stopped \
   dockerdiscordcontrol/dockerdiscordcontrol:latest
 ```
@@ -41,13 +41,13 @@ docker run -d \
 #### Solution 4: Check if Web UI Service is Running
 ```bash
 # Check container logs
-docker logs ddc
+docker logs DockerDiscordControl
 
 # Check if gunicorn is running
-docker exec ddc ps aux | grep gunicorn
+docker exec DockerDiscordControl ps aux | grep gunicorn
 
 # Check if port 9374 is open inside container
-docker exec ddc netstat -tlnp | grep 9374
+docker exec DockerDiscordControl netstat -tlnp | grep 9374
 ```
 
 ### Expected Logs
@@ -67,7 +67,7 @@ INFO success: discordbot entered RUNNING state
 #### Issue: Web UI starts but crashes immediately
 **Fix:** Check permissions:
 ```bash
-docker exec ddc chown -R ddcuser:ddcuser /app/config /app/logs
+docker exec DockerDiscordControl chown -R ddcuser:ddcuser /app/config /app/logs
 ```
 
 #### Issue: Port already in use
@@ -85,7 +85,8 @@ After fixing, test with:
 curl -I http://localhost:8374
 
 # Should return:
-HTTP/1.1 200 OK
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Basic realm="Authentication Required"
 Server: gunicorn
 ```
 

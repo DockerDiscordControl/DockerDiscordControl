@@ -33,19 +33,24 @@ class PortDiagnostics:
             with open('/etc/hostname', 'r') as f:
                 hostname = f.read().strip()
             
-            # Try to get container name from Docker API
-            result = subprocess.run([
-                'docker', 'inspect', hostname, '--format', '{{.Name}}'
-            ], capture_output=True, text=True, timeout=5)
+            # Try to get container name from Docker API (if docker command is available)
+            try:
+                result = subprocess.run([
+                    'docker', 'inspect', hostname, '--format', '{{.Name}}'
+                ], capture_output=True, text=True, timeout=5)
+                
+                if result.returncode == 0:
+                    name = result.stdout.strip().lstrip('/')
+                    return name
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                # Docker command not available or timeout - this is normal inside containers
+                pass
             
-            if result.returncode == 0:
-                name = result.stdout.strip().lstrip('/')
-                return name
-            
-            return hostname
+            # Fall back to hostname or default name
+            return hostname if hostname else "DockerDiscordControl"
         except Exception as e:
             logger.debug(f"Could not detect container name: {e}")
-            return None
+            return "DockerDiscordControl"
     
     def _get_host_info(self) -> Dict:
         """Get host system information"""
@@ -145,31 +150,37 @@ class PortDiagnostics:
             if not self.container_name:
                 return {}
             
-            result = subprocess.run([
-                'docker', 'port', self.container_name
-            ], capture_output=True, text=True, timeout=5)
-            
-            if result.returncode != 0:
+            # Docker command may not be available inside container
+            try:
+                result = subprocess.run([
+                    'docker', 'port', self.container_name
+                ], capture_output=True, text=True, timeout=5)
+                
+                if result.returncode != 0:
+                    return {}
+                
+                mappings = {}
+                for line in result.stdout.strip().split('\n'):
+                    if line.strip():
+                        # Format: "9374/tcp -> 0.0.0.0:8374"
+                        match = re.match(r'(\d+)/tcp -> (.+):(\d+)', line)
+                        if match:
+                            internal_port = match.group(1)
+                            external_host = match.group(2)
+                            external_port = match.group(3)
+                            
+                            if internal_port not in mappings:
+                                mappings[internal_port] = []
+                            mappings[internal_port].append({
+                                'host': external_host,
+                                'port': external_port
+                            })
+                
+                return mappings
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                # Docker command not available - this is normal inside containers
+                logger.debug("Docker command not available for port mapping detection")
                 return {}
-            
-            mappings = {}
-            for line in result.stdout.strip().split('\n'):
-                if line.strip():
-                    # Format: "9374/tcp -> 0.0.0.0:8374"
-                    match = re.match(r'(\d+)/tcp -> (.+):(\d+)', line)
-                    if match:
-                        internal_port = match.group(1)
-                        external_host = match.group(2)
-                        external_port = match.group(3)
-                        
-                        if internal_port not in mappings:
-                            mappings[internal_port] = []
-                        mappings[internal_port].append({
-                            'host': external_host,
-                            'port': external_port
-                        })
-            
-            return mappings
         except Exception as e:
             logger.debug(f"Could not get Docker port mappings: {e}")
             return {}
@@ -187,7 +198,7 @@ class PortDiagnostics:
         """Get generic Docker solutions"""
         return [
             f"DOCKER FIX: Add port mapping: -p 8374:{self.EXPECTED_WEB_PORT}",
-            f"DOCKER FIX: Recreate container with: docker run -d --name {self.container_name or 'ddc'} -p 8374:{self.EXPECTED_WEB_PORT} dockerdiscordcontrol/dockerdiscordcontrol:latest",
+            f"DOCKER FIX: Recreate container with: docker run -d --name {self.container_name or 'DockerDiscordControl'} -p 8374:{self.EXPECTED_WEB_PORT} dockerdiscordcontrol/dockerdiscordcontrol:latest",
             "DOCKER FIX: Check if port 8374 is already in use: netstat -tlnp | grep 8374",
             "DOCKER FIX: Try alternative port: -p 8375:9374 or -p 8000:9374"
         ]
@@ -225,7 +236,7 @@ class PortDiagnostics:
         logger.info("=== DDC Port Diagnostics ===")
         logger.info(f"Container: {report['container_name'] or 'Unknown'}")
         logger.info(f"Platform: {report['host_info']['platform']}")
-        logger.info(f"Internal Web UI Port {self.EXPECTED_WEB_PORT}: {'✓ Listening' if report['port_check']['internal_port_listening'] else '✗ Not Listening'}")
+        logger.info(f"Internal Web UI Port {self.EXPECTED_WEB_PORT}: {'LISTENING' if report['port_check']['internal_port_listening'] else 'NOT LISTENING'}")
         
         if report['port_check']['port_mappings']:
             logger.info(f"Port Mappings: {report['port_check']['port_mappings']}")
@@ -236,25 +247,25 @@ class PortDiagnostics:
         if report['port_check']['issues']:
             logger.warning("PORT ISSUES DETECTED:")
             for issue in report['port_check']['issues']:
-                logger.warning(f"  ⚠️  {issue}")
+                logger.warning(f"  WARNING: {issue}")
             
             logger.info("SUGGESTED SOLUTIONS:")
             for solution in report['port_check']['solutions']:
-                logger.info(f"  💡 {solution}")
+                logger.info(f"  SOLUTION: {solution}")
         else:
-            logger.info("✅ Port configuration appears correct")
+            logger.info("Port configuration appears correct")
         
         # Log access information
         if report['port_check']['external_ports']:
             for port_info in report['port_check']['external_ports']:
                 if isinstance(port_info, dict):
-                    logger.info(f"🌐 Web UI should be accessible at: http://{port_info['host']}:{port_info['port']}")
+                    logger.info(f"Web UI should be accessible at: http://{port_info['host']}:{port_info['port']}")
                 else:
-                    logger.info(f"🌐 Web UI should be accessible at: http://localhost:{port_info}")
+                    logger.info(f"Web UI should be accessible at: http://localhost:{port_info}")
         elif self.host_info['is_unraid']:
-            logger.info("🌐 Web UI should be accessible at: http://[UNRAID-IP]:8374")
+            logger.info("Web UI should be accessible at: http://[UNRAID-IP]:8374")
         else:
-            logger.info("🌐 Web UI should be accessible at: http://localhost:8374")
+            logger.info("Web UI should be accessible at: http://localhost:8374")
         
         logger.info("=== End Diagnostics ===")
         
