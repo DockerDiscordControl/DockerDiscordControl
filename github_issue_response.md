@@ -9,7 +9,7 @@ The DDC container runs the Web UI internally on port **9374**, but it should be 
 
 ### Option 1: Check and Fix Port Mapping in Unraid
 1. Go to your Unraid Web UI → Docker tab
-2. Click on the DockerDiscordControl container
+2. Click on the dockerdiscordcontrol container
 3. Click "Edit" 
 4. Look for the "WebUI Port" setting
 5. Ensure it shows:
@@ -27,7 +27,7 @@ If the port mapping is incorrect or missing:
 If the above doesn't work, you can manually run the container with:
 ```
 docker run -d \
-  --name DockerDiscordControl \
+  --name dockerdiscordcontrol \
   -p 8374:9374 \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v /mnt/user/appdata/dockerdiscordcontrol/config:/app/config \
@@ -61,7 +61,7 @@ If you're using DDC v1.1.3c or later, the container includes automatic port diag
 
 1. **Check container logs** for the Port Diagnostics section:
    ```
-   docker logs DockerDiscordControl | grep -A 20 "=== DDC Port Diagnostics ==="
+   docker logs dockerdiscordcontrol | grep -A 20 "=== DDC Port Diagnostics ==="
    ```
 
 2. **Via Web UI** (if accessible): Visit `http://[IP]:8374/port_diagnostics`

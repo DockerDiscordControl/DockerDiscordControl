@@ -29,7 +29,7 @@ If using Community Apps:
 #### Solution 3: Manual Docker Run (Alternative)
 ```bash
 docker run -d \
-  --name DockerDiscordControl \
+  --name dockerdiscordcontrol \
   -p 8374:9374 \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v /mnt/user/appdata/dockerdiscordcontrol/config:/app/config \
@@ -41,13 +41,13 @@ docker run -d \
 #### Solution 4: Check if Web UI Service is Running
 ```bash
 # Check container logs
-docker logs DockerDiscordControl
+docker logs dockerdiscordcontrol
 
 # Check if gunicorn is running
-docker exec DockerDiscordControl ps aux | grep gunicorn
+docker exec dockerdiscordcontrol ps aux | grep gunicorn
 
 # Check if port 9374 is open inside container
-docker exec DockerDiscordControl netstat -tlnp | grep 9374
+docker exec dockerdiscordcontrol netstat -tlnp | grep 9374
 ```
 
 ### Expected Logs
@@ -67,7 +67,7 @@ INFO success: discordbot entered RUNNING state
 #### Issue: Web UI starts but crashes immediately
 **Fix:** Check permissions:
 ```bash
-docker exec DockerDiscordControl chown -R ddcuser:ddcuser /app/config /app/logs
+docker exec dockerdiscordcontrol chown -R ddcuser:ddcuser /app/config /app/logs
 ```
 
 #### Issue: Port already in use
@@ -97,7 +97,7 @@ DDC v1.1.3c+ includes automatic port diagnostics that run at startup and provide
 #### In Container Logs
 Look for the **Port Diagnostics** section in your container logs:
 ```bash
-docker logs DockerDiscordControl | grep -A 20 "=== DDC Port Diagnostics ==="
+docker logs dockerdiscordcontrol | grep -A 20 "=== DDC Port Diagnostics ==="
 ```
 
 #### Via Web UI (if accessible)
@@ -107,16 +107,16 @@ If you can access the Web UI, visit: `http://[IP]:8374/port_diagnostics`
 
 If automatic diagnostics aren't available:
 
-1. **Check container status:** `docker ps | grep DockerDiscordControl`
-2. **View full logs:** `docker logs DockerDiscordControl -f`
-3. **Verify port mapping:** `docker port DockerDiscordControl`
-4. **Test internal connectivity:** `docker exec DockerDiscordControl curl -I http://localhost:9374`
+1. **Check container status:** `docker ps | grep dockerdiscordcontrol`
+2. **View full logs:** `docker logs dockerdiscordcontrol -f`
+3. **Verify port mapping:** `docker port dockerdiscordcontrol`
+4. **Test internal connectivity:** `docker exec dockerdiscordcontrol curl -I http://localhost:9374`
 
 ### Creating a GitHub Issue
 
 If none of these solve it, please create a GitHub issue with:
 - Unraid version
-- Full container logs (`docker logs DockerDiscordControl`)
+- Full container logs (`docker logs dockerdiscordcontrol`)
 - Port diagnostics output (from logs or `/port_diagnostics` endpoint)
 - Port configuration screenshot
-- Output of `docker port DockerDiscordControl`
+- Output of `docker port dockerdiscordcontrol`

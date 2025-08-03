@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <Container version="2">
-  <Name>DockerDiscordControl</Name>
+  <Name>dockerdiscordcontrol</Name>
   <Repository>dockerdiscordcontrol/dockerdiscordcontrol:latest</Repository>
   <Registry>https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol</Registry>
   <Default>latest</Default>

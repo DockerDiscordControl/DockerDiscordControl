@@ -47,10 +47,10 @@ class PortDiagnostics:
                 pass
             
             # Fall back to hostname or default name
-            return hostname if hostname else "DockerDiscordControl"
+            return hostname if hostname else "dockerdiscordcontrol"
         except Exception as e:
             logger.debug(f"Could not detect container name: {e}")
-            return "DockerDiscordControl"
+            return "dockerdiscordcontrol"
     
     def _get_host_info(self) -> Dict:
         """Get host system information"""
@@ -191,14 +191,14 @@ class PortDiagnostics:
             "UNRAID FIX: Go to Docker tab → Edit DDC container → Set 'Host Port: 8374' and 'Container Port: 9374'",
             "UNRAID FIX: Remove container and re-install from Community Apps with correct port mapping",
             "UNRAID FIX: Verify template shows: WebUI Port - Host: 8374, Container: 9374",
-            f"UNRAID MANUAL: docker run -d --name {self.container_name or 'DockerDiscordControl'} -p 8374:9374 -v /var/run/docker.sock:/var/run/docker.sock dockerdiscordcontrol/dockerdiscordcontrol:latest"
+            f"UNRAID MANUAL: docker run -d --name {self.container_name or 'dockerdiscordcontrol'} -p 8374:9374 -v /var/run/docker.sock:/var/run/docker.sock dockerdiscordcontrol/dockerdiscordcontrol:latest"
         ]
     
     def _get_docker_solutions(self) -> List[str]:
         """Get generic Docker solutions"""
         return [
             f"DOCKER FIX: Add port mapping: -p 8374:{self.EXPECTED_WEB_PORT}",
-            f"DOCKER FIX: Recreate container with: docker run -d --name {self.container_name or 'DockerDiscordControl'} -p 8374:{self.EXPECTED_WEB_PORT} dockerdiscordcontrol/dockerdiscordcontrol:latest",
+            f"DOCKER FIX: Recreate container with: docker run -d --name {self.container_name or 'dockerdiscordcontrol'} -p 8374:{self.EXPECTED_WEB_PORT} dockerdiscordcontrol/dockerdiscordcontrol:latest",
             "DOCKER FIX: Check if port 8374 is already in use: netstat -tlnp | grep 8374",
             "DOCKER FIX: Try alternative port: -p 8375:9374 or -p 8000:9374"
         ]

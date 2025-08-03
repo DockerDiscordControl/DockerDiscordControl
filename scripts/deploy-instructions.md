@@ -55,4 +55,4 @@ If the bot still doesn't start, these solutions might help:
 
 1. Try py-cord version 2.0.0 if 2.4.1 doesn't work
 2. Check the Discord.py documentation for changes in command registration
-3. Check the logs in the container with `docker logs DockerDiscordControl -f` 
+3. Check the logs in the container with `docker logs dockerdiscordcontrol -f` 
