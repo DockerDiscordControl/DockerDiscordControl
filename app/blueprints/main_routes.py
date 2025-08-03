@@ -1112,6 +1112,5 @@ def port_diagnostics():
         logger.error(f"Error running port diagnostics: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'message': "Error running port diagnostics. Please check the logs for details.",
-            'error': str(e)
+            'message': "Error running port diagnostics. Please check the logs for details."
         })
