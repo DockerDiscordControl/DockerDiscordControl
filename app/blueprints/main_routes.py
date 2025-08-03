@@ -27,6 +27,7 @@ from app.utils.web_helpers import (
     get_docker_containers_live,
     docker_cache
 )
+from app.utils.port_diagnostics import run_port_diagnostics
 # NEW: Import shared_data
 from app.utils.shared_data import get_active_containers, load_active_containers_from_config
 from app.constants import COMMON_TIMEZONES # Import from new constants file
@@ -1087,4 +1088,30 @@ def performance_stats():
         return jsonify({
             'success': False,
             'message': "Error getting performance statistics. Please check the logs for details."
+        })
+
+@main_bp.route('/port_diagnostics', methods=['GET'])
+@auth.login_required
+def port_diagnostics():
+    """
+    API endpoint to get port diagnostics information.
+    Helps users troubleshoot Web UI connection issues.
+    """
+    logger = current_app.logger
+    
+    try:
+        logger.info("Running port diagnostics on demand...")
+        diagnostics_report = run_port_diagnostics()
+        
+        return jsonify({
+            'success': True,
+            'diagnostics': diagnostics_report
+        })
+        
+    except Exception as e:
+        logger.error(f"Error running port diagnostics: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': "Error running port diagnostics. Please check the logs for details.",
+            'error': str(e)
         })

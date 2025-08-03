@@ -11,14 +11,14 @@
   <Project>https://ddc.bot</Project>
   <Overview>DockerDiscordControl (DDC) is a powerful Discord bot that allows you to monitor and control your Docker containers directly from Discord. Features include real-time status monitoring, container control (start/stop/restart), scheduled tasks, heartbeat monitoring, and a comprehensive web UI. Built with Alpine Linux for enhanced security and smaller footprint.</Overview>
   <Category>Tools: Network:Management</Category>
-  <WebUI>http://[IP]:[PORT:9374]</WebUI>
+  <WebUI>http://[IP]:[PORT:8374]</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/DockerDiscordControl/DockerDiscordControl/main/templates/DockerDiscordControl.xml</TemplateURL>
   <Icon>https://raw.githubusercontent.com/DockerDiscordControl/DockerDiscordControl/main/app/static/favicon.png</Icon>
   <ExtraParams>--restart unless-stopped</ExtraParams>
   <DonateText>Support DDC Development ☕</DonateText>
   <DonateLink>https://buymeacoffee.com/dockerdiscordcontrol</DonateLink>
   <Requires>Docker socket access for container management</Requires>
-  <Config Name="WebUI Port" Target="9374" Default="9374" Mode="tcp" Description="Port for the DDC Web Interface" Type="Port" Display="always" Required="true" Mask="false">9374</Config>
+  <Config Name="WebUI Port" Target="9374" Default="8374" Mode="tcp" Description="Port for the DDC Web Interface" Type="Port" Display="always" Required="true" Mask="false">8374</Config>
   <Config Name="Docker Socket" Target="/var/run/docker.sock" Default="/var/run/docker.sock" Mode="rw" Description="Docker socket for container management - REQUIRED" Type="Path" Display="always" Required="true" Mask="false">/var/run/docker.sock</Config>
   <Config Name="Config Directory" Target="/app/config" Default="/mnt/user/appdata/dockerdiscordcontrol/config" Mode="rw" Description="DDC configuration files (bot tokens, channel settings, etc.)" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/dockerdiscordcontrol/config</Config>
   <Config Name="Logs Directory" Target="/app/logs" Default="/mnt/user/appdata/dockerdiscordcontrol/logs" Mode="rw" Description="DDC log files" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/dockerdiscordcontrol/logs</Config>

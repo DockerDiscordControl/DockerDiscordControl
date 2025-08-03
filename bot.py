@@ -44,6 +44,8 @@ from utils.scheduler_service import start_scheduler_service, stop_scheduler_serv
 from utils.action_logger import log_user_action, user_action_logger
 # Import cogs helper functions
 from cogs.control_helpers import container_select
+# Import port diagnostics
+from app.utils.port_diagnostics import log_port_diagnostics
 
 # Import app_commands using central utility
 from utils.app_commands_helper import initialize_app_commands
@@ -314,6 +316,14 @@ async def on_ready():
 
     if not _initial_startup_done:
         logger.info("First initialization after start...")
+        
+        # Run port diagnostics at Discord bot startup
+        try:
+            logger.info("Running port diagnostics at Discord bot startup...")
+            log_port_diagnostics()
+        except Exception as e:
+            logger.error(f"Error running port diagnostics at startup: {e}")
+        
         try:
             # --- Instantiate and add DockerControlCog manually --- 
             from cogs.docker_control import DockerControlCog # Import the class

@@ -21,6 +21,7 @@ from app.utils.web_helpers import (
     start_background_refresh,
     stop_background_refresh
 )
+from app.utils.port_diagnostics import log_port_diagnostics
 # Import shared data class for active containers
 from app.utils.shared_data import load_active_containers_from_config
 from datetime import datetime, timezone, timedelta
@@ -145,6 +146,13 @@ def create_app(test_config=None):
             app.logger.info(f"Application startup: Debug mode is {'ENABLED' if debug_status else 'DISABLED'}")
         except Exception as e:
             app.logger.error(f"Error refreshing debug status on application startup: {e}")
+        
+        # Run port diagnostics at startup
+        try:
+            app.logger.info("Running port diagnostics...")
+            log_port_diagnostics()
+        except Exception as e:
+            app.logger.error(f"Error running port diagnostics: {e}")
 
     @app.after_request
     def add_security_headers(response):
