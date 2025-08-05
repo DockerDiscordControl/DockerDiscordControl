@@ -16,6 +16,9 @@ import asyncio
 from utils.logging_utils import get_module_logger
 from utils.time_utils import get_datetime_imports, format_duration
 
+import requests
+import socket
+
 # Central datetime imports
 datetime, timedelta, timezone, time = get_datetime_imports()
 
@@ -347,3 +350,65 @@ def async_retry_with_backoff(max_retries=3, initial_delay=1.0, backoff=2.0):
             raise last_exception
         return wrapper
     return decorator 
+
+def get_public_ip() -> Optional[str]:
+    """
+    Get the public/external IP address of the server.
+    
+    Returns:
+        str: Public IP address or None if detection fails
+    """
+    try:
+        # Try multiple services for reliability
+        services = [
+            'https://api.ipify.org',
+            'https://ifconfig.me',
+            'https://icanhazip.com'
+        ]
+        
+        for service in services:
+            try:
+                response = requests.get(service, timeout=5)
+                if response.status_code == 200:
+                    ip = response.text.strip()
+                    # Basic IP validation
+                    if _is_valid_ip(ip):
+                        return ip
+            except Exception as e:
+                logger.debug(f"Failed to get IP from {service}: {e}")
+                continue
+                
+        logger.warning("Failed to detect public IP from all services")
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error detecting public IP: {e}")
+        return None
+
+def _is_valid_ip(ip: str) -> bool:
+    """
+    Validate if a string is a valid IP address.
+    
+    Args:
+        ip: IP address string to validate
+        
+    Returns:
+        bool: True if valid IP address
+    """
+    try:
+        socket.inet_aton(ip)
+        return True
+    except socket.error:
+        return False
+
+def validate_container_info_text(text: str) -> bool:
+    """
+    Validate container info text meets requirements.
+    
+    Args:
+        text: Info text to validate
+        
+    Returns:
+        bool: True if valid (within 250 character limit)
+    """
+    return len(text) <= 250 
