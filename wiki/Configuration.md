@@ -95,7 +95,7 @@ Use case: Basic start/stop without advanced features
 
 ### Performance Settings
 
-DDC v3.0 includes ultra-optimized performance settings:
+DDC includes optimized performance settings:
 
 **Cache Settings:**
 - **Docker Cache Duration**: How long to cache container info (default: 75s)
@@ -236,5 +236,5 @@ DDC uses split configuration files for better organization:
 ## Next Steps
 
 - [📅 Task System](Task-System) - Set up automated scheduling
-- [🚀 Performance](Performance-and-Architecture) - Optimize for your environment
-- [🔧 Troubleshooting](Troubleshooting) - Solve common issues 
+- [Performance](Performance-and-Architecture) - Optimize for your environment
+- [Troubleshooting](Troubleshooting) - Solve common issues 

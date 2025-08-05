@@ -17,6 +17,7 @@ services:
       - ./config:/app/config:cached
       # Mount for logs
       - ./logs:/app/logs:cached
+    # user: "99:100"
     environment:
       # FLASK_SECRET_KEY: Must be set! Best to use a .env file.
       FLASK_SECRET_KEY: ${FLASK_SECRET_KEY}

@@ -1,8 +1,8 @@
-# 🏔️ Alpine Linux Migration Guide
+# Alpine Linux Migration Guide
 
 DockerDiscordControl has migrated from Debian-based images to **Alpine Linux** for enhanced security, smaller image size, and better performance.
 
-## 📊 Migration Benefits
+## Migration Benefits
 
 ### **Security Improvements**
 - **94% fewer vulnerabilities** compared to Debian-based containers
@@ -77,7 +77,7 @@ For Unraid users:
 2. **Manual**: Re-download container template
 3. **Data preserved**: All configurations and logs maintained
 
-## 🔧 Alpine-Specific Optimizations
+## Alpine-Specific Optimizations
 
 ### **Package Manager**
 - Uses `apk` instead of `apt`
@@ -100,7 +100,7 @@ PYTHONHASHSEED=0
 PYTHONOPTIMIZE=2
 ```
 
-## 🛡️ Security Enhancements
+## Security Enhancements
 
 ### **Vulnerability Reduction**
 - **Before (Debian)**: 32 vulnerabilities (CVE database)
@@ -191,7 +191,7 @@ docker exec ddc env | grep PYTHON
 - [ ] **Test all features**: Ensure container controls work
 - [ ] **Update documentation**: Note any environment-specific changes
 
-## 🎯 Best Practices
+## Best Practices
 
 ### **Resource Limits**
 Set appropriate limits for Alpine-optimized container:

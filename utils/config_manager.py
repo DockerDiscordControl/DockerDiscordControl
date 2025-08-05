@@ -22,6 +22,9 @@ logger = setup_logger('ddc.config_manager', level=logging.INFO)
 _TOKEN_ENCRYPTION_SALT = b'ddc-salt-for-token-encryption-key-v1'
 _PBKDF2_ITERATIONS = 260000  # Number of iterations for PBKDF2
 
+# Global cache for failed decrypt attempts to prevent endless loops
+_GLOBAL_FAILED_DECRYPT_CACHE = set()
+
 # Determine paths
 _CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_DIR = os.path.abspath(os.path.join(_CURRENT_DIR, "..", "config"))
@@ -64,7 +67,7 @@ except ImportError:
                 "schedule": False
             },
             "post_initial": False,
-            "update_interval_minutes": 5,
+            "update_interval_minutes": 10,
             "inactivity_timeout_minutes": 10,
             "enable_auto_refresh": True,
             "recreate_messages_on_inactivity": True
@@ -272,6 +275,16 @@ class ConfigManager:
         if not encrypted_token_str:
             return None
 
+        # If token doesn't start with 'gAAAAA', it's likely plaintext - return as is
+        if not encrypted_token_str.startswith('gAAAAA'):
+            logger.debug("Token appears to be plaintext, returning as-is")
+            return encrypted_token_str
+
+        # Check if we've already failed to decrypt this token/hash combination (global cache)
+        cache_key = f"{encrypted_token_str[:20]}:{password_hash[:20]}"
+        if cache_key in _GLOBAL_FAILED_DECRYPT_CACHE:
+            return None
+
         try:
             derived_key = self._derive_encryption_key(password_hash)
             f = Fernet(derived_key)
@@ -289,6 +302,8 @@ class ConfigManager:
             return decrypted_token
         except InvalidToken:
             logger.warning("Failed to decrypt token: Invalid token or key (password change?)")
+            # Cache the failure globally to prevent endless retries
+            _GLOBAL_FAILED_DECRYPT_CACHE.add(cache_key)
             return None
         except ValueError as e:
             logger.error(f"Failed to decrypt bot token due to key derivation error: {e}")
@@ -382,17 +397,18 @@ class ConfigManager:
             token_to_decrypt = config.get('bot_token')
             current_hash = config.get('web_ui_password_hash')
             if token_to_decrypt and current_hash:
-                config['bot_token_decrypted_for_usage'] = self._decrypt_token(token_to_decrypt, current_hash)
+                decrypted_token = self._decrypt_token(token_to_decrypt, current_hash)
+                if decrypted_token:  # Only set if decryption was successful
+                    config['bot_token_decrypted_for_usage'] = decrypted_token
             
-            # Update cache and timestamps
-            self._config_cache = config.copy()
+            # Update timestamps
             self._cache_timestamp = time.time()
             self._update_file_mtimes()
             
             # Load debug status without blocking
             try:
                 debug_mode = config.get('scheduler_debug_mode', False)
-                logger.info(f"Debug status loaded from configuration: {debug_mode}")
+                logger.debug(f"Debug status loaded from configuration: {debug_mode}")
                 
                 # Update logging settings if needed
                 try:
@@ -403,7 +419,7 @@ class ConfigManager:
             except Exception as e:
                 logger.error(f"Error loading debug status: {e}")
             
-            logger.info(f"Configuration loaded from disk. Language: {config.get('language')}")
+            logger.debug(f"Configuration loaded from disk. Language: {config.get('language')}")
             return config
             
         except Exception as e:
@@ -427,21 +443,34 @@ class ConfigManager:
                 if self._save_in_progress:
                     return self._config_cache.copy()
                 
-                # Only check for file changes every 300 seconds (5 minutes) AND respect rate limiting
+                # Only check for file changes every 60 seconds (1 minute) AND respect rate limiting
                 current_time = time.time()
                 time_since_cache = current_time - self._cache_timestamp
                 time_since_invalidation = current_time - self._last_cache_invalidation
                 
-                if (time_since_cache > 300 and 
-                    time_since_invalidation > self._min_invalidation_interval and 
-                    self._has_files_changed()):
-                    logger.info("Configuration files changed on disk, reloading...")
-                    self._last_cache_invalidation = current_time
-                    return self._load_config_from_disk()
+                # Reduziere die Cache-Prüfungsintervalle
+                if (time_since_cache > 60 and  # 1 Minute statt 5 Minuten
+                    time_since_invalidation > self._min_invalidation_interval):
+                    
+                    # Prüfe ob Dateien wirklich geändert wurden
+                    if self._has_files_changed():
+                        logger.debug("Configuration files changed on disk, reloading...")
+                        self._last_cache_invalidation = current_time
+                        config = self._load_config_from_disk()
+                        self._config_cache = config.copy()
+                        self._cache_timestamp = current_time
+                        return config
+                    else:
+                        # Aktualisiere nur den Zeitstempel wenn keine Änderungen
+                        self._cache_timestamp = current_time
+                        
                 return self._config_cache.copy()
             
             # Load from disk if cache is empty or force_reload
-            return self._load_config_from_disk()
+            config = self._load_config_from_disk()
+            self._config_cache = config.copy()
+            self._cache_timestamp = time.time()
+            return config
                 
         except Exception as e:
             logger.error(f"Error getting configuration: {e}")
@@ -505,12 +534,41 @@ class ConfigManager:
                 password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
                 config['web_ui_password_hash'] = password_hash
                 
+                # Clear global failed decrypt cache since password changed
+                _GLOBAL_FAILED_DECRYPT_CACHE.clear()
+                logger.info("Cleared global failed decrypt cache due to password change")
+                
                 # Re-encrypt bot token with new password if needed
                 token_value = config.get('bot_token')
                 if token_value:
-                    encrypted_token = self._encrypt_token(token_value, password_hash)
-                    if encrypted_token:
-                        config['bot_token'] = encrypted_token
+                    # First, try to get the plaintext token
+                    plaintext_token = None
+                    
+                    # Check if it's already plaintext (not encrypted)
+                    if not token_value.startswith('gAAAAA'):  # Fernet tokens start with gAAAAA
+                        plaintext_token = token_value
+                        logger.info("Using existing plaintext token for re-encryption")
+                    else:
+                        # Try to decrypt with old password hash first
+                        old_password_hash = self._config_cache.get('web_ui_password_hash') if self._config_cache else None
+                        if old_password_hash:
+                            try:
+                                plaintext_token = self._decrypt_token(token_value, old_password_hash)
+                                if plaintext_token:
+                                    logger.info("Successfully decrypted token with old password for re-encryption")
+                            except Exception as e:
+                                logger.warning(f"Could not decrypt token with old password: {e}")
+                    
+                    # Re-encrypt with new password if we have plaintext
+                    if plaintext_token:
+                        encrypted_token = self._encrypt_token(plaintext_token, password_hash)
+                        if encrypted_token:
+                            config['bot_token'] = encrypted_token
+                            logger.info("Successfully re-encrypted bot token with new password")
+                        else:
+                            logger.error("Failed to encrypt token with new password")
+                    else:
+                        logger.error("Could not obtain plaintext token for re-encryption - token may become unusable")
             
             # Remove runtime-only fields
             if 'bot_token_decrypted_for_usage' in config:

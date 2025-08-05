@@ -2,6 +2,7 @@
 import asyncio
 import logging
 import time
+import sys
 from datetime import datetime, timedelta
 import threading
 from typing import Dict, List, Optional, Any
@@ -76,21 +77,63 @@ class SchedulerService:
     
     def _run_service(self):
         """Runs the service loop in the background."""
-        # Create a new event loop for this thread
-        self.event_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.event_loop)
-        
         try:
-            # Start the loop
-            self.event_loop.run_until_complete(self._service_loop())
+            # Check if we're already in an event loop
+            try:
+                loop = asyncio.get_running_loop()
+                logger.error("Cannot start scheduler service in existing event loop!")
+                return
+            except RuntimeError:
+                # No running loop - this is what we want
+                pass
+            
+            # Create a new event loop for this thread
+            self.event_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.event_loop)
+            
+            # Try to use uvloop for better performance
+            if sys.platform != 'win32':
+                try:
+                    import uvloop
+                    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+                    logger.info("Scheduler using uvloop for better performance")
+                except ImportError:
+                    pass
+            
+            try:
+                # Start the loop
+                self.event_loop.run_until_complete(self._service_loop())
+            except Exception as e:
+                logger.error(f"Error in Scheduler Service loop: {e}")
+                logger.error(traceback.format_exc())
+            finally:
+                # Clean up tasks
+                try:
+                    pending = asyncio.all_tasks(self.event_loop)
+                    if pending:
+                        logger.info(f"Cancelling {len(pending)} pending scheduler tasks")
+                        for task in pending:
+                            task.cancel()
+                        self.event_loop.run_until_complete(
+                            asyncio.gather(*pending, return_exceptions=True)
+                        )
+                except Exception as e:
+                    logger.error(f"Error cleaning up scheduler tasks: {e}")
+                
+                # Close the loop
+                try:
+                    self.event_loop.close()
+                except Exception as e:
+                    logger.error(f"Error closing scheduler event loop: {e}")
+                
+                self.event_loop = None
+                asyncio.set_event_loop(None)
+                self.running = False
+                logger.info("Scheduler Service loop ended cleanly.")
+                
         except Exception as e:
-            logger.error(f"Error in Scheduler Service loop: {e}")
-            logger.error(traceback.format_exc())
-        finally:
-            self.event_loop.close()
-            self.event_loop = None
+            logger.error(f"Critical error in scheduler service: {e}", exc_info=True)
             self.running = False
-            logger.info("Scheduler Service loop ended.")
     
     async def _service_loop(self):
         """Main loop of the service with CPU optimization."""

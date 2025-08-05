@@ -1,5 +1,29 @@
 # Changelog
 
+## [Emergency Fix] - 2025-01-29
+
+### 🚨 Critical Fixes
+- **Fixed timezone crashes**: Resolved `pytz.exceptions.UnknownTimeZoneError` with proper exception handling and UTC fallback
+- **Fixed bot token decryption**: Implemented robust multi-method token loading with plaintext detection and fallback mechanisms
+- **Fixed endless retry loops**: Added failed decryption cache to prevent infinite token decryption attempts
+- **Fixed password change handling**: Improved token re-encryption during password changes with proper cache clearing
+- **Added Alpine Linux timezone support**: Added `tzdata` package for full timezone compatibility
+
+### 🔧 Technical Improvements
+- Enhanced `get_decrypted_bot_token()` with multiple fallback methods
+- Improved `ConfigManager` with intelligent token re-encryption during password changes
+- Added failed decrypt cache with automatic clearing on password changes
+- Robust timezone handling with proper fallback to UTC
+- Better error logging and debug information
+
+### 🛡️ Stability Enhancements
+- Eliminated timezone-related bot crashes
+- Prevented token decryption infinite loops
+- Ensured bot startup even with token issues
+- Improved error handling throughout the system
+
+---
+
 ## v1.1.2-alpine (2025-01-26)
 
 ### 🐛 Bug Fixes

@@ -2,7 +2,7 @@
 # ============================================================================ #
 # DockerDiscordControl (DDC)                                                  #
 # https://ddc.bot                                                              #
-# Copyright (c) 2023-2025 MAX                                                  #
+# Copyright (c) 2025 MAX                                                  #
 # Licensed under the MIT License                                               #
 # ============================================================================ #
 
@@ -10,6 +10,12 @@ import os
 import sys
 import asyncio
 import logging
+# Fix for audioop module in Python 3.13
+try:
+    import audioop
+except ImportError:
+    import audioop_lts as audioop
+    sys.modules['audioop'] = audioop
 import discord
 import json
 import random
@@ -27,7 +33,7 @@ if 'DDC_DISCORD_SKIP_TOKEN_LOCK' not in os.environ:
     os.environ['DDC_DISCORD_SKIP_TOKEN_LOCK'] = 'true'
 
 # Import custom modules
-from utils.config_loader import load_config, save_config, get_server_config, update_server_config
+from utils.config_loader import load_config, save_config
 from utils.logging_utils import setup_logger, refresh_debug_status, setup_all_loggers
 from utils.config_cache import init_config_cache, get_cached_config
 # Import the internal translation system
@@ -38,6 +44,8 @@ from utils.scheduler_service import start_scheduler_service, stop_scheduler_serv
 from utils.action_logger import log_user_action, user_action_logger
 # Import cogs helper functions
 from cogs.control_helpers import container_select
+# Import port diagnostics
+from app.utils.port_diagnostics import log_port_diagnostics
 
 # Import app_commands using central utility
 from utils.app_commands_helper import initialize_app_commands
@@ -62,29 +70,22 @@ init_config_cache(loaded_main_config)
 # Set timezone for logging from configuration
 timezone_str = loaded_main_config.get('timezone', 'Europe/Berlin')
 try:
+    # Use a preliminary print statement because logger is not yet available
+    print(f"Attempting to set timezone to: {timezone_str}")
     tz = pytz.timezone(timezone_str)
-except (pytz.exceptions.UnknownTimeZoneError, Exception) as e:
-    logger.warning(f"Invalid timezone '{timezone_str}': {e}. Using fallback 'Europe/Berlin'")
-    tz = pytz.timezone('Europe/Berlin')  # Fallback timezone
-
-# Explicitly refresh debug status on bot start
-try:
-    debug_mode = refresh_debug_status()
-    print(f"Bot startup: Debug mode is {'ENABLED' if debug_mode else 'DISABLED'}")
+    print(f"Successfully set timezone to: {tz}")
+except pytz.exceptions.UnknownTimeZoneError:
+    print(f"WARNING: Unknown timezone '{timezone_str}'. Falling back to UTC for this session.")
+    tz = pytz.timezone('UTC')
 except Exception as e:
-    print(f"Error refreshing debug status during bot startup: {e}")
+    print(f"ERROR setting timezone '{timezone_str}': {e}. Falling back to UTC for this session.")
+    tz = pytz.timezone('UTC')
 
-# Custom formatter with timezone
-class TimezoneFormatter(logging.Formatter):
-    def formatTime(self, record, datefmt=None):
-        dt = datetime.fromtimestamp(record.created, tz=timezone.utc)
-        dt = dt.astimezone(tz)
-        if datefmt:
-            return dt.strftime(datefmt)
-        return dt.strftime("%Y-%m-%d %H:%M:%S")
-
-# Setup logging
+# Setup logging (NOW the logger is available)
 logger = setup_logger('ddc.bot', level=logging.INFO)
+
+# Now we can safely log the outcome
+logger.info(f"Final effective timezone for logging and operations: {tz}")
 
 # Language configuration
 # Log config object WITHOUT the token for safety
@@ -120,7 +121,7 @@ try:
     bot = discord.Bot(intents=intents)
     logger.info("Successfully created bot with discord.Bot")
 except (AttributeError, ImportError) as e:
-    logger.warning(f"Could not create bot with discord.Bot: {e}")
+    print(f"Could not create bot with discord.Bot: {e}")
     try:
         # Fallback to commands.Bot (discord.py style)
         logger.info("Falling back to commands.Bot (discord.py style)...")
@@ -351,6 +352,14 @@ async def on_ready():
 
     if not _initial_startup_done:
         logger.info("First initialization after start...")
+        
+        # Run port diagnostics at Discord bot startup
+        try:
+            logger.info("Running port diagnostics at Discord bot startup...")
+            log_port_diagnostics()
+        except Exception as e:
+            logger.error(f"Error running port diagnostics at startup: {e}")
+        
         try:
             # --- Instantiate and add DockerControlCog manually --- 
             from cogs.docker_control import DockerControlCog # Import the class
@@ -483,7 +492,7 @@ async def on_ready():
                         except Exception as fallback_error:
                             logger.error(f"Fallback registration failed: {fallback_error}")
             else:
-                logger.warning("No guild ID configured, skipping command synchronization")
+                print("No guild ID configured, skipping command synchronization")
                         
             logger.info("App Commands synchronization process completed")
         except Exception as e:
@@ -495,7 +504,7 @@ async def on_ready():
             if start_scheduler_service():
                 logger.info("Scheduler Service started successfully.")
             else:
-                logger.warning("Scheduler Service could not be started or was already running.")
+                print("Scheduler Service could not be started or was already running.")
         except Exception as e:
             logger.error(f"Error starting Scheduler Service: {e}", exc_info=True)
 
@@ -543,21 +552,61 @@ async def on_command_error(ctx, error):
         logger.error(f"Unexpected Command Error in '{ctx.command}': {error}")
         traceback.print_exc()
 
+# Helper function to mask sensitive data in config for logging
+def _mask_token_in_config(config):
+    """Masks sensitive data in config for safe logging."""
+    if not config:
+        return {}
+    
+    masked_config = config.copy()
+    
+    # Mask bot token
+    if 'bot_token' in masked_config:
+        masked_config['bot_token'] = '********'
+    if 'bot_token_decrypted_for_usage' in masked_config:
+        masked_config['bot_token_decrypted_for_usage'] = '********'
+        
+    # Mask web UI password hash if present
+    if 'web_ui_password_hash' in masked_config:
+        masked_config['web_ui_password_hash'] = '********'
+        
+    return masked_config
+
 # Improved function to decrypt the bot token with multiple fallback methods
 def get_decrypted_bot_token():
     """Attempts to decrypt the bot token in various ways for DockerDiscordControl."""
-    # 1. First method: Directly from loaded configuration
+    
+    # 0. First method: Try direct plaintext token from bot_config.json
+    try:
+        config_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config")
+        bot_config_file = os.path.join(config_dir, "bot_config.json")
+        
+        if os.path.exists(bot_config_file):
+            with open(bot_config_file, 'r') as f:
+                bot_config = json.load(f)
+            
+            plaintext_token = bot_config.get('bot_token')
+            if plaintext_token and not plaintext_token.startswith('gAAAAA'):  # Not encrypted
+                logger.info("Using plaintext bot token from bot_config.json")
+                return plaintext_token
+    except Exception as e:
+        logger.debug(f"Could not read plaintext token: {e}")
+    
+    # 1. Second method: Directly from loaded configuration
     token = loaded_main_config.get('bot_token_decrypted_for_usage')
     if token:
         logger.info(f"Using bot token from initial config loading")
         return token
         
-    # 2. Second method: Use ConfigManager directly
+    # 2. Third method: Use ConfigManager directly (use global instance to preserve cache)
     if config_manager_available:
         try:
             logger.info("Attempting to use ConfigManager for token decryption")
-            config_manager = get_config_manager()
-            config = config_manager.get_config(force_reload=True)
+            # Use global config_manager instance to preserve _failed_decrypt_cache
+            global config_manager_instance
+            if 'config_manager_instance' not in globals():
+                config_manager_instance = get_config_manager()
+            config = config_manager_instance.get_config(force_reload=True)
             token = config.get('bot_token_decrypted_for_usage')
             if token:
                 logger.info("Successfully decrypted token using ConfigManager")
@@ -565,7 +614,7 @@ def get_decrypted_bot_token():
         except Exception as e:
             logger.warning(f"Error using ConfigManager: {e}")
     
-    # 3. Third method: Try direct decryption
+    # 3. Fourth method: Try direct decryption
     try:
         logger.info("Attempting manual token decryption")
         # Load bot configuration and web configuration
@@ -598,18 +647,42 @@ def get_decrypted_bot_token():
 
 # --- Main execution / Start ---
 def main():
-    logger.info("Main process started.")
-    
-    # Improved token decryption
-    bot_token = get_decrypted_bot_token()
-
-    if not bot_token:
-        logger.error("FATAL: No valid bot token found in configuration after decryption.")
-        logger.info("Please configure the bot token via the Web UI and ensure the password is correct.")
-        # Exit the script - supervisord will handle restart attempts
-        sys.exit(1) 
-
+    """Main entry point for the Discord bot."""
     try:
+        # Initialize timezone from environment or config
+        timezone_name = os.environ.get('TZ', 'Europe/Berlin')
+        logger.info(f"Attempting to set timezone to: {timezone_name}")
+        
+        try:
+            # Try to use tzdata directly instead of pytz
+            import zoneinfo
+            tz = zoneinfo.ZoneInfo(timezone_name)
+            logger.info(f"Successfully set timezone to {timezone_name} using zoneinfo")
+        except ImportError:
+            try:
+                # Fallback to pytz
+                tz = pytz.timezone(timezone_name)
+                logger.info(f"Successfully set timezone to {timezone_name} using pytz")
+            except Exception as e:
+                logger.warning(f"Could not set timezone {timezone_name}: {e}")
+                logger.info("Using UTC as fallback")
+                tz = timezone.utc
+
+        # Set for all datetime operations
+        datetime.now().astimezone(tz)
+        
+        # Try to get language from config
+        config = get_cached_config()
+        logger.info(f"Attempting to get language from config. Config object (token masked): {_mask_token_in_config(config)}")
+        
+        # Use proper token decryption method
+        bot_token = get_decrypted_bot_token()
+
+        if not bot_token:
+            logger.error("FATAL: Bot token not found or could not be decrypted.")
+            logger.error("Please configure the bot token in the Web UI or check the configuration files.")
+            sys.exit(1)
+
         logger.info(f"Starting bot with token ending in: ...{bot_token[-4:]}")
         # Run the bot - this blocks until the bot stops
         bot.run(bot_token)
@@ -636,4 +709,55 @@ def main():
             logger.error(f"Error stopping Scheduler Service: {e}", exc_info=True)
 
 if __name__ == "__main__":
-    main()
+    try:
+        # Ensure we're not in an event loop already
+        try:
+            loop = asyncio.get_running_loop()
+            logger.error("Event loop already running - this should not happen!")
+            sys.exit(1)
+        except RuntimeError:
+            # No running loop - this is what we want
+            pass
+            
+        # Create a new event loop with proper policy
+        if sys.platform == 'win32':
+            # Windows needs a different event loop policy
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        else:
+            # Try to use uvloop on Unix systems if available
+            try:
+                import uvloop
+                asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+                logger.info("Using uvloop for better performance")
+            except ImportError:
+                # Fallback to default policy
+                pass
+        
+        # Create and set the event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        try:
+            # Run the main function
+            loop.run_until_complete(main())
+        except KeyboardInterrupt:
+            logger.info("Received keyboard interrupt - shutting down gracefully")
+        except Exception as e:
+            logger.error(f"Error in main event loop: {e}", exc_info=True)
+        finally:
+            # Clean up tasks
+            pending = asyncio.all_tasks(loop)
+            for task in pending:
+                task.cancel()
+            
+            # Wait for tasks to finish
+            if pending:
+                loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+            
+            # Close the loop
+            loop.close()
+            asyncio.set_event_loop(None)
+            
+    except Exception as e:
+        logger.error(f"Critical error in event loop setup: {e}", exc_info=True)
+        sys.exit(1)

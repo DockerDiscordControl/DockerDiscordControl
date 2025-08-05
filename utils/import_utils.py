@@ -2,7 +2,7 @@
 # ============================================================================ #
 # DockerDiscordControl (DDC) - Import Utilities                               #
 # https://ddc.bot                                                              #
-# Copyright (c) 2023-2025 MAX                                                  #
+# Copyright (c) 2025 MAX                                                  #
 # Licensed under the MIT License                                               #
 # ============================================================================ #
 

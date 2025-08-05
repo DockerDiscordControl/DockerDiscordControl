@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(chmod:*)",
+      "Bash(docker exec:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(git tag:*)",
+      "Bash(git fetch:*)",
+      "Bash(gh release create:*)",
+      "Bash(sed:*)",
+      "Bash(git rm:*)",
+      "Bash(./update-github-wiki.sh)"
+    ],
+    "deny": []
+  }
+}

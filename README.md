@@ -1,6 +1,6 @@
 # DockerDiscordControl 🐳
 
-[![Version](https://img.shields.io/github/v/release/DockerDiscordControl/DockerDiscordControl?style=for-the-badge&label=Version)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/latest) [![Security](https://img.shields.io/badge/Security-Patched-red?style=for-the-badge)](#-security-notice) [![Base Image](https://img.shields.io/badge/Base-Alpine%20Linux-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Ready-blue?style=for-the-badge)](./UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
+[![Version](https://img.shields.io/github/v/release/DockerDiscordControl/DockerDiscordControl?style=for-the-badge&label=Version)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/latest) [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.22-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Ready-blue?style=for-the-badge)](./UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
 
 A powerful Discord bot and web interface to manage Docker containers remotely. This application bridges the gap between Discord and your Docker environment, allowing container monitoring and control directly through Discord channels.
 
@@ -8,31 +8,38 @@ A powerful Discord bot and web interface to manage Docker containers remotely. T
 
 Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is an ultra-optimized, ~200MB Alpine Linux build with the latest security patches and enhanced performance.
 
-## 🆕 Latest Updates (v1.1.3)
+## 🆕 Latest Updates (v1.1.3c)
 
-### ✅ **v1.1.3 - Security & Performance Update**
+### ✅ **v1.1.3c - Python 3.13 Compatibility & Docker Fixes**
 
-🔐 **Security Fixes:**
-- **CRITICAL:** Added secure Flask secret key generation to prevent session hijacking vulnerabilities.
-- Resolved CVE vulnerability related to fallback secret keys.
+🐍 **Python 3.13 Support:**
+- **NEW:** Full Python 3.13 compatibility with audioop module fixes
+- Smart conditional dependency resolution based on Python version
+- Backward compatibility maintained for Python 3.11+ environments
 
-🚀 **Performance Optimizations:**
-- Discord API timeout protection (5s max vs 17+ seconds before).
-- Intelligent batch distribution for slow containers.
-- Offline container update optimization (5min intervals vs 1min).
-- Enhanced inactivity timeout handling (10min vs 2min).
+🐳 **Docker Build Improvements:**
+- Fixed Docker Hub build failures with conditional audioop-lts installation
+- Enhanced build process with better caching and error handling
+- Streamlined dependency management for multiple Python versions
 
-🔧 **Critical Bug Fixes:**
-- Resolved infinite config reload loops in Web UI.
-- Fixed maximum recursion depth errors in debug system.
-- Eliminated status cache KeyError crashes.
-- Improved multi-worker process synchronization.
+🔐 **Security & Stability Enhancements:**
+- Fixed channel regeneration errors with missing config parameters
+- Improved Discord command timeout handling with proper defer() implementation
+- Resolved Web UI 500 errors and pytz compatibility issues
+- Enhanced secure configuration handling and token encryption
 
-🏥 **Monitoring & Stability:**
-- Added `/health` endpoint for Docker health checks.
-- Supervisor config verified for stability.
+🔧 **Bug Fixes & Optimizations:**
+- Fixed scheduled tasks loading and display issues
+- Enhanced message update time tracking for recreated messages
+- Consolidated configuration system for better performance
+- Improved error handling and logging throughout the application
 
-**🎉 Ready for production deployment on any Unraid, Linux, or Docker environment!**
+🏥 **Enhanced Monitoring:**
+- Better health check endpoints and container monitoring
+- Improved inactivity detection and auto-refresh mechanisms
+- Streamlined Docker Engine integration and status reporting
+
+**🚀 Production-ready with enhanced security, Python 3.13 support, and improved stability!**
 
 ## Platform Selection
 
@@ -373,5 +380,14 @@ Help keep DockerDiscordControl growing and improving across all platforms:
 - **[PayPal Donation](https://www.paypal.com/donate/?hosted_button_id=XKVC6SFXU2GW4)** - Direct contribution  
 
 Your support helps maintain DDC across **Windows, Linux, macOS, and Universal** versions, develop new features, and keep it zero-vulnerability secure! 
+
+## Credits & Contributors
+
+**DockerDiscordControl** is developed and maintained by:
+- **Lead Developer**: MAX
+- **Contributors**: Community contributions welcome via [Pull Requests](../../pulls)
+- **Special Thanks**: All users who report bugs, suggest features, and support the project
+
+Want to contribute? Check out our [Contributing Guidelines](CONTRIBUTING.md)!
 
 **Built for every platform - optimized for your environment!**

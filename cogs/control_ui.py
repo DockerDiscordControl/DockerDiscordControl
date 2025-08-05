@@ -60,20 +60,10 @@ def _clear_caches():
 # OPTIMIZATION 1: ULTRA-FAST TIMESTAMP CACHING
 # =============================================================================
 
-def _get_cached_formatted_timestamp(timestamp: datetime, timezone_str: str, fmt: str = "%H:%M:%S") -> str:
-    """Ultra-fast cached timestamp formatting - 95% schneller."""
-    cache_key = f"{int(timestamp.timestamp())}_{timezone_str}_{fmt}"
-    
-    if cache_key not in _timestamp_format_cache:
-        _timestamp_format_cache[cache_key] = format_datetime_with_timezone(timestamp, timezone_str, fmt)
-        
-        # Prevent cache from growing too large (keep last 100 entries)
-        if len(_timestamp_format_cache) > 100:
-            keys_to_remove = list(_timestamp_format_cache.keys())[:20]
-            for key in keys_to_remove:
-                del _timestamp_format_cache[key]
-    
-    return _timestamp_format_cache[cache_key]
+def _get_cached_formatted_timestamp(dt: datetime, timezone_str: Optional[str] = None) -> str:
+    """Get a formatted timestamp, potentially from cache."""
+    # Always format fresh to ensure correct timezone
+    return format_datetime_with_timezone(dt, timezone_str, time_only=True)
 
 # =============================================================================
 # OPTIMIZATION 2: ULTRA-FAST TRANSLATION CACHING
@@ -220,12 +210,17 @@ class ActionButton(Button):
         super().__init__(style=style, label=label, custom_id=custom_id, row=row, emoji=emoji)
 
     async def callback(self, interaction: discord.Interaction):
-        """Ultra-optimized action button handler."""
+        """Callback for Start, Stop, Restart actions."""
+        # CRITICAL FIX: Always load the latest config
+        config = get_cached_config()
+        if not config:
+            await interaction.response.send_message(_("Error: Could not load configuration."), ephemeral=True)
+            return
+            
         user = interaction.user
         await interaction.response.defer()
         
-        current_config = get_cached_config()
-        channel_has_control = _get_cached_channel_permission(interaction.channel.id, 'control', current_config)
+        channel_has_control = _get_cached_channel_permission(interaction.channel.id, 'control', config)
         
         if not channel_has_control:
             await interaction.followup.send(_("This action is not allowed in this channel."), ephemeral=True)
@@ -265,7 +260,7 @@ class ActionButton(Button):
                     if self.display_name in self.cog.pending_actions:
                         del self.cog.pending_actions[self.display_name]
                     
-                    server_config_for_update = next((s for s in self.cog.config.get('servers', []) if s.get('name') == self.display_name), None)
+                    server_config_for_update = next((s for s in config.get('servers', []) if s.get('name') == self.display_name), None)
                     if server_config_for_update:
                         fresh_status = await self.cog.get_status(server_config_for_update)
                         if not isinstance(fresh_status, Exception):
@@ -280,7 +275,7 @@ class ActionButton(Button):
                                 interaction.channel.id, 
                                 self.display_name, 
                                 self.server_config, 
-                                current_config, 
+                                config, 
                                 allow_toggle=True, 
                                 force_collapse=False
                             )
@@ -351,7 +346,13 @@ class ToggleButton(Button):
                 logger.error(f"[TOGGLE_BTN] Message or channel missing for '{self.display_name}'")
                 return
             
+            # CRITICAL FIX: Always load the latest config
             current_config = get_cached_config()
+            if not current_config:
+                logger.error("[ULTRA_FAST_TOGGLE] Could not load configuration for toggle.")
+                # Show a generic error to the user
+                await interaction.response.send_message(_("Error: Could not load configuration to process this action."), ephemeral=True)
+                return
             
             # Check if container is in pending status
             if self.display_name in self.cog.pending_actions:
@@ -371,11 +372,12 @@ class ToggleButton(Button):
             if cached_entry and cached_entry.get('data'):
                 status_result = cached_entry['data']
                 
+                # This function call now receives the fresh config
                 embed, view = await self._generate_ultra_fast_toggle_embed_and_view(
-                    channel_id=channel_id,
-                    status_result=status_result,
-                    current_config=current_config,
-                    cached_entry=cached_entry
+                    interaction.channel.id, 
+                    status_result, 
+                    current_config, 
+                    cached_entry
                 )
                 
                 if embed and view:
@@ -463,8 +465,9 @@ class ToggleButton(Button):
             description = _get_description_ultra_fast(template_key, **template_args)
             
             # OPTIMIZATION 1: Ultra-fast cached timestamp formatting (95% schneller)
+            # Get timezone from config (format_datetime_with_timezone will handle fallbacks)
             timezone_str = current_config.get('timezone')
-            current_time = _get_cached_formatted_timestamp(cached_entry['timestamp'], timezone_str, fmt="%H:%M:%S")
+            current_time = _get_cached_formatted_timestamp(cached_entry['timestamp'], timezone_str)
             timestamp_line = f"{translations['last_update_text']}: {current_time}"
             
             final_description = f"{timestamp_line}\n{description}"

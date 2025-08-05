@@ -2,7 +2,7 @@
 # ============================================================================ #
 # DockerDiscordControl (DDC)                                                  #
 # https://ddc.bot                                                              #
-# Copyright (c) 2023-2025 MAX                                                  #
+# Copyright (c) 2025 MAX                                                  #
 # Licensed under the MIT License                                               #
 # ============================================================================ #
 
@@ -23,6 +23,7 @@ DiscordOption = get_discord_option()
 
 # Import our utility functions
 from utils.config_loader import load_config, DEFAULT_CONFIG
+from utils.config_cache import get_cached_config
 from utils.docker_utils import get_docker_info, get_docker_stats, docker_action
 from utils.time_utils import format_datetime_with_timezone
 from utils.logging_utils import setup_logger
@@ -77,6 +78,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
     def __init__(self, bot: commands.Bot, config: dict):
         """Initializes the DockerDiscordControl Cog."""
         logger.info("Initializing DockerControlCog... [DDC-SETUP]")
+        
+        # Basic initialization
         self.bot = bot
         self.config = config
         self.expanded_states = {} 
@@ -84,9 +87,13 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         self.last_message_update_time: Dict[int, Dict[str, datetime]] = {}
         self.initial_messages_sent = False
         self.last_channel_activity: Dict[int, datetime] = {}
+        
+        # Cache configuration
         self.status_cache = {}
         self.cache_ttl_seconds = 75
         self.pending_actions: Dict[str, Dict[str, Any]] = {}
+        
+        # Load server order
         self.ordered_server_names = load_server_order()
         logger.info(f"[Cog Init] Loaded server order from persistent file: {self.ordered_server_names}")
         if not self.ordered_server_names:
@@ -98,7 +105,33 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 self.ordered_server_names = [s.get('docker_name') for s in config.get('servers', []) if s.get('docker_name')]
             save_server_order(self.ordered_server_names)
             logger.info(f"[Cog Init] Saved default server order: {self.ordered_server_names}")
+            
+        # Initialize translations
         self.translations = get_translations()
+        
+        # Initialize self as status handler
+        self.status_handlers = self
+        
+        # Initialize performance monitoring
+        self._loop_stats = {
+            'status_update': {'runs': 0, 'errors': 0, 'last_duration': 0},
+            'message_edit': {'runs': 0, 'errors': 0, 'last_duration': 0},
+            'inactivity': {'runs': 0, 'errors': 0, 'last_duration': 0},
+            'cache_clear': {'runs': 0, 'errors': 0, 'last_duration': 0},
+            'heartbeat': {'runs': 0, 'errors': 0, 'last_duration': 0}
+        }
+        
+        # Initialize task tracking
+        self._active_tasks = set()
+        self._task_lock = asyncio.Lock()
+        
+        # Ensure clean loop state
+        logger.info("Ensuring clean loop state...")
+        self._cancel_existing_loops()
+        
+        # Initialize background loops with proper error handling
+        logger.info("Setting up background loops...")
+        self._setup_background_loops()
 
         # PERFORMANCE OPTIMIZATION: Initialize embed cache for StatusHandlersMixin
         self._embed_cache = {
@@ -113,30 +146,83 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         if hasattr(self, 'status_update_loop') and self.status_update_loop.is_running(): self.status_update_loop.cancel()
         if hasattr(self, 'inactivity_check_loop') and self.inactivity_check_loop.is_running(): self.inactivity_check_loop.cancel()
 
-        # Set up the various background loops
-        logger.info("Setting up and starting background loops...")
+    def _cancel_existing_loops(self):
+        """Cancel any existing background loops."""
+        loops_to_check = [
+            'heartbeat_send_loop',
+            'status_update_loop',
+            'periodic_message_edit_loop',
+            'inactivity_check_loop',
+            'performance_cache_clear_loop'
+        ]
         
-        # Start status update loop (30 seconds interval)
-        self.bot.loop.create_task(self._start_loop_safely(self.status_update_loop, "Status Update Loop"))
-        
-        # Start periodic message edit loop (1 minute interval)
-        logger.info("Scheduling controlled start of DIRECTLY DEFINED periodic_message_edit_loop...")
-        self.bot.loop.create_task(self._start_periodic_message_edit_loop_safely())
-        
-        # Start inactivity check loop (1 minute interval)
-        self.bot.loop.create_task(self._start_loop_safely(self.inactivity_check_loop, "Inactivity Check Loop"))
-        
-        # PERFORMANCE OPTIMIZATION: Start cache clear loop (5 minute interval)
-        self.bot.loop.create_task(self._start_loop_safely(self.performance_cache_clear_loop, "Performance Cache Clear Loop"))
-        
-        # Start heartbeat loop if enabled (1 minute interval, configurable)
-        heartbeat_config = self.config.get('heartbeat', {})
-        if heartbeat_config.get('enabled', False):
-            self.bot.loop.create_task(self._start_loop_safely(self.heartbeat_send_loop, "Heartbeat Loop"))
-        
-        # Schedule initial status send with a delay
-        logger.info("Re-activating AUTOMATIC INITIAL STATUS SEND.")
-        self.bot.loop.create_task(self.send_initial_status_after_delay_and_ready(10))
+        for loop_name in loops_to_check:
+            if hasattr(self, loop_name):
+                loop = getattr(self, loop_name)
+                if loop.is_running():
+                    logger.info(f"Cancelling existing {loop_name}")
+                    loop.cancel()
+    
+    async def _track_task(self, task: asyncio.Task):
+        """Track an active task and remove it when done."""
+        async with self._task_lock:
+            self._active_tasks.add(task)
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.error(f"Task error: {e}", exc_info=True)
+        finally:
+            async with self._task_lock:
+                self._active_tasks.discard(task)
+    
+    def _setup_background_loops(self):
+        """Initialize and start all background loops with proper tracking."""
+        try:
+            # Start status update loop (30 seconds interval)
+            status_task = self.bot.loop.create_task(
+                self._start_loop_safely(self.status_update_loop, "Status Update Loop")
+            )
+            self.bot.loop.create_task(self._track_task(status_task))
+            
+            # Start periodic message edit loop (1 minute interval)
+            logger.info("Scheduling controlled start of periodic_message_edit_loop...")
+            edit_task = self.bot.loop.create_task(
+                self._start_periodic_message_edit_loop_safely()
+            )
+            self.bot.loop.create_task(self._track_task(edit_task))
+            
+            # Start inactivity check loop (1 minute interval)
+            inactivity_task = self.bot.loop.create_task(
+                self._start_loop_safely(self.inactivity_check_loop, "Inactivity Check Loop")
+            )
+            self.bot.loop.create_task(self._track_task(inactivity_task))
+            
+            # Start cache clear loop (5 minute interval)
+            cache_task = self.bot.loop.create_task(
+                self._start_loop_safely(self.performance_cache_clear_loop, "Performance Cache Clear Loop")
+            )
+            self.bot.loop.create_task(self._track_task(cache_task))
+            
+            # Start heartbeat loop if enabled
+            heartbeat_config = self.config.get('heartbeat', {})
+            if heartbeat_config.get('enabled', False):
+                heartbeat_task = self.bot.loop.create_task(
+                    self._start_loop_safely(self.heartbeat_send_loop, "Heartbeat Loop")
+                )
+                self.bot.loop.create_task(self._track_task(heartbeat_task))
+            
+            # Schedule initial status send with delay
+            logger.info("Scheduling initial status send...")
+            initial_task = self.bot.loop.create_task(
+                self.send_initial_status_after_delay_and_ready(10)
+            )
+            self.bot.loop.create_task(self._track_task(initial_task))
+            
+        except Exception as e:
+            logger.error(f"Error setting up background loops: {e}", exc_info=True)
+            raise
 
         # Initialize global status cache
         self.update_global_status_cache()
@@ -146,6 +232,13 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
     # --- PERIODIC MESSAGE EDIT LOOP (FULL LOGIC, MOVED DIRECTLY INTO COG) ---
     @tasks.loop(minutes=1, reconnect=True)
     async def periodic_message_edit_loop(self):
+        """Periodically checks and edits messages in channels that require updates."""
+        # CRITICAL FIX: Always load the latest config to get recent changes
+        config = get_cached_config()
+        if not config:
+            logger.error("Periodic Edit Loop: Could not load configuration. Skipping cycle.")
+            return
+        
         logger.info("--- DIRECT COG periodic_message_edit_loop cycle --- Starting Check --- ")
         if not self.initial_messages_sent:
              logger.debug("Direct Cog Periodic edit loop: Initial messages not sent yet, skipping.")
@@ -158,7 +251,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         tasks_to_run = []
         now_utc = datetime.now(timezone.utc)
         
-        channel_permissions_config = self.config.get('channel_permissions', {})
+        channel_permissions_config = config.get('channel_permissions', {})
         # Ensure DEFAULT_CONFIG is accessible here if not already a class/instance variable
         # It was imported at the top of the file: from utils.config_loader import DEFAULT_CONFIG
         default_perms = DEFAULT_CONFIG.get('default_channel_permissions', {})
@@ -515,208 +608,130 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
     # - send_server_status
 
     # Send helpers (remain here as they interact closely with Cog state)
-    async def _send_control_panel_and_statuses(self, channel: discord.TextChannel):
-        """Sends the main control panel and all server statuses to a channel."""
-        config = self.config
-        servers = config.get('servers', [])
-        lang = config.get('language', 'de')
-        logger.info(f"Sending control panel and statuses to channel {channel.name} ({channel.id})")
-        # Optional: Send an initial "Control Panel" message if desired
-        # await channel.send(_("**Docker Control Panel**"))
+    async def _send_control_panel_and_statuses(self, channel: discord.TextChannel) -> None:
+        """Send control panel and all server statuses to a channel."""
+        try:
+            current_config = get_cached_config()
+            if not current_config:
+                logger.error(f"Send Control Panel: Could not load configuration for channel {channel.id}.")
+                return
 
-        # Get ordered server names directly from the class attribute (loaded from persistent file)
-        ordered_docker_names = self.ordered_server_names
-        logger.debug(f"Using ordered_server_names from class attribute: {ordered_docker_names}")
-        
-        # Create a dictionary for quick server lookup by docker_name
-        servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
-        
-        # Create an ordered list of server configurations
-        ordered_servers = []
-        seen_docker_names = set()
-        
-        # First add servers in the defined order
-        for docker_name in ordered_docker_names:
-            if docker_name in servers_by_name:
-                ordered_servers.append(servers_by_name[docker_name])
-                seen_docker_names.add(docker_name)
-        
-        # Add any servers that weren't in the ordered list
-        for server in servers:
-            docker_name = server.get('docker_name')
-            if docker_name and docker_name not in seen_docker_names:
-                ordered_servers.append(server)
-                seen_docker_names.add(docker_name)
-        
-        # Fallback: If ordered_servers is empty, use all servers
-        if not ordered_servers:
-            ordered_servers = servers
-            logger.debug("No server order found, using default order from servers list")
-        
-        logger.debug(f"Final ordered server list: {[s.get('name', s.get('docker_name')) for s in ordered_servers]}")
+            logger.info(f"Sending control panel and statuses to channel {channel.name} ({channel.id})")
+            
+            # Get timezone from config
+            timezone_str = current_config.get('timezone_str', 'Europe/Berlin')
+            
+            # Get current time for footer
+            now = datetime.now(timezone.utc)
+            current_time = format_datetime_with_timezone(now, timezone_str).split()[1]  # Extract only time part
 
-        results = []
-        for server_conf in ordered_servers:
-            try:
-                result = await self.send_server_status(channel, server_conf, config, allow_toggle=True, force_collapse=False)
-                results.append(result)
-            except Exception as e:
-                results.append(e)
-                logger.error(f"Exception while sending status for {server_conf.get('name', server_conf.get('docker_name'))} to {channel.id}: {e}", exc_info=True)
+            # Get all server configurations
+            servers = current_config.get('servers', [])
+            if not servers:
+                logger.warning(f"No servers configured for channel {channel.id}")
+                return
 
-        # Logging results (optional)
-        success_count = 0
-        fail_count = 0
-        for i, result_item in enumerate(results):
-            server_conf_log = ordered_servers[i] # Get corresponding server_conf for logging
-            name = server_conf_log.get('name', server_conf_log.get('docker_name', 'Unknown'))
-            if isinstance(result_item, Exception):
-                fail_count += 1
-                # Error already logged above if it was caught directly
-            elif isinstance(result_item, discord.Message):
-                success_count += 1
-            else: # None or other unexpected type
-                fail_count += 1
-                logger.warning(f"No message object or exception returned for {name} in {channel.id}, result type: {type(result_item)}")
+            # Send status messages for each server
+            success_count = 0
+            fail_count = 0
+            
+            for server in servers:
+                try:
+                    result = await self.status_handlers.send_server_status(
+                        channel=channel,
+                        server_conf=server,
+                        current_config=current_config,
+                        allow_toggle=True  # Always allow toggle in control panel
+                    )
+                    
+                    if isinstance(result, Exception):
+                        logger.error(f"Error sending status for {server['name']}: {result}")
+                        fail_count += 1
+                    elif result:
+                        success_count += 1
+                    else:
+                        fail_count += 1
+                except Exception as e:
+                    logger.error(f"Error processing server {server['name']}: {e}", exc_info=True)
+                    fail_count += 1
 
-        logger.info(f"Finished sending initial statuses to {channel.name}: {success_count} success, {fail_count} failure.")
+            logger.info(f"Finished sending initial statuses to {channel.name}: {success_count} success, {fail_count} failure.")
+
+        except Exception as e:
+            logger.error(f"Error in _send_control_panel_and_statuses: {e}", exc_info=True)
 
     async def _send_all_server_statuses(self, channel: discord.TextChannel, allow_toggle: bool = True, force_collapse: bool = False):
-        """Sends or updates status messages for ALL configured servers in a channel.
-        Uses send_server_status, which only reads from the cache.
-        Accepts allow_toggle to control the display of the toggle button.
-        """
-        config = self.config
-        servers = config.get('servers', [])
-        lang = config.get('language', 'de')
-        logger.info(f"Sending all server statuses to channel {channel.name} ({channel.id}), allow_toggle={allow_toggle}, force_collapse={force_collapse}")
-
-        # Get ordered server names directly from the class attribute (loaded from persistent file)
-        ordered_docker_names = self.ordered_server_names
-        logger.debug(f"Using ordered_server_names from class attribute: {ordered_docker_names}")
-        
-        # Create a dictionary for quick server lookup by docker_name
-        servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
-        
-        # Create an ordered list of server configurations
-        ordered_servers = []
-        seen_docker_names = set()
-        
-        # First add servers in the defined order
-        for docker_name in ordered_docker_names:
-            if docker_name in servers_by_name:
-                ordered_servers.append(servers_by_name[docker_name])
-                seen_docker_names.add(docker_name)
-        
-        # Add any servers that weren't in the ordered list
-        for server in servers:
-            docker_name = server.get('docker_name')
-            if docker_name and docker_name not in seen_docker_names:
-                ordered_servers.append(server)
-                seen_docker_names.add(docker_name)
-        
-        # Fallback: If ordered_servers is empty, use all servers
-        if not ordered_servers:
-            ordered_servers = servers
-            logger.debug("No server order found, using default order from servers list")
-        
-        logger.debug(f"Final ordered server list: {[s.get('name', s.get('docker_name')) for s in ordered_servers]}")
-
-        results = []
-        for server_conf in ordered_servers:
-            try:
-                result = await self.send_server_status(channel, server_conf, config, allow_toggle, force_collapse)
-                results.append(result)
-            except Exception as e:
-                results.append(e)
-                logger.error(f"Exception while sending/updating status for {server_conf.get('name', server_conf.get('docker_name'))} to {channel.id}: {e}", exc_info=True)
-
-        # Logging results (optional)
-        success_count = 0
-        fail_count = 0
-        for i, result_item in enumerate(results):
-            server_conf_log = ordered_servers[i] # Get corresponding server_conf for logging
-            name = server_conf_log.get('name', server_conf_log.get('docker_name', 'Unknown'))
-            if isinstance(result_item, Exception):
-                fail_count += 1
-                # Error already logged above
-            elif isinstance(result_item, discord.Message):
-                success_count += 1
-            elif result_item is None:
-                 logger.debug(f"Status for {name} likely unchanged or failed fetch, no message sent/edited.") # Adjusted log
-            else:
-                fail_count += 1
-                logger.warning(f"Received unexpected result type {type(result_item)} for {name} in {channel.id}") # Adjusted log
-
-        logger.info(f"Finished sending/updating statuses to {channel.name}: {success_count} success, {fail_count} failure.")
-
-    async def _regenerate_channel(self, channel: discord.TextChannel, mode: str):
-        """Deletes old bot messages and resends according to the mode."""
+        """Sends status messages for all configured servers to a channel."""
         try:
-            logger.info(f"Regenerating channel {channel.name} ({channel.id}) in mode '{mode}'")
+            # CRITICAL FIX: Always use the latest config
+            config = get_cached_config()
+            if not config:
+                logger.error(f"Send All Statuses: Could not load configuration for channel {channel.id}.")
+                return
+                
+            servers = config.get('servers', [])
+            if not servers:
+                logger.warning(f"No servers configured to send status in channel {channel.name}")
+                return
+
+            logger.info(f"Sending all server statuses to channel {channel.name} ({channel.id})")
             
-            # Clear message ID cache for this channel
-            if channel.id in self.channel_server_message_ids:
-                # If we're in status mode, only clear the "overview" key
-                if mode == 'status' and "overview" in self.channel_server_message_ids[channel.id]:
-                    # Only clear the overview message tracking
-                    del self.channel_server_message_ids[channel.id]["overview"]
-                    logger.info(f"Cleared 'overview' message ID cache for channel {channel.id}")
-                else:
-                    # Clear all tracking for this channel
-                    del self.channel_server_message_ids[channel.id]
-                    logger.info(f"Cleared all message ID cache for channel {channel.id}")
+            success_count = 0
+            failure_count = 0
             
-            await self.delete_bot_messages(channel, limit=300)
-            await asyncio.sleep(1.0)
-            if mode == 'control':
-                await self._send_control_panel_and_statuses(channel)
-            elif mode == 'status':
-                # Use serverstatus format (overview message) instead of individual messages
-                config = self.config
-                servers = config.get('servers', [])
-                
-                # Sort servers using ordered_server_names
-                ordered_docker_names = self.ordered_server_names
-                servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
-                
-                # Create ordered list of servers
-                ordered_servers = []
-                seen_docker_names = set()
-                
-                # First add servers in defined order
-                for docker_name in ordered_docker_names:
-                    if docker_name in servers_by_name:
-                        ordered_servers.append(servers_by_name[docker_name])
-                        seen_docker_names.add(docker_name)
-                
-                # Add any remaining servers
-                for server in servers:
-                    docker_name = server.get('docker_name')
-                    if docker_name and docker_name not in seen_docker_names:
-                        ordered_servers.append(server)
-                        seen_docker_names.add(docker_name)
-                
-                # Create the overview embed
-                embed = await self._create_overview_embed(ordered_servers, config)
-                
-                # Send the embed
-                overview_message = await channel.send(embed=embed)
-                
-                # Store message ID for later updates
-                if channel.id not in self.channel_server_message_ids:
-                    self.channel_server_message_ids[channel.id] = {}
-                self.channel_server_message_ids[channel.id]["overview"] = overview_message.id
-                
-                # Set last update time
-                if channel.id not in self.last_message_update_time:
-                    self.last_message_update_time[channel.id] = {}
-                self.last_message_update_time[channel.id]["overview"] = datetime.now(timezone.utc)
-                
-                logger.info(f"Created overview message for channel {channel.id} during regeneration")
-            logger.info(f"Regeneration for channel {channel.name} completed.")
+            # Send status for each server
+            for server in servers:
+                try:
+                    result = await self.status_handlers.send_server_status(
+                        channel=channel,
+                        server_conf=server,
+                        current_config=config,
+                        allow_toggle=allow_toggle
+                    )
+                    
+                    if isinstance(result, Exception):
+                        logger.error(f"Error sending status for {server.get('name')}: {result}")
+                        failure_count += 1
+                    elif result:
+                        success_count += 1
+                        logger.info(f"Successfully sent status for {server.get('name')} to {channel.name}")
+                    else:
+                        failure_count += 1
+                        logger.warning(f"Failed to send status for {server.get('name')} to {channel.name}")
+                except Exception as e:
+                    logger.error(f"Error processing server {server.get('name')}: {e}")
+                    failure_count += 1
+                    
+            logger.info(f"Finished sending statuses to {channel.name}: {success_count} success, {failure_count} failure.")
+            
         except Exception as e:
-            logger.error(f"Error regenerating channel {channel.name}: {e}", exc_info=True)
+            logger.error(f"Error in _send_all_server_statuses: {e}", exc_info=True)
+
+    async def _regenerate_channel(self, channel: discord.TextChannel, mode: str, config: dict):
+        """Deletes all bot messages and posts a fresh control panel and status messages."""
+        if not config:
+            logger.error(f"Regenerate Channel: Could not load configuration. Aborting.")
+            return
+            
+        logger.info(f"Regenerating channel {channel.name} ({channel.id}) in mode '{mode}'")
+        
+        # --- Delete old messages ---
+        try:
+            logger.info(f"Deleting old bot messages in {channel.name}...")
+            await self.delete_bot_messages(channel, limit=300) # Limit adjustable
+            await asyncio.sleep(1.0) # Short pause after deleting
+            logger.info(f"Finished deleting messages in {channel.name}.")
+        except Exception as e_delete:
+            logger.error(f"Error deleting messages in {channel.name}: {e_delete}")
+            # Continue even if deletion fails
+        
+        # --- Send new messages based on mode ---
+        if mode == 'control':
+            await self._send_control_panel_and_statuses(channel)
+        elif mode == 'status':
+            await self._send_all_server_statuses(channel, allow_toggle=False, force_collapse=True)
+            
+        logger.info(f"Regeneration for channel {channel.name} completed.")
 
     async def send_initial_status(self):
         """Sends the initial status messages after a short delay."""
@@ -737,70 +752,124 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             logger.info("Wait finished. Proceeding with initial status send")
             # --- End delay ---
 
-            current_config = self.config
-            initial_post_channels = []
+            # CRITICAL FIX: Always use the latest config
+            current_config = get_cached_config()
+            if not current_config:
+                logger.error("Could not load configuration for initial status send.")
+                return
+                
+            # Get channel permissions from config
             channel_permissions = current_config.get('channel_permissions', {})
-            logger.debug("Searching for channels with initial posting enabled")
-
-            tasks = []
-            for channel_id_str, data in channel_permissions.items():
-                if channel_id_str.isdigit():
+            logger.info(f"Found {len(channel_permissions)} channels in config")
+            
+            # Process each channel
+            for channel_id_str, channel_config in channel_permissions.items():
+                try:
+                    # Convert channel ID to int
+                    if not channel_id_str.isdigit():
+                        logger.warning(f"Invalid channel ID: {channel_id_str}")
+                        continue
                     channel_id = int(channel_id_str)
-                    # Check if initial posting is enabled for this channel (default to False if key missing)
-                    if data.get('post_initial', False):
-                        # Check permissions and determine mode
-                        has_control_perm = _channel_has_permission(channel_id, 'control', current_config)
-                        has_status_perm = _channel_has_permission(channel_id, 'serverstatus', current_config)
-                        mode_to_regenerate = None
+                    
+                    # Check if initial posting is enabled
+                    if not channel_config.get('post_initial', False):
+                        logger.debug(f"Channel {channel_id}: post_initial is disabled")
+                        continue
                         
-                        if has_control_perm:
-                            mode_to_regenerate = 'control'
-                            logger.debug(f"Channel {channel_id} has 'control' and 'post_initial'. Mode: control.")
-                        elif has_status_perm:
-                            mode_to_regenerate = 'status'
-                            logger.debug(f"Channel {channel_id} has 'serverstatus' and 'post_initial'. Mode: status.")
+                    # Get channel permissions
+                    channel_commands = channel_config.get('commands', {})
+                    has_control = channel_commands.get('control', False)
+                    has_status = channel_commands.get('serverstatus', False)
+                    
+                    logger.info(f"Channel {channel_id}: post_initial=True, control={has_control}, status={has_status}")
+                    
+                    # Determine mode
+                    mode = None
+                    if has_control:
+                        mode = 'control'
+                    elif has_status:
+                        mode = 'status'
+                    else:
+                        logger.warning(f"Channel {channel_id} has neither control nor status permissions")
+                        continue
                         
-                        # If a mode was determined, fetch channel and add task
-                        if mode_to_regenerate:
-                            try:
-                                channel = await self.bot.fetch_channel(channel_id)
-                                if isinstance(channel, discord.TextChannel):
-                                    logger.info(f"Found channel '{channel.name}' ({channel_id}) for initial post in '{mode_to_regenerate}' mode")
-                                    tasks.append(self._regenerate_channel(channel, mode_to_regenerate))
-                                else:
-                                    logger.warning(f"Channel ID {channel_id} is not a text channel")
-                            except discord.NotFound:
-                                logger.warning(f"Channel ID {channel_id} not found")
-                            except discord.Forbidden:
-                                logger.warning(f"Missing permissions to fetch channel {channel_id}")
-                            except Exception as e:
-                                logger.error(f"Error processing channel {channel_id}: {e}")
-                # else: post_initial is False or missing
-
-            if tasks:
-                logger.info(f"Regenerating {len(tasks)} channels")
-                results = await asyncio.gather(*tasks, return_exceptions=True)
-                # Check results for errors
-                error_count = 0
-                for result in results:
-                    if isinstance(result, Exception):
-                        error_count += 1
-                        logger.error(f"Error during channel regeneration: {result}")
-                if error_count == 0:
-                    initial_send_successful = True
-                    logger.info("All initial channel regenerations completed successfully")
-                else:
-                    logger.warning(f"Completed initial channel regenerations with {error_count} errors")
-                await asyncio.sleep(0.2) # Sleep if regenerations happened
-            else:
-                logger.info("No channels configured for initial posting")
+                    # Get channel
+                    try:
+                        channel = await self.bot.fetch_channel(channel_id)
+                        if not isinstance(channel, discord.TextChannel):
+                            logger.warning(f"Channel {channel_id} is not a text channel")
+                            continue
+                            
+                        logger.info(f"Regenerating channel {channel.name} ({channel_id}) in {mode} mode")
+                        
+                        # Delete old messages
+                        try:
+                            await self.delete_bot_messages(channel)
+                            await asyncio.sleep(1)  # Short pause after deletion
+                        except Exception as e:
+                            logger.error(f"Error deleting messages in {channel.name}: {e}")
+                            
+                        # Send new messages
+                        if mode == 'control':
+                            await self._send_control_panel_and_statuses(channel)
+                        else:  # mode == 'status'
+                            # Create and send overview embed
+                            config = get_cached_config()
+                            if not config:
+                                logger.error("Could not load config for overview embed")
+                                return
+                                
+                            servers = config.get('servers', [])
+                            servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
+                            
+                            ordered_servers = []
+                            seen_docker_names = set()
+                            
+                            # First add servers in the defined order
+                            for docker_name in self.ordered_server_names:
+                                if docker_name in servers_by_name:
+                                    ordered_servers.append(servers_by_name[docker_name])
+                                    seen_docker_names.add(docker_name)
+                            
+                            # Add any servers that weren't in the ordered list
+                            for server in servers:
+                                docker_name = server.get('docker_name')
+                                if docker_name and docker_name not in seen_docker_names:
+                                    ordered_servers.append(server)
+                                    seen_docker_names.add(docker_name)
+                                    
+                            embed = await self._create_overview_embed(ordered_servers, config)
+                            message = await channel.send(embed=embed)
+                            
+                            # Track the overview message
+                            if channel.id not in self.channel_server_message_ids:
+                                self.channel_server_message_ids[channel.id] = {}
+                            self.channel_server_message_ids[channel.id]["overview"] = message.id
+                            
+                            # Initialize update time tracking
+                            if channel.id not in self.last_message_update_time:
+                                self.last_message_update_time[channel.id] = {}
+                            self.last_message_update_time[channel.id]["overview"] = datetime.now(timezone.utc)
+                            
+                            logger.info(f"Tracked overview message {message.id} in status channel {channel.id}")
+                            
+                        logger.info(f"Successfully regenerated channel {channel.name}")
+                        initial_send_successful = True
+                    except discord.NotFound:
+                        logger.warning(f"Channel {channel_id} not found")
+                    except discord.Forbidden:
+                        logger.warning(f"Missing permissions for channel {channel_id}")
+                    except Exception as e:
+                        logger.error(f"Error processing channel {channel_id}: {e}")
+                        
+                except Exception as e:
+                    logger.error(f"Error processing channel config {channel_id_str}: {e}")
 
         except Exception as e:
             logger.error(f"Critical error during send_initial_status: {e}", exc_info=True)
         finally:
             self.initial_messages_sent = True
             logger.info(f"send_initial_status finished. Initial messages sent flag set to True. Success: {initial_send_successful}")
-            # ... (Logging at the end remains the same)
 
     # _update_single_message WAS REMOVED
     # _update_single_server_message_by_name WAS REMOVED
@@ -848,90 +917,77 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
     @commands.slash_command(name="serverstatus", description=_("Shows the status of all containers"), guild_ids=get_guild_id())
     async def serverstatus(self, ctx: discord.ApplicationContext):
         """Shows an overview of all server statuses in a single message."""
-        # Import translation function locally to ensure it's accessible
-        from .translation_manager import _ as translate
-        
-        # Check if the channel has serverstatus permission
-        channel_has_status_perm = _channel_has_permission(ctx.channel.id, 'serverstatus', self.config)
-        if not channel_has_status_perm:
-            embed = discord.Embed(
-                title=translate("⚠️ Permission Denied"),
-                description=translate("You cannot use this command in this channel."),
-                color=discord.Color.red()
-            )
-            await ctx.respond(embed=embed, ephemeral=True)
-            return
-
-        # Respond directly without deferring first
-        await ctx.respond(translate("Generating overview..."), ephemeral=True)
-
-        config = self.config
-        servers = config.get('servers', [])
-        if not servers:
-            embed = discord.Embed(
-                title=translate("⚠️ No Servers"),
-                description=translate("No servers are configured for monitoring."),
-                color=discord.Color.orange()
-            )
-            await ctx.channel.send(embed=embed)
-            return
-
-        # --- Delete old messages --- #
         try:
-            logger.info(f"[/serverstatus] Deleting old bot messages in {ctx.channel.name}...")
-            await self.delete_bot_messages(ctx.channel, limit=300) # Limit adjustable
-            await asyncio.sleep(1.0) # Short pause after deleting
-            logger.info(f"[/serverstatus] Finished deleting messages in {ctx.channel.name}.")
-        except Exception as e_delete:
-            logger.error(f"[/serverstatus] Error deleting messages in {ctx.channel.name}: {e_delete}")
-            # Continue even if deletion fails
-        # --- End message deletion --- #
+            # Import translation function locally to ensure it's accessible
+            from .translation_manager import _ as translate
+            
+            # Check if the channel has serverstatus permission
+            channel_has_status_perm = _channel_has_permission(ctx.channel.id, 'serverstatus', self.config)
+            if not channel_has_status_perm:
+                embed = discord.Embed(
+                    title=translate("⚠️ Permission Denied"),
+                    description=translate("You cannot use this command in this channel."),
+                    color=discord.Color.red()
+                )
+                await ctx.respond(embed=embed, ephemeral=True)
+                return
 
-        # Sort servers using ordered_server_names
-        ordered_docker_names = self.ordered_server_names
-        servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
-        
-        # Create an ordered list of server configurations
-        ordered_servers = []
-        seen_docker_names = set()
-        
-        # First add servers in the defined order
-        for docker_name in ordered_docker_names:
-            if docker_name in servers_by_name:
-                ordered_servers.append(servers_by_name[docker_name])
-                seen_docker_names.add(docker_name)
-        
-        # Add any servers that weren't in the ordered list
-        for server in servers:
-            docker_name = server.get('docker_name')
-            if docker_name and docker_name not in seen_docker_names:
-                ordered_servers.append(server)
-                seen_docker_names.add(docker_name)
-        
-        # Fallback: If ordered_servers is empty, use all servers
-        if not ordered_servers:
-            ordered_servers = servers
+            # Defer the response immediately to prevent timeout
+            await ctx.defer()
 
-        # Create the overview embed
-        embed = await self._create_overview_embed(ordered_servers, config)
-        
-        # Send the embed directly to the channel instead of using followup
-        overview_message = await ctx.channel.send(embed=embed)
-        
-        # Store the message ID for later updates
-        if ctx.channel.id not in self.channel_server_message_ids:
-            self.channel_server_message_ids[ctx.channel.id] = {}
-        self.channel_server_message_ids[ctx.channel.id]["overview"] = overview_message.id
-        
-        # Set last update time for channel activity tracking
-        if ctx.channel.id not in self.last_message_update_time:
-            self.last_message_update_time[ctx.channel.id] = {}
-        self.last_message_update_time[ctx.channel.id]["overview"] = datetime.now(timezone.utc)
-        
-        # Also update channel activity for inactivity checks
-        self.last_channel_activity[ctx.channel.id] = datetime.now(timezone.utc)
-        
-        logger.info(f"[/serverstatus] Sent overview message {overview_message.id} in channel {ctx.channel.id}")
+            # CRITICAL FIX: Always use the latest config
+            config = get_cached_config()
+            if not config:
+                await ctx.followup.send(_("Error: Could not load configuration."), ephemeral=True)
+                return
+
+            # Get all servers and sort them according to ordered_server_names
+            servers = config.get('servers', [])
+            servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
+            
+            ordered_servers = []
+            seen_docker_names = set()
+            
+            # First add servers in the defined order
+            for docker_name in self.ordered_server_names:
+                if docker_name in servers_by_name:
+                    ordered_servers.append(servers_by_name[docker_name])
+                    seen_docker_names.add(docker_name)
+            
+            # Add any servers that weren't in the ordered list
+            for server in servers:
+                docker_name = server.get('docker_name')
+                if docker_name and docker_name not in seen_docker_names:
+                    ordered_servers.append(server)
+                    seen_docker_names.add(docker_name)
+            
+            embed = await self._create_overview_embed(ordered_servers, config)
+            
+            # Send the embed using followup
+            message = await ctx.followup.send(embed=embed)
+            
+            # Update tracking information
+            now_utc = datetime.now(timezone.utc)
+            
+            # Update message update time
+            if ctx.channel.id not in self.last_message_update_time:
+                self.last_message_update_time[ctx.channel.id] = {}
+            self.last_message_update_time[ctx.channel.id]["overview"] = now_utc
+            
+            # Track the message ID
+            if ctx.channel.id not in self.channel_server_message_ids:
+                self.channel_server_message_ids[ctx.channel.id] = {}
+            self.channel_server_message_ids[ctx.channel.id]["overview"] = message.id
+            
+            # Set last channel activity
+            self.last_channel_activity[ctx.channel.id] = now_utc
+            
+        except Exception as e:
+            logger.error(f"Error in serverstatus command: {e}", exc_info=True)
+            try:
+                await ctx.followup.send(_("An error occurred while generating the overview."), ephemeral=True)
+            except:
+                pass
 
     @commands.slash_command(name="ss", description=_("Shortcut: Shows the status of all containers"), guild_ids=get_guild_id())
     async def ss(self, ctx):
@@ -999,8 +1055,11 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
 
         # Build server status lines
         now_utc = datetime.now(timezone.utc)
-        timezone_str = config.get('timezone')
-        current_time = format_datetime_with_timezone(now_utc, timezone_str, fmt="%H:%M:%S")
+        # CRITICAL FIX: Always use the latest config for timezone
+        fresh_config = get_cached_config()
+        timezone_str = fresh_config.get('timezone') if fresh_config else config.get('timezone')
+        
+        current_time = format_datetime_with_timezone(now_utc, timezone_str, time_only=True)
         
         # Add timestamp at the top
         last_update_text = translate("Last update")
@@ -1177,103 +1236,46 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
     # --- Status Cache Update Loop ---
     @tasks.loop(seconds=30)
     async def status_update_loop(self):
-        """Periodically updates the internal status cache for all servers."""
+        """Periodically updates the cache with the latest container statuses."""
+        # CRITICAL FIX: Always load the latest config to prevent stale data
+        config = get_cached_config()
+        if not config:
+            logger.error("Status Update Loop: Could not load configuration. Skipping cycle.")
+            return
+        
+        servers = config.get('servers', [])
+        if not servers:
+            return # No servers to update
+            
+        container_names = [s.get('docker_name') for s in servers if s.get('docker_name')]
+            
+        logger.info(f"[STATUS_LOOP] Bulk updating cache for {len(container_names)} containers")
+        start_time = time.time()
+            
         try:
-            if not self.bot.is_ready():
-                logger.warning("Bot is not ready yet, skipping status update loop iteration")
-                return
-                
-            logger.debug("Running status_update_loop to refresh Docker container status cache")
+            # This function now guarantees a dict with 3-element tuples as values
+            results = await self.bulk_fetch_container_status(container_names)
             
-            # OPTIMIZATION: Use the cached config from self.config
-            # No need to reload config from disk, we use the instance variable
-            servers = self.config.get('servers', [])
-            if not servers:
-                logger.debug("No servers configured, status cache update skipped")
-                return
-            
-            # PERFORMANCE OPTIMIZATION: Use bulk fetching instead of individual calls
-            start_time = time.time()
-            now = datetime.now(timezone.utc)
-            
-            # Extract all container names for bulk fetching
-            container_names = []
-            for server_conf in servers:
-                docker_name = server_conf.get('docker_name')
-                if docker_name:
-                    container_names.append(docker_name)
-            
-            if not container_names:
-                logger.debug("No valid container names found in server configurations")
-                return
-            
-            logger.info(f"[STATUS_LOOP] Bulk updating cache for {len(container_names)} containers")
-            
-            # Use the optimized bulk fetch function
-            bulk_results = await self.bulk_fetch_container_status(container_names)
-            
-            # Update cache with bulk results
-            update_count = 0
+            success_count = 0
             error_count = 0
             
-            for docker_name, status_tuple in bulk_results.items():
-                try:
-                    # Find the corresponding server config
-                    server_config = next((s for s in servers if s.get('docker_name') == docker_name), None)
-                    if not server_config:
-                        logger.warning(f"[STATUS_LOOP] No server config found for docker_name: {docker_name}")
-                        error_count += 1
-                        continue
-                    
-                    display_name = server_config.get('name', docker_name)
-                    
-                    # Update cache with bulk result
-                    self.status_cache[display_name] = {
-                        'data': status_tuple,
-                        'timestamp': now
+            # This loop is now safe and will not cause a ValueError
+            for name, (status, data, error) in results.items():
+                if status == 'success':
+                    self.status_cache[name] = {
+                        'data': data,
+                        'timestamp': datetime.now(timezone.utc)
                     }
-                    update_count += 1
-                    
-                except Exception as e:
-                    logger.error(f"[STATUS_LOOP] Error processing bulk result for {docker_name}: {e}")
+                    success_count += 1
+                else:
+                    logger.warning(f"[STATUS_LOOP] Failed to fetch status for {name}. Error: {error}")
                     error_count += 1
             
-            # Handle containers that weren't in bulk results (errors or not found)
-            for server_conf in servers:
-                docker_name = server_conf.get('docker_name')
-                display_name = server_conf.get('name', docker_name)
-                
-                if docker_name and docker_name not in bulk_results:
-                    # Container not in bulk results - likely error or offline
-                    logger.debug(f"[STATUS_LOOP] Container '{docker_name}' not in bulk results, marking as offline")
-                    
-                    details_allowed = server_conf.get('allow_detailed_status', True)
-                    offline_status = (display_name, False, 'N/A', 'N/A', 'N/A', details_allowed)
-                    
-                    self.status_cache[display_name] = {
-                        'data': offline_status,
-                        'timestamp': now
-                    }
-                    update_count += 1
-            
-            # Set last cache update timestamp
-            self.last_cache_update = time.time()
-            
-            # Update the global cache after all servers are processed
-            self.update_global_status_cache()
-            
-            elapsed_time = (time.time() - start_time) * 1000
-            
-            # Performance logging
-            if elapsed_time > 10000:  # Over 10 seconds
-                logger.error(f"[STATUS_LOOP] CRITICAL: Cache update took {elapsed_time:.1f}ms for {len(container_names)} containers")
-            elif elapsed_time > 5000:  # Over 5 seconds
-                logger.warning(f"[STATUS_LOOP] SLOW: Cache update took {elapsed_time:.1f}ms for {len(container_names)} containers")
-            else:
-                logger.info(f"[STATUS_LOOP] Cache updated: {update_count} success, {error_count} errors in {elapsed_time:.1f}ms")
+            duration_ms = (time.time() - start_time) * 1000
+            logger.info(f"[STATUS_LOOP] Cache updated: {success_count} success, {error_count} errors in {duration_ms:.1f}ms")
                 
         except Exception as e:
-            logger.error(f"Error in status_update_loop: {e}", exc_info=True)
+            logger.error(f"[STATUS_LOOP] Unexpected error during status update loop: {e}", exc_info=True)
 
     @status_update_loop.before_loop
     async def before_status_update_loop(self):
@@ -1283,19 +1285,22 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
     # --- Inactivity Check Loop ---
     @tasks.loop(seconds=30)
     async def inactivity_check_loop(self):
-        """Checks for inactive channels and regenerates messages if needed."""
+        """Checks for channel inactivity and regenerates messages if needed."""
+        # CRITICAL FIX: Always load the latest config
+        config = get_cached_config()
+        if not config:
+            logger.error("Inactivity Check Loop: Could not load configuration. Skipping cycle.")
+            return
+            
+        now_utc = datetime.now(timezone.utc)
+        channel_permissions = config.get('channel_permissions', {})
+        
         try:
             if not self.initial_messages_sent:
                 logger.debug("Inactivity check loop: Initial messages not sent yet, skipping.")
                 return
 
             logger.debug("Inactivity check loop running")
-            
-            # Get channel permissions from config
-            channel_permissions = self.config.get('channel_permissions', {})
-            default_recreate_enabled = DEFAULT_CONFIG.get('default_channel_permissions', {}).get('recreate_messages_on_inactivity', True)
-            default_timeout_minutes = DEFAULT_CONFIG.get('default_channel_permissions', {}).get('inactivity_timeout_minutes', 10)
-            now_utc = datetime.now(timezone.utc)
             
             # Log tracked channels for debugging
             logger.debug(f"Currently tracking {len(self.last_channel_activity)} channels for activity")
@@ -1311,8 +1316,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     logger.debug(f"Channel {channel_id} has no specific config, skipping")
                     continue
                     
-                recreate_enabled = channel_config.get('recreate_messages_on_inactivity', default_recreate_enabled)
-                timeout_minutes = channel_config.get('inactivity_timeout_minutes', default_timeout_minutes)
+                recreate_enabled = channel_config.get('recreate_messages_on_inactivity', DEFAULT_CONFIG.get('default_channel_permissions', {}).get('recreate_messages_on_inactivity', True))
+                timeout_minutes = channel_config.get('inactivity_timeout_minutes', DEFAULT_CONFIG.get('default_channel_permissions', {}).get('inactivity_timeout_minutes', 10))
                 
                 logger.debug(f"Channel {channel_id} - recreate_enabled={recreate_enabled}, timeout_minutes={timeout_minutes}")
                 
@@ -1350,10 +1355,10 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                         if not history:
                             logger.info(f"No messages found in channel {channel.name} ({channel_id}). Regenerating")
                             # Determine the mode: control or status
-                            has_control_permission = _channel_has_permission(channel_id, 'control', self.config)
+                            has_control_permission = _channel_has_permission(channel_id, 'control', config)
                             regeneration_mode = 'control' if has_control_permission else 'status'
                             logger.debug(f"Regeneration mode for empty channel: {regeneration_mode}")
-                            await self._regenerate_channel(channel, regeneration_mode)
+                            await self._regenerate_channel(channel, regeneration_mode, config)
                             self.last_channel_activity[channel_id] = now_utc
                             continue
                         
@@ -1384,7 +1389,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                         logger.debug(f"Will regenerate with mode: {regeneration_mode}")
                         
                         # Attempt channel regeneration
-                        await self._regenerate_channel(channel, regeneration_mode)
+                        await self._regenerate_channel(channel, regeneration_mode, self.config)
                         
                         # Reset activity timer
                         self.last_channel_activity[channel_id] = now_utc
@@ -1462,7 +1467,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         channel_to_regenerate = ctx.channel
         async def run_regeneration():
             try:
-                await self._regenerate_channel(channel_to_regenerate, 'control')
+                await self._regenerate_channel(channel_to_regenerate, 'control', self.config)
                 logger.info(f"Background regeneration for channel {channel_to_regenerate.name} completed.")
             except Exception as e_regen:
                 logger.error(f"Error during background regeneration for channel {channel_to_regenerate.name}: {e_regen}")

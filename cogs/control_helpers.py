@@ -2,7 +2,7 @@
 # ============================================================================ #
 # DockerDiscordControl (DDC)                                                  #
 # https://ddc.bot                                                              #
-# Copyright (c) 2023-2025 MAX                                                  #
+# Copyright (c) 2025 MAX                                                  #
 # Licensed under the MIT License                                               #
 # ============================================================================ #
 
@@ -148,7 +148,8 @@ def _get_pending_embed(display_name: str) -> discord.Embed:
     # Add footer similar to the normal status message
     now_footer = datetime.now(timezone.utc)
     last_update_text = _("Pending since")
-    current_time = format_datetime_with_timezone(now_footer, config.get('timezone'), fmt="%H:%M:%S")
+    # Get timezone from config (format_datetime_with_timezone will handle fallbacks)
+    current_time = format_datetime_with_timezone(now_footer, config.get('timezone'), time_only=True)
     
     # Insert timestamp above the code block
     timestamp_line = f"{last_update_text}: {current_time}"

@@ -93,7 +93,7 @@ wiki/
 docs/
 
 # Development requirements (production dependencies are in Dockerfile)
-requirements*.txt
+# requirements*.txt - REMOVED: We need requirements.txt for Docker build
 
 # Unraid specific files
 DockerDiscordControl.xml

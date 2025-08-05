@@ -145,4 +145,4 @@ In the DDC Web UI (`http://your-server:8374`):
 
 - [📖 Installation Guide](Installation-Guide) - Install DDC
 - [⚙️ Configuration](Configuration) - Configure container permissions
-- [🔧 Troubleshooting](Troubleshooting) - Common issues and solutions 
+- [Troubleshooting](Troubleshooting) - Common issues and solutions 

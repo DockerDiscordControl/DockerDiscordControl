@@ -188,21 +188,8 @@ def save_config(config_data: Dict[str, Any]) -> bool:
     # Use the ConfigManager to save
     return get_config_manager().save_config(config_data)
 
-def get_server_config(server_name: str) -> Optional[Dict[str, Any]]:
-    """Gets the configuration for a specific server from the cached config."""
-    # Import here to avoid circular imports
-    from utils.config_manager import get_config_manager
-    
-    # Use the ConfigManager to get server config
-    return get_config_manager().get_server_config(server_name)
-
-def update_server_config(server_name: str, new_config_data: Dict[str, Any]) -> bool:
-    """Updates the configuration for a specific server and saves the whole config."""
-    # Import here to avoid circular imports
-    from utils.config_manager import get_config_manager
-    
-    # Use the ConfigManager to update server config
-    return get_config_manager().update_server_config(server_name, new_config_data)
+# Server config functions removed - they were unused and ConfigManager provides them directly
+# Use get_config_manager().get_server_config() and get_config_manager().update_server_config() instead
 
 def process_config_form(form_data, current_config: Dict[str, Any]) -> Tuple[Dict[str, Any], bool, str]:
     """

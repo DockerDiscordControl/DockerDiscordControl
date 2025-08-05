@@ -2,7 +2,7 @@
 # ============================================================================ #
 # DockerDiscordControl (DDC)                                                  #
 # https://ddc.bot                                                              #
-# Copyright (c) 2023-2025 MAX                                                  #
+# Copyright (c) 2025 MAX                                                  #
 # Licensed under the MIT License                                               #
 # ============================================================================ #
 
@@ -27,6 +27,7 @@ from app.utils.web_helpers import (
     get_docker_containers_live,
     docker_cache
 )
+from app.utils.port_diagnostics import run_port_diagnostics
 # NEW: Import shared_data
 from app.utils.shared_data import get_active_containers, load_active_containers_from_config
 from app.constants import COMMON_TIMEZONES # Import from new constants file
@@ -369,8 +370,20 @@ def config_page():
     logger.debug(f"Selected servers in config: {config.get('selected_servers', [])}")
     logger.debug(f"Active container names for task form: {active_container_names}")
 
-    # Get configured timezone first
+    # Get and validate timezone
     timezone_str = config.get('timezone', 'Europe/Berlin')
+    try:
+        # Validate timezone using zoneinfo first
+        from zoneinfo import ZoneInfo
+        ZoneInfo(timezone_str)
+    except Exception as e:
+        try:
+            # Fallback to pytz
+            import pytz
+            pytz.timezone(timezone_str)
+        except Exception as e2:
+            logger.error(f"Invalid timezone {timezone_str}: {e2}")
+            timezone_str = 'Europe/Berlin'
     
     # Format cache timestamp for display using configured timezone
     last_cache_update = docker_cache.get('timestamp')
@@ -411,6 +424,7 @@ def config_page():
         if task.next_run_ts:
             next_run_dt = datetime.utcfromtimestamp(task.next_run_ts)
             if timezone_str:
+                import pytz  # Ensure pytz is available in this scope
                 tz = pytz.timezone(timezone_str)
                 next_run_dt = next_run_dt.replace(tzinfo=pytz.UTC).astimezone(tz)
             next_run = next_run_dt.strftime("%Y-%m-%d %H:%M %Z")
@@ -419,6 +433,7 @@ def config_page():
         if task.last_run_ts:
             last_run_dt = datetime.utcfromtimestamp(task.last_run_ts)
             if timezone_str:
+                import pytz  # Ensure pytz is available in this scope
                 tz = pytz.timezone(timezone_str)
                 last_run_dt = last_run_dt.replace(tzinfo=pytz.UTC).astimezone(tz)
             last_run = last_run_dt.strftime("%Y-%m-%d %H:%M %Z")
@@ -1073,4 +1088,29 @@ def performance_stats():
         return jsonify({
             'success': False,
             'message': "Error getting performance statistics. Please check the logs for details."
+        })
+
+@main_bp.route('/port_diagnostics', methods=['GET'])
+@auth.login_required
+def port_diagnostics():
+    """
+    API endpoint to get port diagnostics information.
+    Helps users troubleshoot Web UI connection issues.
+    """
+    logger = current_app.logger
+    
+    try:
+        logger.info("Running port diagnostics on demand...")
+        diagnostics_report = run_port_diagnostics()
+        
+        return jsonify({
+            'success': True,
+            'diagnostics': diagnostics_report
+        })
+        
+    except Exception as e:
+        logger.error(f"Error running port diagnostics: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': "Error running port diagnostics. Please check the logs for details."
         })

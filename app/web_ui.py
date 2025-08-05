@@ -21,6 +21,7 @@ from app.utils.web_helpers import (
     start_background_refresh,
     stop_background_refresh
 )
+from app.utils.port_diagnostics import log_port_diagnostics
 # Import shared data class for active containers
 from app.utils.shared_data import load_active_containers_from_config
 from datetime import datetime, timezone, timedelta
@@ -57,12 +58,23 @@ def create_app(test_config=None):
             # Stelle sicher, dass Gevent korrekt initialisiert ist
             import gevent.threading
             from gevent.threading import get_ident
-            from gevent import get_hub
+            from gevent import get_hub, monkey
             
             # Prüfe, ob wir im Haupt-Hub laufen
             current_hub = get_hub()
             app_logger = logging.getLogger('app.web_ui')
             app_logger.info(f"Initializing app in Gevent environment, hub: {current_hub}")
+            
+            # Stelle sicher, dass Gevent-Patching vollständig ist
+            if not monkey.is_module_patched('socket'):
+                app_logger.warning("Socket module not patched by Gevent, applying patch...")
+                monkey.patch_socket()
+            if not monkey.is_module_patched('ssl'):
+                app_logger.warning("SSL module not patched by Gevent, applying patch...")
+                monkey.patch_ssl()
+            if not monkey.is_module_patched('threading'):
+                app_logger.warning("Threading module not patched by Gevent, applying patch...")
+                monkey.patch_thread()
         except ImportError as e:
             print(f"Gevent error during init: {e}")
     
@@ -134,6 +146,13 @@ def create_app(test_config=None):
             app.logger.info(f"Application startup: Debug mode is {'ENABLED' if debug_status else 'DISABLED'}")
         except Exception as e:
             app.logger.error(f"Error refreshing debug status on application startup: {e}")
+        
+        # Run port diagnostics at startup
+        try:
+            app.logger.info("Running port diagnostics...")
+            log_port_diagnostics()
+        except Exception as e:
+            app.logger.error(f"Error running port diagnostics: {e}")
 
     @app.after_request
     def add_security_headers(response):
@@ -267,8 +286,9 @@ def create_app(test_config=None):
 # Perform initial password check (does not need app context)
 set_initial_password_from_env()
 
-# Only create app instance for direct execution
+# Create app instance for gunicorn
+app = create_app()
+
+# Only run directly if executed as main
 if __name__ == '__main__':
-    # Use the created app instance
-    app = create_app()
     app.run(host='0.0.0.0', port=5000) 
