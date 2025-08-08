@@ -14,8 +14,9 @@ This eliminates redundant import code across multiple modules.
 import logging
 from typing import Any, Optional
 
-# Create a logger for import operations
+# Create a logger for import operations with INFO level to reduce spam
 _import_logger = logging.getLogger("discord.app_commands_import")
+_import_logger.setLevel(logging.INFO)  # Only show INFO and above, suppress DEBUG
 
 # Global variables to store imported modules
 app_commands = None
@@ -33,34 +34,50 @@ def initialize_app_commands():
     if app_commands is not None:
         return app_commands, DiscordOption, app_commands_available
     
-    # Try to import app_commands and Option
+    # Try different import strategies based on Discord library
     try:
-        from discord import app_commands as discord_app_commands, Option as DiscordOptionImported
+        # Strategy 1: Try PyCord style (discord.Option and discord.app_commands)
+        from discord import Option as DiscordOptionImported
+        from discord import app_commands as discord_app_commands
         app_commands = discord_app_commands
         DiscordOption = DiscordOptionImported
         app_commands_available = True
-        _import_logger.debug("Imported app_commands and Option directly from discord module (PyCord style)")
-    except ImportError:
-        _import_logger.debug("Could not import app_commands and Option from discord directly. Trying discord.ext.commands.")
+        _import_logger.debug("Successfully imported using PyCord style (discord.Option and discord.app_commands)")
+        
+    except ImportError as e1:
         try:
-            from discord.ext.commands import app_commands as ext_app_commands
-            app_commands = ext_app_commands
-            app_commands_available = True 
-            # Try to get Option from discord.commands
+            # Strategy 2: Try discord.py style (discord.app_commands only)
+            from discord import app_commands as discord_app_commands
+            app_commands = discord_app_commands
+            app_commands_available = True
+            
+            # Try to get Option from discord.commands for PyCord fallback
             try:
                 from discord.commands import Option as DiscordOptionImported
                 DiscordOption = DiscordOptionImported
-                _import_logger.debug("Imported app_commands from discord.ext.commands and Option from discord.commands")
+                _import_logger.debug("Imported app_commands from discord, Option from discord.commands")
             except ImportError:
+                # discord.py doesn't have Option in the same way, use None
                 DiscordOption = None
-                _import_logger.warning("Imported app_commands from discord.ext.commands, but discord.commands.Option not found.")
-        except ImportError:
-            _import_logger.warning("Could not import app_commands from discord.ext.commands either.")
-            app_commands_available = False
+                _import_logger.debug("Using discord.py style - app_commands available but no discord.Option")
+                
+        except ImportError as e2:
+            try:
+                # Strategy 3: Try discord.ext.commands.app_commands
+                from discord.ext.commands import app_commands as ext_app_commands
+                app_commands = ext_app_commands
+                app_commands_available = True
+                DiscordOption = None
+                _import_logger.debug("Using discord.ext.commands.app_commands (no Option available)")
+                
+            except ImportError as e3:
+                # All strategies failed - only log if debug is enabled
+                _import_logger.debug("All app_commands import strategies failed - will create fallback")
+                app_commands_available = False
 
     # Create mock versions if imports failed
     if not app_commands_available:
-        _import_logger.warning("Could not import app_commands module from any known location, creating mock version")
+        _import_logger.debug("Could not import app_commands module from any known location, creating mock version")
         
         class AppCommandsMock:
             def __init__(self):
@@ -87,7 +104,11 @@ def initialize_app_commands():
 
     # Create mock DiscordOption if still None
     if DiscordOption is None:
-        _import_logger.warning("DiscordOption was not successfully imported, creating ActualMockOption as fallback.")
+        # Only log warning if app_commands was successfully imported but Option wasn't
+        if app_commands_available:
+            _import_logger.debug("DiscordOption not available but app_commands imported - creating fallback Option")
+        else:
+            _import_logger.debug("Creating mock DiscordOption as fallback")
         
         class ActualMockOption:
             def __init__(self, actual_input_type: type, description: str = "", name: Optional[str] = None, autocomplete: Optional[Any] = None, **kwargs):
@@ -107,7 +128,6 @@ def initialize_app_commands():
                 return self._actual_input_type
 
         DiscordOption = ActualMockOption
-        _import_logger.debug("Replaced DiscordOption with ActualMockOption as fallback.")
 
     return app_commands, DiscordOption, app_commands_available
 

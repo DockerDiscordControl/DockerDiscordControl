@@ -1,4 +1,5 @@
 {# --- JavaScript at the end --- #}
+<script src="{{ url_for('static', filename='js/config-ui.js') }}"></script>
 <script>
     // --- Global variables and functions for Unsaved Changes (moved out of DOMContentLoaded) ---
     let hasUnsavedChanges = false;
@@ -464,14 +465,14 @@
             
             try {
                 // MODIFIED: Use the new, dynamic endpoint for the 'ddc' container
-                const response = await fetch("{{ url_for('log_bp.get_container_logs', container_name='ddc') }}");
+                const response = await fetch("{{ url_for('log_bp.get_container_logs', container_name='dockerdiscordcontrol') }}");
                 if (response.ok) {
                     rawLogsCache = await response.text(); // Store full logs
                     updateMinimalLogsCache(rawLogsCache); // Update the minimal logs cache
                     displayFilteredLogs(); // Display filtered logs
                     return true;
                 } else if (response.status === 404) {
-                    rawLogsCache = `Error: Container 'ddc' not found. Is it running?`;
+                    rawLogsCache = `Error: Container 'dockerdiscordcontrol' not found. Is it running?`;
                     logContentElement.textContent = rawLogsCache;
                 } else if (response.status === 429) {
                     console.warn('Too many log requests, will retry later');

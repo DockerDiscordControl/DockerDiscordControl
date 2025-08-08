@@ -525,7 +525,11 @@ class ControlView(View):
         allowed_actions = server_config.get('allowed_actions', [])
         details_allowed = server_config.get('allow_detailed_status', True)
         is_expanded = cog_instance.expanded_states.get(display_name, False)
-        info_config = server_config.get('info', {})
+        # Load info from separate JSON file
+        from utils.container_info_manager import get_container_info_manager
+        info_manager = get_container_info_manager()
+        docker_name = server_config.get('docker_name')
+        info_config = info_manager.load_container_info(docker_name) if docker_name else {}
 
         # Check if channel has info permission
         from utils.config_cache import get_cached_config
@@ -537,10 +541,6 @@ class ControlView(View):
             # Toggle button for running containers with details allowed
             if details_allowed and self.allow_toggle:
                 self.add_item(ToggleButton(cog_instance, server_config, is_running=True, row=0))
-            
-            # Info button (next to toggle button, always on row 0)
-            if channel_has_info_permission and info_config.get('enabled', False):
-                self.add_item(InfoButton(cog_instance, server_config, row=0))
 
             # Action buttons when expanded and channel has control
             if channel_has_control_permission and is_expanded:
@@ -549,13 +549,17 @@ class ControlView(View):
                     self.add_item(ActionButton(cog_instance, server_config, "stop", discord.ButtonStyle.secondary, None, "⏹️", row=button_row))
                 if "restart" in allowed_actions:
                     self.add_item(ActionButton(cog_instance, server_config, "restart", discord.ButtonStyle.secondary, None, "🔄", row=button_row))
+                
+                # Info button comes AFTER action buttons (rightmost position)
+                if channel_has_info_permission and info_config.get('enabled', False):
+                    self.add_item(InfoButton(cog_instance, server_config, row=button_row))
         else:
             # Start button for offline containers
             if channel_has_control_permission and "start" in allowed_actions:
                 self.add_item(ActionButton(cog_instance, server_config, "start", discord.ButtonStyle.secondary, None, "▶️", row=0))
             
-            # Info button for offline containers (if enabled)
-            if channel_has_info_permission and info_config.get('enabled', False):
+            # Info button for offline containers (only when expanded and info is enabled) - rightmost position
+            if channel_has_info_permission and info_config.get('enabled', False) and is_expanded:
                 self.add_item(InfoButton(cog_instance, server_config, row=0))
     
     def _channel_has_info_permission(self, channel_has_control_permission: bool, config: dict) -> bool:
@@ -607,8 +611,11 @@ class InfoButton(Button):
                 )
                 return
             
-            # Get info configuration
-            info_config = self.server_config.get('info', {})
+            # Get info configuration from separate JSON file
+            from utils.container_info_manager import get_container_info_manager
+            info_manager = get_container_info_manager()
+            docker_name = self.server_config.get('docker_name')
+            info_config = info_manager.load_container_info(docker_name) if docker_name else {}
             if not info_config.get('enabled', False):
                 await interaction.response.send_message(
                     "ℹ️ Container info is not configured for this container.",
@@ -616,24 +623,184 @@ class InfoButton(Button):
                 )
                 return
             
-            # Check if channel has control permission for editing
-            channel_has_control = self._channel_has_control_permission(channel_id, config)
+            # Create info embed for display
+            embed = await self._create_info_embed(info_config, docker_name)
             
-            # Create and show modal
-            modal = ContainerInfoModal(
-                self.cog,
-                self.server_config,
-                info_config,
-                can_edit=channel_has_control
-            )
-            await interaction.response.send_modal(modal)
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             
         except Exception as e:
             logger.error(f"[INFO_BTN] Error showing info for '{self.display_name}': {e}")
             await interaction.response.send_message(
-                "❌ Error displaying container info. Please try again.",
+                "❌ An error occurred while loading container info.",
                 ephemeral=True
             )
+    
+    async def _create_info_embed(self, info_config: dict, docker_name: str) -> discord.Embed:
+        """Create info embed from container configuration."""
+        
+        # Create embed with container branding
+        embed = discord.Embed(
+            title=f"📋 {self.display_name} - Container Info",
+            color=0x3498db
+        )
+        
+        # Build description content
+        description_parts = []
+        
+        # Add custom text if provided
+        custom_text = info_config.get('custom_text', '').strip()
+        if custom_text:
+            description_parts.append(f"```\n{custom_text}\n```")
+        
+        # Add IP information if enabled
+        if info_config.get('show_ip', False):
+            ip_info = await self._get_ip_info(info_config)
+            if ip_info:
+                description_parts.append(ip_info)
+        
+        # Add container status info
+        status_info = await self._get_status_info()
+        if status_info:
+            description_parts.append(status_info)
+        
+        # Set description if we have any content
+        if description_parts:
+            embed.description = "\n".join(description_parts)
+        else:
+            embed.description = "*No information configured for this container.*"
+        
+        embed.set_footer(text="Container Info • https://ddc.bot")
+        return embed
+    
+    async def _get_ip_info(self, info_config: dict) -> str:
+        """Get IP information for the container."""
+        custom_ip = info_config.get('custom_ip', '').strip()
+        custom_port = info_config.get('custom_port', '').strip()
+        
+        if custom_ip:
+            # Validate custom IP/hostname format for security
+            if self._validate_custom_address(custom_ip):
+                # Add port if provided
+                address = custom_ip
+                if custom_port and custom_port.isdigit():
+                    address = f"{custom_ip}:{custom_port}"
+                return f"🔗 **Custom Address:** {address}"
+            else:
+                logger.warning(f"Invalid custom address format: {custom_ip}")
+                return "🔗 **Custom Address:** [Invalid Format]"
+        
+        # Try to get WAN IP
+        try:
+            wan_ip = await self._get_wan_ip_async()
+            if wan_ip:
+                # Add port if provided
+                address = wan_ip
+                if custom_port and custom_port.isdigit():
+                    address = f"{wan_ip}:{custom_port}"
+                return f"🌍 **Public IP:** {address}"
+        except Exception as e:
+            logger.debug(f"Could not get WAN IP: {e}")
+        
+        return "🔍 **IP:** Auto-detection failed"
+    
+    async def _get_wan_ip_async(self) -> str:
+        """Async version of WAN IP detection using aiohttp."""
+        services = [
+            'https://api.ipify.org',
+            'https://ifconfig.me/ip', 
+            'https://icanhazip.com'
+        ]
+        
+        import aiohttp
+        timeout = aiohttp.ClientTimeout(total=5.0)
+        
+        try:
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                for service in services:
+                    try:
+                        async with session.get(service) as response:
+                            if response.status == 200:
+                                ip = (await response.text()).strip()
+                                if self._is_valid_ip(ip):
+                                    return ip
+                    except Exception as e:
+                        logger.debug(f"Service {service} failed: {e}")
+                        continue
+                        
+        except Exception as e:
+            logger.debug(f"WAN IP detection failed: {e}")
+            
+        return None
+    
+    def _is_valid_ip(self, ip: str) -> bool:
+        """Basic IP validation."""
+        import socket
+        try:
+            socket.inet_aton(ip)
+            return True
+        except socket.error:
+            return False
+    
+    def _validate_custom_address(self, address: str) -> bool:
+        """Validate custom IP/hostname format for security."""
+        import re
+        
+        # Limit length to prevent abuse
+        if len(address) > 255:
+            return False
+            
+        # Allow IPs
+        ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
+        if re.match(ip_pattern, address):
+            # Validate IP octets
+            octets = address.split('.')
+            for octet in octets:
+                if int(octet) > 255:
+                    return False
+            return True
+        
+        # Allow hostnames with ports
+        hostname_pattern = r'^[a-zA-Z0-9.-]+(\:[0-9]{1,5})?$'
+        if re.match(hostname_pattern, address):
+            # Additional validation: no double dots, no leading/trailing dots
+            if '..' in address or address.startswith('.') or address.endswith('.'):
+                return False
+            return True
+            
+        return False
+    
+    async def _get_status_info(self) -> str:
+        """Get current container status information."""
+        try:
+            # Import here to avoid circular imports
+            from .docker_control import DockerControlCog
+            
+            # Use the cog instance directly
+            if not self.cog:
+                return "**State:** 🔄 Loading..."
+            
+            # Get status from cache if available
+            status_cache = getattr(self.cog, 'status_cache', {})
+            cached_entry = status_cache.get(self.display_name)
+            
+            if cached_entry and cached_entry.get('data'):
+                status_data = cached_entry['data']
+                if isinstance(status_data, tuple) and len(status_data) >= 5:
+                    _, is_running, cpu, ram, uptime, _ = status_data
+                    
+                    status_parts = []
+                    status_parts.append(f"**State:** {'🟢 Online' if is_running else '🔴 Offline'}")
+                    
+                    if is_running and uptime != 'N/A':
+                        status_parts.append(f"**Uptime:** {uptime}")
+                    
+                    return "\n".join(status_parts)
+            
+            return "**State:** 🔄 Loading..."
+            
+        except Exception as e:
+            logger.debug(f"Error getting status info for {self.display_name}: {e}")
+            return "**State:** 🔄 Loading..."
     
     def _channel_has_info_permission(self, channel_id: int, config: dict) -> bool:
         """Check if channel has info permission."""

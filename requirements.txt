@@ -1,6 +1,6 @@
 # DDC LOCAL DEVELOPMENT REQUIREMENTS
 # These packages are for local testing and development.
-# The production dependencies are installed directly in the Dockerfile.
+# The production dependencies are installed directly in the Dockerfile (requirements.prod.txt).
 
 # --- Core Dependencies (for linting & type checking) ---
 Flask==3.1.1
@@ -29,7 +29,7 @@ limits>=3.9.0
 greenlet>=3.0.3
 zope.event>=5.0
 zope.interface>=6.2
-superlance==2.0.0
+# superlance is not required in production and not used in code
 audioop-lts==0.2.1; python_version >= "3.13"  # Python 3.13 compatibility
 
 # --- Development/Testing Dependencies ---

@@ -867,11 +867,29 @@ class StatusHandlersMixin:
             # For now, ControlView handles 'running' status to show appropriate buttons. If view is problematic for errors, adjust here.
             pass # Let ControlView decide based on 'running' status for now.
 
-        # Only create ControlView if we have a valid server_conf for it and not a critical error embed
+        # SMART STATUS INFO INTEGRATION: Determine view type based on channel permissions
         if embed and server_conf and not (embed.title and embed.title.startswith("🆘")):
             channel_has_control = _channel_has_permission(channel_id, 'control', current_config)
             actual_server_conf = next((s for s in all_servers_config if s.get('name', s.get('docker_name')) == display_name), server_conf)
-            view = ControlView(self, actual_server_conf, running, channel_has_control_permission=channel_has_control, allow_toggle=allow_toggle)
+            
+            # Import here to avoid circular imports
+            from .status_info_integration import should_show_info_in_status_channel, StatusInfoView, create_enhanced_status_embed
+            
+            # Check if this is a status-only channel that should show info integration
+            show_info_integration = should_show_info_in_status_channel(channel_id, current_config)
+            
+            if show_info_integration and not channel_has_control:
+                # STATUS-ONLY CHANNEL: Use StatusInfoView and enhance embed
+                logger.debug(f"[_GEN_EMBED] Using StatusInfoView for status-only channel {channel_id}")
+                view = StatusInfoView(self, actual_server_conf, running)
+                
+                # Enhance embed with info indicators if info is available
+                embed = create_enhanced_status_embed(embed, actual_server_conf, info_indicator=True)
+                
+            else:
+                # CONTROL CHANNEL: Use standard ControlView
+                logger.debug(f"[_GEN_EMBED] Using ControlView for control channel {channel_id}")
+                view = ControlView(self, actual_server_conf, running, channel_has_control_permission=channel_has_control, allow_toggle=allow_toggle)
         else:
             view = None # Ensure view is None if server_conf is missing or critical error
 

@@ -14,6 +14,7 @@
                     <th scope="col" class="text-center" style="width: 10%;">Start<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Allow bot to start container?"></i></th>
                     <th scope="col" class="text-center" style="width: 10%;">Stop<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Allow bot to stop container?"></i></th>
                     <th scope="col" class="text-center" style="width: 10%;">Restart<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Allow bot to restart container?"></i></th>
+                    <th scope="col" class="text-center" style="width: 5%;">Info</th>
                 </tr>
             </thead>
             <tbody id="docker-container-list">
@@ -71,12 +72,23 @@
                                     <label class="form-check-label visually-hidden" for="restart_{{ container.id }}">Restart</label>
                                 </div>
                             </td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-info info-btn" data-container="{{ container.name }}" title="Edit Info" {% if not is_selected %}disabled{% endif %}>
+                                    <i class="bi bi-info-circle"></i>
+                                </button>
+                            </td>
                         </tr>
+                        {# Hidden inputs for container info configuration #}
+                        {% set info_config = container_info_data.get(container.name, {}) %}
+                        <input type="hidden" name="info_enabled_{{ container.name }}" value="{% if info_config.get('enabled', False) %}1{% else %}0{% endif %}">
+                        <input type="hidden" name="info_show_ip_{{ container.name }}" value="{% if info_config.get('show_ip', False) %}1{% else %}0{% endif %}">
+                        <input type="hidden" name="info_custom_ip_{{ container.name }}" value="{{ info_config.get('custom_ip', '') }}">
+                        <textarea name="info_custom_text_{{ container.name }}" style="display:none;">{{ info_config.get('custom_text', '') }}</textarea>
                     {% endfor %}
                 {% elif cache_error %}
-                    <tr><td colspan="8"><div class="alert alert-warning m-0">{{ cache_error }}</div></td></tr>
+                    <tr><td colspan="9"><div class="alert alert-warning m-0">{{ cache_error }}</div></td></tr>
                 {% else %}
-                     <tr><td colspan="8"><div class="alert alert-info m-0">No Docker containers found.</div></td></tr>
+                     <tr><td colspan="9"><div class="alert alert-info m-0">No Docker containers found.</div></td></tr>
                 {% endif %}
             </tbody>
         </table>
@@ -97,34 +109,32 @@
     </div>
 </div>
 
-{# Container Info Configuration Section #}
-<hr class="my-4">
-<div class="mb-3 card p-3">
-    <h4>Container Info Configuration</h4>
-    <p class="form-text">Configure container information display for the Discord info button.</p>
-    
-    <div id="container-info-config" style="display: none;">
-        {% if all_containers %}
-            {% for container in all_containers %}
-                {% set server_config = configured_servers.get(container.name, {}) %}
-                {% set info_config = server_config.get('info', {}) %}
-                {% set is_selected = container.name in configured_servers %}
-                
-                <div class="container-info-item card mb-3 p-3" data-container-name="{{ container.name }}" {% if not is_selected %}style="display: none;"{% endif %}>
-                    <h5><code class="text-info">{{ container.name }}</code> Info Settings</h5>
+{# Container Info Modal #}
+<div class="modal fade" id="containerInfoModal" tabindex="-1" aria-labelledby="containerInfoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header">
+                <h5 class="modal-title" id="containerInfoModalLabel">
+                    <i class="bi bi-info-circle"></i> Container Info Configuration
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="containerInfoForm">
+                    <input type="hidden" id="modal-container-name" name="container_name">
                     
-                    <div class="row">
+                    <div class="row mb-3">
                         <div class="col-md-6">
                             <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" name="info_enabled_{{ container.name }}" value="1" id="info_enabled_{{ container.id }}" {% if info_config.get('enabled', False) %}checked{% endif %} {% if not is_selected %}disabled{% endif %}>
-                                <label class="form-check-label" for="info_enabled_{{ container.id }}">
+                                <input class="form-check-input" type="checkbox" name="info_enabled" value="1" id="modal-info-enabled">
+                                <label class="form-check-label" for="modal-info-enabled">
                                     Enable Info Button
                                 </label>
                             </div>
                             
                             <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" name="info_show_ip_{{ container.name }}" value="1" id="info_show_ip_{{ container.id }}" {% if info_config.get('show_ip', False) %}checked{% endif %} {% if not is_selected %}disabled{% endif %}>
-                                <label class="form-check-label" for="info_show_ip_{{ container.id }}">
+                                <input class="form-check-input" type="checkbox" name="info_show_ip" value="1" id="modal-info-show-ip">
+                                <label class="form-check-label" for="modal-info-show-ip">
                                     Show IP Address
                                 </label>
                             </div>
@@ -132,26 +142,26 @@
                         
                         <div class="col-md-6">
                             <div class="mb-2">
-                                <label for="info_custom_ip_{{ container.id }}" class="form-label">Custom IP/URL Override</label>
-                                <input type="text" class="form-control form-control-sm" name="info_custom_ip_{{ container.name }}" id="info_custom_ip_{{ container.id }}" value="{{ info_config.get('custom_ip', '') }}" placeholder="e.g., mydomain.com:7777" {% if not is_selected %}disabled{% endif %}>
+                                <label for="modal-info-custom-ip" class="form-label">Custom IP/URL Override</label>
+                                <input type="text" class="form-control form-control-sm" name="info_custom_ip" id="modal-info-custom-ip" placeholder="e.g., mydomain.com:7777">
                                 <div class="form-text">Leave empty to use auto-detected public IP</div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="mb-2">
-                        <label for="info_custom_text_{{ container.id }}" class="form-label">Custom Info Text</label>
-                        <textarea class="form-control" name="info_custom_text_{{ container.name }}" id="info_custom_text_{{ container.id }}" rows="3" maxlength="250" placeholder="Password: mypass123&#10;Mods: ModName1, ModName2&#10;Max Players: 8" {% if not is_selected %}disabled{% endif %}>{{ info_config.get('custom_text', '') }}</textarea>
+                    <div class="mb-3">
+                        <label for="modal-info-custom-text" class="form-label">Custom Info Text</label>
+                        <textarea class="form-control" name="info_custom_text" id="modal-info-custom-text" rows="4" maxlength="250" placeholder="Password: mypass123&#10;Mods: ModName1, ModName2&#10;Max Players: 8"></textarea>
                         <div class="form-text">
-                            <span class="char-counter" data-target="info_custom_text_{{ container.id }}">{{ info_config.get('custom_text', '')|length }}</span>/250 characters
+                            <span id="modal-char-counter">0</span>/250 characters
                         </div>
                     </div>
-                </div>
-            {% endfor %}
-        {% endif %}
-    </div>
-    
-    <div class="alert alert-info" id="container-info-placeholder">
-        <i class="bi bi-info-circle"></i> Select containers above to configure their info settings.
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="saveContainerInfo">Save Changes</button>
+            </div>
+        </div>
     </div>
 </div> 

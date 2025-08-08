@@ -205,9 +205,27 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             )
             self.bot.loop.create_task(self._track_task(cache_task))
             
-            # Start heartbeat loop if enabled
-            heartbeat_config = self.config.get('heartbeat', {})
-            if heartbeat_config.get('enabled', False):
+            # Start heartbeat loop if enabled (supports legacy and new config)
+            heartbeat_enabled = False
+            try:
+                # Prefer latest cached config (reflects Web UI changes)
+                latest_config = get_cached_config() or {}
+            except Exception:
+                latest_config = {}
+
+            # New format
+            heartbeat_cfg_obj = latest_config.get('heartbeat') if isinstance(latest_config, dict) else None
+            if isinstance(heartbeat_cfg_obj, dict):
+                heartbeat_enabled = bool(heartbeat_cfg_obj.get('enabled', False))
+
+            # Legacy enable if a numeric channel id exists at root
+            legacy_channel_id = (latest_config or self.config).get('heartbeat_channel_id')
+            if not heartbeat_enabled and legacy_channel_id is not None:
+                legacy_str = str(legacy_channel_id)
+                if legacy_str.isdigit():
+                    heartbeat_enabled = True
+
+            if heartbeat_enabled:
                 heartbeat_task = self.bot.loop.create_task(
                     self._start_loop_safely(self.heartbeat_send_loop, "Heartbeat Loop")
                 )
@@ -1016,6 +1034,13 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         """
         # Simply delegate to the implementation in CommandHandlersMixin
         await self._impl_info_edit(ctx, container_name)
+    
+    @commands.slash_command(name="info_edit", description=_("Edit container information with enhanced modal"), guild_ids=get_guild_id())
+    async def info_edit_enhanced(self, ctx: discord.ApplicationContext, 
+                                container_name: str = discord.Option(description=_("Container name to edit info for"), autocomplete=container_select)):
+        """Enhanced slash command to edit container information using separate JSON files."""
+        await self._impl_info_edit_new(ctx, container_name)
+    
 
     # Decorator adjusted
     @commands.slash_command(name="help", description=_("Displays help for available commands"), guild_ids=get_guild_id())
@@ -1041,6 +1066,56 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         ping_message = _("Pong! Latency: {latency:.2f} ms").format(latency=latency)
         embed = discord.Embed(title="🏓", description=ping_message, color=discord.Color.blurple())
         await ctx.respond(embed=embed)
+    
+    @commands.slash_command(name="donate", description=_("Show donation information to support the project"), guild_ids=get_guild_id())
+    async def donate_command(self, ctx: discord.ApplicationContext):
+        """Show donation links to support DockerDiscordControl development."""
+        try:
+            # Try to import donation manager with backwards compatibility
+            try:
+                from utils.donation_manager import get_donation_manager
+                donation_manager_available = True
+            except ImportError:
+                donation_manager_available = False
+            
+            await ctx.defer(ephemeral=True)
+            
+            if donation_manager_available:
+                donation_manager = get_donation_manager()
+                embed = donation_manager.create_donation_embed(is_automatic=False)
+            else:
+                # Fallback embed for older versions (identical to new version)
+                embed = discord.Embed(
+                    title="☕ Unterstütze DockerDiscordControl",
+                    description="Hallo! Falls dir DockerDiscordControl gefällt und du die Entwicklung unterstützen möchtest, würde ich mich über eine kleine Spende sehr freuen! Alles Liebe, MAX 💙",
+                    color=0x00ff41
+                )
+                embed.add_field(
+                    name="☕ Buy me a Coffee",
+                    value="[Klick hier für Buy me a Coffee](https://buymeacoffee.com/dockerdiscordcontrol)",
+                    inline=True
+                )
+                embed.add_field(
+                    name="💳 PayPal",
+                    value="[Klick hier für PayPal](https://www.paypal.com/donate/?hosted_button_id=XKVC6SFXU2GW4)",
+                    inline=True
+                )
+                embed.set_footer(text="Vielen Dank für deine Unterstützung! • https://ddc.bot")
+            
+            await ctx.followup.send(embed=embed, ephemeral=True)
+            logger.info(f"Donate command used by user {ctx.user.id} in channel {ctx.channel.id}")
+            
+        except Exception as e:
+            logger.error(f"Error in donate command: {e}", exc_info=True)
+            try:
+                error_embed = discord.Embed(
+                    title="❌ Error",
+                    description=_("An error occurred while showing donation information. Please try again later."),
+                    color=discord.Color.red()
+                )
+                await ctx.followup.send(embed=error_embed, ephemeral=True)
+            except:
+                pass
 
     async def _create_overview_embed(self, ordered_servers, config):
         """Creates the server overview embed with the status of all servers."""
@@ -1090,6 +1165,17 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 logger.debug(f"[/serverstatus] No cache entry for '{display_name}' - Background loop will update")
                 status_result = None
             
+            # Check if container has info available
+            info_indicator = ""
+            try:
+                from utils.container_info_manager import get_container_info_manager
+                info_manager = get_container_info_manager()
+                info_config = info_manager.load_container_info(docker_name)
+                if info_config.get('enabled', False):
+                    info_indicator = " ℹ️"  # Blue info indicator
+            except Exception as e:
+                logger.debug(f"Could not check info status for {docker_name}: {e}")
+            
             # Process status result
             if status_result and isinstance(status_result, tuple) and len(status_result) == 6:
                 _, is_running, _, _, _, _ = status_result
@@ -1113,14 +1199,14 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     # Normal status text based on is_running
                     status_text = translate("Online") if is_running else translate("Offline")
                 
-                # Add status line with proper spacing
-                line = f"│ {status_emoji} {status_text:8} {display_name}"
+                # Add status line with proper spacing and info indicator
+                line = f"│ {status_emoji} {status_text:8} {display_name}{info_indicator}"
                 content_lines.append(line)
             else:
                 # No cache data available - show loading status
                 status_emoji = "🔄"
                 status_text = translate("Loading")
-                line = f"│ {status_emoji} {status_text:8} {display_name}"
+                line = f"│ {status_emoji} {status_text:8} {display_name}{info_indicator}"
                 content_lines.append(line)
 
         # Add footer line
@@ -1128,6 +1214,24 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         
         # Combine all lines into the description
         embed.description = "```\n" + "\n".join(content_lines) + "\n```"
+        
+        # Add info command hint if any containers have info enabled
+        has_any_info = False
+        try:
+            from utils.container_info_manager import get_container_info_manager
+            info_manager = get_container_info_manager()
+            for server_conf in ordered_servers:
+                docker_name = server_conf.get('docker_name')
+                if docker_name:
+                    info_config = info_manager.load_container_info(docker_name)
+                    if info_config.get('enabled', False):
+                        has_any_info = True
+                        break
+        except Exception as e:
+            logger.debug(f"Could not check info availability: {e}")
+        
+        if has_any_info:
+            embed.description += f"\n{translate('Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.')}"
         
         # Add the footer with the website URL
         embed.set_footer(text="https://ddc.bot")
@@ -1147,21 +1251,23 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         through the web UI.
         """
         try:
-            # Load the heartbeat configuration
+            # Load the heartbeat configuration from latest cache (fallback to initial config)
+            current_config = get_cached_config() or self.config or {}
+
             # First check legacy format with 'heartbeat_channel_id' at root level
-            heartbeat_channel_id = self.config.get('heartbeat_channel_id')
-            
+            heartbeat_channel_id = current_config.get('heartbeat_channel_id')
+
             # Initialize heartbeat config with defaults
             heartbeat_config = {
-                'enabled': bool(heartbeat_channel_id),  # Enabled if channel ID exists
-                'method': 'channel',                    # Only channel method is implemented
-                'interval': 60,                         # Default: 60 minutes 
-                'channel_id': heartbeat_channel_id      # Channel ID from root config
+                'enabled': bool(str(heartbeat_channel_id).isdigit()) if heartbeat_channel_id is not None else False,
+                'method': 'channel',
+                'interval': 60,
+                'channel_id': heartbeat_channel_id
             }
-            
+
             # Override with nested config if it exists (new format)
-            if 'heartbeat' in self.config:
-                nested_config = self.config.get('heartbeat', {})
+            if 'heartbeat' in current_config:
+                nested_config = current_config.get('heartbeat', {})
                 if isinstance(nested_config, dict):
                     heartbeat_config.update(nested_config)
             

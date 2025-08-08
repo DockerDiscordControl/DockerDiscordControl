@@ -1,0 +1,289 @@
+<!-- Spam Protection Modal -->
+<div class="modal fade" id="spamProtectionModal" tabindex="-1" aria-labelledby="spamProtectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header">
+                <h5 class="modal-title" id="spamProtectionModalLabel">
+                    <i class="bi bi-shield-check"></i> Spam Protection Settings
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info" role="alert">
+                    <i class="bi bi-info-circle"></i> Configure rate limiting to prevent spam and abuse of bot commands.
+                </div>
+                
+                <!-- Global Settings -->
+                <div class="card bg-secondary mb-3">
+                    <div class="card-header text-light">
+                        <h6 class="mb-0"><i class="bi bi-globe"></i> Global Settings</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="spamProtectionEnabled" checked>
+                                    <label class="form-check-label" for="spamProtectionEnabled">
+                                        Enable Spam Protection
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="cooldownMessage" checked>
+                                    <label class="form-check-label" for="cooldownMessage">
+                                        Show Cooldown Messages
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="logViolations" checked>
+                                    <label class="form-check-label" for="logViolations">
+                                        Log Rate Limit Violations
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="maxCommandsPerMinute" class="form-label">Max Commands/Minute</label>
+                                    <input type="number" class="form-control" id="maxCommandsPerMinute" value="20" min="1" max="100">
+                                    <div class="form-text">Per user limit</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="maxButtonsPerMinute" class="form-label">Max Button Clicks/Minute</label>
+                                    <input type="number" class="form-control" id="maxButtonsPerMinute" value="30" min="1" max="100">
+                                    <div class="form-text">Per user limit</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Command Cooldowns -->
+                <div class="card bg-secondary mb-3">
+                    <div class="card-header text-light">
+                        <h6 class="mb-0"><i class="bi bi-slash-circle"></i> Command Cooldowns (seconds)</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_control" class="form-label">/control</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_control" value="5" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_serverstatus" class="form-label">/serverstatus & /ss</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_serverstatus" value="30" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_info" class="form-label">/info</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_info" value="5" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_info_edit" class="form-label">/info_edit</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_info_edit" value="10" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_help" class="form-label">/help</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_help" value="3" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_ping" class="form-label">/ping</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_ping" value="3" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_donate" class="form-label">/donate</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_donate" value="5" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_language" class="form-label">/language</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_language" value="30" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_forceupdate" class="form-label">/forceupdate</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_forceupdate" value="60" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_task_once" class="form-label">/task_once</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_task_once" value="10" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_task_daily" class="form-label">/task_daily</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_task_daily" value="10" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_task_weekly" class="form-label">/task_weekly</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_task_weekly" value="10" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_task_monthly" class="form-label">/task_monthly</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_task_monthly" value="10" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_task_yearly" class="form-label">/task_yearly</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_task_yearly" value="10" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_task_delete" class="form-label">/task_delete</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_task_delete" value="5" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_task_panel" class="form-label">/task_panel</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_task_panel" value="10" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_start" class="form-label">/start</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_start" value="10" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_stop" class="form-label">/stop</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_stop" value="10" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="cooldown_restart" class="form-label">/restart</label>
+                                <input type="number" class="form-control form-control-sm" id="cooldown_restart" value="10" min="0" max="300">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Button Cooldowns -->
+                <div class="card bg-secondary">
+                    <div class="card-header text-light">
+                        <h6 class="mb-0"><i class="bi bi-hand-index"></i> Button Cooldowns (seconds)</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <label for="button_start" class="form-label">Start Button</label>
+                                <input type="number" class="form-control form-control-sm" id="button_start" value="10" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="button_stop" class="form-label">Stop Button</label>
+                                <input type="number" class="form-control form-control-sm" id="button_stop" value="10" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="button_restart" class="form-label">Restart Button</label>
+                                <input type="number" class="form-control form-control-sm" id="button_restart" value="15" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="button_info" class="form-label">Info Button</label>
+                                <input type="number" class="form-control form-control-sm" id="button_info" value="3" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="button_refresh" class="form-label">Refresh Button</label>
+                                <input type="number" class="form-control form-control-sm" id="button_refresh" value="5" min="0" max="300">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveSpamProtection">
+                    <i class="bi bi-save"></i> Save Settings
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load spam protection settings when modal opens
+document.getElementById('spamProtectionModal').addEventListener('shown.bs.modal', function () {
+    fetch('/api/spam-protection')
+        .then(response => response.json())
+        .then(data => {
+            // Set global settings
+            document.getElementById('spamProtectionEnabled').checked = data.global_settings.enabled;
+            document.getElementById('cooldownMessage').checked = data.global_settings.cooldown_message;
+            document.getElementById('logViolations').checked = data.global_settings.log_violations;
+            document.getElementById('maxCommandsPerMinute').value = data.global_settings.max_commands_per_minute;
+            document.getElementById('maxButtonsPerMinute').value = data.global_settings.max_buttons_per_minute;
+            
+            // Set command cooldowns
+            for (const [cmd, cooldown] of Object.entries(data.command_cooldowns)) {
+                const element = document.getElementById('cooldown_' + cmd);
+                if (element) element.value = cooldown;
+            }
+            
+            // Set button cooldowns
+            for (const [btn, cooldown] of Object.entries(data.button_cooldowns)) {
+                const element = document.getElementById('button_' + btn);
+                if (element) element.value = cooldown;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading spam protection settings:', error);
+            alert('Error loading spam protection settings');
+        });
+});
+
+// Save spam protection settings
+document.getElementById('saveSpamProtection').addEventListener('click', function() {
+    const settings = {
+        global_settings: {
+            enabled: document.getElementById('spamProtectionEnabled').checked,
+            cooldown_message: document.getElementById('cooldownMessage').checked,
+            log_violations: document.getElementById('logViolations').checked,
+            max_commands_per_minute: parseInt(document.getElementById('maxCommandsPerMinute').value),
+            max_buttons_per_minute: parseInt(document.getElementById('maxButtonsPerMinute').value)
+        },
+        command_cooldowns: {
+            control: parseInt(document.getElementById('cooldown_control').value),
+            serverstatus: parseInt(document.getElementById('cooldown_serverstatus').value),
+            info: parseInt(document.getElementById('cooldown_info').value),
+            info_edit: parseInt(document.getElementById('cooldown_info_edit').value),
+            help: parseInt(document.getElementById('cooldown_help').value),
+            ping: parseInt(document.getElementById('cooldown_ping').value),
+            donate: parseInt(document.getElementById('cooldown_donate').value),
+            language: parseInt(document.getElementById('cooldown_language').value),
+            forceupdate: parseInt(document.getElementById('cooldown_forceupdate').value),
+            task_once: parseInt(document.getElementById('cooldown_task_once').value),
+            task_daily: parseInt(document.getElementById('cooldown_task_daily').value),
+            task_weekly: parseInt(document.getElementById('cooldown_task_weekly').value),
+            task_monthly: parseInt(document.getElementById('cooldown_task_monthly').value),
+            task_yearly: parseInt(document.getElementById('cooldown_task_yearly').value),
+            task_delete: parseInt(document.getElementById('cooldown_task_delete').value),
+            task_panel: parseInt(document.getElementById('cooldown_task_panel').value),
+            start: parseInt(document.getElementById('cooldown_start').value),
+            stop: parseInt(document.getElementById('cooldown_stop').value),
+            restart: parseInt(document.getElementById('cooldown_restart').value)
+        },
+        button_cooldowns: {
+            start: parseInt(document.getElementById('button_start').value),
+            stop: parseInt(document.getElementById('button_stop').value),
+            restart: parseInt(document.getElementById('button_restart').value),
+            info: parseInt(document.getElementById('button_info').value),
+            refresh: parseInt(document.getElementById('button_refresh').value)
+        }
+    };
+    
+    fetch('/api/spam-protection', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal and show success message
+            const modal = bootstrap.Modal.getInstance(document.getElementById('spamProtectionModal'));
+            modal.hide();
+            
+            // Show success notification
+            const notification = document.getElementById('save-notification');
+            notification.innerHTML = '<div class="alert alert-success alert-dismissible fade show" role="alert">Spam protection settings saved successfully!<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+            
+            // Auto dismiss after 3 seconds
+            setTimeout(() => {
+                notification.innerHTML = '';
+            }, 3000);
+        } else {
+            alert('Error saving spam protection settings: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error saving spam protection settings:', error);
+        alert('Error saving spam protection settings');
+    });
+});
+</script>

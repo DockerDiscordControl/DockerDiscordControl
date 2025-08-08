@@ -26,14 +26,7 @@
         
         <hr class="my-3">
         <h6 class="text-light">External Monitor Script Settings</h6>
-        <p class="form-text mb-2">These values are used to generate the Python monitoring script below. You need a separate bot for monitoring.</p>
-        
-        <div class="mb-3">
-            <label for="monitor_bot_token" class="form-label">Monitoring Bot Token</label>
-            <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="The bot token for the SEPARATE bot that will run the monitoring script. Create a new bot application in the Discord Developer Portal if needed."></i>
-            <input type="password" class="form-control" id="monitor_bot_token" name="monitor_bot_token" value="{{ config.monitor_bot_token or '' }}" placeholder="Enter Token for the Monitoring Bot">
-            <p class="form-text mt-1" style="color: #ffc107;"><small><i class="bi bi-exclamation-triangle-fill"></i> Important: Use a DIFFERENT bot token here, not the DDC bot's token! The monitor needs its own identity to send alerts reliably, even if the DDC bot is offline.</small></p>
-        </div>
+        <p class="form-text mb-2">The monitor scripts will automatically use the existing DDC bot token. No separate token is needed.</p>
         
         <div class="mb-3">
             <label for="ddc_bot_user_id" class="form-label">DDC Bot User ID</label>
@@ -45,14 +38,14 @@
             <label for="alert_channel_ids" class="form-label">Alert Channel IDs (Comma-separated)</label>
             <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="One or more Discord channel IDs where the monitoring script should send an alert if the DDC bot heartbeat fails. Separate multiple IDs with commas."></i>
             <input type="text" class="form-control" id="alert_channel_ids" name="alert_channel_ids" value="{{ config.alert_channel_ids or '' }}" placeholder="e.g., 12345,67890">
-            <p class="form-text mt-1"><small>Required for Python script. These are the channels where the monitoring bot will send alerts.</small></p>
+            <p class="form-text mt-1"><small>Optional if you do not use a Webhook. If provided, alerts will be sent to these channels using the DDC bot token.</small></p>
         </div>
         
         <div class="mb-3">
-            <label for="alert_webhook_url" class="form-label">Discord Webhook URL (for Bash/Batch scripts)</label>
-            <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="A Discord webhook URL for sending alerts from the shell scripts (Bash/Batch). Not needed for the Python script."></i>
+            <label for="alert_webhook_url" class="form-label">Discord Webhook URL (preferred for alerts)</label>
+            <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="Preferred method to deliver alerts. If not set, alerts can be posted directly to the specified alert channels using the DDC bot token."></i>
             <input type="text" class="form-control" id="alert_webhook_url" name="alert_webhook_url" value="{{ config.alert_webhook_url or '' }}" placeholder="https://discord.com/api/webhooks/...">
-            <p class="form-text mt-1"><small>Required for Bash and Batch scripts. These scripts use webhooks instead of a bot token for simplicity.</small></p>
+            <p class="form-text mt-1"><small>Recommended. If empty, alerts will use the DDC bot token in the provided alert channels (if any).</small></p>
         </div>
         
         <div class="mb-3">
@@ -65,12 +58,12 @@
         <div class="mb-3">
             <label for="script_type" class="form-label">Select Script Type:</label>
             <select class="form-select" id="script_type" name="script_type">
-                <option value="python">Python (Full-featured, requires Discord.py)</option>
+                <option value="python">Python (REST-only, requires requests)</option>
                 <option value="bash">Bash/Shell Script (Linux/macOS, requires curl & jq)</option>
                 <option value="batch">Windows Batch Script (Windows 10+, requires curl)</option>
             </select>
             <p class="form-text mt-1">
-                <small><strong>Python script:</strong> Requires Python 3.6+ with discord.py installed. Most powerful option.</small><br>
+                <small><strong>Python script:</strong> REST-only, requires Python 3.8+ and requests (no Discord gateway connection).</small><br>
                 <small><strong>Bash script:</strong> For Linux/macOS systems. Requires curl and jq.</small><br>
                 <small><strong>Batch script:</strong> For Windows systems. Works on Windows 10 (version 1803+).</small>
             </p>

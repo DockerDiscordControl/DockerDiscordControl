@@ -5,16 +5,17 @@ WORKDIR /app
 
 # Install Python and essential packages in one layer
 RUN apk add --no-cache --virtual .build-deps \
-        gcc musl-dev libffi-dev openssl-dev rust cargo \
+        gcc musl-dev libffi-dev openssl-dev binutils \
     && apk add --no-cache \
         python3 python3-dev py3-pip \
-        supervisor docker-cli ca-certificates tzdata \
+        supervisor ca-certificates tzdata \
     && python3 -m venv /venv \
     && /venv/bin/pip install --no-cache-dir --upgrade pip
 
-# Copy and install requirements  
-COPY requirements.txt .
-RUN /venv/bin/pip install --no-cache-dir -r requirements.txt
+# Copy and install production requirements only
+COPY requirements.prod.txt ./
+RUN /venv/bin/pip install --no-cache-dir -r requirements.prod.txt \
+    && find /venv -type f -name "*.so" -exec strip --strip-unneeded {} + || true
 
 # Clean up build dependencies and cache
 RUN apk del .build-deps python3-dev \

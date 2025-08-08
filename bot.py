@@ -36,6 +36,28 @@ if 'DDC_DISCORD_SKIP_TOKEN_LOCK' not in os.environ:
 from utils.config_loader import load_config, save_config
 from utils.logging_utils import setup_logger, refresh_debug_status, setup_all_loggers
 from utils.config_cache import init_config_cache, get_cached_config
+# Import new features with backwards compatibility
+try:
+    from utils.dynamic_cooldown_manager import apply_dynamic_cooldowns_to_bot
+    dynamic_cooldowns_available = True
+except ImportError:
+    logger.warning("Dynamic cooldowns not available - using legacy cooldowns")
+    dynamic_cooldowns_available = False
+    apply_dynamic_cooldowns_to_bot = lambda bot: None
+
+try:
+    from utils.update_notifier import get_update_notifier
+    update_notifier_available = True
+except ImportError:
+    logger.warning("Update notifier not available - skipping update notifications")
+    update_notifier_available = False
+
+try:
+    from utils.donation_manager import get_donation_manager
+    donation_manager_available = True
+except ImportError:
+    logger.warning("Donation manager not available - skipping donation messages")
+    donation_manager_available = False
 # Import the internal translation system
 from cogs.translation_manager import _, get_translations
 # Import scheduler service
@@ -258,17 +280,11 @@ def setup_app_commands():
                 ):
                     await bot.get_cog('DockerControlCog').command(ctx, container_name, action)
                 
-                @bot.slash_command(name="ddc", description="DDC commands")
-                async def ddc(ctx):
-                    """Base command for DDC subcommands."""
-                    await ctx.respond("Use `/ddc info edit <container>` to edit container information.", ephemeral=True)
+                # Create command group for DDC subcommands
+                ddc_group = bot.create_group("ddc", "DDC management commands")
+                info_group = ddc_group.create_subgroup("info", "Container info commands")
                 
-                @ddc.command(name="info")
-                async def ddc_info(ctx):
-                    """Info subcommand group."""
-                    await ctx.respond("Use `/ddc info edit <container>` to edit container information.", ephemeral=True)
-                
-                @ddc_info.command(name="edit")
+                @info_group.command(name="edit", description="Edit container information")
                 async def ddc_info_edit(
                     ctx,
                     container: Option(str, "The Docker container to edit info for", autocomplete=container_select)
@@ -287,18 +303,12 @@ def setup_app_commands():
                 ):
                     await bot.get_cog('DockerControlCog').command(ctx, container_name, action)
                 
-                @bot.slash_command(name="ddc", description="DDC commands")
-                async def ddc(ctx):
-                    """Base command for DDC subcommands."""
-                    await ctx.respond("Use `/ddc info edit <container>` to edit container information.", ephemeral=True)
+                # Create command group for DDC subcommands (fallback)
+                ddc_group_fallback = bot.create_group("ddc", "DDC management commands")
+                info_group_fallback = ddc_group_fallback.create_subgroup("info", "Container info commands")
                 
-                @ddc.command(name="info")
-                async def ddc_info(ctx):
-                    """Info subcommand group."""
-                    await ctx.respond("Use `/ddc info edit <container>` to edit container information.", ephemeral=True)
-                
-                @ddc_info.command(name="edit")
-                async def ddc_info_edit(
+                @info_group_fallback.command(name="edit", description="Edit container information")
+                async def ddc_info_edit_fallback(
                     ctx,
                     container: discord.Option(str, "The Docker container to edit info for", autocomplete=container_select)
                 ):
@@ -380,6 +390,28 @@ async def on_ready():
                     raise
                     
             logger.info("Manually added DockerControlCog instance.")
+            
+            # --- Add InfoCommandCog ---
+            try:
+                from cogs.info_command import InfoCommandCog
+                info_cog_instance = InfoCommandCog(bot)
+                
+                # Try different add_cog methods depending on Discord library
+                try:
+                    # PyCord method (synchronous)
+                    bot.add_cog(info_cog_instance)
+                    logger.info("Added InfoCommandCog using PyCord method.")
+                except TypeError:
+                    try:
+                        # discord.py method (asynchronous)
+                        await bot.add_cog(info_cog_instance)
+                        logger.info("Added InfoCommandCog using discord.py method.")
+                    except Exception as e:
+                        logger.error(f"Failed to add InfoCommandCog: {e}")
+                        
+                logger.info("Manually added InfoCommandCog instance.")
+            except Exception as e:
+                logger.error(f"Error adding InfoCommandCog: {e}")
             # -----------------------------------------------------
 
             # --- Checkpoint and Cog initialization --- 
@@ -495,6 +527,18 @@ async def on_ready():
                 print("No guild ID configured, skipping command synchronization")
                         
             logger.info("App Commands synchronization process completed")
+            
+            # Apply dynamic cooldowns to all commands (if available)
+            if dynamic_cooldowns_available:
+                try:
+                    logger.info("Applying dynamic cooldowns from spam protection settings...")
+                    apply_dynamic_cooldowns_to_bot(bot)
+                    logger.info("Dynamic cooldowns applied successfully")
+                except Exception as cooldown_error:
+                    logger.error(f"Error applying dynamic cooldowns: {cooldown_error}", exc_info=True)
+            else:
+                logger.info("Dynamic cooldowns not available - using legacy hardcoded cooldowns")
+                
         except Exception as e:
             logger.error(f"Error in command synchronization process: {e}", exc_info=True)
             
@@ -507,6 +551,35 @@ async def on_ready():
                 print("Scheduler Service could not be started or was already running.")
         except Exception as e:
             logger.error(f"Error starting Scheduler Service: {e}", exc_info=True)
+
+        # Send update notification if needed (after everything is initialized)
+        if update_notifier_available:
+            try:
+                logger.info("Checking for update notifications...")
+                update_notifier = get_update_notifier()
+                if await update_notifier.send_update_notification(bot):
+                    logger.info("Update notification sent successfully")
+                else:
+                    logger.debug("No update notification needed")
+            except Exception as e:
+                logger.error(f"Error sending update notification: {e}", exc_info=True)
+        else:
+            logger.debug("Update notifier not available - skipping update notifications")
+
+        # Check for donation message (every 2nd Sunday of the month)
+        if donation_manager_available:
+            try:
+                logger.info("Checking for donation message...")
+                donation_manager = get_donation_manager()
+                result = await donation_manager.send_donation_message(bot)
+                if result["success"]:
+                    logger.info(f"Donation message sent: {result['message']}")
+                else:
+                    logger.debug(f"No donation message sent: {result['message']}")
+            except Exception as e:
+                logger.error(f"Error sending donation message: {e}", exc_info=True)
+        else:
+            logger.debug("Donation manager not available - skipping donation messages")
 
         _initial_startup_done = True # Prevents re-execution
         logger.info("Initialization complete.")

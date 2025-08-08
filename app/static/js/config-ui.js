@@ -1,46 +1,197 @@
-// Other initialization code...
-
-// Add handler for Docker container list refresh button
-$("#refresh-docker-list").on("click", function() {
-    const $button = $(this);
-    const $icon = $button.find("i");
-    const $statusText = $("#cache-status-text");
+// Container Info Modal functionality - Vanilla JavaScript (no jQuery)
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle info button clicks
+    document.addEventListener('click', function(event) {
+        if (event.target.closest('.info-btn')) {
+            const button = event.target.closest('.info-btn');
+            const containerName = button.getAttribute('data-container');
+            openContainerInfoModal(containerName);
+        }
+    });
     
-    // Show loading state
-    $button.prop("disabled", true);
-    $icon.addClass("spin");
-    $statusText.text("Refreshing container list...").show();
-    
-    // Make AJAX request to refresh containers
-    $.ajax({
-        url: "/refresh_containers",
-        method: "POST",
-        dataType: "json",
-        success: function(response) {
-            if (response.success) {
-                // Reload the page to show updated containers
-                window.location.reload();
-            } else {
-                $statusText.text("Error: " + (response.message || "Failed to refresh container list")).show();
-                setTimeout(() => $statusText.fadeOut(), 5000);
+    // Handle character counter for modal textarea
+    const modalTextarea = document.getElementById('modal-info-custom-text');
+    if (modalTextarea) {
+        modalTextarea.addEventListener('input', function() {
+            const length = this.value.length;
+            const counter = document.getElementById('modal-char-counter');
+            if (counter) {
+                counter.textContent = length;
+                
+                // Change color based on character count
+                if (length > 225) {
+                    counter.classList.add('text-warning');
+                } else {
+                    counter.classList.remove('text-warning');
+                }
             }
-        },
-        error: function() {
-            $statusText.text("Error: Could not connect to server").show();
-            setTimeout(() => $statusText.fadeOut(), 5000);
-        },
-        complete: function() {
-            // Reset button state
-            $button.prop("disabled", false);
-            $icon.removeClass("spin");
+        });
+    }
+    
+    // Handle save button click
+    const saveButton = document.getElementById('saveContainerInfo');
+    if (saveButton) {
+        saveButton.addEventListener('click', function() {
+            saveContainerInfo();
+        });
+    }
+    
+    // Handle container selection checkbox changes
+    document.addEventListener('change', function(event) {
+        if (event.target.classList.contains('server-checkbox')) {
+            const containerRow = event.target.closest('tr');
+            const isChecked = event.target.checked;
+            
+            // Enable/disable info button based on selection
+            const infoBtn = containerRow.querySelector('.info-btn');
+            if (infoBtn) {
+                infoBtn.disabled = !isChecked;
+            }
+            
+            // Enable/disable other form controls in the row
+            const displayNameInput = containerRow.querySelector('.display-name-input');
+            const actionCheckboxes = containerRow.querySelectorAll('.action-checkbox');
+            
+            if (displayNameInput) {
+                displayNameInput.disabled = !isChecked;
+            }
+            
+            actionCheckboxes.forEach(checkbox => {
+                checkbox.disabled = !isChecked;
+            });
         }
     });
 });
 
-// Add spin animation for the refresh icon
-$("<style>")
-    .text("@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }" +
-          ".spin { animation: spin 1s linear infinite; }")
-    .appendTo("head");
+// Function to open container info modal
+function openContainerInfoModal(containerName) {
+    // Set container name in modal
+    const modalContainerName = document.getElementById('modal-container-name');
+    const modalLabel = document.getElementById('containerInfoModalLabel');
+    
+    if (modalContainerName) {
+        modalContainerName.value = containerName;
+    }
+    
+    if (modalLabel) {
+        modalLabel.innerHTML = '<i class="bi bi-info-circle"></i> Container Info Configuration - ' + containerName;
+    }
+    
+    // Get current values from form (look for existing hidden inputs)
+    const enabledInput = document.querySelector(`input[name="info_enabled_${containerName}"]`);
+    const showIpInput = document.querySelector(`input[name="info_show_ip_${containerName}"]`);
+    const customIpInput = document.querySelector(`input[name="info_custom_ip_${containerName}"]`);
+    const customTextInput = document.querySelector(`textarea[name="info_custom_text_${containerName}"]`);
+    
+    // Set modal values (convert string values to boolean)
+    const modalEnabled = document.getElementById('modal-info-enabled');
+    const modalShowIp = document.getElementById('modal-info-show-ip');
+    const modalCustomIp = document.getElementById('modal-info-custom-ip');
+    const modalCustomText = document.getElementById('modal-info-custom-text');
+    
+    if (modalEnabled && enabledInput) {
+        modalEnabled.checked = enabledInput.value === '1';
+    }
+    
+    if (modalShowIp && showIpInput) {
+        modalShowIp.checked = showIpInput.value === '1';
+    }
+    
+    if (modalCustomIp && customIpInput) {
+        modalCustomIp.value = customIpInput.value || '';
+    }
+    
+    if (modalCustomText && customTextInput) {
+        modalCustomText.value = customTextInput.value || '';
+        
+        // Update character counter
+        const textLength = modalCustomText.value.length;
+        const counter = document.getElementById('modal-char-counter');
+        if (counter) {
+            counter.textContent = textLength;
+        }
+    }
+    
+    // Show modal using Bootstrap
+    const modal = document.getElementById('containerInfoModal');
+    if (modal && window.bootstrap) {
+        try {
+            const bootstrapModal = new bootstrap.Modal(modal);
+            bootstrapModal.show();
+        } catch (error) {
+            console.error('Error showing modal:', error);
+        }
+    } else {
+        console.error('Modal element or Bootstrap not found');
+    }
+}
 
-// Other initialization code... 
+// Function to save container info
+function saveContainerInfo() {
+    const containerName = document.getElementById('modal-container-name')?.value;
+    if (!containerName) {
+        console.error('Container name not found');
+        return;
+    }
+    
+    const formData = {
+        container_name: containerName,
+        info_enabled: document.getElementById('modal-info-enabled')?.checked ? '1' : '0',
+        info_show_ip: document.getElementById('modal-info-show-ip')?.checked ? '1' : '0',
+        info_custom_ip: document.getElementById('modal-info-custom-ip')?.value || '',
+        info_custom_text: document.getElementById('modal-info-custom-text')?.value || ''
+    };
+    
+    // Update the corresponding form inputs (hidden inputs)
+    const enabledInput = document.querySelector(`input[name="info_enabled_${containerName}"]`);
+    const showIpInput = document.querySelector(`input[name="info_show_ip_${containerName}"]`);
+    const customIpInput = document.querySelector(`input[name="info_custom_ip_${containerName}"]`);
+    const customTextInput = document.querySelector(`textarea[name="info_custom_text_${containerName}"]`);
+    
+    if (enabledInput) enabledInput.value = formData.info_enabled;
+    if (showIpInput) showIpInput.value = formData.info_show_ip;
+    if (customIpInput) customIpInput.value = formData.info_custom_ip;
+    if (customTextInput) customTextInput.value = formData.info_custom_text;
+    
+    // Hide modal
+    const modal = document.getElementById('containerInfoModal');
+    if (modal && window.bootstrap) {
+        const bootstrapModal = bootstrap.Modal.getInstance(modal);
+        if (bootstrapModal) {
+            bootstrapModal.hide();
+        }
+    }
+    
+    // Show success message
+    showToast('Container info updated successfully!', 'success');
+}
+
+// Toast notification function
+function showToast(message, type = 'info') {
+    const toastClass = type === 'success' ? 'text-success' : type === 'error' ? 'text-danger' : 'text-info';
+    const iconClass = type === 'success' ? 'bi-check-circle' : type === 'error' ? 'bi-exclamation-triangle' : 'bi-info-circle';
+    
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed top-0 end-0 p-3';
+    toast.style.zIndex = '1055';
+    
+    toast.innerHTML = `
+        <div class="toast show" role="alert">
+            <div class="toast-body ${toastClass}">
+                <i class="bi ${iconClass}"></i> ${message}
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => {
+            if (document.body.contains(toast)) {
+                document.body.removeChild(toast);
+            }
+        }, 300);
+    }, 3000);
+}

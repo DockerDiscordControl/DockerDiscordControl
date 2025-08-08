@@ -22,6 +22,8 @@ import pytz
 # Import auth from app.auth
 from app.auth import auth 
 from utils.config_loader import load_config, save_config, DEFAULT_CONFIG # Import DEFAULT_CONFIG
+
+from app.utils.container_info_web_handler import save_container_info_from_web, load_container_info_for_web
 from app.utils.web_helpers import (
     log_user_action, 
     get_docker_containers_live,
@@ -37,6 +39,7 @@ from utils.scheduler import (
     DAYS_OF_WEEK
 )
 from utils.action_logger import log_user_action
+from utils.spam_protection_manager import get_spam_protection_manager
 
 # Define COMMON_TIMEZONES here if it's only used by routes in this blueprint
 # Or import it if it's defined centrally and used by multiple blueprints
@@ -53,283 +56,360 @@ main_bp = Blueprint('main_bp', __name__)
 
 # Heartbeat Monitor Script Generator Functions
 def generate_python_monitor_script(form_data):
-    """Generate a Python-based heartbeat monitor script"""
-    # Extract configuration
-    monitor_bot_token = form_data.get('monitor_bot_token', '')
-    ddc_bot_user_id = form_data.get('ddc_bot_user_id', '')
-    heartbeat_channel_id = form_data.get('heartbeat_channel_id', '')
-    alert_channel_ids = form_data.get('alert_channel_ids', '')
-    monitor_timeout_seconds = form_data.get('monitor_timeout_seconds', '271')  # Default: ~4.5 minutes
-    
-    # Format the alert channel IDs as a Python list
-    formatted_alert_channels = [ch.strip() for ch in alert_channel_ids.split(',') if ch.strip()]
-    alert_channels_str = ", ".join([f"'{ch}'" for ch in formatted_alert_channels])
-    
-    # Generate the script content
+    """Generate a REST-only Python heartbeat monitor script (no Gateway).
+    Uses plain string assembly to avoid brace-escaping issues.
+    """
+    monitor_bot_token = (form_data.get('monitor_bot_token', '') or '').strip()
+    alert_webhook_url = (form_data.get('alert_webhook_url', '') or '').strip()
+
+    raw_ddc_id = (form_data.get('ddc_bot_user_id', '') or '').strip()
+    raw_channel_id = (form_data.get('heartbeat_channel_id', '') or '').strip()
+    ddc_id = int(''.join(ch for ch in raw_ddc_id if ch.isdigit()) or '0')
+    channel_id = int(''.join(ch for ch in raw_channel_id if ch.isdigit()) or '0')
+
+    try:
+        timeout_val = int(str(form_data.get('monitor_timeout_seconds', '271')).strip() or '271')
+        if timeout_val < 60:
+            timeout_val = 60
+    except Exception:
+        timeout_val = 271
+
+    alert_ids_raw = form_data.get('alert_channel_ids', '')
+    alert_ids = []
+    for ch in (alert_ids_raw or '').split(','):
+        digits = ''.join(c for c in ch.strip() if c.isdigit())
+        if digits:
+            alert_ids.append(int(digits))
+
     current_time = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
-    script = f"""#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-'''
-DockerDiscordControl (DDC) Heartbeat Monitor Script
-===================================================
 
-This script monitors Discord for heartbeat messages sent by the DDC bot
-and sends alerts if the heartbeat is missing for too long.
-
-Generated on: {current_time}
-
-Setup Instructions:
-1. Install requirements: pip install discord.py
-2. Run this script on a separate system from your DDC bot
-3. Keep this script running continuously (using systemd, screen, tmux, etc.)
-'''
-
-import asyncio
-import datetime
-import logging
-import sys
-import time
-from typing import List, Optional
-
-try:
-    import discord
-    from discord.ext import tasks
-except ImportError:
-    print("Error: This script requires discord.py. Please install it with: pip install discord.py")
-    sys.exit(1)
-
-# === Configuration ===
-BOT_TOKEN = '{monitor_bot_token}'
-DDC_BOT_USER_ID = {ddc_bot_user_id}
-HEARTBEAT_CHANNEL_ID = {heartbeat_channel_id}
-ALERT_CHANNEL_IDS = [{alert_channels_str}]
-HEARTBEAT_TIMEOUT_SECONDS = {monitor_timeout_seconds}
-
+    lines = []
+    lines.append("#!/usr/bin/env python3\n")
+    lines.append("# -*- coding: utf-8 -*-\n")
+    lines.append("'''\n")
+    lines.append("DockerDiscordControl (DDC) Heartbeat Monitor Script (REST-only)\n")
+    lines.append("===============================================================\n\n")
+    lines.append("Monitors the heartbeat messages sent by the DDC bot by polling Discord's REST API.\n")
+    lines.append("No Gateway/WebSocket connection is opened, so you can reuse the same bot token.\n\n")
+    lines.append("Generated on: " + current_time + "\n\n")
+    lines.append("Requirements:\n  pip install requests\n")
+    lines.append("'''\n\n")
+    lines.append("import logging\nimport sys\nimport time\nfrom datetime import datetime, timezone\nimport requests\n\n")
+    lines.append("# === Configuration ===\n")
+    lines.append("BOT_TOKEN = " + repr(monitor_bot_token) + "\n")
+    lines.append("DDC_BOT_USER_ID = " + str(ddc_id) + "\n")
+    lines.append("HEARTBEAT_CHANNEL_ID = " + str(channel_id) + "\n")
+    lines.append("ALERT_CHANNEL_IDS = " + repr(alert_ids) + "\n")
+    lines.append("ALERT_WEBHOOK_URL = " + repr(alert_webhook_url) + "\n")
+    lines.append("HEARTBEAT_TIMEOUT_SECONDS = " + str(timeout_val) + "\n")
+    lines.append("API_BASE = 'https://discord.com/api/v10'\n\n")
+    # Core script (no formatting braces processed here)
+    core = """
 # === Logging Setup ===
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('ddc_heartbeat_monitor.log')
-    ]
-)
-logger = logging.getLogger('ddc_monitor')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger('ddc_monitor_rest')
 
-class HeartbeatMonitor(discord.Client):
-    def __init__(self, *args, **kwargs):
-        # RAM-OPTIMIZED: Minimal intents for Web UI bot
-        intents = discord.Intents.none()
-        intents.guilds = True            # Required for guild access
-        intents.message_content = True   # Required for message content
-        super().__init__(intents=intents, *args, **kwargs)
-        
-        # State tracking
-        self.last_heartbeat_time = None
-        self.alert_sent = False
-        self.start_time = datetime.now(timezone.utc)
-        
-        # Start monitoring loop
-        self.heartbeat_check.start()
-    
-    async def on_ready(self):
-        '''Called when the client is ready'''
-        logger.info(f"Monitor logged in as {{self.user}} (ID: {{self.user.id}})")
-        logger.info(f"Monitoring heartbeats from DDC bot ID: {{DDC_BOT_USER_ID}}")
-        logger.info(f"Watching channel: {{HEARTBEAT_CHANNEL_ID}}")
-        logger.info(f"Will send alerts to channel(s): {{ALERT_CHANNEL_IDS}}")
-        logger.info(f"Heartbeat timeout: {{HEARTBEAT_TIMEOUT_SECONDS}} seconds")
-        
-        # Send startup notification
-        await self._send_to_alert_channels(
-            title="🔄 Heartbeat Monitoring Started",
-            description=f"DDC Heartbeat monitoring is now active.\\nMonitoring DDC bot: <@{{DDC_BOT_USER_ID}}>\\nAlert timeout: {{HEARTBEAT_TIMEOUT_SECONDS}} seconds",
-            color=discord.Color.blue()
-        )
-    
-    async def on_message(self, message):
-        '''Called when a message is received'''
-        # Check if message is from DDC bot and in the heartbeat channel
-        if (message.author.id == DDC_BOT_USER_ID and 
-            message.channel.id == HEARTBEAT_CHANNEL_ID and
-            "❤️" in message.content):
-            
-            # Update last heartbeat time
-            self.last_heartbeat_time = datetime.now(timezone.utc)
-            logger.debug(f"Heartbeat detected at {{self.last_heartbeat_time.isoformat()}}")
-            
-            # If we previously sent an alert, send recovery notification
-            if self.alert_sent:
-                self.alert_sent = False
-                logger.info("Heartbeat recovered after previous alert")
-                await self._send_to_alert_channels(
-                    title="✅ DDC Heartbeat Recovered",
-                    description=f"Heartbeat from DDC bot <@{{DDC_BOT_USER_ID}}> has been restored.\\n\\nMonitoring continues.",
-                    color=discord.Color.green()
-                )
-    
-    async def _send_to_alert_channels(self, title, description, color):
-        '''Send a message to all configured alert channels'''
-        embed = discord.Embed(
-            title=title,
-            description=description,
-            color=color,
-                            timestamp=datetime.now(timezone.utc)
-        )
-        embed.set_footer(text="DDC Heartbeat Monitor | https://ddc.bot")
-        
-        for channel_id in ALERT_CHANNEL_IDS:
-            try:
-                channel = self.get_channel(int(channel_id))
-                if not channel:
-                    channel = await self.fetch_channel(int(channel_id))
-                await channel.send(embed=embed)
-                logger.info(f"Notification sent to channel {{channel_id}}")
-            except Exception as e:
-                logger.error(f"Error sending to channel {{channel_id}}: {{e}}")
-    
-    @tasks.loop(seconds=30)
-    async def heartbeat_check(self):
-        '''Check if heartbeat has been received within the timeout period'''
-        now = datetime.now(timezone.utc)
-        
-        if not self.last_heartbeat_time:
-            # No heartbeat received yet since startup
-            startup_seconds = (now - self.start_time).total_seconds()
-            if startup_seconds > HEARTBEAT_TIMEOUT_SECONDS and not self.alert_sent:
-                logger.warning(f"No initial heartbeat received {{startup_seconds:.1f}} seconds after startup")
-                await self._send_alert()
-        else:
-            # Check time since last heartbeat
-            elapsed = (now - self.last_heartbeat_time).total_seconds()
-            if elapsed > HEARTBEAT_TIMEOUT_SECONDS and not self.alert_sent:
-                await self._send_alert()
-    
-    async def _send_alert(self):
-        '''Send missing heartbeat alert to all configured channels'''
-        if self.alert_sent:
-            return  # Don't spam alerts
-        
-        # Calculate elapsed time
-        now = datetime.now(timezone.utc)
-        if self.last_heartbeat_time:
-            elapsed_seconds = (now - self.last_heartbeat_time).total_seconds()
-            last_heartbeat_time_str = self.last_heartbeat_time.isoformat()
-        else:
-            elapsed_seconds = (now - self.start_time).total_seconds()
-            last_heartbeat_time_str = "Never"
-        
-        logger.warning(f"Heartbeat missing for {{elapsed_seconds:.1f}} seconds, sending alert")
-        
-        await self._send_to_alert_channels(
-            title="⚠️ DDC Heartbeat Missing",
-            description=(f"❌ No heartbeat detected from DDC bot <@{{DDC_BOT_USER_ID}}> "
-                        f"for {{elapsed_seconds:.1f}} seconds.\\n\\n"
-                        f"Last heartbeat: {{last_heartbeat_time_str}}\\n\\n"
-                        f"**Possible causes:**\\n"
-                        f"• DDC container is down\\n"
-                        f"• Discord bot has lost connection\\n"
-                        f"• Discord API issues\\n"
-                        f"• Missing permissions in heartbeat channel"),
-            color=discord.Color.red()
-        )
-        
-        self.alert_sent = True
-    
-    @heartbeat_check.before_loop
-    async def before_heartbeat_check(self):
-        '''Wait until the bot is ready before starting the loop'''
-        await self.wait_until_ready()
+session = requests.Session()
+session.headers.update({'Authorization': f'Bot {BOT_TOKEN}', 'Content-Type': 'application/json'})
 
-async def main():
-    '''Main entry point for the script'''
-    logger.info("Starting DDC Heartbeat Monitor")
-    
-    # Validate configuration
-    if not BOT_TOKEN or BOT_TOKEN == 'YOUR_BOT_TOKEN':
-        logger.error("Invalid bot token. Please set a valid token.")
-        return
-    
-    if not ALERT_CHANNEL_IDS:
-        logger.error("No alert channels specified. Please configure at least one alert channel.")
-        return
-    
-    # Create and start the client
-    client = HeartbeatMonitor()
-    
+def resolve_ddc_bot_user_id() -> int:
     try:
-        await client.start(BOT_TOKEN)
-    except discord.LoginFailure:
-        logger.error("Failed to login. Please check your bot token.")
+        url = f"{API_BASE}/users/@me"
+        resp = session.get(url, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        return int(data.get('id', 0))
     except Exception as e:
-        logger.error(f"Error starting bot: {{e}}", exc_info=True)
-    finally:
-        logger.info("Bot is shutting down")
-        if not client.is_closed():
-            await client.close()
+        logger.warning(f'Failed to resolve bot user ID: {e}')
+        return 0
 
-if __name__ == "__main__":
+def _parse_discord_timestamp(iso_ts: str) -> datetime:
+    if not iso_ts:
+        return datetime.now(timezone.utc)
+    if iso_ts.endswith('Z'):
+        iso_ts = iso_ts[:-1] + '+00:00'
     try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Received keyboard interrupt, shutting down")
-    except Exception as e:
-        logger.error(f"Unhandled exception: {{e}}", exc_info=True)
+        dt = datetime.fromisoformat(iso_ts)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except Exception:
+        return datetime.now(timezone.utc)
+
+def fetch_recent_messages(channel_id: int, limit: int = 20):
+    url = f"{API_BASE}/channels/{channel_id}/messages?limit={limit}"
+    resp = session.get(url, timeout=15)
+    resp.raise_for_status()
+    return resp.json()
+
+def find_last_heartbeat_timestamp(messages):
+    for msg in messages:
+        try:
+            author = int(msg.get('author', {}).get('id', 0))
+            content = msg.get('content') or ''
+            if author == DDC_BOT_USER_ID and '❤️' in content:
+                return _parse_discord_timestamp(msg.get('timestamp'))
+        except Exception:
+            continue
+    return None
+
+def send_alert_message(content: str):
+    if ALERT_WEBHOOK_URL:
+        try:
+            session.post(ALERT_WEBHOOK_URL, json={'content': content}, timeout=10)
+            logger.info('Alert sent via webhook')
+            return
+        except Exception as e:
+            logger.warning(f'Webhook alert failed: {e}')
+    for channel_id in ALERT_CHANNEL_IDS:
+        try:
+            url = f"{API_BASE}/channels/{channel_id}/messages"
+            session.post(url, json={'content': content}, timeout=15)
+            logger.info(f'Alert sent to channel {channel_id}')
+        except Exception as e:
+            logger.warning(f'Failed to send alert to channel {channel_id}: {e}')
+
+def main():
+    logger.info('Starting DDC Heartbeat Monitor (REST-only)')
+    if not BOT_TOKEN:
+        logger.error('BOT_TOKEN is required')
         sys.exit(1)
+    if HEARTBEAT_CHANNEL_ID <= 0:
+        logger.error('HEARTBEAT_CHANNEL_ID must be set')
+        sys.exit(1)
+    global DDC_BOT_USER_ID
+    if DDC_BOT_USER_ID <= 0:
+        tmp_id = resolve_ddc_bot_user_id()
+        if tmp_id > 0:
+            DDC_BOT_USER_ID = tmp_id
+            logger.info(f'Resolved DDC bot user ID via REST: {tmp_id}')
+        else:
+            logger.error('Could not resolve DDC bot user ID via REST; please provide it manually')
+            sys.exit(1)
+    if not ALERT_WEBHOOK_URL and not ALERT_CHANNEL_IDS:
+        logger.warning('No ALERT_WEBHOOK_URL or ALERT_CHANNEL_IDS configured; alerts will not be delivered')
+
+    alert_sent = False
+    last_heartbeat = None
+    try:
+        msgs = fetch_recent_messages(HEARTBEAT_CHANNEL_ID, limit=25)
+        last_heartbeat = find_last_heartbeat_timestamp(msgs)
+        if last_heartbeat:
+            logger.info(f'Initialized last heartbeat from history: {last_heartbeat.isoformat()}')
+        else:
+            logger.info('No heartbeat found in recent history during initialization')
+    except Exception as e:
+        logger.warning(f'Initialization failed: {e}')
+
+    while True:
+        try:
+            msgs = fetch_recent_messages(HEARTBEAT_CHANNEL_ID, limit=20)
+            candidate = find_last_heartbeat_timestamp(msgs)
+            now = datetime.now(timezone.utc)
+
+            if candidate:
+                if not last_heartbeat or candidate > last_heartbeat:
+                    last_heartbeat = candidate
+                    logger.debug(f'Updated last heartbeat to {last_heartbeat.isoformat()}')
+                if alert_sent:
+                    send_alert_message('✅ DDC Heartbeat Recovered')
+                    alert_sent = False
+
+            if last_heartbeat:
+                elapsed = (now - last_heartbeat).total_seconds()
+            else:
+                elapsed = HEARTBEAT_TIMEOUT_SECONDS + 1
+
+            if elapsed > HEARTBEAT_TIMEOUT_SECONDS and not alert_sent:
+                send_alert_message(f'⚠️ DDC Heartbeat Missing: no heartbeat for {int(elapsed)}s (channel {HEARTBEAT_CHANNEL_ID})')
+                alert_sent = True
+
+        except requests.HTTPError as http_err:
+            logger.warning(f'HTTP error: {http_err}')
+        except Exception as e:
+            logger.warning(f'Unexpected error: {e}')
+        finally:
+            time.sleep(30)
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        logger.info('Shutting down')
+        sys.exit(0)
 """
-    return script
+    lines.append(core)
+    return ''.join(lines)
 
 # Keep these as simple placeholders
 def generate_bash_monitor_script(form_data):
-    """Generate a simplified Bash-based heartbeat monitor script placeholder"""
+    """Generate a Bash-based heartbeat monitor script (requires curl + jq + GNU date)."""
     current_time = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
+
+    # Use existing bot token from configuration (no separate input)
+    try:
+        from utils.config_cache import get_cached_config
+        cfg = get_cached_config() or {}
+        token = (cfg.get('bot_token_decrypted_for_usage') or cfg.get('bot_token') or '')
+    except Exception:
+        token = ''
+    raw_ddc_id = (form_data.get('ddc_bot_user_id', '') or '').strip()
+    raw_channel_id = (form_data.get('heartbeat_channel_id', '') or '').strip()
+    webhook = (form_data.get('alert_webhook_url', '') or '').strip()
+    timeout_raw = (form_data.get('monitor_timeout_seconds', '271') or '271').strip()
+
+    ddc_id = ''.join(ch for ch in raw_ddc_id if ch.isdigit()) or '0'
+    channel_id = ''.join(ch for ch in raw_channel_id if ch.isdigit()) or '0'
+    try:
+        timeout_val = max(60, int(timeout_raw))
+    except Exception:
+        timeout_val = 271
+
     return f"""#!/bin/bash
+set -euo pipefail
+
 # DockerDiscordControl (DDC) Heartbeat Monitor Script (Bash version)
 # Generated on: {current_time}
 #
-# This is a simplified placeholder script.
-# For full functionality, please use the Python monitor script instead.
+# Requirements:
+# - curl, jq, GNU date (Linux). On macOS, install coreutils (gdate) and adjust DATE_CMD.
+#
+# Configuration
+MONITOR_BOT_TOKEN='{token}'
+DDC_BOT_USER_ID={ddc_id}
+HEARTBEAT_CHANNEL_ID={channel_id}
+ALERT_WEBHOOK_URL='{webhook}'
+HEARTBEAT_TIMEOUT_SECONDS={timeout_val}
+API_VERSION=v10
 
-echo "DockerDiscordControl Heartbeat Monitor (Bash)"
-echo "This is a placeholder. For full monitoring functionality, please use the Python script."
-echo ""
-echo "The Python script provides the following benefits:"
-echo "- Reliable Discord API connection"
-echo "- Proper heartbeat detection"
-echo "- Automatic alerts when heartbeats are missed"
-echo "- Recovery notifications"
+# Commands (adjust DATE_CMD to 'gdate' on macOS if needed)
+DATE_CMD=date
 
-# Configuration:
-DISCORD_WEBHOOK_URL="{form_data.get('alert_webhook_url', '')}"
-DDC_BOT_USER_ID="{form_data.get('ddc_bot_user_id', '')}"
-HEARTBEAT_CHANNEL_ID="{form_data.get('heartbeat_channel_id', '')}"
+log() {{ echo "[DDC-MONITOR] $1"; }}
+
+if [[ -z "$MONITOR_BOT_TOKEN" || -z "$ALERT_WEBHOOK_URL" ]]; then
+  log "ERROR: MONITOR_BOT_TOKEN and ALERT_WEBHOOK_URL are required."
+  exit 1
+fi
+
+fetch_messages() {{
+  curl -sS -H "Authorization: Bot $MONITOR_BOT_TOKEN" \
+       -H "Content-Type: application/json" \
+       "https://discord.com/api/$API_VERSION/channels/$HEARTBEAT_CHANNEL_ID/messages?limit=20"
+}}
+
+send_alert() {{
+  local elapsed="$1"; local last_ts="$2"
+  local payload
+  payload=$(jq -n --arg content "⚠️ DDC Heartbeat Missing: No heartbeat from <@$DDC_BOT_USER_ID> for ${{elapsed}}s. Last: ${{last_ts}}" '{{content: $content}}')
+  curl -sS -H "Content-Type: application/json" -X POST -d "$payload" "$ALERT_WEBHOOK_URL" >/dev/null || true
+  log "Alert sent via webhook"
+}}
+
+resp=$(fetch_messages)
+if echo "$resp" | jq -e . >/dev/null 2>&1; then
+  :
+else
+  log "ERROR: Failed to parse Discord API response."
+  exit 1
+fi
+
+# Find latest heartbeat message from the DDC bot containing the heart symbol
+last_ts=$(echo "$resp" | jq -r "[ .[] | select(.author.id==\"$DDC_BOT_USER_ID\" and (.content|tostring|contains(\"❤️\"))) ][0].timestamp")
+
+now_epoch=$($DATE_CMD -u +%s)
+if [[ "$last_ts" == "null" || -z "$last_ts" ]]; then
+  # No heartbeat found in recent history; treat as missing
+  send_alert "$HEARTBEAT_TIMEOUT_SECONDS" "Never"
+  exit 0
+fi
+
+# Convert ISO timestamp to epoch seconds (GNU date)
+last_epoch=$($DATE_CMD -u -d "$last_ts" +%s 2>/dev/null || echo 0)
+if [[ "$last_epoch" == "0" ]]; then
+  log "WARNING: Could not parse timestamp '$last_ts'"
+  send_alert "$HEARTBEAT_TIMEOUT_SECONDS" "$last_ts"
+  exit 0
+fi
+
+elapsed=$(( now_epoch - last_epoch ))
+log "Last heartbeat at $last_ts (elapsed ${{elapsed}}s)"
+
+if (( elapsed > HEARTBEAT_TIMEOUT_SECONDS )); then
+  send_alert "$elapsed" "$last_ts"
+else
+  log "Heartbeat OK"
+fi
 """
 
 def generate_batch_monitor_script(form_data):
-    """Generate a simplified Windows Batch heartbeat monitor script placeholder"""
+    """Generate a Windows Batch heartbeat monitor script (uses PowerShell for JSON)."""
     current_time = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
+
+    try:
+        from utils.config_cache import get_cached_config
+        cfg = get_cached_config() or {}
+        token = (cfg.get('bot_token_decrypted_for_usage') or cfg.get('bot_token') or '')
+    except Exception:
+        token = ''
+    raw_ddc_id = (form_data.get('ddc_bot_user_id', '') or '').strip()
+    raw_channel_id = (form_data.get('heartbeat_channel_id', '') or '').strip()
+    webhook = (form_data.get('alert_webhook_url', '') or '').strip()
+    timeout_raw = (form_data.get('monitor_timeout_seconds', '271') or '271').strip()
+
+    ddc_id = ''.join(ch for ch in raw_ddc_id if ch.isdigit()) or '0'
+    channel_id = ''.join(ch for ch in raw_channel_id if ch.isdigit()) or '0'
+    try:
+        timeout_val = max(60, int(timeout_raw))
+    except Exception:
+        timeout_val = 271
+
     return f"""@echo off
-rem DockerDiscordControl (DDC) Heartbeat Monitor Script (Windows Batch version)
-rem Generated on: {current_time}
-rem
-rem This is a simplified placeholder script.
-rem For full functionality, please use the Python monitor script instead.
+REM DockerDiscordControl (DDC) Heartbeat Monitor Script (Windows Batch)
+REM Generated on: {current_time}
 
-echo DockerDiscordControl Heartbeat Monitor (Windows Batch)
-echo This is a placeholder. For full monitoring functionality, please use the Python script.
-echo.
-echo The Python script provides the following benefits:
-echo - Reliable Discord API connection
-echo - Proper heartbeat detection
-echo - Automatic alerts when heartbeats are missed
-echo - Recovery notifications
+set "MONITOR_BOT_TOKEN={token}"
+set "DDC_BOT_USER_ID={ddc_id}"
+set "HEARTBEAT_CHANNEL_ID={channel_id}"
+set "ALERT_WEBHOOK_URL={webhook}"
+set "HEARTBEAT_TIMEOUT_SECONDS={timeout_val}"
 
-rem Configuration:
-set "DISCORD_WEBHOOK_URL={form_data.get('alert_webhook_url', '')}"
-set "DDC_BOT_USER_ID={form_data.get('ddc_bot_user_id', '')}"
-set "HEARTBEAT_CHANNEL_ID={form_data.get('heartbeat_channel_id', '')}"
+if "%MONITOR_BOT_TOKEN%"=="" (
+  echo [DDC-MONITOR] ERROR: MONITOR_BOT_TOKEN is required.
+  exit /b 1
+)
+if "%ALERT_WEBHOOK_URL%"=="" (
+  echo [DDC-MONITOR] ERROR: ALERT_WEBHOOK_URL is required.
+  exit /b 1
+)
 
-pause
+powershell -NoProfile -Command ^
+  "$headers = @{{ \"Authorization\" = \"Bot $env:MONITOR_BOT_TOKEN\" }}; ^
+   $url = \"https://discord.com/api/v10/channels/$env:HEARTBEAT_CHANNEL_ID/messages?limit=20\"; ^
+   try {{ ^
+     $resp = Invoke-RestMethod -Method GET -Headers $headers -Uri $url -ErrorAction Stop; ^
+   }} catch {{ ^
+     Write-Host \"[DDC-MONITOR] ERROR: Failed to fetch messages: $($_.Exception.Message)\"; exit 1 ^
+   }}; ^
+   $ddcId = [int64]$env:DDC_BOT_USER_ID; ^
+   $hb = $resp | Where-Object {{ $_.author.id -eq $ddcId -and $_.content -like '*❤️*' }} | Select-Object -First 1; ^
+   $now = Get-Date; ^
+   if (-not $hb) {{ ^
+     $payload = {{ content = \"⚠️ DDC Heartbeat Missing: No heartbeat from <@$env:DDC_BOT_USER_ID>.\" }} | ConvertTo-Json; ^
+     try {{ Invoke-RestMethod -Method POST -ContentType 'application/json' -Uri $env:ALERT_WEBHOOK_URL -Body $payload }} catch {{ }}; ^
+     Write-Host \"[DDC-MONITOR] Alert sent (no heartbeat in history).\"; ^
+     exit 0 ^
+   }}; ^
+   $ts = Get-Date $hb.timestamp; ^
+   $elapsed = [int]($now.ToUniversalTime() - $ts.ToUniversalTime()).TotalSeconds; ^
+   Write-Host \"[DDC-MONITOR] Last heartbeat at $($ts.ToString('o')) (elapsed $elapsed s)\"; ^
+   if ($elapsed -gt [int]$env:HEARTBEAT_TIMEOUT_SECONDS) {{ ^
+     $payload = @{{ content = \"⚠️ DDC Heartbeat Missing: \" + $elapsed + \"s since last heartbeat from <@$env:DDC_BOT_USER_ID>.\" }} | ConvertTo-Json; ^
+     try {{ Invoke-RestMethod -Method POST -ContentType 'application/json' -Uri $env:ALERT_WEBHOOK_URL -Body $payload }} catch {{ }}; ^
+     Write-Host \"[DDC-MONITOR] Alert sent via webhook.\" ^
+   }} else {{ ^
+     Write-Host \"[DDC-MONITOR] Heartbeat OK.\" ^
+   }}"
 """
 
 @main_bp.route('/', methods=['GET'])
@@ -486,6 +566,10 @@ def config_page():
             'last_run_success': task.last_run_success
         })
     
+    # Load container info from separate JSON files
+    container_names = [container.get("name", "Unknown") for container in live_containers_list] if live_containers_list else []
+    container_info_data = load_container_info_for_web(container_names)
+    
     return render_template('config.html', 
                            config=config,
                            common_timezones=COMMON_TIMEZONES, # Use imported COMMON_TIMEZONES
@@ -493,6 +577,7 @@ def config_page():
                            all_containers=live_containers_list,  # Renamed from 'containers' to 'all_containers'
                            configured_servers=configured_servers,  # Added
                            active_container_names=active_container_names, # NEW Added
+                           container_info_data=container_info_data,  # Container info from JSON files
                            cache_error=cache_error,
                            docker_cache=docker_cache,  # Pass the entire docker_cache for direct access in template
                            last_cache_update=last_cache_update,
@@ -606,8 +691,18 @@ def save_config_api():
         saved_files = []
         
         if success:
-            # Save configuration
+            # Save main configuration
             save_config(processed_data)
+            
+            # Save container info to separate JSON files
+            container_names = []
+            if 'servers' in processed_data:
+                container_names = [server.get('docker_name') for server in processed_data['servers'] if server.get('docker_name')]
+            
+            # Save container info to separate JSON files
+            if container_names:
+                info_results = save_container_info_from_web(cleaned_form_data, container_names)
+                logger.info(f"Container info save results: {info_results}")
             
             # Invalidate caches if critical settings changed
             if critical_settings_changed:
@@ -746,20 +841,25 @@ def download_monitor_script():
         script_type = form_data.get('script_type', 'python')
         
         # Validate basic fields (common to all scripts)
-        if not heartbeat_channel_id or not ddc_bot_user_id:
-            logger.warning("Missing required fields for monitor script generation")
-            flash("Heartbeat Channel ID and DDC Bot User ID are required.", "warning")
+        if not heartbeat_channel_id:
+            logger.warning("Missing required field: heartbeat_channel_id")
+            flash("Heartbeat Channel ID is required.", "warning")
             return redirect(url_for('.config_page'))
         
         # Validate script-specific fields
         if script_type == 'python' and not monitor_bot_token:
-            logger.warning("Missing bot token for Python script")
-            flash("Bot Token is required for the Python script.", "warning")
+            logger.warning("Missing bot token for Python REST monitor script")
+            flash("Bot Token is required for the Python REST monitor script.", "warning")
             return redirect(url_for('.config_page'))
-        elif (script_type in ['bash', 'batch']) and not alert_webhook_url:
-            logger.warning("Missing webhook URL for shell scripts")
-            flash("Webhook URL is required for Shell scripts.", "warning")
-            return redirect(url_for('.config_page'))
+        elif script_type in ['bash', 'batch']:
+            if not alert_webhook_url:
+                logger.warning("Missing webhook URL for shell scripts")
+                flash("Webhook URL is required for Shell scripts.", "warning")
+                return redirect(url_for('.config_page'))
+            if not monitor_bot_token:
+                logger.warning("Missing bot token for shell scripts (required to resolve bot ID via REST)")
+                flash("Bot Token is required for Shell scripts to resolve the bot user ID.", "warning")
+                return redirect(url_for('.config_page'))
         
         # Generate the appropriate script content
         if script_type == 'python':
@@ -1089,6 +1189,48 @@ def performance_stats():
             'success': False,
             'message': "Error getting performance statistics. Please check the logs for details."
         })
+
+@main_bp.route('/api/spam-protection', methods=['GET'])
+@auth.login_required
+def get_spam_protection():
+    """Get current spam protection settings."""
+    try:
+        spam_manager = get_spam_protection_manager()
+        settings = spam_manager.load_settings()
+        return jsonify(settings)
+    except Exception as e:
+        current_app.logger.error(f"Error getting spam protection settings: {e}")
+        return jsonify({'error': 'Failed to load spam protection settings'}), 500
+
+@main_bp.route('/api/spam-protection', methods=['POST'])
+@auth.login_required
+def save_spam_protection():
+    """Save spam protection settings."""
+    try:
+        settings = request.get_json()
+        if not settings:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        spam_manager = get_spam_protection_manager()
+        success = spam_manager.save_settings(settings)
+        
+        if success:
+            # Log the action
+            log_user_action(
+                user_id="web_admin",
+                action_type="config_update",
+                details={
+                    'setting': 'spam_protection',
+                    'enabled': settings.get('global_settings', {}).get('enabled', True)
+                }
+            )
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to save settings'}), 500
+            
+    except Exception as e:
+        current_app.logger.error(f"Error saving spam protection settings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @main_bp.route('/port_diagnostics', methods=['GET'])
 @auth.login_required

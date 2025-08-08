@@ -151,8 +151,17 @@ class CommandHandlersMixin:
     
     async def _impl_info_edit(self, ctx: discord.ApplicationContext, container_name: str):
         """
-        Implementation of the info edit command.
-        Opens a modal to edit container information.
+        LEGACY: Implementation of the old info edit command.
+        This is kept for backward compatibility with /ddc info edit command.
+        For new functionality, use _impl_info_edit_new instead.
+        """
+        # Delegate to the new implementation
+        await self._impl_info_edit_new(ctx, container_name)
+    
+    async def _impl_info_edit_new(self, ctx: discord.ApplicationContext, container_name: str):
+        """
+        Enhanced implementation of the info edit command using separate JSON files.
+        Opens a modal to edit container information stored in individual JSON files.
         
         Parameters:
         - ctx: Discord ApplicationContext
@@ -169,39 +178,108 @@ class CommandHandlersMixin:
             await ctx.respond(_("You do not have permission to edit container info in this channel."), ephemeral=True)
             return
 
-        # Find server configuration
+        # Find server configuration to get display name
         docker_name = container_name
         server_conf = next((s for s in config.get('servers', []) if s.get('docker_name') == docker_name), None)
-
-        if not server_conf:
-            await ctx.respond(_("Error: Server configuration for '{docker_name}' not found.").format(docker_name=docker_name), ephemeral=True)
-            return
-
-        display_name = server_conf.get('name', docker_name)
-        info_config = server_conf.get('info', {})
-
-        # Check if info is enabled
-        if not info_config.get('enabled', False):
-            await ctx.respond(_("Container info is not enabled for **{display_name}**. Enable it in the web UI first.").format(display_name=display_name), ephemeral=True)
-            return
+        
+        display_name = server_conf.get('name', docker_name) if server_conf else docker_name
 
         # Log the action
-        logger.info(f"Info edit for {display_name} requested by {ctx.author} in {ctx.channel.name}")
+        logger.info(f"Enhanced info edit for {display_name} requested by {ctx.author} in {ctx.channel.name}")
         log_user_action(
-            action="INFO_EDIT_CMD", 
+            action="INFO_EDIT_CMD_NEW", 
             target=display_name, 
             user=str(ctx.author), 
             source="Discord Command", 
-            details=f"Channel: {ctx.channel.name}"
+            details=f"Channel: {ctx.channel.name}, Container: {docker_name}"
         )
 
-        # Create and show modal
-        from .control_ui import ContainerInfoModal
-        modal = ContainerInfoModal(
-            self,
-            server_conf,
-            info_config,
-            can_edit=True
-        )
+        # Create and show simplified modal (single dialog with all options)
+        try:
+            logger.info(f"Attempting to import SimplifiedContainerInfoModal...")
+            from .enhanced_info_modal_simple import SimplifiedContainerInfoModal
+            logger.info(f"Import successful")
+            
+            logger.info(f"Creating modal instance for {docker_name}...")
+            modal = SimplifiedContainerInfoModal(
+                self,
+                container_name=docker_name,
+                display_name=display_name
+            )
+            logger.info(f"Modal created successfully: {modal}")
+            logger.info(f"Modal title: {modal.title}")
+            logger.info(f"Modal children count: {len(modal.children)}")
+            
+            logger.info(f"Attempting to send modal...")
+            await ctx.response.send_modal(modal)
+            logger.info(f"Modal sent successfully")
+            
+        except ImportError as e:
+            logger.error(f"Import error: {e}", exc_info=True)
+            await ctx.respond(f"Error loading modal module: {str(e)}", ephemeral=True)
+        except Exception as e:
+            logger.error(f"Error creating/sending modal: {e}", exc_info=True)
+            logger.error(f"Exception type: {type(e).__name__}")
+            logger.error(f"Container: {docker_name}, Display: {display_name}")
+            await ctx.respond(f"Error: {str(e)[:100]}", ephemeral=True) 
+    
+    async def _impl_info_debug(self, ctx: discord.ApplicationContext, container_name: str):
+        """Debug version of the info edit command without translations."""
+        # Validate channel
+        if not ctx.channel or not isinstance(ctx.channel, discord.TextChannel):
+            await ctx.respond("This command can only be used in server channels.", ephemeral=True)
+            return
+
+        # Check permissions - info edit requires control permission
+        config = self.config
+        if not _channel_has_permission(ctx.channel.id, 'control', config):
+            await ctx.respond("You do not have permission to edit container info in this channel.", ephemeral=True)
+            return
+
+        # Find server configuration to get display name
+        docker_name = container_name
+        server_conf = next((s for s in config.get('servers', []) if s.get('docker_name') == docker_name), None)
         
-        await ctx.response.send_modal(modal) 
+        display_name = server_conf.get('name', docker_name) if server_conf else docker_name
+
+        # Log the action
+        logger.info(f"Debug info edit for {display_name} requested by {ctx.author} in {ctx.channel.name}")
+
+        # Create and show debug modal
+        try:
+            logger.info(f"Debug: Attempting to import DebugContainerInfoModal...")
+            from .debug_modal_simple import DebugContainerInfoModal
+            logger.info(f"Debug: Import successful")
+            
+            logger.info(f"Debug: Creating modal instance...")
+            modal = DebugContainerInfoModal(
+                self,
+                container_name=docker_name,
+                display_name=display_name
+            )
+            logger.info(f"Debug: Modal created: {modal}")
+            
+            logger.info(f"Debug: Sending modal...")
+            await ctx.response.send_modal(modal)
+            logger.info(f"Debug: Modal sent")
+            
+        except Exception as e:
+            logger.error(f"Debug modal error: {e}", exc_info=True)
+            await ctx.respond(f"Debug error: {str(e)}", ephemeral=True)
+    
+    async def _impl_minimal_test(self, ctx: discord.ApplicationContext):
+        """Ultra-minimal modal test."""
+        try:
+            logger.info("Minimal test: Starting...")
+            from .minimal_test_modal import MinimalTestModal
+            logger.info("Minimal test: Import successful")
+            
+            modal = MinimalTestModal()
+            logger.info(f"Minimal test: Modal created: {modal}")
+            
+            await ctx.response.send_modal(modal)
+            logger.info("Minimal test: Modal sent")
+            
+        except Exception as e:
+            logger.error(f"Minimal test error: {e}", exc_info=True)
+            await ctx.respond(f"Minimal test error: {str(e)}", ephemeral=True)
