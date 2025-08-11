@@ -106,6 +106,37 @@ except Exception as e:
 # Setup logging (NOW the logger is available)
 logger = setup_logger('ddc.bot', level=logging.INFO)
 
+# Ensure Web UI log files exist and receive content
+def _attach_bot_file_handlers(bot_logger: logging.Logger) -> None:
+    try:
+        logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+        os.makedirs(logs_dir, exist_ok=True)
+
+        # Discord bot combined log (INFO and above)
+        discord_log_path = os.path.join(logs_dir, 'discord.log')
+        if not any(isinstance(h, logging.FileHandler) and getattr(h, 'baseFilename', '').endswith('discord.log') for h in bot_logger.handlers):
+            fh_info = logging.FileHandler(discord_log_path, encoding='utf-8')
+            fh_info.setLevel(logging.INFO)
+            fh_info.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+            bot_logger.addHandler(fh_info)
+
+        # Bot error-only log (ERROR and above)
+        bot_error_log_path = os.path.join(logs_dir, 'bot_error.log')
+        if not any(isinstance(h, logging.FileHandler) and getattr(h, 'baseFilename', '').endswith('bot_error.log') for h in bot_logger.handlers):
+            fh_err = logging.FileHandler(bot_error_log_path, encoding='utf-8')
+            fh_err.setLevel(logging.ERROR)
+            fh_err.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+            bot_logger.addHandler(fh_err)
+
+        bot_logger.info("Bot file loggers initialized: discord.log (INFO+), bot_error.log (ERROR+)")
+    except Exception as e:
+        try:
+            print(f"Failed to initialize bot file handlers: {e}")
+        except Exception:
+            pass
+
+_attach_bot_file_handlers(logger)
+
 # Now we can safely log the outcome
 logger.info(f"Final effective timezone for logging and operations: {tz}")
 
@@ -371,48 +402,45 @@ async def on_ready():
             logger.error(f"Error running port diagnostics at startup: {e}")
         
         try:
-            # --- Instantiate and add DockerControlCog manually --- 
-            from cogs.docker_control import DockerControlCog # Import the class
-            cog_instance = DockerControlCog(bot, loaded_main_config) # Pass bot and loaded config
+            # Load extensions (CRITICAL: Required for slash commands to work)
+            logger.info("Loading extensions...")
             
-            # Try different add_cog methods depending on Discord library
-            try:
-                # PyCord method (synchronous)
-                bot.add_cog(cog_instance)
-                logger.info("Added DockerControlCog using PyCord method.")
-            except TypeError:
+            # Load DockerControl extension with proper PyCord handling
+            if 'cogs.docker_control' not in bot.extensions:
                 try:
-                    # discord.py method (asynchronous)
-                    await bot.add_cog(cog_instance)
-                    logger.info("Added DockerControlCog using discord.py method.")
+                    # Check if we're using PyCord (sync) or discord.py (async)
+                    import inspect
+                    if inspect.iscoroutinefunction(bot.load_extension):
+                        # discord.py (async)
+                        await bot.load_extension('cogs.docker_control')
+                        logger.info("Successfully loaded extension: cogs.docker_control (discord.py async)")
+                    else:
+                        # PyCord (sync)
+                        bot.load_extension('cogs.docker_control')
+                        logger.info("Successfully loaded extension: cogs.docker_control (PyCord sync)")
                 except Exception as e:
-                    logger.error(f"Failed to add DockerControlCog: {e}")
+                    logger.error(f"Failed to load extension 'cogs.docker_control': {e}", exc_info=True)
                     raise
-                    
-            logger.info("Manually added DockerControlCog instance.")
+            else:
+                logger.info("Extension cogs.docker_control already loaded, skipping")
             
-            # --- Add InfoCommandCog ---
-            try:
-                from cogs.info_command import InfoCommandCog
-                info_cog_instance = InfoCommandCog(bot)
-                
-                # Try different add_cog methods depending on Discord library
+            # Load InfoCommand extension with proper PyCord handling
+            if 'cogs.info_command' not in bot.extensions:
                 try:
-                    # PyCord method (synchronous)
-                    bot.add_cog(info_cog_instance)
-                    logger.info("Added InfoCommandCog using PyCord method.")
-                except TypeError:
-                    try:
-                        # discord.py method (asynchronous)
-                        await bot.add_cog(info_cog_instance)
-                        logger.info("Added InfoCommandCog using discord.py method.")
-                    except Exception as e:
-                        logger.error(f"Failed to add InfoCommandCog: {e}")
-                        
-                logger.info("Manually added InfoCommandCog instance.")
-            except Exception as e:
-                logger.error(f"Error adding InfoCommandCog: {e}")
-            # -----------------------------------------------------
+                    # Check if we're using PyCord (sync) or discord.py (async)
+                    if inspect.iscoroutinefunction(bot.load_extension):
+                        # discord.py (async)
+                        await bot.load_extension('cogs.info_command')
+                        logger.info("Successfully loaded extension: cogs.info_command (discord.py async)")
+                    else:
+                        # PyCord (sync)
+                        bot.load_extension('cogs.info_command')
+                        logger.info("Successfully loaded extension: cogs.info_command (PyCord sync)")
+                except Exception as e:
+                    logger.error(f"Failed to load extension 'cogs.info_command': {e}", exc_info=True)
+                    # Don't raise here - this is optional
+            else:
+                logger.info("Extension cogs.info_command already loaded, skipping")
 
             # --- Checkpoint and Cog initialization --- 
             logger.info("Checkpoint: Attempting to get DockerControlCog instance...")
@@ -566,7 +594,7 @@ async def on_ready():
         else:
             logger.debug("Update notifier not available - skipping update notifications")
 
-        # Check for donation message (every 2nd Sunday of the month)
+        # Donation message scheduling: check at startup and then periodically (e.g., every 6 hours)
         if donation_manager_available:
             try:
                 logger.info("Checking for donation message...")
@@ -576,6 +604,24 @@ async def on_ready():
                     logger.info(f"Donation message sent: {result['message']}")
                 else:
                     logger.debug(f"No donation message sent: {result['message']}")
+
+                async def periodic_donation_check():
+                    while True:
+                        try:
+                            await asyncio.sleep(6 * 60 * 60)  # 6 hours
+                            logger.info("Periodic donation check...")
+                            res = await donation_manager.send_donation_message(bot)
+                            if res["success"]:
+                                logger.info(f"Donation message sent: {res['message']}")
+                            else:
+                                logger.debug(f"No donation message sent: {res['message']}")
+                        except asyncio.CancelledError:
+                            break
+                        except Exception as e:
+                            logger.error(f"Error in periodic donation check: {e}", exc_info=True)
+
+                # Fire-and-forget periodic task
+                bot.loop.create_task(periodic_donation_check())
             except Exception as e:
                 logger.error(f"Error sending donation message: {e}", exc_info=True)
         else:
@@ -812,7 +858,7 @@ if __name__ == "__main__":
         
         try:
             # Run the main function
-            loop.run_until_complete(main())
+            main()
         except KeyboardInterrupt:
             logger.info("Received keyboard interrupt - shutting down gracefully")
         except Exception as e:

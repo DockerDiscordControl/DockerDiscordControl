@@ -232,7 +232,7 @@ def create_app(test_config=None):
         @app.teardown_appcontext
         def cleanup_background_threads(exception=None):
             try:
-                app.logger.info("Stopping Docker cache background refresh thread on app teardown")
+                app.logger.debug("Stopping Docker cache background refresh thread on app teardown")
                 # Avoid multiple calls if thread is already stopped
                 from app.utils.web_helpers import background_refresh_thread
                 if background_refresh_thread is not None:
@@ -286,9 +286,11 @@ def create_app(test_config=None):
 # Perform initial password check (does not need app context)
 set_initial_password_from_env()
 
-# Create app instance for gunicorn
-app = create_app()
-
-# Only run directly if executed as main
+# Only create app instance if running directly (not via gunicorn WSGI)
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000) 
+    app = create_app()
+    app.run(host='0.0.0.0', port=5000)
+else:
+    # For gunicorn WSGI, only create app when explicitly called
+    # This prevents double initialization
+    app = None 

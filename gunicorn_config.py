@@ -46,14 +46,12 @@ except ImportError as e:
 # --- Optimized Gunicorn Configuration for Discord Bot Web UI ---
 # RAM-Optimized: Dramatically reduced from 8 workers to 2-3 for realistic usage
 
-# RAM-OPTIMIZED: Much smaller worker count for Discord Bot usage
-# Most users access Web UI rarely and individually, not concurrently
+# RAM-OPTIMIZED: Single worker for Discord Bot Web UI (prevents duplicate initialization)
+# Discord Bot Web UI is low-traffic, single user access - no need for multiple workers
 cpu_count = multiprocessing.cpu_count()
-# OPTIMIZED: 2-3 workers max (was 8), minimum 2 for reliability
-# Further reduced for memory optimization - single worker for small deployments
-optimized_workers = max(1, min(2, cpu_count // 2)) if cpu_count <= 2 else max(2, min(3, cpu_count // 2 + 1))
-workers = int(os.getenv('GUNICORN_WORKERS', optimized_workers))
-logger.info(f"Gunicorn starting with {workers} RAM-optimized workers (adaptive based on {cpu_count} CPU cores)")
+# OPTIMIZED: Force single worker to prevent duplicate startup processes
+workers = int(os.getenv('GUNICORN_WORKERS', 1))  # Force single worker
+logger.info(f"Gunicorn starting with {workers} worker (Discord Bot optimized - prevents duplicate initialization)")
 
 # Address and port Gunicorn should listen on
 bind = "0.0.0.0:9374"
@@ -110,9 +108,20 @@ backlog = 512  # OPTIMIZED: Reduced from 2048 to 512
 # max_requests and max_requests_jitter now defined above
 
 # Logging
-accesslog = "/app/logs/gunicorn_access.log"
-errorlog = "/app/logs/gunicorn_error.log"
-loglevel = os.environ.get('LOGGING_LEVEL', 'info').lower()  # Logging level from environment or default
+# Allow switching logs to stdout/stderr (for temporary/permanent debug) via env
+if os.environ.get('GUNICORN_LOG_TO_STDOUT', '').lower() in ['1', 'true', 'on']:
+    accesslog = "-"
+    errorlog = "-"
+else:
+    accesslog = "/app/logs/gunicorn_access.log"
+    errorlog = "/app/logs/gunicorn_error.log"
+
+loglevel = (
+    os.environ.get('GUNICORN_LOG_LEVEL')
+    or os.environ.get('LOGGING_LEVEL')
+    or 'info'
+).lower()
+
 capture_output = True  # Log stdout/stderr of the application
 access_log_format = '%({X-Forwarded-For}i)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
 
@@ -143,8 +152,8 @@ def post_fork(server, worker):
             # Safe hooks for better thread compatibility
             original_after_fork = _ForkHooks.after_fork_in_child
             
-            def safer_after_fork_in_child(self, thread):
-                # Override the assert check
+            def safer_after_fork_in_child(self):
+                # Override the assert check - fixed parameter signature
                 pass
                 
             # Replace the hook method

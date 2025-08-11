@@ -23,8 +23,10 @@ DiscordOption = get_discord_option()
 
 # Import our utility functions
 from utils.config_loader import load_config, DEFAULT_CONFIG
-from utils.config_cache import get_cached_config
+from utils.config_manager import get_config_manager
+from utils.config_cache import get_cached_config  # CRITICAL: Import the real function
 from utils.docker_utils import get_docker_info, get_docker_stats, docker_action
+
 from utils.time_utils import format_datetime_with_timezone
 from utils.logging_utils import setup_logger
 from utils.server_order import load_server_order, save_server_order
@@ -65,8 +67,8 @@ from .command_handlers import CommandHandlersMixin
 # Import central logging function
 from utils.action_logger import log_user_action
 
-# Configure logger for the cog using utility
-logger = setup_logger('ddc.docker_control', level=logging.DEBUG)
+# Configure logger for the cog using utility (INFO for release)
+logger = setup_logger('ddc.docker_control', level=logging.INFO)
 
 # Global variable for Docker status cache to allow access from other modules
 docker_status_cache = {}
@@ -231,12 +233,21 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 )
                 self.bot.loop.create_task(self._track_task(heartbeat_task))
             
-            # Schedule initial status send with delay
+            # Schedule initial status send with simple delay
             logger.info("Scheduling initial status send...")
-            initial_task = self.bot.loop.create_task(
-                self.send_initial_status_after_delay_and_ready(10)
-            )
-            self.bot.loop.create_task(self._track_task(initial_task))
+            
+            async def send_initial_after_delay():
+                try:
+                    await self.bot.wait_until_ready()
+                    logger.info("Bot ready - waiting 10 seconds before initial status send")
+                    await asyncio.sleep(10)
+                    logger.info("Starting initial status send")
+                    await self.send_initial_status()
+                    logger.info("Initial status send completed")
+                except Exception as e:
+                    logger.error(f"Error in initial status send: {e}", exc_info=True)
+            
+            self.bot.loop.create_task(send_initial_after_delay())
             
         except Exception as e:
             logger.error(f"Error setting up background loops: {e}", exc_info=True)
@@ -649,31 +660,49 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 logger.warning(f"No servers configured for channel {channel.id}")
                 return
 
-            # Send status messages for each server
-            success_count = 0
-            fail_count = 0
-            
-            for server in servers:
-                try:
-                    result = await self.status_handlers.send_server_status(
-                        channel=channel,
-                        server_conf=server,
-                        current_config=current_config,
-                        allow_toggle=True  # Always allow toggle in control panel
-                    )
-                    
-                    if isinstance(result, Exception):
-                        logger.error(f"Error sending status for {server['name']}: {result}")
+            # Send simple status overview first - then let background processes handle details
+            try:
+                # Create simple loading message
+                embed = discord.Embed(
+                    title="🎮 Server Control Panel", 
+                    description="Control panel is being set up...", 
+                    color=0x3498db
+                )
+                embed.set_footer(text=f"Initialized at {current_time} • https://ddc.bot")
+                
+                loading_msg = await channel.send(embed=embed)
+                logger.info(f"Sent initial control panel loading message to {channel.name}")
+                
+                # Now try to get real status data with timeout
+                success_count = 0
+                fail_count = 0
+                
+                for server in servers:  # Send all servers
+                    try:
+                        result = await asyncio.wait_for(
+                            self.status_handlers.send_server_status(
+                                channel=channel,
+                                server_conf=server,
+                                current_config=current_config,
+                                allow_toggle=True
+                            ),
+                            timeout=10.0  # 10 second timeout per server
+                        )
+                        if result:
+                            success_count += 1
+                        else:
+                            fail_count += 1
+                    except asyncio.TimeoutError:
+                        logger.warning(f"Timeout sending status for {server.get('name', 'unknown')}")
                         fail_count += 1
-                    elif result:
-                        success_count += 1
-                    else:
+                    except Exception as e:
+                        logger.error(f"Error sending status for {server.get('name', 'unknown')}: {e}")
                         fail_count += 1
-                except Exception as e:
-                    logger.error(f"Error processing server {server['name']}: {e}", exc_info=True)
-                    fail_count += 1
 
-            logger.info(f"Finished sending initial statuses to {channel.name}: {success_count} success, {fail_count} failure.")
+                logger.info(f"Finished sending initial statuses to {channel.name}: {success_count} success, {fail_count} failure.")
+                
+            except Exception as e:
+                logger.error(f"Error setting up control panel: {e}", exc_info=True)
 
         except Exception as e:
             logger.error(f"Error in _send_control_panel_and_statuses: {e}", exc_info=True)
@@ -871,6 +900,10 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                             
                             logger.info(f"Tracked overview message {message.id} in status channel {channel.id}")
                             
+                        # Set initial channel activity time so inactivity tracking works
+                        self.last_channel_activity[channel.id] = datetime.now(timezone.utc)
+                        logger.info(f"Set initial channel activity time for {channel.name} ({channel.id})")
+                        
                         logger.info(f"Successfully regenerated channel {channel.name}")
                         initial_send_successful = True
                     except discord.NotFound:
@@ -903,20 +936,30 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             def is_me(m):
                 return m.author == self.bot.user
 
-            deleted_count = 0
-            async for message in channel.history(limit=limit):
-                 if is_me(message):
-                     try:
-                         await message.delete()
-                         deleted_count += 1
-                         await asyncio.sleep(0.1) # Small delay for rate limiting
-                     except discord.Forbidden:
-                         logger.error(f"Missing permissions to delete message {message.id} in {channel.name}.")
-                         break # No permission, further attempts are pointless
-                     except discord.NotFound:
-                         logger.warning(f"Message {message.id} already deleted in {channel.name}.")
-                     except Exception as e:
-                         logger.error(f"Error deleting message {message.id} in {channel.name}: {e}")
+            # Use channel.purge instead of manual iteration to prevent hanging
+            try:
+                deleted = await asyncio.wait_for(
+                    channel.purge(limit=limit, check=is_me),
+                    timeout=30.0  # 30 second timeout
+                )
+                deleted_count = len(deleted)
+                logger.info(f"Successfully deleted {deleted_count} bot messages in {channel.name}")
+            except asyncio.TimeoutError:
+                logger.error(f"Timeout deleting messages in {channel.name} - using fallback method")
+                # Fallback: manual deletion with timeout
+                deleted_count = 0
+                messages_to_check = 0
+                async for message in channel.history(limit=min(limit, 50)):  # Limit to 50 for safety
+                    messages_to_check += 1
+                    if is_me(message):
+                        try:
+                            await message.delete()
+                            deleted_count += 1
+                            await asyncio.sleep(0.1)
+                        except Exception as e:
+                            logger.error(f"Error deleting message {message.id}: {e}")
+                    if messages_to_check >= 50:  # Hard limit to prevent infinite loops
+                        break
 
             # Alternative: channel.purge (can be faster, but less control/logging)
             # try:
@@ -1084,23 +1127,26 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 donation_manager = get_donation_manager()
                 embed = donation_manager.create_donation_embed(is_automatic=False)
             else:
-                # Fallback embed for older versions (identical to new version)
+                # Fallback embed with neutral wording consistent with donation_manager
                 embed = discord.Embed(
-                    title="☕ Unterstütze DockerDiscordControl",
-                    description="Hallo! Falls dir DockerDiscordControl gefällt und du die Entwicklung unterstützen möchtest, würde ich mich über eine kleine Spende sehr freuen! Alles Liebe, MAX 💙",
+                    title=_('Support DockerDiscordControl'),
+                    description=_(
+                        'If DDC helps you, please consider supporting ongoing development. '
+                        'Donations help cover hosting, CI, maintenance, and feature work.'
+                    ),
                     color=0x00ff41
                 )
                 embed.add_field(
-                    name="☕ Buy me a Coffee",
-                    value="[Klick hier für Buy me a Coffee](https://buymeacoffee.com/dockerdiscordcontrol)",
+                    name=_('Buy me a Coffee'),
+                    value=f"[{_('Click here for Buy me a Coffee')}](https://buymeacoffee.com/dockerdiscordcontrol)",
                     inline=True
                 )
                 embed.add_field(
-                    name="💳 PayPal",
-                    value="[Klick hier für PayPal](https://www.paypal.com/donate/?hosted_button_id=XKVC6SFXU2GW4)",
+                    name='PayPal',
+                    value=f"[{_('Click here for PayPal')}](https://www.paypal.com/donate/?hosted_button_id=XKVC6SFXU2GW4)",
                     inline=True
                 )
-                embed.set_footer(text="Vielen Dank für deine Unterstützung! • https://ddc.bot")
+                embed.set_footer(text="https://ddc.bot")
             
             await ctx.followup.send(embed=embed, ephemeral=True)
             logger.info(f"Donate command used by user {ctx.user.id} in channel {ctx.channel.id}")
@@ -1114,6 +1160,45 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     color=discord.Color.red()
                 )
                 await ctx.followup.send(embed=error_embed, ephemeral=True)
+            except:
+                pass
+
+    @commands.slash_command(name="donatebroadcast", description="Send donation message to all channels (admin only)", guild_ids=get_guild_id())
+    async def donate_broadcast_command(self, ctx: discord.ApplicationContext):
+        """Force send donation message to all connected channels."""
+        try:
+            # Try to import donation manager with backwards compatibility
+            try:
+                from utils.donation_manager import get_donation_manager
+                donation_manager_available = True
+            except ImportError:
+                donation_manager_available = False
+            
+            # Simple response first
+            await ctx.respond("Processing donation broadcast...", ephemeral=True)
+            
+            # Check if user has admin permissions
+            if not ctx.author.guild_permissions.administrator:
+                await ctx.edit_original_response(content="❌ Access denied. Administrator permissions required.")
+                return
+
+            if not donation_manager_available:
+                await ctx.edit_original_response(content="❌ Error: Donation manager not available.")
+                return
+
+            # Use donation manager
+            donation_manager = get_donation_manager()
+            result = await donation_manager.send_donation_message(self.bot, force=True)
+
+            if result["success"]:
+                await ctx.edit_original_response(content=f"✅ Success! Donation message sent to {result['channels_sent']} channels.")
+            else:
+                await ctx.edit_original_response(content=f"❌ Failed: {result['message']}")
+
+        except Exception as e:
+            logger.error(f"Error in donate_broadcast command: {e}", exc_info=True)
+            try:
+                await ctx.edit_original_response(content=f"❌ Error: {str(e)}")
             except:
                 pass
 
@@ -1231,10 +1316,10 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             logger.debug(f"Could not check info availability: {e}")
         
         if has_any_info:
-            embed.description += f"\n{translate('Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.')}"
+            embed.description += f"\n\n*{translate('Use `/info <servername>` to get detailed information about containers with ℹ️  indicators.')}*"
         
-        # Add the footer with the website URL
-        embed.set_footer(text="https://ddc.bot")
+        # Add the website URL in the same small format
+        embed.description += f"\n\n*https://ddc.bot*"
         
         return embed
 
@@ -1403,13 +1488,13 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         
         try:
             if not self.initial_messages_sent:
-                logger.debug("Inactivity check loop: Initial messages not sent yet, skipping.")
+                logger.info("Inactivity check loop: Initial messages not sent yet, skipping.")
                 return
 
-            logger.debug("Inactivity check loop running")
+            logger.info("Inactivity check loop running")
             
             # Log tracked channels for debugging
-            logger.debug(f"Currently tracking {len(self.last_channel_activity)} channels for activity")
+            logger.info(f"Currently tracking {len(self.last_channel_activity)} channels for activity: {list(self.last_channel_activity.keys())}")
             
             # Check each channel we've previously registered activity for
             for channel_id, last_activity_time in list(self.last_channel_activity.items()):
@@ -1570,15 +1655,21 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         except Exception as e_followup:
             logger.error(f"Error sending initial followup for /control command: {e_followup}")
 
-        channel_to_regenerate = ctx.channel
-        async def run_regeneration():
+        # Run regeneration directly instead of as background task for better user experience
+        try:
+            await self._regenerate_channel(ctx.channel, 'control', self.config)
+            logger.info(f"Control panel regeneration completed for channel {ctx.channel.name}")
+            # Send success confirmation
             try:
-                await self._regenerate_channel(channel_to_regenerate, 'control', self.config)
-                logger.info(f"Background regeneration for channel {channel_to_regenerate.name} completed.")
-            except Exception as e_regen:
-                logger.error(f"Error during background regeneration for channel {channel_to_regenerate.name}: {e_regen}")
-
-        self.bot.loop.create_task(run_regeneration())
+                await ctx.followup.send(_("✅ Control panel regenerated successfully!"), ephemeral=True)
+            except:
+                pass  # Followup might have already been used or expired
+        except Exception as e_regen:
+            logger.error(f"Error during control panel regeneration: {e_regen}")
+            try:
+                await ctx.followup.send(_("❌ Error regenerating control panel. Check logs for details."), ephemeral=True)
+            except:
+                pass
         
     # --- SCHEDULE COMMANDS ---
     @commands.slash_command(name="task_once", description=_("Schedule a one-time task"), guild_ids=get_guild_id())
@@ -1903,3 +1994,11 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         except Exception as e:
             logger.error(f"Error updating overview message in channel {channel_id}: {e}", exc_info=True)
             return False
+
+# Setup function required for extension loading
+def setup(bot):
+    """Setup function to add the cog to the bot when loaded as an extension."""
+    from utils.config_manager import get_config_manager
+    config_manager = get_config_manager()
+    config = config_manager.get_config()
+    bot.add_cog(DockerControlCog(bot, config))
