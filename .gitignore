@@ -152,6 +152,31 @@ test_output/
 debug_output/
 performance_logs/
 
+# DDC Specific - Local bot information (SENSITIVE!)
+BOT_INFO.local.md
+BOT_INFO.local.txt
+BOT_INFO.*.md
+BOT_INFO.*.txt
+*_LOCAL_INFO.md
+*_LOCAL_INFO.txt
+
+# DDC Specific - AI Agent instructions (LOCAL)
+AI_AGENT_INSTRUCTIONS.md
+AI_AGENT_INSTRUCTIONS.txt
+AI_INSTRUCTIONS.md
+*_AI_INSTRUCTIONS.md
+
+# DDC Specific - ChatGPT damage documentation (LOCAL)
+CHATGPT_DAMAGE_REPORT.md
+CHATGPT_DAMAGE_*.md
+*_DAMAGE_REPORT.md
+CHATGPT_FAILURES.md
+CHATGPT_DISASTERS.md
+
+# Claude Code IDE settings (LOCAL)
+.claude/
+.claude/**
+
 # Keep empty log and config directories with .gitkeep
 !logs/.gitkeep
 !config/.gitkeep 
