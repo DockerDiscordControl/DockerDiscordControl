@@ -305,6 +305,28 @@
     max-width: 200px;
 }
 
+/* System Task Styling */
+.system-task-row {
+    /* No special background color - same as regular tasks */
+}
+
+.system-task-row:hover {
+    /* Use same hover effect as regular tasks */
+    background-color: rgba(74, 85, 104, 0.3) !important;
+}
+
+.system-task-row .badge.bg-warning {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.system-task-row .task-actions .text-muted {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
 /* Form Validation States */
 .form-control.is-invalid,
 .form-select.is-invalid {

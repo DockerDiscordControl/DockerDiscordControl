@@ -70,6 +70,13 @@ VALID_CYCLES = [
 # Valid actions
 VALID_ACTIONS = ["start", "stop", "restart"]
 
+# System actions (not container-specific)
+SYSTEM_ACTIONS = ["donation_message", "system_maintenance", "cleanup"]
+
+# System task identifiers
+SYSTEM_TASK_PREFIX = "SYSTEM_"
+DONATION_TASK_ID = f"{SYSTEM_TASK_PREFIX}DONATION_MESSAGE"
+
 # Constants for weekdays
 DAYS_OF_WEEK = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
@@ -81,6 +88,9 @@ MIN_TASK_INTERVAL_SECONDS = 10 * 60  # 10 minutes
 # Task cache system
 _tasks_cache = {}
 _last_file_modified_time = 0
+
+# System task functions will be defined after ScheduledTask class
+
 # Timezone cache system
 _timezone_cache = {}
 
@@ -233,10 +243,35 @@ class ScheduledTask:
         
         if self.next_run_ts is None and self.is_valid():
             self.calculate_next_run()
+    
+    def is_system_task(self) -> bool:
+        """Check if this is a system task."""
+        return self.task_id and self.task_id.startswith(SYSTEM_TASK_PREFIX)
+    
+    def is_donation_task(self) -> bool:
+        """Check if this is the donation system task."""
+        return self.task_id == DONATION_TASK_ID
+    
+    def _validate_system_task(self) -> bool:
+        """Validate system task."""
+        if not self.action or self.action not in SYSTEM_ACTIONS:
+            logger.warning(f"Invalid system action for task {self.task_id}: {self.action}")
+            return False
+        
+        # System tasks don't need container names
+        if not self.cycle:
+            logger.warning(f"System task {self.task_id} missing cycle")
+            return False
+            
+        return True
             
     def is_valid(self) -> bool:
         """Check if the task is valid."""
         try:
+            # Check for system tasks first
+            if self.is_system_task():
+                return self._validate_system_task()
+            
             # Basic validations - use early returns for performance
             if not self.container_name or not self.action or not self.cycle:
                 logger.warning(f"Basic validation for task {self.task_id} failed: container={self.container_name}, action={self.action}, cycle={self.cycle}")
@@ -276,8 +311,10 @@ class ScheduledTask:
                 return False
             
             # Cycle-specific validations
-            if self.cycle == CYCLE_ONCE or self.cycle == "yearly":
+            if self.cycle == CYCLE_ONCE:
                 return self._validate_once_or_yearly()
+            if self.cycle == CYCLE_YEARLY:
+                return self._validate_yearly()
             elif self.cycle == CYCLE_WEEKLY:
                 return self._validate_weekly()
             elif self.cycle == CYCLE_MONTHLY:
@@ -340,6 +377,39 @@ class ScheduledTask:
         if not self.day_val:
             logger.warning(f"Task {self.task_id}: day missing for cycle 'monthly'")
             return False
+        # Check if the day is valid (1-31)
+        try:
+            day = int(self.day_val) if isinstance(self.day_val, str) else self.day_val
+            if 1 <= day <= 31:
+                return True
+            logger.warning(f"Task {self.task_id}: Invalid day value {day} for monthly cycle (must be 1-31)")
+            return False
+        except (ValueError, TypeError):
+            logger.warning(f"Task {self.task_id}: day_val cannot be converted to integer: {self.day_val}")
+            return False
+
+    def _validate_yearly(self) -> bool:
+        """Validate YEARLY task type (month/day required, year optional)."""
+        # Require month/day
+        if self.month_val is None or self.day_val is None:
+            logger.warning(f"Task {self.task_id}: month/day missing for cycle 'yearly'")
+            return False
+
+        # Validate month/day ranges
+        try:
+            month = int(self.month_val) if isinstance(self.month_val, str) else self.month_val
+            day = int(self.day_val) if isinstance(self.day_val, str) else self.day_val
+            if not (1 <= month <= 12):
+                logger.warning(f"Task {self.task_id}: invalid month value {month} for yearly cycle (must be 1-12)")
+                return False
+            if not (1 <= day <= 31):
+                logger.warning(f"Task {self.task_id}: invalid day value {day} for yearly cycle (must be 1-31)")
+                return False
+        except (ValueError, TypeError):
+            logger.warning(f"Task {self.task_id}: month/day cannot be converted to integers for yearly cycle: month={self.month_val}, day={self.day_val}")
+            return False
+
+        return True
         
         # Check if the day is valid (1-31)
         try:
@@ -695,8 +765,144 @@ class ScheduledTask:
             self.is_active = False # Deactivate one-time tasks after execution
             logger.info(f"Task {self.task_id} marked as completed and deactivated (one-time task)")
         else:
-            self.calculate_next_run() # For recurring tasks
+            # Special handling for donation task
+            if self.is_donation_task():
+                self._calculate_next_donation_run()
+            else:
+                self.calculate_next_run() # For recurring tasks
             self.status = "pending" # Reset to pending for next run
+    
+    def _calculate_next_donation_run(self) -> None:
+        """Calculate next run for donation task - always 2nd Sunday at 13:37."""
+        try:
+            # Get configured timezone
+            from utils.config_cache import get_cached_config
+            config = get_cached_config()
+            timezone_str = config.get('timezone', 'Europe/Berlin')
+            
+            import pytz
+            tz = pytz.timezone(timezone_str)
+            now = datetime.now(tz)
+            
+            # Start with current month
+            target_year = now.year
+            target_month = now.month
+            
+            # Calculate 2nd Sunday of current month at 13:37
+            def get_second_sunday(year: int, month: int) -> datetime:
+                """Get 2nd Sunday of given month at 13:37."""
+                first_day = datetime(year, month, 1)
+                # Find first Sunday
+                days_to_first_sunday = (6 - first_day.weekday()) % 7
+                if first_day.weekday() == 6:  # First day is Sunday
+                    days_to_first_sunday = 0
+                first_sunday = first_day + timedelta(days=days_to_first_sunday)
+                second_sunday = first_sunday + timedelta(days=7)
+                # Set time to 13:37
+                return second_sunday.replace(hour=13, minute=37, second=0, microsecond=0)
+            
+            next_run_naive = get_second_sunday(target_year, target_month)
+            next_run = tz.localize(next_run_naive)
+            
+            # If this month's 2nd Sunday has already passed, or we already ran this month, use next month
+            if next_run <= now or (self.last_run_ts and self._was_run_this_month(now)):
+                # Go to next month
+                if target_month == 12:
+                    target_month = 1
+                    target_year += 1
+                else:
+                    target_month += 1
+                
+                next_run_naive = get_second_sunday(target_year, target_month)
+                next_run = tz.localize(next_run_naive)
+            
+            self.next_run_ts = next_run.timestamp()
+            logger.info(f"Donation task scheduled for 2nd Sunday: {next_run.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+            
+        except Exception as e:
+            logger.error(f"Error calculating next donation run: {e}")
+            # Fallback - set to next month's 10th at 13:37
+            try:
+                if now.month == 12:
+                    fallback_naive = datetime(now.year + 1, 1, 10, 13, 37)
+                else:
+                    fallback_naive = datetime(now.year, now.month + 1, 10, 13, 37)
+                fallback = tz.localize(fallback_naive)
+                self.next_run_ts = fallback.timestamp()
+            except Exception as fallback_error:
+                logger.error(f"Even fallback calculation failed: {fallback_error}")
+                # Ultimate fallback - 30 days from now
+                self.next_run_ts = (now + timedelta(days=30)).timestamp()
+    
+    def _was_run_this_month(self, now: datetime) -> bool:
+        """Check if donation task was already run this month."""
+        if not self.last_run_ts:
+            return False
+        
+        try:
+            last_run_dt = datetime.fromtimestamp(self.last_run_ts, tz=now.tzinfo)
+            return last_run_dt.year == now.year and last_run_dt.month == now.month
+        except Exception:
+            return False
+
+# --- System Task Management Functions ---
+
+def create_donation_system_task() -> ScheduledTask:
+    """Create the hard-coded donation system task."""
+    try:
+        # Get configured timezone or fall back to default
+        try:
+            from utils.config_cache import get_cached_config
+            config = get_cached_config()
+            timezone_str = config.get('timezone', 'Europe/Berlin')
+        except Exception:
+            timezone_str = 'Europe/Berlin'
+        
+        # Create task with simple configuration
+        # The actual 2nd Sunday calculation happens in _calculate_next_donation_run()
+        task = ScheduledTask(
+            task_id=DONATION_TASK_ID,
+            container_name="SYSTEM",  # Special container name for system tasks
+            action="donation_message",
+            cycle=CYCLE_MONTHLY,  # Display as monthly
+            description="Automatic donation message (2nd Sunday @ 13:37)",
+            created_by="SYSTEM",
+            timezone_str=timezone_str,
+            schedule_details={"time": "13:37", "day": "2nd Sunday"}  # Special display for donation task
+        )
+        
+        # Mark as system task and active
+        task.is_active = True
+        task.status = "active"
+        
+        # Use our special donation calculation
+        task._calculate_next_donation_run()
+        
+        return task
+    except Exception as e:
+        logger.error(f"Error creating donation system task: {e}")
+        return None
+
+def _get_system_tasks() -> List[ScheduledTask]:
+    """Get all hard-coded system tasks."""
+    system_tasks = []
+    
+    try:
+        # Add donation system task
+        donation_task = create_donation_system_task()
+        if donation_task:
+            system_tasks.append(donation_task)
+        
+        # Future system tasks can be added here
+        # maintenance_task = create_maintenance_system_task()
+        # if maintenance_task:
+        #     system_tasks.append(maintenance_task)
+        
+    except Exception as e:
+        logger.error(f"Error creating system tasks: {e}")
+        # Return empty list if system task creation fails - don't break the whole system
+    
+    return system_tasks
 
 # --- Scheduler File I/O Functions --- (Now operating on TASKS_FILE_PATH)
 
@@ -876,8 +1082,19 @@ def load_tasks() -> List[ScheduledTask]:
     if len(valid_tasks) != len(tasks):
         logger.info(f"Removed {len(tasks) - len(valid_tasks)} invalid tasks")
         save_tasks(valid_tasks)
+    
+    # Add system tasks (hard-coded, always present)
+    system_tasks = _get_system_tasks()
+    
+    # Merge system tasks with user tasks, avoiding duplicates
+    all_tasks = valid_tasks.copy()
+    for system_task in system_tasks:
+        # Only add if not already present (by task_id)
+        if not any(task.task_id == system_task.task_id for task in all_tasks):
+            all_tasks.append(system_task)
+            logger.debug(f"Added system task: {system_task.task_id}")
         
-    return valid_tasks
+    return all_tasks
 
 @lru_cache(maxsize=8)
 def _get_task_grouping_key(task):
@@ -889,8 +1106,12 @@ def save_tasks(tasks: List[ScheduledTask]) -> bool:
     """Save all ScheduledTask objects to tasks.json."""
     global _tasks_cache
     
+    # Filter out system tasks - they should never be saved to file
+    user_tasks = [task for task in tasks if not task.is_system_task()]
+    logger.debug(f"Saving {len(user_tasks)} user tasks (filtered out {len(tasks) - len(user_tasks)} system tasks)")
+    
     # Convert all tasks to dict first, to avoid redundant to_dict calls
-    tasks_data = [task.to_dict() for task in tasks]
+    tasks_data = [task.to_dict() for task in user_tasks]
     
     # Sort tasks by container and action to keep file content more stable
     # This improves diff-based version control and makes visual inspection easier
@@ -1037,6 +1258,11 @@ def add_task(task: ScheduledTask) -> bool:
     return save_tasks(tasks)
 
 def update_task(task_to_update: ScheduledTask) -> bool:
+    # Prevent updating system tasks
+    if task_to_update.is_system_task():
+        logger.warning(f"Cannot update system task: {task_to_update.task_id}")
+        return False
+        
     if not isinstance(task_to_update, ScheduledTask):
         logger.error(f"Attempt to update an object that is not a ScheduledTask: {type(task_to_update)}")
         return False
@@ -1075,6 +1301,11 @@ def update_task(task_to_update: ScheduledTask) -> bool:
     return save_tasks(tasks)
 
 def delete_task(task_id: str) -> bool:
+    # Prevent deletion of system tasks
+    if task_id.startswith(SYSTEM_TASK_PREFIX):
+        logger.warning(f"Cannot delete system task: {task_id}")
+        return False
+    
     tasks = load_tasks()
     original_count = len(tasks)
     tasks = [t for t in tasks if t.task_id != task_id]

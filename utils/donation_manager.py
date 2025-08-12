@@ -12,19 +12,39 @@ from typing import Dict, Any, Optional, List
 from utils.logging_utils import get_module_logger
 from utils.config_cache import get_cached_config
 from cogs.translation_manager import _
+from utils.time_utils import get_current_time
 
 logger = get_module_logger('donation_manager')
 
 class DonationManager:
     """Manages donation reminders and messages."""
     
-    def __init__(self, config_dir: str = "config"):
+    def _get_configured_timezone_time(self) -> datetime:
+        """Get current time in the configured timezone from Web UI."""
+        try:
+            config = get_cached_config()
+            timezone_name = config.get('timezone', 'Europe/Berlin')
+            return get_current_time(timezone_name)
+        except Exception as e:
+            logger.warning(f"Error getting timezone from config: {e}, using Europe/Berlin")
+            return get_current_time('Europe/Berlin')
+    
+    def __init__(self, config_dir: Optional[str] = None):
         """Initialize the donation manager.
         
         Args:
             config_dir: Directory where donation_status.json will be stored
         """
-        self.config_dir = Path(config_dir)
+        if not config_dir:
+            try:
+                # Use central CONFIG_DIR for robustness inside container
+                from utils.config_manager import CONFIG_DIR as CENTRAL_CONFIG_DIR
+                self.config_dir = Path(CENTRAL_CONFIG_DIR)
+            except Exception:
+                # Fallback to relative 'config' if central import fails
+                self.config_dir = Path("config")
+        else:
+            self.config_dir = Path(config_dir)
         self.config_dir.mkdir(parents=True, exist_ok=True)
         self.status_file = self.config_dir / "donation_status.json"
         
@@ -60,11 +80,12 @@ class DonationManager:
             return False
     
     def should_send_donation_message(self) -> bool:
-        """Check if donation message should be sent (every 2nd Sunday of the month)."""
+        """Check if donation message should be sent (every 2nd Sunday of the month at 13:37 in configured timezone)."""
         status = self.get_donation_status()
         last_message_date = status.get("last_donation_message")
         
-        now = datetime.now()
+        # Get current time in the configured timezone from Web UI
+        now = self._get_configured_timezone_time()
         
         # Check if today is Sunday
         if now.weekday() != 6:  # Sunday = 6
@@ -72,6 +93,11 @@ class DonationManager:
         
         # Check if today is the 2nd Sunday of the month
         if not self._is_second_sunday_of_month(now):
+            return False
+        
+        # Check if it's around 13:37 (1337 = leet time!) in configured timezone
+        # Allow a 3-minute window (13:36-13:39) to account for scheduler interval
+        if now.hour != 13 or now.minute < 36 or now.minute > 39:
             return False
         
         # If never sent before, send it
@@ -82,6 +108,11 @@ class DonationManager:
             last_date = datetime.fromisoformat(last_message_date)
             # Don't send if already sent this month
             if last_date.year == now.year and last_date.month == now.month:
+                return False
+            
+            # Also check if we sent it in the last hour to prevent duplicates in the time window
+            time_since_last = (now - last_date).total_seconds()
+            if time_since_last < 3600:  # Less than 1 hour
                 return False
             
             return True
@@ -107,12 +138,12 @@ class DonationManager:
         return date.date() == second_sunday.date()
     
     def get_next_donation_date(self) -> Optional[datetime]:
-        """Get the next scheduled donation message date (next 2nd Sunday of month)."""
-        now = datetime.now()
+        """Get the next scheduled donation message date (next 2nd Sunday of month at 13:37 in configured timezone)."""
+        now = self._get_configured_timezone_time()
         
         # Check if this month's 2nd Sunday hasn't passed yet
         current_month_second_sunday = self._get_second_sunday_of_month(now.year, now.month)
-        if now.date() <= current_month_second_sunday.date():
+        if now <= current_month_second_sunday:
             return current_month_second_sunday
         
         # Otherwise, get next month's 2nd Sunday
@@ -125,17 +156,34 @@ class DonationManager:
         return self._get_second_sunday_of_month(next_year, next_month)
     
     def _get_second_sunday_of_month(self, year: int, month: int) -> datetime:
-        """Get the 2nd Sunday of a specific month/year."""
-        first_day = datetime(year, month, 1)
-        
-        # Find the first Sunday of the month
-        days_to_first_sunday = (6 - first_day.weekday()) % 7
-        if first_day.weekday() == 6:  # First day is Sunday
-            days_to_first_sunday = 0
-        first_sunday = first_day + timedelta(days=days_to_first_sunday)
-        
-        # The second Sunday is 7 days later
-        return first_sunday + timedelta(days=7)
+        """Get the 2nd Sunday of a specific month/year at 13:37 in configured timezone."""
+        try:
+            config = get_cached_config()
+            timezone_name = config.get('timezone', 'Europe/Berlin')
+            
+            # Create first day in the configured timezone
+            first_day = get_current_time(timezone_name).replace(year=year, month=month, day=1, 
+                                                               hour=0, minute=0, second=0, microsecond=0)
+            
+            # Find the first Sunday of the month
+            days_to_first_sunday = (6 - first_day.weekday()) % 7
+            if first_day.weekday() == 6:  # First day is Sunday
+                days_to_first_sunday = 0
+            first_sunday = first_day + timedelta(days=days_to_first_sunday)
+            
+            # The second Sunday is 7 days later, at 13:37 (1337 = leet time!)
+            second_sunday = first_sunday + timedelta(days=7)
+            return second_sunday.replace(hour=13, minute=37, second=0, microsecond=0)
+        except Exception as e:
+            logger.warning(f"Error getting second Sunday in configured timezone: {e}")
+            # Fallback to naive datetime
+            first_day = datetime(year, month, 1)
+            days_to_first_sunday = (6 - first_day.weekday()) % 7
+            if first_day.weekday() == 6:
+                days_to_first_sunday = 0
+            first_sunday = first_day + timedelta(days=days_to_first_sunday)
+            second_sunday = first_sunday + timedelta(days=7)
+            return second_sunday.replace(hour=13, minute=37, second=0, microsecond=0)
     
     def mark_donation_message_sent(self):
         """Mark donation message as sent."""
@@ -151,36 +199,35 @@ class DonationManager:
     
     def create_donation_embed(self, is_automatic: bool = False) -> discord.Embed:
         """Create the donation embed message."""
-        if is_automatic:
-            title = f"☕ {_('Support DockerDiscordControl')}"
-            description = f"{_('Hello! If you like DockerDiscordControl and want to support the development, I would be very happy about a small donation!')} 💙"
-        else:
-            title = f"☕ {_('Support DockerDiscordControl')}"
-            description = f"{_('Hello! If you like DockerDiscordControl and want to support the development, I would be very happy about a small donation!')} 💙"
-        
+        title = _('Support DockerDiscordControl')
+        description = _(
+            'Find DDC helpful?\n'
+            'It\'s open-source, ad-free, and community-funded. Please consider a small donation.'
+        )
+
         embed = discord.Embed(
             title=title,
             description=description,
-            color=0x00ff41  # Nice green color
+            color=0x00ff41  # Green
         )
-        
+
         embed.add_field(
-            name=f"☕ {_('Buy me a Coffee')}",
+            name=_('Buy me a Coffee'),
             value=f"[{_('Click here for Buy me a Coffee')}]({self.buymeacoffee_link})",
             inline=True
         )
-        
+
         embed.add_field(
-            name="💳 PayPal",
+            name='PayPal',
             value=f"[{_('Click here for PayPal')}]({self.paypal_link})",
             inline=True
         )
-        
+
         if is_automatic:
-            embed.set_footer(text=f"{_('This message is only shown every 2nd Sunday of the month')} • https://ddc.bot")
+            embed.set_footer(text=f"{_('This message appears on the second Sunday of each month')} • https://ddc.bot")
         else:
-            embed.set_footer(text=f"{_('Thank you for your support!')} • https://ddc.bot")
-            
+            embed.set_footer(text="https://ddc.bot")
+
         return embed
     
     def get_all_connected_channels(self) -> List[int]:
@@ -238,6 +285,12 @@ class DonationManager:
             for channel_id in channels:
                 try:
                     channel = bot.get_channel(channel_id)
+                    if channel is None:
+                        # Fallback to API fetch if not cached
+                        try:
+                            channel = await bot.fetch_channel(channel_id)
+                        except Exception as fetch_err:
+                            logger.warning(f"Could not fetch channel {channel_id}: {fetch_err}")
                     if channel:
                         await channel.send(embed=embed)
                         sent_count += 1

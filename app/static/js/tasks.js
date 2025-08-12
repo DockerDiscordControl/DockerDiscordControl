@@ -133,6 +133,10 @@ class TaskManager {
         // Determine status styling
         const statusInfo = this.getTaskStatusInfo(task);
         
+        // Check if this is a system task
+        const isSystemTask = task.is_system_task || false;
+        const isDonationTask = task.is_donation_task || false;
+        
         // Escape all dynamic content
         const escapedData = {
             id: this.escapeHtml(task.id),
@@ -144,9 +148,41 @@ class TaskManager {
             createdAtLocal: this.escapeHtml(task.created_at_local)
         };
         
+        // Add system task styling
+        if (isSystemTask) {
+            row.classList.add('system-task-row');
+        }
+        
+        // Build container display - for system tasks, show only blue SYSTEM without extra badge
+        let containerDisplay;
+        if (isSystemTask) {
+            containerDisplay = `<code class="text-info container-name">SYSTEM</code>`;
+        } else {
+            containerDisplay = `<code class="text-info container-name">${escapedData.container}</code>`;
+        }
+        
+        // Build action buttons based on task type
+        let actionButtons;
+        if (isSystemTask) {
+            actionButtons = `
+                <span class="text-muted" title="System tasks cannot be modified">
+                    n/a
+                </span>`;
+        } else {
+            actionButtons = `
+                <div class="btn-group btn-group-sm" role="group">
+                    <button class="btn btn-primary editTaskBtn" data-task-id="${escapedData.id}" title="Edit Task" data-bs-toggle="tooltip">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-danger deleteTaskBtn" data-task-id="${escapedData.id}" title="Delete Task" data-bs-toggle="tooltip">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>`;
+        }
+        
         row.innerHTML = `
             <td class="task-id">${escapedData.id}</td>
-            <td><code class="text-info container-name">${escapedData.container}</code></td>
+            <td>${containerDisplay}</td>
             <td><span class="badge bg-secondary">${escapedData.action}</span></td>
             <td><span class="badge bg-info">${escapedData.cycle}</span></td>
             <td><div class="schedule-details">${this.formatScheduleDetails(task.schedule_details)}</div></td>
@@ -157,21 +193,14 @@ class TaskManager {
                     <input class="form-check-input toggle-active task-checkbox" type="checkbox" 
                            id="active-${escapedData.id}" data-task-id="${escapedData.id}" 
                            ${task.is_active ? 'checked' : ''} 
-                           ${!statusInfo.canBeActivated ? 'disabled' : ''}>
+                           ${!statusInfo.canBeActivated || isSystemTask ? 'disabled' : ''}>
                     <label class="form-check-label visually-hidden" for="active-${escapedData.id}">Active</label>
                 </div>
             </td>
             <td>${this.formatLastRunResult(task)}</td>
             <td><small class="text-muted">${this.formatDate(task.created_at, escapedData.createdAtLocal)}</small></td>
             <td class="text-center task-actions">
-                <div class="btn-group btn-group-sm" role="group">
-                    <button class="btn btn-primary editTaskBtn" data-task-id="${escapedData.id}" title="Edit Task" data-bs-toggle="tooltip">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-danger deleteTaskBtn" data-task-id="${escapedData.id}" title="Delete Task" data-bs-toggle="tooltip">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
+                ${actionButtons}
             </td>
         `;
         
@@ -239,11 +268,29 @@ class TaskManager {
 
         const taskId = target.getAttribute('data-task-id');
         
+        // Check if this is a system task by looking at the row
+        const row = target.closest('tr');
+        const isSystemTask = row && row.classList.contains('system-task-row');
+        
         if (target.classList.contains('editTaskBtn')) {
+            if (isSystemTask) {
+                this.showError('System tasks cannot be edited');
+                return;
+            }
             this.openEditModal(taskId);
         } else if (target.classList.contains('deleteTaskBtn')) {
+            if (isSystemTask) {
+                this.showError('System tasks cannot be deleted');
+                return;
+            }
             this.deleteTask(taskId);
         } else if (target.classList.contains('toggle-active')) {
+            if (isSystemTask) {
+                // Prevent the checkbox change
+                target.checked = !target.checked;
+                this.showError('System task activation cannot be changed');
+                return;
+            }
             this.toggleTaskActive(taskId, target.checked);
         }
     }
@@ -587,7 +634,26 @@ class TaskManager {
     }
 
     showError(message) {
-        this.showMessage(message, 'alert-danger');
+        // Try to show in modal first, then fallback to page-level error
+        const modalMessageDiv = document.getElementById('editTaskMessage');
+        const pageErrorDiv = document.getElementById('taskListError');
+        
+        if (modalMessageDiv && modalMessageDiv.style.display !== 'none') {
+            // Modal is visible, show error there
+            this.showMessage(message, 'alert-danger');
+        } else if (pageErrorDiv) {
+            // Show error on the main page
+            pageErrorDiv.textContent = message;
+            pageErrorDiv.style.display = 'block';
+            // Hide after 5 seconds
+            setTimeout(() => {
+                pageErrorDiv.style.display = 'none';
+            }, 5000);
+        } else {
+            // Fallback to browser alert
+            alert(message);
+        }
+        
         console.error(message);
     }
 

@@ -12,7 +12,7 @@ except ImportError:
 
 # Import the centralized task management functions
 from utils.scheduler import load_tasks, save_tasks, ScheduledTask, CYCLE_CRON, CYCLE_ONCE # CYCLE_CRON for validation
-from utils.config_loader import load_config  # Import for configuration and timezone
+from utils.config_cache import get_cached_config  # Import for configuration and timezone
 
 tasks_bp = Blueprint('tasks_bp', __name__, url_prefix='/tasks')
 
@@ -45,7 +45,7 @@ def add_task():
         
         if not timezone_str:
             # Fallback: Load timezone from configuration
-            config = load_config()
+            config = get_cached_config()
             timezone_str = config.get('timezone', 'Europe/Berlin')
         
         current_app.logger.debug(f"Using timezone: {timezone_str}")
@@ -189,7 +189,7 @@ def list_tasks():
     scheduled_tasks_objects = load_tasks() 
     
     # Load the configuration for timezone and other settings
-    config = load_config()
+    config = get_cached_config()
     timezone_str = config.get('timezone', 'Europe/Berlin')
     
     # Calculate additional status information for each task
@@ -200,6 +200,10 @@ def list_tasks():
     tasks_list_for_json = []
     for task in scheduled_tasks_objects:
         task_dict = task.to_dict()
+        
+        # Mark system tasks for UI handling
+        task_dict["is_system_task"] = task.is_system_task()
+        task_dict["is_donation_task"] = task.is_donation_task()
         
         # Ensure that is_active is taken directly
         # (if the dictionary doesn't contain it or sets it incorrectly)
@@ -305,7 +309,7 @@ def show_task_form():
     active_containers = get_active_containers()
     
     # Load configuration for timezone
-    config = load_config()
+    config = get_cached_config()
     timezone_str = config.get('timezone', 'Europe/Berlin')
     
     # Get the local timezone with abbreviation (e.g. CEST)
@@ -432,7 +436,7 @@ def edit_task_route(task_id):
     
     if request.method == 'GET':
         # Return task data for editing
-        config = load_config()
+        config = get_cached_config()
         timezone_str = config.get('timezone', 'Europe/Berlin')
         
         task_dict = task.to_dict()

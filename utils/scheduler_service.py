@@ -29,6 +29,18 @@ CHECK_INTERVAL = int(os.environ.get('DDC_SCHEDULER_CHECK_INTERVAL', '120'))  # 2
 MAX_CONCURRENT_TASKS = int(os.environ.get('DDC_MAX_CONCURRENT_TASKS', '3'))  # Limit concurrent task execution
 TASK_BATCH_SIZE = int(os.environ.get('DDC_TASK_BATCH_SIZE', '5'))  # Process tasks in batches
 
+# Global bot reference for system tasks
+_bot_instance = None
+
+def set_bot_instance(bot):
+    """Set the bot instance for use in system tasks."""
+    global _bot_instance
+    _bot_instance = bot
+
+def get_bot_instance():
+    """Get the bot instance for system tasks."""
+    return _bot_instance
+
 class SchedulerService:
     """Service for managing and executing scheduled tasks with CPU optimization."""
     
@@ -185,9 +197,44 @@ class SchedulerService:
         
         return base_interval
     
+    async def _check_system_tasks(self):
+        """Check and execute system tasks like donation messages."""
+        try:
+            # Check for donation messages (every 2 minutes - more efficient than 1 minute)
+            await self._check_donation_task()
+        except Exception as e:
+            logger.error(f"Error in system tasks check: {e}")
+    
+    async def _check_donation_task(self):
+        """Check if donation message should be sent."""
+        try:
+            # Import here to avoid circular imports
+            from utils.donation_manager import get_donation_manager
+            
+            donation_manager = get_donation_manager()
+            if donation_manager.should_send_donation_message():
+                bot = get_bot_instance()
+                if bot:
+                    logger.info("Scheduler: Sending donation message at configured time (13:37)")
+                    result = await donation_manager.send_donation_message(bot)
+                    if result["success"]:
+                        logger.info(f"Scheduler: Donation message sent successfully: {result['message']}")
+                    else:
+                        logger.debug(f"Scheduler: No donation message sent: {result['message']}")
+                else:
+                    logger.warning("Scheduler: Bot instance not available for donation message")
+        except ImportError:
+            # Donation manager not available
+            pass
+        except Exception as e:
+            logger.debug(f"Error checking donation task: {e}")
+    
     async def _check_and_execute_tasks(self):
         """Checks all tasks and executes those that are due with CPU optimization."""
         try:
+            # Check system tasks (like donations) first
+            await self._check_system_tasks()
+            
             tasks = load_tasks()
             if not tasks:
                 return
@@ -200,14 +247,24 @@ class SchedulerService:
                 if not task.is_active:  # Fixed: was task.enabled
                     continue
                 
-                if task.next_run_ts and datetime.fromtimestamp(task.next_run_ts) <= current_time:  # Fixed: convert timestamp to datetime
-                    # Skip if task is already running
-                    if task.task_id in self.active_tasks:  # Fixed: was task.id
-                        logger.debug(f"Task {task.container_name} (ID: {task.task_id}) is already running, skipping")  # Fixed: was task.name and task.id
-                        self.task_execution_stats['total_skipped'] += 1
-                        continue
+                if task.next_run_ts:
+                    task_time = datetime.fromtimestamp(task.next_run_ts)
                     
-                    due_tasks.append(task)
+                    # Create a time window: task is "due" if it's within CHECK_INTERVAL/2 of its scheduled time
+                    # This ensures we don't miss tasks between check intervals
+                    time_window = timedelta(seconds=CHECK_INTERVAL / 2)  # 60 seconds for 2-minute checks
+                    
+                    # Task is due if it's scheduled before now but within the time window
+                    # This prevents tasks from running too early or being missed
+                    if task_time <= current_time < (task_time + time_window):
+                        # Skip if task is already running
+                        if task.task_id in self.active_tasks:
+                            logger.debug(f"Task {task.container_name} (ID: {task.task_id}) is already running, skipping")
+                            self.task_execution_stats['total_skipped'] += 1
+                            continue
+                        
+                        due_tasks.append(task)
+                        logger.debug(f"Task {task.task_id} is due (scheduled: {task_time}, window: ±{time_window})")
             
             if not due_tasks:
                 logger.debug("No tasks due for execution")
