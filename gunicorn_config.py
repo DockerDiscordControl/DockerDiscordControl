@@ -107,14 +107,10 @@ backlog = 512  # OPTIMIZED: Reduced from 2048 to 512
 # HTTP Settings - RAM OPTIMIZED (moved to top section)
 # max_requests and max_requests_jitter now defined above
 
-# Logging
-# Allow switching logs to stdout/stderr (for temporary/permanent debug) via env
-if os.environ.get('GUNICORN_LOG_TO_STDOUT', '').lower() in ['1', 'true', 'on']:
-    accesslog = "-"
-    errorlog = "-"
-else:
-    accesslog = "/app/logs/gunicorn_access.log"
-    errorlog = "/app/logs/gunicorn_error.log"
+# Logging - Always use stdout/stderr for container logging best practices
+# This avoids permission issues with log files and integrates with Docker logging
+accesslog = "-"
+errorlog = "-"
 
 loglevel = (
     os.environ.get('GUNICORN_LOG_LEVEL')
@@ -128,9 +124,11 @@ access_log_format = '%({X-Forwarded-For}i)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)
 # Process management
 daemon = False  # Don't run as daemon
 pidfile = None  # No PID file (managed by Supervisor)
-user = None  # User for worker processes
-group = None  # Group for worker processes
-umask = 0  # File permissions mask
+# Note: user and group are handled by supervisord when running as non-root
+# Setting these to None allows supervisord to manage the user context
+user = None  # User handled by supervisord (runs as 'ddc' user)
+group = None  # Group handled by supervisord (runs as 'ddc' group)
+umask = 0o022  # More restrictive file permissions mask for security
 
 # Gevent-specific optimizations - RAM OPTIMIZED
 gevent_monkey_patching = True  # Enables monkey patching

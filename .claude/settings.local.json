@@ -14,7 +14,11 @@
       "Bash(gh release create:*)",
       "Bash(sed:*)",
       "Bash(git rm:*)",
-      "Bash(./update-github-wiki.sh)"
+      "Bash(./update-github-wiki.sh)",
+      "Bash(npm:*)",
+      "Bash(sudo chown:*)",
+      "Bash(git checkout:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }

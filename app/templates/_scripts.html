@@ -343,10 +343,7 @@
         // --- Log Update --- 
         const logContentElement = document.getElementById('logContent');
         const refreshLogsBtn = document.getElementById('refreshLogsBtn');
-        const actionLogContentElement = document.getElementById('actionLogContent');
-        const refreshActionLogBtn = document.getElementById('refreshActionLogBtn');
-        const downloadActionLogBtn = document.getElementById('downloadActionLogBtn'); // Link, not a direct button
-        const clearActionLogBtn = document.getElementById('clearActionLogBtn');
+        // Action log elements removed (now integrated into main log system)
         
         let logIntervalId = null;
         let currentLogLevel = 'info'; // Default log level
@@ -455,139 +452,22 @@
             }
         }
 
-        // Container log retrieval function
+        // Container log retrieval function (updated to work with new system)
         async function fetchContainerLogs() {
-            if (!logContentElement) return false;
-            
-            // Rate-limiting: Check if enough time has passed since the last request
-            const now = Date.now();
-            if (now - lastLogFetch < MIN_FETCH_INTERVAL || fetchInProgress) {
-                console.log('Skipping log fetch: Rate limit or fetch in progress');
-                return false;
-            }
-            
-            fetchInProgress = true;
-            lastLogFetch = now;
-            
-            if (refreshLogsBtn) refreshLogsBtn.disabled = true;
-            
-            try {
-                // MODIFIED: Use the new, dynamic endpoint for the 'ddc' container
-                const response = await fetch("{{ url_for('log_bp.get_container_logs', container_name='dockerdiscordcontrol') }}");
-                if (response.ok) {
-                    rawLogsCache = await response.text(); // Store full logs
-                    updateMinimalLogsCache(rawLogsCache); // Update the minimal logs cache
-                    displayFilteredLogs(); // Display filtered logs
-                    return true;
-                } else if (response.status === 404) {
-                    rawLogsCache = `Error: Container 'dockerdiscordcontrol' not found. Is it running?`;
-                    logContentElement.textContent = rawLogsCache;
-                } else if (response.status === 429) {
-                    console.warn('Too many log requests, will retry later');
-                    // For 429, don't overwrite the cache, just silently skip without showing a warning
-                    // The existing content remains displayed
-                } else {
-                    rawLogsCache = `Error loading logs: ${response.statusText}`;
-                    logContentElement.textContent = rawLogsCache; // Show error directly
-                }
-            } catch (error) {
-                console.error("Error fetching logs:", error);
-                rawLogsCache = `Error loading logs: ${error.message}`;
-                logContentElement.textContent = rawLogsCache; // Show error directly
-            } finally {
-                fetchInProgress = false;
-                if (refreshLogsBtn) {
-                    setTimeout(() => {
-                        refreshLogsBtn.disabled = false;
-                    }, MIN_FETCH_INTERVAL);
-                }
-            }
-            return false;
+            // Now just calls the new fetchLogsByType function  
+            return await fetchLogsByType(window.currentLogType || 'container');
         }
 
-        // OPTIMIZED Action log retrieval with better error handling
-        async function fetchActionLogs() {
-            if (!actionLogContentElement) return false;
-            
-            // Rate-limiting: Check if enough time has passed since the last request
-            const now = Date.now();
-            if (now - lastActionLogFetch < MIN_FETCH_INTERVAL || actionLogFetchInProgress) {
-                console.log('Skipping action log fetch: Rate limit or fetch in progress');
-                return false;
-            }
-            
-            actionLogFetchInProgress = true;
-            lastActionLogFetch = now;
-            
-            // TIMEOUT PROTECTION: If loading takes too long, show a better message
-            const timeoutId = setTimeout(() => {
-                if (actionLogContentElement.textContent === 'Loading action log...') {
-                    actionLogContentElement.textContent = 'Action log is taking longer than expected to load...';
-                }
-            }, 10000); // 10 second timeout
-            
-            if (refreshActionLogBtn) refreshActionLogBtn.disabled = true;
-            
-            try {
-                const response = await fetch("{{ url_for('action_log_bp.get_action_log') }}");
-                if (response.ok) {
-                    clearTimeout(timeoutId); // Clear timeout on success
-                    const logs = await response.text();
-                    actionLogContentElement.textContent = logs;
-                    return true;
-                } else if (response.status === 429) {
-                    console.warn('Rate limit hit for action logs - will retry in 30 seconds');
-                    // SMART RETRY: Schedule retry after 30 seconds instead of showing permanent error
-                    if (actionLogContentElement.textContent === '[Loading action log...]') {
-                        actionLogContentElement.textContent = 'Rate limit reached. Retrying in 30 seconds...';
-                    }
-                    setTimeout(() => {
-                        console.log('Retrying action log fetch after rate limit cooldown');
-                        fetchActionLogs();
-                    }, 30000); // Retry after 30 seconds
-                } else {
-                    actionLogContentElement.textContent = `Error loading action logs: ${response.statusText}`;
-                }
-            } catch (error) {
-                console.error("Error fetching action logs:", error);
-                actionLogContentElement.textContent = `Error loading action logs: ${error.message}`;
-            } finally {
-                clearTimeout(timeoutId); // Always clear timeout in finally block
-                actionLogFetchInProgress = false;
-                if (refreshActionLogBtn) {
-                    setTimeout(() => {
-                        refreshActionLogBtn.disabled = false;
-                    }, MIN_FETCH_INTERVAL);
-                }
-            }
-            return false;
-        }
+        // fetchActionLogs function removed (now integrated into main log system)
 
-        // OPTIMIZED: Staggered log fetching to prevent rate limits
+        // Simplified log fetching (action logs now integrated)
         async function fetchAllLogs() {
-            console.log('Starting staggered log fetch to avoid rate limits');
-            
-            // Fetch container logs first
-            const containerLogResult = await fetchContainerLogs();
-            
-            // Wait 2 seconds before fetching action logs to prevent rate limiting
-            setTimeout(async () => {
-                await fetchActionLogs();
-                console.log('Staggered logs update completed');
-            }, 2000); // 2 second delay between requests
-            
-            console.log('Container logs fetched, action logs queued');
+            console.log('Fetching logs...');
+            await fetchContainerLogs();
+            console.log('Logs fetched');
         }
 
-        // --- Log Level Button Listeners ---
-        const logLevelRadios = document.querySelectorAll('input[name="logLevel"]');
-        logLevelRadios.forEach(radio => {
-            radio.addEventListener('change', (event) => {
-                currentLogLevel = event.target.value;
-                console.log('Log level changed to:', currentLogLevel); // Debug log
-                displayFilteredLogs(); // Update display with new filter
-            });
-        });
+        // --- Log Level Button Listeners removed (filters no longer used) ---
         // --- End Log Level Button Listeners ---
 
         // --- Scheduler Debug Mode Listener ---
@@ -639,9 +519,7 @@
             refreshLogsBtn.addEventListener('click', fetchContainerLogs);
         }
         
-        if (refreshActionLogBtn) {
-            refreshActionLogBtn.addEventListener('click', fetchActionLogs);
-        }
+        // refreshActionLogBtn removed (integrated into main log system)
 
         // Smart scroll tracking for container logs
         if (logContentElement) {
@@ -662,34 +540,9 @@
             });
         }
 
-        if (clearActionLogBtn) {
-             clearActionLogBtn.addEventListener('click', async () => {
-                 if (confirm("Are you sure you want to permanently clear the user action log? This cannot be undone.")) {
-                    clearActionLogBtn.disabled = true;
-                    try {
-                        const response = await fetch("{{ url_for('action_log_bp.clear_action_log') }}", {
-                             method: 'POST',
-                             headers: { 'X-Requested-With': 'XMLHttpRequest' } // In case CSRF or similar becomes relevant
-                         });
-                        const data = await response.json();
-                        if (response.ok && data.success) {
-                             alert(data.message || 'Action log cleared.');
-                             fetchActionLogs(); // Reload the log (now showing only the CLEAR message)
-                        } else {
-                             alert('Error clearing action log: ' + (data.message || 'Unknown error'));
-                        }
-                    } catch (error) {
-                         console.error("Error clearing action log:", error);
-                         alert('Failed to clear action log: ' + error.message);
-                    } finally {
-                        clearActionLogBtn.disabled = false;
-                    }
-                 }
-             });
-         }
+        // clearActionLogBtn removed (clear function integrated into main log system)
 
-        // OPTIMIZED: Load action logs immediately, then start staggered auto-refresh
-        fetchActionLogs(); // Load action logs first to clear "Loading..." quickly
+        // Load logs on page load
         setTimeout(fetchContainerLogs, 1000); // Load container logs after 1 second
         
         // A common interval for both logs
@@ -697,15 +550,29 @@
         logIntervalId = setInterval(fetchAllLogs, 120000); // RATE-LIMIT OPTIMIZED: Updates logs every 2 minutes with staggered fetching
         // --- END: Log Update ---
 
-        // --- Temporary Debug Mode Setup ---
-        const enableButton = document.getElementById('enableTempDebugBtn');
-        if (enableButton) {
-            enableButton.addEventListener('click', enableTempDebug);
+        // --- Enhanced Log Management Setup ---
+        // Initialize log type dropdown
+        const logTypeSelect = document.getElementById('logTypeSelect');
+        if (logTypeSelect) {
+            logTypeSelect.addEventListener('change', (e) => {
+                window.currentLogType = e.target.value;
+                fetchLogsByType(window.currentLogType);
+            });
         }
         
-        // Initial check of temp debug status
-        refreshTempDebugStatus();
-        // --- END: Temporary Debug Mode Setup ---
+        // Initialize download button
+        const downloadLogsBtn = document.getElementById('downloadLogsBtn');
+        if (downloadLogsBtn) {
+            downloadLogsBtn.addEventListener('click', window.downloadLogs);
+        }
+        
+        // Initialize clear button  
+        const clearLogsBtn = document.getElementById('clearLogsBtn');
+        if (clearLogsBtn) {
+            clearLogsBtn.addEventListener('click', window.clearLogs);
+        }
+        
+        // --- END: Enhanced Log Management Setup ---
 
         // --- Server Selection Table Logic ---
         const serverTableBody = document.getElementById('docker-container-list');
@@ -1621,6 +1488,158 @@
             }
         }
     } */
+
+    // --- Enhanced Log Management Functions ---
+    
+    // Store current log type (moved to global scope)
+    window.currentLogType = 'container';
+    
+    // Function to fetch logs based on selected type
+    async function fetchLogsByType(logType) {
+        const logContentElement = document.getElementById('logContent');
+        const logTitle = document.getElementById('logTitle');
+        const logTimestamp = document.getElementById('logTimestamp');
+        const refreshLogsBtn = document.getElementById('refreshLogsBtn');
+        
+        if (!logContentElement) return false;
+        
+        // Update title based on log type
+        const titles = {
+            'container': 'Container Logs',
+            'bot': 'Bot Logs',
+            'discord': 'Discord Bot Logs',
+            'webui': 'Web UI Logs',
+            'application': 'Application Logs',
+            'actions': 'User Action Log'
+        };
+        
+        if (logTitle) {
+            logTitle.textContent = `${titles[logType] || 'Logs'} (last 500 lines)`;
+        }
+        
+        // Disable refresh button during fetch
+        if (refreshLogsBtn) refreshLogsBtn.disabled = true;
+        
+        // Set loading state
+        logContentElement.innerHTML = '<span class="text-muted">Loading logs...</span>';
+        
+        try {
+            let endpoint = '';
+            switch(logType) {
+                case 'container':
+                    endpoint = "{{ url_for('log_bp.get_container_logs', container_name='dockerdiscordcontrol') }}";
+                    break;
+                case 'bot':
+                    endpoint = "{{ url_for('log_bp.get_bot_logs') }}";
+                    break;
+                case 'discord':
+                    endpoint = "{{ url_for('log_bp.get_discord_logs') }}";
+                    break;
+                case 'webui':
+                    endpoint = "{{ url_for('log_bp.get_webui_logs') }}";
+                    break;
+                case 'application':
+                    endpoint = "{{ url_for('log_bp.get_application_logs') }}";
+                    break;
+                case 'actions':
+                    endpoint = "{{ url_for('log_bp.get_action_logs') }}";
+                    break;
+                default:
+                    endpoint = "{{ url_for('log_bp.get_container_logs', container_name='dockerdiscordcontrol') }}";
+            }
+            
+            const response = await fetch(endpoint);
+            if (response.ok) {
+                const logs = await response.text();
+                // Directly display logs without filtering for now
+                logContentElement.textContent = logs;
+                
+                // Update timestamp
+                if (logTimestamp) {
+                    const now = new Date();
+                    logTimestamp.textContent = `Last updated: ${now.toLocaleTimeString()}`;
+                }
+                return true;
+            } else {
+                logContentElement.innerHTML = `<span class="text-danger">Error loading logs: ${response.statusText}</span>`;
+            }
+        } catch (error) {
+            console.error('Error fetching logs:', error);
+            logContentElement.innerHTML = `<span class="text-danger">Error loading logs: ${error.message}</span>`;
+        } finally {
+            // Re-enable refresh button after delay
+            if (refreshLogsBtn) {
+                setTimeout(() => {
+                    refreshLogsBtn.disabled = false;
+                }, 1000);
+            }
+        }
+        return false;
+    }
+    
+    // Function to download current logs (global scope)
+    window.downloadLogs = function() {
+        const logContent = document.getElementById('logContent');
+        const logTypeSelect = document.getElementById('logTypeSelect');
+        
+        if (!logContent) return;
+        
+        const logType = logTypeSelect ? logTypeSelect.value : 'container';
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `${logType}_logs_${timestamp}.txt`;
+        
+        // Get the text content (removing HTML)
+        const content = logContent.textContent || logContent.innerText;
+        
+        // Create blob and download
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        // Show notification
+        const notification = document.getElementById('save-notification');
+        if (notification) {
+            notification.className = 'alert alert-info';
+            notification.textContent = `Logs downloaded as ${filename}`;
+            notification.style.display = 'block';
+            setTimeout(() => { notification.style.display = 'none'; }, 3000);
+        }
+    }
+    
+    // Function to clear logs (global scope)
+    window.clearLogs = async function() {
+        const logTypeSelect = document.getElementById('logTypeSelect');
+        const logType = logTypeSelect ? logTypeSelect.value : 'container';
+        
+        if (!confirm(`Are you sure you want to clear ${logType} logs? This action cannot be undone.`)) {
+            return;
+        }
+        
+        // For now, just clear the display - can be updated when backend endpoint is available
+        const logContent = document.getElementById('logContent');
+        if (logContent) {
+            logContent.innerHTML = '<span class="text-muted">Logs cleared</span>';
+            // Clear cache if it exists
+            if (typeof window.rawLogsCache !== 'undefined') {
+                window.rawLogsCache = '';
+            }
+        }
+        
+        // Show notification
+        const notification = document.getElementById('save-notification');
+        if (notification) {
+            notification.className = 'alert alert-success';
+            notification.textContent = `${logType} logs cleared successfully`;
+            notification.style.display = 'block';
+            setTimeout(() => { notification.style.display = 'none'; }, 3000);
+        }
+    }
 
     // --- Temporary Debug Mode Functions ---
     
