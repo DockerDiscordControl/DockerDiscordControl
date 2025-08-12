@@ -2238,5 +2238,105 @@
     setTimeout(() => {
         logAutoRefresh = new LogAutoRefresh();
     }, 2000); // 2 second delay after page load
+
+    // Diagnostics functionality
+    const runDiagnosticsBtn = document.getElementById('runDiagnosticsBtn');
+    const diagnosticsLoader = document.getElementById('diagnosticsLoader');
+    const diagnosticsResult = document.getElementById('diagnosticsResult');
+    const diagnosticsContent = document.getElementById('diagnosticsContent');
+    
+    if (runDiagnosticsBtn) {
+        runDiagnosticsBtn.addEventListener('click', async function() {
+            try {
+                // Show loader, hide button
+                runDiagnosticsBtn.classList.add('d-none');
+                diagnosticsLoader.classList.remove('d-none');
+                diagnosticsResult.classList.add('d-none');
+                
+                const response = await fetch('/port_diagnostics');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const diagnostics = await response.json();
+                
+                // Build diagnostic report HTML
+                let html = '';
+                
+                // Container Info
+                html += `<div class="mb-3">
+                    <strong>Container:</strong> ${diagnostics.container_name || 'Unknown'}<br>
+                    <strong>Platform:</strong> ${diagnostics.host_info.platform} ${diagnostics.host_info.is_unraid ? '(Unraid)' : ''}<br>
+                    <strong>Docker Environment:</strong> ${diagnostics.host_info.is_docker ? 'Yes' : 'No'}
+                </div>`;
+                
+                // Port Status
+                const portCheck = diagnostics.port_check;
+                html += `<div class="mb-3">
+                    <strong>Internal Web Port (9374):</strong> 
+                    <span class="badge ${portCheck.internal_port_listening ? 'bg-success' : 'bg-danger'}">
+                        ${portCheck.internal_port_listening ? 'LISTENING' : 'NOT LISTENING'}
+                    </span>
+                </div>`;
+                
+                // Port Mappings
+                if (Object.keys(portCheck.port_mappings).length > 0) {
+                    html += '<div class="mb-3"><strong>Port Mappings:</strong><ul>';
+                    for (const [internal, external] of Object.entries(portCheck.port_mappings)) {
+                        html += `<li>Internal ${internal} → External `;
+                        if (Array.isArray(external)) {
+                            html += external.map(e => typeof e === 'object' ? `${e.host}:${e.port}` : e).join(', ');
+                        } else {
+                            html += external;
+                        }
+                        html += '</li>';
+                    }
+                    html += '</ul></div>';
+                } else {
+                    html += '<div class="mb-3"><span class="text-warning"><strong>No port mappings detected</strong> - Web UI may not be accessible externally</span></div>';
+                }
+                
+                // Issues
+                if (portCheck.issues && portCheck.issues.length > 0) {
+                    html += '<div class="mb-3"><h6 class="text-warning">⚠️ Issues Found:</h6><ul class="text-warning">';
+                    portCheck.issues.forEach(issue => {
+                        html += `<li>${issue}</li>`;
+                    });
+                    html += '</ul></div>';
+                }
+                
+                // Solutions
+                if (portCheck.solutions && portCheck.solutions.length > 0) {
+                    html += '<div class="mb-3"><h6 class="text-info">💡 Suggested Solutions:</h6><ul class="text-info">';
+                    portCheck.solutions.forEach(solution => {
+                        html += `<li>${solution}</li>`;
+                    });
+                    html += '</ul></div>';
+                }
+                
+                // Recommendations
+                if (diagnostics.recommendations && diagnostics.recommendations.length > 0) {
+                    html += '<div class="mb-3"><h6 class="text-success">✅ General Recommendations:</h6><ul class="text-light">';
+                    diagnostics.recommendations.forEach(rec => {
+                        html += `<li>${rec}</li>`;
+                    });
+                    html += '</ul></div>';
+                }
+                
+                diagnosticsContent.innerHTML = html;
+                diagnosticsResult.classList.remove('d-none');
+                
+            } catch (error) {
+                console.error('Diagnostics error:', error);
+                diagnosticsContent.innerHTML = `<div class="text-danger">
+                    <strong>Error running diagnostics:</strong> ${error.message}
+                    <br><small>Check browser console for details.</small>
+                </div>`;
+                diagnosticsResult.classList.remove('d-none');
+            } finally {
+                // Show button, hide loader
+                diagnosticsLoader.classList.add('d-none');
+                runDiagnosticsBtn.classList.remove('d-none');
+            }
+        });
+    }
     
 </script> 
