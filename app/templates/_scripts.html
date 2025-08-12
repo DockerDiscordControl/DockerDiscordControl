@@ -2239,19 +2239,19 @@
         logAutoRefresh = new LogAutoRefresh();
     }, 2000); // 2 second delay after page load
 
-    // Diagnostics functionality
-    const runDiagnosticsBtn = document.getElementById('runDiagnosticsBtn');
-    const diagnosticsLoader = document.getElementById('diagnosticsLoader');
-    const diagnosticsResult = document.getElementById('diagnosticsResult');
-    const diagnosticsContent = document.getElementById('diagnosticsContent');
+    // Diagnostics functionality for modal
+    const runDiagnosticsModalBtn = document.getElementById('runDiagnosticsModalBtn');
+    const diagnosticsModalLoader = document.getElementById('diagnosticsModalLoader');
+    const diagnosticsModalResult = document.getElementById('diagnosticsModalResult');
+    const diagnosticsModalContent = document.getElementById('diagnosticsModalContent');
     
-    if (runDiagnosticsBtn) {
-        runDiagnosticsBtn.addEventListener('click', async function() {
+    if (runDiagnosticsModalBtn) {
+        runDiagnosticsModalBtn.addEventListener('click', async function() {
             try {
                 // Show loader, hide button
-                runDiagnosticsBtn.classList.add('d-none');
-                diagnosticsLoader.classList.remove('d-none');
-                diagnosticsResult.classList.add('d-none');
+                runDiagnosticsModalBtn.classList.add('d-none');
+                diagnosticsModalLoader.classList.remove('d-none');
+                diagnosticsModalResult.classList.add('d-none');
                 
                 const response = await fetch('/port_diagnostics');
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -2321,20 +2321,20 @@
                     html += '</ul></div>';
                 }
                 
-                diagnosticsContent.innerHTML = html;
-                diagnosticsResult.classList.remove('d-none');
+                diagnosticsModalContent.innerHTML = html;
+                diagnosticsModalResult.classList.remove('d-none');
                 
             } catch (error) {
                 console.error('Diagnostics error:', error);
-                diagnosticsContent.innerHTML = `<div class="text-danger">
+                diagnosticsModalContent.innerHTML = `<div class="text-danger">
                     <strong>Error running diagnostics:</strong> ${error.message}
                     <br><small>Check browser console for details.</small>
                 </div>`;
-                diagnosticsResult.classList.remove('d-none');
+                diagnosticsModalResult.classList.remove('d-none');
             } finally {
                 // Show button, hide loader
-                diagnosticsLoader.classList.add('d-none');
-                runDiagnosticsBtn.classList.remove('d-none');
+                diagnosticsModalLoader.classList.add('d-none');
+                runDiagnosticsModalBtn.classList.remove('d-none');
             }
         });
     }

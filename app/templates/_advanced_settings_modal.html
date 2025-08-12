@@ -1,236 +1,126 @@
 <!-- Advanced Settings Modal -->
 <div class="modal fade" id="advancedSettingsModal" tabindex="-1" aria-labelledby="advancedSettingsModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content bg-dark text-light">
-      <div class="modal-header">
-        <h5 class="modal-title" id="advancedSettingsModalLabel">
-          <i class="bi bi-sliders"></i> Advanced Settings
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="alert alert-info" role="alert">
-          <i class="bi bi-info-circle"></i> Changes apply on next restart. Defaults are shown as placeholders.
-        </div>
-        {% include '_advanced_settings.html' %}
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary" id="saveAdvancedSettings">
-          <i class="bi bi-save"></i> Save Advanced Settings
-        </button>
-      </div>
-    </div>
-  </div>
-  <script>
-    // Advanced Settings Modal JavaScript
-    document.addEventListener('DOMContentLoaded', function() {
-      const modal = document.getElementById('advancedSettingsModal');
-      const saveBtn = document.getElementById('saveAdvancedSettings');
-      let currentSettings = {};
-      
-      // Load current settings when modal is shown
-      modal.addEventListener('show.bs.modal', function() {
-        loadAdvancedSettings();
-      });
-      
-      // Save button handler
-      if (saveBtn) {
-        saveBtn.addEventListener('click', function() {
-          saveAdvancedSettings();
-        });
-      }
-      
-      // Add input validation listeners
-      const inputs = modal.querySelectorAll('input[type="number"], input[type="checkbox"]');
-      inputs.forEach(input => {
-        input.addEventListener('input', validateInput);
-        input.addEventListener('blur', validateInput);
-      });
-      
-      function loadAdvancedSettings() {
-        // Show loading state
-        const saveBtn = document.getElementById('saveAdvancedSettings');
-        if (saveBtn) {
-          saveBtn.disabled = true;
-          saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Loading...';
-        }
-        
-        fetch('{{ url_for("main_bp.get_advanced_settings") }}')
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              currentSettings = data.settings;
-              populateForm(data.settings);
-            } else {
-              showError('Failed to load settings: ' + (data.error || 'Unknown error'));
-            }
-          })
-          .catch(error => {
-            console.error('Error loading advanced settings:', error);
-            showError('Failed to load settings. Please try again.');
-          })
-          .finally(() => {
-            // Restore save button
-            if (saveBtn) {
-              saveBtn.disabled = false;
-              saveBtn.innerHTML = '<i class="bi bi-save"></i> Save Advanced Settings';
-            }
-          });
-      }
-      
-      function populateForm(settings) {
-        // Populate form fields with current values
-        Object.entries(settings).forEach(([key, value]) => {
-          const field = document.getElementById('env_DDC_' + key.toUpperCase());
-          if (field) {
-            if (field.type === 'checkbox') {
-              field.checked = value === 'true';
-            } else {
-              field.value = value || '';
-            }
-            // Remove any validation errors
-            clearFieldValidation(field);
-          }
-        });
-      }
-      
-      function saveAdvancedSettings() {
-        // Collect form data
-        const formData = new FormData();
-        const settings = {};
-        const inputs = modal.querySelectorAll('input[type="number"], input[type="checkbox"]');
-        
-        inputs.forEach(input => {
-          const fieldName = input.id.replace('env_DDC_', '').toLowerCase();
-          if (input.type === 'checkbox') {
-            settings[fieldName] = input.checked;
-          } else {
-            settings[fieldName] = input.value.trim();
-          }
-        });
-        
-        // Show loading state
-        const saveBtn = document.getElementById('saveAdvancedSettings');
-        if (saveBtn) {
-          saveBtn.disabled = true;
-          saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
-        }
-        
-        // Clear previous alerts
-        clearAlerts();
-        
-        fetch('{{ url_for("main_bp.save_advanced_settings") }}', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ settings: settings })
-        })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              showSuccess(data.message || 'Advanced settings saved successfully!');
-              // Close modal after short delay
-              setTimeout(() => {
-                const modalEl = document.getElementById('advancedSettingsModal');
-                const instance = bootstrap.Modal.getInstance(modalEl);
-                if (instance) instance.hide();
-              }, 1500);
-            } else {
-              if (data.errors && Array.isArray(data.errors)) {
-                showValidationErrors(data.errors);
-              } else {
-                showError(data.error || 'Failed to save settings');
-              }
-            }
-          })
-          .catch(error => {
-            console.error('Error saving advanced settings:', error);
-            showError('Failed to save settings. Please try again.');
-          })
-          .finally(() => {
-            // Restore save button
-            if (saveBtn) {
-              saveBtn.disabled = false;
-              saveBtn.innerHTML = '<i class="bi bi-save"></i> Save Advanced Settings';
-            }
-          });
-      }
-      
-      function validateInput(event) {
-        const input = event.target;
-        if (input.type === 'number' && input.value.trim()) {
-          const value = parseInt(input.value);
-          const min = parseInt(input.getAttribute('min') || '0');
-          const max = parseInt(input.getAttribute('max') || '999999');
-          
-          clearFieldValidation(input);
-          
-          if (isNaN(value)) {
-            setFieldValidation(input, 'Must be a valid number');
-          } else if (value < min || value > max) {
-            setFieldValidation(input, `Value must be between ${min} and ${max}`);
-          }
-        }
-      }
-      
-      function setFieldValidation(field, message) {
-        field.classList.add('is-invalid');
-        let feedback = field.parentNode.querySelector('.invalid-feedback');
-        if (!feedback) {
-          feedback = document.createElement('div');
-          feedback.className = 'invalid-feedback';
-          field.parentNode.appendChild(feedback);
-        }
-        feedback.textContent = message;
-      }
-      
-      function clearFieldValidation(field) {
-        field.classList.remove('is-invalid');
-        const feedback = field.parentNode.querySelector('.invalid-feedback');
-        if (feedback) {
-          feedback.remove();
-        }
-      }
-      
-      function showSuccess(message) {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-success alert-dismissible fade show';
-        alertDiv.innerHTML = `
-          <i class="bi bi-check-circle"></i> ${message}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        modal.querySelector('.modal-body').insertBefore(alertDiv, modal.querySelector('.modal-body').firstChild);
-      }
-      
-      function showError(message) {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-        alertDiv.innerHTML = `
-          <i class="bi bi-exclamation-triangle"></i> ${message}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        modal.querySelector('.modal-body').insertBefore(alertDiv, modal.querySelector('.modal-body').firstChild);
-      }
-      
-      function showValidationErrors(errors) {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-        const errorList = errors.map(error => `<li>${error}</li>`).join('');
-        alertDiv.innerHTML = `
-          <i class="bi bi-exclamation-triangle"></i> Please fix the following errors:
-          <ul class="mb-0 mt-2">${errorList}</ul>
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        modal.querySelector('.modal-body').insertBefore(alertDiv, modal.querySelector('.modal-body').firstChild);
-      }
-      
-      function clearAlerts() {
-        const alerts = modal.querySelectorAll('.alert:not(.alert-info)');
-        alerts.forEach(alert => alert.remove());
-      }
-    });
-  </script>
-</div>
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header">
+                <h5 class="modal-title" id="advancedSettingsModalLabel">
+                    <i class="bi bi-gear-fill"></i> Advanced Settings
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i> Advanced settings for fine-tuning performance. Changes require container restart to take effect.
+                </div>
+                
+                <!-- Docker Performance -->
+                <div class="card bg-secondary mb-3">
+                    <div class="card-header text-light">
+                        <h6 class="mb-0"><i class="bi bi-speedometer2"></i> Docker Performance</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Docker cache duration (s)</label>
+                                <input type="number" class="form-control" id="env_DDC_DOCKER_CACHE_DURATION" name="env_DDC_DOCKER_CACHE_DURATION" min="1" max="3600" value="{{ (config.env.DDC_DOCKER_CACHE_DURATION if config.env else '') or '' }}" placeholder="30">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Docker query cooldown (s)</label>
+                                <input type="number" class="form-control" id="env_DDC_DOCKER_QUERY_COOLDOWN" name="env_DDC_DOCKER_QUERY_COOLDOWN" min="0" max="60" value="{{ (config.env.DDC_DOCKER_QUERY_COOLDOWN if config.env else '') or '' }}" placeholder="2">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Docker max cache age (s)</label>
+                                <input type="number" class="form-control" id="env_DDC_DOCKER_MAX_CACHE_AGE" name="env_DDC_DOCKER_MAX_CACHE_AGE" min="1" max="7200" value="{{ (config.env.DDC_DOCKER_MAX_CACHE_AGE if config.env else '') or '' }}" placeholder="300">
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-check form-switch mt-4">
+                                    <input class="form-check-input" type="checkbox" id="env_DDC_ENABLE_BACKGROUND_REFRESH" name="env_DDC_ENABLE_BACKGROUND_REFRESH" value="true" {% if (not config.env) or (config.env and (config.env.get('DDC_ENABLE_BACKGROUND_REFRESH') is none or (config.env.get('DDC_ENABLE_BACKGROUND_REFRESH')|string).lower() in ['1','true','on'])) %}checked{% endif %}>
+                                    <label class="form-check-label" for="env_DDC_ENABLE_BACKGROUND_REFRESH">
+                                        Enable background refresh
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
+                <!-- Background Refresh -->
+                <div class="card bg-secondary mb-3">
+                    <div class="card-header text-light">
+                        <h6 class="mb-0"><i class="bi bi-arrow-repeat"></i> Background Refresh</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Background refresh interval (s)</label>
+                                <input type="number" class="form-control" id="env_DDC_BACKGROUND_REFRESH_INTERVAL" name="env_DDC_BACKGROUND_REFRESH_INTERVAL" min="30" max="3600" value="{{ (config.env.DDC_BACKGROUND_REFRESH_INTERVAL if config.env else '') or '' }}" placeholder="300">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Background refresh limit</label>
+                                <input type="number" class="form-control" id="env_DDC_BACKGROUND_REFRESH_LIMIT" name="env_DDC_BACKGROUND_REFRESH_LIMIT" min="1" max="1000" value="{{ (config.env.DDC_BACKGROUND_REFRESH_LIMIT if config.env else '') or '' }}" placeholder="50">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Background refresh timeout (s)</label>
+                                <input type="number" class="form-control" id="env_DDC_BACKGROUND_REFRESH_TIMEOUT" name="env_DDC_BACKGROUND_REFRESH_TIMEOUT" min="5" max="300" value="{{ (config.env.DDC_BACKGROUND_REFRESH_TIMEOUT if config.env else '') or '' }}" placeholder="30">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Max containers display</label>
+                                <input type="number" class="form-control" id="env_DDC_MAX_CONTAINERS_DISPLAY" name="env_DDC_MAX_CONTAINERS_DISPLAY" min="1" max="500" value="{{ (config.env.DDC_MAX_CONTAINERS_DISPLAY if config.env else '') or '' }}" placeholder="100">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scheduler Throughput -->
+                <div class="card bg-secondary mb-3">
+                    <div class="card-header text-light">
+                        <h6 class="mb-0"><i class="bi bi-calendar-check"></i> Scheduler Throughput</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Scheduler check interval (s)</label>
+                                <input type="number" class="form-control" id="env_DDC_SCHEDULER_CHECK_INTERVAL" name="env_DDC_SCHEDULER_CHECK_INTERVAL" min="1" max="300" value="{{ (config.env.DDC_SCHEDULER_CHECK_INTERVAL if config.env else '') or '' }}" placeholder="10">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Max concurrent tasks</label>
+                                <input type="number" class="form-control" id="env_DDC_MAX_CONCURRENT_TASKS" name="env_DDC_MAX_CONCURRENT_TASKS" min="1" max="50" value="{{ (config.env.DDC_MAX_CONCURRENT_TASKS if config.env else '') or '' }}" placeholder="3">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Task batch size</label>
+                                <input type="number" class="form-control" id="env_DDC_TASK_BATCH_SIZE" name="env_DDC_TASK_BATCH_SIZE" min="1" max="100" value="{{ (config.env.DDC_TASK_BATCH_SIZE if config.env else '') or '' }}" placeholder="5">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Docker Timeouts -->
+                <div class="card bg-secondary">
+                    <div class="card-header text-light">
+                        <h6 class="mb-0"><i class="bi bi-clock-history"></i> Docker Timeouts</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Fast stats timeout (s)</label>
+                                <input type="number" class="form-control" id="env_DDC_FAST_STATS_TIMEOUT" name="env_DDC_FAST_STATS_TIMEOUT" min="1" max="60" value="{{ (config.env.DDC_FAST_STATS_TIMEOUT if config.env else '') or '' }}" placeholder="10">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Slow stats timeout (s)</label>
+                                <input type="number" class="form-control" id="env_DDC_SLOW_STATS_TIMEOUT" name="env_DDC_SLOW_STATS_TIMEOUT" min="1" max="300" value="{{ (config.env.DDC_SLOW_STATS_TIMEOUT if config.env else '') or '' }}" placeholder="30">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Container list timeout (s)</label>
+                                <input type="number" class="form-control" id="env_DDC_CONTAINER_LIST_TIMEOUT" name="env_DDC_CONTAINER_LIST_TIMEOUT" min="1" max="120" value="{{ (config.env.DDC_CONTAINER_LIST_TIMEOUT if config.env else '') or '' }}" placeholder="15">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="showUnsavedChangesAlert(true); document.getElementById('config-form').dispatchEvent(new Event('change'));">Apply Changes</button>
+            </div>
+        </div>
+    </div>
+</div>

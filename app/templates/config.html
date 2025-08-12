@@ -66,9 +66,6 @@
         {# Scheduler Section - OLD, replaced by tasks/form.html #}
         {# {% include '_scheduler_section.html' %} #}
 
-        {# Advanced Settings #}
-        {% include '_advanced_settings.html' %}
-
         {# Language and Timezone Settings #}
         {% include '_language_timezone_settings.html' %}
 
@@ -85,14 +82,14 @@
 
     <div id="save-notification"></div>
 
-    {% include '_diagnostics_section.html' %}
-
     {% include '_log_section.html' %}
 
     {% include '_action_log_section.html' %}
     
-    {# Spam Protection Modal #}
+    {# Modals #}
     {% include '_spam_protection_modal.html' %}
+    {% include '_advanced_settings_modal.html' %}
+    {% include '_diagnostics_modal.html' %}
 
 {% endblock %} {# --- End content block --- #}
 
