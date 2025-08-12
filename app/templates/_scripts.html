@@ -354,6 +354,10 @@
         let minimalLogsCache = []; // New cache specifically for important log events
         const MAX_MINIMAL_LOGS = 500; // Maximum number of minimal log entries to store
         
+        // Smart scroll tracking
+        let userScrolledUp = false;
+        let wasAtBottom = true;
+        
         // Rate-limiting variables
         let lastLogFetch = 0; // Timestamp of the last request
         let lastActionLogFetch = 0;
@@ -444,7 +448,11 @@
 
             // Use innerHTML to render the spans
             logContentElement.innerHTML = htmlLines.join('\n');
-            logContentElement.scrollTop = logContentElement.scrollHeight; // Scroll to bottom
+            
+            // Smart scroll: only auto-scroll if user was at bottom
+            if (wasAtBottom && !userScrolledUp) {
+                logContentElement.scrollTop = logContentElement.scrollHeight;
+            }
         }
 
         // Container log retrieval function
@@ -633,6 +641,25 @@
         
         if (refreshActionLogBtn) {
             refreshActionLogBtn.addEventListener('click', fetchActionLogs);
+        }
+
+        // Smart scroll tracking for container logs
+        if (logContentElement) {
+            logContentElement.addEventListener('scroll', function() {
+                const { scrollTop, scrollHeight, clientHeight } = this;
+                const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10; // 10px tolerance
+                
+                // Track if user scrolled up from bottom
+                if (wasAtBottom && !isAtBottom) {
+                    userScrolledUp = true;
+                }
+                wasAtBottom = isAtBottom;
+                
+                // Reset scroll flag if user is back at bottom
+                if (isAtBottom) {
+                    userScrolledUp = false;
+                }
+            });
         }
 
         if (clearActionLogBtn) {
@@ -2030,4 +2057,186 @@
         
         console.log("=== END TEST ===");
     };
+
+    // Professional Log Auto-refresh Manager
+    class LogAutoRefresh {
+        constructor() {
+            this.isEnabled = false;
+            this.refreshInterval = null;
+            this.defaultInterval = 30000; // 30 seconds
+            this.lastContainerLogHash = null;
+            this.lastActionLogHash = null;
+            this.isVisible = true;
+            this.hasErrors = false;
+            
+            this.setupVisibilityTracking();
+            this.startAutoRefresh();
+        }
+        
+        setupVisibilityTracking() {
+            // Track page visibility to pause auto-refresh when page is hidden
+            document.addEventListener('visibilitychange', () => {
+                this.isVisible = !document.hidden;
+                if (this.isVisible && this.isEnabled) {
+                    console.log('Page visible, resuming log auto-refresh');
+                    this.refreshLogs();
+                }
+            });
+        }
+        
+        startAutoRefresh() {
+            if (this.refreshInterval) return;
+            
+            this.isEnabled = true;
+            this.refreshInterval = setInterval(() => {
+                if (this.isVisible && !this.hasErrors) {
+                    this.refreshLogs();
+                }
+            }, this.defaultInterval);
+            
+            console.log('Log auto-refresh started (30s interval)');
+        }
+        
+        stopAutoRefresh() {
+            if (this.refreshInterval) {
+                clearInterval(this.refreshInterval);
+                this.refreshInterval = null;
+                this.isEnabled = false;
+                console.log('Log auto-refresh stopped');
+            }
+        }
+        
+        async refreshLogs() {
+            if (!this.isVisible) return;
+            
+            try {
+                // Smart refresh: only update if content changed
+                await this.smartRefreshContainerLogs();
+                
+                // Stagger action log refresh by 2 seconds
+                setTimeout(() => {
+                    if (this.isVisible) {
+                        this.smartRefreshActionLogs();
+                    }
+                }, 2000);
+                
+                this.hasErrors = false;
+            } catch (error) {
+                console.error('Auto-refresh error:', error);
+                this.hasErrors = true;
+                
+                // Auto-retry after 60 seconds on error
+                setTimeout(() => {
+                    this.hasErrors = false;
+                }, 60000);
+            }
+        }
+        
+        async smartRefreshContainerLogs() {
+            const logContentElement = document.getElementById('logContent');
+            if (!logContentElement) return;
+            
+            // Preserve scroll position
+            const logsContainer = document.getElementById('logsContainer');
+            const wasAtBottom = logsContainer && 
+                (logsContainer.scrollTop + logsContainer.clientHeight >= logsContainer.scrollHeight - 10);
+            
+            try {
+                const response = await fetch(`/container_logs/${getCurrentContainerName()}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const newContent = await response.text();
+                const newHash = this.simpleHash(newContent);
+                
+                // Only update if content changed
+                if (newHash !== this.lastContainerLogHash) {
+                    this.lastContainerLogHash = newHash;
+                    
+                    // Parse and display logs
+                    allRawLogs = this.parseLogs(newContent);
+                    displayFilteredLogs();
+                    
+                    // Restore scroll position
+                    if (wasAtBottom && logsContainer) {
+                        setTimeout(() => {
+                            logsContainer.scrollTop = logsContainer.scrollHeight;
+                        }, 10);
+                    }
+                    
+                    console.log('Container logs auto-refreshed (content changed)');
+                }
+            } catch (error) {
+                console.warn('Container log auto-refresh failed:', error);
+            }
+        }
+        
+        async smartRefreshActionLogs() {
+            const actionLogElement = document.getElementById('actionLogContent');
+            if (!actionLogElement) return;
+            
+            try {
+                const response = await fetch('/action_logs');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const newContent = await response.text();
+                const newHash = this.simpleHash(newContent);
+                
+                // Only update if content changed
+                if (newHash !== this.lastActionLogHash) {
+                    this.lastActionLogHash = newHash;
+                    actionLogElement.textContent = newContent;
+                    console.log('Action logs auto-refreshed (content changed)');
+                }
+            } catch (error) {
+                console.warn('Action log auto-refresh failed:', error);
+            }
+        }
+        
+        parseLogs(logText) {
+            // Reuse existing log parsing logic
+            return logText.split('\n').map(line => {
+                const trimmed = line.trim();
+                if (!trimmed) return { original: line, level: 'debug', display: line };
+                
+                let level = 'info';
+                if (trimmed.includes('ERROR') || trimmed.includes('CRITICAL')) level = 'error';
+                else if (trimmed.includes('WARNING') || trimmed.includes('WARN')) level = 'warning';
+                else if (trimmed.includes('SUCCESS')) level = 'success';
+                else if (trimmed.includes('DEBUG')) level = 'debug';
+                
+                return {
+                    original: line,
+                    level: level,
+                    display: line
+                };
+            });
+        }
+        
+        simpleHash(str) {
+            // Simple hash function for change detection
+            let hash = 0;
+            if (str.length === 0) return hash;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32bit integer
+            }
+            return hash;
+        }
+        
+        getCurrentContainerName() {
+            // Get the current container name for log fetching
+            // For DDC, we typically use the fixed container name
+            return 'dockerdiscordcontrol';
+        }
+    }
+    
+    // Initialize auto-refresh when DOM is ready
+    let logAutoRefresh = null;
+    
+    // Start auto-refresh after page load
+    setTimeout(() => {
+        logAutoRefresh = new LogAutoRefresh();
+    }, 2000); // 2 second delay after page load
+    
 </script> 
