@@ -84,12 +84,18 @@ Licensed under the MIT License
             transition: all 0.1s ease;
         }
         
-        /* Red Neon Text Effect for version in footer */
-        .neon-text-red {
-            color: #ff4d4d;
-            text-shadow: 0 0 10px #ff4d4d, 0 0 20px #ff4d4d, 0 0 40px #ff4d4d;
+        /* Red Neon Text Effect for version in footer - INVERTED: Default is black */
+        #neon-version {
+            color: #000;  /* Black by default */
+            text-shadow: none;
             font-weight: bold;
-            transition: all 0.1s ease;
+            transition: color 0.3s ease, text-shadow 0.3s ease;
+        }
+        
+        /* Active red glow state for version */
+        #neon-version.glow {
+            color: #ff4d4d !important;
+            text-shadow: 0 0 10px #ff4d4d, 0 0 20px #ff4d4d, 0 0 40px #ff4d4d !important;
         }
         
         /* Large Neon Text Effect for DDC under logo */
@@ -125,12 +131,6 @@ Licensed under the MIT License
             transition: color 0.05s, text-shadow 0.05s;
         }
         
-        /* Red Neon flicker effect */
-        .neon-text-red.flicker {
-            color: #000;
-            text-shadow: none;
-            transition: color 0.05s, text-shadow 0.05s;
-        }
         .donation-section {
             background-color: #1E2125;
             border: 1px solid #4a5568;
@@ -217,40 +217,51 @@ Licensed under the MIT License
 
     <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <script>
-        // Neon flicker effect for MAX in footer and DDC under logo
+        // Neon flicker effect for MAX in footer, DDC under logo, and version (inverted for version)
         (function setupNeonFlicker() {
-            const neonElements = [
-                { element: document.getElementById('neon-max'), name: 'MAX' },
-                { element: document.getElementById('neon-ddc'), name: 'DDC' },
-                { element: document.getElementById('neon-version'), name: 'VERSION' }
-            ].filter(item => item.element); // Only include elements that exist
+            const neonMax = document.getElementById('neon-max');
+            const neonDdc = document.getElementById('neon-ddc');
+            const neonVersion = document.getElementById('neon-version');
             
-            if (neonElements.length === 0) return;
-            
-            function flickerNeon() {
-                neonElements.forEach(({ element, name }) => {
-                    // Decide if we flicker now (70% chance)
-                    if (Math.random() < 0.7) {
-                        // Create a flicker
+            // Regular flicker for MAX and DDC (70% chance to go dark briefly)
+            function flickerRegular() {
+                [neonMax, neonDdc].forEach(element => {
+                    if (element && Math.random() < 0.7) {
                         element.classList.add('flicker');
-                        
-                        // Random flicker duration between 100ms and 1000ms
                         const flickerDuration = Math.random() * 900 + 100;
-                        
-                        // Remove the flicker class after the duration
                         setTimeout(() => {
                             element.classList.remove('flicker');
                         }, flickerDuration);
                     }
                 });
                 
-                // Schedule next flicker check in 5-10 seconds
-                const nextFlickerTime = Math.random() * 5000 + 5000;
-                setTimeout(flickerNeon, nextFlickerTime);
+                // Schedule next flicker in 5-10 seconds
+                setTimeout(flickerRegular, Math.random() * 5000 + 5000);
             }
             
-            // Start the flicker effect
-            setTimeout(flickerNeon, 3000); // First flicker after 3 seconds
+            // Inverted glow effect for version (opposite of MAX - mostly dark, briefly red)
+            function glowVersion() {
+                if (neonVersion) {
+                    // 70% chance to briefly glow red (inverse of MAX's flicker)
+                    if (Math.random() < 0.7) {
+                        neonVersion.classList.add('glow');
+                        
+                        // Brief glow duration between 100ms and 1000ms (same as MAX's flicker)
+                        const glowDuration = Math.random() * 900 + 100;
+                        
+                        setTimeout(() => {
+                            neonVersion.classList.remove('glow');
+                        }, glowDuration);
+                    }
+                }
+                
+                // Schedule next glow check in 5-10 seconds (same as MAX)
+                setTimeout(glowVersion, Math.random() * 5000 + 5000);
+            }
+            
+            // Start both effects
+            setTimeout(flickerRegular, 3000); // Start regular flicker after 3 seconds
+            setTimeout(glowVersion, 2000); // Start version glow after 2 seconds
         })();
     </script>
     {% block scripts %}{% endblock %}

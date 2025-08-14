@@ -22,6 +22,13 @@
         
         <!-- Action Buttons -->
         <div class="d-flex align-items-center">
+            <!-- Auto Refresh Toggle -->
+            <div class="form-check form-switch me-3">
+                <input class="form-check-input" type="checkbox" id="autoRefreshToggle">
+                <label class="form-check-label" for="autoRefreshToggle" style="font-size: 0.875rem;">
+                    Auto
+                </label>
+            </div>
             <button id="refreshLogsBtn" class="btn btn-sm btn-outline-secondary me-2">
                 <i class="bi bi-arrow-clockwise"></i> Refresh
             </button>
@@ -34,26 +41,108 @@
         </div>
     </div>
     
-    <!-- Debug Mode Options (only Permanent) -->
+    <!-- Debug Level Toggle -->
     <div class="row mb-3">
         <div class="col-md-12">
             <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="schedulerDebugMode" name="scheduler_debug_mode" value="1" {% if config.scheduler_debug_mode %}checked{% endif %}>
-                <label class="form-check-label" for="schedulerDebugMode">Permanent Debug Mode</label>
-                <div class="form-text">Enable detailed logging for the entire system. Persists across container restarts.</div>
+                <input class="form-check-input" type="checkbox" id="debugLevelToggle" name="debug_level_enabled" value="1" {% if config.debug_level_enabled %}checked{% endif %}>
+                <label class="form-check-label" for="debugLevelToggle">Debug Level</label>
             </div>
+            <p class="form-text mt-1">Toggle between Debug and Info log levels. Debug shows detailed system information, Info shows standard messages.</p>
         </div>
     </div>
 
-    <!-- Log Display Area -->
-    <div class="bg-dark rounded p-3">
-        <h6 class="border-bottom pb-2 mb-2 text-white d-flex justify-content-between align-items-center">
-            <span id="logTitle">Container Logs (last 500 lines)</span>
+    <!-- Log Display Area - Enhanced Design -->
+    <div class="log-display-container">
+        <div class="log-header d-flex justify-content-between align-items-center px-3 py-2">
+            <span id="logTitle" class="fw-bold">Container Logs (last 500 lines)</span>
             <small id="logTimestamp" class="text-muted"></small>
-        </h6>
-        <div id="logsContainer" class="overflow-auto text-light bg-dark" style="max-height: 400px; font-family: monospace; white-space: pre-wrap; font-size: 0.85rem;">
+        </div>
+        <div id="logsContainer" class="log-content-wrapper">
             <pre class="mb-0" id="logContent">{# Logs will be loaded here by JavaScript #}</pre>
         </div>
     </div>
+    
+    <style>
+        .log-display-container {
+            background: linear-gradient(145deg, #1a1d24, #0f1114);
+            border: 1px solid #2a2d35;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .log-header {
+            background: rgba(33, 37, 41, 0.8);
+            border-bottom: 1px solid #2a2d35;
+            color: #f8f9fa;
+        }
+        
+        .log-content-wrapper {
+            height: 450px;
+            overflow-y: auto;
+            overflow-x: auto;
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #e9ecef;
+            background: #0d0f12;
+            position: relative;
+        }
+        
+        .log-content-wrapper::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        .log-content-wrapper::-webkit-scrollbar-track {
+            background: #1a1d24;
+            border-radius: 5px;
+        }
+        
+        .log-content-wrapper::-webkit-scrollbar-thumb {
+            background: #495057;
+            border-radius: 5px;
+        }
+        
+        .log-content-wrapper::-webkit-scrollbar-thumb:hover {
+            background: #6c757d;
+        }
+        
+        #logContent {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 0;
+            padding: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        /* Smooth update animation */
+        .log-updating {
+            opacity: 0.7;
+        }
+        
+        /* Auto-refresh indicator */
+        .auto-refresh-active .log-header {
+            position: relative;
+        }
+        
+        .auto-refresh-active .log-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 2px;
+            width: 100%;
+            background: linear-gradient(90deg, transparent, #28a745, transparent);
+            animation: slideIndicator 2s linear infinite;
+        }
+        
+        @keyframes slideIndicator {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+    </style>
 </div>
 {# --- End log display --- #} 

@@ -57,10 +57,149 @@ class PortDiagnostics:
         info = {
             'platform': 'unknown',
             'is_unraid': False,
-            'is_docker': True if os.path.exists('/.dockerenv') else False
+            'is_docker': True if os.path.exists('/.dockerenv') else False,
+            'python_version': '',
+            'container_uptime': '',
+            'memory_usage': '',
+            'disk_usage': '',
+            'supervisord_status': {},
+            'docker_socket_available': False,
+            'ddc_memory_usage': '',
+            'ddc_image_size': ''
         }
         
         try:
+            # Get Python version
+            import sys
+            info['python_version'] = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+            
+            # Get container uptime
+            try:
+                with open('/proc/uptime', 'r') as f:
+                    uptime_seconds = float(f.read().split()[0])
+                    days = int(uptime_seconds // 86400)
+                    hours = int((uptime_seconds % 86400) // 3600)
+                    minutes = int((uptime_seconds % 3600) // 60)
+                    if days > 0:
+                        info['container_uptime'] = f"{days}d {hours}h {minutes}m"
+                    elif hours > 0:
+                        info['container_uptime'] = f"{hours}h {minutes}m"
+                    else:
+                        info['container_uptime'] = f"{minutes}m"
+            except Exception:
+                info['container_uptime'] = 'unknown'
+            
+            # Get memory usage
+            try:
+                with open('/proc/meminfo', 'r') as f:
+                    meminfo = f.read()
+                    mem_total = int([line for line in meminfo.split('\n') if line.startswith('MemTotal:')][0].split()[1]) * 1024
+                    mem_available = int([line for line in meminfo.split('\n') if line.startswith('MemAvailable:')][0].split()[1]) * 1024
+                    mem_used = mem_total - mem_available
+                    mem_percent = (mem_used / mem_total) * 100
+                    info['memory_usage'] = f"{mem_used // 1024 // 1024}MB / {mem_total // 1024 // 1024}MB ({mem_percent:.1f}%)"
+            except Exception:
+                info['memory_usage'] = 'unknown'
+            
+            # Get disk usage for /app
+            try:
+                import shutil
+                total, used, free = shutil.disk_usage('/app')
+                used_percent = (used / total) * 100
+                info['disk_usage'] = f"{used // 1024 // 1024}MB / {total // 1024 // 1024}MB ({used_percent:.1f}%)"
+            except Exception:
+                info['disk_usage'] = 'unknown'
+            
+            # Get supervisord process status
+            try:
+                result = subprocess.run(['supervisorctl', 'status'], 
+                                      capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    processes = {}
+                    for line in result.stdout.strip().split('\n'):
+                        if line.strip():
+                            parts = line.split()
+                            if len(parts) >= 2:
+                                name = parts[0]
+                                status = parts[1]
+                                processes[name] = status
+                    info['supervisord_status'] = processes
+            except Exception:
+                info['supervisord_status'] = {'error': 'supervisorctl not available'}
+            
+            # Check Docker socket availability
+            try:
+                info['docker_socket_available'] = os.path.exists('/var/run/docker.sock')
+            except Exception:
+                info['docker_socket_available'] = False
+            
+            # Get DDC container-specific memory usage and image size
+            if self.container_name and info['docker_socket_available']:
+                try:
+                    # Get container memory usage
+                    result = subprocess.run([
+                        'docker', 'stats', self.container_name, '--no-stream', '--format',
+                        'table {{.MemUsage}}'
+                    ], capture_output=True, text=True, timeout=10)
+                    
+                    if result.returncode == 0:
+                        lines = result.stdout.strip().split('\n')
+                        if len(lines) >= 2:  # Skip header line
+                            mem_usage = lines[1].strip()
+                            info['ddc_memory_usage'] = mem_usage
+                    else:
+                        info['ddc_memory_usage'] = 'unknown'
+                except Exception as e:
+                    logger.debug(f"Could not get container memory stats: {e}")
+                    info['ddc_memory_usage'] = 'unknown'
+                
+                try:
+                    # Get image size
+                    result = subprocess.run([
+                        'docker', 'images', '--format', 'table {{.Repository}}:{{.Tag}}\t{{.Size}}',
+                        '--filter', f'reference=*{self.container_name}*'
+                    ], capture_output=True, text=True, timeout=10)
+                    
+                    if result.returncode == 0:
+                        lines = result.stdout.strip().split('\n')
+                        if len(lines) >= 2:  # Skip header line
+                            # Try to find DDC image
+                            for line in lines[1:]:
+                                parts = line.split('\t')
+                                if len(parts) >= 2:
+                                    image_name = parts[0].lower()
+                                    if 'dockerdiscordcontrol' in image_name or 'ddc' in image_name:
+                                        info['ddc_image_size'] = parts[1].strip()
+                                        break
+                            
+                            # If not found by name, try alternative approach
+                            if not info['ddc_image_size']:
+                                # Get image ID from container
+                                result2 = subprocess.run([
+                                    'docker', 'inspect', self.container_name, '--format', '{{.Image}}'
+                                ], capture_output=True, text=True, timeout=5)
+                                
+                                if result2.returncode == 0:
+                                    image_id = result2.stdout.strip()[:12]  # Short ID
+                                    result3 = subprocess.run([
+                                        'docker', 'images', '--format', 'table {{.ID}}\t{{.Size}}',
+                                        '--filter', f'reference={image_id}'
+                                    ], capture_output=True, text=True, timeout=5)
+                                    
+                                    if result3.returncode == 0:
+                                        lines3 = result3.stdout.strip().split('\n')
+                                        if len(lines3) >= 2:
+                                            parts3 = lines3[1].split('\t')
+                                            if len(parts3) >= 2:
+                                                info['ddc_image_size'] = parts3[1].strip()
+                    
+                    if not info['ddc_image_size']:
+                        info['ddc_image_size'] = 'unknown'
+                        
+                except Exception as e:
+                    logger.debug(f"Could not get image size: {e}")
+                    info['ddc_image_size'] = 'unknown'
+                
             # Check if running on Unraid
             if os.path.exists('/etc/unraid-version') or os.path.exists('/boot/config/ident.cfg'):
                 info['is_unraid'] = True

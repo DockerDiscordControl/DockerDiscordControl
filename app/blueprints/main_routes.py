@@ -742,29 +742,43 @@ def save_config_api():
                 except Exception as e:
                     logger.error(f"Error invalidating caches: {e}")
             
-            # Update scheduler logging settings if they have changed
+            # Update logging level settings if they have changed
             try:
-                # Explicitly ensure the debug mode is refreshed
-                from utils.logging_utils import refresh_debug_status
-                debug_status = refresh_debug_status()
-                logger.info(f"Debug mode after config save: {'ENABLED' if debug_status else 'DISABLED'}")
-                
-                # Verify that debug setting was properly saved
+                # Check if debug level toggle was changed
                 config_check = load_config()
-                saved_debug_status = config_check.get('scheduler_debug_mode', False)
-                if saved_debug_status != debug_status:
-                    logger.warning(f"Debug status mismatch! Requested: {debug_status}, Saved: {saved_debug_status}")
-                    # Force an additional save with correct debug status
-                    config_check['scheduler_debug_mode'] = debug_status
-                    save_config(config_check)
-                    logger.info(f"Forced additional save with debug status: {debug_status}")
+                debug_level_enabled = config_check.get('debug_level_enabled', False)
+                current_level = 'DEBUG' if debug_level_enabled else 'INFO'
                 
-                # Import here to avoid circular imports
-                from utils.scheduler import initialize_logging
-                initialize_logging()
-                logger.info("Scheduler logging settings updated after configuration save")
+                logger.info(f"Log level after config save: {current_level}")
+                
+                # Update logging level for all loggers
+                import logging
+                root_logger = logging.getLogger()
+                if debug_level_enabled:
+                    root_logger.setLevel(logging.DEBUG)
+                    # Also update specific loggers
+                    for logger_name in ['ddc', 'gunicorn', 'discord', 'app']:
+                        specific_logger = logging.getLogger(logger_name)
+                        specific_logger.setLevel(logging.DEBUG)
+                    logger.info("All loggers set to DEBUG level")
+                else:
+                    root_logger.setLevel(logging.INFO)
+                    # Also update specific loggers
+                    for logger_name in ['ddc', 'gunicorn', 'discord', 'app']:
+                        specific_logger = logging.getLogger(logger_name)
+                        specific_logger.setLevel(logging.INFO)
+                    logger.info("All loggers set to INFO level")
+                
+                # Update scheduler logging if available
+                try:
+                    from utils.scheduler import initialize_logging
+                    initialize_logging()
+                    logger.info("Scheduler logging settings updated after configuration save")
+                except ImportError:
+                    logger.debug("Scheduler module not available for logging update")
+                
             except Exception as e:
-                logger.warning(f"Failed to update scheduler logging: {str(e)}")
+                logger.warning(f"Failed to update logging settings: {str(e)}")
             
             # Prepare file paths for display (filenames only)
             saved_files = [

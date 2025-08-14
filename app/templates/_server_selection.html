@@ -22,6 +22,7 @@
                     {% for container in all_containers %}
                         {% set server_config = configured_servers.get(container.name, {}) %}
                         {% set is_selected = container.name in configured_servers %}
+                        {% set info_config = container_info_data.get(container.name, {}) %}
                         <tr data-container-id="{{ container.id }}" data-container-name="{{ container.name }}">
                             <td class="text-center align-middle">
                                 <span class="order-number me-1"></span>
@@ -73,13 +74,12 @@
                                 </div>
                             </td>
                             <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-info info-btn" data-container="{{ container.name }}" title="Edit Info" {% if not is_selected %}disabled{% endif %}>
+                                <button type="button" class="btn btn-sm {% if info_config.get('enabled', False) %}btn-outline-info{% else %}btn-outline-secondary{% endif %} info-btn" data-container="{{ container.name }}" title="Edit Info" {% if not is_selected %}disabled{% endif %}>
                                     <i class="bi bi-info-circle"></i>
                                 </button>
                             </td>
                         </tr>
                         {# Hidden inputs for container info configuration #}
-                        {% set info_config = container_info_data.get(container.name, {}) %}
                         <input type="hidden" name="info_enabled_{{ container.name }}" value="{% if info_config.get('enabled', False) %}1{% else %}0{% endif %}">
                         <input type="hidden" name="info_show_ip_{{ container.name }}" value="{% if info_config.get('show_ip', False) %}1{% else %}0{% endif %}">
                         <input type="hidden" name="info_custom_ip_{{ container.name }}" value="{{ info_config.get('custom_ip', '') }}">

@@ -470,16 +470,16 @@
         // --- Log Level Button Listeners removed (filters no longer used) ---
         // --- End Log Level Button Listeners ---
 
-        // --- Scheduler Debug Mode Listener ---
-        const schedulerDebugCheckbox = document.getElementById('schedulerDebugMode');
-        if (schedulerDebugCheckbox) {
-            schedulerDebugCheckbox.addEventListener('change', function() {
+        // --- Debug Level Toggle Listener ---
+        const debugLevelCheckbox = document.getElementById('debugLevelToggle');
+        if (debugLevelCheckbox) {
+            debugLevelCheckbox.addEventListener('change', function() {
                 showUnsavedChangesAlert(false); // Simple change, doesn't require restart
                 
                 // Information popup about setting change
                 let message = this.checked ? 
-                    "Scheduler Debug Mode enabled. Save configuration to activate detailed logging." : 
-                    "Scheduler Debug Mode disabled. Save configuration to reduce log verbosity.";
+                    "Debug Level enabled. Save configuration to activate detailed logging." : 
+                    "Debug Level disabled. Save configuration to switch to Info level logging.";
                 
                 // Create temporary notification
                 const notification = document.createElement('div');
@@ -513,7 +513,7 @@
                 });
             });
         }
-        // --- End Scheduler Debug Mode Listener ---
+        // --- End Debug Level Toggle Listener ---
 
         if (refreshLogsBtn) {
             refreshLogsBtn.addEventListener('click', fetchContainerLogs);
@@ -545,9 +545,104 @@
         // Load logs on page load
         setTimeout(fetchContainerLogs, 1000); // Load container logs after 1 second
         
-        // A common interval for both logs
-        if (logIntervalId) clearInterval(logIntervalId);
-        logIntervalId = setInterval(fetchAllLogs, 120000); // RATE-LIMIT OPTIMIZED: Updates logs every 2 minutes with staggered fetching
+        // Auto-refresh functionality for logs
+        let autoRefreshInterval = null;
+        const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+        const AUTO_REFRESH_INTERVAL = 10000; // 10 seconds - rate limit friendly
+        
+        function startAutoRefresh() {
+            if (autoRefreshInterval) return; // Already running
+            
+            autoRefreshInterval = setInterval(async () => {
+                // Only refresh if not already fetching and respecting rate limits
+                const now = Date.now();
+                const timeSinceLastFetch = now - lastLogFetch;
+                
+                if (!fetchInProgress && timeSinceLastFetch >= MIN_FETCH_INTERVAL) {
+                    const currentScroll = logContentElement ? logContentElement.scrollTop : 0;
+                    const wasAtBottom = logContentElement ? 
+                        (logContentElement.scrollTop + logContentElement.clientHeight >= logContentElement.scrollHeight - 10) : false;
+                    
+                    // Add smooth transition effect
+                    if (logContentElement) {
+                        logContentElement.classList.add('log-updating');
+                    }
+                    
+                    await fetchLogsByType(window.currentLogType || 'container');
+                    
+                    // Remove transition effect after a short delay
+                    setTimeout(() => {
+                        if (logContentElement) {
+                            logContentElement.classList.remove('log-updating');
+                        }
+                    }, 200);
+                    
+                    // Preserve scroll position or auto-scroll to bottom
+                    if (logContentElement) {
+                        if (wasAtBottom) {
+                            // Auto-scroll to bottom if user was at bottom
+                            logContentElement.scrollTop = logContentElement.scrollHeight;
+                        } else {
+                            // Preserve scroll position
+                            logContentElement.scrollTop = currentScroll;
+                        }
+                    }
+                }
+            }, AUTO_REFRESH_INTERVAL);
+            
+            console.log('Auto-refresh started');
+        }
+        
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                console.log('Auto-refresh stopped');
+            }
+        }
+        
+        // Setup auto-refresh toggle
+        if (autoRefreshToggle) {
+            autoRefreshToggle.addEventListener('change', function() {
+                const logContainer = document.querySelector('.log-display-container');
+                
+                if (this.checked) {
+                    startAutoRefresh();
+                    // Visual feedback
+                    const refreshBtn = document.getElementById('refreshLogsBtn');
+                    if (refreshBtn) {
+                        const icon = refreshBtn.querySelector('i');
+                        if (icon) {
+                            icon.classList.add('text-success');
+                        }
+                    }
+                    // Add auto-refresh indicator
+                    if (logContainer) {
+                        logContainer.classList.add('auto-refresh-active');
+                    }
+                } else {
+                    stopAutoRefresh();
+                    // Remove visual feedback
+                    const refreshBtn = document.getElementById('refreshLogsBtn');
+                    if (refreshBtn) {
+                        const icon = refreshBtn.querySelector('i');
+                        if (icon) {
+                            icon.classList.remove('text-success');
+                        }
+                    }
+                    // Remove auto-refresh indicator
+                    if (logContainer) {
+                        logContainer.classList.remove('auto-refresh-active');
+                    }
+                }
+            });
+        }
+        
+        // Clean up old interval if it exists
+        if (logIntervalId) {
+            clearInterval(logIntervalId);
+            logIntervalId = null;
+        }
         // --- END: Log Update ---
 
         // --- Enhanced Log Management Setup ---
@@ -1503,6 +1598,14 @@
         
         if (!logContentElement) return false;
         
+        // Set fetch in progress flag and update timestamp
+        if (typeof fetchInProgress !== 'undefined') {
+            fetchInProgress = true;
+        }
+        if (typeof lastLogFetch !== 'undefined') {
+            lastLogFetch = Date.now();
+        }
+        
         // Update title based on log type
         const titles = {
             'container': 'Container Logs',
@@ -1517,11 +1620,19 @@
             logTitle.textContent = `${titles[logType] || 'Logs'} (last 500 lines)`;
         }
         
-        // Disable refresh button during fetch
-        if (refreshLogsBtn) refreshLogsBtn.disabled = true;
+        // Disable refresh button during fetch (only if not auto-refreshing)
+        const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+        if (refreshLogsBtn && (!autoRefreshToggle || !autoRefreshToggle.checked)) {
+            refreshLogsBtn.disabled = true;
+        }
         
-        // Set loading state
-        logContentElement.innerHTML = '<span class="text-muted">Loading logs...</span>';
+        // Store current content for smooth transition
+        const currentContent = logContentElement.innerHTML;
+        
+        // Only show loading state if not auto-refreshing and no content exists
+        if ((!autoRefreshToggle || !autoRefreshToggle.checked) && !currentContent) {
+            logContentElement.innerHTML = '<span class="text-muted">Loading logs...</span>';
+        }
         
         try {
             let endpoint = '';
@@ -1565,10 +1676,20 @@
             }
         } catch (error) {
             console.error('Error fetching logs:', error);
-            logContentElement.innerHTML = `<span class="text-danger">Error loading logs: ${error.message}</span>`;
+            // Only show error if not auto-refreshing
+            const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+            if (!autoRefreshToggle || !autoRefreshToggle.checked) {
+                logContentElement.innerHTML = `<span class="text-danger">Error loading logs: ${error.message}</span>`;
+            }
         } finally {
-            // Re-enable refresh button after delay
-            if (refreshLogsBtn) {
+            // Reset fetch in progress flag
+            if (typeof fetchInProgress !== 'undefined') {
+                fetchInProgress = false;
+            }
+            
+            // Re-enable refresh button after delay (only if not auto-refreshing)
+            const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+            if (refreshLogsBtn && (!autoRefreshToggle || !autoRefreshToggle.checked)) {
                 setTimeout(() => {
                     refreshLogsBtn.disabled = false;
                 }, 1000);
@@ -2275,17 +2396,49 @@
                 const response = await fetch('/port_diagnostics');
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 
-                const diagnostics = await response.json();
+                const apiResponse = await response.json();
+                if (!apiResponse.success) {
+                    throw new Error(apiResponse.message || 'Diagnostics failed');
+                }
+                const diagnostics = apiResponse.diagnostics;
                 
                 // Build diagnostic report HTML
                 let html = '';
                 
                 // Container Info
                 html += `<div class="mb-3">
+                    <h6>System Information</h6>
                     <strong>Container:</strong> ${diagnostics.container_name || 'Unknown'}<br>
                     <strong>Platform:</strong> ${diagnostics.host_info.platform} ${diagnostics.host_info.is_unraid ? '(Unraid)' : ''}<br>
-                    <strong>Docker Environment:</strong> ${diagnostics.host_info.is_docker ? 'Yes' : 'No'}
+                    <strong>Docker Environment:</strong> ${diagnostics.host_info.is_docker ? 'Yes' : 'No'}<br>
+                    <strong>Docker Socket:</strong> <span class="badge ${diagnostics.host_info.docker_socket_available ? 'bg-success' : 'bg-danger'}">${diagnostics.host_info.docker_socket_available ? 'AVAILABLE' : 'NOT AVAILABLE'}</span><br>
+                    <strong>Python Version:</strong> ${diagnostics.host_info.python_version || 'Unknown'}<br>
+                    <strong>Container Uptime:</strong> ${diagnostics.host_info.container_uptime || 'Unknown'}
                 </div>`;
+                
+                // Resource Usage
+                html += `<div class="mb-3">
+                    <h6>Resource Usage</h6>
+                    <strong>System Memory:</strong> ${diagnostics.host_info.memory_usage || 'Unknown'}<br>
+                    <strong>DDC Container Memory:</strong> ${diagnostics.host_info.ddc_memory_usage || 'Unknown'}<br>
+                    <strong>DDC Image Size:</strong> ${diagnostics.host_info.ddc_image_size || 'Unknown'}<br>
+                    <strong>Disk (/app):</strong> ${diagnostics.host_info.disk_usage || 'Unknown'}
+                </div>`;
+                
+                // Process Status
+                if (diagnostics.host_info.supervisord_status && Object.keys(diagnostics.host_info.supervisord_status).length > 0) {
+                    html += '<div class="mb-3"><h6>Process Status</h6>';
+                    
+                    if (diagnostics.host_info.supervisord_status.error) {
+                        html += `<span class="text-warning">${diagnostics.host_info.supervisord_status.error}</span>`;
+                    } else {
+                        for (const [process, status] of Object.entries(diagnostics.host_info.supervisord_status)) {
+                            const statusClass = status === 'RUNNING' ? 'bg-success' : 'bg-danger';
+                            html += `<strong>${process}:</strong> <span class="badge ${statusClass}">${status}</span><br>`;
+                        }
+                    }
+                    html += '</div>';
+                }
                 
                 // Port Status
                 const portCheck = diagnostics.port_check;

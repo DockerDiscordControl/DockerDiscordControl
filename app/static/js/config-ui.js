@@ -153,6 +153,19 @@ function saveContainerInfo() {
     if (customIpInput) customIpInput.value = formData.info_custom_ip;
     if (customTextInput) customTextInput.value = formData.info_custom_text;
     
+    // Update button styling based on enabled state
+    const infoButton = document.querySelector(`button.info-btn[data-container="${containerName}"]`);
+    if (infoButton) {
+        const isEnabled = formData.info_enabled === '1';
+        if (isEnabled) {
+            infoButton.classList.remove('btn-outline-secondary');
+            infoButton.classList.add('btn-outline-info');
+        } else {
+            infoButton.classList.remove('btn-outline-info');
+            infoButton.classList.add('btn-outline-secondary');
+        }
+    }
+    
     // Hide modal
     const modal = document.getElementById('containerInfoModal');
     if (modal && window.bootstrap) {
