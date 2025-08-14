@@ -660,20 +660,9 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 logger.warning(f"No servers configured for channel {channel.id}")
                 return
 
-            # Send simple status overview first - then let background processes handle details
+            # Send server status messages directly without setup message
             try:
-                # Create simple loading message
-                embed = discord.Embed(
-                    title="🎮 Server Control Panel", 
-                    description="Control panel is being set up...", 
-                    color=0x3498db
-                )
-                embed.set_footer(text=f"Initialized at {current_time} • https://ddc.bot")
-                
-                loading_msg = await channel.send(embed=embed)
-                logger.info(f"Sent initial control panel loading message to {channel.name}")
-                
-                # Now try to get real status data with timeout
+                # Get real status data with timeout
                 success_count = 0
                 fail_count = 0
                 
@@ -1316,10 +1305,10 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             logger.debug(f"Could not check info availability: {e}")
         
         if has_any_info:
-            embed.description += f"\n\n*{translate('Use `/info <servername>` to get detailed information about containers with ℹ️  indicators.')}*"
+            embed.description += f"\n{translate('Use `/info <servername>` to get detailed information about containers with ℹ️  indicators.')}"
         
-        # Add the website URL in the same small format
-        embed.description += f"\n\n*https://ddc.bot*"
+        # Add the website URL without italic formatting
+        embed.description += f"\n\nhttps://ddc.bot"
         
         return embed
 
