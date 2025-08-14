@@ -1,0 +1,65 @@
+# docker-compose.enhanced.yml
+# BALANCED SECURITY - Full functionality with reasonable security improvements
+
+services:
+  ddc:
+    container_name: ddc
+    image: dockerdiscordcontrol
+    build: .
+    restart: unless-stopped
+    
+    ports:
+      - "8374:9374"
+    
+    volumes:
+      # Docker socket for container management (REQUIRED for DDC functionality)
+      - /var/run/docker.sock:/var/run/docker.sock
+      
+      # Configuration and logs (REQUIRED for DDC functionality)
+      - ./config:/app/config:cached
+      - ./logs:/app/logs:cached
+    
+    environment:
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY}
+      ENV_FLASK_SECRET_KEY: ${FLASK_SECRET_KEY}
+      ENV_DOCKER_SOCKET: 'unix:///var/run/docker.sock'
+      DOCKER_SOCKET: 'unix:///var/run/docker.sock'
+      DOCKER_HOST: 'unix:///var/run/docker.sock'
+      
+      # SECURITY ENHANCEMENT: Discord Bot Token via environment variable
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
+    
+    # SECURITY: Resource limits (reasonable for full functionality)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    
+    # SECURITY: Basic capability restrictions
+    cap_drop:
+      - NET_ADMIN      # No network administration
+      - SYS_ADMIN      # No system administration
+      - DAC_OVERRIDE   # No discretionary access control override
+    
+    # SECURITY: Prevent privilege escalation
+    security_opt:
+      - no-new-privileges:true
+    
+    # LOGGING: Standard logging with rotation
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # HEALTH: Basic healthcheck
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9374/health", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

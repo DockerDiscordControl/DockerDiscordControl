@@ -43,6 +43,8 @@ from app.blueprints.log_routes import log_bp
 from app.blueprints.action_log_routes import action_log_bp
 # Import Tasks Blueprint
 from app.blueprints.tasks_bp import tasks_bp
+# Import Security Blueprint  
+from app.blueprints.security_routes import security_bp
 
 # --- Global Variables (Constants, etc.) ---
 _APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -91,7 +93,7 @@ def create_app(test_config=None):
     
     app.config.update(
         SECRET_KEY=flask_secret,
-        SESSION_COOKIE_SECURE=False,
+        SESSION_COOKIE_SECURE=False,  # Will be auto-enabled for HTTPS
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE='Lax',
         PERMANENT_SESSION_LIFETIME=timedelta(days=30),
@@ -131,11 +133,17 @@ def create_app(test_config=None):
     app.register_blueprint(action_log_bp, url_prefix='/action_log_bp') # Added url_prefix for clarity and future conflict avoidance
     # Register Tasks Blueprint
     app.register_blueprint(tasks_bp)
+    # Register Security Blueprint
+    app.register_blueprint(security_bp)
 
     # Register App-Level Request Handlers HERE
     @app.before_request
     def before_request_func():
         session.permanent = True
+        
+        # 🔒 SECURITY: Auto-enable secure cookies for HTTPS
+        if request.is_secure:
+            app.config['SESSION_COOKIE_SECURE'] = True
 
     # Ensure debug mode setting is correctly loaded on application start
     with app.app_context():

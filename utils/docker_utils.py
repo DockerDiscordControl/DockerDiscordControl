@@ -310,6 +310,12 @@ async def get_docker_stats(docker_container_name: str) -> Tuple[Optional[str], O
     if not docker_container_name:
         return None, None
 
+    # 🔒 SECURITY: Validate container name format before Docker API call
+    from utils.common_helpers import validate_container_name
+    if not validate_container_name(docker_container_name):
+        logger.error(f"get_docker_stats: Invalid container name format: {docker_container_name}")
+        return None, None
+
     try:
         client = get_docker_client()
         if not client:
@@ -374,6 +380,13 @@ async def get_docker_info(docker_container_name: str) -> Optional[Dict[str, Any]
     if not docker_container_name:
         logger.warning("get_docker_info called without container name.")
         return None
+    
+    # 🔒 SECURITY: Validate container name format before Docker API call
+    from utils.common_helpers import validate_container_name
+    if not validate_container_name(docker_container_name):
+        logger.error(f"get_docker_info: Invalid container name format: {docker_container_name}")
+        return None
+        
     try:
         client = get_docker_client()
         if not client:
@@ -459,6 +472,13 @@ async def list_docker_containers() -> List[Dict[str, Any]]:
 async def is_container_exists(docker_container_name: str) -> bool:
     if not docker_container_name:
         return False
+    
+    # 🔒 SECURITY: Validate container name format before Docker API call
+    from utils.common_helpers import validate_container_name
+    if not validate_container_name(docker_container_name):
+        logger.error(f"is_container_exists: Invalid container name format: {docker_container_name}")
+        return False
+        
     try:
         client = get_docker_client()
         if not client:
@@ -712,6 +732,12 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
     if not container_name:
         return {}
     
+    # 🔒 SECURITY: Validate container name format before Docker API call
+    from utils.common_helpers import validate_container_name
+    if not validate_container_name(container_name):
+        logger.error(f"analyze_docker_stats_performance: Invalid container name format: {container_name}")
+        return {}
+    
     logger.info(f"Analysiere Docker Stats Performance für Container '{container_name}'")
     
     results = {
@@ -770,6 +796,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
             # 1. Container-Objekt abrufen (sollte schnell sein, da gecacht)
             start_time = time.time()
             try:
+                # Note: container name already validated above, safe to use
                 container = await asyncio.to_thread(client.containers.get, container_name)
                 get_container_time = (time.time() - start_time) * 1000
                 results['timing_breakdown']['get_container_times'].append(get_container_time)
@@ -939,6 +966,12 @@ async def compare_container_performance(container_names: List[str] = None) -> st
     
     for container_name in container_names:
         logger.info(f"Teste Container: {container_name}")
+        
+        # 🔒 SECURITY: Validate container name format before Docker API call
+        from utils.common_helpers import validate_container_name
+        if not validate_container_name(container_name):
+            logger.error(f"compare_container_performance: Invalid container name format: {container_name}")
+            continue
         
         # Einfacher Performance-Test (3 Iterationen)
         times = []

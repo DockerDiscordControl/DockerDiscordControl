@@ -1,85 +1,175 @@
-# Security Policy
+# 🔒 DockerDiscordControl - Security Guide
 
-## Supported Versions
+## ⚠️ Security Improvements Implemented
 
-The following versions of DockerDiscordControl (DDC) are currently supported with security updates:
+### 1. Discord Bot Token Security
 
-| Version | Supported          | Notes                    |
-| ------- | ------------------ | ------------------------ |
-| 3.0.x   | :white_check_mark: | Latest stable release    |
-| 2.5.x   | :white_check_mark: | Previous version         |
-| 2.0.x   | :x:                | End of life             |
-| 1.0.x   | :x:                | No longer supported     |
+**🚨 CRITICAL CHANGE**: The Discord bot token should now be provided via environment variable instead of config file.
 
-**Note:** DDC is developed and maintained by a single person as a passion project. While I strive to provide timely security updates, please understand that response times may vary based on real-life commitments. I strongly recommend always using the latest stable version for the best security and feature support.
+#### Migration Steps:
 
-## Reporting a Vulnerability
+1. **Copy your current token** from `config/bot_config.json`
+2. **Set environment variable**:
+   ```bash
+   export DISCORD_BOT_TOKEN="your_token_here"
+   ```
+3. **Or use .env file**:
+   ```bash
+   cp .env.example .env
+   # Edit .env and set DISCORD_BOT_TOKEN
+   ```
 
-I take security vulnerabilities seriously and appreciate responsible disclosure. If you discover a security vulnerability in DDC, please follow these steps:
+#### Security Benefits:
+- ✅ Token not stored in plaintext files
+- ✅ Token not in version control
+- ✅ Environment-based configuration
+- ✅ Automatic fallback to config file (for compatibility)
 
-### 🔒 **Private Disclosure (Recommended)**
+### 2. Docker Socket Security
 
-1. **DO NOT** open a public GitHub issue for security vulnerabilities
-2. Send an email to: **security@ddc.bot** (or use GitHub's private vulnerability reporting)
-3. Include the following information:
-   - Detailed description of the vulnerability
-   - Steps to reproduce the issue
-   - Potential impact assessment
-   - Any suggested fixes (if available)
+**🔧 ENHANCED SECURITY**: Multiple security layers added to reduce Docker socket risks.
 
-### 📋 **What to Expect**
+#### Standard Deployment:
+```bash
+docker-compose up -d
+```
 
-**Please note:** DDC is maintained by a single developer alongside a full-time job, family, and other commitments. Response times reflect this reality:
+#### High-Security Deployment:
+```bash
+docker-compose -f docker-compose.secure.yml up -d
+```
 
-- **Initial Response:** Within 1-2 weeks (depending on availability)
-- **Regular Updates:** When significant progress is made
-- **Fix Timeline:** 
-  - **Critical vulnerabilities:** Best effort to address quickly, but may take several weeks
-  - **Non-critical issues:** Will be addressed in regular development cycles
+#### Security Features:
+- 🛡️ **Read-only Docker socket** mounting
+- 🛡️ **Non-root user** execution (uid 1000)
+- 🛡️ **Resource limits** (CPU, memory, PIDs)
+- 🛡️ **Read-only filesystem** for application code
+- 🛡️ **Dropped capabilities** (minimal privileges)
+- 🛡️ **Network isolation** with dedicated bridge
+- 🛡️ **No privilege escalation** allowed
+- 🛡️ **Syscall restrictions** via seccomp
 
-**Important:** If you discover a critical security vulnerability that poses immediate risk, please clearly mark it as "CRITICAL" in your report. While I cannot guarantee immediate patches, critical issues will be prioritized above feature development.
+### 3. Session Security
 
-### ✅ **If Your Report is Accepted**
+#### Current Status:
+- ✅ Strong password hashing (PBKDF2-SHA256, 600k iterations)
+- ⚠️ Session cookies secure for HTTPS (requires configuration)
+- ⚠️ Rate limiting on authentication only
 
-- I will work with you to understand and reproduce the issue
-- A fix will be developed and tested
-- Security advisory will be published after the fix is released
-- You will be credited in my security acknowledgments (unless you prefer to remain anonymous)
+#### Recommendations:
+1. **Enable HTTPS** and set `SESSION_COOKIE_SECURE=True`
+2. **Set strong Flask secret key** via environment variable
+3. **Change default admin password** immediately
 
-### ❌ **If Your Report is Declined**
+## 🚀 Quick Security Setup
 
-- I will provide a detailed explanation of why the issue is not considered a vulnerability
-- I may suggest alternative reporting channels if appropriate
-- I appreciate all reports, even if they don't qualify as security vulnerabilities
+### 1. Environment Variables Setup:
+```bash
+# Create .env file
+cp .env.example .env
 
-## Security Best Practices
+# Generate secure Flask secret
+python3 -c "import secrets; print('FLASK_SECRET_KEY=' + secrets.token_hex(32))" >> .env
 
-When deploying DDC, please follow these security recommendations:
+# Add your Discord token
+echo "DISCORD_BOT_TOKEN=your_token_here" >> .env
+```
 
-- **Docker Security:** Use non-root containers when possible
-- **Network Security:** Limit network exposure using Docker networks
-- **Access Control:** Use strong passwords for the web interface
-- **Updates:** Keep DDC and its dependencies up to date
-- **Monitoring:** Enable logging and monitor for suspicious activities
+### 2. Secure Deployment:
+```bash
+# Use secure Docker Compose configuration
+docker-compose -f docker-compose.secure.yml up -d
+```
 
-## Security Features
+### 3. Verify Security:
+```bash
+# Check container is running as non-root
+docker exec ddc id
 
-DDC includes several built-in security features:
+# Check resource limits
+docker stats ddc
 
-- 🔐 **Authentication:** Web interface requires login
-- 🛡️ **Input Validation:** All user inputs are sanitized
-- 📊 **Audit Logging:** User actions are logged for security monitoring
-- 🔒 **Permission System:** Granular access control for containers
-- 🚫 **Rate Limiting:** Protection against abuse
+# Verify read-only mounts
+docker inspect ddc | grep -A 20 "Mounts"
+```
 
-## Hall of Fame
+## 🔍 Security Checklist
 
-I appreciate security researchers who responsibly disclose vulnerabilities and help make DDC safer for everyone:
+### ✅ **Completed Improvements:**
+- [x] Discord token via environment variable
+- [x] Enhanced Docker socket security
+- [x] Non-root container execution
+- [x] Resource limits and restrictions
+- [x] Security-focused Docker Compose variants
+- [x] Capability dropping
+- [x] Read-only filesystem options
 
-*No vulnerabilities have been responsibly disclosed yet.*
+### 🔄 **Recommended Next Steps:**
+- [ ] Enable HTTPS with valid certificates
+- [ ] Implement comprehensive rate limiting
+- [ ] Add security headers (HSTS, CSP)
+- [ ] Set up security monitoring
+- [ ] Regular dependency updates
+- [ ] Penetration testing
+
+### ⚠️ **Known Limitations:**
+- Docker socket access still provides significant container control
+- Default admin credentials still available as fallback
+- Some operations require elevated Docker permissions
+
+## 🛡️ Additional Security Measures
+
+### Network Security:
+```yaml
+# In docker-compose.yml, add network restrictions
+networks:
+  ddc_network:
+    driver: bridge
+    internal: false
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+```
+
+### Monitoring:
+```bash
+# Monitor container security events
+docker logs ddc | grep -i "security\|error\|warning"
+
+# Check for privilege escalation attempts
+docker exec ddc ps aux | grep root
+```
+
+### Backup Security:
+```bash
+# Encrypt configuration backups
+tar czf - config/ | gpg --symmetric --cipher-algo AES256 > config_backup.tar.gz.gpg
+```
+
+## 🆘 Security Incident Response
+
+### If Token Compromised:
+1. **Immediately rotate** Discord bot token in Developer Portal
+2. **Update environment variable** with new token
+3. **Restart DDC container**
+4. **Review logs** for unauthorized access
+5. **Check Discord server** for suspicious activity
+
+### If Container Compromised:
+1. **Stop container immediately**: `docker stop ddc`
+2. **Review logs**: `docker logs ddc`
+3. **Check host system** for signs of escape
+4. **Rebuild from clean image**
+5. **Review and enhance security configuration**
+
+## 📞 Security Contact
+
+For security issues, please:
+1. **Do not** create public GitHub issues
+2. **Report privately** to project maintainers
+3. **Include** detailed reproduction steps
+4. **Wait** for confirmation before public disclosure
 
 ---
 
-**Contact:** For general questions, visit [https://ddc.bot](https://ddc.bot) or [GitHub Issues](https://github.com/DockerDiscordControl/DockerDiscordControl/issues)
-
-**Security Contact:** security@ddc.bot 
+**Remember**: Security is an ongoing process, not a one-time setup. Regularly review and update your security configuration.

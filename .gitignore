@@ -183,3 +183,8 @@ CHATGPT_DISASTERS.md
 
 # Bot configuration with sensitive token
 config/bot_config.json
+
+# Environment files with sensitive data
+.env
+.env.local
+.env.production

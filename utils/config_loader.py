@@ -482,12 +482,40 @@ def process_config_form(form_data, current_config: Dict[str, Any]) -> Tuple[Dict
             elif 'new_web_ui_password' in new_config: # Remove old temp key if field is empty
                 del new_config['new_web_ui_password']
 
-        # Bot Token
+        # Bot Token - with automatic encryption
         if 'bot_token' in form_data:
             token_val = form_data['bot_token']
             token = token_val[0].strip() if isinstance(token_val, list) and token_val else str(token_val).strip()
             if token:
-                new_config['bot_token'] = token
+                # Check if token is already encrypted (starts with 'gAAAAA')
+                if token.startswith('gAAAAA'):
+                    # Already encrypted, store as-is
+                    new_config['bot_token'] = token
+                else:
+                    # Plaintext token - encrypt it if we have a password hash
+                    password_hash = new_config.get('web_ui_password_hash')
+                    if password_hash:
+                        try:
+                            # Import encryption function
+                            from utils.config_manager import ConfigManager
+                            config_manager = ConfigManager()
+                            encrypted_token = config_manager._encrypt_token(token, password_hash)
+                            
+                            if encrypted_token:
+                                new_config['bot_token'] = encrypted_token
+                                logger.info("✅ Bot token automatically encrypted and secured")
+                            else:
+                                # Encryption failed, store as plaintext with warning
+                                new_config['bot_token'] = token
+                                logger.warning("⚠️  Token encryption failed, storing as plaintext")
+                        except Exception as e:
+                            # Encryption failed, store as plaintext with warning
+                            new_config['bot_token'] = token
+                            logger.warning(f"⚠️  Token encryption failed ({e}), storing as plaintext")
+                    else:
+                        # No password hash available, store as plaintext
+                        new_config['bot_token'] = token
+                        logger.info("ℹ️  No password hash available, storing token as plaintext")
         
         return new_config, True, "Configuration processed successfully."
     except Exception as e:

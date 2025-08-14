@@ -83,11 +83,21 @@ try:
 except ImportError:
     config_manager_available = False
 
-# Load configuration ONCE here
+# Global variables and configuration loading
+config_manager_instance = None  # Fix for global variable scope
 loaded_main_config = load_config()
 
 # Initialize config cache for performance optimization
 init_config_cache(loaded_main_config)
+
+# SECURITY ENHANCEMENT: Auto-encrypt plaintext tokens on startup
+try:
+    from utils.token_security import auto_encrypt_token_on_startup
+    auto_encrypt_token_on_startup()
+except ImportError:
+    logger.debug("Token security module not available")
+except Exception as e:
+    logger.warning(f"Token auto-encryption failed: {e}")
 
 # Set timezone for logging from configuration
 timezone_str = loaded_main_config.get('timezone', 'Europe/Berlin')
@@ -693,9 +703,18 @@ def _mask_token_in_config(config):
 
 # Improved function to decrypt the bot token with multiple fallback methods
 def get_decrypted_bot_token():
-    """Attempts to decrypt the bot token in various ways for DockerDiscordControl."""
+    """Attempts to get the bot token with priority for environment variable (secure method)."""
     
-    # 0. First method: Try direct plaintext token from bot_config.json
+    # SECURITY ENHANCEMENT: First priority - environment variable (most secure)
+    token_from_env = os.getenv('DISCORD_BOT_TOKEN')
+    if token_from_env:
+        logger.info("✅ Using bot token from environment variable DISCORD_BOT_TOKEN (secure)")
+        return token_from_env.strip()
+    
+    # WARNING: Fallback to config file methods (less secure)
+    logger.warning("⚠️  Environment variable DISCORD_BOT_TOKEN not found, falling back to config file")
+    
+    # 0. Fallback method: Try direct plaintext token from bot_config.json
     try:
         config_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config")
         bot_config_file = os.path.join(config_dir, "bot_config.json")

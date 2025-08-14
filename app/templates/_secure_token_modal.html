@@ -1,0 +1,308 @@
+<!-- Secure Token Display Modal -->
+<div class="modal fade" id="secureTokenModal" tabindex="-1" aria-labelledby="secureTokenModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="secureTokenModalLabel">
+                    <i class="bi bi-shield-exclamation"></i> Secure Token Migration
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Security Warning -->
+                <div class="alert alert-danger mb-4">
+                    <h6><i class="bi bi-exclamation-triangle-fill"></i> Security Notice</h6>
+                    <p class="mb-0">
+                        <strong>Your Discord bot token will be displayed below.</strong> 
+                        Keep this token secure and never share it publicly. Anyone with this token can control your Discord bot.
+                    </p>
+                </div>
+
+                <!-- Token Display Area -->
+                <div class="mb-4">
+                    <label class="form-label"><strong>Your Current Discord Bot Token:</strong></label>
+                    <div class="input-group">
+                        <input type="password" 
+                               class="form-control font-monospace" 
+                               id="secureTokenInput" 
+                               readonly 
+                               value="" 
+                               placeholder="Token will be loaded...">
+                        <button class="btn btn-outline-secondary" 
+                                type="button" 
+                                id="toggleTokenVisibility"
+                                onclick="toggleTokenDisplay()">
+                            <i class="bi bi-eye" id="tokenVisibilityIcon"></i>
+                        </button>
+                        <button class="btn btn-success" 
+                                type="button" 
+                                id="copyTokenButton"
+                                onclick="copyTokenToClipboard()">
+                            <i class="bi bi-clipboard"></i> Copy
+                        </button>
+                    </div>
+                    <div class="form-text">
+                        <i class="bi bi-info-circle"></i> 
+                        Click the eye icon to show/hide the token. Use the Copy button to securely copy it to your clipboard.
+                    </div>
+                </div>
+
+                <!-- Migration Instructions -->
+                <div class="mb-4">
+                    <h6>Migration Instructions:</h6>
+                    <div class="accordion" id="migrationAccordion">
+                        <!-- Unraid Instructions -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#unraidInstructions">
+                                    🖥️ Unraid
+                                </button>
+                            </h2>
+                            <div id="unraidInstructions" class="accordion-collapse collapse" data-bs-parent="#migrationAccordion">
+                                <div class="accordion-body">
+                                    <ol>
+                                        <li>Go to <strong>Docker tab</strong> → <strong>ddc container</strong> → <strong>Edit</strong></li>
+                                        <li>Scroll to <strong>Variables</strong> section</li>
+                                        <li>Add new variable: <code>DISCORD_BOT_TOKEN</code></li>
+                                        <li>Set value to the token copied above</li>
+                                        <li>Click <strong>Apply</strong> → Container restarts automatically</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Docker Compose Instructions -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#dockerComposeInstructions">
+                                    🐳 Docker Compose
+                                </button>
+                            </h2>
+                            <div id="dockerComposeInstructions" class="accordion-collapse collapse" data-bs-parent="#migrationAccordion">
+                                <div class="accordion-body">
+                                    <ol>
+                                        <li>Create or edit <code>.env</code> file in your project directory</li>
+                                        <li>Add: <code>DISCORD_BOT_TOKEN=your_token_here</code></li>
+                                        <li>Run: <code>docker-compose up -d</code></li>
+                                        <li>Verify: Check logs for "Using environment variable" message</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Portainer Instructions -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#portainerInstructions">
+                                    ⚙️ Portainer
+                                </button>
+                            </h2>
+                            <div id="portainerInstructions" class="accordion-collapse collapse" data-bs-parent="#migrationAccordion">
+                                <div class="accordion-body">
+                                    <ol>
+                                        <li>Go to <strong>Containers</strong> → <strong>ddc container</strong> → <strong>Edit</strong></li>
+                                        <li>Navigate to <strong>Environment variables</strong> tab</li>
+                                        <li>Add variable: <code>DISCORD_BOT_TOKEN</code></li>
+                                        <li>Set value to the token copied above</li>
+                                        <li>Click <strong>Update the container</strong></li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Plain Docker Instructions -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#plainDockerInstructions">
+                                    🐋 Plain Docker
+                                </button>
+                            </h2>
+                            <div id="plainDockerInstructions" class="accordion-collapse collapse" data-bs-parent="#migrationAccordion">
+                                <div class="accordion-body">
+                                    <ol>
+                                        <li>Stop current container: <code>docker stop ddc</code></li>
+                                        <li>Run with environment variable:</li>
+                                        <li><code>docker run -e DISCORD_BOT_TOKEN=your_token_here ...</code></li>
+                                        <li>Or update your existing run command with <code>-e DISCORD_BOT_TOKEN=your_token</code></li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Auto-clear warning -->
+                <div class="alert alert-info">
+                    <i class="bi bi-clock"></i>
+                    <strong>Auto-clear:</strong> This modal will automatically clear the token and close after 5 minutes for security.
+                    <div class="mt-2">
+                        <small>Time remaining: <span id="autoCloseTimer">5:00</span></small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="clearAndCloseSecureModal()">
+                    <i class="bi bi-x-circle"></i> Clear & Close
+                </button>
+                <button type="button" class="btn btn-success" onclick="copyTokenToClipboard()">
+                    <i class="bi bi-clipboard-check"></i> Copy Token Again
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let tokenVisible = false;
+let autoCloseInterval = null;
+let timeRemaining = 300; // 5 minutes in seconds
+
+function showSecureTokenModal(token) {
+    // Set token in secure input
+    document.getElementById('secureTokenInput').value = token;
+    
+    // Reset visibility state
+    tokenVisible = false;
+    updateTokenVisibility();
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('secureTokenModal'));
+    modal.show();
+    
+    // Start auto-close timer
+    startAutoCloseTimer();
+    
+    // Clear token when modal is hidden
+    document.getElementById('secureTokenModal').addEventListener('hidden.bs.modal', function () {
+        clearTokenData();
+    });
+}
+
+function toggleTokenDisplay() {
+    tokenVisible = !tokenVisible;
+    updateTokenVisibility();
+}
+
+function updateTokenVisibility() {
+    const input = document.getElementById('secureTokenInput');
+    const icon = document.getElementById('tokenVisibilityIcon');
+    
+    if (tokenVisible) {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+
+async function copyTokenToClipboard() {
+    const input = document.getElementById('secureTokenInput');
+    const button = document.getElementById('copyTokenButton');
+    
+    try {
+        await navigator.clipboard.writeText(input.value);
+        
+        // Visual feedback
+        button.innerHTML = '<i class="bi bi-check"></i> Copied!';
+        button.classList.remove('btn-success');
+        button.classList.add('btn-success-alt');
+        
+        setTimeout(() => {
+            button.innerHTML = '<i class="bi bi-clipboard"></i> Copy';
+            button.classList.remove('btn-success-alt');
+            button.classList.add('btn-success');
+        }, 2000);
+        
+    } catch (err) {
+        console.error('Failed to copy token:', err);
+        
+        // Fallback: select text
+        input.select();
+        input.setSelectionRange(0, 99999); // For mobile devices
+        
+        button.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Select All';
+        setTimeout(() => {
+            button.innerHTML = '<i class="bi bi-clipboard"></i> Copy';
+        }, 2000);
+    }
+}
+
+function startAutoCloseTimer() {
+    timeRemaining = 300; // Reset to 5 minutes
+    updateTimerDisplay();
+    
+    autoCloseInterval = setInterval(() => {
+        timeRemaining--;
+        updateTimerDisplay();
+        
+        if (timeRemaining <= 0) {
+            clearAndCloseSecureModal();
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay() {
+    const minutes = Math.floor(timeRemaining / 60);
+    const seconds = timeRemaining % 60;
+    const display = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+    const timerElement = document.getElementById('autoCloseTimer');
+    if (timerElement) {
+        timerElement.textContent = display;
+        
+        // Warning colors
+        if (timeRemaining <= 60) {
+            timerElement.className = 'text-danger fw-bold';
+        } else if (timeRemaining <= 120) {
+            timerElement.className = 'text-warning fw-bold';
+        } else {
+            timerElement.className = '';
+        }
+    }
+}
+
+function clearTokenData() {
+    // Clear token input
+    document.getElementById('secureTokenInput').value = '';
+    
+    // Reset visibility
+    tokenVisible = false;
+    updateTokenVisibility();
+    
+    // Clear timer
+    if (autoCloseInterval) {
+        clearInterval(autoCloseInterval);
+        autoCloseInterval = null;
+    }
+}
+
+function clearAndCloseSecureModal() {
+    clearTokenData();
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('secureTokenModal'));
+    if (modal) {
+        modal.hide();
+    }
+}
+</script>
+
+<style>
+.btn-success-alt {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+#secureTokenInput {
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: #e7f3ff;
+    color: #0056b3;
+}
+</style>

@@ -29,6 +29,8 @@ services:
       DOCKER_SOCKET: 'unix:///var/run/docker.sock'
       # Explicitly set DOCKER_HOST to correct URL format
       DOCKER_HOST: 'unix:///var/run/docker.sock'
+      # SECURITY: Discord Bot Token via environment variable (recommended)
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
       # Uncomment and set this to change the default admin password (admin)
       # DDC_ADMIN_PASSWORD: ${DDC_ADMIN_PASSWORD}
     logging: # Equivalent to --log-driver and --log-opt
