@@ -1980,6 +1980,18 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             logger.debug(f"Successfully updated overview message {message_id} in channel {channel_id}")
             return True
             
+        except discord.errors.NotFound:
+            # Message was deleted, log it but don't try to update
+            logger.warning(f"Overview message {message_id} in channel {channel_id} not found (likely deleted). Skipping update.")
+            
+            # Remove from tracking if we have a tracking system
+            if hasattr(self, 'overview_message_ids') and channel_id in self.overview_message_ids:
+                del self.overview_message_ids[channel_id]
+            
+            # Note: We don't automatically recreate the message here as it should be done
+            # through the proper command or periodic check
+            return False
+            
         except Exception as e:
             logger.error(f"Error updating overview message in channel {channel_id}: {e}", exc_info=True)
             return False

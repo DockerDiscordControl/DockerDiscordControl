@@ -116,7 +116,7 @@ class StatusInfoButton(discord.ui.Button):
         if description_parts:
             embed.description = "\n".join(description_parts)
         
-        embed.set_footer(text="Container Info • https://ddc.bot")
+        embed.set_footer(text="https://ddc.bot")
         return embed
     
     async def _get_ip_info(self) -> Optional[str]:
@@ -144,11 +144,11 @@ class StatusInfoButton(discord.ui.Button):
                 address = wan_ip
                 if custom_port and custom_port.isdigit():
                     address = f"{wan_ip}:{custom_port}"
-                return f"🌍 **Public IP:** {address}"
+                return f"**Public IP:** {address}"
         except Exception as e:
             logger.debug(f"Could not get WAN IP for {self.container_name}: {e}")
         
-        return "🔍 **IP:** Auto-detection failed"
+        return "**IP:** Auto-detection failed"
     
     async def _get_wan_ip_async(self) -> Optional[str]:
         """Async version of WAN IP detection using aiohttp."""
@@ -217,30 +217,9 @@ class StatusInfoButton(discord.ui.Button):
     
     def _get_status_info(self) -> Optional[str]:
         """Get current container status information."""
-        try:
-            # Get status from cache if available
-            status_cache = getattr(self.cog, 'status_cache', {})
-            display_name = self.server_config.get('name', self.container_name)
-            cached_entry = status_cache.get(display_name)
-            
-            if cached_entry and cached_entry.get('data'):
-                status_data = cached_entry['data']
-                if isinstance(status_data, tuple) and len(status_data) >= 5:
-                    _, is_running, cpu, ram, uptime, _ = status_data
-                    
-                    status_parts = []
-                    status_parts.append(f"**State:** {'🟢 Online' if is_running else '🔴 Offline'}")
-                    
-                    if is_running and uptime != 'N/A':
-                        status_parts.append(f"**Uptime:** {uptime}")
-                    
-                    return "\n".join(status_parts)
-            
-            return "**State:** 🔄 Loading..."
-            
-        except Exception as e:
-            logger.debug(f"Error getting status info for {self.container_name}: {e}")
-            return None
+        # Status information (State/Uptime) is already displayed in the main status embed above,
+        # so we don't need to duplicate it in the info section
+        return None
 
 def create_enhanced_status_embed(
     original_embed: discord.Embed, 
