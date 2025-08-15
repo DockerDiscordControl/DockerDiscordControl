@@ -8,15 +8,15 @@
                 <th scope="col" style="width: 12%;">Channel Name<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" title="A display name to help you remember which channel this is"></i></th>
                 <th scope="col" style="width: 12%;">Channel ID<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" title="The Discord channel ID. Enable Developer Mode in Discord, then right-click the channel and select Copy ID"></i></th>
                 <th scope="col" class="text-center" style="width: 7%;" data-bs-toggle="tooltip" title="Allows /serverstatus and /ss commands">/serverstatus<i class="bi bi-question-circle help-icon"></i></th>
-                <th scope="col" class="text-center border-start border-secondary-subtle" style="width: 8%;" data-bs-toggle="tooltip" title="Post initial status/control messages on bot start?">Initial<i class="bi bi-question-circle help-icon"></i></th>
-                <th scope="col" class="text-center" style="width: 7%;" data-bs-toggle="tooltip" title="Allows container info button display and editing">Info<i class="bi bi-question-circle help-icon"></i></th>
                 <th scope="col" class="text-center" style="width: 7%;" data-bs-toggle="tooltip" title="Allows /control command (automatically enables /command)">/control<i class="bi bi-question-circle help-icon"></i></th>
                 <th scope="col" class="text-center" style="width: 7%;" data-bs-toggle="tooltip" title="Allows all task commands (/task_once, /task_daily, etc.)...">/task<i class="bi bi-question-circle help-icon"></i></th>
-                <th scope="col" class="text-center refresh-group-start" style="width: 9%;" data-bs-toggle="tooltip" title="Enable periodic status updates?">Refresh<i class="bi bi-question-circle help-icon"></i></th>
-                <th scope="col" class="refresh-group-end" style="width: 7%;" data-bs-toggle="tooltip" title="Update status messages every X minutes (if refresh is enabled).">Minutes</th>
-                <th scope="col" class="text-center recreate-group-start" style="width: 9%;" data-bs-toggle="tooltip" title="If enabled, checks if the bot's last activity in the channel is older than the timeout. If yes, AND the actual last message in the channel is NOT from the bot, the bot will delete its old messages and post fresh ones to bring them back to the bottom.">Recreate<i class="bi bi-question-circle help-icon"></i></th>
-                <th scope="col" class="recreate-group-end" style="width: 7%;" data-bs-toggle="tooltip" title="Regenerate messages after X minutes of inactivity (if recreate is enabled). Minimum 1.">Minutes</th>
-                <th scope="col" class="text-center" style="width: 5%;">Action</th>
+                <th scope="col" class="text-center border-start border-secondary" style="width: 7%;" data-bs-toggle="tooltip" title="Allows container info button display and editing">Info<i class="bi bi-question-circle help-icon"></i></th>
+                <th scope="col" class="text-center" style="width: 8%;" data-bs-toggle="tooltip" title="Post initial status/control messages on bot start?">Initial<i class="bi bi-question-circle help-icon"></i></th>
+                <th scope="col" class="text-center" style="width: 9%; border-left: 3px solid #0dcaf0;" data-bs-toggle="tooltip" title="Enable periodic status updates?">Refresh<i class="bi bi-question-circle help-icon"></i></th>
+                <th scope="col" style="width: 7%;" data-bs-toggle="tooltip" title="Update status messages every X minutes (if refresh is enabled).">Minutes</th>
+                <th scope="col" class="text-center" style="width: 9%; border-left: 3px solid #0dcaf0;" data-bs-toggle="tooltip" title="If enabled, checks if the bot's last activity in the channel is older than the timeout. If yes, AND the actual last message in the channel is NOT from the bot, the bot will delete its old messages and post fresh ones to bring them back to the bottom.">Recreate<i class="bi bi-question-circle help-icon"></i></th>
+                <th scope="col" style="width: 7%;" data-bs-toggle="tooltip" title="Regenerate messages after X minutes of inactivity (if recreate is enabled). Minimum 1.">Minutes</th>
+                <th scope="col" class="text-center" style="width: 5%; border-left: 3px solid #0dcaf0;">Action</th>
             </tr>
         </thead>
         <tbody>
@@ -35,18 +35,6 @@
                             <label class="form-check-label visually-hidden">/serverstatus</label>
                         </div>
                     </td>
-                    <td class="text-center border-start border-secondary-subtle">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="post_initial_1" value="1" {% if defaults.post_initial %}checked{% endif %}>
-                            <label class="form-check-label visually-hidden">Initial</label>
-                        </div>
-                    </td>
-                    <td class="text-center">
-                        <div class="form-check">
-                            <input class="form-check-input cmd-info" type="checkbox" name="cmd_info_1" value="1">
-                            <label class="form-check-label visually-hidden">Info</label>
-                        </div>
-                    </td>
                     <td class="text-center">
                          <div class="form-check">
                             <input class="form-check-input cmd-control" type="checkbox" name="cmd_control_1" value="1" {% if defaults.commands.control %}checked{% endif %}>
@@ -59,21 +47,33 @@
                             <label class="form-check-label visually-hidden">/task</label>
                         </div>
                     </td>
-                    <td class="text-center refresh-group-start">
+                    <td class="text-center border-start border-secondary">
+                        <div class="form-check">
+                            <input class="form-check-input cmd-info" type="checkbox" name="cmd_info_1" value="1">
+                            <label class="form-check-label visually-hidden">Info</label>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="post_initial_1" value="1" {% if defaults.post_initial %}checked{% endif %}>
+                            <label class="form-check-label visually-hidden">Initial</label>
+                        </div>
+                    </td>
+                    <td class="text-center" style="border-left: 3px solid #0dcaf0;">
                         <div class="form-check">
                             <input class="form-check-input auto-refresh-checkbox" type="checkbox" name="enable_auto_refresh_1" value="1" {% if defaults.enable_auto_refresh %}checked{% endif %} data-target-input=".interval-minutes-input">
                             <label class="form-check-label visually-hidden">Refresh</label>
                         </div>
                     </td>
-                    <td class="refresh-group-end"><input type="number" class="form-control form-control-sm interval-minutes-input" name="update_interval_minutes_1" value="{{ defaults.update_interval_minutes | default(1) }}" min="1" style="width: 60px;" {% if not defaults.enable_auto_refresh %}disabled{% endif %}></td>
-                    <td class="text-center recreate-group-start">
+                    <td><input type="number" class="form-control form-control-sm interval-minutes-input" name="update_interval_minutes_1" value="{{ defaults.update_interval_minutes | default(1) }}" min="1" style="width: 60px;" {% if not defaults.enable_auto_refresh %}disabled{% endif %}></td>
+                    <td class="text-center" style="border-left: 3px solid #0dcaf0;">
                         <div class="form-check">
                             <input class="form-check-input recreate-checkbox" type="checkbox" name="recreate_messages_on_inactivity_1" value="1" {% if defaults.recreate_messages_on_inactivity %}checked{% endif %} data-target-input=".inactivity-minutes-input">
                             <label class="form-check-label visually-hidden">Recreate on Inactivity</label>
                         </div>
                     </td>
-                    <td class="recreate-group-end"><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="inactivity_timeout_minutes_1" value="{{ defaults.inactivity_timeout_minutes | default(1) }}" min="1" style="width: 60px;" {% if not defaults.recreate_messages_on_inactivity %}disabled{% endif %}></td>
-                    <td class="text-center">
+                    <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="inactivity_timeout_minutes_1" value="{{ defaults.inactivity_timeout_minutes | default(1) }}" min="1" style="width: 60px;" {% if not defaults.recreate_messages_on_inactivity %}disabled{% endif %}></td>
+                    <td class="text-center" style="border-left: 3px solid #0dcaf0;">
                         <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="channel-row-1">
                             <i class="bi bi-trash"></i>
                         </button>
@@ -93,18 +93,6 @@
                             <label class="form-check-label visually-hidden">/serverstatus</label>
                         </div>
                     </td>
-                    <td class="text-center border-start border-secondary-subtle">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="post_initial_{{ loop.index }}" value="1" {% if channel_data.post_initial %}checked{% endif %}>
-                            <label class="form-check-label visually-hidden">Initial</label>
-                        </div>
-                    </td>
-                    <td class="text-center">
-                        <div class="form-check">
-                            <input class="form-check-input cmd-info" type="checkbox" name="cmd_info_{{ loop.index }}" value="1" {% if channel_data.commands.info %}checked{% endif %}>
-                            <label class="form-check-label visually-hidden">Info</label>
-                        </div>
-                    </td>
                     <td class="text-center">
                         <div class="form-check">
                             <input class="form-check-input cmd-control" type="checkbox" name="cmd_control_{{ loop.index }}" value="1" {% if channel_data.commands.control %}checked{% endif %}>
@@ -117,21 +105,33 @@
                             <label class="form-check-label visually-hidden">/task</label>
                         </div>
                     </td>
-                    <td class="text-center refresh-group-start">
+                    <td class="text-center border-start border-secondary">
+                        <div class="form-check">
+                            <input class="form-check-input cmd-info" type="checkbox" name="cmd_info_{{ loop.index }}" value="1" {% if channel_data.commands.info %}checked{% endif %}>
+                            <label class="form-check-label visually-hidden">Info</label>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="post_initial_{{ loop.index }}" value="1" {% if channel_data.post_initial %}checked{% endif %}>
+                            <label class="form-check-label visually-hidden">Initial</label>
+                        </div>
+                    </td>
+                    <td class="text-center" style="border-left: 3px solid #0dcaf0;">
                         <div class="form-check">
                             <input class="form-check-input auto-refresh-checkbox" type="checkbox" name="enable_auto_refresh_{{ loop.index }}" value="1" {% set is_ar_checked = channel_data.get('enable_auto_refresh', defaults.enable_auto_refresh) %}{% if is_ar_checked %}checked{% endif %} data-target-input=".interval-minutes-input">
                             <label class="form-check-label visually-hidden">Refresh</label>
                         </div>
                     </td>
-                    <td class="refresh-group-end"><input type="number" class="form-control form-control-sm interval-minutes-input" name="update_interval_minutes_{{ loop.index }}" value="{{ channel_data.get('update_interval_minutes', defaults.update_interval_minutes) | default(1) }}" min="1" style="width: 60px;" {% if not is_ar_checked %}disabled{% endif %}></td>
-                    <td class="text-center recreate-group-start">
+                    <td><input type="number" class="form-control form-control-sm interval-minutes-input" name="update_interval_minutes_{{ loop.index }}" value="{{ channel_data.get('update_interval_minutes', defaults.update_interval_minutes) | default(1) }}" min="1" style="width: 60px;" {% if not is_ar_checked %}disabled{% endif %}></td>
+                    <td class="text-center" style="border-left: 3px solid #0dcaf0;">
                         <div class="form-check">
                             <input class="form-check-input recreate-checkbox" type="checkbox" name="recreate_messages_on_inactivity_{{ loop.index }}" value="1" {% set is_ri_checked = channel_data.get('recreate_messages_on_inactivity', defaults.recreate_messages_on_inactivity) %}{% if is_ri_checked %}checked{% endif %} data-target-input=".inactivity-minutes-input">
                             <label class="form-check-label visually-hidden">Recreate on Inactivity</label>
                         </div>
                     </td>
-                    <td class="recreate-group-end"><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="inactivity_timeout_minutes_{{ loop.index }}" value="{{ channel_data.get('inactivity_timeout_minutes', defaults.inactivity_timeout_minutes) | default(1) }}" min="1" style="width: 60px;" {% if not is_ri_checked %}disabled{% endif %}></td>
-                    <td class="text-center">
+                    <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="inactivity_timeout_minutes_{{ loop.index }}" value="{{ channel_data.get('inactivity_timeout_minutes', defaults.inactivity_timeout_minutes) | default(1) }}" min="1" style="width: 60px;" {% if not is_ri_checked %}disabled{% endif %}></td>
+                    <td class="text-center" style="border-left: 3px solid #0dcaf0;">
                          <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="channel-row-{{ loop.index }}">
                              <i class="bi bi-trash"></i>
                          </button>
