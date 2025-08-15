@@ -517,6 +517,28 @@ def process_config_form(form_data, current_config: Dict[str, Any]) -> Tuple[Dict
                         new_config['bot_token'] = token
                         logger.info("ℹ️  No password hash available, storing token as plaintext")
         
+        # ADVANCED SETTINGS: Process environment variable fields (env_DDC_*)
+        # These are not saved in config files but written as actual environment variables
+        env_updates = {}
+        for key, value in form_data.items():
+            if key.startswith('env_DDC_'):
+                env_var_name = key[4:]  # Remove 'env_' prefix
+                env_value = value[0].strip() if isinstance(value, list) and value else str(value).strip()
+                
+                # Only set non-empty values
+                if env_value:
+                    env_updates[env_var_name] = env_value
+                    os.environ[env_var_name] = env_value
+                    print(f"[CONFIG-DEBUG] Set environment variable: {env_var_name}={env_value}")
+                else:
+                    # Remove empty/unset variables
+                    if env_var_name in os.environ:
+                        del os.environ[env_var_name]
+                        print(f"[CONFIG-DEBUG] Removed environment variable: {env_var_name}")
+        
+        if env_updates:
+            print(f"[CONFIG-DEBUG] Updated {len(env_updates)} environment variables: {list(env_updates.keys())}")
+
         return new_config, True, "Configuration processed successfully."
     except Exception as e:
         print(f"PROCESS_CONFIG_FORM: Error processing form data: {e}")

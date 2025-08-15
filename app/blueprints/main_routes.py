@@ -570,8 +570,32 @@ def config_page():
     container_names = [container.get("name", "Unknown") for container in live_containers_list] if live_containers_list else []
     container_info_data = load_container_info_for_web(container_names)
     
+    # ADVANCED SETTINGS FIX: Load environment variables for Advanced Settings Modal
+    # These are the DDC_* environment variables used for performance tuning
+    import os
+    env_vars = {
+        'DDC_DOCKER_CACHE_DURATION': os.getenv('DDC_DOCKER_CACHE_DURATION', ''),
+        'DDC_DOCKER_QUERY_COOLDOWN': os.getenv('DDC_DOCKER_QUERY_COOLDOWN', ''),
+        'DDC_DOCKER_MAX_CACHE_AGE': os.getenv('DDC_DOCKER_MAX_CACHE_AGE', ''),
+        'DDC_ENABLE_BACKGROUND_REFRESH': os.getenv('DDC_ENABLE_BACKGROUND_REFRESH', 'true'),
+        'DDC_BACKGROUND_REFRESH_INTERVAL': os.getenv('DDC_BACKGROUND_REFRESH_INTERVAL', ''),
+        'DDC_BACKGROUND_REFRESH_LIMIT': os.getenv('DDC_BACKGROUND_REFRESH_LIMIT', ''),
+        'DDC_BACKGROUND_REFRESH_TIMEOUT': os.getenv('DDC_BACKGROUND_REFRESH_TIMEOUT', ''),
+        'DDC_MAX_CONTAINERS_DISPLAY': os.getenv('DDC_MAX_CONTAINERS_DISPLAY', ''),
+        'DDC_SCHEDULER_CHECK_INTERVAL': os.getenv('DDC_SCHEDULER_CHECK_INTERVAL', ''),
+        'DDC_MAX_CONCURRENT_TASKS': os.getenv('DDC_MAX_CONCURRENT_TASKS', ''),
+        'DDC_TASK_BATCH_SIZE': os.getenv('DDC_TASK_BATCH_SIZE', ''),
+        'DDC_FAST_STATS_TIMEOUT': os.getenv('DDC_FAST_STATS_TIMEOUT', ''),
+        'DDC_SLOW_STATS_TIMEOUT': os.getenv('DDC_SLOW_STATS_TIMEOUT', ''),
+        'DDC_CONTAINER_LIST_TIMEOUT': os.getenv('DDC_CONTAINER_LIST_TIMEOUT', '')
+    }
+    
+    # Add env vars to config for template access
+    config_with_env = config.copy()
+    config_with_env['env'] = env_vars
+    
     return render_template('config.html', 
-                           config=config,
+                           config=config_with_env,
                            common_timezones=COMMON_TIMEZONES, # Use imported COMMON_TIMEZONES
                            current_timezone=config.get('selected_timezone', 'UTC'),
                            all_containers=live_containers_list,  # Renamed from 'containers' to 'all_containers'

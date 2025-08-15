@@ -34,7 +34,7 @@
                             </div>
                             <div class="col-md-3">
                                 <div class="form-check form-switch mt-4">
-                                    <input class="form-check-input" type="checkbox" id="env_DDC_ENABLE_BACKGROUND_REFRESH" name="env_DDC_ENABLE_BACKGROUND_REFRESH" value="true" {% if (not config.env) or (config.env and (config.env.get('DDC_ENABLE_BACKGROUND_REFRESH') is none or (config.env.get('DDC_ENABLE_BACKGROUND_REFRESH')|string).lower() in ['1','true','on'])) %}checked{% endif %}>
+                                    <input class="form-check-input" type="checkbox" id="env_DDC_ENABLE_BACKGROUND_REFRESH" name="env_DDC_ENABLE_BACKGROUND_REFRESH" value="true" {% if not config.env or not config.env.get('DDC_ENABLE_BACKGROUND_REFRESH') or config.env.get('DDC_ENABLE_BACKGROUND_REFRESH').lower() in ['true', '1', 'on', 'yes'] %}checked{% endif %}>
                                     <label class="form-check-label" for="env_DDC_ENABLE_BACKGROUND_REFRESH">
                                         Enable background refresh
                                     </label>
@@ -119,10 +119,35 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" onclick="showUnsavedChangesAlert(true); document.getElementById('config-form').dispatchEvent(new Event('change'));">
+                <button type="button" class="btn btn-success" onclick="saveAdvancedSettings()">
                     <i class="bi bi-save"></i> Save Settings
                 </button>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+function saveAdvancedSettings() {
+    // Trigger unsaved changes warning to show that settings have changed
+    if (typeof showUnsavedChangesAlert === 'function') {
+        showUnsavedChangesAlert(true);
+    }
+    
+    // Use the existing save function
+    if (typeof saveConfigAjax === 'function') {
+        saveConfigAjax();
+    }
+    
+    // Close the modal after saving
+    setTimeout(() => {
+        const modal = document.getElementById('advancedSettingsModal');
+        if (modal) {
+            const bsModal = bootstrap.Modal.getInstance(modal);
+            if (bsModal) {
+                bsModal.hide();
+            }
+        }
+    }, 1000); // Give time for save to complete
+}
+</script>
