@@ -21,7 +21,8 @@
       "Bash(rm:*)",
       "Bash(git commit:*)",
       "Bash(python -m pytest -xvs -k \"test\" --tb=short)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(git ls-tree:*)"
     ],
     "deny": []
   }

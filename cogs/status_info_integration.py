@@ -22,6 +22,153 @@ import aiohttp
 
 logger = get_module_logger('status_info_integration')
 
+class ContainerInfoAdminView(discord.ui.View):
+    """
+    Admin view for container info with Edit and Debug buttons (control channels only).
+    """
+    
+    def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any]):
+        super().__init__(timeout=300)  # 5 minute timeout
+        self.cog = cog_instance
+        self.server_config = server_config
+        self.info_config = info_config
+        self.container_name = server_config.get('docker_name')
+        
+        # Add Edit Info button
+        self.add_item(EditInfoButton(cog_instance, server_config, info_config))
+        
+        # Add Debug button
+        self.add_item(DebugLogsButton(cog_instance, server_config))
+
+class EditInfoButton(discord.ui.Button):
+    """Edit Info button for container info admin view."""
+    
+    def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any]):
+        super().__init__(
+            style=discord.ButtonStyle.primary,
+            emoji="📝",
+            label="Edit Info",
+            custom_id=f"edit_info_{server_config.get('docker_name')}"
+        )
+        self.cog = cog_instance
+        self.server_config = server_config
+        self.info_config = info_config
+        self.container_name = server_config.get('docker_name')
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle edit info button click."""
+        try:
+            # Import modal from enhanced_info_modal_simple
+            from .enhanced_info_modal_simple import SimplifiedContainerInfoModal
+            
+            # Get display name
+            display_name = self.server_config.get('name', self.container_name)
+            
+            modal = SimplifiedContainerInfoModal(
+                self.cog,
+                container_name=self.container_name,
+                display_name=display_name
+            )
+            
+            await interaction.response.send_modal(modal)
+            logger.info(f"Opened edit info modal for {self.container_name} for user {interaction.user.id}")
+            
+        except Exception as e:
+            logger.error(f"Error opening edit info modal for {self.container_name}: {e}", exc_info=True)
+            try:
+                await interaction.response.send_message(
+                    "❌ Could not open edit modal. Please try again later.",
+                    ephemeral=True
+                )
+            except:
+                pass
+
+class DebugLogsButton(discord.ui.Button):
+    """Debug logs button for container info admin view."""
+    
+    def __init__(self, cog_instance, server_config: Dict[str, Any]):
+        super().__init__(
+            style=discord.ButtonStyle.secondary,
+            emoji="🐛",
+            label="Debug",
+            custom_id=f"debug_logs_{server_config.get('docker_name')}"
+        )
+        self.cog = cog_instance
+        self.server_config = server_config
+        self.container_name = server_config.get('docker_name')
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle debug logs button click."""
+        try:
+            await interaction.response.defer(ephemeral=True)
+            
+            # Get last 50 log lines for the container
+            log_lines = await self._get_container_logs()
+            
+            if log_lines:
+                # Create debug embed
+                embed = discord.Embed(
+                    title=f"🐛 Debug Logs - {self.server_config.get('name', self.container_name)}",
+                    description=f"```\n{log_lines}\n```",
+                    color=0x95a5a6
+                )
+                embed.set_footer(text="Last 50 lines • https://ddc.bot")
+                
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                logger.info(f"Displayed debug logs for {self.container_name} to user {interaction.user.id}")
+            else:
+                await interaction.followup.send(
+                    "❌ Could not retrieve debug logs for this container.",
+                    ephemeral=True
+                )
+            
+        except Exception as e:
+            logger.error(f"Error getting debug logs for {self.container_name}: {e}", exc_info=True)
+            try:
+                await interaction.followup.send(
+                    "❌ Error retrieving debug logs. Please try again later.",
+                    ephemeral=True
+                )
+            except:
+                pass
+    
+    async def _get_container_logs(self) -> str:
+        """Get the last 50 log lines for the container."""
+        try:
+            import docker
+            from utils.docker_utils import get_docker_client
+            from utils.common_helpers import validate_container_name
+            
+            # Validate container name for security
+            if not validate_container_name(self.container_name):
+                return f"Invalid container name format: {self.container_name}"
+            
+            client = get_docker_client()
+            if not client:
+                return "Docker client not available."
+            
+            # Get container with timeout protection
+            import asyncio
+            container = await asyncio.to_thread(client.containers.get, self.container_name)
+            
+            # Get logs (last 50 lines) with timeout
+            logs = await asyncio.to_thread(
+                lambda: container.logs(tail=50, timestamps=True).decode('utf-8', errors='replace')
+            )
+            
+            # Limit log output to prevent Discord message limits
+            if len(logs) > 1800:  # Leave room for embed formatting
+                logs = logs[-1800:]
+                logs = "...\n" + logs
+            
+            return logs.strip() or "No logs available for this container."
+            
+        except docker.errors.NotFound:
+            return f"Container '{self.container_name}' not found."
+        except Exception as e:
+            logger.debug(f"Error getting logs for {self.container_name}: {e}")
+            return f"Error retrieving logs: {str(e)[:100]}"
+
 class StatusInfoView(discord.ui.View):
     """
     View for status-only channels that provides info display without control buttons.
@@ -68,8 +215,35 @@ class StatusInfoButton(discord.ui.Button):
             # Generate info embed
             embed = await self._generate_info_embed()
             
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            logger.info(f"Displayed container info for {self.container_name} to user {interaction.user.id}")
+            # Check if this is a control channel to show admin buttons
+            from .control_helpers import _channel_has_permission
+            from utils.config_cache import get_cached_config
+            
+            config = get_cached_config()
+            has_control = _channel_has_permission(interaction.channel_id, 'control', config) if config else False
+            
+            # Enhanced debug logging
+            logger.info(f"StatusInfoButton callback - Channel ID: {interaction.channel_id} (type: {type(interaction.channel_id)}), has_control: {has_control}")
+            if config:
+                channel_perms = config.get('channel_permissions', {}).get(str(interaction.channel_id))
+                logger.info(f"Channel permissions for {interaction.channel_id}: {channel_perms}")
+                logger.info(f"All channel permissions keys: {list(config.get('channel_permissions', {}).keys())}")
+                # Test the permission function directly
+                test_result = _channel_has_permission(interaction.channel_id, 'control', config)
+                logger.info(f"Direct _channel_has_permission test result: {test_result}")
+            else:
+                logger.warning("Config is None or empty!")
+            
+            # Create view with admin buttons if in control channel
+            view = None
+            if has_control:
+                logger.info(f"Creating ContainerInfoAdminView for {self.container_name}")
+                view = ContainerInfoAdminView(self.cog, self.server_config, self.info_config)
+            else:
+                logger.info(f"Not creating admin view - has_control is False")
+            
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+            logger.info(f"Displayed container info for {self.container_name} to user {interaction.user.id} (control: {has_control})")
             
         except Exception as e:
             logger.error(f"Error in status info callback for {self.container_name}: {e}", exc_info=True)

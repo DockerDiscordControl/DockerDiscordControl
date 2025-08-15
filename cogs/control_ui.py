@@ -595,17 +595,18 @@ class InfoButton(Button):
         )
     
     async def callback(self, interaction: discord.Interaction):
-        """Display container info modal."""
+        """Display container info with admin buttons in control channels."""
         try:
+            await interaction.response.defer(ephemeral=True)
+            
             from utils.config_cache import get_cached_config
-            from utils.common_helpers import get_public_ip
             
             config = get_cached_config()
             channel_id = interaction.channel.id if interaction.channel else None
             
             # Check if channel has info permission
             if not self._channel_has_info_permission(channel_id, config):
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     "❌ You don't have permission to view container info in this channel.",
                     ephemeral=True
                 )
@@ -617,20 +618,35 @@ class InfoButton(Button):
             docker_name = self.server_config.get('docker_name')
             info_config = info_manager.load_container_info(docker_name) if docker_name else {}
             if not info_config.get('enabled', False):
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     "ℹ️ Container info is not configured for this container.",
                     ephemeral=True
                 )
                 return
             
-            # Create info embed for display
-            embed = await self._create_info_embed(info_config, docker_name)
+            # Use the same logic as StatusInfoButton for consistency
+            from .status_info_integration import StatusInfoButton, ContainerInfoAdminView
+            from .control_helpers import _channel_has_permission
             
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            # Generate info embed using StatusInfoButton logic
+            info_button = StatusInfoButton(self.cog, self.server_config, info_config)
+            embed = await info_button._generate_info_embed()
+            
+            # Since this is in ControlView, we know it's a control channel, so add admin buttons
+            has_control = _channel_has_permission(channel_id, 'control', config) if config else False
+            
+            view = None
+            if has_control:
+                view = ContainerInfoAdminView(self.cog, self.server_config, info_config)
+                logger.info(f"InfoButton (ControlView) created admin view for {docker_name} in control channel {channel_id}")
+            else:
+                logger.warning(f"InfoButton (ControlView) no control permission for {docker_name} in channel {channel_id}")
+            
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
             
         except Exception as e:
             logger.error(f"[INFO_BTN] Error showing info for '{self.display_name}': {e}")
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "❌ An error occurred while loading container info.",
                 ephemeral=True
             )

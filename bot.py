@@ -434,23 +434,7 @@ async def on_ready():
             else:
                 logger.info("Extension cogs.docker_control already loaded, skipping")
             
-            # Load InfoCommand extension with proper PyCord handling
-            if 'cogs.info_command' not in bot.extensions:
-                try:
-                    # Check if we're using PyCord (sync) or discord.py (async)
-                    if inspect.iscoroutinefunction(bot.load_extension):
-                        # discord.py (async)
-                        await bot.load_extension('cogs.info_command')
-                        logger.info("Successfully loaded extension: cogs.info_command (discord.py async)")
-                    else:
-                        # PyCord (sync)
-                        bot.load_extension('cogs.info_command')
-                        logger.info("Successfully loaded extension: cogs.info_command (PyCord sync)")
-                except Exception as e:
-                    logger.error(f"Failed to load extension 'cogs.info_command': {e}", exc_info=True)
-                    # Don't raise here - this is optional
-            else:
-                logger.info("Extension cogs.info_command already loaded, skipping")
+            # NOTE: cogs.info_command removed - info functionality is integrated into docker_control cog
 
             # --- Checkpoint and Cog initialization --- 
             logger.info("Checkpoint: Attempting to get DockerControlCog instance...")
