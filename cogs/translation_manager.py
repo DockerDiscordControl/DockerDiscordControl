@@ -365,6 +365,12 @@ class TranslationManager:
                 "Schedule a monthly task": "Plane eine monatliche Aufgabe",
                 "Schedule a yearly task": "Plane eine jährliche Aufgabe",
 
+                # Live Logs translations
+                "🔄 Refreshing logs...": "🔄 Logs werden aktualisiert...",
+                "⏳ Updating...": "⏳ Wird aktualisiert...",
+                "❌ Live Logs feature is currently disabled by administrator.": "❌ Live Logs Funktion ist derzeit vom Administrator deaktiviert.",
+                "https://ddc.bot • Click ▶️ to start live updates": "https://ddc.bot • Klicken Sie ▶️ um Live-Updates zu starten",
+
                 # Error messages
                 "Error during execution: {error}": "Fehler bei der Ausführung: {error}",
             },
@@ -643,6 +649,12 @@ class TranslationManager:
                 "Schedule a weekly task": "Plane une tâche hebdomadaire",
                 "Schedule a monthly task": "Plane une tâche mensuelle",
                 "Schedule a yearly task": "Plane une tâche annuelle",
+
+                # Live Logs translations
+                "🔄 Refreshing logs...": "🔄 Actualisation des logs...",
+                "⏳ Updating...": "⏳ Mise à jour...",
+                "❌ Live Logs feature is currently disabled by administrator.": "❌ La fonctionnalité Live Logs est actuellement désactivée par l'administrateur.",
+                "https://ddc.bot • Click ▶️ to start live updates": "https://ddc.bot • Cliquez ▶️ pour démarrer les mises à jour en direct",
 
                 # Error messages
                 "Error during execution: {error}": "Erreur pendant l'exécution: {error}",

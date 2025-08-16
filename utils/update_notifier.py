@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 from utils.logging_utils import get_module_logger
 from utils.config_cache import get_cached_config
-from cogs.translation_manager import _
+# Translation import moved to function level to avoid circular import
 
 logger = get_module_logger('update_notifier')
 

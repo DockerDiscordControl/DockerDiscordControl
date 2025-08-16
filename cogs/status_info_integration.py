@@ -109,7 +109,7 @@ class EditInfoButton(discord.ui.Button):
             logger.error(f"Error opening edit info modal for {self.container_name}: {e}", exc_info=True)
             try:
                 await interaction.response.send_message(
-                    "❌ Could not open edit modal. Please try again later.",
+                    _("❌ Could not open edit modal. Please try again later."),
                     ephemeral=True
                 )
             except:
@@ -356,7 +356,7 @@ class LiveLogView(discord.ui.View):
         
         try:
             # Immediately send response to avoid timeout
-            await interaction.response.send_message("🔄 Refreshing logs...", ephemeral=True, delete_after=1)
+            await interaction.response.send_message(_("🔄 Refreshing logs..."), ephemeral=True, delete_after=1)
             
             # Get updated logs
             logs = await self._get_container_logs()
@@ -386,7 +386,7 @@ class LiveLogView(discord.ui.View):
         """Toggle auto-refresh updates - stop or start based on current state."""
         try:
             # Immediately send response to avoid timeout
-            await interaction.response.send_message("⏳ Updating...", ephemeral=True, delete_after=1)
+            await interaction.response.send_message(_("⏳ Updating..."), ephemeral=True, delete_after=1)
             
             # Check current state and toggle
             if self.auto_refresh_enabled and self.auto_refresh_task:
@@ -571,7 +571,7 @@ class DebugLogsButton(discord.ui.Button):
             if not live_logs_enabled:
                 # Live Logs feature is disabled - show error message
                 await interaction.response.send_message(
-                    "❌ Live Logs feature is currently disabled by administrator.",
+                    _("❌ Live Logs feature is currently disabled by administrator."),
                     ephemeral=True
                 )
                 return
@@ -608,7 +608,7 @@ class DebugLogsButton(discord.ui.Button):
                         description=f"```\n{log_lines}\n```",
                         color=0x808080  # Gray for static
                     )
-                    embed.set_footer(text="https://ddc.bot • Click ▶️ to start live updates")
+                    embed.set_footer(text=_("https://ddc.bot • Click ▶️ to start live updates"))
                 
                 # Send ephemeral message
                 message = await interaction.followup.send(embed=embed, view=view, ephemeral=True)
