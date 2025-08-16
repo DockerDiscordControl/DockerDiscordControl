@@ -95,6 +95,11 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         self.cache_ttl_seconds = 75
         self.pending_actions: Dict[str, Dict[str, Any]] = {}
         
+        # Docker query cooldown tracking
+        self.last_docker_query = {}  # Track last query time per container
+        import os
+        self.docker_query_cooldown = int(os.environ.get('DDC_DOCKER_QUERY_COOLDOWN', '2'))
+        
         # Load server order
         self.ordered_server_names = load_server_order()
         logger.info(f"[Cog Init] Loaded server order from persistent file: {self.ordered_server_names}")
@@ -344,8 +349,20 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                              cached_status = self.status_cache.get(docker_name)
                              if cached_status:
                                  try:
+                                     # Check cache age with DDC_DOCKER_MAX_CACHE_AGE
+                                     import os
+                                     max_cache_age = int(os.environ.get('DDC_DOCKER_MAX_CACHE_AGE', '300'))
+                                     
                                      # Handle both cache formats: direct tuple or {'data': tuple, 'timestamp': datetime}
                                      if isinstance(cached_status, dict) and 'data' in cached_status:
+                                         # Check if cache is still valid
+                                         if 'timestamp' in cached_status:
+                                             cache_age = (datetime.now(timezone.utc) - cached_status['timestamp']).total_seconds()
+                                             if cache_age > max_cache_age:
+                                                 logger.debug(f"Cache for {docker_name} expired ({cache_age:.1f}s > {max_cache_age}s)")
+                                                 cached_status = None
+                                     
+                                     if cached_status and isinstance(cached_status, dict) and 'data' in cached_status:
                                          # New format: extract data from dict
                                          status_data = cached_status['data']
                                      else:
@@ -1303,8 +1320,19 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             status_result = None
             
             if cached_entry and cached_entry.get('data'):
-                # ✅ Cache available - use cached data
-                status_result = cached_entry['data']
+                # Check cache age with DDC_DOCKER_MAX_CACHE_AGE
+                import os
+                max_cache_age = int(os.environ.get('DDC_DOCKER_MAX_CACHE_AGE', '300'))
+                
+                if 'timestamp' in cached_entry:
+                    cache_age = (datetime.now(timezone.utc) - cached_entry['timestamp']).total_seconds()
+                    if cache_age > max_cache_age:
+                        logger.debug(f"Cache for {display_name} expired ({cache_age:.1f}s > {max_cache_age}s)")
+                        cached_entry = None
+                
+                if cached_entry and cached_entry.get('data'):
+                    # ✅ Cache available and valid - use cached data
+                    status_result = cached_entry['data']
             else:
                 # ⚠️ NO cache available - show "Loading" status
                 logger.debug(f"[/serverstatus] No cache entry for '{display_name}' - Background loop will update")
@@ -1488,6 +1516,17 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
     @tasks.loop(seconds=30)
     async def status_update_loop(self):
         """Periodically updates the cache with the latest container statuses."""
+        # Get cache duration from environment
+        import os
+        cache_duration = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', '30'))
+        
+        # Dynamically change the loop interval if needed
+        if self.status_update_loop.seconds != cache_duration:
+            try:
+                self.status_update_loop.change_interval(seconds=cache_duration)
+                logger.info(f"[STATUS_LOOP] Cache update interval changed to {cache_duration} seconds")
+            except Exception as e:
+                logger.error(f"[STATUS_LOOP] Failed to change interval: {e}")
         # CRITICAL FIX: Always load the latest config to prevent stale data
         config = get_cached_config()
         if not config:

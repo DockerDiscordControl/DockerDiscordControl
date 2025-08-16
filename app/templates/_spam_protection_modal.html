@@ -100,10 +100,6 @@
                                 <input type="number" class="form-control form-control-sm" id="cooldown_donatebroadcast" value="60" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label for="cooldown_ddc" class="form-label">/ddc</label>
-                                <input type="number" class="form-control form-control-sm" id="cooldown_ddc" value="5" min="0" max="300">
-                            </div>
-                            <div class="col-md-4 mb-2">
                                 <label for="cooldown_task" class="form-label">/task</label>
                                 <input type="number" class="form-control form-control-sm" id="cooldown_task" value="10" min="0" max="300">
                             </div>
@@ -247,7 +243,6 @@ document.getElementById('saveSpamProtection').addEventListener('click', function
             ping: parseInt(document.getElementById('cooldown_ping').value),
             donate: parseInt(document.getElementById('cooldown_donate').value),
             donatebroadcast: parseInt(document.getElementById('cooldown_donatebroadcast').value),
-            ddc: parseInt(document.getElementById('cooldown_ddc').value),
             task: parseInt(document.getElementById('cooldown_task').value),
             task_info: parseInt(document.getElementById('cooldown_task_info').value),
             task_once: parseInt(document.getElementById('cooldown_task_once').value),

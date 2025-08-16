@@ -49,7 +49,6 @@ class SpamProtectionManager:
                 "task_delete_panel": 5,  # /task_delete_panel command
                 "task_panel": 10,    # /task_panel command
                 "command": 10,       # /command command (container control)
-                "ddc": 5,           # /ddc command group
                 "language": 30,      # /language command
                 "forceupdate": 60,   # /forceupdate command
                 "start": 10,         # /start command

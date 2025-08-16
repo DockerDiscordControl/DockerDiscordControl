@@ -155,6 +155,23 @@ class StatusHandlersMixin:
     
     async def _fetch_container_with_retries(self, docker_name: str) -> Tuple[str, Any, Any]:
         """Fetch container data with intelligent retry strategy - always gets complete data."""
+        # Check Docker query cooldown
+        import os
+        query_cooldown = int(os.environ.get('DDC_DOCKER_QUERY_COOLDOWN', '2'))
+        
+        if query_cooldown > 0 and hasattr(self, 'last_docker_query'):
+            last_query_time = self.last_docker_query.get(docker_name, 0)
+            time_since_last = time.time() - last_query_time
+            
+            if time_since_last < query_cooldown:
+                wait_time = query_cooldown - time_since_last
+                logger.debug(f"[QUERY_COOLDOWN] Waiting {wait_time:.1f}s before querying {docker_name}")
+                await asyncio.sleep(wait_time)
+        
+        # Record this query time
+        if hasattr(self, 'last_docker_query'):
+            self.last_docker_query[docker_name] = time.time()
+        
         start_time = time.time()
         profile = self._get_container_performance_profile(docker_name)
         config = self.performance_learning_config
