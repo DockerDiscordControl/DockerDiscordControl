@@ -148,7 +148,7 @@ class LiveLogView(discord.ui.View):
         
         # 1. Refresh Button (Manual refresh)
         refresh_button = discord.ui.Button(
-            label="🔄",
+            emoji="🔄",
             style=discord.ButtonStyle.secondary,
             custom_id='manual_refresh'
         )
@@ -166,7 +166,7 @@ class LiveLogView(discord.ui.View):
             button_style = discord.ButtonStyle.secondary
         
         toggle_button = discord.ui.Button(
-            label=button_emoji,
+            emoji=button_emoji,
             style=button_style,
             custom_id='toggle_auto_refresh'
         )

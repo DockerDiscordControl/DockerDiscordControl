@@ -1325,7 +1325,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             logger.debug(f"Could not check info availability: {e}")
         
         if has_any_info:
-            embed.description += f"\n{translate('Use `/info <servername>` to get detailed information about containers with ℹ️  indicators.')}"
+            embed.description += f"\n{translate('Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.')}"
         
         # Add the website URL without italic formatting
         embed.description += f"\n\nhttps://ddc.bot"
