@@ -28,6 +28,7 @@ DEFAULT_FAST_STATS_TIMEOUT = float(os.environ.get('DDC_FAST_STATS_TIMEOUT', '1.5
 DEFAULT_SLOW_STATS_TIMEOUT = float(os.environ.get('DDC_SLOW_STATS_TIMEOUT', '3.0'))
 DEFAULT_FAST_INFO_TIMEOUT = float(os.environ.get('DDC_FAST_INFO_TIMEOUT', '2.0'))
 DEFAULT_SLOW_INFO_TIMEOUT = float(os.environ.get('DDC_SLOW_INFO_TIMEOUT', '3.0'))
+DEFAULT_CONTAINER_LIST_TIMEOUT = float(os.environ.get('DDC_CONTAINER_LIST_TIMEOUT', '15.0'))
 
 # Pattern-based timeout configuration (flexible and maintainable)
 CONTAINER_TYPE_PATTERNS = {
@@ -251,7 +252,7 @@ def get_docker_client():
     try:
         # Method 1: Standard socket (non-blocking)
         logger.info("Trying docker.from_env() for immediate connection...")
-        _docker_client = docker.from_env(timeout=5)
+        _docker_client = docker.from_env(timeout=int(DEFAULT_CONTAINER_LIST_TIMEOUT))
         
         # Quick ping test
         _docker_client.ping()
@@ -266,7 +267,7 @@ def get_docker_client():
         try:
             # Method 2: Direct socket path
             logger.info("Trying direct socket path...")
-            _docker_client = docker.DockerClient(base_url='unix:///var/run/docker.sock', timeout=5)
+            _docker_client = docker.DockerClient(base_url='unix:///var/run/docker.sock', timeout=int(DEFAULT_CONTAINER_LIST_TIMEOUT))
             
             # Quick ping test
             _docker_client.ping()

@@ -915,24 +915,44 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
     # _update_single_server_message_by_name WAS REMOVED
 
     async def delete_bot_messages(self, channel: discord.TextChannel, limit: int = 200):
-        """Deletes all bot messages in a channel up to the specified limit."""
+        """Deletes all bot messages in a channel up to the specified limit, excluding Live Log messages."""
         if not isinstance(channel, discord.TextChannel):
             logger.error(f"Attempted to delete messages in non-text channel: {channel}")
             return
         logger.info(f"Deleting up to {limit} bot messages in channel {channel.name} ({channel.id})")
         try:
-            # Define a check function
-            def is_me(m):
-                return m.author == self.bot.user
+            # Define a check function that excludes Live Log messages
+            def is_me_and_not_live_logs(m):
+                if m.author != self.bot.user:
+                    return False
+                
+                # Check if this is a Live Log message by looking for specific indicators
+                if m.embeds:
+                    for embed in m.embeds:
+                        # Check for Live Log indicators in title
+                        if embed.title and any(keyword in embed.title for keyword in [
+                            "Live Logs", "Live Debug Logs", "Debug Logs", "🔍 Live", "🔍 Debug", "🔄 Debug"
+                        ]):
+                            logger.debug(f"Preserving Live Log message {m.id} with title: {embed.title}")
+                            return False
+                        
+                        # Check for Live Log indicators in footer
+                        if embed.footer and embed.footer.text and any(keyword in embed.footer.text for keyword in [
+                            "Auto-refreshing", "manually refreshed", "Auto-refresh", "live updates"
+                        ]):
+                            logger.debug(f"Preserving Live Log message {m.id} with footer: {embed.footer.text}")
+                            return False
+                
+                return True
 
             # Use channel.purge instead of manual iteration to prevent hanging
             try:
                 deleted = await asyncio.wait_for(
-                    channel.purge(limit=limit, check=is_me),
+                    channel.purge(limit=limit, check=is_me_and_not_live_logs),
                     timeout=30.0  # 30 second timeout
                 )
                 deleted_count = len(deleted)
-                logger.info(f"Successfully deleted {deleted_count} bot messages in {channel.name}")
+                logger.info(f"Successfully deleted {deleted_count} bot messages in {channel.name} (excluding Live Logs)")
             except asyncio.TimeoutError:
                 logger.error(f"Timeout deleting messages in {channel.name} - using fallback method")
                 # Fallback: manual deletion with timeout
@@ -940,7 +960,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 messages_to_check = 0
                 async for message in channel.history(limit=min(limit, 50)):  # Limit to 50 for safety
                     messages_to_check += 1
-                    if is_me(message):
+                    if is_me_and_not_live_logs(message):
                         try:
                             await message.delete()
                             deleted_count += 1
@@ -959,7 +979,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             # except discord.HTTPException as e:
             #     logger.error(f"HTTP error during purge in {channel.name}: {e}")
 
-            logger.info(f"Finished deleting bot messages in {channel.name}. Deleted {deleted_count} messages.")
+            logger.info(f"Finished deleting bot messages in {channel.name}. Deleted {deleted_count} messages (Live Log messages preserved).")
         except Exception as e:
             logger.error(f"An error occurred during message deletion in {channel.name}: {e}", exc_info=True)
 

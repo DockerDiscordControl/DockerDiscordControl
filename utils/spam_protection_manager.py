@@ -62,7 +62,10 @@ class SpamProtectionManager:
                 "stop": 10,          # Stop button
                 "restart": 15,       # Restart button
                 "info": 3,           # Info button
-                "refresh": 5         # Refresh button
+                "refresh": 5,        # Refresh button
+                "logs": 10,          # Live Logs button
+                "live_refresh": 3,   # Live Logs refresh button
+                "auto_refresh": 5    # Auto-refresh toggle button
             },
             
             # Global settings

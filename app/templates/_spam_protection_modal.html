@@ -170,6 +170,18 @@
                                 <label for="button_refresh" class="form-label">Refresh Button</label>
                                 <input type="number" class="form-control form-control-sm" id="button_refresh" value="5" min="0" max="300">
                             </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="button_logs" class="form-label">Live Logs Button</label>
+                                <input type="number" class="form-control form-control-sm" id="button_logs" value="10" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="button_live_refresh" class="form-label">Live Logs Refresh</label>
+                                <input type="number" class="form-control form-control-sm" id="button_live_refresh" value="3" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="button_auto_refresh" class="form-label">Auto-refresh Toggle</label>
+                                <input type="number" class="form-control form-control-sm" id="button_auto_refresh" value="5" min="0" max="300">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -251,7 +263,10 @@ document.getElementById('saveSpamProtection').addEventListener('click', function
             stop: parseInt(document.getElementById('button_stop').value),
             restart: parseInt(document.getElementById('button_restart').value),
             info: parseInt(document.getElementById('button_info').value),
-            refresh: parseInt(document.getElementById('button_refresh').value)
+            refresh: parseInt(document.getElementById('button_refresh').value),
+            logs: parseInt(document.getElementById('button_logs').value),
+            live_refresh: parseInt(document.getElementById('button_live_refresh').value),
+            auto_refresh: parseInt(document.getElementById('button_auto_refresh').value)
         }
     };
     

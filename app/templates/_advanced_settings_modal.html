@@ -94,6 +94,51 @@
                     </div>
                 </div>
 
+                <!-- Live Logs Settings -->
+                <div class="card bg-secondary mb-3">
+                    <div class="card-header text-light">
+                        <h6 class="mb-0"><i class="bi bi-file-text"></i> Live Logs Settings</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Auto-refresh interval (s)</label>
+                                <input type="number" class="form-control" id="env_DDC_LIVE_LOGS_REFRESH_INTERVAL" name="env_DDC_LIVE_LOGS_REFRESH_INTERVAL" min="1" max="30" value="{{ (config.env.DDC_LIVE_LOGS_REFRESH_INTERVAL if config.env else '') or '' }}" placeholder="5">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Max refresh cycles</label>
+                                <input type="number" class="form-control" id="env_DDC_LIVE_LOGS_MAX_REFRESHES" name="env_DDC_LIVE_LOGS_MAX_REFRESHES" min="1" max="100" value="{{ (config.env.DDC_LIVE_LOGS_MAX_REFRESHES if config.env else '') or '' }}" placeholder="12">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Log lines to fetch</label>
+                                <input type="number" class="form-control" id="env_DDC_LIVE_LOGS_TAIL_LINES" name="env_DDC_LIVE_LOGS_TAIL_LINES" min="10" max="200" value="{{ (config.env.DDC_LIVE_LOGS_TAIL_LINES if config.env else '') or '' }}" placeholder="50">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Message timeout (s)</label>
+                                <input type="number" class="form-control" id="env_DDC_LIVE_LOGS_TIMEOUT" name="env_DDC_LIVE_LOGS_TIMEOUT" min="30" max="600" value="{{ (config.env.DDC_LIVE_LOGS_TIMEOUT if config.env else '') or '' }}" placeholder="120">
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="env_DDC_LIVE_LOGS_ENABLED" name="env_DDC_LIVE_LOGS_ENABLED" value="true" {% if not config.env or not config.env.get('DDC_LIVE_LOGS_ENABLED') or config.env.get('DDC_LIVE_LOGS_ENABLED').lower() in ['true', '1', 'on', 'yes'] %}checked{% endif %}>
+                                    <label class="form-check-label" for="env_DDC_LIVE_LOGS_ENABLED">
+                                        Enable Live Logs feature
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="env_DDC_LIVE_LOGS_AUTO_START" name="env_DDC_LIVE_LOGS_AUTO_START" value="true" {% if config.env and config.env.get('DDC_LIVE_LOGS_AUTO_START', '').lower() in ['true', '1', 'on', 'yes'] %}checked{% endif %}>
+                                    <label class="form-check-label" for="env_DDC_LIVE_LOGS_AUTO_START">
+                                        Auto-start on button click
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Docker Timeouts -->
                 <div class="card bg-secondary">
                     <div class="card-header text-light">

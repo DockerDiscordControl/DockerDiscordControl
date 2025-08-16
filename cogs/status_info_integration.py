@@ -12,9 +12,14 @@ Provides read-only info display for channels with only /ss permission.
 """
 
 import discord
+import os
 from typing import Dict, Any, Optional, List
 from utils.logging_utils import get_module_logger
 from utils.container_info_manager import get_container_info_manager
+from utils.time_utils import get_datetime_imports
+
+# Get datetime imports
+datetime, timedelta, timezone, time = get_datetime_imports()
 from utils.common_helpers import get_public_ip
 from .translation_manager import _
 import asyncio
@@ -57,6 +62,31 @@ class EditInfoButton(discord.ui.Button):
     
     async def callback(self, interaction: discord.Interaction):
         """Handle edit info button click."""
+        # Check button cooldown first  
+        from utils.spam_protection_manager import get_spam_protection_manager
+        spam_manager = get_spam_protection_manager()
+        
+        if spam_manager.is_enabled():
+            cooldown_seconds = spam_manager.get_button_cooldown("info")
+            current_time = time.time()
+            cooldown_key = f"button_info_{interaction.user.id}"
+            
+            if hasattr(self.cog, '_button_cooldowns'):
+                if cooldown_key in self.cog._button_cooldowns:
+                    last_use = self.cog._button_cooldowns[cooldown_key]
+                    if current_time - last_use < cooldown_seconds:
+                        remaining = cooldown_seconds - (current_time - last_use)
+                        await interaction.response.send_message(
+                            f"⏰ Please wait {remaining:.1f} more seconds before using this button again.", 
+                            ephemeral=True
+                        )
+                        return
+            else:
+                self.cog._button_cooldowns = {}
+            
+            # Record button use
+            self.cog._button_cooldowns[cooldown_key] = current_time
+            
         try:
             # Import modal from enhanced_info_modal_simple
             from .enhanced_info_modal_simple import SimplifiedContainerInfoModal
@@ -83,14 +113,308 @@ class EditInfoButton(discord.ui.Button):
             except:
                 pass
 
+class LiveLogView(discord.ui.View):
+    """View for live-updating debug logs with refresh controls."""
+    
+    def __init__(self, container_name: str, auto_refresh: bool = False):
+        # Get configuration from environment variables
+        timeout_seconds = int(os.getenv('DDC_LIVE_LOGS_TIMEOUT', '120'))
+        self.refresh_interval = int(os.getenv('DDC_LIVE_LOGS_REFRESH_INTERVAL', '5'))
+        self.max_refreshes = int(os.getenv('DDC_LIVE_LOGS_MAX_REFRESHES', '12'))
+        
+        super().__init__(timeout=timeout_seconds if auto_refresh else 60)  # Use configured timeout
+        self.container_name = container_name
+        self.auto_refresh_enabled = auto_refresh
+        self.auto_refresh_task = None
+        self.refresh_count = 0
+        self.message_ref = None  # Store message reference
+        
+        # Create the toggle button with the correct initial state
+        self._create_toggle_button()
+    
+    def _create_toggle_button(self):
+        """Create the toggle button with the correct state."""
+        if self.auto_refresh_enabled:
+            # Auto-refresh is ON - show STOP button
+            button_emoji = "⏹️"
+            button_style = discord.ButtonStyle.danger
+        else:
+            # Auto-refresh is OFF - show PLAY button
+            button_emoji = "▶️"
+            button_style = discord.ButtonStyle.success
+        
+        # Remove existing toggle button if any
+        for item in self.children:
+            if hasattr(item, 'custom_id') and item.custom_id == 'toggle_auto_refresh':
+                self.remove_item(item)
+                break
+        
+        # Add new toggle button with correct state
+        toggle_button = discord.ui.Button(
+            label=button_emoji,
+            style=button_style,
+            custom_id='toggle_auto_refresh'
+        )
+        toggle_button.callback = self.toggle_updates
+        self.add_item(toggle_button)
+    
+    async def start_auto_refresh(self, message):
+        """Start auto-refresh task for live updates."""
+        if not self.auto_refresh_enabled:
+            return
+            
+        import asyncio
+        self.message_ref = message
+        self.auto_refresh_task = asyncio.create_task(
+            self._auto_refresh_loop()
+        )
+    
+    async def _auto_refresh_loop(self):
+        """Auto-refresh loop that updates logs at configured intervals."""
+        import asyncio
+        
+        try:
+            while self.refresh_count < self.max_refreshes and self.auto_refresh_enabled:
+                await asyncio.sleep(self.refresh_interval)  # Wait configured interval
+                
+                self.refresh_count += 1
+                
+                # Get updated logs
+                logs = await self._get_container_logs()
+                
+                if logs and self.message_ref:
+                    # Update embed
+                    embed = discord.Embed(
+                        title=f"🔍 Live Logs - {self.container_name}",
+                        description=f"```\n{logs}\n```",
+                        color=0x00ff00,
+                        timestamp=datetime.now(timezone.utc)
+                    )
+                    
+                    remaining = self.max_refreshes - self.refresh_count
+                    
+                    if remaining > 0:
+                        embed.set_footer(text=f"🔄 Auto-refreshing every {self.refresh_interval}s • {remaining} updates remaining")
+                    else:
+                        embed.set_footer(text="✅ Auto-refresh completed • Click ▶️ to restart live updates")
+                        embed.color = 0x808080  # Change to gray when done
+                        self.auto_refresh_enabled = False
+                        # Convert stop button to start button when completed
+                        for child in self.children:
+                            if hasattr(child, 'label') and ('Stop' in child.label or 'Stopped' in child.label):
+                                child.disabled = False
+                                child.label = "▶️"
+                                child.style = discord.ButtonStyle.success
+                    
+                    # Update message
+                    try:
+                        logger.debug(f"Auto-refresh updating message {self.message_ref.id} for container {self.container_name}")
+                        await self.message_ref.edit(embed=embed, view=self)
+                    except Exception as e:
+                        logger.error(f"Auto-refresh update failed for message {self.message_ref.id}: {e}")
+                        break
+                        
+        except asyncio.CancelledError:
+            logger.debug("Auto-refresh cancelled")
+        except Exception as e:
+            logger.error(f"Auto-refresh error: {e}")
+    
+    @discord.ui.button(label="🔄", style=discord.ButtonStyle.primary)
+    async def manual_refresh(self, button: discord.ui.Button, interaction: discord.Interaction):
+        """Manual refresh button."""
+        # Check button cooldown first
+        from utils.spam_protection_manager import get_spam_protection_manager
+        spam_manager = get_spam_protection_manager()
+        
+        if spam_manager.is_enabled():
+            cooldown_seconds = spam_manager.get_button_cooldown("live_refresh")
+            current_time = time.time()
+            cooldown_key = f"button_refresh_{interaction.user.id}"
+            
+            # Simple cooldown tracking on the view
+            if not hasattr(self, '_button_cooldowns'):
+                self._button_cooldowns = {}
+            
+            if cooldown_key in self._button_cooldowns:
+                last_use = self._button_cooldowns[cooldown_key]
+                if current_time - last_use < cooldown_seconds:
+                    remaining = cooldown_seconds - (current_time - last_use)
+                    await interaction.response.send_message(
+                        f"⏰ Please wait {remaining:.1f} more seconds before refreshing again.", 
+                        ephemeral=True
+                    )
+                    return
+            
+            # Record button use
+            self._button_cooldowns[cooldown_key] = current_time
+        
+        try:
+            # Immediately send response to avoid timeout
+            await interaction.response.send_message("🔄 Refreshing logs...", ephemeral=True, delete_after=1)
+            
+            # Get updated logs
+            logs = await self._get_container_logs()
+            
+            if logs and self.message_ref:
+                # Update the existing message for public messages
+                embed = discord.Embed(
+                    title=f"🔄 Debug Logs - {self.container_name}",
+                    description=f"```\n{logs}\n```",
+                    color=0x0099ff,
+                    timestamp=datetime.now(timezone.utc)
+                )
+                embed.set_footer(text="🔄 Manually refreshed • Click again to update")
+                
+                try:
+                    await self.message_ref.edit(embed=embed, view=self)
+                    # Log refresh is visible in the message update, no additional confirmation needed
+                except Exception as edit_error:
+                    logger.debug(f"Manual refresh edit failed: {edit_error}")
+            else:
+                logger.warning("Manual refresh failed - no logs retrieved")
+                
+        except Exception as e:
+            logger.error(f"Manual refresh error: {e}")
+    
+    async def toggle_updates(self, interaction: discord.Interaction):
+        """Toggle auto-refresh updates - stop or start based on current state."""
+        try:
+            # Immediately send response to avoid timeout
+            await interaction.response.send_message("⏳ Updating...", ephemeral=True, delete_after=1)
+            
+            # Check current state and toggle
+            if self.auto_refresh_enabled and self.auto_refresh_task:
+                # Currently running - STOP
+                self.auto_refresh_task.cancel()
+                self.auto_refresh_enabled = False
+                
+                # Update button state
+                self._create_toggle_button()
+                
+                # Update embed
+                if self.message_ref:
+                    logs = await self._get_container_logs()
+                    embed = discord.Embed(
+                        title=f"⏹️ Debug Logs - {self.container_name}",
+                        description=f"```\n{logs}\n```",
+                        color=0xff6600,
+                        timestamp=datetime.now(timezone.utc)
+                    )
+                    embed.set_footer(text="⏹️ Auto-refresh stopped • Click Start to restart")
+                    
+                    try:
+                        await self.message_ref.edit(embed=embed, view=self)
+                    except Exception as e:
+                        logger.debug(f"Failed to update message after stop: {e}")
+                else:
+                    logger.debug("Auto-refresh stopped but no message reference")
+                    
+            else:
+                # Currently stopped - START
+                self.refresh_count = 0
+                self.auto_refresh_enabled = True
+                
+                # Update button state
+                self._create_toggle_button()
+                
+                # Update embed and restart auto-refresh
+                if self.message_ref:
+                    logs = await self._get_container_logs()
+                    embed = discord.Embed(
+                        title=f"▶️ Live Logs - {self.container_name}",
+                        description=f"```\n{logs}\n```",
+                        color=0x00ff00,
+                        timestamp=datetime.now(timezone.utc)
+                    )
+                    embed.set_footer(text=f"▶️ Auto-refresh restarted • Updating every {self.refresh_interval} seconds")
+                    
+                    try:
+                        await self.message_ref.edit(embed=embed, view=self)
+                        
+                        # Restart auto-refresh task
+                        import asyncio
+                        self.auto_refresh_task = asyncio.create_task(
+                            self._auto_refresh_loop()
+                        )
+                        
+                        pass  # Successful restart is visible in the message update
+                    except Exception as e:
+                        logger.debug(f"Failed to update message after restart: {e}")
+                else:
+                    logger.debug("Auto-refresh restarted but no message reference")
+            
+        except Exception as e:
+            logger.error(f"Toggle updates error: {e}")
+    
+    @discord.ui.button(label="❌", style=discord.ButtonStyle.secondary)
+    async def close_logs(self, button: discord.ui.Button, interaction: discord.Interaction):
+        """Close the live debug log message."""
+        try:
+            # Immediately send response
+            await interaction.response.send_message("🗑️ Closing logs...", ephemeral=True, delete_after=1)
+            
+            # Cancel auto-refresh task if running
+            if self.auto_refresh_task:
+                self.auto_refresh_task.cancel()
+                self.auto_refresh_enabled = False
+            
+            # Delete the message
+            if self.message_ref:
+                try:
+                    await self.message_ref.delete()
+                    logger.info(f"Deleted live debug message {self.message_ref.id} for container {self.container_name}")
+                except Exception as e:
+                    logger.debug(f"Failed to delete message: {e}")
+            
+        except Exception as e:
+            logger.error(f"Close logs error: {e}")
+    
+    async def _get_container_logs(self) -> str:
+        """Get the last 50 log lines for the container."""
+        try:
+            import docker
+            from utils.docker_utils import get_docker_client
+            from utils.common_helpers import validate_container_name
+            
+            # Validate container name for security
+            if not validate_container_name(self.container_name):
+                return f"Invalid container name format: {self.container_name}"
+            
+            client = get_docker_client()
+            if not client:
+                return "Docker client not available."
+            
+            # Get container with timeout protection
+            import asyncio
+            container = await asyncio.to_thread(client.containers.get, self.container_name)
+            
+            # Get logs (configured number of lines) with timeout
+            tail_lines = int(os.getenv('DDC_LIVE_LOGS_TAIL_LINES', '50'))
+            logs = await asyncio.to_thread(
+                lambda: container.logs(tail=tail_lines, timestamps=True).decode('utf-8', errors='replace')
+            )
+            
+            # Limit log output to prevent Discord message limits
+            if len(logs) > 1800:  # Leave room for embed formatting
+                logs = logs[-1800:]
+                logs = "...\n" + logs
+            
+            return logs.strip() or "No logs available for this container."
+            
+        except docker.errors.NotFound:
+            return f"Container '{self.container_name}' not found."
+        except Exception as e:
+            logger.debug(f"Error getting logs for {self.container_name}: {e}")
+            return f"Error retrieving logs: {str(e)[:100]}"
+
 class DebugLogsButton(discord.ui.Button):
-    """Debug logs button for container info admin view."""
+    """Debug logs button for container info admin view with live updates."""
     
     def __init__(self, cog_instance, server_config: Dict[str, Any]):
         super().__init__(
             style=discord.ButtonStyle.secondary,
-            emoji="🐛",
-            label="Debug",
+            emoji="📋",
+            label="Logs",
             custom_id=f"debug_logs_{server_config.get('docker_name')}"
         )
         self.cog = cog_instance
@@ -98,24 +422,90 @@ class DebugLogsButton(discord.ui.Button):
         self.container_name = server_config.get('docker_name')
     
     async def callback(self, interaction: discord.Interaction):
-        """Handle debug logs button click."""
+        """Handle debug logs button click with live-updating response."""
+        # Check button cooldown first  
+        from utils.spam_protection_manager import get_spam_protection_manager
+        spam_manager = get_spam_protection_manager()
+        
+        if spam_manager.is_enabled():
+            cooldown_seconds = spam_manager.get_button_cooldown("logs")  # Use logs cooldown
+            current_time = time.time()
+            cooldown_key = f"button_logs_{interaction.user.id}"
+            
+            if hasattr(self.cog, '_button_cooldowns'):
+                if cooldown_key in self.cog._button_cooldowns:
+                    last_use = self.cog._button_cooldowns[cooldown_key]
+                    if current_time - last_use < cooldown_seconds:
+                        remaining = cooldown_seconds - (current_time - last_use)
+                        await interaction.response.send_message(
+                            f"⏰ Please wait {remaining:.1f} more seconds before using this button again.", 
+                            ephemeral=True
+                        )
+                        return
+            else:
+                self.cog._button_cooldowns = {}
+            
+            # Record button use
+            self.cog._button_cooldowns[cooldown_key] = current_time
+        
         try:
+            # Check if Live Logs feature is enabled
+            live_logs_enabled = os.getenv('DDC_LIVE_LOGS_ENABLED', 'true').lower() in ['true', '1', 'on', 'yes']
+            
+            if not live_logs_enabled:
+                # Live Logs feature is disabled - show error message
+                await interaction.response.send_message(
+                    "❌ Live Logs feature is currently disabled by administrator.",
+                    ephemeral=True
+                )
+                return
+            
+            # Always use ephemeral (private) messages for Live Logs
             await interaction.response.defer(ephemeral=True)
             
-            # Get last 50 log lines for the container
+            logger.info(f"Live debug logs (ephemeral) requested for container: {self.container_name}")
+            
+            # Check if auto-start is enabled via environment variable
+            auto_start_enabled = os.getenv('DDC_LIVE_LOGS_AUTO_START', 'false').lower() in ['true', '1', 'on', 'yes']
+            
+            # Get initial logs
             log_lines = await self._get_container_logs()
             
             if log_lines:
-                # Create debug embed
-                embed = discord.Embed(
-                    title=f"🐛 Debug Logs - {self.server_config.get('name', self.container_name)}",
-                    description=f"```\n{log_lines}\n```",
-                    color=0x95a5a6
-                )
-                embed.set_footer(text="Last 50 lines • https://ddc.bot")
+                # Create live log view - auto-refresh based on setting
+                view = LiveLogView(self.container_name, auto_refresh=auto_start_enabled)
                 
-                await interaction.followup.send(embed=embed, ephemeral=True)
-                logger.info(f"Displayed debug logs for {self.container_name} to user {interaction.user.id}")
+                # Create debug embed with appropriate title and color
+                if auto_start_enabled:
+                    # Auto-start enabled - show live indicator
+                    embed = discord.Embed(
+                        title=f"🔍 Live Logs - {self.server_config.get('name', self.container_name)}",
+                        description=f"```\n{log_lines}\n```",
+                        color=0x00ff00  # Green for live
+                    )
+                    embed.set_footer(text="https://ddc.bot")
+                else:
+                    # Auto-start disabled - show static logs
+                    embed = discord.Embed(
+                        title=f"📄 Logs - {self.server_config.get('name', self.container_name)}",
+                        description=f"```\n{log_lines}\n```",
+                        color=0x808080  # Gray for static
+                    )
+                    embed.set_footer(text="https://ddc.bot • Click ▶️ to start live updates")
+                
+                # Send ephemeral message
+                message = await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+                
+                if auto_start_enabled:
+                    logger.info(f"Created live debug message (ephemeral) with auto-refresh for container {self.container_name}")
+                    # Start auto-refresh
+                    await view.start_auto_refresh(message)
+                else:
+                    logger.info(f"Created static debug message (ephemeral) for container {self.container_name} - auto-start disabled")
+                    # Store message reference for manual start later
+                    view.message_ref = message
+                
+                logger.info(f"Debug logs displayed for {self.container_name} for user {interaction.user.id} (auto-start: {auto_start_enabled})")
             else:
                 await interaction.followup.send(
                     "❌ Could not retrieve debug logs for this container.",
@@ -123,12 +513,18 @@ class DebugLogsButton(discord.ui.Button):
                 )
             
         except Exception as e:
-            logger.error(f"Error getting debug logs for {self.container_name}: {e}", exc_info=True)
+            logger.error(f"Error getting live debug logs for {self.container_name}: {e}", exc_info=True)
             try:
-                await interaction.followup.send(
-                    "❌ Error retrieving debug logs. Please try again later.",
-                    ephemeral=True
-                )
+                if interaction.response.is_done():
+                    await interaction.followup.send(
+                        "❌ Error retrieving debug logs. Please try again later.",
+                        ephemeral=True
+                    )
+                else:
+                    await interaction.response.send_message(
+                        "❌ Error retrieving debug logs. Please try again later.",
+                        ephemeral=True
+                    )
             except:
                 pass
     
@@ -151,9 +547,10 @@ class DebugLogsButton(discord.ui.Button):
             import asyncio
             container = await asyncio.to_thread(client.containers.get, self.container_name)
             
-            # Get logs (last 50 lines) with timeout
+            # Get logs (configured number of lines) with timeout
+            tail_lines = int(os.getenv('DDC_LIVE_LOGS_TAIL_LINES', '50'))
             logs = await asyncio.to_thread(
-                lambda: container.logs(tail=50, timestamps=True).decode('utf-8', errors='replace')
+                lambda: container.logs(tail=tail_lines, timestamps=True).decode('utf-8', errors='replace')
             )
             
             # Limit log output to prevent Discord message limits

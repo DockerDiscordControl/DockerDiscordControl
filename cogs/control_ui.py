@@ -211,6 +211,32 @@ class ActionButton(Button):
 
     async def callback(self, interaction: discord.Interaction):
         """Callback for Start, Stop, Restart actions."""
+        # Check button cooldown first
+        from utils.spam_protection_manager import get_spam_protection_manager
+        spam_manager = get_spam_protection_manager()
+        
+        if spam_manager.is_enabled():
+            cooldown_seconds = spam_manager.get_button_cooldown(self.action)
+            # Simple cooldown check - in production you'd want per-user tracking
+            current_time = time.time()
+            cooldown_key = f"button_{self.action}_{interaction.user.id}"
+            
+            if hasattr(self.cog, '_button_cooldowns'):
+                if cooldown_key in self.cog._button_cooldowns:
+                    last_use = self.cog._button_cooldowns[cooldown_key]
+                    if current_time - last_use < cooldown_seconds:
+                        remaining = cooldown_seconds - (current_time - last_use)
+                        await interaction.response.send_message(
+                            f"⏰ Please wait {remaining:.1f} more seconds before using this button again.", 
+                            ephemeral=True
+                        )
+                        return
+            else:
+                self.cog._button_cooldowns = {}
+            
+            # Record button use
+            self.cog._button_cooldowns[cooldown_key] = current_time
+        
         # CRITICAL FIX: Always load the latest config
         config = get_cached_config()
         if not config:
@@ -596,6 +622,30 @@ class InfoButton(Button):
     
     async def callback(self, interaction: discord.Interaction):
         """Display container info with admin buttons in control channels."""
+        # Check button cooldown first
+        from utils.spam_protection_manager import get_spam_protection_manager
+        spam_manager = get_spam_protection_manager()
+        
+        if spam_manager.is_enabled():
+            cooldown_seconds = spam_manager.get_button_cooldown("info")
+            current_time = time.time()
+            cooldown_key = f"button_info_{interaction.user.id}"
+            
+            if hasattr(self.cog, '_button_cooldowns'):
+                if cooldown_key in self.cog._button_cooldowns:
+                    last_use = self.cog._button_cooldowns[cooldown_key]
+                    if current_time - last_use < cooldown_seconds:
+                        remaining = cooldown_seconds - (current_time - last_use)
+                        await interaction.response.send_message(
+                            f"⏰ Please wait {remaining:.1f} more seconds before using this button again.", 
+                            ephemeral=True
+                        )
+                        return
+            else:
+                self.cog._button_cooldowns = {}
+            
+            # Record button use
+            self.cog._button_cooldowns[cooldown_key] = current_time
         try:
             await interaction.response.defer(ephemeral=True)
             

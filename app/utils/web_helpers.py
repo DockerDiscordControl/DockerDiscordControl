@@ -62,6 +62,12 @@ ENABLE_BACKGROUND_REFRESH = os.environ.get('DDC_ENABLE_BACKGROUND_REFRESH', 'tru
 # Background refresh interval - MUST be frequent for 1-minute update intervals
 # Keep at 30 seconds to support minimum 1-minute Web UI update intervals
 BACKGROUND_REFRESH_INTERVAL = int(os.environ.get('DDC_BACKGROUND_REFRESH_INTERVAL', 30))
+# Background refresh limit - Maximum containers to refresh per cycle
+BACKGROUND_REFRESH_LIMIT = int(os.environ.get('DDC_BACKGROUND_REFRESH_LIMIT', 50))
+# Background refresh timeout - Timeout for each refresh operation
+BACKGROUND_REFRESH_TIMEOUT = int(os.environ.get('DDC_BACKGROUND_REFRESH_TIMEOUT', 30))
+# Max containers to display in Web UI
+MAX_CONTAINERS_DISPLAY = int(os.environ.get('DDC_MAX_CONTAINERS_DISPLAY', 100))
 # Memory optimization: Limit maximum containers in cache
 MAX_CACHED_CONTAINERS = int(os.environ.get('DDC_MAX_CACHED_CONTAINERS', 100))
 # Memory optimization: Cache cleanup interval (can be longer since it's just cleanup)
@@ -192,7 +198,11 @@ def get_docker_containers_live(logger, force_refresh=False, container_name=None)
                     logger.debug(f"Container '{container_name}' not found in cache, returning all cached data")
                 
                 logger.debug(f"Returning fresh docker cache (age: {cache_age:.1f}s)")
-                return list(docker_cache['containers']), docker_cache['error']
+                # Apply display limit for Web UI
+                containers_to_return = docker_cache['containers'][:MAX_CONTAINERS_DISPLAY] if len(docker_cache['containers']) > MAX_CONTAINERS_DISPLAY else docker_cache['containers']
+                if len(docker_cache['containers']) > MAX_CONTAINERS_DISPLAY:
+                    logger.debug(f"Limiting display to {MAX_CONTAINERS_DISPLAY} containers (total: {len(docker_cache['containers'])})")
+                return list(containers_to_return), docker_cache['error']
             # Force refresh if cache is too old
             elif cache_age > MAX_CACHE_AGE:
                 logger.info(f"Cache too old ({cache_age:.1f}s > {MAX_CACHE_AGE}s), forcing refresh")
@@ -215,10 +225,15 @@ def get_docker_containers_live(logger, force_refresh=False, container_name=None)
             matching_containers = [c for c in docker_cache['containers'] if c['name'] == container_name]
             if matching_containers:
                 return matching_containers, docker_cache['error']
-            # If the container is not found, return all
-            return list(docker_cache['containers']), docker_cache['error']
+            # If the container is not found, return all (with display limit)
+            containers_to_return = docker_cache['containers'][:MAX_CONTAINERS_DISPLAY] if len(docker_cache['containers']) > MAX_CONTAINERS_DISPLAY else docker_cache['containers']
+            return list(containers_to_return), docker_cache['error']
         else:
-            return list(docker_cache['containers']), docker_cache['error']
+            # Apply display limit for Web UI
+            containers_to_return = docker_cache['containers'][:MAX_CONTAINERS_DISPLAY] if len(docker_cache['containers']) > MAX_CONTAINERS_DISPLAY else docker_cache['containers']
+            if len(docker_cache['containers']) > MAX_CONTAINERS_DISPLAY:
+                logger.debug(f"Limiting display to {MAX_CONTAINERS_DISPLAY} containers (total: {len(docker_cache['containers'])})")
+            return list(containers_to_return), docker_cache['error']
 
 def update_docker_cache(logger):
     """Updates the Docker container cache with current data and memory optimization"""
@@ -232,8 +247,34 @@ def update_docker_cache(logger):
     try:
         client = docker.from_env()
         
-        # Retrieve either all containers or just a specific one
-        containers_to_process = client.containers.list(all=True)
+        # Retrieve either all containers or just a specific one with timeout
+        import signal
+        from contextlib import contextmanager
+        
+        @contextmanager
+        def timeout(seconds):
+            def timeout_handler(signum, frame):
+                raise TimeoutError(f"Operation timed out after {seconds} seconds")
+            
+            # Only use signal-based timeout on Unix-like systems
+            if hasattr(signal, 'SIGALRM'):
+                old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+                signal.alarm(seconds)
+                try:
+                    yield
+                finally:
+                    signal.alarm(0)
+                    signal.signal(signal.SIGALRM, old_handler)
+            else:
+                # On Windows or if SIGALRM not available, just yield without timeout
+                yield
+        
+        try:
+            with timeout(BACKGROUND_REFRESH_TIMEOUT):
+                containers_to_process = client.containers.list(all=True)
+        except TimeoutError as te:
+            logger.error(f"Container list operation timed out after {BACKGROUND_REFRESH_TIMEOUT} seconds")
+            containers_to_process = []
         
         # Process containers and update cache
         with cache_lock:
@@ -248,10 +289,12 @@ def update_docker_cache(logger):
             old_container_count = len(docker_cache['containers'])
             docker_cache['containers'] = []
             
-            # Limit containers to prevent memory bloat
-            containers_limited = containers_to_process[:MAX_CACHED_CONTAINERS] if len(containers_to_process) > MAX_CACHED_CONTAINERS else containers_to_process
-            if len(containers_to_process) > MAX_CACHED_CONTAINERS:
-                logger.warning(f"Docker cache: Limiting to {MAX_CACHED_CONTAINERS} containers (found {len(containers_to_process)})")
+            # Apply both background refresh limit and max cache limit
+            # Use the smaller of the two limits
+            effective_limit = min(BACKGROUND_REFRESH_LIMIT, MAX_CACHED_CONTAINERS)
+            containers_limited = containers_to_process[:effective_limit] if len(containers_to_process) > effective_limit else containers_to_process
+            if len(containers_to_process) > effective_limit:
+                logger.warning(f"Docker cache: Limiting to {effective_limit} containers (found {len(containers_to_process)}, refresh_limit={BACKGROUND_REFRESH_LIMIT}, cache_limit={MAX_CACHED_CONTAINERS})")
             
             current_time = time.time()
             for container in containers_limited:
