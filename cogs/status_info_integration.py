@@ -33,7 +33,8 @@ class ContainerInfoAdminView(discord.ui.View):
     """
     
     def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any]):
-        super().__init__(timeout=300)  # 5 minute timeout
+        # Extend timeout to 30 minutes for Info messages (they are not frequently used)
+        super().__init__(timeout=1800)  # 30 minute timeout
         self.cog = cog_instance
         self.server_config = server_config
         self.info_config = info_config
@@ -44,6 +45,9 @@ class ContainerInfoAdminView(discord.ui.View):
         
         # Add Debug button
         self.add_item(DebugLogsButton(cog_instance, server_config))
+        
+        # Add Close button
+        self.add_item(CloseInfoButton(cog_instance, server_config))
 
 class EditInfoButton(discord.ui.Button):
     """Edit Info button for container info admin view."""
@@ -52,7 +56,7 @@ class EditInfoButton(discord.ui.Button):
         super().__init__(
             style=discord.ButtonStyle.primary,
             emoji="📝",
-            label="Edit Info",
+            label=None,
             custom_id=f"edit_info_{server_config.get('docker_name')}"
         )
         self.cog = cog_instance
@@ -113,6 +117,77 @@ class EditInfoButton(discord.ui.Button):
             except:
                 pass
 
+class CloseInfoButton(discord.ui.Button):
+    """Close button for container info admin view."""
+    
+    def __init__(self, cog_instance, server_config: Dict[str, Any]):
+        super().__init__(
+            style=discord.ButtonStyle.secondary,
+            emoji="❌",
+            label=None,
+            custom_id=f"close_info_{server_config.get('docker_name')}"
+        )
+        self.cog = cog_instance
+        self.server_config = server_config
+        self.container_name = server_config.get('docker_name')
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle close info button click."""
+        # Check button cooldown first  
+        from utils.spam_protection_manager import get_spam_protection_manager
+        spam_manager = get_spam_protection_manager()
+        
+        if spam_manager.is_enabled():
+            cooldown_seconds = spam_manager.get_button_cooldown("info")
+            current_time = time.time()
+            cooldown_key = f"button_close_info_{interaction.user.id}"
+            
+            if hasattr(self.cog, '_button_cooldowns'):
+                if cooldown_key in self.cog._button_cooldowns:
+                    last_use = self.cog._button_cooldowns[cooldown_key]
+                    if current_time - last_use < cooldown_seconds:
+                        remaining = cooldown_seconds - (current_time - last_use)
+                        await interaction.response.send_message(
+                            f"⏰ Please wait {remaining:.1f} more seconds before using this button again.", 
+                            ephemeral=True
+                        )
+                        return
+            else:
+                self.cog._button_cooldowns = {}
+            
+            # Record button use
+            self.cog._button_cooldowns[cooldown_key] = current_time
+            
+        try:
+            # Delete the original message first
+            try:
+                logger.info(f"Attempting to delete info message for container {self.container_name} by user {interaction.user.id}")
+                await interaction.message.delete()
+                logger.info(f"Successfully deleted info message for container {self.container_name}")
+                
+                # Send confirmation after successful deletion
+                await interaction.response.send_message("🗑️ Info message closed.", ephemeral=True, delete_after=2)
+                
+            except discord.NotFound:
+                logger.warning(f"Info message already deleted for {self.container_name}")
+                await interaction.response.send_message("🗑️ Info message was already closed.", ephemeral=True, delete_after=2)
+            except discord.Forbidden:
+                logger.error(f"No permission to delete info message for {self.container_name}")
+                await interaction.response.send_message("❌ No permission to delete this message.", ephemeral=True, delete_after=3)
+            except Exception as e:
+                logger.error(f"Failed to delete info message for {self.container_name}: {e}", exc_info=True)
+                await interaction.response.send_message("❌ Could not delete message. Check bot permissions.", ephemeral=True, delete_after=3)
+                
+        except Exception as e:
+            logger.error(f"Error closing info message for {self.container_name}: {e}", exc_info=True)
+            try:
+                await interaction.response.send_message(
+                    "❌ Could not close message. Please try again later.",
+                    ephemeral=True
+                )
+            except:
+                pass
+
 class LiveLogView(discord.ui.View):
     """View for live-updating debug logs with refresh controls."""
     
@@ -122,15 +197,21 @@ class LiveLogView(discord.ui.View):
         self.refresh_interval = int(os.getenv('DDC_LIVE_LOGS_REFRESH_INTERVAL', '5'))
         self.max_refreshes = int(os.getenv('DDC_LIVE_LOGS_MAX_REFRESHES', '12'))
         
-        super().__init__(timeout=timeout_seconds if auto_refresh else 60)  # Use configured timeout
+        # Set timeout to 5 minutes, but auto-recreate before timeout
+        super().__init__(timeout=300)
         self.container_name = container_name
         self.auto_refresh_enabled = auto_refresh
         self.auto_refresh_task = None
         self.refresh_count = 0
         self.message_ref = None  # Store message reference
+        self.cog_instance = None  # Will be set when needed
+        self.recreation_task = None  # Task for auto-recreation
         
         # Create all buttons in the correct order
         self._create_all_buttons()
+        
+        # Start auto-recreation task (recreate 30 seconds before timeout)
+        self._start_auto_recreation()
     
     def _create_all_buttons(self):
         """Create all buttons in the correct order: Refresh, Start/Stop, Close."""
@@ -172,6 +253,88 @@ class LiveLogView(discord.ui.View):
         )
         close_button.callback = self.close_logs
         self.add_item(close_button)
+    
+    def _start_auto_recreation(self):
+        """Start auto-recreation task to refresh the view before timeout."""
+        import asyncio
+        # Recreate 30 seconds before timeout (300s - 30s = 270s)
+        self.recreation_task = asyncio.create_task(self._auto_recreation_loop())
+    
+    async def _auto_recreation_loop(self):
+        """Auto-recreation loop that refreshes the view before timeout."""
+        import asyncio
+        try:
+            # Wait for 270 seconds (30 seconds before timeout)
+            await asyncio.sleep(270)
+            
+            # Only recreate if we have a message reference and the view is still active
+            if self.message_ref and not self.is_finished():
+                await self._recreate_view()
+                
+        except asyncio.CancelledError:
+            logger.debug("Auto-recreation cancelled")
+        except Exception as e:
+            logger.error(f"Auto-recreation error: {e}")
+    
+    async def _recreate_view(self):
+        """Recreate the Live Logs message with a fresh view."""
+        try:
+            if not self.message_ref:
+                return
+            
+            logger.info(f"Auto-recreating Live Logs view for container {self.container_name}")
+            
+            # Get current logs
+            logs = await self._get_container_logs()
+            
+            # Create new view with same state
+            new_view = LiveLogView(self.container_name, self.auto_refresh_enabled)
+            new_view.refresh_count = self.refresh_count
+            new_view.cog_instance = self.cog_instance
+            
+            # Determine embed based on current state
+            if self.auto_refresh_enabled and self.auto_refresh_task and not self.auto_refresh_task.done():
+                # Auto-refresh is currently running
+                remaining = self.max_refreshes - self.refresh_count
+                embed = discord.Embed(
+                    title=f"🔍 Live Logs - {self.container_name}",
+                    description=f"```\n{logs}\n```",
+                    color=0x00ff00,
+                    timestamp=datetime.now(timezone.utc)
+                )
+                embed.set_footer(text=f"🔄 Auto-refreshing every {self.refresh_interval}s • {remaining} updates remaining")
+            else:
+                # Auto-refresh is not running
+                embed = discord.Embed(
+                    title=f"📄 Logs - {self.container_name}",
+                    description=f"```\n{logs}\n```",
+                    color=0x0099ff,
+                    timestamp=datetime.now(timezone.utc)
+                )
+                embed.set_footer(text="📄 Static logs • Click ▶️ to start live updates")
+            
+            # Edit the message with new view
+            await self.message_ref.edit(embed=embed, view=new_view)
+            
+            # Transfer message reference to new view
+            new_view.message_ref = self.message_ref
+            
+            # Transfer auto-refresh task if running
+            if self.auto_refresh_enabled and self.auto_refresh_task and not self.auto_refresh_task.done():
+                # Cancel old task and start new one on new view
+                self.auto_refresh_task.cancel()
+                await new_view.start_auto_refresh(self.message_ref)
+            
+            # Cancel our own tasks since we're being replaced
+            if self.auto_refresh_task:
+                self.auto_refresh_task.cancel()
+            if self.recreation_task:
+                self.recreation_task.cancel()
+                
+            logger.info(f"Successfully recreated Live Logs view for container {self.container_name}")
+            
+        except Exception as e:
+            logger.error(f"Failed to recreate Live Logs view for {self.container_name}: {e}")
     
     async def start_auto_refresh(self, message):
         """Start auto-refresh task for live updates."""
@@ -380,6 +543,10 @@ class LiveLogView(discord.ui.View):
                 self.auto_refresh_task.cancel()
                 self.auto_refresh_enabled = False
             
+            # Cancel recreation task if running
+            if self.recreation_task:
+                self.recreation_task.cancel()
+            
             # Delete the message
             if self.message_ref:
                 try:
@@ -390,6 +557,38 @@ class LiveLogView(discord.ui.View):
             
         except Exception as e:
             logger.error(f"Close logs error: {e}")
+    
+    async def on_timeout(self):
+        """Handle view timeout by disabling buttons."""
+        try:
+            # Cancel any running auto-refresh task
+            if self.auto_refresh_task:
+                self.auto_refresh_task.cancel()
+                self.auto_refresh_enabled = False
+            
+            # Cancel recreation task if running
+            if self.recreation_task:
+                self.recreation_task.cancel()
+            
+            # Disable all buttons to show the view has timed out
+            for item in self.children:
+                if hasattr(item, 'disabled'):
+                    item.disabled = True
+            
+            # Update the message to show buttons are disabled
+            if self.message_ref:
+                try:
+                    # Get current embed and update it
+                    current_embed = self.message_ref.embeds[0] if self.message_ref.embeds else None
+                    if current_embed:
+                        current_embed.set_footer(text="⏰ Live Logs view timed out • Use /info command to create new Live Logs")
+                        current_embed.color = 0x808080  # Gray color
+                        await self.message_ref.edit(embed=current_embed, view=self)
+                    logger.info(f"Live Logs view timed out for container {self.container_name}")
+                except Exception as e:
+                    logger.debug(f"Failed to update message on timeout: {e}")
+        except Exception as e:
+            logger.error(f"Error in on_timeout: {e}")
     
     async def _get_container_logs(self) -> str:
         """Get the last 50 log lines for the container."""
@@ -436,7 +635,7 @@ class DebugLogsButton(discord.ui.Button):
         super().__init__(
             style=discord.ButtonStyle.secondary,
             emoji="📋",
-            label="Logs",
+            label=None,
             custom_id=f"debug_logs_{server_config.get('docker_name')}"
         )
         self.cog = cog_instance
@@ -496,6 +695,7 @@ class DebugLogsButton(discord.ui.Button):
             if log_lines:
                 # Create live log view - auto-refresh based on setting
                 view = LiveLogView(self.container_name, auto_refresh=auto_start_enabled)
+                view.cog_instance = self.cog  # Set cog reference for recreation
                 
                 # Create debug embed with appropriate title and color
                 if auto_start_enabled:
