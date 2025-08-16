@@ -49,6 +49,7 @@ class DynamicCooldownManager:
             'help': 'help',
             'ping': 'ping',
             'donate': 'donate',
+            'donatebroadcast': 'donatebroadcast',
             'task': 'task',          # Generic task command
             'task_info': 'task_info',
             'task_once': 'task_once',

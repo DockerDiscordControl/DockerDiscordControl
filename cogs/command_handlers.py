@@ -38,6 +38,22 @@ class CommandHandlersMixin:
         - container_name: The name of the Docker container to control
         - action: The action to perform (start, stop, restart)
         """
+        # Check action-specific spam protection for start/stop/restart
+        if action.lower() in ['start', 'stop', 'restart']:
+            from utils.spam_protection_manager import get_spam_protection_manager
+            spam_manager = get_spam_protection_manager()
+            if spam_manager.is_enabled():
+                try:
+                    if spam_manager.is_on_cooldown(ctx.author.id, action.lower()):
+                        remaining_time = spam_manager.get_remaining_cooldown(ctx.author.id, action.lower())
+                        await ctx.respond(f"⏰ Please wait {remaining_time:.1f} seconds before using '{action}' again.", ephemeral=True)
+                        return
+                    spam_manager.add_user_cooldown(ctx.author.id, action.lower())
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Spam protection error for action '{action}': {e}")
+
         # Validate channel
         if not ctx.channel or not isinstance(ctx.channel, discord.TextChannel):
             await ctx.respond(_("This command can only be used in server channels."), ephemeral=True)

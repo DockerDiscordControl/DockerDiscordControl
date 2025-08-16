@@ -211,31 +211,22 @@ class ActionButton(Button):
 
     async def callback(self, interaction: discord.Interaction):
         """Callback for Start, Stop, Restart actions."""
-        # Check button cooldown first
+        # Check button-specific spam protection
         from utils.spam_protection_manager import get_spam_protection_manager
         spam_manager = get_spam_protection_manager()
         
         if spam_manager.is_enabled():
-            cooldown_seconds = spam_manager.get_button_cooldown(self.action)
-            # Simple cooldown check - in production you'd want per-user tracking
-            current_time = time.time()
-            cooldown_key = f"button_{self.action}_{interaction.user.id}"
-            
-            if hasattr(self.cog, '_button_cooldowns'):
-                if cooldown_key in self.cog._button_cooldowns:
-                    last_use = self.cog._button_cooldowns[cooldown_key]
-                    if current_time - last_use < cooldown_seconds:
-                        remaining = cooldown_seconds - (current_time - last_use)
-                        await interaction.response.send_message(
-                            f"⏰ Please wait {remaining:.1f} more seconds before using this button again.", 
-                            ephemeral=True
-                        )
-                        return
-            else:
-                self.cog._button_cooldowns = {}
-            
-            # Record button use
-            self.cog._button_cooldowns[cooldown_key] = current_time
+            try:
+                if spam_manager.is_on_cooldown(interaction.user.id, self.action):
+                    remaining_time = spam_manager.get_remaining_cooldown(interaction.user.id, self.action)
+                    await interaction.response.send_message(
+                        f"⏰ Please wait {remaining_time:.1f} seconds before using '{self.action}' button again.", 
+                        ephemeral=True
+                    )
+                    return
+                spam_manager.add_user_cooldown(interaction.user.id, self.action)
+            except Exception as e:
+                logger.error(f"Spam protection error for button '{self.action}': {e}")
         
         # CRITICAL FIX: Always load the latest config
         config = get_cached_config()
@@ -356,6 +347,23 @@ class ToggleButton(Button):
 
     async def callback(self, interaction: discord.Interaction):
         """ULTRA-OPTIMIZED toggle function mit allen 6 Performance-Optimierungen."""
+        # Check spam protection for toggle action
+        from utils.spam_protection_manager import get_spam_protection_manager
+        spam_manager = get_spam_protection_manager()
+        
+        if spam_manager.is_enabled():
+            try:
+                if spam_manager.is_on_cooldown(interaction.user.id, "refresh"):
+                    remaining_time = spam_manager.get_remaining_cooldown(interaction.user.id, "refresh")
+                    await interaction.response.send_message(
+                        f"⏰ Please wait {remaining_time:.1f} seconds before toggling view again.", 
+                        ephemeral=True
+                    )
+                    return
+                spam_manager.add_user_cooldown(interaction.user.id, "refresh")
+            except Exception as e:
+                logger.error(f"Spam protection error for toggle button: {e}")
+        
         await interaction.response.defer()
         
         start_time = time.time()
@@ -622,30 +630,22 @@ class InfoButton(Button):
     
     async def callback(self, interaction: discord.Interaction):
         """Display container info with admin buttons in control channels."""
-        # Check button cooldown first
+        # Check spam protection for info button
         from utils.spam_protection_manager import get_spam_protection_manager
         spam_manager = get_spam_protection_manager()
         
         if spam_manager.is_enabled():
-            cooldown_seconds = spam_manager.get_button_cooldown("info")
-            current_time = time.time()
-            cooldown_key = f"button_info_{interaction.user.id}"
-            
-            if hasattr(self.cog, '_button_cooldowns'):
-                if cooldown_key in self.cog._button_cooldowns:
-                    last_use = self.cog._button_cooldowns[cooldown_key]
-                    if current_time - last_use < cooldown_seconds:
-                        remaining = cooldown_seconds - (current_time - last_use)
-                        await interaction.response.send_message(
-                            f"⏰ Please wait {remaining:.1f} more seconds before using this button again.", 
-                            ephemeral=True
-                        )
-                        return
-            else:
-                self.cog._button_cooldowns = {}
-            
-            # Record button use
-            self.cog._button_cooldowns[cooldown_key] = current_time
+            try:
+                if spam_manager.is_on_cooldown(interaction.user.id, "info"):
+                    remaining_time = spam_manager.get_remaining_cooldown(interaction.user.id, "info")
+                    await interaction.response.send_message(
+                        f"⏰ Please wait {remaining_time:.1f} seconds before using info button again.", 
+                        ephemeral=True
+                    )
+                    return
+                spam_manager.add_user_cooldown(interaction.user.id, "info")
+            except Exception as e:
+                logger.error(f"Spam protection error for info button: {e}")
         try:
             await interaction.response.defer(ephemeral=True)
             
@@ -972,6 +972,23 @@ class TaskDeleteButton(Button):
     
     async def callback(self, interaction: discord.Interaction):
         """Deletes the scheduled task."""
+        # Check spam protection for task delete
+        from utils.spam_protection_manager import get_spam_protection_manager
+        spam_manager = get_spam_protection_manager()
+        
+        if spam_manager.is_enabled():
+            try:
+                if spam_manager.is_on_cooldown(interaction.user.id, "task_delete"):
+                    remaining_time = spam_manager.get_remaining_cooldown(interaction.user.id, "task_delete")
+                    await interaction.response.send_message(
+                        f"⏰ Please wait {remaining_time:.1f} seconds before deleting another task.", 
+                        ephemeral=True
+                    )
+                    return
+                spam_manager.add_user_cooldown(interaction.user.id, "task_delete")
+            except Exception as e:
+                logger.error(f"Spam protection error for task delete button: {e}")
+        
         user = interaction.user
         logger.info(f"[TASK_DELETE_BTN] Task deletion '{self.task_id}' triggered by {user.name}")
         

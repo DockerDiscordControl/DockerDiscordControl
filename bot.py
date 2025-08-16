@@ -319,6 +319,19 @@ def setup_app_commands():
                     container_name: Option(str, "The Docker container to control", autocomplete=container_select),
                     action: Option(str, "The action to perform", autocomplete=action_select)
                 ):
+                    from utils.spam_protection_manager import get_spam_protection_manager
+                    spam_manager = get_spam_protection_manager()
+                    if spam_manager.is_enabled():
+                        try:
+                            if spam_manager.is_on_cooldown(ctx.author.id, "command"):
+                                remaining_time = spam_manager.get_remaining_cooldown(ctx.author.id, "command")
+                                await ctx.respond(f"⏰ Please wait {remaining_time:.1f} seconds before using this command again.", ephemeral=True)
+                                return
+                            spam_manager.add_user_cooldown(ctx.author.id, "command")
+                        except Exception as e:
+                            import logging
+                            logger = logging.getLogger(__name__)
+                            logger.error(f"Spam protection error for command 'command': {e}")
                     await bot.get_cog('DockerControlCog').command(ctx, container_name, action)
                 
                 # Create command group for DDC subcommands
@@ -331,6 +344,19 @@ def setup_app_commands():
                     container: Option(str, "The Docker container to edit info for", autocomplete=container_select)
                 ):
                     """Edit container information."""
+                    from utils.spam_protection_manager import get_spam_protection_manager
+                    spam_manager = get_spam_protection_manager()
+                    if spam_manager.is_enabled():
+                        try:
+                            if spam_manager.is_on_cooldown(ctx.author.id, "ddc"):
+                                remaining_time = spam_manager.get_remaining_cooldown(ctx.author.id, "ddc")
+                                await ctx.respond(f"⏰ Please wait {remaining_time:.1f} seconds before using this command again.", ephemeral=True)
+                                return
+                            spam_manager.add_user_cooldown(ctx.author.id, "ddc")
+                        except Exception as e:
+                            import logging
+                            logger = logging.getLogger(__name__)
+                            logger.error(f"Spam protection error for command 'ddc': {e}")
                     await bot.get_cog('DockerControlCog').info_edit(ctx, container)
                     
                 logger.info("Added /command and /ddc info edit to bot with autocomplete (PyCord style)")
@@ -342,6 +368,19 @@ def setup_app_commands():
                     container_name: discord.Option(str, "The Docker container to control", autocomplete=container_select),
                     action: discord.Option(str, "The action to perform", autocomplete=action_select)
                 ):
+                    from utils.spam_protection_manager import get_spam_protection_manager
+                    spam_manager = get_spam_protection_manager()
+                    if spam_manager.is_enabled():
+                        try:
+                            if spam_manager.is_on_cooldown(ctx.author.id, "command"):
+                                remaining_time = spam_manager.get_remaining_cooldown(ctx.author.id, "command")
+                                await ctx.respond(f"⏰ Please wait {remaining_time:.1f} seconds before using this command again.", ephemeral=True)
+                                return
+                            spam_manager.add_user_cooldown(ctx.author.id, "command")
+                        except Exception as e:
+                            import logging
+                            logger = logging.getLogger(__name__)
+                            logger.error(f"Spam protection error for command 'command': {e}")
                     await bot.get_cog('DockerControlCog').command(ctx, container_name, action)
                 
                 # Create command group for DDC subcommands (fallback)
@@ -354,6 +393,19 @@ def setup_app_commands():
                     container: discord.Option(str, "The Docker container to edit info for", autocomplete=container_select)
                 ):
                     """Edit container information."""
+                    from utils.spam_protection_manager import get_spam_protection_manager
+                    spam_manager = get_spam_protection_manager()
+                    if spam_manager.is_enabled():
+                        try:
+                            if spam_manager.is_on_cooldown(ctx.author.id, "ddc"):
+                                remaining_time = spam_manager.get_remaining_cooldown(ctx.author.id, "ddc")
+                                await ctx.respond(f"⏰ Please wait {remaining_time:.1f} seconds before using this command again.", ephemeral=True)
+                                return
+                            spam_manager.add_user_cooldown(ctx.author.id, "ddc")
+                        except Exception as e:
+                            import logging
+                            logger = logging.getLogger(__name__)
+                            logger.error(f"Spam protection error for command 'ddc': {e}")
                     await bot.get_cog('DockerControlCog').info_edit(ctx, container)
                     
                 logger.info("Added /command and /ddc info edit to bot with autocomplete (PyCord fallback style)")

@@ -984,10 +984,41 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             logger.error(f"An error occurred during message deletion in {channel.name}: {e}", exc_info=True)
 
     # --- Slash Commands ---
+    async def _check_spam_protection(self, ctx: discord.ApplicationContext, command_name: str) -> bool:
+        """Check spam protection for a command. Returns True if command can proceed, False if on cooldown."""
+        from utils.spam_protection_manager import get_spam_protection_manager
+        spam_manager = get_spam_protection_manager()
+        
+        if spam_manager.is_enabled():
+            cooldown_seconds = spam_manager.get_command_cooldown(command_name)
+            if cooldown_seconds > 0:
+                import time
+                current_time = time.time()
+                cooldown_key = f"cmd_{command_name}_{ctx.author.id}"
+                
+                # Check if user is on cooldown
+                if hasattr(spam_manager, '_command_cooldowns'):
+                    last_use = spam_manager._command_cooldowns.get(cooldown_key, 0)
+                    if current_time - last_use < cooldown_seconds:
+                        remaining = int(cooldown_seconds - (current_time - last_use))
+                        await ctx.respond(f"❌ Command on cooldown. Try again in {remaining} seconds.", ephemeral=True)
+                        return False
+                else:
+                    spam_manager._command_cooldowns = {}
+                
+                # Update cooldown
+                spam_manager._command_cooldowns[cooldown_key] = current_time
+        
+        return True
+
     @commands.slash_command(name="serverstatus", description=_("Shows the status of all containers"), guild_ids=get_guild_id())
     async def serverstatus(self, ctx: discord.ApplicationContext):
         """Shows an overview of all server statuses in a single message."""
         try:
+            # Check spam protection first
+            if not await self._check_spam_protection(ctx, "serverstatus"):
+                return
+                
             # Import translation function locally to ensure it's accessible
             from .translation_manager import _ as translate
             
@@ -1061,6 +1092,9 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
 
     @commands.slash_command(name="ss", description=_("Shortcut: Shows the status of all containers"), guild_ids=get_guild_id())
     async def ss(self, ctx):
+        # Check spam protection first  
+        if not await self._check_spam_protection(ctx, "serverstatus"):  # ss uses same cooldown as serverstatus
+            return
         """Shortcut for the serverstatus command."""
         await self.serverstatus(ctx)
 
@@ -1091,12 +1125,18 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
     async def info_edit_enhanced(self, ctx: discord.ApplicationContext, 
                                 container_name: str = discord.Option(description=_("Container name to edit info for"), autocomplete=container_select)):
         """Enhanced slash command to edit container information using separate JSON files."""
+        # Check spam protection first
+        if not await self._check_spam_protection(ctx, "info_edit"):
+            return
         await self._impl_info_edit_new(ctx, container_name)
     
 
     # Decorator adjusted
     @commands.slash_command(name="help", description=_("Displays help for available commands"), guild_ids=get_guild_id())
     async def help_command(self, ctx: discord.ApplicationContext):
+        # Check spam protection first
+        if not await self._check_spam_protection(ctx, "help"):
+            return
         """Displays help information about available commands."""
         embed = discord.Embed(
             title=_("DockerDiscordControl - Help"),
@@ -1114,6 +1154,9 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
 
     @commands.slash_command(name="ping", description=_("Shows the bot's latency"), guild_ids=get_guild_id())
     async def ping_command(self, ctx: discord.ApplicationContext):
+        # Check spam protection first
+        if not await self._check_spam_protection(ctx, "ping"):
+            return
         latency = round(self.bot.latency * 1000)
         ping_message = _("Pong! Latency: {latency:.2f} ms").format(latency=latency)
         embed = discord.Embed(title="🏓", description=ping_message, color=discord.Color.blurple())
@@ -1123,6 +1166,10 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
     async def donate_command(self, ctx: discord.ApplicationContext):
         """Show donation links to support DockerDiscordControl development."""
         try:
+            # Check spam protection first
+            if not await self._check_spam_protection(ctx, "donate"):
+                return
+                
             # Try to import donation manager with backwards compatibility
             try:
                 from utils.donation_manager import get_donation_manager
@@ -1176,6 +1223,10 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
     async def donate_broadcast_command(self, ctx: discord.ApplicationContext):
         """Force send donation message to all connected channels."""
         try:
+            # Check spam protection first
+            if not await self._check_spam_protection(ctx, "donatebroadcast"):
+                return
+                
             # Try to import donation manager with backwards compatibility
             try:
                 from utils.donation_manager import get_donation_manager
@@ -1648,6 +1699,10 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
     @commands.slash_command(name="control", description=_("Displays the control panel in the control channel"), guild_ids=get_guild_id())
     async def control_command(self, ctx: discord.ApplicationContext):
         """(Re)generates the control panel message in the current channel if permitted."""
+        # Check spam protection first
+        if not await self._check_spam_protection(ctx, "control"):
+            return
+            
         if not ctx.channel or not isinstance(ctx.channel, discord.TextChannel):
             await ctx.respond(_("This command can only be used in server channels."), ephemeral=True)
             return
@@ -1690,6 +1745,9 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                               month: str = discord.Option(description=_("Month (e.g., 07 or July)"), autocomplete=schedule_month_select),
                               year: str = discord.Option(description=_("Year (e.g., 2024)"), autocomplete=schedule_year_select)):
         """Schedules a one-time task for a Docker container."""
+        # Check spam protection first
+        if not await self._check_spam_protection(ctx, "task_once"):
+            return
         await self._impl_schedule_once_command(ctx, container_name, action, time, day, month, year)
     
     @commands.slash_command(name="task_daily", description=_("Schedule a daily task"), guild_ids=get_guild_id())
@@ -1698,6 +1756,9 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                               action: str = discord.Option(description=_("Action to perform"), autocomplete=schedule_action_select),
                               time: str = discord.Option(description=_("Time in HH:MM format (e.g., 08:00)"), autocomplete=schedule_time_select)):
         """Schedules a daily task for a Docker container."""
+        # Check spam protection first
+        if not await self._check_spam_protection(ctx, "task_daily"):
+            return
         await self._impl_schedule_daily_command(ctx, container_name, action, time)
     
     @commands.slash_command(name="task_weekly", description=_("Schedule a weekly task"), guild_ids=get_guild_id())
@@ -1707,6 +1768,9 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                               time: str = discord.Option(description=_("Time in HH:MM format"), autocomplete=schedule_time_select),
                               weekday: str = discord.Option(description=_("Day of the week (e.g., Monday or 1)"), autocomplete=schedule_weekday_select)):
         """Schedules a weekly task for a Docker container."""
+        # Check spam protection first
+        if not await self._check_spam_protection(ctx, "task_weekly"):
+            return
         await self._impl_schedule_weekly_command(ctx, container_name, action, time, weekday)
     
     @commands.slash_command(name="task_monthly", description=_("Schedule a monthly task"), guild_ids=get_guild_id())
@@ -1716,6 +1780,9 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                               time: str = discord.Option(description=_("Time in HH:MM format"), autocomplete=schedule_time_select),
                               day: str = discord.Option(description=_("Day of the month (1-31)"), autocomplete=schedule_day_select)):
         """Schedules a monthly task for a Docker container."""
+        # Check spam protection first
+        if not await self._check_spam_protection(ctx, "task_monthly"):
+            return
         await self._impl_schedule_monthly_command(ctx, container_name, action, time, day)
     
     @commands.slash_command(name="task_yearly", description=_("Schedule a yearly task"), guild_ids=get_guild_id())
@@ -1726,11 +1793,15 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                               month: str = discord.Option(description=_("Month (e.g., 07 or July)"), autocomplete=schedule_month_select),
                               day: str = discord.Option(description=_("Day of month (e.g., 15)"), autocomplete=schedule_day_select)):
         """Schedules a yearly task for a Docker container."""
+        if not await self._check_spam_protection(ctx, "task_yearly"):
+            return
         await self._impl_schedule_yearly_command(ctx, container_name, action, time, month, day)
     
     @commands.slash_command(name="task", description=_("Shows task command help"), guild_ids=get_guild_id())
     async def schedule_command(self, ctx: discord.ApplicationContext):
         """Shows help for the various scheduling commands."""
+        if not await self._check_spam_protection(ctx, "task"):
+            return
         await self._impl_schedule_command(ctx)
     
     @commands.slash_command(name="task_info", description=_("Shows information about scheduled tasks"), guild_ids=get_guild_id())
@@ -1738,17 +1809,23 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                                   container_name: str = discord.Option(description=_("Container name (or 'all')"), default="all", autocomplete=container_select),
                                   period: str = discord.Option(description=_("Time period (e.g., next_week)"), default="all", autocomplete=schedule_info_period_select)):
         """Shows information about scheduled tasks."""
+        if not await self._check_spam_protection(ctx, "task_info"):
+            return
         await self._impl_schedule_info_command(ctx, container_name, period)
 
     @commands.slash_command(name="task_delete", description=_("Delete a scheduled task"), guild_ids=get_guild_id())
     async def schedule_delete_command(self, ctx: discord.ApplicationContext,
                                     task_id: str = discord.Option(description=_("Task ID to delete"), autocomplete=schedule_task_id_select)):
         """Deletes a scheduled task."""
+        if not await self._check_spam_protection(ctx, "task_delete"):
+            return
         await self._impl_schedule_delete_command(ctx, task_id)
 
     @commands.slash_command(name="task_delete_panel", description=_("Show active tasks with delete buttons"), guild_ids=get_guild_id())
     async def task_delete_panel_command(self, ctx: discord.ApplicationContext):
         """Shows a panel with all active tasks and delete buttons for each."""
+        if not await self._check_spam_protection(ctx, "task_delete_panel"):
+            return
         await self._impl_task_delete_panel_command(ctx)
 
     # --- SCHEDULE COMMANDS MOVED TO scheduler_commands.py ---
@@ -1897,6 +1974,10 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                            container_name: str = discord.Option(description=_("The Docker container name"), autocomplete=container_select)):
         """Shows container information with appropriate buttons based on channel permissions."""
         try:
+            # Check spam protection first
+            if not await self._check_spam_protection(ctx, "info"):
+                return
+                
             # Try to defer immediately, but handle timeout gracefully
             try:
                 await ctx.response.defer(ephemeral=True)
