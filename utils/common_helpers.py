@@ -248,6 +248,67 @@ def sanitize_log_message(message: str) -> str:
     
     return message
 
+def is_valid_ip(ip: str) -> bool:
+    """Basic IP validation."""
+    try:
+        socket.inet_aton(ip)
+        return True
+    except socket.error:
+        return False
+
+async def get_wan_ip_async() -> Optional[str]:
+    """
+    Async version of WAN IP detection using aiohttp.
+    
+    Returns:
+        WAN IP address as string or None if detection fails
+    """
+    import aiohttp
+    
+    services = [
+        'https://api.ipify.org',
+        'https://ifconfig.me/ip', 
+        'https://icanhazip.com'
+    ]
+    
+    timeout = aiohttp.ClientTimeout(total=5.0)
+    
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            for service in services:
+                try:
+                    async with session.get(service) as response:
+                        if response.status == 200:
+                            ip = (await response.text()).strip()
+                            if is_valid_ip(ip):
+                                return ip
+                except Exception as e:
+                    logger.debug(f"Service {service} failed: {e}")
+                    continue
+                    
+    except Exception as e:
+        logger.debug(f"WAN IP detection failed: {e}")
+        
+    return None
+
+def validate_ip_format(ip_string: str) -> bool:
+    """
+    Basic validation for IP/domain format.
+    
+    Args:
+        ip_string: IP address, domain, or hostname (with optional port)
+        
+    Returns:
+        bool: True if format is valid, False otherwise
+    """
+    if not ip_string:
+        return True  # Empty is valid
+    
+    # Allow domain names, IPs, with optional port
+    import re
+    pattern = re.compile(r'^([a-zA-Z0-9.-]+|localhost)(?::\d{1,5})?$')
+    return bool(pattern.match(ip_string))
+
 def batch_process(items: List[Any], batch_size: int = 10) -> List[List[Any]]:
     """
     Splits a list into batches of specified size.

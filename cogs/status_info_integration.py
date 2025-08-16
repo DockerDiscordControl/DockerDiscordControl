@@ -826,7 +826,8 @@ class StatusInfoButton(discord.ui.Button):
         
         # Try to get WAN IP
         try:
-            wan_ip = await self._get_wan_ip_async()
+            from utils.common_helpers import get_wan_ip_async
+            wan_ip = await get_wan_ip_async()
             if wan_ip:
                 # Add port if provided
                 address = wan_ip
@@ -838,42 +839,6 @@ class StatusInfoButton(discord.ui.Button):
         
         return "**IP:** Auto-detection failed"
     
-    async def _get_wan_ip_async(self) -> Optional[str]:
-        """Async version of WAN IP detection using aiohttp."""
-        services = [
-            'https://api.ipify.org',
-            'https://ifconfig.me/ip', 
-            'https://icanhazip.com'
-        ]
-        
-        timeout = aiohttp.ClientTimeout(total=5.0)
-        
-        try:
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                for service in services:
-                    try:
-                        async with session.get(service) as response:
-                            if response.status == 200:
-                                ip = (await response.text()).strip()
-                                if self._is_valid_ip(ip):
-                                    return ip
-                    except Exception as e:
-                        logger.debug(f"Service {service} failed: {e}")
-                        continue
-                        
-        except Exception as e:
-            logger.debug(f"WAN IP detection failed: {e}")
-            
-        return None
-    
-    def _is_valid_ip(self, ip: str) -> bool:
-        """Basic IP validation."""
-        import socket
-        try:
-            socket.inet_aton(ip)
-            return True
-        except socket.error:
-            return False
     
     def _validate_custom_address(self, address: str) -> bool:
         """Validate custom IP/hostname format for security."""

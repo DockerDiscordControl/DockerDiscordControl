@@ -19,7 +19,6 @@ logger = get_module_logger('enhanced_info_modal')
 
 # Pre-compiled regex for IP validation (performance optimization)  
 # Allows: domain.com, domain.com:8080, 192.168.1.1, 192.168.1.1:8080, localhost:3000
-IP_FORMAT_PATTERN = re.compile(r'^([a-zA-Z0-9.-]+|localhost)(?::\d{1,5})?$')
 
 class ContainerSettingsView(View):
     """View with checkbox-style buttons for container settings."""
@@ -131,7 +130,8 @@ class ContainerSettingsView(View):
             custom_ip = re.sub(r'[`@#<>]', '', modal.temp_custom_ip)
             
             # Validate IP format if provided
-            if custom_ip and not modal._validate_ip_format(custom_ip):
+            from utils.common_helpers import validate_ip_format
+            if custom_ip and not validate_ip_format(custom_ip):
                 await interaction.followup.send(
                     f"⚠️ Custom IP format might be invalid: `{custom_ip[:50]}`\n"
                     "Saving anyway. Accepted formats: domain.com, domain.com:port, IP:port",
@@ -360,21 +360,6 @@ class EnhancedContainerInfoModal(Modal):
                 "❌ An error occurred while saving container info. Please try again.",
                 ephemeral=True
             )
-    
-    def _validate_ip_format(self, ip_string: str) -> bool:
-        """Basic validation for IP/domain format.
-        
-        Args:
-            ip_string: String to validate
-            
-        Returns:
-            True if format looks valid, False otherwise
-        """
-        if not ip_string:
-            return True  # Empty is valid
-        
-        # Allow domain names, IPs, with optional port
-        return bool(IP_FORMAT_PATTERN.match(ip_string))
 
 class ContainerInfoDisplayModal(Modal):
     """Modal for displaying container information (read-only)."""

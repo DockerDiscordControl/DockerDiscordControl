@@ -18,7 +18,6 @@ from cogs.translation_manager import _
 logger = get_module_logger('enhanced_info_modal_simple')
 
 # Pre-compiled regex for IP validation
-IP_FORMAT_PATTERN = re.compile(r'^([a-zA-Z0-9.-]+|localhost)(?::\d{1,5})?$')
 
 class SimplifiedContainerInfoModal(discord.ui.Modal):
     """Simplified modal with all options in one dialog."""
@@ -147,7 +146,8 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
             
             # Validate IP format if provided
             ip_warning = ""
-            if custom_ip and not self._validate_ip_format(custom_ip):
+            from utils.common_helpers import validate_ip_format
+            if custom_ip and not validate_ip_format(custom_ip):
                 ip_warning = _("\n⚠️ IP format might be invalid: `{ip}`").format(ip=custom_ip[:50])
             
             # Prepare data for saving
@@ -263,10 +263,3 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
                     ephemeral=True
                 )
     
-    def _validate_ip_format(self, ip_string: str) -> bool:
-        """Basic validation for IP/domain format."""
-        if not ip_string:
-            return True  # Empty is valid
-        
-        # Allow domain names, IPs, with optional port
-        return bool(IP_FORMAT_PATTERN.match(ip_string))
