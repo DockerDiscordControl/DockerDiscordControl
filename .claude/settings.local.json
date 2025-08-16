@@ -23,7 +23,8 @@
       "Bash(python -m pytest -xvs -k \"test\" --tb=short)",
       "Bash(echo:*)",
       "Bash(git ls-tree:*)",
-      "WebFetch(domain:discord.com)"
+      "WebFetch(domain:discord.com)",
+      "Bash(git restore:*)"
     ],
     "deny": []
   }

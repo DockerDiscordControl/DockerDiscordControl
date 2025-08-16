@@ -46,15 +46,13 @@ class ContainerInfoAdminView(discord.ui.View):
         # Add Debug button
         self.add_item(DebugLogsButton(cog_instance, server_config))
         
-        # Add Close button
-        self.add_item(CloseInfoButton(cog_instance, server_config))
 
 class EditInfoButton(discord.ui.Button):
     """Edit Info button for container info admin view."""
     
     def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any]):
         super().__init__(
-            style=discord.ButtonStyle.primary,
+            style=discord.ButtonStyle.secondary,
             emoji="📝",
             label=None,
             custom_id=f"edit_info_{server_config.get('docker_name')}"
@@ -117,76 +115,6 @@ class EditInfoButton(discord.ui.Button):
             except:
                 pass
 
-class CloseInfoButton(discord.ui.Button):
-    """Close button for container info admin view."""
-    
-    def __init__(self, cog_instance, server_config: Dict[str, Any]):
-        super().__init__(
-            style=discord.ButtonStyle.secondary,
-            emoji="❌",
-            label=None,
-            custom_id=f"close_info_{server_config.get('docker_name')}"
-        )
-        self.cog = cog_instance
-        self.server_config = server_config
-        self.container_name = server_config.get('docker_name')
-    
-    async def callback(self, interaction: discord.Interaction):
-        """Handle close info button click."""
-        # Check button cooldown first  
-        from utils.spam_protection_manager import get_spam_protection_manager
-        spam_manager = get_spam_protection_manager()
-        
-        if spam_manager.is_enabled():
-            cooldown_seconds = spam_manager.get_button_cooldown("info")
-            current_time = time.time()
-            cooldown_key = f"button_close_info_{interaction.user.id}"
-            
-            if hasattr(self.cog, '_button_cooldowns'):
-                if cooldown_key in self.cog._button_cooldowns:
-                    last_use = self.cog._button_cooldowns[cooldown_key]
-                    if current_time - last_use < cooldown_seconds:
-                        remaining = cooldown_seconds - (current_time - last_use)
-                        await interaction.response.send_message(
-                            f"⏰ Please wait {remaining:.1f} more seconds before using this button again.", 
-                            ephemeral=True
-                        )
-                        return
-            else:
-                self.cog._button_cooldowns = {}
-            
-            # Record button use
-            self.cog._button_cooldowns[cooldown_key] = current_time
-            
-        try:
-            # Delete the original message first
-            try:
-                logger.info(f"Attempting to delete info message for container {self.container_name} by user {interaction.user.id}")
-                await interaction.message.delete()
-                logger.info(f"Successfully deleted info message for container {self.container_name}")
-                
-                # Send confirmation after successful deletion
-                await interaction.response.send_message("🗑️ Info message closed.", ephemeral=True, delete_after=2)
-                
-            except discord.NotFound:
-                logger.warning(f"Info message already deleted for {self.container_name}")
-                await interaction.response.send_message("🗑️ Info message was already closed.", ephemeral=True, delete_after=2)
-            except discord.Forbidden:
-                logger.error(f"No permission to delete info message for {self.container_name}")
-                await interaction.response.send_message("❌ No permission to delete this message.", ephemeral=True, delete_after=3)
-            except Exception as e:
-                logger.error(f"Failed to delete info message for {self.container_name}: {e}", exc_info=True)
-                await interaction.response.send_message("❌ Could not delete message. Check bot permissions.", ephemeral=True, delete_after=3)
-                
-        except Exception as e:
-            logger.error(f"Error closing info message for {self.container_name}: {e}", exc_info=True)
-            try:
-                await interaction.response.send_message(
-                    "❌ Could not close message. Please try again later.",
-                    ephemeral=True
-                )
-            except:
-                pass
 
 class LiveLogView(discord.ui.View):
     """View for live-updating debug logs with refresh controls."""
@@ -221,7 +149,7 @@ class LiveLogView(discord.ui.View):
         # 1. Refresh Button (Manual refresh)
         refresh_button = discord.ui.Button(
             label="🔄",
-            style=discord.ButtonStyle.primary,
+            style=discord.ButtonStyle.secondary,
             custom_id='manual_refresh'
         )
         refresh_button.callback = self.manual_refresh
@@ -231,11 +159,11 @@ class LiveLogView(discord.ui.View):
         if self.auto_refresh_enabled:
             # Auto-refresh is ON - show STOP button
             button_emoji = "⏹️"
-            button_style = discord.ButtonStyle.danger
+            button_style = discord.ButtonStyle.secondary
         else:
             # Auto-refresh is OFF - show PLAY button
             button_emoji = "▶️"
-            button_style = discord.ButtonStyle.success
+            button_style = discord.ButtonStyle.secondary
         
         toggle_button = discord.ui.Button(
             label=button_emoji,
@@ -245,14 +173,6 @@ class LiveLogView(discord.ui.View):
         toggle_button.callback = self.toggle_updates
         self.add_item(toggle_button)
         
-        # 3. Close Button
-        close_button = discord.ui.Button(
-            label="❌",
-            style=discord.ButtonStyle.secondary,
-            custom_id='close_logs'
-        )
-        close_button.callback = self.close_logs
-        self.add_item(close_button)
     
     def _start_auto_recreation(self):
         """Start auto-recreation task to refresh the view before timeout."""
@@ -532,31 +452,6 @@ class LiveLogView(discord.ui.View):
         except Exception as e:
             logger.error(f"Toggle updates error: {e}")
     
-    async def close_logs(self, interaction: discord.Interaction):
-        """Close the live debug log message."""
-        try:
-            # Immediately send response
-            await interaction.response.send_message("🗑️ Closing logs...", ephemeral=True, delete_after=1)
-            
-            # Cancel auto-refresh task if running
-            if self.auto_refresh_task:
-                self.auto_refresh_task.cancel()
-                self.auto_refresh_enabled = False
-            
-            # Cancel recreation task if running
-            if self.recreation_task:
-                self.recreation_task.cancel()
-            
-            # Delete the message
-            if self.message_ref:
-                try:
-                    await self.message_ref.delete()
-                    logger.info(f"Deleted live debug message {self.message_ref.id} for container {self.container_name}")
-                except Exception as e:
-                    logger.debug(f"Failed to delete message: {e}")
-            
-        except Exception as e:
-            logger.error(f"Close logs error: {e}")
     
     async def on_timeout(self):
         """Handle view timeout by disabling buttons."""
