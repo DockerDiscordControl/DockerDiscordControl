@@ -129,11 +129,24 @@ class LiveLogView(discord.ui.View):
         self.refresh_count = 0
         self.message_ref = None  # Store message reference
         
-        # Create the toggle button with the correct initial state
-        self._create_toggle_button()
+        # Create all buttons in the correct order
+        self._create_all_buttons()
     
-    def _create_toggle_button(self):
-        """Create the toggle button with the correct state."""
+    def _create_all_buttons(self):
+        """Create all buttons in the correct order: Refresh, Start/Stop, Close."""
+        # Clear all existing buttons
+        self.clear_items()
+        
+        # 1. Refresh Button (Manual refresh)
+        refresh_button = discord.ui.Button(
+            label="🔄",
+            style=discord.ButtonStyle.primary,
+            custom_id='manual_refresh'
+        )
+        refresh_button.callback = self.manual_refresh
+        self.add_item(refresh_button)
+        
+        # 2. Start/Stop Toggle Button
         if self.auto_refresh_enabled:
             # Auto-refresh is ON - show STOP button
             button_emoji = "⏹️"
@@ -143,13 +156,6 @@ class LiveLogView(discord.ui.View):
             button_emoji = "▶️"
             button_style = discord.ButtonStyle.success
         
-        # Remove existing toggle button if any
-        for item in self.children:
-            if hasattr(item, 'custom_id') and item.custom_id == 'toggle_auto_refresh':
-                self.remove_item(item)
-                break
-        
-        # Add new toggle button with correct state
         toggle_button = discord.ui.Button(
             label=button_emoji,
             style=button_style,
@@ -157,6 +163,15 @@ class LiveLogView(discord.ui.View):
         )
         toggle_button.callback = self.toggle_updates
         self.add_item(toggle_button)
+        
+        # 3. Close Button
+        close_button = discord.ui.Button(
+            label="❌",
+            style=discord.ButtonStyle.secondary,
+            custom_id='close_logs'
+        )
+        close_button.callback = self.close_logs
+        self.add_item(close_button)
     
     async def start_auto_refresh(self, message):
         """Start auto-refresh task for live updates."""
@@ -199,12 +214,9 @@ class LiveLogView(discord.ui.View):
                         embed.set_footer(text="✅ Auto-refresh completed • Click ▶️ to restart live updates")
                         embed.color = 0x808080  # Change to gray when done
                         self.auto_refresh_enabled = False
-                        # Convert stop button to start button when completed
-                        for child in self.children:
-                            if hasattr(child, 'label') and ('Stop' in child.label or 'Stopped' in child.label):
-                                child.disabled = False
-                                child.label = "▶️"
-                                child.style = discord.ButtonStyle.success
+                        self.auto_refresh_task = None  # Clear task reference
+                        # Recreate all buttons with correct state (Stop -> Play)
+                        self._create_all_buttons()
                     
                     # Update message
                     try:
@@ -213,14 +225,25 @@ class LiveLogView(discord.ui.View):
                     except Exception as e:
                         logger.error(f"Auto-refresh update failed for message {self.message_ref.id}: {e}")
                         break
+            
+            # Ensure cleanup after loop ends
+            if self.auto_refresh_enabled:
+                self.auto_refresh_enabled = False
+                self.auto_refresh_task = None
+                # Update buttons one final time to show correct state
+                self._create_all_buttons()
+                if self.message_ref:
+                    try:
+                        await self.message_ref.edit(view=self)
+                    except Exception as e:
+                        logger.debug(f"Failed to update buttons after auto-refresh end: {e}")
                         
         except asyncio.CancelledError:
             logger.debug("Auto-refresh cancelled")
         except Exception as e:
             logger.error(f"Auto-refresh error: {e}")
     
-    @discord.ui.button(label="🔄", style=discord.ButtonStyle.primary)
-    async def manual_refresh(self, button: discord.ui.Button, interaction: discord.Interaction):
+    async def manual_refresh(self, interaction: discord.Interaction):
         """Manual refresh button."""
         # Check button cooldown first
         from utils.spam_protection_manager import get_spam_protection_manager
@@ -289,7 +312,7 @@ class LiveLogView(discord.ui.View):
                 self.auto_refresh_enabled = False
                 
                 # Update button state
-                self._create_toggle_button()
+                self._create_all_buttons()
                 
                 # Update embed
                 if self.message_ref:
@@ -315,7 +338,7 @@ class LiveLogView(discord.ui.View):
                 self.auto_refresh_enabled = True
                 
                 # Update button state
-                self._create_toggle_button()
+                self._create_all_buttons()
                 
                 # Update embed and restart auto-refresh
                 if self.message_ref:
@@ -346,8 +369,7 @@ class LiveLogView(discord.ui.View):
         except Exception as e:
             logger.error(f"Toggle updates error: {e}")
     
-    @discord.ui.button(label="❌", style=discord.ButtonStyle.secondary)
-    async def close_logs(self, button: discord.ui.Button, interaction: discord.Interaction):
+    async def close_logs(self, interaction: discord.Interaction):
         """Close the live debug log message."""
         try:
             # Immediately send response
