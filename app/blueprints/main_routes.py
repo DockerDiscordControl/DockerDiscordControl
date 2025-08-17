@@ -570,24 +570,43 @@ def config_page():
     container_names = [container.get("name", "Unknown") for container in live_containers_list] if live_containers_list else []
     container_info_data = load_container_info_for_web(container_names)
     
-    # ADVANCED SETTINGS FIX: Load environment variables for Advanced Settings Modal
-    # These are the DDC_* environment variables used for performance tuning
+    # ADVANCED SETTINGS: Load from config (preferred) or environment variables as fallback
+    # These are the DDC_* settings used for performance tuning
     import os
+    
+    # Get advanced settings from config first, then fallback to environment variables
+    advanced_settings = config.get('advanced_settings', {})
+    
+    def get_setting_value(key, default=''):
+        """Get setting value from config first, then environment, then default."""
+        # First try config
+        if key in advanced_settings:
+            return str(advanced_settings[key])
+        # Then try environment variable
+        env_value = os.getenv(key, default)
+        return env_value if env_value else default
+    
     env_vars = {
-        'DDC_DOCKER_CACHE_DURATION': os.getenv('DDC_DOCKER_CACHE_DURATION', ''),
-        'DDC_DOCKER_QUERY_COOLDOWN': os.getenv('DDC_DOCKER_QUERY_COOLDOWN', ''),
-        'DDC_DOCKER_MAX_CACHE_AGE': os.getenv('DDC_DOCKER_MAX_CACHE_AGE', ''),
-        'DDC_ENABLE_BACKGROUND_REFRESH': os.getenv('DDC_ENABLE_BACKGROUND_REFRESH', 'true'),
-        'DDC_BACKGROUND_REFRESH_INTERVAL': os.getenv('DDC_BACKGROUND_REFRESH_INTERVAL', ''),
-        'DDC_BACKGROUND_REFRESH_LIMIT': os.getenv('DDC_BACKGROUND_REFRESH_LIMIT', ''),
-        'DDC_BACKGROUND_REFRESH_TIMEOUT': os.getenv('DDC_BACKGROUND_REFRESH_TIMEOUT', ''),
-        'DDC_MAX_CONTAINERS_DISPLAY': os.getenv('DDC_MAX_CONTAINERS_DISPLAY', ''),
-        'DDC_SCHEDULER_CHECK_INTERVAL': os.getenv('DDC_SCHEDULER_CHECK_INTERVAL', ''),
-        'DDC_MAX_CONCURRENT_TASKS': os.getenv('DDC_MAX_CONCURRENT_TASKS', ''),
-        'DDC_TASK_BATCH_SIZE': os.getenv('DDC_TASK_BATCH_SIZE', ''),
-        'DDC_FAST_STATS_TIMEOUT': os.getenv('DDC_FAST_STATS_TIMEOUT', ''),
-        'DDC_SLOW_STATS_TIMEOUT': os.getenv('DDC_SLOW_STATS_TIMEOUT', ''),
-        'DDC_CONTAINER_LIST_TIMEOUT': os.getenv('DDC_CONTAINER_LIST_TIMEOUT', '')
+        'DDC_DOCKER_CACHE_DURATION': get_setting_value('DDC_DOCKER_CACHE_DURATION', '30'),
+        'DDC_DOCKER_QUERY_COOLDOWN': get_setting_value('DDC_DOCKER_QUERY_COOLDOWN', '2'),
+        'DDC_DOCKER_MAX_CACHE_AGE': get_setting_value('DDC_DOCKER_MAX_CACHE_AGE', '300'),
+        'DDC_ENABLE_BACKGROUND_REFRESH': get_setting_value('DDC_ENABLE_BACKGROUND_REFRESH', 'true'),
+        'DDC_BACKGROUND_REFRESH_INTERVAL': get_setting_value('DDC_BACKGROUND_REFRESH_INTERVAL', '300'),
+        'DDC_BACKGROUND_REFRESH_LIMIT': get_setting_value('DDC_BACKGROUND_REFRESH_LIMIT', '50'),
+        'DDC_BACKGROUND_REFRESH_TIMEOUT': get_setting_value('DDC_BACKGROUND_REFRESH_TIMEOUT', '30'),
+        'DDC_MAX_CONTAINERS_DISPLAY': get_setting_value('DDC_MAX_CONTAINERS_DISPLAY', '100'),
+        'DDC_SCHEDULER_CHECK_INTERVAL': get_setting_value('DDC_SCHEDULER_CHECK_INTERVAL', '120'),
+        'DDC_MAX_CONCURRENT_TASKS': get_setting_value('DDC_MAX_CONCURRENT_TASKS', '3'),
+        'DDC_TASK_BATCH_SIZE': get_setting_value('DDC_TASK_BATCH_SIZE', '5'),
+        'DDC_LIVE_LOGS_REFRESH_INTERVAL': get_setting_value('DDC_LIVE_LOGS_REFRESH_INTERVAL', '5'),
+        'DDC_LIVE_LOGS_MAX_REFRESHES': get_setting_value('DDC_LIVE_LOGS_MAX_REFRESHES', '12'),
+        'DDC_LIVE_LOGS_TAIL_LINES': get_setting_value('DDC_LIVE_LOGS_TAIL_LINES', '50'),
+        'DDC_LIVE_LOGS_TIMEOUT': get_setting_value('DDC_LIVE_LOGS_TIMEOUT', '120'),
+        'DDC_LIVE_LOGS_ENABLED': get_setting_value('DDC_LIVE_LOGS_ENABLED', 'true'),
+        'DDC_LIVE_LOGS_AUTO_START': get_setting_value('DDC_LIVE_LOGS_AUTO_START', 'false'),
+        'DDC_FAST_STATS_TIMEOUT': get_setting_value('DDC_FAST_STATS_TIMEOUT', '10'),
+        'DDC_SLOW_STATS_TIMEOUT': get_setting_value('DDC_SLOW_STATS_TIMEOUT', '30'),
+        'DDC_CONTAINER_LIST_TIMEOUT': get_setting_value('DDC_CONTAINER_LIST_TIMEOUT', '15')
     }
     
     # Add env vars to config for template access

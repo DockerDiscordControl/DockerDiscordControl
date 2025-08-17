@@ -817,7 +817,7 @@ class ScheduledTask:
                 next_run = tz.localize(next_run_naive)
             
             self.next_run_ts = next_run.timestamp()
-            logger.info(f"Donation task scheduled for 2nd Sunday: {next_run.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+            logger.debug(f"Donation task scheduled for 2nd Sunday: {next_run.strftime('%Y-%m-%d %H:%M:%S %Z')}")
             
         except Exception as e:
             logger.error(f"Error calculating next donation run: {e}")
@@ -1071,8 +1071,8 @@ def load_tasks() -> List[ScheduledTask]:
                 logger.error(f"Error creating ScheduledTask object from data: {e}")
                 continue
                 
-        # Display successful loading information
-        logger.info(f"Loaded {len(tasks)} scheduled tasks")
+        # Display successful loading information only on debug level to reduce log spam
+        logger.debug(f"Loaded {len(tasks)} scheduled tasks")
         
     except Exception as e:
         logger.error(f"Error loading tasks from {TASKS_FILE_PATH}: {e}")

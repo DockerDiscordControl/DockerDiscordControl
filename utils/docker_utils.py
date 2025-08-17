@@ -25,9 +25,9 @@ _docker_client_lock = threading.Lock()  # Thread safety for Docker client
 # PERFORMANCE OPTIMIZATION: Flexible container timeout configuration
 # Environment variables for timeout configuration (can be overridden)
 DEFAULT_FAST_STATS_TIMEOUT = float(os.environ.get('DDC_FAST_STATS_TIMEOUT', '1.5'))  # Reduced from 2.0s
-DEFAULT_SLOW_STATS_TIMEOUT = float(os.environ.get('DDC_SLOW_STATS_TIMEOUT', '3.0'))
+DEFAULT_SLOW_STATS_TIMEOUT = float(os.environ.get('DDC_SLOW_STATS_TIMEOUT', '30.0'))  # Updated to match Advanced Settings default
 DEFAULT_FAST_INFO_TIMEOUT = float(os.environ.get('DDC_FAST_INFO_TIMEOUT', '2.0'))
-DEFAULT_SLOW_INFO_TIMEOUT = float(os.environ.get('DDC_SLOW_INFO_TIMEOUT', '3.0'))
+DEFAULT_SLOW_INFO_TIMEOUT = float(os.environ.get('DDC_SLOW_INFO_TIMEOUT', '30.0'))  # Updated to match Advanced Settings default
 DEFAULT_CONTAINER_LIST_TIMEOUT = float(os.environ.get('DDC_CONTAINER_LIST_TIMEOUT', '15.0'))
 
 # Pattern-based timeout configuration (flexible and maintainable)
@@ -77,8 +77,8 @@ CONTAINER_TYPE_PATTERNS = {
 
 # Default timeout configuration
 DEFAULT_TIMEOUT_CONFIG = {
-    'stats_timeout': DEFAULT_SLOW_STATS_TIMEOUT,
-    'info_timeout': DEFAULT_FAST_INFO_TIMEOUT
+    'stats_timeout': DEFAULT_FAST_STATS_TIMEOUT,  # Use fast stats for default (1.5s)
+    'info_timeout': DEFAULT_SLOW_INFO_TIMEOUT    # Use slow info for default (30.0s)
 }
 
 # Load custom timeout configuration from file

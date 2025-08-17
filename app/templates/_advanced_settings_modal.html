@@ -20,25 +20,34 @@
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-md-3">
-                                <label class="form-label">Docker cache duration (s)</label>
-                                <input type="number" class="form-control" id="env_DDC_DOCKER_CACHE_DURATION" name="env_DDC_DOCKER_CACHE_DURATION" min="1" max="3600" value="{{ (config.env.DDC_DOCKER_CACHE_DURATION if config.env else '') or '' }}" placeholder="30">
+                            <div class="col-md-2">
+                                <label class="form-label">Status update loop interval (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Discord Bot: How often to fetch fresh container status for Discord commands (/serverstatus, /control). Lower = more responsive bot, higher CPU usage."></i></label>
+                                <input type="number" class="form-control" id="env_DDC_DOCKER_CACHE_DURATION" name="env_DDC_DOCKER_CACHE_DURATION" min="10" max="300" value="{{ (config.env.DDC_DOCKER_CACHE_DURATION if config.env else '') or '' }}" placeholder="30" onchange="updateCacheTTL()">
+                                <div class="form-text"><strong>Discord Bot</strong>: Container status refresh for commands. Recommended: 30-60s</div>
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Docker query cooldown (s)</label>
+                            <div class="col-md-2">
+                                <label class="form-label">Cache TTL (calculated) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="How long cached container data stays valid before being considered stale. Automatically calculated as Status Update Interval × 2.5 for optimal performance."></i></label>
+                                <input type="text" class="form-control" id="calculated_cache_ttl" readonly style="background-color: #2d3748; border: 1px solid #4a5568;">
+                                <div class="form-text"><strong>Auto-calculated</strong>: Cache validity duration (interval × 2.5)</div>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Docker query cooldown (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Minimum time between Docker API calls for the same container. Prevents API spam when multiple Discord users trigger commands simultaneously."></i></label>
                                 <input type="number" class="form-control" id="env_DDC_DOCKER_QUERY_COOLDOWN" name="env_DDC_DOCKER_QUERY_COOLDOWN" min="0" max="60" value="{{ (config.env.DDC_DOCKER_QUERY_COOLDOWN if config.env else '') or '' }}" placeholder="2">
+                                <div class="form-text"><strong>Rate limiting</strong>: Prevents API spam from simultaneous commands</div>
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Docker max cache age (s)</label>
+                            <div class="col-md-2">
+                                <label class="form-label">Docker max cache age (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Maximum age before cached Docker data is forcibly refreshed, regardless of normal cache TTL. Safety mechanism for critical operations."></i></label>
                                 <input type="number" class="form-control" id="env_DDC_DOCKER_MAX_CACHE_AGE" name="env_DDC_DOCKER_MAX_CACHE_AGE" min="1" max="7200" value="{{ (config.env.DDC_DOCKER_MAX_CACHE_AGE if config.env else '') or '' }}" placeholder="300">
+                                <div class="form-text"><strong>Safety limit</strong>: Force refresh after this time regardless of TTL</div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="form-check form-switch mt-4">
                                     <input class="form-check-input" type="checkbox" id="env_DDC_ENABLE_BACKGROUND_REFRESH" name="env_DDC_ENABLE_BACKGROUND_REFRESH" value="true" {% if not config.env or not config.env.get('DDC_ENABLE_BACKGROUND_REFRESH') or config.env.get('DDC_ENABLE_BACKGROUND_REFRESH').lower() in ['true', '1', 'on', 'yes'] %}checked{% endif %}>
                                     <label class="form-check-label" for="env_DDC_ENABLE_BACKGROUND_REFRESH">
-                                        Enable background refresh
+                                        Enable background refresh <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Web UI: Automatically refresh container list in background. Disable if you have many containers or limited resources."></i>
                                     </label>
                                 </div>
+                                <div class="form-text"><strong>Web UI</strong>: Auto-refresh container list (disable for resource savings)</div>
                             </div>
                         </div>
                     </div>
@@ -52,20 +61,24 @@
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-3">
-                                <label class="form-label">Background refresh interval (s)</label>
+                                <label class="form-label">Refresh interval (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Web UI: How often to refresh the container list in the Web UI dashboard. Separate from Discord Bot refresh. Higher values reduce server load."></i></label>
                                 <input type="number" class="form-control" id="env_DDC_BACKGROUND_REFRESH_INTERVAL" name="env_DDC_BACKGROUND_REFRESH_INTERVAL" min="30" max="3600" value="{{ (config.env.DDC_BACKGROUND_REFRESH_INTERVAL if config.env else '') or '' }}" placeholder="300">
+                                <div class="form-text"><strong>Web UI</strong>: Container list refresh cycle. Recommended: 300-600s</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Background refresh limit</label>
+                                <label class="form-label">Background refresh limit <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Maximum number of containers to refresh per background cycle. Prevents overwhelming the system when you have many containers."></i></label>
                                 <input type="number" class="form-control" id="env_DDC_BACKGROUND_REFRESH_LIMIT" name="env_DDC_BACKGROUND_REFRESH_LIMIT" min="1" max="1000" value="{{ (config.env.DDC_BACKGROUND_REFRESH_LIMIT if config.env else '') or '' }}" placeholder="50">
+                                <div class="form-text"><strong>Performance</strong>: Max containers per refresh cycle</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Background refresh timeout (s)</label>
+                                <label class="form-label">Refresh timeout (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Timeout for each container refresh operation. If a container takes longer than this to respond, it's skipped to prevent blocking."></i></label>
                                 <input type="number" class="form-control" id="env_DDC_BACKGROUND_REFRESH_TIMEOUT" name="env_DDC_BACKGROUND_REFRESH_TIMEOUT" min="5" max="300" value="{{ (config.env.DDC_BACKGROUND_REFRESH_TIMEOUT if config.env else '') or '' }}" placeholder="30">
+                                <div class="form-text"><strong>Safety</strong>: Skip slow containers after this timeout</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Max containers display</label>
+                                <label class="form-label">Max containers display <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Maximum number of containers to show in the Web UI. Higher numbers may slow down page loading. Does not affect Discord Bot functionality."></i></label>
                                 <input type="number" class="form-control" id="env_DDC_MAX_CONTAINERS_DISPLAY" name="env_DDC_MAX_CONTAINERS_DISPLAY" min="1" max="500" value="{{ (config.env.DDC_MAX_CONTAINERS_DISPLAY if config.env else '') or '' }}" placeholder="100">
+                                <div class="form-text"><strong>Web UI</strong>: Container list display limit for performance</div>
                             </div>
                         </div>
                     </div>
@@ -79,16 +92,19 @@
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label">Scheduler check interval (s)</label>
-                                <input type="number" class="form-control" id="env_DDC_SCHEDULER_CHECK_INTERVAL" name="env_DDC_SCHEDULER_CHECK_INTERVAL" min="1" max="300" value="{{ (config.env.DDC_SCHEDULER_CHECK_INTERVAL if config.env else '') or '' }}" placeholder="10">
+                                <label class="form-label">Scheduler check interval (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="How often the scheduler checks for pending tasks (start/stop/restart commands). Lower values = more responsive scheduled actions, higher CPU usage."></i></label>
+                                <input type="number" class="form-control" id="env_DDC_SCHEDULER_CHECK_INTERVAL" name="env_DDC_SCHEDULER_CHECK_INTERVAL" min="1" max="300" value="{{ (config.env.DDC_SCHEDULER_CHECK_INTERVAL if config.env else '') or '' }}" placeholder="120">
+                                <div class="form-text"><strong>Scheduler</strong>: Task check frequency. Recommended: 60-180s</div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Max concurrent tasks</label>
+                                <label class="form-label">Max concurrent tasks <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Maximum number of scheduled tasks (container actions) that can run simultaneously. Prevents system overload during mass operations."></i></label>
                                 <input type="number" class="form-control" id="env_DDC_MAX_CONCURRENT_TASKS" name="env_DDC_MAX_CONCURRENT_TASKS" min="1" max="50" value="{{ (config.env.DDC_MAX_CONCURRENT_TASKS if config.env else '') or '' }}" placeholder="3">
+                                <div class="form-text"><strong>Safety</strong>: Parallel task execution limit</div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Task batch size</label>
+                                <label class="form-label">Task batch size <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Number of tasks to process together in one scheduler cycle. Higher values = more efficient processing, but may cause delays for some tasks."></i></label>
                                 <input type="number" class="form-control" id="env_DDC_TASK_BATCH_SIZE" name="env_DDC_TASK_BATCH_SIZE" min="1" max="100" value="{{ (config.env.DDC_TASK_BATCH_SIZE if config.env else '') or '' }}" placeholder="5">
+                                <div class="form-text"><strong>Efficiency</strong>: Tasks processed per scheduler cycle</div>
                             </div>
                         </div>
                     </div>
@@ -102,20 +118,24 @@
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-3">
-                                <label class="form-label">Auto-refresh interval (s)</label>
+                                <label class="form-label">Auto-refresh interval (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Discord: How often to update live log messages with new container log lines. Lower values = more real-time logs, higher Discord API usage."></i></label>
                                 <input type="number" class="form-control" id="env_DDC_LIVE_LOGS_REFRESH_INTERVAL" name="env_DDC_LIVE_LOGS_REFRESH_INTERVAL" min="1" max="30" value="{{ (config.env.DDC_LIVE_LOGS_REFRESH_INTERVAL if config.env else '') or '' }}" placeholder="5">
+                                <div class="form-text"><strong>Discord</strong>: Log message update frequency</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Max refresh cycles</label>
+                                <label class="form-label">Max refresh cycles <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Discord: Maximum number of times to refresh live logs before auto-stopping. Prevents infinite Discord API calls."></i></label>
                                 <input type="number" class="form-control" id="env_DDC_LIVE_LOGS_MAX_REFRESHES" name="env_DDC_LIVE_LOGS_MAX_REFRESHES" min="1" max="100" value="{{ (config.env.DDC_LIVE_LOGS_MAX_REFRESHES if config.env else '') or '' }}" placeholder="12">
+                                <div class="form-text"><strong>Safety</strong>: Auto-stop after X refreshes (prevents spam)</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Log lines to fetch</label>
+                                <label class="form-label">Log lines to fetch <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Discord: Number of recent log lines to show per container. Higher values show more history but may hit Discord message length limits."></i></label>
                                 <input type="number" class="form-control" id="env_DDC_LIVE_LOGS_TAIL_LINES" name="env_DDC_LIVE_LOGS_TAIL_LINES" min="10" max="200" value="{{ (config.env.DDC_LIVE_LOGS_TAIL_LINES if config.env else '') or '' }}" placeholder="50">
+                                <div class="form-text"><strong>Discord</strong>: Log lines per message (watch Discord limits)</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Message timeout (s)</label>
+                                <label class="form-label">Message timeout (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Discord: How long to keep live log messages active before auto-deletion. Keeps Discord channels clean."></i></label>
                                 <input type="number" class="form-control" id="env_DDC_LIVE_LOGS_TIMEOUT" name="env_DDC_LIVE_LOGS_TIMEOUT" min="30" max="600" value="{{ (config.env.DDC_LIVE_LOGS_TIMEOUT if config.env else '') or '' }}" placeholder="120">
+                                <div class="form-text"><strong>Cleanup</strong>: Auto-delete log messages after timeout</div>
                             </div>
                         </div>
                         <div class="row g-3 mt-2">
@@ -123,17 +143,19 @@
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" id="env_DDC_LIVE_LOGS_ENABLED" name="env_DDC_LIVE_LOGS_ENABLED" value="true" {% if not config.env or not config.env.get('DDC_LIVE_LOGS_ENABLED') or config.env.get('DDC_LIVE_LOGS_ENABLED').lower() in ['true', '1', 'on', 'yes'] %}checked{% endif %}>
                                     <label class="form-check-label" for="env_DDC_LIVE_LOGS_ENABLED">
-                                        Enable Live Logs feature
+                                        Enable Live Logs feature <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Discord: Allow users to view live container logs in Discord. Disable to reduce Discord API usage and prevent log spam."></i>
                                     </label>
                                 </div>
+                                <div class="form-text"><strong>Feature toggle</strong>: Enable /logs command in Discord</div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" id="env_DDC_LIVE_LOGS_AUTO_START" name="env_DDC_LIVE_LOGS_AUTO_START" value="true" {% if config.env and config.env.get('DDC_LIVE_LOGS_AUTO_START', '').lower() in ['true', '1', 'on', 'yes'] %}checked{% endif %}>
                                     <label class="form-check-label" for="env_DDC_LIVE_LOGS_AUTO_START">
-                                        Auto-start on button click
+                                        Auto-start on button click <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Discord: Automatically start live log updates when someone clicks the logs button. If disabled, users need to manually start/stop."></i>
                                     </label>
                                 </div>
+                                <div class="form-text"><strong>UX</strong>: Start logs immediately vs. manual control</div>
                             </div>
                         </div>
                     </div>
@@ -147,16 +169,19 @@
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label">Fast stats timeout (s)</label>
+                                <label class="form-label">Fast stats timeout (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Docker API: Timeout for quick container stats (CPU, memory). Used for responsive Discord commands. If containers don't respond within this time, they're marked as slow."></i></label>
                                 <input type="number" class="form-control" id="env_DDC_FAST_STATS_TIMEOUT" name="env_DDC_FAST_STATS_TIMEOUT" min="1" max="60" value="{{ (config.env.DDC_FAST_STATS_TIMEOUT if config.env else '') or '' }}" placeholder="10">
+                                <div class="form-text"><strong>Performance</strong>: Quick stats timeout for responsive commands</div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Slow stats timeout (s)</label>
+                                <label class="form-label">Slow stats timeout (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Docker API: Extended timeout for containers that were previously slow. Gives more time for detailed stats without blocking fast containers."></i></label>
                                 <input type="number" class="form-control" id="env_DDC_SLOW_STATS_TIMEOUT" name="env_DDC_SLOW_STATS_TIMEOUT" min="1" max="300" value="{{ (config.env.DDC_SLOW_STATS_TIMEOUT if config.env else '') or '' }}" placeholder="30">
+                                <div class="form-text"><strong>Fallback</strong>: Extended timeout for slow containers</div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Container list timeout (s)</label>
+                                <label class="form-label">Container list timeout (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Docker API: Timeout for fetching the complete container list from Docker. If Docker daemon is slow, this prevents hanging operations."></i></label>
                                 <input type="number" class="form-control" id="env_DDC_CONTAINER_LIST_TIMEOUT" name="env_DDC_CONTAINER_LIST_TIMEOUT" min="1" max="120" value="{{ (config.env.DDC_CONTAINER_LIST_TIMEOUT if config.env else '') or '' }}" placeholder="15">
+                                <div class="form-text"><strong>Safety</strong>: Docker daemon list operation timeout</div>
                             </div>
                         </div>
                     </div>
@@ -173,6 +198,42 @@
 </div>
 
 <script>
+function updateCacheTTL() {
+    const intervalInput = document.getElementById('env_DDC_DOCKER_CACHE_DURATION');
+    const ttlDisplay = document.getElementById('calculated_cache_ttl');
+    
+    if (intervalInput && ttlDisplay) {
+        const interval = parseInt(intervalInput.value) || 30;
+        const calculatedTTL = Math.round(interval * 2.5);
+        ttlDisplay.value = calculatedTTL + 's';
+    }
+}
+
+// Update cache TTL when modal is shown and field has a value
+document.addEventListener('DOMContentLoaded', function() {
+    // Update TTL on initial load
+    updateCacheTTL();
+    
+    // Initialize Bootstrap tooltips
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    
+    // Listen for when the advanced settings modal is shown
+    const advancedModal = document.getElementById('advancedSettingsModal');
+    if (advancedModal) {
+        advancedModal.addEventListener('shown.bs.modal', function() {
+            updateCacheTTL();
+            // Re-initialize tooltips in case they weren't ready before
+            const modalTooltips = this.querySelectorAll('[data-bs-toggle="tooltip"]');
+            [...modalTooltips].forEach(tooltip => {
+                if (!bootstrap.Tooltip.getInstance(tooltip)) {
+                    new bootstrap.Tooltip(tooltip);
+                }
+            });
+        });
+    }
+});
+
 function saveAdvancedSettings() {
     // Trigger unsaved changes warning to show that settings have changed
     if (typeof showUnsavedChangesAlert === 'function') {

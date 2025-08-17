@@ -379,6 +379,30 @@ class ConfigManager:
             if os.path.exists(file_path):
                 self._file_mtimes[file_path] = os.path.getmtime(file_path)
     
+    def _sync_advanced_settings_to_environment(self, config: Dict[str, Any]):
+        """Sync advanced settings from config to environment variables."""
+        import os
+        
+        advanced_settings = config.get('advanced_settings', {})
+        if not advanced_settings:
+            return
+        
+        logger.debug(f"Syncing {len(advanced_settings)} advanced settings to environment variables")
+        
+        for env_var_name, value in advanced_settings.items():
+            try:
+                # Convert value to appropriate string format for environment
+                if isinstance(value, bool):
+                    env_value = 'true' if value else 'false'
+                else:
+                    env_value = str(value)
+                
+                os.environ[env_var_name] = env_value
+                logger.debug(f"Set environment variable: {env_var_name}={env_value}")
+                
+            except Exception as e:
+                logger.warning(f"Failed to set environment variable {env_var_name}: {e}")
+    
     def _load_config_from_disk(self) -> Dict[str, Any]:
         """Load configuration from disk and update cache."""
         logger.debug("Loading configuration from disk...")
@@ -392,6 +416,9 @@ class ConfigManager:
             # Merge with defaults
             config = {**DEFAULT_CONFIG, **bot_config_raw, **docker_config_raw, 
                      **channels_config_raw, **web_config_raw}
+            
+            # Apply advanced settings as environment variables
+            self._sync_advanced_settings_to_environment(config)
             
             # Decrypt token if needed
             token_to_decrypt = config.get('bot_token')

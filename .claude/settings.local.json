@@ -25,7 +25,9 @@
       "Bash(git ls-tree:*)",
       "WebFetch(domain:discord.com)",
       "Bash(git restore:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(python -m pytest --version)",
+      "Bash(python -m pytest -xvs tests/ --tb=short)"
     ],
     "deny": []
   }

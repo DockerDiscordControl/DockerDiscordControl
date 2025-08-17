@@ -92,12 +92,13 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         
         # Cache configuration
         self.status_cache = {}
-        self.cache_ttl_seconds = 75
+        # Calculate cache TTL from status update loop interval (default 30s * 2.5 = 75s)
+        cache_duration = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', '30'))
+        self.cache_ttl_seconds = int(cache_duration * 2.5)
         self.pending_actions: Dict[str, Dict[str, Any]] = {}
         
         # Docker query cooldown tracking
         self.last_docker_query = {}  # Track last query time per container
-        import os
         self.docker_query_cooldown = int(os.environ.get('DDC_DOCKER_QUERY_COOLDOWN', '2'))
         
         # Load server order
@@ -1517,8 +1518,13 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
     async def status_update_loop(self):
         """Periodically updates the cache with the latest container statuses."""
         # Get cache duration from environment
-        import os
         cache_duration = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', '30'))
+        
+        # Update cache TTL based on current interval
+        calculated_ttl = int(cache_duration * 2.5)
+        if self.cache_ttl_seconds != calculated_ttl:
+            self.cache_ttl_seconds = calculated_ttl
+            logger.info(f"[STATUS_LOOP] Cache TTL updated to {calculated_ttl} seconds (interval: {cache_duration}s)")
         
         # Dynamically change the loop interval if needed
         if self.status_update_loop.seconds != cache_duration:

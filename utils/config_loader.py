@@ -79,7 +79,34 @@ DEFAULT_CHANNELS_CONFIG = {
 DEFAULT_WEB_CONFIG = {
     "web_ui_user": "admin",
     "web_ui_password_hash": generate_password_hash("admin", method="pbkdf2:sha256"),
-    "scheduler_debug_mode": False  # Default to false for production systems
+    "scheduler_debug_mode": False,  # Default to false for production systems
+    "advanced_settings": {
+        # Docker Performance
+        "DDC_DOCKER_CACHE_DURATION": 30,
+        "DDC_DOCKER_QUERY_COOLDOWN": 2,
+        "DDC_DOCKER_MAX_CACHE_AGE": 300,
+        "DDC_ENABLE_BACKGROUND_REFRESH": True,
+        # Background Refresh
+        "DDC_BACKGROUND_REFRESH_INTERVAL": 300,
+        "DDC_BACKGROUND_REFRESH_LIMIT": 50,
+        "DDC_BACKGROUND_REFRESH_TIMEOUT": 30,
+        "DDC_MAX_CONTAINERS_DISPLAY": 100,
+        # Scheduler Throughput
+        "DDC_SCHEDULER_CHECK_INTERVAL": 120,
+        "DDC_MAX_CONCURRENT_TASKS": 3,
+        "DDC_TASK_BATCH_SIZE": 5,
+        # Live Logs Settings
+        "DDC_LIVE_LOGS_REFRESH_INTERVAL": 5,
+        "DDC_LIVE_LOGS_MAX_REFRESHES": 12,
+        "DDC_LIVE_LOGS_TAIL_LINES": 50,
+        "DDC_LIVE_LOGS_TIMEOUT": 120,
+        "DDC_LIVE_LOGS_ENABLED": True,
+        "DDC_LIVE_LOGS_AUTO_START": False,
+        # Docker Timeouts
+        "DDC_FAST_STATS_TIMEOUT": 10,
+        "DDC_SLOW_STATS_TIMEOUT": 30,
+        "DDC_CONTAINER_LIST_TIMEOUT": 15
+    }
 }
 
 # Combined default configuration for compatibility and bot language
@@ -524,26 +551,55 @@ def process_config_form(form_data, current_config: Dict[str, Any]) -> Tuple[Dict
                         logger.info("ℹ️  No password hash available, storing token as plaintext")
         
         # ADVANCED SETTINGS: Process environment variable fields (env_DDC_*)
-        # These are not saved in config files but written as actual environment variables
+        # These are saved in config files AND set as environment variables for runtime use
+        if 'advanced_settings' not in new_config:
+            new_config['advanced_settings'] = {}
+        
         env_updates = {}
         for key, value in form_data.items():
             if key.startswith('env_DDC_'):
                 env_var_name = key[4:]  # Remove 'env_' prefix
                 env_value = value[0].strip() if isinstance(value, list) and value else str(value).strip()
                 
-                # Only set non-empty values
+                # Handle different data types
                 if env_value:
+                    # Convert boolean checkboxes
+                    if env_var_name.startswith('DDC_ENABLE_') or env_var_name.startswith('DDC_LIVE_LOGS_'):
+                        if env_var_name in ['DDC_LIVE_LOGS_ENABLED', 'DDC_LIVE_LOGS_AUTO_START', 'DDC_ENABLE_BACKGROUND_REFRESH']:
+                            bool_value = env_value.lower() in ['1', 'on', 'true', 'yes']
+                            new_config['advanced_settings'][env_var_name] = bool_value
+                            os.environ[env_var_name] = 'true' if bool_value else 'false'
+                        else:
+                            # Numeric values
+                            try:
+                                numeric_value = int(env_value)
+                                new_config['advanced_settings'][env_var_name] = numeric_value
+                                os.environ[env_var_name] = str(numeric_value)
+                            except ValueError:
+                                new_config['advanced_settings'][env_var_name] = env_value
+                                os.environ[env_var_name] = env_value
+                    else:
+                        # Numeric values
+                        try:
+                            numeric_value = int(env_value)
+                            new_config['advanced_settings'][env_var_name] = numeric_value
+                            os.environ[env_var_name] = str(numeric_value)
+                        except ValueError:
+                            new_config['advanced_settings'][env_var_name] = env_value
+                            os.environ[env_var_name] = env_value
+                    
                     env_updates[env_var_name] = env_value
-                    os.environ[env_var_name] = env_value
-                    print(f"[CONFIG-DEBUG] Set environment variable: {env_var_name}={env_value}")
+                    print(f"[CONFIG-DEBUG] Saved & set environment variable: {env_var_name}={env_value}")
                 else:
-                    # Remove empty/unset variables
+                    # Remove empty/unset variables from config and environment
+                    if env_var_name in new_config['advanced_settings']:
+                        del new_config['advanced_settings'][env_var_name]
                     if env_var_name in os.environ:
                         del os.environ[env_var_name]
                         print(f"[CONFIG-DEBUG] Removed environment variable: {env_var_name}")
         
         if env_updates:
-            print(f"[CONFIG-DEBUG] Updated {len(env_updates)} environment variables: {list(env_updates.keys())}")
+            print(f"[CONFIG-DEBUG] Updated {len(env_updates)} advanced settings: {list(env_updates.keys())}")
 
         return new_config, True, "Configuration processed successfully."
     except Exception as e:
