@@ -223,8 +223,11 @@ document.getElementById('spamProtectionModal').addEventListener('shown.bs.modal'
         });
 });
 
-// Save spam protection settings
-document.getElementById('saveSpamProtection').addEventListener('click', function() {
+function saveSpamProtection() {
+    // Trigger unsaved changes warning to show that settings have changed
+    if (typeof showUnsavedChangesAlert === 'function') {
+        showUnsavedChangesAlert(false); // Spam protection settings don't require restart
+    }
     const settings = {
         global_settings: {
             enabled: document.getElementById('spamProtectionEnabled').checked,
@@ -279,14 +282,20 @@ document.getElementById('saveSpamProtection').addEventListener('click', function
             const modal = bootstrap.Modal.getInstance(document.getElementById('spamProtectionModal'));
             modal.hide();
             
-            // Show success notification
+            // Use same notification system as saveConfigAjax
             const notification = document.getElementById('save-notification');
-            notification.innerHTML = '<div class="alert alert-success alert-dismissible fade show" role="alert">Spam protection settings saved successfully!<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
-            
-            // Auto dismiss after 3 seconds
-            setTimeout(() => {
-                notification.innerHTML = '';
-            }, 3000);
+            if (notification) {
+                notification.className = 'alert alert-success';
+                notification.style.display = 'block';
+                notification.innerHTML = '<i class="bi bi-check-circle"></i> Spam protection settings saved successfully!';
+                
+                // Auto dismiss after 3 seconds
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                    notification.innerHTML = '';
+                    notification.className = '';
+                }, 3000);
+            }
         } else {
             alert('Error saving spam protection settings: ' + (data.error || 'Unknown error'));
         }
@@ -295,5 +304,8 @@ document.getElementById('saveSpamProtection').addEventListener('click', function
         console.error('Error saving spam protection settings:', error);
         alert('Error saving spam protection settings');
     });
-});
+}
+
+// Save spam protection settings
+document.getElementById('saveSpamProtection').addEventListener('click', saveSpamProtection);
 </script>

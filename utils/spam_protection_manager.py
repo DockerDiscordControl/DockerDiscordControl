@@ -38,33 +38,33 @@ class SpamProtectionManager:
                 "ping": 3,           # /ping command
                 "donate": 5,         # /donate command
                 "donatebroadcast": 60, # /donatebroadcast command
-                "task": 10,          # /task command (generic)
+                "task": 5,           # /task command (generic) - reduced for easier task creation
                 "task_info": 5,      # /task_info command
-                "task_once": 10,     # /task_once command
-                "task_daily": 10,    # /task_daily command
-                "task_weekly": 10,   # /task_weekly command
-                "task_monthly": 10,  # /task_monthly command
-                "task_yearly": 10,   # /task_yearly command
-                "task_delete": 5,    # /task_delete command
-                "task_delete_panel": 5,  # /task_delete_panel command
-                "task_panel": 10,    # /task_panel command
+                "task_once": 5,      # /task_once command - reduced for easier task creation
+                "task_daily": 5,     # /task_daily command - reduced for easier task creation
+                "task_weekly": 5,    # /task_weekly command - reduced for easier task creation
+                "task_monthly": 5,   # /task_monthly command - reduced for easier task creation
+                "task_yearly": 5,    # /task_yearly command - reduced for easier task creation
+                "task_delete": 3,    # /task_delete command - reduced for quick deletion
+                "task_delete_panel": 3,  # /task_delete_panel command - reduced for quick deletion
+                "task_panel": 5,     # /task_panel command - reduced for easier browsing
                 "command": 10,       # /command command (container control)
                 "language": 30,      # /language command
                 "forceupdate": 60,   # /forceupdate command
                 "start": 10,         # /start command
                 "stop": 10,          # /stop command
-                "restart": 10        # /restart command
+                "restart": 15        # /restart command - increased as restart takes longer
             },
             
             # Button interaction cooldowns (in seconds)
             "button_cooldowns": {
                 "start": 10,         # Start button
                 "stop": 10,          # Stop button
-                "restart": 15,       # Restart button
+                "restart": 20,       # Restart button - increased as restart is heavy operation
                 "info": 3,           # Info button
                 "refresh": 5,        # Refresh button
                 "logs": 10,          # Live Logs button
-                "live_refresh": 3,   # Live Logs refresh button
+                "live_refresh": 5,   # Live Logs refresh button - increased to prevent spam
                 "auto_refresh": 5    # Auto-refresh toggle button
             },
             

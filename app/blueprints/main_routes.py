@@ -1274,12 +1274,10 @@ def save_spam_protection():
         if success:
             # Log the action
             log_user_action(
-                user_id="web_admin",
-                action_type="config_update",
-                details={
-                    'setting': 'spam_protection',
-                    'enabled': settings.get('global_settings', {}).get('enabled', True)
-                }
+                action="SAVE",
+                target="Spam Protection Settings",
+                source="Web UI",
+                details=f"Spam protection enabled: {settings.get('global_settings', {}).get('enabled', True)}"
             )
             return jsonify({'success': True})
         else:
