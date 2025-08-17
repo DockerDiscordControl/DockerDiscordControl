@@ -81,12 +81,14 @@ function openContainerInfoModal(containerName) {
     const enabledInput = document.querySelector(`input[name="info_enabled_${containerName}"]`);
     const showIpInput = document.querySelector(`input[name="info_show_ip_${containerName}"]`);
     const customIpInput = document.querySelector(`input[name="info_custom_ip_${containerName}"]`);
+    const customPortInput = document.querySelector(`input[name="info_custom_port_${containerName}"]`);
     const customTextInput = document.querySelector(`textarea[name="info_custom_text_${containerName}"]`);
     
     // Set modal values (convert string values to boolean)
     const modalEnabled = document.getElementById('modal-info-enabled');
     const modalShowIp = document.getElementById('modal-info-show-ip');
     const modalCustomIp = document.getElementById('modal-info-custom-ip');
+    const modalCustomPort = document.getElementById('modal-info-custom-port');
     const modalCustomText = document.getElementById('modal-info-custom-text');
     
     if (modalEnabled && enabledInput) {
@@ -99,6 +101,10 @@ function openContainerInfoModal(containerName) {
     
     if (modalCustomIp && customIpInput) {
         modalCustomIp.value = customIpInput.value || '';
+    }
+    
+    if (modalCustomPort && customPortInput) {
+        modalCustomPort.value = customPortInput.value || '';
     }
     
     if (modalCustomText && customTextInput) {
@@ -139,6 +145,7 @@ function saveContainerInfo() {
         info_enabled: document.getElementById('modal-info-enabled')?.checked ? '1' : '0',
         info_show_ip: document.getElementById('modal-info-show-ip')?.checked ? '1' : '0',
         info_custom_ip: document.getElementById('modal-info-custom-ip')?.value || '',
+        info_custom_port: document.getElementById('modal-info-custom-port')?.value || '',
         info_custom_text: document.getElementById('modal-info-custom-text')?.value || ''
     };
     
@@ -146,11 +153,13 @@ function saveContainerInfo() {
     const enabledInput = document.querySelector(`input[name="info_enabled_${containerName}"]`);
     const showIpInput = document.querySelector(`input[name="info_show_ip_${containerName}"]`);
     const customIpInput = document.querySelector(`input[name="info_custom_ip_${containerName}"]`);
+    const customPortInput = document.querySelector(`input[name="info_custom_port_${containerName}"]`);
     const customTextInput = document.querySelector(`textarea[name="info_custom_text_${containerName}"]`);
     
     if (enabledInput) enabledInput.value = formData.info_enabled;
     if (showIpInput) showIpInput.value = formData.info_show_ip;
     if (customIpInput) customIpInput.value = formData.info_custom_ip;
+    if (customPortInput) customPortInput.value = formData.info_custom_port;
     if (customTextInput) customTextInput.value = formData.info_custom_text;
     
     // Update button styling based on enabled state

@@ -294,7 +294,8 @@ class ActionButton(Button):
                                 self.server_config, 
                                 config, 
                                 allow_toggle=True, 
-                                force_collapse=False
+                                force_collapse=False,
+                                show_cache_age=False
                             )
                             
                             if embed:

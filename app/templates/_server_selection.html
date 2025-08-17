@@ -83,6 +83,7 @@
                         <input type="hidden" name="info_enabled_{{ container.name }}" value="{% if info_config.get('enabled', False) %}1{% else %}0{% endif %}">
                         <input type="hidden" name="info_show_ip_{{ container.name }}" value="{% if info_config.get('show_ip', False) %}1{% else %}0{% endif %}">
                         <input type="hidden" name="info_custom_ip_{{ container.name }}" value="{{ info_config.get('custom_ip', '') }}">
+                        <input type="hidden" name="info_custom_port_{{ container.name }}" value="{{ info_config.get('custom_port', '') }}">
                         <textarea name="info_custom_text_{{ container.name }}" style="display:none;">{{ info_config.get('custom_text', '') }}</textarea>
                     {% endfor %}
                 {% elif cache_error %}
@@ -123,37 +124,52 @@
                 <form id="containerInfoForm">
                     <input type="hidden" id="modal-container-name" name="container_name">
                     
+                    {# IP and Port Settings - Top Row #}
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <label for="modal-info-custom-ip" class="form-label">Custom IP/URL Override</label>
+                                <input type="text" class="form-control" name="info_custom_ip" id="modal-info-custom-ip" placeholder="e.g., mydomain.com or 192.168.1.100">
+                                <div class="form-text">Leave empty to use auto-detected public IP</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <label for="modal-info-custom-port" class="form-label">Custom Port</label>
+                                <input type="text" class="form-control" name="info_custom_port" id="modal-info-custom-port" placeholder="e.g., 7777">
+                                <div class="form-text">Optional: Port number for the server</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {# Checkboxes - Second Row #}
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="checkbox" name="info_enabled" value="1" id="modal-info-enabled">
                                 <label class="form-check-label" for="modal-info-enabled">
-                                    Enable Info Button
-                                </label>
-                            </div>
-                            
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" name="info_show_ip" value="1" id="modal-info-show-ip">
-                                <label class="form-check-label" for="modal-info-show-ip">
-                                    Show IP Address
+                                    <i class="bi bi-toggle-on"></i> Enable Info Button
                                 </label>
                             </div>
                         </div>
-                        
                         <div class="col-md-6">
-                            <div class="mb-2">
-                                <label for="modal-info-custom-ip" class="form-label">Custom IP/URL Override</label>
-                                <input type="text" class="form-control form-control-sm" name="info_custom_ip" id="modal-info-custom-ip" placeholder="e.g., mydomain.com:7777">
-                                <div class="form-text">Leave empty to use auto-detected public IP</div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="info_show_ip" value="1" id="modal-info-show-ip">
+                                <label class="form-check-label" for="modal-info-show-ip">
+                                    <i class="bi bi-broadcast"></i> Show IP Address
+                                </label>
                             </div>
                         </div>
                     </div>
                     
+                    {# Custom Text - Bottom Section #}
                     <div class="mb-3">
-                        <label for="modal-info-custom-text" class="form-label">Custom Info Text</label>
+                        <label for="modal-info-custom-text" class="form-label">
+                            <i class="bi bi-card-text"></i> Custom Info Text
+                        </label>
                         <textarea class="form-control" name="info_custom_text" id="modal-info-custom-text" rows="4" maxlength="250" placeholder="Password: mypass123&#10;Mods: ModName1, ModName2&#10;Max Players: 8"></textarea>
                         <div class="form-text">
-                            <span id="modal-char-counter">0</span>/250 characters
+                            <span id="modal-char-counter">0</span>/250 characters - Use line breaks for multiple entries
                         </div>
                     </div>
                 </form>

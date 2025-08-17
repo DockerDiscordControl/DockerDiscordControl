@@ -367,6 +367,12 @@ def process_config_form(form_data, current_config: Dict[str, Any]) -> Tuple[Dict
                     info_custom_ip = info_custom_ip[0] if info_custom_ip else ''
                 info_config['custom_ip'] = str(info_custom_ip).strip()
                 
+                # Process custom port
+                info_custom_port = form_data.get(f'info_custom_port_{docker_name}', '')
+                if isinstance(info_custom_port, list):
+                    info_custom_port = info_custom_port[0] if info_custom_port else ''
+                info_config['custom_port'] = str(info_custom_port).strip()
+                
                 # Process custom text
                 info_custom_text = form_data.get(f'info_custom_text_{docker_name}', '')
                 if isinstance(info_custom_text, list):

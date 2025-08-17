@@ -24,7 +24,8 @@
       "Bash(echo:*)",
       "Bash(git ls-tree:*)",
       "WebFetch(domain:discord.com)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(rg:*)"
     ],
     "deny": []
   }

@@ -18,15 +18,11 @@ except ImportError:
     sys.modules['audioop'] = audioop
 import discord
 import json
-import random
 import traceback
 import time
 import pytz
-from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
-from pathlib import Path
 from discord.ext import commands
-import signal
 
 # Set the environment variable for direct token access
 if 'DDC_DISCORD_SKIP_TOKEN_LOCK' not in os.environ:
@@ -63,7 +59,6 @@ from cogs.translation_manager import _, get_translations
 # Import scheduler service
 from utils.scheduler_service import start_scheduler_service, stop_scheduler_service
 # Import the centralized action logger (ensures proper logger initialization)
-from utils.action_logger import log_user_action, user_action_logger
 # Import cogs helper functions
 from cogs.control_helpers import container_select
 # Import port diagnostics
