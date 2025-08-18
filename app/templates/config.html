@@ -184,17 +184,34 @@
             
             donationButtons.forEach(button => {
                 button.addEventListener('click', function(e) {
-                    // Store donation info in localStorage for thank you display
                     const donationType = this.getAttribute('data-donation-type');
-                    const timestamp = Date.now();
                     
-                    localStorage.setItem('ddcDonationClick', JSON.stringify({
-                        type: donationType,
-                        timestamp: timestamp
-                    }));
-                    
-                    // Update donator heart status
-                    updateDonatorHeart(timestamp);
+                    // Record donation click to server
+                    fetch('/api/donation/click', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            type: donationType
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Store for thank you display
+                            localStorage.setItem('ddcDonationClick', JSON.stringify({
+                                type: donationType,
+                                timestamp: data.timestamp
+                            }));
+                            
+                            // Update heart immediately
+                            checkDonatorHeartStatus();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error recording donation:', error);
+                    });
                     
                     // Allow normal link behavior (open in new tab)
                     // No e.preventDefault() - let the browser handle the link normally
@@ -304,37 +321,33 @@
         
         // Donator Heart Management
         function updateDonatorHeart(donationTimestamp) {
-            // Store the latest donation timestamp
-            localStorage.setItem('ddcLastDonation', donationTimestamp.toString());
-            
-            // Set heart to active state immediately
-            const heart = document.getElementById('donatorHeart');
-            if (heart) {
-                heart.className = 'bi bi-heart-fill donator-heart active';
-                heart.title = 'Thank you for your recent donation! ❤️';
-            }
+            // No longer storing locally - server handles it
+            // Just refresh the heart status from server
+            checkDonatorHeartStatus();
         }
         
         function checkDonatorHeartStatus() {
             const heart = document.getElementById('donatorHeart');
             if (!heart) return;
             
-            const lastDonation = localStorage.getItem('ddcLastDonation');
-            if (!lastDonation) {
-                // No donation recorded - gray heart
-                heart.className = 'bi bi-heart-fill donator-heart inactive';
-                heart.style.color = ''; // Reset inline style
-                heart.style.filter = ''; // Reset inline style
-                heart.style.textShadow = ''; // Reset inline style
-                heart.title = 'Support DDC development ❤️';
-                return;
-            }
-            
-            const donationTime = parseInt(lastDonation);
-            const now = Date.now();
-            const daysSinceDonation = (now - donationTime) / (1000 * 60 * 60 * 24);
-            
-            if (daysSinceDonation <= 30) {
+            // Fetch donation status from server
+            fetch('/api/donation/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.has_donated || data.timestamp === null) {
+                        // No donation recorded - gray heart
+                        heart.className = 'bi bi-heart-fill donator-heart inactive';
+                        heart.style.color = ''; // Reset inline style
+                        heart.style.filter = ''; // Reset inline style
+                        heart.style.textShadow = ''; // Reset inline style
+                        heart.style.animation = '';
+                        heart.title = 'Support DDC development ❤️';
+                        return;
+                    }
+                    
+                    const daysSinceDonation = data.days_since_donation;
+                    
+                    if (daysSinceDonation <= 30) {
                 // Calculate exact day (0-30)
                 const dayNumber = Math.floor(daysSinceDonation);
                 const fadePercentage = daysSinceDonation / 30;
@@ -399,21 +412,32 @@
                     const daysLeft = Math.ceil(30 - daysSinceDonation);
                     heart.title = `Donator status expires in ${daysLeft} days. Thank you! ❤️ (Day ${dayNumber})`;
                 }
-            } else {
-                // Expired - gray heart
-                heart.className = 'bi bi-heart-fill donator-heart inactive';
-                heart.style.color = ''; // Reset inline style
-                heart.style.filter = ''; // Reset inline style
-                heart.style.textShadow = ''; // Reset inline style
-                heart.title = 'Support DDC development ❤️';
-            }
+                    } else {
+                        // Expired - gray heart
+                        heart.className = 'bi bi-heart-fill donator-heart inactive';
+                        heart.style.color = ''; // Reset inline style
+                        heart.style.filter = ''; // Reset inline style
+                        heart.style.textShadow = ''; // Reset inline style
+                        heart.style.animation = '';
+                        heart.title = 'Support DDC development ❤️';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching donation status:', error);
+                    // On error, show inactive heart
+                    heart.className = 'bi bi-heart-fill donator-heart inactive';
+                    heart.style.color = '';
+                    heart.style.filter = '';
+                    heart.style.textShadow = '';
+                    heart.style.animation = '';
+                });
         }
         
         // Check heart status on page load
         checkDonatorHeartStatus();
         
-        // Update heart status daily
-        setInterval(checkDonatorHeartStatus, 24 * 60 * 60 * 1000);
+        // Update heart status every 5 minutes (server-side tracking now)
+        setInterval(checkDonatorHeartStatus, 5 * 60 * 1000);
         
         
         // Additional animations for different donation types

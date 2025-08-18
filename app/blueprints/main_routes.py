@@ -40,6 +40,7 @@ from utils.scheduler import (
 )
 from utils.action_logger import log_user_action
 from utils.spam_protection_manager import get_spam_protection_manager
+from utils.donation_manager import get_donation_manager
 
 # Define COMMON_TIMEZONES here if it's only used by routes in this blueprint
 # Or import it if it's defined centrally and used by multiple blueprints
@@ -1286,6 +1287,83 @@ def save_spam_protection():
     except Exception as e:
         current_app.logger.error(f"Error saving spam protection settings: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@main_bp.route('/api/donation/status', methods=['GET'])
+def get_donation_status():
+    """Get current donation status (no auth required for public display)."""
+    try:
+        donation_manager = get_donation_manager()
+        status = donation_manager.get_status()
+        return jsonify(status)
+    except Exception as e:
+        current_app.logger.error(f"Error getting donation status: {e}")
+        return jsonify({'error': 'Failed to load donation status'}), 500
+
+@main_bp.route('/api/donation/click', methods=['POST'])
+def record_donation_click():
+    """Record a donation button click (no auth required)."""
+    try:
+        data = request.get_json()
+        if not data or 'type' not in data:
+            return jsonify({'success': False, 'error': 'Missing donation type'}), 400
+        
+        donation_type = data.get('type')
+        if donation_type not in ['coffee', 'paypal']:
+            return jsonify({'success': False, 'error': 'Invalid donation type'}), 400
+        
+        # Get user info - try username first, fallback to IP
+        user_identifier = "Anonymous User"
+        try:
+            # Try to get authenticated username
+            authenticated_user = auth.current_user()
+            if authenticated_user:
+                user_identifier = f"Web User: {authenticated_user}"
+            else:
+                # Fallback to IP address
+                ip_address = request.remote_addr
+                if request.headers.get('X-Forwarded-For'):
+                    ip_address = request.headers.get('X-Forwarded-For').split(',')[0].strip()
+                user_identifier = f"IP: {ip_address}"
+        except:
+            # Final fallback to IP
+            ip_address = request.remote_addr
+            if request.headers.get('X-Forwarded-For'):
+                ip_address = request.headers.get('X-Forwarded-For').split(',')[0].strip()
+            user_identifier = f"IP: {ip_address}"
+        
+        donation_manager = get_donation_manager()
+        result = donation_manager.record_donation(donation_type, user_identifier)
+        
+        # Log the action
+        log_user_action(
+            action="DONATION_CLICK",
+            target=f"Donation Button ({donation_type})",
+            source="Web UI",
+            details=f"Donation button clicked by: {user_identifier}"
+        )
+        
+        return jsonify({
+            'success': True,
+            'timestamp': result['last_donation_timestamp'],
+            'total': result['total_donations']
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error recording donation click: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@main_bp.route('/api/donation/history', methods=['GET'])
+@auth.login_required
+def get_donation_history():
+    """Get donation history (requires auth)."""
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        donation_manager = get_donation_manager()
+        history = donation_manager.get_history(limit)
+        return jsonify({'history': history})
+    except Exception as e:
+        current_app.logger.error(f"Error getting donation history: {e}")
+        return jsonify({'error': 'Failed to load donation history'}), 500
 
 @main_bp.route('/port_diagnostics', methods=['GET'])
 @auth.login_required

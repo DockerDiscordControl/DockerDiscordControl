@@ -27,7 +27,12 @@
       "Bash(git restore:*)",
       "Bash(rg:*)",
       "Bash(python -m pytest --version)",
-      "Bash(python -m pytest -xvs tests/ --tb=short)"
+      "Bash(python -m pytest -xvs tests/ --tb=short)",
+      "Bash(sudo touch:*)",
+      "Bash(sudo chmod:*)",
+      "Bash(DDC_WEB_PORT=5001 python3 -m app.web_ui)",
+      "Bash(touch:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

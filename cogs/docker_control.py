@@ -74,6 +74,289 @@ logger = setup_logger('ddc.docker_control', level=logging.INFO)
 docker_status_cache = {}
 docker_status_cache_lock = threading.Lock()  # Thread safety for global status cache
 
+class DonationView(discord.ui.View):
+    """View with donation buttons that track clicks."""
+    
+    def __init__(self, donation_manager_available: bool):
+        super().__init__(timeout=300)  # 5 minutes timeout
+        self.donation_manager_available = donation_manager_available
+        logger.info(f"DonationView initialized with donation_manager_available: {donation_manager_available}")
+        
+        # Import translation function
+        from .translation_manager import _
+        
+        # Add Buy Me a Coffee button (interactive with tracking)
+        coffee_button = discord.ui.Button(
+            label=_("☕ Buy Me a Coffee"),
+            style=discord.ButtonStyle.primary,
+            custom_id="donation_coffee"
+        )
+        coffee_button.callback = self.coffee_clicked
+        self.add_item(coffee_button)
+        
+        # Add PayPal button (interactive with tracking)
+        paypal_button = discord.ui.Button(
+            label=_("💳 PayPal"),
+            style=discord.ButtonStyle.primary,
+            custom_id="donation_paypal"
+        )
+        paypal_button.callback = self.paypal_clicked
+        self.add_item(paypal_button)
+        
+        # Add Broadcast Donation button
+        broadcast_button = discord.ui.Button(
+            label=_("📢 Broadcast Donation"),
+            style=discord.ButtonStyle.success,
+            custom_id="donation_broadcast"
+        )
+        broadcast_button.callback = self.broadcast_clicked
+        self.add_item(broadcast_button)
+        
+    
+    async def coffee_clicked(self, interaction: discord.Interaction):
+        """Handle Buy Me a Coffee button click."""
+        try:
+            # Track the click
+            if self.donation_manager_available:
+                try:
+                    from utils.donation_manager import get_donation_manager
+                    donation_manager = get_donation_manager()
+                    donation_manager.record_donation(
+                        donation_type="discord_coffee",
+                        user_identifier=f"Discord User: {interaction.user.name} ({interaction.user.id})"
+                    )
+                    logger.info(f"Coffee donation button clicked by {interaction.user.name}")
+                except Exception as e:
+                    logger.debug(f"Could not track coffee click: {e}")
+            
+            # Send response with link (suppress embeds to avoid preview)
+            await interaction.response.send_message(
+                f"☕ **Thank you {interaction.user.name} for supporting DDC!**\n\n"
+                "Click here to donate via Buy Me a Coffee:\n"
+                "<https://buymeacoffee.com/dockerdiscordcontrol>\n\n"
+                "_Your support helps keep DDC running and improving!_ ❤️",
+                ephemeral=True,
+                suppress_embeds=True
+            )
+        except Exception as e:
+            logger.error(f"Error in coffee_clicked: {e}")
+    
+    async def paypal_clicked(self, interaction: discord.Interaction):
+        """Handle PayPal button click."""
+        try:
+            # Track the click
+            if self.donation_manager_available:
+                try:
+                    from utils.donation_manager import get_donation_manager
+                    donation_manager = get_donation_manager()
+                    donation_manager.record_donation(
+                        donation_type="discord_paypal",
+                        user_identifier=f"Discord User: {interaction.user.name} ({interaction.user.id})"
+                    )
+                    logger.info(f"PayPal donation button clicked by {interaction.user.name}")
+                except Exception as e:
+                    logger.debug(f"Could not track PayPal click: {e}")
+            
+            # Send response with link (suppress embeds to avoid preview)
+            await interaction.response.send_message(
+                f"💳 **Thank you {interaction.user.name} for supporting DDC!**\n\n"
+                "Click here to donate via PayPal:\n"
+                "<https://www.paypal.com/donate/?hosted_button_id=XKVC6SFXU2GW4>\n\n"
+                "_Your support helps keep DDC running and improving!_ ❤️",
+                ephemeral=True,
+                suppress_embeds=True
+            )
+        except Exception as e:
+            logger.error(f"Error in paypal_clicked: {e}")
+    
+    async def broadcast_clicked(self, interaction: discord.Interaction):
+        """Handle Broadcast Donation button click."""
+        try:
+            # Show modal for donation details
+            modal = DonationBroadcastModal(self.donation_manager_available, interaction.user.name)
+            await interaction.response.send_modal(modal)
+        except Exception as e:
+            logger.error(f"Error in broadcast_clicked: {e}")
+
+
+class DonationBroadcastModal(discord.ui.Modal):
+    """Modal for donation broadcast details."""
+    
+    def __init__(self, donation_manager_available: bool, default_name: str):
+        from .translation_manager import _
+        super().__init__(title=_("📢 Broadcast Your Donation"))
+        self.donation_manager_available = donation_manager_available
+        
+        # Name field (pre-filled with Discord username)
+        self.name_input = discord.ui.InputText(
+            label=_("Your Name"),
+            placeholder=_("How should we display your name?"),
+            value=default_name,
+            style=discord.InputTextStyle.short,
+            required=True,
+            max_length=50
+        )
+        self.add_item(self.name_input)
+        
+        # Amount field (optional)
+        self.amount_input = discord.ui.InputText(
+            label=_("Donation Amount (optional)"),
+            placeholder=_("e.g. 5 Euro, $10, etc. (leave empty if you prefer not to share)"),
+            style=discord.InputTextStyle.short,
+            required=False,
+            max_length=20
+        )
+        self.add_item(self.amount_input)
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle modal submission."""
+        try:
+            # Get values from modal
+            donor_name = self.name_input.value or interaction.user.name
+            amount = self.amount_input.value.strip() if self.amount_input.value else ""
+            
+            # Load and select a random quote
+            import json
+            import random
+            from pathlib import Path
+            
+            quote_text = ""
+            quote_author = ""
+            
+            try:
+                # Get current language
+                from .translation_manager import TranslationManager
+                tm = TranslationManager()
+                current_lang = tm.get_current_language()
+                
+                # Select appropriate quotes file based on language
+                lang_suffix = "de" if current_lang == "de" else "en" if current_lang == "en" else "fr"
+                quotes_file = Path(f"utils/donation_quotes_{lang_suffix}.json")
+                
+                # Fallback to German quotes if language-specific file doesn't exist
+                if not quotes_file.exists():
+                    quotes_file = Path("utils/donation_quotes.json")
+                
+                if quotes_file.exists():
+                    with open(quotes_file, 'r', encoding='utf-8') as f:
+                        quotes_data = json.load(f)
+                    
+                    # Filter unused quotes
+                    unused_quotes = [q for q in quotes_data['quotes'] if not q.get('used', False)]
+                    
+                    # If all quotes are used, reset them
+                    if not unused_quotes:
+                        for quote in quotes_data['quotes']:
+                            quote['used'] = False
+                        unused_quotes = quotes_data['quotes']
+                        quotes_data['lastReset'] = datetime.now().isoformat()
+                    
+                    # Select random quote
+                    selected_quote = random.choice(unused_quotes)
+                    quote_text = selected_quote['text']
+                    quote_author = selected_quote['author']
+                    
+                    # Mark as used
+                    for quote in quotes_data['quotes']:
+                        if quote['text'] == quote_text:
+                            quote['used'] = True
+                            break
+                    
+                    # Save updated quotes
+                    with open(quotes_file, 'w', encoding='utf-8') as f:
+                        json.dump(quotes_data, f, indent=2, ensure_ascii=False)
+                        
+                    logger.info(f"Selected quote from {quote_author} for donation broadcast")
+                    
+            except Exception as quote_error:
+                logger.debug(f"Could not load quote: {quote_error}")
+                # Fallback quote if loading fails
+                quote_text = "Die beste Art, sich selbst zu finden, besteht darin, sich im Dienst an anderen zu verlieren."
+                quote_author = "Mahatma Gandhi"
+            
+            # Create broadcast message with new format (translated)
+            from .translation_manager import _
+            if amount:
+                broadcast_text = _("{donor_name} supports DDC with {amount} – thank you so much ❤️").format(
+                    donor_name=f"**{donor_name}**",
+                    amount=f"**{amount}**"
+                )
+            else:
+                broadcast_text = _("{donor_name} supports DDC – thank you so much ❤️").format(
+                    donor_name=f"**{donor_name}**"
+                )
+            
+            # Add quote if available
+            if quote_text:
+                broadcast_text += f"\n\n_{quote_text}_"
+                if quote_author:
+                    broadcast_text += f"\n– {quote_author}"
+            
+            # Track the donation broadcast
+            if self.donation_manager_available:
+                try:
+                    from utils.donation_manager import get_donation_manager
+                    donation_manager = get_donation_manager()
+                    donation_manager.record_donation(
+                        donation_type="discord_broadcast",
+                        user_identifier=f"Discord User: {interaction.user.name} ({interaction.user.id}) as '{donor_name}'"
+                    )
+                    logger.info(f"Donation broadcast by {interaction.user.name} as '{donor_name}' with amount: '{amount}'")
+                except Exception as e:
+                    logger.debug(f"Could not track donation broadcast: {e}")
+            
+            # Send to all channels (using existing donatebroadcast logic)
+            from utils.config_cache import get_cached_config
+            config = get_cached_config()
+            channels_config = config.get('channel_permissions', {})
+            
+            sent_count = 0
+            failed_count = 0
+            
+            for channel_id_str, channel_info in channels_config.items():
+                try:
+                    channel_id = int(channel_id_str)
+                    channel = interaction.client.get_channel(channel_id)
+                    
+                    if channel:
+                        from .translation_manager import _
+                        embed = discord.Embed(
+                            title=_("💝 Donation received"),
+                            description=broadcast_text,
+                            color=0x00ff41
+                        )
+                        embed.set_footer(text="https://ddc.bot")
+                        
+                        await channel.send(embed=embed)
+                        sent_count += 1
+                        logger.info(f"Donation broadcast sent to channel {channel.name} ({channel_id})")
+                    else:
+                        failed_count += 1
+                        logger.warning(f"Could not find channel {channel_id}")
+                        
+                except Exception as channel_error:
+                    failed_count += 1
+                    logger.error(f"Error sending to channel {channel_id_str}: {channel_error}")
+            
+            # Respond to user (translated)
+            from .translation_manager import _
+            response_text = _("✅ **Donation broadcast sent!**") + "\n\n"
+            response_text += _("📢 Sent to **{count}** channels").format(count=sent_count) + "\n"
+            if failed_count > 0:
+                response_text += _("⚠️ Failed to send to {count} channels").format(count=failed_count) + "\n"
+            response_text += "\n" + _("Thank you **{donor_name}** for your generosity! 🙏").format(donor_name=donor_name)
+            
+            await interaction.response.send_message(response_text, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"Error in donation broadcast modal: {e}")
+            from .translation_manager import _
+            await interaction.response.send_message(
+                _("❌ Error sending donation broadcast. Please try again later."),
+                ephemeral=True
+            )
+
+
 class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin, CommandHandlersMixin):
     """Cog for DockerDiscordControl container management via Discord."""
 
@@ -1197,33 +1480,35 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             
             await ctx.defer(ephemeral=True)
             
-            if donation_manager_available:
-                donation_manager = get_donation_manager()
-                embed = donation_manager.create_donation_embed(is_automatic=False)
-            else:
-                # Fallback embed with neutral wording consistent with donation_manager
-                embed = discord.Embed(
-                    title=_('Support DockerDiscordControl'),
-                    description=_(
-                        'If DDC helps you, please consider supporting ongoing development. '
-                        'Donations help cover hosting, CI, maintenance, and feature work.'
-                    ),
-                    color=0x00ff41
-                )
-                embed.add_field(
-                    name=_('Buy me a Coffee'),
-                    value=f"[{_('Click here for Buy me a Coffee')}](https://buymeacoffee.com/dockerdiscordcontrol)",
-                    inline=True
-                )
-                embed.add_field(
-                    name='PayPal',
-                    value=f"[{_('Click here for PayPal')}](https://www.paypal.com/donate/?hosted_button_id=XKVC6SFXU2GW4)",
-                    inline=True
-                )
-                embed.set_footer(text="https://ddc.bot")
+            # Create donation embed
+            embed = discord.Embed(
+                title=_('Support DockerDiscordControl'),
+                description=_(
+                    'If DDC helps you, please consider supporting ongoing development. '
+                    'Donations help cover hosting, CI, maintenance, and feature work.'
+                ),
+                color=0x00ff41
+            )
+            embed.add_field(
+                name=_('Choose your preferred method:'),
+                value=_('Click one of the buttons below to support DDC development'),
+                inline=False
+            )
+            embed.set_footer(text="https://ddc.bot")
             
-            await ctx.followup.send(embed=embed, ephemeral=True)
-            logger.info(f"Donate command used by user {ctx.user.id} in channel {ctx.channel.id}")
+            # Create view with donation buttons
+            try:
+                view = DonationView(donation_manager_available)
+                await ctx.followup.send(embed=embed, view=view, ephemeral=True)
+            except Exception as view_error:
+                logger.error(f"Error creating DonationView: {view_error}")
+                # Fallback without view
+                await ctx.followup.send(embed=embed, ephemeral=True)
+            
+            logger.info(f"Donate command used by user {ctx.user.name} ({ctx.user.id}) in channel {ctx.channel.id}")
+            
+            # Note: We don't track /donate command usage - only actual button clicks
+            return  # Important: Exit here to avoid error handler
             
         except Exception as e:
             logger.error(f"Error in donate command: {e}", exc_info=True)

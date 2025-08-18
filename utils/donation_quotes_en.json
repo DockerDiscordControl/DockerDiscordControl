@@ -1,0 +1,535 @@
+{
+  "quotes": [
+    {
+      "text": "The best way to find yourself is to lose yourself in the service of others.",
+      "author": "Mahatma Gandhi",
+      "used": false
+    },
+    {
+      "text": "No act of kindness, no matter how small, is ever wasted.",
+      "author": "Aesop",
+      "used": false
+    },
+    {
+      "text": "We make a living by what we get, but we make a life by what we give.",
+      "author": "Winston Churchill",
+      "used": false
+    },
+    {
+      "text": "The meaning of life is to find your gift. The purpose of life is to give it away.",
+      "author": "Pablo Picasso",
+      "used": false
+    },
+    {
+      "text": "It's not how much we give but how much love we put into giving.",
+      "author": "Mother Teresa",
+      "used": false
+    },
+    {
+      "text": "For it is in giving that we receive.",
+      "author": "Francis of Assisi",
+      "used": false
+    },
+    {
+      "text": "The only way to do great work is to love what you do.",
+      "author": "Steve Jobs",
+      "used": false
+    },
+    {
+      "text": "Be the change you wish to see in the world.",
+      "author": "Mahatma Gandhi",
+      "used": false
+    },
+    {
+      "text": "Alone we can do so little; together we can do so much.",
+      "author": "Helen Keller",
+      "used": false
+    },
+    {
+      "text": "The greatest glory in living lies not in never falling, but in rising every time we fall.",
+      "author": "Nelson Mandela",
+      "used": false
+    },
+    {
+      "text": "Life is really simple, but we insist on making it complicated.",
+      "author": "Confucius",
+      "used": false
+    },
+    {
+      "text": "Innovation distinguishes between a leader and a follower.",
+      "author": "Steve Jobs",
+      "used": false
+    },
+    {
+      "text": "Your time is limited, don't waste it living someone else's life.",
+      "author": "Steve Jobs",
+      "used": false
+    },
+    {
+      "text": "The future belongs to those who believe in the beauty of their dreams.",
+      "author": "Eleanor Roosevelt",
+      "used": false
+    },
+    {
+      "text": "Coming together is a beginning, keeping together is progress, working together is success.",
+      "author": "Henry Ford",
+      "used": false
+    },
+    {
+      "text": "Individual commitment to a group effort - that is what makes a team work.",
+      "author": "Vince Lombardi",
+      "used": false
+    },
+    {
+      "text": "The best time to plant a tree was 20 years ago. The second best time is now.",
+      "author": "Chinese Proverb",
+      "used": false
+    },
+    {
+      "text": "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+      "author": "Winston Churchill",
+      "used": false
+    },
+    {
+      "text": "What you do makes a difference, and you have to decide what kind of difference you want to make.",
+      "author": "Jane Goodall",
+      "used": false
+    },
+    {
+      "text": "The only impossible thing is that which we don't attempt.",
+      "author": "Les Brown",
+      "used": false
+    },
+    {
+      "text": "We can't help everyone, but everyone can help someone.",
+      "author": "Ronald Reagan",
+      "used": false
+    },
+    {
+      "text": "Never doubt that a small group of thoughtful citizens can change the world.",
+      "author": "Margaret Mead",
+      "used": false
+    },
+    {
+      "text": "If you want to lift yourself up, lift up someone else.",
+      "author": "Booker T. Washington",
+      "used": false
+    },
+    {
+      "text": "The secret of getting ahead is getting started.",
+      "author": "Mark Twain",
+      "used": false
+    },
+    {
+      "text": "Don't watch the clock; do what it does. Keep going.",
+      "author": "Sam Levenson",
+      "used": false
+    },
+    {
+      "text": "Whether you think you can or you think you can't, you're right.",
+      "author": "Henry Ford",
+      "used": false
+    },
+    {
+      "text": "The way to get started is to quit talking and begin doing.",
+      "author": "Walt Disney",
+      "used": false
+    },
+    {
+      "text": "Life is 10% what happens to you and 90% how you react to it.",
+      "author": "Charles R. Swindoll",
+      "used": false
+    },
+    {
+      "text": "Act as if what you do makes a difference. It does.",
+      "author": "William James",
+      "used": false
+    },
+    {
+      "text": "Believe you can and you're halfway there.",
+      "author": "Theodore Roosevelt",
+      "used": false
+    },
+    {
+      "text": "Quality is not an act, it is a habit.",
+      "author": "Aristotle",
+      "used": false
+    },
+    {
+      "text": "The mind is everything. What you think you become.",
+      "author": "Buddha",
+      "used": false
+    },
+    {
+      "text": "In the middle of difficulty lies opportunity.",
+      "author": "Albert Einstein",
+      "used": false
+    },
+    {
+      "text": "Great things never come from comfort zones.",
+      "author": "Neil Strauss",
+      "used": false
+    },
+    {
+      "text": "Dream big and dare to fail.",
+      "author": "Norman Vaughan",
+      "used": false
+    },
+    {
+      "text": "It does not matter how slowly you go as long as you do not stop.",
+      "author": "Confucius",
+      "used": false
+    },
+    {
+      "text": "Everything you've ever wanted is on the other side of fear.",
+      "author": "George Addair",
+      "used": false
+    },
+    {
+      "text": "Happiness is not something ready made. It comes from your own actions.",
+      "author": "Dalai Lama",
+      "used": false
+    },
+    {
+      "text": "Do not go where the path may lead, go instead where there is no path and leave a trail.",
+      "author": "Ralph Waldo Emerson",
+      "used": false
+    },
+    {
+      "text": "Success usually comes to those who are too busy to be looking for it.",
+      "author": "Henry David Thoreau",
+      "used": false
+    },
+    {
+      "text": "If opportunity doesn't knock, build a door.",
+      "author": "Milton Berle",
+      "used": false
+    },
+    {
+      "text": "Don't be afraid to give up the good to go for the great.",
+      "author": "John D. Rockefeller",
+      "used": false
+    },
+    {
+      "text": "I find that the harder I work, the more luck I seem to have.",
+      "author": "Thomas Jefferson",
+      "used": false
+    },
+    {
+      "text": "Success is walking from failure to failure with no loss of enthusiasm.",
+      "author": "Winston Churchill",
+      "used": false
+    },
+    {
+      "text": "The ones who are crazy enough to think they can change the world, are the ones that do.",
+      "author": "Steve Jobs",
+      "used": false
+    },
+    {
+      "text": "Don't let yesterday take up too much of today.",
+      "author": "Will Rogers",
+      "used": false
+    },
+    {
+      "text": "You learn more from failure than from success. Don't let it stop you.",
+      "author": "Unknown",
+      "used": false
+    },
+    {
+      "text": "It's not whether you get knocked down, it's whether you get up.",
+      "author": "Vince Lombardi",
+      "used": false
+    },
+    {
+      "text": "People who are crazy enough to think they can change the world, are the ones who do.",
+      "author": "Rob Siltanen",
+      "used": false
+    },
+    {
+      "text": "Failure will never overtake me if my determination to succeed is strong enough.",
+      "author": "Og Mandino",
+      "used": false
+    },
+    {
+      "text": "We may encounter many defeats but we must not be defeated.",
+      "author": "Maya Angelou",
+      "used": false
+    },
+    {
+      "text": "Knowing is not enough; we must apply. Wishing is not enough; we must do.",
+      "author": "Johann Wolfgang Von Goethe",
+      "used": false
+    },
+    {
+      "text": "Imagine your life is perfect in every respect; what would it look like?",
+      "author": "Brian Tracy",
+      "used": false
+    },
+    {
+      "text": "We generate fears while we sit. We overcome them by action.",
+      "author": "Dr. Henry Link",
+      "used": false
+    },
+    {
+      "text": "Security is mostly a superstition. Life is either a daring adventure or nothing.",
+      "author": "Helen Keller",
+      "used": false
+    },
+    {
+      "text": "The man who has confidence in himself gains the confidence of others.",
+      "author": "Hasidic Proverb",
+      "used": false
+    },
+    {
+      "text": "The only limit to our realization of tomorrow will be our doubts of today.",
+      "author": "Franklin D. Roosevelt",
+      "used": false
+    },
+    {
+      "text": "Creativity is intelligence having fun.",
+      "author": "Albert Einstein",
+      "used": false
+    },
+    {
+      "text": "What you lack in talent can be made up with desire, hustle and giving 110% all the time.",
+      "author": "Don Zimmer",
+      "used": false
+    },
+    {
+      "text": "Do what you can with all you have, wherever you are.",
+      "author": "Theodore Roosevelt",
+      "used": false
+    },
+    {
+      "text": "You are never too old to set another goal or to dream a new dream.",
+      "author": "C.S. Lewis",
+      "used": false
+    },
+    {
+      "text": "To see what is right and not do it is a lack of courage.",
+      "author": "Confucius",
+      "used": false
+    },
+    {
+      "text": "Reading is to the mind, as exercise is to the body.",
+      "author": "Brian Tracy",
+      "used": false
+    },
+    {
+      "text": "Fake it until you make it! Act as if you had all the confidence you require until it becomes your reality.",
+      "author": "Brian Tracy",
+      "used": false
+    },
+    {
+      "text": "The future depends on what you do today.",
+      "author": "Mahatma Gandhi",
+      "used": false
+    },
+    {
+      "text": "The successful warrior is the average man, with laser-like focus.",
+      "author": "Bruce Lee",
+      "used": false
+    },
+    {
+      "text": "There's a way to do it better - find it.",
+      "author": "Thomas Edison",
+      "used": false
+    },
+    {
+      "text": "The ones who are crazy enough to think that they can change the world, are the ones who do.",
+      "author": "Steve Jobs",
+      "used": false
+    },
+    {
+      "text": "Don't let what you cannot do interfere with what you can do.",
+      "author": "John Wooden",
+      "used": false
+    },
+    {
+      "text": "You don't have to be great to start, but you have to start to be great.",
+      "author": "Zig Ziglar",
+      "used": false
+    },
+    {
+      "text": "A goal is a dream with a deadline.",
+      "author": "Napoleon Hill",
+      "used": false
+    },
+    {
+      "text": "Outstanding people have one thing in common: An absolute sense of mission.",
+      "author": "Zig Ziglar",
+      "used": false
+    },
+    {
+      "text": "Trying is winning in the moment.",
+      "author": "Dan Waldschmidt",
+      "used": false
+    },
+    {
+      "text": "Fall down seven times and stand up eight.",
+      "author": "Japanese Proverb",
+      "used": false
+    },
+    {
+      "text": "You just can't beat the person who never gives up.",
+      "author": "Babe Ruth",
+      "used": false
+    },
+    {
+      "text": "There is little success where there is little laughter.",
+      "author": "Andrew Carnegie",
+      "used": false
+    },
+    {
+      "text": "We cannot solve our problems with the same thinking we used when we created them.",
+      "author": "Albert Einstein",
+      "used": false
+    },
+    {
+      "text": "Learn from yesterday, live for today, hope for tomorrow.",
+      "author": "Albert Einstein",
+      "used": false
+    },
+    {
+      "text": "A year from now you may wish you had started today.",
+      "author": "Karen Lamb",
+      "used": false
+    },
+    {
+      "text": "The pessimist sees difficulty in every opportunity. The optimist sees opportunity in every difficulty.",
+      "author": "Winston Churchill",
+      "used": false
+    },
+    {
+      "text": "Don't let what you can't do stop you from doing what you can do.",
+      "author": "John Wooden",
+      "used": false
+    },
+    {
+      "text": "You make a living by what you get; you make a life by what you give.",
+      "author": "Winston Churchill",
+      "used": false
+    },
+    {
+      "text": "Nothing is impossible. The word itself says 'I'm possible!'",
+      "author": "Audrey Hepburn",
+      "used": false
+    },
+    {
+      "text": "Success is not how high you have climbed, but how you make a positive difference to the world.",
+      "author": "Roy T. Bennett",
+      "used": false
+    },
+    {
+      "text": "If you are working on something that you really care about, you don't have to be pushed. The vision pulls you.",
+      "author": "Steve Jobs",
+      "used": false
+    },
+    {
+      "text": "Opportunities don't happen, you create them.",
+      "author": "Chris Grosser",
+      "used": false
+    },
+    {
+      "text": "Don't be pushed around by the fears in your mind. Be led by the dreams in your heart.",
+      "author": "Roy T. Bennett",
+      "used": false
+    },
+    {
+      "text": "Work like there is someone working twenty four hours a day to take it away from you.",
+      "author": "Mark Cuban",
+      "used": false
+    },
+    {
+      "text": "Build your own dreams or someone else will hire you to build theirs.",
+      "author": "Farrah Gray",
+      "used": false
+    },
+    {
+      "text": "Without hustle, talent will only carry you so far.",
+      "author": "Gary Vaynerchuk",
+      "used": false
+    },
+    {
+      "text": "Working hard for something we don't care about is called stress; working hard for something we love is called passion.",
+      "author": "Simon Sinek",
+      "used": false
+    },
+    {
+      "text": "Don't worry about failure; you only have to be right once.",
+      "author": "Drew Houston",
+      "used": false
+    },
+    {
+      "text": "Hustle in silence and let your success make the noise.",
+      "author": "Unknown",
+      "used": false
+    },
+    {
+      "text": "We are what we repeatedly do. Excellence, then, is not an act, but a habit.",
+      "author": "Will Durant",
+      "used": false
+    },
+    {
+      "text": "If you're offered a seat on a rocket ship, don't ask what seat! Just get on.",
+      "author": "Sheryl Sandberg",
+      "used": false
+    },
+    {
+      "text": "I have not failed. I've just found 10,000 ways that won't work.",
+      "author": "Thomas Edison",
+      "used": false
+    },
+    {
+      "text": "The whole secret of a successful life is to find out what is one's destiny to do, and then do it.",
+      "author": "Henry Ford",
+      "used": false
+    },
+    {
+      "text": "If you really look closely, most overnight successes took a long time.",
+      "author": "Steve Jobs",
+      "used": false
+    },
+    {
+      "text": "The distance between insanity and genius is measured only by success.",
+      "author": "Bruce Feirstein",
+      "used": false
+    },
+    {
+      "text": "Don't be afraid to give your best to what seemingly are small jobs.",
+      "author": "Dale Carnegie",
+      "used": false
+    },
+    {
+      "text": "There are two types of people who will tell you that you cannot make a difference in this world: those who are afraid to try and those who are afraid you will succeed.",
+      "author": "Ray Goforth",
+      "used": false
+    },
+    {
+      "text": "Success is the sum of small efforts repeated day in and day out.",
+      "author": "Robert Collier",
+      "used": false
+    },
+    {
+      "text": "If you want to achieve excellence, you can get there today. As of this second, quit doing less-than-excellent work.",
+      "author": "Thomas J. Watson",
+      "used": false
+    },
+    {
+      "text": "All progress takes place outside the comfort zone.",
+      "author": "Michael John Bobak",
+      "used": false
+    },
+    {
+      "text": "You may only succeed if you desire succeeding; you may only fail if you do not mind failing.",
+      "author": "Philippos",
+      "used": false
+    },
+    {
+      "text": "Open source is a development methodology; free software is a social movement.",
+      "author": "Richard Stallman",
+      "used": false
+    }
+  ],
+  "lastReset": null
+}

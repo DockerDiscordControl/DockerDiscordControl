@@ -1,0 +1,500 @@
+{
+  "quotes": [
+    {
+      "text": "La meilleure façon de se trouver est de se perdre au service des autres.",
+      "author": "Mahatma Gandhi",
+      "used": false
+    },
+    {
+      "text": "Aucun acte de gentillesse, aussi petit soit-il, n'est jamais perdu.",
+      "author": "Ésope",
+      "used": false
+    },
+    {
+      "text": "Le secret du bonheur ne consiste pas à posséder mais à donner.",
+      "author": "André Gide",
+      "used": false
+    },
+    {
+      "text": "Ce n'est pas combien nous donnons, mais combien d'amour nous mettons dans ce don.",
+      "author": "Mère Teresa",
+      "used": false
+    },
+    {
+      "text": "Le sens de la vie est de trouver votre don. Le but de la vie est de le donner.",
+      "author": "Pablo Picasso",
+      "used": false
+    },
+    {
+      "text": "On ne voit bien qu'avec le cœur. L'essentiel est invisible pour les yeux.",
+      "author": "Antoine de Saint-Exupéry",
+      "used": false
+    },
+    {
+      "text": "Le bonheur n'est réel que lorsqu'il est partagé.",
+      "author": "Christopher McCandless",
+      "used": false
+    },
+    {
+      "text": "Soyez le changement que vous voulez voir dans le monde.",
+      "author": "Mahatma Gandhi",
+      "used": false
+    },
+    {
+      "text": "Un sourire ne coûte rien mais crée beaucoup.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "La vie, c'est comme une bicyclette, il faut avancer pour ne pas perdre l'équilibre.",
+      "author": "Albert Einstein",
+      "used": false
+    },
+    {
+      "text": "Il n'y a qu'un bonheur dans la vie, c'est d'aimer et d'être aimé.",
+      "author": "George Sand",
+      "used": false
+    },
+    {
+      "text": "La vraie générosité envers l'avenir consiste à tout donner au présent.",
+      "author": "Albert Camus",
+      "used": false
+    },
+    {
+      "text": "Rien n'est plus fort qu'une idée dont l'heure est venue.",
+      "author": "Victor Hugo",
+      "used": false
+    },
+    {
+      "text": "Chaque homme doit inventer son chemin.",
+      "author": "Jean-Paul Sartre",
+      "used": false
+    },
+    {
+      "text": "Il faut toujours viser la lune, car même en cas d'échec, on atterrit dans les étoiles.",
+      "author": "Oscar Wilde",
+      "used": false
+    },
+    {
+      "text": "Le plus grand plaisir dans la vie est de réaliser ce que les autres vous pensent incapable de réaliser.",
+      "author": "Walter Bagehot",
+      "used": false
+    },
+    {
+      "text": "L'homme n'est rien sans les hommes.",
+      "author": "Proverbe africain",
+      "used": false
+    },
+    {
+      "text": "La solidarité est la tendresse des peuples.",
+      "author": "Gioconda Belli",
+      "used": false
+    },
+    {
+      "text": "La perfection n'est pas de ce monde, mais la générosité oui.",
+      "author": "Abbé Pierre",
+      "used": false
+    },
+    {
+      "text": "La seule manière de faire du bon travail est d'aimer ce que vous faites.",
+      "author": "Steve Jobs",
+      "used": false
+    },
+    {
+      "text": "Tout seul on va plus vite, ensemble on va plus loin.",
+      "author": "Proverbe africain",
+      "used": false
+    },
+    {
+      "text": "L'important n'est pas de convaincre, mais de donner à réfléchir.",
+      "author": "Bernard Werber",
+      "used": false
+    },
+    {
+      "text": "Le monde change par votre exemple, pas par votre opinion.",
+      "author": "Paulo Coelho",
+      "used": false
+    },
+    {
+      "text": "La liberté commence où l'ignorance finit.",
+      "author": "Victor Hugo",
+      "used": false
+    },
+    {
+      "text": "Dans la vie, rien n'est à craindre, tout est à comprendre.",
+      "author": "Marie Curie",
+      "used": false
+    },
+    {
+      "text": "Le succès n'est pas final, l'échec n'est pas fatal : c'est le courage de continuer qui compte.",
+      "author": "Winston Churchill",
+      "used": false
+    },
+    {
+      "text": "Celui qui déplace une montagne commence par déplacer de petites pierres.",
+      "author": "Confucius",
+      "used": false
+    },
+    {
+      "text": "Vis comme si tu devais mourir demain. Apprends comme si tu devais vivre toujours.",
+      "author": "Mahatma Gandhi",
+      "used": false
+    },
+    {
+      "text": "Le pessimiste voit la difficulté dans chaque opportunité. L'optimiste voit l'opportunité dans chaque difficulté.",
+      "author": "Winston Churchill",
+      "used": false
+    },
+    {
+      "text": "La folie, c'est de faire toujours la même chose et de s'attendre à un résultat différent.",
+      "author": "Albert Einstein",
+      "used": false
+    },
+    {
+      "text": "Le bonheur est la seule chose qui se double si on le partage.",
+      "author": "Albert Schweitzer",
+      "used": false
+    },
+    {
+      "text": "Il n'y a point de chemin vers le bonheur. Le bonheur, c'est le chemin.",
+      "author": "Lao Tseu",
+      "used": false
+    },
+    {
+      "text": "Un homme n'est jamais si grand que lorsqu'il est à genoux pour aider un enfant.",
+      "author": "Pythagore",
+      "used": false
+    },
+    {
+      "text": "C'est dans l'effort que l'on trouve la satisfaction et non dans la réussite.",
+      "author": "Mahatma Gandhi",
+      "used": false
+    },
+    {
+      "text": "L'avenir appartient à ceux qui croient en la beauté de leurs rêves.",
+      "author": "Eleanor Roosevelt",
+      "used": false
+    },
+    {
+      "text": "La valeur d'un homme tient dans sa capacité à donner et non dans sa capacité à recevoir.",
+      "author": "Albert Einstein",
+      "used": false
+    },
+    {
+      "text": "Il n'est jamais trop tard pour devenir ce que nous aurions pu être.",
+      "author": "George Eliot",
+      "used": false
+    },
+    {
+      "text": "L'éducation est l'arme la plus puissante pour changer le monde.",
+      "author": "Nelson Mandela",
+      "used": false
+    },
+    {
+      "text": "Là où se trouve une volonté, il existe un chemin.",
+      "author": "Winston Churchill",
+      "used": false
+    },
+    {
+      "text": "La plus grande gloire n'est pas de ne jamais tomber, mais de se relever à chaque chute.",
+      "author": "Confucius",
+      "used": false
+    },
+    {
+      "text": "Le courage n'est pas l'absence de peur, mais la capacité de la vaincre.",
+      "author": "Nelson Mandela",
+      "used": false
+    },
+    {
+      "text": "Donner, c'est recevoir.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "On reconnaît le degré de civilisation d'un peuple à la manière dont il traite ses animaux.",
+      "author": "Gandhi",
+      "used": false
+    },
+    {
+      "text": "Il n'y a pas de hasard, il n'y a que des rendez-vous.",
+      "author": "Paul Éluard",
+      "used": false
+    },
+    {
+      "text": "Celui qui plante un arbre avant de mourir n'a pas vécu inutilement.",
+      "author": "Proverbe africain",
+      "used": false
+    },
+    {
+      "text": "Le peu qu'on peut faire, le très peu qu'on peut faire, il faut le faire.",
+      "author": "Théodore Monod",
+      "used": false
+    },
+    {
+      "text": "Ce qui compte, ce n'est pas de voter, c'est comment sont comptés les votes.",
+      "author": "Joseph Staline",
+      "used": false
+    },
+    {
+      "text": "L'impossible, nous ne l'atteignons pas, mais il nous sert de lanterne.",
+      "author": "René Char",
+      "used": false
+    },
+    {
+      "text": "Chacun sa route, chacun son chemin.",
+      "author": "Tonton David",
+      "used": false
+    },
+    {
+      "text": "Il ne faut avoir aucun regret pour le passé, aucun remords pour le présent, et une confiance inébranlable pour l'avenir.",
+      "author": "Jean Jaurès",
+      "used": false
+    },
+    {
+      "text": "Rien ne se perd, rien ne se crée, tout se transforme.",
+      "author": "Antoine Lavoisier",
+      "used": false
+    },
+    {
+      "text": "L'art de vivre tient plus de la lutte que de la danse.",
+      "author": "Marc Aurèle",
+      "used": false
+    },
+    {
+      "text": "La culture, c'est ce qui reste quand on a tout oublié.",
+      "author": "Édouard Herriot",
+      "used": false
+    },
+    {
+      "text": "Exister, c'est oser se jeter dans le monde.",
+      "author": "Simone de Beauvoir",
+      "used": false
+    },
+    {
+      "text": "L'espoir fait vivre.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "La simplicité est la sophistication suprême.",
+      "author": "Léonard de Vinci",
+      "used": false
+    },
+    {
+      "text": "Ose savoir !",
+      "author": "Emmanuel Kant",
+      "used": false
+    },
+    {
+      "text": "Je pense donc je suis.",
+      "author": "René Descartes",
+      "used": false
+    },
+    {
+      "text": "Science sans conscience n'est que ruine de l'âme.",
+      "author": "François Rabelais",
+      "used": false
+    },
+    {
+      "text": "Tel est pris qui croyait prendre.",
+      "author": "Jean de La Fontaine",
+      "used": false
+    },
+    {
+      "text": "Patience et longueur de temps font plus que force ni que rage.",
+      "author": "Jean de La Fontaine",
+      "used": false
+    },
+    {
+      "text": "Rien ne sert de courir ; il faut partir à point.",
+      "author": "Jean de La Fontaine",
+      "used": false
+    },
+    {
+      "text": "L'homme est un loup pour l'homme.",
+      "author": "Plaute",
+      "used": false
+    },
+    {
+      "text": "Le mieux est l'ennemi du bien.",
+      "author": "Voltaire",
+      "used": false
+    },
+    {
+      "text": "Il faut cultiver notre jardin.",
+      "author": "Voltaire",
+      "used": false
+    },
+    {
+      "text": "L'enfer c'est les autres.",
+      "author": "Jean-Paul Sartre",
+      "used": false
+    },
+    {
+      "text": "On ne naît pas femme : on le devient.",
+      "author": "Simone de Beauvoir",
+      "used": false
+    },
+    {
+      "text": "Le cœur a ses raisons que la raison ne connaît point.",
+      "author": "Blaise Pascal",
+      "used": false
+    },
+    {
+      "text": "La nature a horreur du vide.",
+      "author": "Aristote",
+      "used": false
+    },
+    {
+      "text": "Connais-toi toi-même.",
+      "author": "Socrate",
+      "used": false
+    },
+    {
+      "text": "Je sais que je ne sais rien.",
+      "author": "Socrate",
+      "used": false
+    },
+    {
+      "text": "Le temps perdu ne se rattrape jamais.",
+      "author": "Benjamin Franklin",
+      "used": false
+    },
+    {
+      "text": "L'union fait la force.",
+      "author": "Proverbe belge",
+      "used": false
+    },
+    {
+      "text": "Petit à petit, l'oiseau fait son nid.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "Après la pluie, le beau temps.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "Qui vivra verra.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "Pierre qui roule n'amasse pas mousse.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "Aide-toi, le ciel t'aidera.",
+      "author": "Jean de La Fontaine",
+      "used": false
+    },
+    {
+      "text": "Mieux vaut tard que jamais.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "C'est en forgeant qu'on devient forgeron.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "L'habit ne fait pas le moine.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "Qui sème le vent récolte la tempête.",
+      "author": "Osée",
+      "used": false
+    },
+    {
+      "text": "Les paroles s'envolent, les écrits restent.",
+      "author": "Proverbe latin",
+      "used": false
+    },
+    {
+      "text": "Il faut battre le fer pendant qu'il est chaud.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "La fortune sourit aux audacieux.",
+      "author": "Virgile",
+      "used": false
+    },
+    {
+      "text": "L'argent ne fait pas le bonheur.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "Qui ne risque rien n'a rien.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "Il n'y a que le premier pas qui coûte.",
+      "author": "Madame du Deffand",
+      "used": false
+    },
+    {
+      "text": "Vouloir, c'est pouvoir.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "Un tiens vaut mieux que deux tu l'auras.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "Qui va lentement va sûrement.",
+      "author": "Proverbe italien",
+      "used": false
+    },
+    {
+      "text": "Chaque chose en son temps.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "Nul n'est prophète en son pays.",
+      "author": "Proverbe biblique",
+      "used": false
+    },
+    {
+      "text": "La nuit porte conseil.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "Les bons comptes font les bons amis.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "L'occasion fait le larron.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "La parole est d'argent, le silence est d'or.",
+      "author": "Proverbe français",
+      "used": false
+    },
+    {
+      "text": "Le logiciel libre est une philosophie de vie, pas une stratégie commerciale.",
+      "author": "Richard Stallman",
+      "used": false
+    },
+    {
+      "text": "La technologie nous connecte, mais la générosité nous rend humains.",
+      "author": "Inconnu",
+      "used": false
+    }
+  ],
+  "lastReset": null
+}
