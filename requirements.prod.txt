@@ -27,4 +27,6 @@ zope.interface>=6.2
 docker==7.1.0
 # audioop-lts only for Python 3.13+
 audioop-lts==0.2.1; python_version >= "3.13"
+# Pillow for mech animations
+Pillow>=10.2.0
 

@@ -129,14 +129,13 @@ class DonationView(discord.ui.View):
                 except Exception as e:
                     logger.debug(f"Could not track coffee click: {e}")
             
-            # Send response with link (suppress embeds to avoid preview)
+            # Send response with link (URLs in <> brackets suppress embeds automatically)
             await interaction.response.send_message(
                 f"☕ **Thank you {interaction.user.name} for supporting DDC!**\n\n"
                 "Click here to donate via Buy Me a Coffee:\n"
                 "<https://buymeacoffee.com/dockerdiscordcontrol>\n\n"
                 "_Your support helps keep DDC running and improving!_ ❤️",
-                ephemeral=True,
-                suppress_embeds=True
+                ephemeral=True
             )
         except Exception as e:
             logger.error(f"Error in coffee_clicked: {e}")
@@ -157,14 +156,13 @@ class DonationView(discord.ui.View):
                 except Exception as e:
                     logger.debug(f"Could not track PayPal click: {e}")
             
-            # Send response with link (suppress embeds to avoid preview)
+            # Send response with link (URLs in <> brackets suppress embeds automatically)
             await interaction.response.send_message(
                 f"💳 **Thank you {interaction.user.name} for supporting DDC!**\n\n"
                 "Click here to donate via PayPal:\n"
                 "<https://www.paypal.com/donate/?hosted_button_id=XKVC6SFXU2GW4>\n\n"
                 "_Your support helps keep DDC running and improving!_ ❤️",
-                ephemeral=True,
-                suppress_embeds=True
+                ephemeral=True
             )
         except Exception as e:
             logger.error(f"Error in paypal_clicked: {e}")
@@ -305,6 +303,32 @@ class DonationBroadcastModal(discord.ui.Modal):
                 except Exception as e:
                     logger.debug(f"Could not track donation broadcast: {e}")
             
+            # Try to create mech animation
+            animation_file = None
+            try:
+                from utils.mech_animator import get_mech_animator
+                animator = get_mech_animator()
+                
+                # Get total donations for speed calculation
+                total_donations = 0
+                if self.donation_manager_available:
+                    try:
+                        donation_status = donation_manager.get_status()
+                        total_donations = donation_status.get('total_donations', 0)
+                    except:
+                        pass
+                
+                # Create animation
+                animation_file = await animator.create_donation_animation(
+                    donor_name,
+                    amount,
+                    total_donations
+                )
+                logger.info(f"Created mech animation for donation broadcast")
+            except Exception as anim_error:
+                logger.debug(f"Could not create mech animation: {anim_error}")
+                animation_file = None
+            
             # Send to all channels (using existing donatebroadcast logic)
             from utils.config_cache import get_cached_config
             config = get_cached_config()
@@ -312,6 +336,9 @@ class DonationBroadcastModal(discord.ui.Modal):
             
             sent_count = 0
             failed_count = 0
+            
+            # For animation, we'll send to first channel only (to avoid rate limits)
+            first_channel_with_animation = True
             
             for channel_id_str, channel_info in channels_config.items():
                 try:
@@ -325,11 +352,19 @@ class DonationBroadcastModal(discord.ui.Modal):
                             description=broadcast_text,
                             color=0x00ff41
                         )
-                        embed.set_footer(text="https://ddc.bot")
                         
-                        await channel.send(embed=embed)
+                        # Add animation to first channel only
+                        if animation_file and first_channel_with_animation:
+                            embed.set_image(url="attachment://mech_donation.gif")
+                            await channel.send(embed=embed, file=animation_file)
+                            first_channel_with_animation = False
+                            logger.info(f"Donation broadcast with animation sent to channel {channel.name}")
+                        else:
+                            embed.set_footer(text="https://ddc.bot")
+                            await channel.send(embed=embed)
+                            logger.info(f"Donation broadcast sent to channel {channel.name}")
+                        
                         sent_count += 1
-                        logger.info(f"Donation broadcast sent to channel {channel.name} ({channel_id})")
                     else:
                         failed_count += 1
                         logger.warning(f"Could not find channel {channel_id}")

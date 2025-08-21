@@ -31,6 +31,7 @@ zope.event>=5.0
 zope.interface>=6.2
 # superlance is not required in production and not used in code
 audioop-lts==0.2.1; python_version >= "3.13"  # Python 3.13 compatibility
+Pillow>=10.2.0  # For mech animations
 
 # --- Development/Testing Dependencies ---
 pytest==8.3.4

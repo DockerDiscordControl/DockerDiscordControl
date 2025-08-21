@@ -26,12 +26,90 @@
             </a>
         </span>
         
-        <!-- Donator Status Heart -->
-        <span class="d-inline-block mx-2 align-middle">
-            <div class="donator-heart-container" title="Donator Status">
-                <i class="bi bi-heart-fill donator-heart" id="donatorHeart"></i>
+        <!-- Donation Test Controls -->
+        <div class="w-100 mt-2">
+            <div class="text-center">
+                <div class="btn-group" role="group" aria-label="Donation controls">
+                    <button type="button" class="btn btn-sm btn-success" onclick="addTestFuel(5)" title="Add $5">
+                        <i class="bi bi-plus-circle"></i> +$5
+                    </button>
+                    <button type="button" class="btn btn-sm btn-success" onclick="addTestFuel(10)" title="Add $10">
+                        <i class="bi bi-plus-circle"></i> +$10
+                    </button>
+                    <button type="button" class="btn btn-sm btn-success" onclick="addTestFuel(50)" title="Add $50">
+                        <i class="bi bi-plus-circle"></i> +$50
+                    </button>
+                    <button type="button" class="btn btn-sm btn-warning" onclick="addTestFuel(100)" title="Add $100">
+                        <i class="bi bi-plus-circle"></i> +$100
+                    </button>
+                    <button type="button" class="btn btn-sm btn-warning" onclick="addTestFuel(500)" title="Add $500">
+                        <i class="bi bi-rocket"></i> +$500
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="addTestFuel(-10)" title="Remove $10">
+                        <i class="bi bi-dash-circle"></i> -$10
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="resetFuel()" title="Reset to 0">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset
+                    </button>
+                </div>
             </div>
-        </span>
+        </div>
+        
+        <!-- Donator Mech Animation - Below buttons -->
+        <div class="w-100 mt-3">
+            <div class="donator-mech-container d-flex align-items-center" title="Donation Mech Status">
+                <!-- Left side: Mech + Speed -->
+                <div class="mech-section d-flex flex-column align-items-center">
+                    <div id="donatorMech" class="mech-display">
+                        <img id="mechAnimation" src="https://cdn-icons-png.flaticon.com/512/2451/2451011.png" alt="Mech" style="height: 120px; width: auto;">
+                        <div class="mech-loading" style="display: none;">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <div id="fuelConsumptionOverlay" class="fuel-consumption-overlay">-$0.00003472</div>
+                    </div>
+                    <!-- Speed Status under Mech -->
+                    <div id="mechSpeedStatus" class="speed-status mt-2" style="color: #888; font-size: 14px; font-weight: bold; text-align: center;">OFFLINE</div>
+                </div>
+                
+                <!-- Right side: Gauge Container -->
+                <div class="gauge-container ms-4">
+                    
+                    <!-- Fuel Bar -->
+                    <div class="bar-row">
+                        <div class="bar-wrapper">
+                            <div class="fuel-bar">
+                                <div id="fuelLevel" class="fuel-fill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="bar-label">
+                            <span style="color: #ff4444; font-weight: bold;">FUEL</span>
+                            <span id="fuelAmount" style="color: #ffaa00; margin-left: 5px;">$0</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Evolution Bar -->
+                    <div class="bar-row" style="margin-top: 15px;">
+                        <div class="bar-wrapper">
+                            <div class="evolution-bar">
+                                <div id="evolutionProgress" class="evolution-fill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="bar-label">
+                            <span id="nextEvolutionInfo" style="color: #888; font-size: 11px;">
+                                Next: <span id="nextEvolutionName" style="color: #aaa;">REPAIRED MECH</span><br>
+                                <span id="nextEvolutionAmount" style="color: #ffcc00; font-weight: bold;">$20 needed</span>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div id="fuelConsumption" class="fuel-consumption" style="color: #ff4444; font-size: 11px; margin-top: 8px; font-weight: bold; opacity: 0; text-align: center;">
+                        -$0.00003472
+                    </div>
+                </div>
+            </div>
+        </div>
         
         {# Matrix Terminal Thank You Overlay - Hidden by default #}
         <div id="thankYouOverlay" class="matrix-terminal-overlay" style="display: none;">
@@ -109,19 +187,119 @@
         
         /* Matrix Terminal Complete */
         
-        /* Donator Heart Status */
-        .donator-heart-container {
-            height: 40px;
+        /* Donator Mech Status */
+        .donator-mech-container {
+            padding: 20px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 12px;
+            max-width: 800px;
+            margin: 0 auto;
+            min-height: 200px;
+        }
+        
+        .mech-section {
+            min-width: 200px;
+        }
+        
+        .mech-display {
+            height: 120px;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0 10px;
+            position: relative;
         }
         
-        .donator-heart {
-            font-size: 24px;
-            transition: all 0.3s ease;
-            cursor: help;
+        .fuel-consumption-overlay {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: transparent;
+            color: #ff0000;
+            font-size: 9px;
+            font-weight: bold;
+            padding: 2px 4px;
+            z-index: 10;
+            pointer-events: none;
+            font-family: 'Courier New', monospace;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .fuel-consumption-overlay.flash {
+            opacity: 1;
+        }
+        
+        .gauge-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 350px;
+            flex: 1;
+        }
+        
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .bar-wrapper {
+            flex: 0 0 150px;
+        }
+        
+        .bar-label {
+            flex: 1;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+        
+        .fuel-bar, .evolution-bar {
+            width: 150px;
+            height: 20px;
+            background: #1a1a1a;
+            border: 2px solid #444;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .fuel-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #cc0000 0%, #ff3333 50%, #ff6666 100%);
+            transition: width 0.5s ease;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+        }
+        
+        .evolution-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffff 0%, #00ccff 50%, #00ffff 100%);
+            transition: width 0.5s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        
+        .evolution-name {
+            font-size: 11px;
+            font-weight: bold;
+            color: #cc00ff;
+            text-align: center;
+            text-shadow: 0 0 3px rgba(204, 0, 255, 0.5);
+        }
+        
+        .next-evolution-info {
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px dotted #444;
+        }
+        
+        .fuel-amount {
+            font-size: 14px;
+            font-weight: bold;
+            color: #ffcc00;
+            margin-top: 4px;
+            text-align: center;
+            text-shadow: 0 0 5px rgba(255, 204, 0, 0.5);
         }
         
         /* Gray state (inactive/old donation) - NO PULSE */
@@ -205,8 +383,8 @@
                                 timestamp: data.timestamp
                             }));
                             
-                            // Update heart immediately
-                            checkDonatorHeartStatus();
+                            // Update mech immediately
+                            checkDonatorMechStatus();
                         }
                     })
                     .catch(error => {
@@ -322,28 +500,202 @@
         // Donator Heart Management
         function updateDonatorHeart(donationTimestamp) {
             // No longer storing locally - server handles it
-            // Just refresh the heart status from server
-            checkDonatorHeartStatus();
+            // Just refresh the mech status from server
+            checkDonatorMechStatus();
         }
         
-        function checkDonatorHeartStatus() {
-            const heart = document.getElementById('donatorHeart');
-            if (!heart) return;
+        // Speed description function (simplified version of Python speed_levels.py)
+        function getSpeedDescription(level) {
+            const speeds = {
+                0: {text: "OFFLINE", color: "#888888"},
+                1: {text: "Motionless 🐌", color: "#4a4a4a"},
+                2: {text: "Barely perceptible 🐌", color: "#525252"},
+                3: {text: "Extremely sluggish 🐌", color: "#5a5a5a"},
+                4: {text: "Painfully hesitant 🐌", color: "#626262"},
+                5: {text: "Excruciatingly lethargic 🐌", color: "#6a6a6a"},
+                10: {text: "Glacially slow 🐌", color: "#929292"},
+                15: {text: "Faltering pace 🐌", color: "#bababa"},
+                20: {text: "Slow but continuous 🐌", color: "#e2e2e2"},
+                25: {text: "Measured walking 🚶", color: "#ccaa00"},
+                30: {text: "Decisive stride 🚶", color: "#88cc00"},
+                35: {text: "Fast stride 🚶", color: "#33cc00"},
+                40: {text: "Quick-paced 🚶", color: "#00cc22"},
+                45: {text: "Hurrying intensely 🏃", color: "#00cc77"},
+                50: {text: "Sharply swift 🏃", color: "#00cccc"},
+                55: {text: "Racing step 🏃", color: "#0077cc"},
+                60: {text: "Almost running 🏃", color: "#0022cc"},
+                65: {text: "Fast jogging 🏃‍♂️💨", color: "#3300cc"},
+                70: {text: "Rapid running 🏃‍♂️💨", color: "#8800cc"},
+                75: {text: "Relentless sprint 🏃‍♂️💨", color: "#cc00bb"},
+                80: {text: "Supersonic pace 🏃‍♂️💨", color: "#cc0066"},
+                85: {text: "Breakneck velocity 🚀", color: "#cc0011"},
+                90: {text: "Star-chasing speed 🚀", color: "#ff3300"},
+                95: {text: "Warp-level 5 ⚡", color: "#ff8800"},
+                100: {text: "Beyond-lightspeed ⚡", color: "#ffdd00"},
+                101: {text: "Godspeed 🚀✨", color: "#ffff00"}
+            };
+            
+            // Find the closest level match
+            let bestMatch = speeds[0];
+            for (let speedLevel in speeds) {
+                if (level >= parseInt(speedLevel)) {
+                    bestMatch = speeds[speedLevel];
+                }
+            }
+            
+            return bestMatch;
+        }
+        
+        function checkDonatorMechStatus() {
+            const mechImg = document.getElementById('mechAnimation');
+            const mechLoading = document.querySelector('.mech-loading');
+            const fuelLevel = document.getElementById('fuelLevel');
+            const fuelAmountElement = document.getElementById('fuelAmount');
+            
+            if (!mechImg || !fuelLevel || !fuelAmountElement) return;
             
             // Fetch donation status from server
             fetch('/api/donation/status')
                 .then(response => response.json())
                 .then(data => {
-                    if (!data.has_donated || data.timestamp === null) {
-                        // No donation recorded - gray heart
-                        heart.className = 'bi bi-heart-fill donator-heart inactive';
-                        heart.style.color = ''; // Reset inline style
-                        heart.style.filter = ''; // Reset inline style
-                        heart.style.textShadow = ''; // Reset inline style
-                        heart.style.animation = '';
-                        heart.title = 'Support DDC development ❤️';
-                        return;
+                    // Get fuel amount (for speed) and total donations received (for evolution)
+                    const fuelAmount = data.total_amount || 0;  // Current fuel
+                    const totalDonationsReceived = data.total_donations_received || 0;  // Total ever donated
+                    
+                    // Update speed status based on FUEL
+                    const speedStatus = document.getElementById('mechSpeedStatus');
+                    let speedText = '';
+                    let speedColor = '#888';
+                    
+                    // Calculate speed level based on fuel
+                    let speedLevel = 0;
+                    if (fuelAmount <= 0) {
+                        speedLevel = 0;
+                    } else {
+                        speedLevel = Math.min(Math.floor(fuelAmount / 10), 101);
+                        if (fuelAmount >= 1010) speedLevel = 101;
                     }
+                    
+                    // Update evolution status based on TOTAL DONATIONS
+                    const evolutionThresholds = [0, 20, 50, 100, 200, 400, 800, 1500, 2500, 4000];
+                    const evolutionNames = [
+                        "SCRAP MECH", "REPAIRED MECH", "STANDARD MECH", "ENHANCED MECH",
+                        "ADVANCED MECH", "ELITE MECH", "CYBER MECH", "PLASMA MECH",
+                        "QUANTUM MECH", "DIVINE MECH"
+                    ];
+                    
+                    let evolutionLevel = 0;
+                    for (let i = evolutionThresholds.length - 1; i >= 0; i--) {
+                        if (totalDonationsReceived >= evolutionThresholds[i]) {
+                            evolutionLevel = i;
+                            break;
+                        }
+                    }
+                    
+                    // Update evolution display
+                    const evolutionProgressEl = document.getElementById('evolutionProgress');
+                    const nextEvolutionNameEl = document.getElementById('nextEvolutionName');
+                    const nextEvolutionAmountEl = document.getElementById('nextEvolutionAmount');
+                    const nextEvolutionInfoEl = document.getElementById('nextEvolutionInfo');
+                    
+                    if (evolutionProgressEl) {
+                        if (evolutionLevel < 9) {
+                            const currentThreshold = evolutionThresholds[evolutionLevel];
+                            const nextThreshold = evolutionThresholds[evolutionLevel + 1];
+                            const progress = ((totalDonationsReceived - currentThreshold) / (nextThreshold - currentThreshold)) * 100;
+                            
+                            evolutionProgressEl.style.width = `${Math.min(100, Math.max(0, progress))}%`;
+                            nextEvolutionNameEl.textContent = evolutionNames[evolutionLevel + 1];
+                            const amountNeeded = nextThreshold - totalDonationsReceived;
+                            nextEvolutionAmountEl.textContent = `$${amountNeeded.toFixed(0)} needed`;
+                            nextEvolutionInfoEl.style.display = 'inline';
+                        } else {
+                            // Max level reached
+                            evolutionProgressEl.style.width = '100%';
+                            nextEvolutionInfoEl.textContent = 'MAX LEVEL REACHED';
+                            nextEvolutionInfoEl.style.color = '#ffcc00';
+                        }
+                    }
+                    
+                    // Use server-provided speed info if available
+                    if (data.speed) {
+                        speedText = data.speed.formatted_status || data.speed.description;
+                        speedColor = data.speed.color;
+                    } else {
+                        // Fallback to local calculation
+                        const speedDescriptions = getSpeedDescription(speedLevel);
+                        speedText = speedDescriptions.text;
+                        speedColor = speedDescriptions.color;
+                    }
+                    
+                    if (speedStatus) {
+                        speedStatus.textContent = speedText;
+                        speedStatus.style.color = speedColor;
+                    }
+                    
+                    // Update fuel gauge - same scale as evolution bar but with +$10 buffer
+                    // The fuel bar should match the evolution bar scale, but account for the $10 minimum after evolution
+                    let maxFuelForBar = 30; // Default for level 0 (need $20 for evolution + $10 buffer)
+                    
+                    if (evolutionLevel < 9) {
+                        // Amount needed to reach next evolution + $10 buffer for post-evolution fuel
+                        const amountToNextEvolution = evolutionThresholds[evolutionLevel + 1] - totalDonationsReceived;
+                        maxFuelForBar = amountToNextEvolution + 10;
+                    }
+                    
+                    // Fuel bar represents current fuel with same scale as evolution bar
+                    const fuelPercent = Math.min((fuelAmount / maxFuelForBar) * 100, 100);
+                    fuelLevel.style.width = fuelPercent + '%';
+                    fuelAmountElement.textContent = '$' + fuelAmount.toFixed(2);
+                    
+                    // Update fuel bar color based on fuel amount
+                    if (fuelAmount >= 1000) {
+                        fuelLevel.style.background = 'linear-gradient(90deg, #ffd700 0%, #ffff00 50%, #ffd700 100%)'; // Gold
+                    } else if (fuelAmount >= 500) {
+                        fuelLevel.style.background = 'linear-gradient(90deg, #00ffff 0%, #00ccff 50%, #00ffff 100%)'; // Cyan
+                    } else if (fuelAmount >= 250) {
+                        fuelLevel.style.background = 'linear-gradient(90deg, #00ff00 0%, #00dd00 50%, #00ff00 100%)'; // Green
+                    } else if (fuelAmount >= 100) {
+                        fuelLevel.style.background = 'linear-gradient(90deg, #ffcc00 0%, #ff9900 50%, #ffcc00 100%)'; // Orange
+                    } else if (fuelAmount >= 50) {
+                        fuelLevel.style.background = 'linear-gradient(90deg, #ff6600 0%, #ff3300 50%, #ff6600 100%)'; // Red-Orange
+                    } else {
+                        fuelLevel.style.background = 'linear-gradient(90deg, #cc0000 0%, #990000 50%, #cc0000 100%)'; // Red
+                    }
+                    
+                    // Generate mech animation
+                    if (mechLoading) mechLoading.style.display = 'block';
+                    mechImg.style.display = 'none';
+                    
+                    fetch('/mech_animation')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        const url = URL.createObjectURL(blob);
+                        mechImg.src = url;
+                        mechImg.style.display = 'block';
+                        if (mechLoading) mechLoading.style.display = 'none';
+                        
+                        // Set title based on speed level
+                        let speedText = 'Walking';
+                        if (fuelAmount >= 1000) speedText = 'LIGHTSPEED!';
+                        else if (fuelAmount >= 500) speedText = 'Hyperspeed';
+                        else if (fuelAmount >= 250) speedText = 'Sprinting';
+                        else if (fuelAmount >= 100) speedText = 'Running';
+                        else if (fuelAmount >= 50) speedText = 'Jogging';
+                        
+                        mechImg.parentElement.parentElement.title = `Mech Status: ${speedText} | Fuel: ${fuelAmount.toFixed(2)}€`;
+                    })
+                    .catch(error => {
+                        console.error('Error generating mech animation:', error);
+                        if (mechLoading) mechLoading.style.display = 'none';
+                    });
+                    
+                    return;  // Skip old heart animation code
                     
                     const daysSinceDonation = data.days_since_donation;
                     
@@ -433,11 +785,151 @@
                 });
         }
         
-        // Check heart status on page load
-        checkDonatorHeartStatus();
+        // Check mech status on page load
+        checkDonatorMechStatus();
         
-        // Update heart status every 5 minutes (server-side tracking now)
-        setInterval(checkDonatorHeartStatus, 5 * 60 * 1000);
+        // Update mech status every 5 minutes (server-side tracking now)
+        setInterval(checkDonatorMechStatus, 5 * 60 * 1000);
+        
+        // Show fuel consumption and actually consume fuel every 3 seconds
+        function showFuelConsumption() {
+            const consumptionElement = document.getElementById('fuelConsumption');
+            const fuelAmount = document.getElementById('fuelAmount');
+            
+            if (consumptionElement && fuelAmount) {
+                // Parse current fuel amount
+                const currentFuel = parseFloat(fuelAmount.textContent.replace('$', ''));
+                
+                // Only show consumption if we have fuel
+                if (currentFuel > 0) {
+                    // Actually consume fuel on server
+                    fetch('/api/donation/consume-fuel', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            amount: 0.00003472  // Exact amount for 1$ per day
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update display with new amount
+                            fuelAmount.textContent = '$' + data.new_fuel.toFixed(5);
+                            
+                            // Show consumption animation
+                            consumptionElement.style.transition = 'opacity 0.3s ease-in';
+                            consumptionElement.style.opacity = '1';
+                            
+                            // Hide after 1 second
+                            setTimeout(() => {
+                                consumptionElement.style.transition = 'opacity 0.5s ease-out';
+                                consumptionElement.style.opacity = '0';
+                            }, 1000);
+                            
+                            // If fuel hits 0, refresh mech animation
+                            if (data.new_fuel <= 0) {
+                                setTimeout(() => {
+                                    checkDonatorMechStatus();
+                                }, 1500);
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error consuming fuel:', error);
+                    });
+                }
+            }
+        }
+        
+        // Start fuel consumption display every 3 seconds
+        setInterval(showFuelConsumption, 3000);
+        
+        // Flash consumption overlay every 3 seconds
+        function flashConsumptionOverlay() {
+            const overlay = document.getElementById('fuelConsumptionOverlay');
+            if (overlay) {
+                overlay.classList.add('flash');
+                setTimeout(() => {
+                    overlay.classList.remove('flash');
+                }, 500); // Flash for 500ms
+            }
+        }
+        
+        // Start consumption overlay flash every 3 seconds
+        setInterval(flashConsumptionOverlay, 3000);
+        
+        // Test Functions for Adding/Removing Fuel
+        function addTestFuel(amount) {
+            fetch('/api/donation/add-fuel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    amount: amount,
+                    type: 'test',
+                    user: 'Test Button'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Refresh mech status immediately
+                    checkDonatorMechStatus();
+                    // Show brief notification
+                    showNotification(`${amount > 0 ? '+' : ''}$${amount} Fuel ${amount > 0 ? 'added' : 'removed'}!`, amount > 0 ? 'success' : 'warning');
+                } else {
+                    showNotification('Error updating fuel: ' + (data.error || 'Unknown error'), 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error adding fuel:', error);
+                showNotification('Error updating fuel', 'danger');
+            });
+        }
+        
+        function resetFuel() {
+            if (confirm('Reset fuel to 0€? This will clear all donations.')) {
+                fetch('/api/donation/reset-fuel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        checkDonatorMechStatus();
+                        showNotification('Fuel reset to $0', 'info');
+                    } else {
+                        showNotification('Error resetting fuel', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error resetting fuel:', error);
+                    showNotification('Error resetting fuel', 'danger');
+                });
+            }
+        }
+        
+        function showNotification(message, type = 'info') {
+            // Create a simple notification (you can style this better)
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
         
         
         // Additional animations for different donation types
@@ -462,6 +954,310 @@
         const styleSheet = document.createElement('style');
         styleSheet.textContent = additionalStyles;
         document.head.appendChild(styleSheet);
+        
+        // Mech Animation Test Functions
+        function testMechAnimation() {
+            const donorName = document.getElementById('test-donor-name').value;
+            const amount = document.getElementById('test-amount').value;
+            const totalDonations = document.getElementById('test-total-donations').value;
+            
+            const preview = document.getElementById('mech-preview');
+            const stats = document.getElementById('mech-stats');
+            
+            preview.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>';
+            stats.innerHTML = 'Generating animation...';
+            
+            fetch('/api/test-mech-animation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    donor_name: donorName,
+                    amount: amount,
+                    total_donations: parseInt(totalDonations)
+                })
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response type:', response.headers.get('content-type'));
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                console.log('Blob size:', blob.size, 'Type:', blob.type);
+                const url = URL.createObjectURL(blob);
+                preview.innerHTML = `<img src="${url}" alt="Mech Animation" style="max-width: 100%; height: auto; border: 1px solid #666;">`;
+                
+                // Calculate speed level
+                let speedLevel = 1;
+                const donations = parseInt(totalDonations);
+                if (donations >= 100) speedLevel = 6;
+                else if (donations >= 50) speedLevel = 5;
+                else if (donations >= 25) speedLevel = 4;
+                else if (donations >= 10) speedLevel = 3;
+                else if (donations >= 5) speedLevel = 2;
+                
+                const speedTexts = {
+                    1: "Walking 🚶",
+                    2: "Jogging 🏃",
+                    3: "Running 🏃💨",
+                    4: "Sprinting ⚡",
+                    5: "Hyperspeed 🚀",
+                    6: "LIGHTSPEED! ⚡💫"
+                };
+                
+                stats.innerHTML = `
+                    <strong>Speed Level:</strong> ${speedLevel}/6 - ${speedTexts[speedLevel]}<br>
+                    <strong>File Size:</strong> ~${(blob.size / 1024).toFixed(1)} KB<br>
+                    <strong>Type:</strong> ${blob.type}
+                `;
+            })
+            .catch(error => {
+                console.error('Mech animation error:', error);
+                preview.innerHTML = '<div class="alert alert-danger">Error generating animation: ' + error.message + '<br>Check browser console for details.<br><small>Make sure the spritesheet exists at app/static/animatedmech.png</small></div>';
+                stats.innerHTML = 'Error: ' + error.message;
+            });
+        }
+        
+        function testSpeedControl() {
+            const totalDonations = document.getElementById('test-total-donations').value;
+            const preview = document.getElementById('mech-preview');
+            const stats = document.getElementById('mech-stats');
+            
+            // Get speed configuration
+            fetch('/api/mech-speed-config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    total_donations: parseInt(totalDonations)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Create dynamic mech display
+                const mechHtml = `
+                    <div class="mech-container position-relative" style="height: 100px; overflow: hidden;">
+                        <div class="mech-sprite ${data.css_class}" id="dynamic-mech"
+                             style="position: absolute; left: -50px; top: 30px; font-size: 30px; 
+                                    animation: mech-run ${data.duration}s linear infinite;">
+                            🤖
+                        </div>
+                        ${data.effects.sparks ? '<div class="sparks">⚡⚡⚡</div>' : ''}
+                    </div>
+                    <div class="mt-2">
+                        <strong>${data.emoji} ${data.description}</strong><br>
+                        <small>Speed Level: ${data.speed_level}/6</small>
+                    </div>
+                `;
+                
+                preview.innerHTML = mechHtml;
+                
+                // Add dynamic CSS
+                const css = `
+                    @keyframes mech-run {
+                        0% { left: -50px; }
+                        100% { left: calc(100% + 50px); }
+                    }
+                    
+                    .mech-speed-${data.speed_level} {
+                        ${data.effects.glow ? 'filter: drop-shadow(0 0 10px #00ff41);' : ''}
+                        ${data.effects.blur ? 'filter: blur(0.5px) brightness(1.2);' : ''}
+                    }
+                    
+                    ${data.effects.shake ? `
+                        .mech-speed-${data.speed_level} {
+                            animation: mech-run ${data.duration}s linear infinite, 
+                                      mech-shake 0.1s ease-in-out infinite;
+                        }
+                        @keyframes mech-shake {
+                            0%, 100% { transform: translateY(0); }
+                            50% { transform: translateY(2px); }
+                        }
+                    ` : ''}
+                    
+                    ${data.effects.sparks ? `
+                        .sparks {
+                            position: absolute;
+                            top: 20px;
+                            left: 50%;
+                            animation: spark-flash 0.3s ease-in-out infinite;
+                            color: #ffff00;
+                            font-size: 20px;
+                        }
+                        @keyframes spark-flash {
+                            0%, 100% { opacity: 0; }
+                            50% { opacity: 1; }
+                        }
+                    ` : ''}
+                `;
+                
+                // Add CSS to page
+                let styleElement = document.getElementById('dynamic-mech-styles');
+                if (styleElement) styleElement.remove();
+                
+                styleElement = document.createElement('style');
+                styleElement.id = 'dynamic-mech-styles';
+                styleElement.textContent = css;
+                document.head.appendChild(styleElement);
+                
+                stats.innerHTML = `
+                    <strong>Speed:</strong> ${data.description} (${data.duration}s cycle)<br>
+                    <strong>Effects:</strong> ${Object.keys(data.effects).filter(k => data.effects[k]).join(', ') || 'None'}<br>
+                    <strong>Total Donations:</strong> ${data.total_donations}
+                `;
+            })
+            .catch(error => {
+                console.error('Speed control error:', error);
+                preview.innerHTML = '<div class="alert alert-danger">Error: ' + error + '<br>Check browser console for details.</div>';
+                stats.innerHTML = 'Error occurred';
+            });
+        }
+        
+        function testSimpleMech() {
+            const totalDonations = document.getElementById('test-total-donations').value;
+            const preview = document.getElementById('mech-preview');
+            const stats = document.getElementById('mech-stats');
+            
+            // Calculate speed level locally
+            let speedLevel = 1;
+            const donations = parseInt(totalDonations);
+            if (donations >= 100) speedLevel = 6;
+            else if (donations >= 50) speedLevel = 5;
+            else if (donations >= 25) speedLevel = 4;
+            else if (donations >= 10) speedLevel = 3;
+            else if (donations >= 5) speedLevel = 2;
+            
+            const speedTexts = {
+                1: "Walking 🚶",
+                2: "Jogging 🏃",
+                3: "Running 🏃💨",
+                4: "Sprinting ⚡",
+                5: "Hyperspeed 🚀",
+                6: "LIGHTSPEED! ⚡💫"
+            };
+            
+            // Calculate animation duration (faster = shorter duration)
+            const durations = {1: 3.0, 2: 2.0, 3: 1.5, 4: 1.0, 5: 0.6, 6: 0.3};
+            const duration = durations[speedLevel];
+            
+            // Create stationary mech with leg animation
+            preview.innerHTML = `
+                <div style="position: relative; height: 120px; overflow: hidden; background: linear-gradient(90deg, #2f3136 0%, #36393f 50%, #2f3136 100%); border-radius: 8px;">
+                    <!-- Mech Body (stationary) -->
+                    <div class="mech-body" style="
+                        position: absolute;
+                        left: 50%;
+                        top: 30px;
+                        transform: translateX(-50%);
+                        font-size: 40px;
+                        animation: mechBob ${duration * 2}s ease-in-out infinite;
+                        ${speedLevel >= 5 ? 'filter: drop-shadow(0 0 15px #00ff41) brightness(1.4);' : ''}
+                        ${speedLevel >= 6 ? 'text-shadow: 0 0 25px #ffff00; color: gold;' : ''}
+                    ">🤖</div>
+                    
+                    <!-- Walking legs animation -->
+                    <div class="mech-legs" style="
+                        position: absolute;
+                        left: 50%;
+                        top: 65px;
+                        transform: translateX(-50%);
+                        font-size: 20px;
+                        animation: mechWalk ${duration}s ease-in-out infinite;
+                    ">👣</div>
+                    
+                    <!-- Speed effects -->
+                    ${speedLevel >= 3 ? `<div class="speed-lines" style="
+                        position: absolute;
+                        left: 20%;
+                        top: 45px;
+                        font-size: 16px;
+                        animation: speedLines ${duration * 0.5}s linear infinite;
+                        color: #7289da;
+                    ">💨💨💨</div>` : ''}
+                    
+                    <!-- Lightning effects for max speed -->
+                    ${speedLevel >= 6 ? '<div style="position: absolute; top: 15px; left: 50%; transform: translateX(-50%); font-size: 25px; animation: flash 0.3s ease-in-out infinite; color: #ffff00;">⚡️💫⚡️</div>' : ''}
+                </div>
+                <div class="mt-2 text-center">
+                    <strong>${speedTexts[speedLevel]}</strong><br>
+                    <small>Level ${speedLevel}/6 - ${duration}s cycle</small>
+                </div>
+            `;
+            
+            // Add animation CSS for stationary mech with moving parts
+            const css = `
+                @keyframes mechBob {
+                    0%, 100% { transform: translateX(-50%) translateY(0px); }
+                    50% { transform: translateX(-50%) translateY(-3px); }
+                }
+                @keyframes mechWalk {
+                    0% { transform: translateX(-50%) rotate(-5deg); }
+                    25% { transform: translateX(-50%) rotate(0deg); }
+                    50% { transform: translateX(-50%) rotate(5deg); }
+                    75% { transform: translateX(-50%) rotate(0deg); }
+                    100% { transform: translateX(-50%) rotate(-5deg); }
+                }
+                @keyframes speedLines {
+                    0% { opacity: 0; transform: translateX(0px); }
+                    50% { opacity: 1; transform: translateX(-10px); }
+                    100% { opacity: 0; transform: translateX(-20px); }
+                }
+                @keyframes flash {
+                    0%, 100% { opacity: 0; transform: translateX(-50%) scale(1); }
+                    50% { opacity: 1; transform: translateX(-50%) scale(1.1); }
+                }
+            `;
+            
+            let styleElement = document.getElementById('simple-mech-styles');
+            if (styleElement) styleElement.remove();
+            
+            styleElement = document.createElement('style');
+            styleElement.id = 'simple-mech-styles';
+            styleElement.textContent = css;
+            document.head.appendChild(styleElement);
+            
+            stats.innerHTML = `
+                <strong>Speed Test:</strong> Pure CSS Animation<br>
+                <strong>Donations:</strong> ${donations}<br>
+                <strong>No API needed!</strong> ✅
+            `;
+        }
+        
+        function simulateDonationBroadcast() {
+            const donorName = document.getElementById('test-donor-name').value;
+            const amount = document.getElementById('test-amount').value;
+            const totalDonations = document.getElementById('test-total-donations').value;
+            
+            if (confirm(`This will send a test donation broadcast to Discord.\n\nDonor: ${donorName}\nAmount: ${amount}\n\nContinue?`)) {
+                fetch('/api/simulate-donation-broadcast', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        donor_name: donorName,
+                        amount: amount,
+                        total_donations: parseInt(totalDonations)
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Test broadcast sent successfully!', 'success');
+                    } else {
+                        showNotification('Error: ' + data.message, 'danger');
+                    }
+                })
+                .catch(error => {
+                    showNotification('Error sending broadcast: ' + error, 'danger');
+                });
+            }
+        }
     </script>
 
     <p class="text-center" style="color:#ffc107;"><strong>Important:</strong> After saving, the Docker container must be restarted manually (e.g., via Unraid UI or `docker restart ddc`) for the bot to apply all changes!</p>
@@ -505,6 +1301,7 @@
 
         {# Language and Timezone Settings #}
         {% include '_language_timezone_settings.html' %}
+
 
         {# NEW: Auth Settings #}
         {% include '_auth_settings.html' %}

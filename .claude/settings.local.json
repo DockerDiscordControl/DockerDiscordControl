@@ -32,7 +32,8 @@
       "Bash(sudo chmod:*)",
       "Bash(DDC_WEB_PORT=5001 python3 -m app.web_ui)",
       "Bash(touch:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(pip3 install:*)"
     ],
     "deny": []
   }

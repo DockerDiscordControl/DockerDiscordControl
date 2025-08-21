@@ -16,7 +16,6 @@ import os
 import io
 import time
 import json
-import traceback
 import pytz
 
 # Import auth from app.auth
@@ -1290,10 +1289,33 @@ def save_spam_protection():
 
 @main_bp.route('/api/donation/status', methods=['GET'])
 def get_donation_status():
-    """Get current donation status (no auth required for public display)."""
+    """Get current donation status with speed information (no auth required)."""
     try:
-        donation_manager = get_donation_manager()
-        status = donation_manager.get_status()
+        # Try to use the service, fall back to direct import if needed
+        try:
+            from services.donation_service import get_donation_service
+            donation_service = get_donation_service()
+            status = donation_service.get_status()
+        except ImportError:
+            # Fallback to direct import
+            from utils.donation_manager import get_donation_manager
+            from utils.speed_levels import get_speed_info, get_speed_emoji
+            donation_manager = get_donation_manager()
+            status = donation_manager.get_status()
+            
+            # Add speed information manually
+            total_amount = status.get('total_amount', 0)
+            description, color = get_speed_info(total_amount)
+            level = min(int(total_amount / 10), 101) if total_amount > 0 else 0
+            emoji = get_speed_emoji(level)
+            
+            status['speed'] = {
+                'level': level,
+                'description': description,
+                'emoji': emoji,
+                'color': color,
+                'formatted_status': f"{emoji} {description}"
+            }
         return jsonify(status)
     except Exception as e:
         current_app.logger.error(f"Error getting donation status: {e}")
@@ -1364,6 +1386,258 @@ def get_donation_history():
     except Exception as e:
         current_app.logger.error(f"Error getting donation history: {e}")
         return jsonify({'error': 'Failed to load donation history'}), 500
+
+@main_bp.route('/api/donation/add-fuel', methods=['POST'])
+@auth.login_required
+def add_test_fuel():
+    """Add or remove fuel for testing (requires auth)."""
+    try:
+        data = request.get_json()
+        amount = data.get('amount', 0)
+        donation_type = data.get('type', 'test')
+        user = data.get('user', 'Test')
+        
+        donation_manager = get_donation_manager()
+        
+        if amount > 0:
+            # Add fuel
+            result = donation_manager.add_fuel(amount, donation_type, user)
+            current_app.logger.info(f"Added {amount} fuel, new total: {result.get('fuel_data', {}).get('current_fuel', 0)}")
+            return jsonify({'success': True, 'fuel': result.get('fuel_data', {}).get('current_fuel', 0)})
+        elif amount < 0:
+            # Remove fuel (add negative amount)
+            result = donation_manager.add_fuel(amount, donation_type, user)
+            return jsonify({'success': True, 'fuel': result.get('fuel_data', {}).get('current_fuel', 0)})
+        else:
+            return jsonify({'success': False, 'error': 'Amount must be non-zero'}), 400
+            
+    except Exception as e:
+        current_app.logger.error(f"Error adding test fuel: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@main_bp.route('/api/donation/reset-fuel', methods=['POST'])
+@auth.login_required
+def reset_fuel():
+    """Reset fuel to 0 for testing (requires auth)."""
+    try:
+        donation_manager = get_donation_manager()
+        data = donation_manager.load_data()
+        
+        # Reset fuel data
+        data['fuel_data'] = {
+            'current_fuel': 0.0,
+            'last_update': datetime.now(timezone.utc).isoformat(),
+            'donation_amounts': []
+        }
+        
+        donation_manager.save_data(data)
+        
+        return jsonify({'success': True, 'message': 'Fuel reset to 0'})
+    except Exception as e:
+        current_app.logger.error(f"Error resetting fuel: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@main_bp.route('/api/donation/consume-fuel', methods=['POST'])
+@auth.login_required
+def consume_fuel():
+    """Consume fuel in real-time (requires auth)."""
+    try:
+        data = request.get_json()
+        consume_amount = data.get('amount', 0.00003472)  # Default 3-second consumption
+        
+        donation_manager = get_donation_manager()
+        
+        # Add negative fuel (consumption)
+        result = donation_manager.add_fuel(-consume_amount, 'consumption', 'Automatic')
+        
+        new_fuel = result.get('fuel_data', {}).get('current_fuel', 0)
+        
+        return jsonify({
+            'success': True, 
+            'new_fuel': max(0, new_fuel),  # Never go below 0
+            'consumed': consume_amount
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error consuming fuel: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@main_bp.route('/mech_animation')
+def mech_animation():
+    """Live mech animation endpoint based on current fuel level - simplified version."""
+    try:
+        # Get current donation status with multiple fallbacks
+        total_donations = 0
+        
+        try:
+            from utils.donation_manager import get_donation_manager
+            donation_manager = get_donation_manager()
+            data = donation_manager.get_status()
+            total_donations = data.get('total_amount', 0)
+            current_app.logger.info(f"Got fuel from donation_manager: {total_donations}")
+        except Exception as e:
+            current_app.logger.error(f"Error getting donation status: {e}")
+            total_donations = 20.0  # Fallback default
+        
+        current_app.logger.info(f"Live mech animation request, fuel: {total_donations}")
+        
+        # Direct sprite animator usage without services to avoid import issues
+        try:
+            from utils.sprite_mech_animator import get_sprite_animator
+            from io import BytesIO
+            import asyncio
+            from concurrent.futures import ThreadPoolExecutor
+            
+            sprite_animator = get_sprite_animator()
+            
+            # Run async code in thread to avoid event loop conflicts
+            def create_animation_in_thread():
+                new_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(new_loop)
+                try:
+                    result = new_loop.run_until_complete(
+                        sprite_animator.create_donation_animation('Current', f'{total_donations}$', total_donations)
+                    )
+                    return result
+                finally:
+                    new_loop.close()
+            
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(create_animation_in_thread)
+                animation_file = future.result(timeout=10)
+            
+            # Extract bytes from discord.File
+            if hasattr(animation_file, 'fp'):
+                animation_file.fp.seek(0)
+                if hasattr(animation_file.fp, 'getvalue'):
+                    file_data = animation_file.fp.getvalue()
+                else:
+                    file_data = animation_file.fp.read()
+            else:
+                # Fallback if structure is different
+                file_data = bytes(animation_file)
+            
+            current_app.logger.info(f"Created mech animation: {len(file_data)} bytes")
+            
+            return Response(
+                file_data,
+                mimetype='image/webp',
+                headers={'Cache-Control': 'no-cache, no-store, must-revalidate'}
+            )
+            
+        except Exception as e:
+            current_app.logger.error(f"Error creating mech animation: {e}", exc_info=True)
+            
+            # Ultimate fallback - create a simple static image
+            try:
+                from PIL import Image, ImageDraw
+                img = Image.new('RGBA', (341, 512), (47, 49, 54, 255))
+                draw = ImageDraw.Draw(img)
+                draw.text((10, 10), f"Fuel: ${total_donations:.2f}", fill=(255, 255, 255, 255))
+                draw.text((10, 30), "Mech Offline", fill=(255, 0, 0, 255))
+                
+                buffer = BytesIO()
+                img.save(buffer, format='WebP', quality=90)
+                buffer.seek(0)
+                
+                return Response(
+                    buffer.getvalue(),
+                    mimetype='image/webp',
+                    headers={'Cache-Control': 'no-cache, no-store, must-revalidate'}
+                )
+            except:
+                # Final fallback - return error
+                return Response(
+                    b'Error: Animation generation failed',
+                    mimetype='text/plain',
+                    status=500
+                )
+        
+    except Exception as e:
+        current_app.logger.error(f"Error in live mech animation endpoint: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/test-mech-animation', methods=['POST'])
+@auth.login_required 
+def test_mech_animation():
+    """Test endpoint for generating mech animations using centralized service."""
+    try:
+        from utils.sprite_mech_animator import get_sprite_animator
+        import asyncio
+        
+        data = request.get_json()
+        donor_name = data.get('donor_name', 'Test User')
+        amount = data.get('amount', '10$')
+        total_donations = data.get('total_donations', 0)
+        
+        current_app.logger.info(f"Generating mech animation for {donor_name}, donations: {total_donations}")
+        
+        # Use service layer for proper async handling
+        try:
+            from services.mech_animation_service import get_mech_animation_service
+            mech_service = get_mech_animation_service()
+            return mech_service.create_web_response(donor_name, amount, total_donations)
+        except ImportError:
+            # Fallback - create simple error response
+            return Response(
+                b'Error: Service not available',
+                mimetype='text/plain',
+                status=500
+            )
+        
+    except Exception as e:
+        current_app.logger.error(f"Error in test mech animation endpoint: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/simulate-donation-broadcast', methods=['POST'])
+@auth.login_required
+def simulate_donation_broadcast():
+    """Simulate a donation broadcast for testing purposes."""
+    try:
+        current_app.logger.info("Simulating donation broadcast...")
+        return jsonify({
+            'success': True,
+            'message': 'Donation broadcast simulation not yet implemented'
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error simulating donation broadcast: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@main_bp.route('/api/mech-speed-config', methods=['POST'])
+@auth.login_required
+def get_mech_speed_config():
+    """Get speed configuration using new 101-level system."""
+    try:
+        from utils.speed_levels import get_speed_info, get_speed_emoji
+        
+        data = request.get_json()
+        total_donations = data.get('total_donations', 0)
+        
+        # Use new speed system
+        description, color = get_speed_info(total_donations)
+        level = min(int(total_donations / 10), 101) if total_donations > 0 else 0
+        emoji = get_speed_emoji(level)
+        
+        config = {
+            'speed_level': level,
+            'description': description,
+            'emoji': emoji,
+            'color': color,
+            'total_donations': total_donations
+        }
+        
+        # Log the action
+        log_user_action(
+            action="GET_MECH_SPEED_CONFIG",
+            target=f"Level {level} - {description}",
+            source="Web UI"
+        )
+        
+        return jsonify(config)
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting mech speed config: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @main_bp.route('/port_diagnostics', methods=['GET'])
 @auth.login_required
