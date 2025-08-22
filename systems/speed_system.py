@@ -196,8 +196,8 @@ class SpeedSystem:
     
     def _calculate_omega_speed(self, current_fuel: float, evolution_sys) -> int:
         """Calculate speed for OMEGA MECH (Level 11) with Glvl 101 possibility"""
-        omega_threshold = evolution_sys.EVOLUTION_THRESHOLDS[11]  # $10,000
-        theoretical_max = 20000  # $20,000 for TRANSCENDENT mode
+        omega_threshold = evolution_sys.EVOLUTION_THRESHOLDS[11]  # $7,500
+        theoretical_max = 15000  # $15,000 for TRANSCENDENT mode
         
         if current_fuel >= theoretical_max:
             return 101  # TRANSCENDENT MODE ACTIVATED!
@@ -206,7 +206,7 @@ class SpeedSystem:
         if fuel_in_omega <= 0:
             return 1  # Just reached OMEGA level
         
-        omega_range = theoretical_max - omega_threshold  # $10,000 range
+        omega_range = theoretical_max - omega_threshold  # $7,500 range
         glvl = int((fuel_in_omega / omega_range) * 100)
         return min(max(1, glvl), 100)
     

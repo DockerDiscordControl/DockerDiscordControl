@@ -66,7 +66,7 @@
                 <!-- Left side: Mech + Speed -->
                 <div class="mech-section d-flex flex-column align-items-center">
                     <div id="donatorMech" class="mech-display">
-                        <img id="mechAnimation" src="https://cdn-icons-png.flaticon.com/512/2451/2451011.png" alt="Mech" style="height: 120px; width: auto;">
+                        <img id="mechAnimation" src="/static/animatedmech.png" alt="Mech" style="height: 120px; width: auto;" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; font-size: 48px; color: #666;&quot;>🤖</div>'">
                         <div class="mech-loading" style="display: none;">
                             <div class="spinner-border spinner-border-sm text-primary" role="status">
                                 <span class="visually-hidden">Loading...</span>
@@ -121,6 +121,40 @@
                 </div>
             </div>
         </div>
+
+        {# Donation Input Modal - Hidden by default #}
+        <div id="donationModal" class="donation-modal-overlay" style="display: none;">
+            <div class="donation-modal">
+                <div class="donation-modal-header">
+                    <h4>🎉 Thank you for your donation!</h4>
+                    <p>Please enter your donation details to fuel the mech:</p>
+                </div>
+                <div class="donation-modal-body">
+                    <form id="donationForm">
+                        <div class="form-group">
+                            <label for="donationAmount">Donation Amount ($)</label>
+                            <input type="number" id="donationAmount" class="form-control" min="0.01" step="0.01" placeholder="5.00" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="donorName">Donor Name (optional)</label>
+                            <input type="text" id="donorName" class="form-control" placeholder="Anonymous" maxlength="50">
+                        </div>
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input type="checkbox" id="publishToDiscord" class="form-check-input" checked>
+                                <label for="publishToDiscord" class="form-check-label">
+                                    Announce donation in Discord channels
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="donation-modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeDonationModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitDonation()">🚀 Fuel the Mech!</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <style>
@@ -148,7 +182,7 @@
             width: 100vw;
             height: 100vh;
             background: #000000;
-            z-index: 9999;
+            z-index: 2500;
             display: block;
             font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
             animation: terminalFadeIn 0.3s ease-out;
@@ -249,6 +283,129 @@
             line-height: 1.1;
         }
         
+        /* Donation Modal Styles */
+        .donation-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: modalFadeIn 0.3s ease;
+        }
+        
+        .donation-modal {
+            background: #1a1a1a;
+            border: 2px solid #444;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.4s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+        }
+        
+        .donation-modal-header {
+            padding: 20px 20px 10px;
+            border-bottom: 1px solid #333;
+            text-align: center;
+        }
+        
+        .donation-modal-header h4 {
+            color: #ffcc00;
+            margin: 0 0 10px 0;
+            font-size: 1.4em;
+        }
+        
+        .donation-modal-header p {
+            color: #adb5bd;
+            margin: 0;
+            font-size: 0.95em;
+        }
+        
+        .donation-modal-body {
+            padding: 20px;
+        }
+        
+        .donation-modal-footer {
+            padding: 10px 20px 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .donation-modal .form-group {
+            margin-bottom: 18px;
+        }
+        
+        .donation-modal label {
+            display: block;
+            color: #fff;
+            font-weight: 500;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        
+        .donation-modal .form-control {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: #fff;
+            padding: 10px 12px;
+            font-size: 0.95em;
+            width: 100%;
+            transition: border-color 0.2s;
+        }
+        
+        .donation-modal .form-control:focus {
+            outline: none;
+            border-color: #ffcc00;
+            box-shadow: 0 0 0 2px rgba(255, 204, 0, 0.2);
+        }
+        
+        .donation-modal .form-check {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .donation-modal .form-check-input {
+            width: 18px;
+            height: 18px;
+            margin: 0;
+        }
+        
+        .donation-modal .form-check-label {
+            color: #adb5bd;
+            margin: 0;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+        
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes modalSlideIn {
+            from { transform: scale(0.9) translateY(-20px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
         
         .gauge-container {
             display: flex;
@@ -421,31 +578,97 @@
             });
             
             // Check for donation return on page focus/load
+            let isProcessingDonationReturn = false;
             function checkForDonationReturn() {
+                console.log('checkForDonationReturn called');
+                if (isProcessingDonationReturn) {
+                    console.log('Already processing, returning');
+                    return; // Prevent multiple simultaneous calls
+                }
+                
                 const donationData = localStorage.getItem('ddcDonationClick');
+                console.log('localStorage data:', donationData);
                 if (donationData) {
                     try {
+                        isProcessingDonationReturn = true;
                         const data = JSON.parse(donationData);
                         const timeSinceClick = Date.now() - data.timestamp;
                         
+                        console.log('Time since click:', timeSinceClick);
                         // Show thank you if donation was clicked within last 10 minutes
                         if (timeSinceClick < 10 * 60 * 1000) {
-                            // Clear the stored data so we don't show it again
-                            localStorage.removeItem('ddcDonationClick');
+                            // Mark as shown with timestamp to prevent multiple shows of SAME click
+                            const shownKey = `ddcDonationShown_${data.timestamp}`;
+                            console.log('Checking if already shown:', shownKey);
                             
-                            // Show the thank you overlay
-                            showThankYouOverlay(data.type);
+                            if (!localStorage.getItem(shownKey)) {
+                                console.log('Showing thank you overlay');
+                                // Mark this specific donation click as shown
+                                localStorage.setItem(shownKey, 'true');
+                                
+                                // Clean up old shown markers (older than 1 hour)
+                                cleanupOldDonationMarkers();
+                                
+                                // Show the thank you overlay
+                                showThankYouOverlay(data.type);
+                                
+                                // Also show the donation modal immediately (behind the Matrix overlay)
+                                console.log('Also showing donation modal behind Matrix overlay');
+                                if (typeof window.showDonationModal === 'function') {
+                                    window.showDonationModal();
+                                } else {
+                                    // Fallback if function not yet available
+                                    const modal = document.getElementById('donationModal');
+                                    if (modal) {
+                                        modal.style.display = 'flex';
+                                    }
+                                }
+                            } else {
+                                console.log('Already shown this donation');
+                            }
+                        } else {
+                            console.log('Donation too old');
                         }
+                        
+                        // Clear the click data after showing (but preserve for future multiple checks)
+                        localStorage.removeItem('ddcDonationClick');
                     } catch (e) {
                         // Clean up invalid data
                         localStorage.removeItem('ddcDonationClick');
+                    } finally {
+                        isProcessingDonationReturn = false;
                     }
+                } else {
+                    isProcessingDonationReturn = false;
                 }
             }
             
+            function cleanupOldDonationMarkers() {
+                const oneHourAgo = Date.now() - (60 * 60 * 1000);
+                const keysToRemove = [];
+                
+                // Find old donation markers
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('ddcDonationShown_')) {
+                        const timestamp = parseInt(key.replace('ddcDonationShown_', ''));
+                        if (timestamp < oneHourAgo) {
+                            keysToRemove.push(key);
+                        }
+                    }
+                }
+                
+                // Remove old markers
+                keysToRemove.forEach(key => localStorage.removeItem(key));
+            }
+            
             function showThankYouOverlay(donationType) {
+                console.log('showThankYouOverlay called with type:', donationType);
                 showMatrixTerminal();
             }
+            
+            // Make function globally available for testing
+            window.checkForDonationReturn = checkForDonationReturn;
             
             // Check on page load
             checkForDonationReturn();
@@ -463,23 +686,53 @@
                 }
             });
             
-            // Click overlay to close
-            thankYouOverlay.addEventListener('click', function() {
-                this.style.animation = 'thankYouFadeOut 0.5s ease-out';
+            // Auto-close after 8 seconds OR click overlay to close immediately
+            let autoCloseTimer = null;
+            
+            function closeThankYou() {
+                if (autoCloseTimer) {
+                    clearTimeout(autoCloseTimer);
+                    autoCloseTimer = null;
+                }
+                thankYouOverlay.style.animation = 'thankYouFadeOut 0.5s ease-out';
                 setTimeout(() => {
-                    this.style.display = 'none';
-                    this.style.animation = '';
+                    thankYouOverlay.style.display = 'none';
+                    thankYouOverlay.style.animation = '';
+                    console.log('Matrix Thank You closed, donation modal should already be visible');
+                    // Modal should already be open, just focus on input
+                    const amountInput = document.getElementById('donationAmount');
+                    if (amountInput) {
+                        amountInput.focus();
+                        console.log('Amount input focused');
+                    }
                 }, 500);
+            }
+            
+            // Click overlay to close immediately
+            thankYouOverlay.addEventListener('click', closeThankYou);
+            
+            // Auto-close after 8 seconds if no interaction
+            thankYouOverlay.addEventListener('animationend', function(e) {
+                if (e.animationName === 'thankYouFadeIn') {
+                    autoCloseTimer = setTimeout(closeThankYou, 8000);
+                }
             });
         });
         
         // Matrix Terminal Animation
         
         function showMatrixTerminal() {
+            console.log('showMatrixTerminal called');
             const overlay = document.getElementById('thankYouOverlay');
             const textElement = document.getElementById('thankYouText');
             
-            if (!overlay || !textElement) return;
+            console.log('Matrix overlay:', overlay);
+            console.log('Matrix text element:', textElement);
+            
+            if (!overlay || !textElement) {
+                console.error('Matrix elements not found!');
+                return;
+            }
             
             // Show overlay
             overlay.style.display = 'flex';
@@ -903,6 +1156,213 @@
         
         // Start consumption overlay flash every 3 seconds
         setInterval(flashConsumptionOverlay, 3000);
+        
+        // Donation Modal Functions
+        function showDonationModal() {
+            const modal = document.getElementById('donationModal');
+            if (modal) {
+                // Prevent double-opening
+                if (modal.style.display === 'flex') {
+                    return;
+                }
+                
+                modal.style.display = 'flex';
+                // Focus on amount input
+                setTimeout(() => {
+                    const amountInput = document.getElementById('donationAmount');
+                    if (amountInput) {
+                        amountInput.focus();
+                    }
+                }, 100);
+            }
+        }
+        
+        // Make modal functions globally available
+        window.showDonationModal = showDonationModal;
+        
+        function closeDonationModal() {
+            const modal = document.getElementById('donationModal');
+            if (modal) {
+                modal.style.display = 'none';
+                // Reset form
+                document.getElementById('donationForm').reset();
+                document.getElementById('publishToDiscord').checked = true; // Default to checked
+            }
+        }
+        
+        function submitDonation() {
+            const amountInput = document.getElementById('donationAmount');
+            const donorNameInput = document.getElementById('donorName');
+            const publishCheckbox = document.getElementById('publishToDiscord');
+            
+            // Check if elements exist
+            if (!amountInput || !donorNameInput || !publishCheckbox) {
+                alert('Error: Form elements not found. Please try again.');
+                return;
+            }
+            
+            const amount = amountInput.value.trim();
+            const donorName = donorNameInput.value.trim() || 'Anonymous';
+            const publishToDiscord = publishCheckbox.checked;
+            
+            // Enhanced amount validation
+            if (!amount) {
+                alert('Please enter a donation amount.');
+                amountInput.focus();
+                return;
+            }
+            
+            const parsedAmount = parseFloat(amount);
+            if (isNaN(parsedAmount) || parsedAmount <= 0) {
+                alert('Please enter a valid positive donation amount.');
+                amountInput.focus();
+                return;
+            }
+            
+            if (parsedAmount > 999999) {
+                alert('Maximum donation amount is $999,999.');
+                amountInput.focus();
+                return;
+            }
+            
+            // Validate donor name length
+            if (donorName.length > 50) {
+                alert('Donor name must be 50 characters or less.');
+                donorNameInput.focus();
+                return;
+            }
+            
+            // Disable submit button to prevent double-submission
+            const submitBtn = document.querySelector('button[onclick="submitDonation()"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = '⏳ Processing...';
+            }
+            
+            // Helper function to re-enable button
+            function resetSubmitButton() {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '🚀 Fuel the Mech!';
+                }
+            }
+            
+            // Prepare donation data
+            const donationData = {
+                amount: parseFloat(amount),
+                donor_name: donorName,
+                publish_to_discord: publishToDiscord,
+                source: 'web_ui_manual'
+            };
+            
+            // Submit donation to server with timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+            
+            fetch('/api/donation/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(donationData),
+                signal: controller.signal
+            })
+            .then(response => {
+                clearTimeout(timeoutId);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Reset button first
+                    resetSubmitButton();
+                    
+                    // Close modal
+                    closeDonationModal();
+                    
+                    // Refresh mech status to show new fuel
+                    checkDonatorMechStatus();
+                    
+                    // Show success message
+                    showSuccessMessage(`🚀 Thank you ${donorName}! $${amount} added to mech fuel!`);
+                } else {
+                    alert('Error processing donation: ' + (data.error || 'Unknown error'));
+                    resetSubmitButton();
+                }
+            })
+            .catch(error => {
+                clearTimeout(timeoutId);
+                console.error('Error submitting donation:', error);
+                
+                // Better error messages for users
+                let userMessage = 'Error submitting donation. Please try again.';
+                if (error.name === 'AbortError') {
+                    userMessage = 'Request timeout. Please check your connection and try again.';
+                } else if (error.message.includes('HTTP')) {
+                    userMessage = `Server error: ${error.message}. Please try again later.`;
+                } else if (!navigator.onLine) {
+                    userMessage = 'No internet connection. Please check your connection.';
+                }
+                
+                alert(userMessage);
+                resetSubmitButton();
+            });
+        }
+        
+        function showSuccessMessage(message) {
+            // Create temporary success message
+            const successDiv = document.createElement('div');
+            successDiv.innerHTML = `
+                <div class="alert alert-success" style="position: fixed; top: 20px; right: 20px; z-index: 3000; animation: slideInRight 0.3s ease;">
+                    ${message}
+                </div>
+            `;
+            document.body.appendChild(successDiv);
+            
+            // Remove after 4 seconds
+            setTimeout(() => {
+                successDiv.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => document.body.removeChild(successDiv), 300);
+            }, 4000);
+        }
+        
+        // Close modal when clicking overlay background
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('donationModal');
+            if (event.target === modal) {
+                closeDonationModal();
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeDonationModal();
+            }
+        });
+        
+        // Test Functions for Matrix Thank You (Global scope)
+        window.testMatrixThankYou = function() {
+            console.log('testMatrixThankYou called');
+            
+            // Simulate donation button click for testing
+            const donationData = {
+                type: 'coffee',
+                timestamp: Date.now()
+            };
+            localStorage.setItem('ddcDonationClick', JSON.stringify(donationData));
+            console.log('localStorage set:', donationData);
+            
+            // Check for donation return
+            if (window.checkForDonationReturn) {
+                console.log('Calling checkForDonationReturn...');
+                window.checkForDonationReturn();
+            } else {
+                console.error('checkForDonationReturn not yet available');
+            }
+        }
         
         // Test Functions for Adding/Removing Fuel
         function addTestFuel(amount) {

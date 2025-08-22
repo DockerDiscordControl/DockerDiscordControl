@@ -62,19 +62,19 @@ class EvolutionSystem:
     - Manage evolution thresholds and metadata
     """
     
-    # Evolution thresholds in dollars - progressive pattern
+    # Evolution thresholds in dollars - more achievable progression
     EVOLUTION_THRESHOLDS = {
         EvolutionLevel.SCRAP: 0,        # Starting point
         EvolutionLevel.REPAIRED: 20,    # First upgrade
         EvolutionLevel.STANDARD: 50,    # Standard tier
         EvolutionLevel.ENHANCED: 100,   # Enhanced tier
         EvolutionLevel.ADVANCED: 200,   # Advanced tier
-        EvolutionLevel.ELITE: 400,      # Elite tier
-        EvolutionLevel.CYBER: 800,      # Cyber tier
-        EvolutionLevel.PLASMA: 1500,    # Plasma tier
-        EvolutionLevel.QUANTUM: 2500,   # Quantum tier
-        EvolutionLevel.DIVINE: 4000,    # Divine tier
-        EvolutionLevel.OMEGA: 10000,    # SECRET OMEGA TIER!
+        EvolutionLevel.ELITE: 350,      # Elite tier
+        EvolutionLevel.CYBER: 600,      # Cyber tier
+        EvolutionLevel.PLASMA: 1000,    # Plasma tier
+        EvolutionLevel.QUANTUM: 1800,   # Quantum tier
+        EvolutionLevel.DIVINE: 3000,    # Divine tier
+        EvolutionLevel.OMEGA: 7500,     # SECRET OMEGA TIER!
     }
     
     EVOLUTION_NAMES = {

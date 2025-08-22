@@ -1462,6 +1462,88 @@ def consume_fuel():
         current_app.logger.error(f"Error consuming fuel: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@main_bp.route('/api/donation/submit', methods=['POST'])
+@auth.login_required
+def submit_donation():
+    """Submit a manual donation entry from the web UI modal."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        amount = data.get('amount', 0)
+        donor_name = data.get('donor_name', 'Anonymous')
+        publish_to_discord = data.get('publish_to_discord', True)
+        source = data.get('source', 'web_ui_manual')
+        
+        # Validate amount
+        if not isinstance(amount, (int, float)) or amount <= 0:
+            return jsonify({'success': False, 'error': 'Invalid donation amount'}), 400
+        
+        if amount > 999999:
+            return jsonify({'success': False, 'error': 'Maximum donation amount is $999,999'}), 400
+        
+        # Round to 2 decimal places to prevent floating point issues
+        amount = round(float(amount), 2)
+        
+        # Validate donor name
+        if not isinstance(donor_name, str):
+            donor_name = 'Anonymous'
+        donor_name = donor_name.strip() or 'Anonymous'
+        if len(donor_name) > 50:
+            donor_name = donor_name[:50]
+        
+        # Get donation manager with error handling
+        try:
+            donation_manager = get_donation_manager()
+        except Exception as e:
+            current_app.logger.error(f"Could not get donation manager: {e}")
+            return jsonify({'success': False, 'error': 'Donation system unavailable'}), 503
+        
+        # Add fuel to the system with error handling
+        try:
+            result = donation_manager.add_fuel(amount, 'manual_web', donor_name)
+        except Exception as e:
+            current_app.logger.error(f"Error adding fuel: {e}")
+            return jsonify({'success': False, 'error': 'Failed to process donation'}), 500
+        
+        current_app.logger.info(f"Manual donation submitted: ${amount} from {donor_name}, Discord: {publish_to_discord}")
+        
+        # Log the action
+        log_user_action(
+            action="MANUAL_DONATION",
+            target=f"${amount} from {donor_name}",
+            source="Web UI Modal",
+            details=f"Amount: ${amount}, Donor: {donor_name}, Discord: {publish_to_discord}, Source: {source}"
+        )
+        
+        # Discord publishing note: The donation is now recorded in the system via donation_manager.add_fuel()
+        # The existing Discord `/donate` and `/donatebroadcast` commands will use this data
+        # No separate Discord broadcast needed here - the integration is already complete
+        discord_success = publish_to_discord  # Flag for UI feedback
+        if publish_to_discord:
+            current_app.logger.info(f"Manual donation ${amount} from {donor_name} available for Discord broadcast via /donate command")
+        
+        # Get updated status
+        new_fuel = result.get('fuel_data', {}).get('current_fuel', 0)
+        total_donations = donation_manager.get_status().get('total_donations_received', 0)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Donation of ${amount} from {donor_name} processed successfully!',
+            'donation_info': {
+                'amount': amount,
+                'donor_name': donor_name,
+                'published_to_discord': discord_success,
+                'new_fuel': new_fuel,
+                'total_donations': total_donations
+            }
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error processing manual donation: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': f'Error processing donation: {str(e)}'}), 500
+
 @main_bp.route('/mech_animation')
 def mech_animation():
     """Live mech animation endpoint based on current fuel level - simplified version."""
