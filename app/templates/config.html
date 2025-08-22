@@ -104,9 +104,6 @@
                         </div>
                     </div>
                     
-                    <div id="fuelConsumption" class="fuel-consumption" style="color: #ff4444; font-size: 11px; margin-top: 8px; font-weight: bold; opacity: 0; text-align: center;">
-                        -$0.00003472
-                    </div>
                 </div>
             </div>
         </div>
@@ -214,21 +211,16 @@
             top: 2px;
             right: 2px;
             background: transparent;
-            color: #ff0000;
-            font-size: 9px;
+            color: #ff4444;
+            font-size: 11px;
             font-weight: bold;
-            padding: 2px 4px;
             z-index: 10;
             pointer-events: none;
-            font-family: 'Courier New', monospace;
-            text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
             opacity: 0;
             transition: opacity 0.3s ease;
+            text-align: center;
         }
         
-        .fuel-consumption-overlay.flash {
-            opacity: 1;
-        }
         
         .gauge-container {
             display: flex;
@@ -795,16 +787,15 @@
         // Update mech status every 5 minutes (server-side tracking now)
         setInterval(checkDonatorMechStatus, 5 * 60 * 1000);
         
-        // Show fuel consumption and actually consume fuel every 3 seconds
-        function showFuelConsumption() {
-            const consumptionElement = document.getElementById('fuelConsumption');
+        // Consume fuel every 3 seconds (backend only, no Next Bar animation)
+        function consumeFuel() {
             const fuelAmount = document.getElementById('fuelAmount');
             
-            if (consumptionElement && fuelAmount) {
+            if (fuelAmount) {
                 // Parse current fuel amount
                 const currentFuel = parseFloat(fuelAmount.textContent.replace('$', ''));
                 
-                // Only show consumption if we have fuel
+                // Only consume fuel if we have fuel
                 if (currentFuel > 0) {
                     // Actually consume fuel on server
                     fetch('/api/donation/consume-fuel', {
@@ -822,16 +813,6 @@
                             // Update display with new amount
                             fuelAmount.textContent = '$' + data.new_fuel.toFixed(5);
                             
-                            // Show consumption animation
-                            consumptionElement.style.transition = 'opacity 0.3s ease-in';
-                            consumptionElement.style.opacity = '1';
-                            
-                            // Hide after 1 second
-                            setTimeout(() => {
-                                consumptionElement.style.transition = 'opacity 0.5s ease-out';
-                                consumptionElement.style.opacity = '0';
-                            }, 1000);
-                            
                             // If fuel hits 0, refresh mech animation
                             if (data.new_fuel <= 0) {
                                 setTimeout(() => {
@@ -847,17 +828,22 @@
             }
         }
         
-        // Start fuel consumption display every 3 seconds
-        setInterval(showFuelConsumption, 3000);
+        // Start fuel consumption every 3 seconds
+        setInterval(consumeFuel, 3000);
         
-        // Flash consumption overlay every 3 seconds
+        // Flash consumption overlay with fade animation every 3 seconds
         function flashConsumptionOverlay() {
             const overlay = document.getElementById('fuelConsumptionOverlay');
             if (overlay) {
-                overlay.classList.add('flash');
+                // Show consumption animation (same as Next Bar)
+                overlay.style.transition = 'opacity 0.3s ease-in';
+                overlay.style.opacity = '1';
+                
+                // Hide after 1 second (same timing as Next Bar)
                 setTimeout(() => {
-                    overlay.classList.remove('flash');
-                }, 500); // Flash for 500ms
+                    overlay.style.transition = 'opacity 0.5s ease-out';
+                    overlay.style.opacity = '0';
+                }, 1000);
             }
         }
         
