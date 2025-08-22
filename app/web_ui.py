@@ -175,7 +175,7 @@ def create_app(test_config=None):
             "script-src 'self' 'unsafe-inline'; "
             "style-src 'self' 'unsafe-inline'; "
             "font-src 'self'; "
-            "img-src 'self' data: https://cdn.buymeacoffee.com https://*.paypal.com; "
+            "img-src 'self' data: blob: https://cdn.buymeacoffee.com https://*.paypal.com; "
             "object-src 'none'; "
             "base-uri 'self'; "
             "form-action 'self'; "

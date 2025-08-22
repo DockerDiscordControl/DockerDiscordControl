@@ -55,8 +55,8 @@ class SimpleRateLimiter:
             if not self.ip_dict[ip]:
                 del self.ip_dict[ip]
 
-# Global rate limiter
-auth_limiter = SimpleRateLimiter(limit=20, per_seconds=300)
+# Global rate limiter - reasonable for normal usage
+auth_limiter = SimpleRateLimiter(limit=100, per_seconds=60)  # 100 requests per minute
 
 def init_limiter(app):
     """Initializes rate limiting for login attempts"""

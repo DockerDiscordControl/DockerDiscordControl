@@ -295,36 +295,69 @@ class DonationBroadcastModal(discord.ui.Modal):
                 try:
                     from utils.donation_manager import get_donation_manager
                     donation_manager = get_donation_manager()
+                    
+                    # Parse amount if provided
+                    donation_amount_euros = None
+                    if amount:
+                        # Try to extract numeric value from amount string
+                        import re
+                        # Match patterns like "10€", "$10", "10 Euro", "10 Dollar", "10", etc.
+                        amount_match = re.search(r'(\d+(?:\.\d+)?)', amount)
+                        if amount_match:
+                            donation_amount_euros = float(amount_match.group(1))
+                            logger.info(f"Parsed donation amount: {donation_amount_euros}€ from '{amount}'")
+                    
+                    # Record donation with amount
                     donation_manager.record_donation(
                         donation_type="discord_broadcast",
-                        user_identifier=f"Discord User: {interaction.user.name} ({interaction.user.id}) as '{donor_name}'"
+                        user_identifier=f"Discord User: {interaction.user.name} ({interaction.user.id}) as '{donor_name}'",
+                        amount=donation_amount_euros
                     )
-                    logger.info(f"Donation broadcast by {interaction.user.name} as '{donor_name}' with amount: '{amount}'")
+                    logger.info(f"Donation broadcast by {interaction.user.name} as '{donor_name}' with amount: {donation_amount_euros}€")
                 except Exception as e:
                     logger.debug(f"Could not track donation broadcast: {e}")
             
-            # Try to create mech animation
+            # Try to create sprite mech animation
             animation_file = None
+            speed_status = ""
+            evolution_status = ""
             try:
-                from utils.mech_animator import get_mech_animator
-                animator = get_mech_animator()
-                
-                # Get total donations for speed calculation
-                total_donations = 0
+                # Get current fuel amount and total donations for status calculation
+                current_fuel = 0
+                total_donations_received = 0
                 if self.donation_manager_available:
                     try:
                         donation_status = donation_manager.get_status()
-                        total_donations = donation_status.get('total_donations', 0)
+                        current_fuel = donation_status.get('total_amount', 0)
+                        total_donations_received = donation_status.get('total_donations_received', 0)
                     except:
                         pass
                 
-                # Create animation
-                animation_file = await animator.create_donation_animation(
+                # Get combined mech status (evolution + speed)
+                from utils.speed_levels import get_combined_mech_status
+                from utils.mech_evolutions import get_evolution_info
+                
+                combined_status = get_combined_mech_status(current_fuel, total_donations_received)
+                evolution = combined_status['evolution']
+                speed = combined_status['speed']
+                
+                # Create status strings
+                speed_status = f"**Speed: {speed['description']}** (Fuel: ${current_fuel:.2f})"
+                evolution_status = f"**Evolution: Level {evolution['level']} - {evolution['name']}**"
+                
+                # Add next evolution info if not maxed
+                if evolution.get('next_name'):
+                    evolution_status += f"\n*Next: {evolution['next_name']} (${evolution['amount_needed']:.0f} more needed)*"
+                
+                # Create sprite-based animation
+                from utils.sprite_mech_animator import get_sprite_animator
+                sprite_animator = get_sprite_animator()
+                animation_file = await sprite_animator.create_donation_animation(
                     donor_name,
-                    amount,
-                    total_donations
+                    amount, 
+                    current_fuel
                 )
-                logger.info(f"Created mech animation for donation broadcast")
+                logger.info(f"Created sprite mech animation for donation broadcast")
             except Exception as anim_error:
                 logger.debug(f"Could not create mech animation: {anim_error}")
                 animation_file = None
@@ -353,12 +386,18 @@ class DonationBroadcastModal(discord.ui.Modal):
                             color=0x00ff41
                         )
                         
+                        # Add mech status fields if available
+                        if evolution_status:
+                            embed.add_field(name="🤖 Mech Evolution", value=evolution_status, inline=False)
+                        if speed_status:
+                            embed.add_field(name="⚡ Current Status", value=speed_status, inline=False)
+                        
                         # Add animation to first channel only
                         if animation_file and first_channel_with_animation:
-                            embed.set_image(url="attachment://mech_donation.gif")
+                            embed.set_image(url=f"attachment://{animation_file.filename}")
                             await channel.send(embed=embed, file=animation_file)
                             first_channel_with_animation = False
-                            logger.info(f"Donation broadcast with animation sent to channel {channel.name}")
+                            logger.info(f"Donation broadcast with WebP animation sent to channel {channel.name}")
                         else:
                             embed.set_footer(text="https://ddc.bot")
                             await channel.send(embed=embed)

@@ -33,7 +33,9 @@
       "Bash(DDC_WEB_PORT=5001 python3 -m app.web_ui)",
       "Bash(touch:*)",
       "Bash(mv:*)",
-      "Bash(pip3 install:*)"
+      "Bash(pip3 install:*)",
+      "Bash(curl:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": []
   }

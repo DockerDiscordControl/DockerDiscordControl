@@ -633,14 +633,18 @@
                         speedStatus.style.color = speedColor;
                     }
                     
-                    // Update fuel gauge - same scale as evolution bar but with +$10 buffer
-                    // The fuel bar should match the evolution bar scale, but account for the $10 minimum after evolution
-                    let maxFuelForBar = 30; // Default for level 0 (need $20 for evolution + $10 buffer)
+                    // Update fuel gauge - based on evolution level gap + $10 buffer
+                    // Level 0: $20 needed for Level 1 + $10 buffer = $30 max
+                    // Level 1: $30 needed for Level 2 ($50-$20) + $10 buffer = $40 max  
+                    // Level 2: $50 needed for Level 3 ($100-$50) + $10 buffer = $60 max
+                    let maxFuelForBar = 30; // Default for level 0 ($20 + $10)
                     
                     if (evolutionLevel < 9) {
-                        // Amount needed to reach next evolution + $10 buffer for post-evolution fuel
-                        const amountToNextEvolution = evolutionThresholds[evolutionLevel + 1] - totalDonationsReceived;
-                        maxFuelForBar = amountToNextEvolution + 10;
+                        // Gap between current and next evolution level + $10 buffer
+                        const currentThreshold = evolutionThresholds[evolutionLevel];
+                        const nextThreshold = evolutionThresholds[evolutionLevel + 1];
+                        const evolutionGap = nextThreshold - currentThreshold;
+                        maxFuelForBar = evolutionGap + 10;
                     }
                     
                     // Fuel bar represents current fuel with same scale as evolution bar

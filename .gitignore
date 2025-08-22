@@ -188,3 +188,7 @@ config/bot_config.json
 .env
 .env.local
 .env.production
+
+# Mech sprite sources (keep hidden)
+app/static/mech_sprites/
+*.png.backup
