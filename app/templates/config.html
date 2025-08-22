@@ -55,6 +55,11 @@
             </div>
         </div>
         
+        <!-- Mech Fuel Call-to-Action -->
+        <div class="text-center mb-3">
+            <p style="color:#adb5bd; margin-bottom: 10px;">Fuel the Mech with your donations to bring it to life!</p>
+        </div>
+        
         <!-- Donator Mech Animation - Below buttons -->
         <div class="w-100 mt-3">
             <div class="donator-mech-container d-flex align-items-center" title="Donation Mech Status">
@@ -68,13 +73,12 @@
                             </div>
                         </div>
                         <div id="fuelConsumptionOverlay" class="fuel-consumption-overlay">-$0.00003472</div>
+                        <div id="speedStatusOverlay" class="speed-status-overlay">OFFLINE</div>
                     </div>
-                    <!-- Speed Status under Mech -->
-                    <div id="mechSpeedStatus" class="speed-status mt-2" style="color: #888; font-size: 14px; font-weight: bold; text-align: center;">OFFLINE</div>
                 </div>
                 
                 <!-- Right side: Gauge Container -->
-                <div class="gauge-container ms-4">
+                <div class="gauge-container">
                     
                     <!-- Fuel Bar -->
                     <div class="bar-row">
@@ -90,15 +94,15 @@
                     </div>
                     
                     <!-- Evolution Bar -->
-                    <div class="bar-row" style="margin-top: 15px;">
+                    <div class="bar-row">
                         <div class="bar-wrapper">
                             <div class="evolution-bar">
                                 <div id="evolutionProgress" class="evolution-fill" style="width: 0%"></div>
                             </div>
                         </div>
                         <div class="bar-label">
-                            <span id="nextEvolutionInfo" style="color: #888; font-size: 11px;">
-                                Next: <span id="nextEvolutionName" style="color: #aaa;">REPAIRED MECH</span><br>
+                            <span id="nextEvolutionInfo" style="color: #888; font-size: 11px; display: flex; flex-direction: column; justify-content: center; height: 100%;">
+                                <span id="nextEvolutionName" style="color: #aaa;">REPAIRED MECH</span>
                                 <span id="nextEvolutionAmount" style="color: #ffcc00; font-weight: bold;">$20 needed</span>
                             </span>
                         </div>
@@ -186,16 +190,23 @@
         
         /* Donator Mech Status */
         .donator-mech-container {
-            padding: 20px;
+            padding: 16px;
             background: rgba(0,0,0,0.4);
             border-radius: 12px;
-            max-width: 800px;
+            max-width: 620px;
             margin: 0 auto;
-            min-height: 200px;
+            min-height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .mech-section {
-            min-width: 200px;
+            min-width: 180px;
+            margin-right: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         
         .mech-display {
@@ -204,6 +215,7 @@
             align-items: center;
             justify-content: center;
             position: relative;
+            margin-bottom: 4px;
         }
         
         .fuel-consumption-overlay {
@@ -221,37 +233,57 @@
             text-align: center;
         }
         
+        .speed-status-overlay {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            background: transparent;
+            color: #888888;
+            font-size: 10px;
+            font-weight: bold;
+            z-index: 10;
+            pointer-events: none;
+            text-align: left;
+            max-width: 120px;
+            word-wrap: break-word;
+            line-height: 1.1;
+        }
+        
         
         .gauge-container {
             display: flex;
             flex-direction: column;
             justify-content: center;
-            min-width: 350px;
+            min-width: 320px;
             flex: 1;
+            gap: 16px;
+            height: 120px;
         }
         
         .bar-row {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
         
         .bar-wrapper {
             flex: 0 0 150px;
+            margin-right: 0;
         }
         
         .bar-label {
-            flex: 1;
+            flex: 0 0 auto;
             font-size: 11px;
             white-space: nowrap;
+            margin-left: 0;
         }
         
         .fuel-bar, .evolution-bar {
             width: 150px;
-            height: 20px;
+            height: 28px;
             background: #1a1a1a;
             border: 2px solid #444;
-            border-radius: 6px;
+            border-radius: 8px;
             overflow: hidden;
             position: relative;
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
@@ -555,17 +587,38 @@
                     const totalDonationsReceived = data.total_donations_received || 0;  // Total ever donated
                     
                     // Update speed status based on FUEL
-                    const speedStatus = document.getElementById('mechSpeedStatus');
+                    const speedStatus = document.getElementById('speedStatusOverlay');
                     let speedText = '';
                     let speedColor = '#888';
                     
-                    // Calculate speed level based on fuel
+                    // Speed descriptions with colors from speed_system.py
+                    const speedDescriptions = {
+                        0: ["OFFLINE", "#888888"],
+                        1: ["Motionless", "#4a4a4a"], 2: ["Barely perceptible", "#525252"], 3: ["Extremely sluggish", "#5a5a5a"], 4: ["Painfully hesitant", "#626262"], 5: ["Excruciatingly lethargic", "#6a6a6a"],
+                        6: ["Ultra-slow", "#727272"], 7: ["Almost crawling", "#7a7a7a"], 8: ["Truly crawling", "#828282"], 9: ["Snail-paced", "#8a8a8a"], 10: ["Glacially slow", "#929292"],
+                        11: ["Heavy-footed", "#9a9a9a"], 12: ["Weary plodding", "#a2a2a2"], 13: ["Drearily trudging", "#aaaaaa"], 14: ["Stumbling forward", "#b2b2b2"], 15: ["Faltering pace", "#bababa"],
+                        16: ["Limping along", "#c2c2c2"], 17: ["Dragging feet", "#cacaca"], 18: ["Reluctant stride", "#d2d2d2"], 19: ["Sluggish shuffling", "#dadada"], 20: ["Slow but continuous", "#e2e2e2"],
+                        21: ["Leisurely relaxed", "#cc6600"], 22: ["Casual and easy", "#cc7700"], 23: ["Moderately steady", "#cc8800"], 24: ["Comfortable stride", "#cc9900"], 25: ["Measured walking", "#ccaa00"],
+                        26: ["Balanced and even", "#ccbb00"], 27: ["Mildly brisk", "#bbcc00"], 28: ["Purposeful steady", "#aacc00"], 29: ["Clearly brisker", "#99cc00"], 30: ["Decisive stride", "#88cc00"],
+                        31: ["Quickened step", "#77cc00"], 32: ["Energetic pace", "#66cc00"], 33: ["Noticeably brisk", "#55cc00"], 34: ["Sharply focused", "#44cc00"], 35: ["Fast stride", "#33cc00"],
+                        36: ["Strong and firm", "#22cc00"], 37: ["Forcefully brisk", "#11cc00"], 38: ["Rapid walking", "#00cc00"], 39: ["Swift step", "#00cc11"], 40: ["Quick-paced", "#00cc22"],
+                        41: ["Very brisk", "#00cc33"], 42: ["Clearly fast", "#00cc44"], 43: ["Forcefully rapid", "#00cc55"], 44: ["Rushing forward", "#00cc66"], 45: ["Hurrying intensely", "#00cc77"],
+                        46: ["Lively fast", "#00cc88"], 47: ["Speedy motion", "#00cc99"], 48: ["Snappy fast", "#00ccaa"], 49: ["Nimble quick", "#00ccbb"], 50: ["Sharply swift", "#00cccc"],
+                        60: ["Almost running", "#0022cc"], 70: ["Rapid running", "#8800cc"], 80: ["Supersonic pace", "#cc0066"], 90: ["Star-chasing speed", "#ff3300"], 
+                        95: ["Warp-level 5", "#ff8800"], 99: ["True lightspeed", "#ffcc00"], 100: ["Beyond-lightspeed", "#ffdd00"], 101: ["REALITY-BENDING OMNISPEED", "#ff00ff"]
+                    };
+                    
+                    // Calculate speed level based on fuel amount
                     let speedLevel = 0;
                     if (fuelAmount <= 0) {
                         speedLevel = 0;
+                    } else if (fuelAmount <= 100) {
+                        // Levels 1-4: Direct 1:1 mapping
+                        speedLevel = Math.min(Math.floor(fuelAmount), 100);
                     } else {
-                        speedLevel = Math.min(Math.floor(fuelAmount / 10), 101);
-                        if (fuelAmount >= 1010) speedLevel = 101;
+                        // Higher levels: complex calculation based on evolution
+                        speedLevel = Math.min(Math.floor(fuelAmount / 10), 100);
+                        if (fuelAmount >= 20000) speedLevel = 101; // TRANSCENDENT
                     }
                     
                     // Update evolution status based on TOTAL DONATIONS
@@ -609,16 +662,10 @@
                         }
                     }
                     
-                    // Use server-provided speed info if available
-                    if (data.speed) {
-                        speedText = data.speed.formatted_status || data.speed.description;
-                        speedColor = data.speed.color;
-                    } else {
-                        // Fallback to local calculation
-                        const speedDescriptions = getSpeedDescription(speedLevel);
-                        speedText = speedDescriptions.text;
-                        speedColor = speedDescriptions.color;
-                    }
+                    // Get speed description and color based on calculated level
+                    const speedInfo = speedDescriptions[speedLevel] || speedDescriptions[0];
+                    speedText = speedInfo[0];
+                    speedColor = speedInfo[1];
                     
                     if (speedStatus) {
                         speedStatus.textContent = speedText;
@@ -831,19 +878,26 @@
         // Start fuel consumption every 3 seconds
         setInterval(consumeFuel, 3000);
         
-        // Flash consumption overlay with fade animation every 3 seconds
+        // Flash consumption overlay with fade animation every 3 seconds (only if fuel > 0)
         function flashConsumptionOverlay() {
             const overlay = document.getElementById('fuelConsumptionOverlay');
-            if (overlay) {
-                // Show consumption animation (same as Next Bar)
-                overlay.style.transition = 'opacity 0.3s ease-in';
-                overlay.style.opacity = '1';
+            const fuelAmount = document.getElementById('fuelAmount');
+            
+            if (overlay && fuelAmount) {
+                // Parse current fuel amount
+                const currentFuel = parseFloat(fuelAmount.textContent.replace('$', ''));
                 
-                // Hide after 1 second (same timing as Next Bar)
-                setTimeout(() => {
-                    overlay.style.transition = 'opacity 0.5s ease-out';
-                    overlay.style.opacity = '0';
-                }, 1000);
+                // Only show consumption animation if we have fuel
+                if (currentFuel > 0) {
+                    overlay.style.transition = 'opacity 0.3s ease-in';
+                    overlay.style.opacity = '1';
+                    
+                    // Hide after 1 second (same timing as Next Bar)
+                    setTimeout(() => {
+                        overlay.style.transition = 'opacity 0.5s ease-out';
+                        overlay.style.opacity = '0';
+                    }, 1000);
+                }
             }
         }
         
