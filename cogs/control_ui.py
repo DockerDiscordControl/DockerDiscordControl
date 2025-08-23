@@ -1112,16 +1112,14 @@ class MechExpandButton(Button):
             self.cog.mech_expanded_states[self.channel_id] = True
             
             # Regenerate the /ss embed with expanded mech information
-            embed, animation_file = await self._create_expanded_ss_embed()
+            embed, _ = await self._create_expanded_ss_embed()  # Ignore animation_file
             
             # Create new view for expanded state
             view = MechView(self.cog, self.channel_id)
             
-            # Update the message
-            if animation_file:
-                await interaction.edit_original_response(embed=embed, file=animation_file, view=view)
-            else:
-                await interaction.edit_original_response(embed=embed, view=view)
+            # Update the message (NOTE: Cannot add/change files when editing)
+            # Keep the original animation by not changing the image URL
+            await interaction.edit_original_response(embed=embed, view=view)
                 
             logger.info(f"Mech status expanded for channel {self.channel_id} by {interaction.user.name}")
             
@@ -1193,16 +1191,14 @@ class MechCollapseButton(Button):
             self.cog.mech_expanded_states[self.channel_id] = False
             
             # Regenerate the /ss embed with collapsed mech information
-            embed, animation_file = await self._create_collapsed_ss_embed()
+            embed, _ = await self._create_collapsed_ss_embed()  # Ignore animation_file
             
             # Create new view for collapsed state
             view = MechView(self.cog, self.channel_id)
             
-            # Update the message
-            if animation_file:
-                await interaction.edit_original_response(embed=embed, file=animation_file, view=view)
-            else:
-                await interaction.edit_original_response(embed=embed, view=view)
+            # Update the message (NOTE: Cannot add/change files when editing)
+            # Keep the original animation by not changing the image URL
+            await interaction.edit_original_response(embed=embed, view=view)
                 
             logger.info(f"Mech status collapsed for channel {self.channel_id} by {interaction.user.name}")
             

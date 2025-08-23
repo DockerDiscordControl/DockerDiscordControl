@@ -1668,246 +1668,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             except:
                 pass
 
-    async def _create_overview_embed(self, ordered_servers, config):
-        """Creates the server overview embed with the status of all servers.
-        
-        Returns:
-            tuple: (embed, animation_file) where animation_file is None if no animation
-        """
-        # Import translation function locally to ensure it's accessible
-        from .translation_manager import _ as translate
-        
-        # Initialize animation file
-        animation_file = None
-        
-        # Create the overview embed
-        embed = discord.Embed(
-            title=translate("Server Overview"),
-            color=discord.Color.blue()
-        )
-
-        # Build server status lines
-        now_utc = datetime.now(timezone.utc)
-        # CRITICAL FIX: Always use the latest config for timezone
-        fresh_config = get_cached_config()
-        timezone_str = fresh_config.get('timezone') if fresh_config else config.get('timezone')
-        
-        current_time = format_datetime_with_timezone(now_utc, timezone_str, time_only=True)
-        
-        # Add timestamp at the top
-        last_update_text = translate("Last update")
-        
-        # Start building the content
-        content_lines = [
-            f"{last_update_text}: {current_time}",
-            "┌── Status ─────────────────"
-        ]
-
-        # Collect all server statuses
-        for server_conf in ordered_servers:
-            display_name = server_conf.get('name', server_conf.get('docker_name'))
-            docker_name = server_conf.get('docker_name')
-            if not display_name or not docker_name:
-                continue
-                
-            # ULTRA-FAST OPTIMIZATION: Use ONLY cached data
-            # No more Docker queries - Background loop (every 30s) provides current data
-            cached_entry = self.status_cache.get(display_name)
-            status_result = None
-            
-            if cached_entry and cached_entry.get('data'):
-                # Check cache age with DDC_DOCKER_MAX_CACHE_AGE
-                import os
-                max_cache_age = int(os.environ.get('DDC_DOCKER_MAX_CACHE_AGE', '300'))
-                
-                if 'timestamp' in cached_entry:
-                    cache_age = (datetime.now(timezone.utc) - cached_entry['timestamp']).total_seconds()
-                    if cache_age > max_cache_age:
-                        logger.debug(f"Cache for {display_name} expired ({cache_age:.1f}s > {max_cache_age}s)")
-                        cached_entry = None
-                
-                if cached_entry and cached_entry.get('data'):
-                    # ✅ Cache available and valid - use cached data
-                    status_result = cached_entry['data']
-            else:
-                # ⚠️ NO cache available - show "Loading" status
-                logger.debug(f"[/serverstatus] No cache entry for '{display_name}' - Background loop will update")
-                status_result = None
-            
-            # Check if container has info available
-            info_indicator = ""
-            try:
-                from utils.container_info_manager import get_container_info_manager
-                info_manager = get_container_info_manager()
-                info_config = info_manager.load_container_info(docker_name)
-                if info_config.get('enabled', False):
-                    info_indicator = " ℹ️"  # Blue info indicator
-            except Exception as e:
-                logger.debug(f"Could not check info status for {docker_name}: {e}")
-            
-            # Process status result
-            if status_result and isinstance(status_result, tuple) and len(status_result) == 6:
-                _, is_running, _, _, _, _ = status_result
-                
-                # Determine status icon
-                if display_name in self.pending_actions:
-                    pending_timestamp = self.pending_actions[display_name]['timestamp']
-                    pending_duration = (now_utc - pending_timestamp).total_seconds()
-                    if pending_duration < 120:  # Same timeout as in status_handlers.py
-                        status_emoji = "🟡"  # Yellow for pending
-                        # Use "Pending" status text instead of Online/Offline
-                        status_text = translate("Pending")
-                    else:
-                        # Clear stale pending state
-                        del self.pending_actions[display_name]
-                        status_emoji = "🟢" if is_running else "🔴"
-                        # Normal status text based on is_running
-                        status_text = translate("Online") if is_running else translate("Offline")
-                else:
-                    status_emoji = "🟢" if is_running else "🔴"
-                    # Normal status text based on is_running
-                    status_text = translate("Online") if is_running else translate("Offline")
-                
-                # Add status line with proper spacing and info indicator
-                line = f"│ {status_emoji} {status_text:8} {display_name}{info_indicator}"
-                content_lines.append(line)
-            else:
-                # No cache data available - show loading status
-                status_emoji = "🔄"
-                status_text = translate("Loading")
-                line = f"│ {status_emoji} {status_text:8} {display_name}{info_indicator}"
-                content_lines.append(line)
-
-        # Add footer line
-        content_lines.append("└───────────────────────────")
-        
-        # Combine all lines into the description
-        embed.description = "```\n" + "\n".join(content_lines) + "\n```"
-        
-        # Add info command hint if any containers have info enabled
-        has_any_info = False
-        try:
-            from utils.container_info_manager import get_container_info_manager
-            info_manager = get_container_info_manager()
-            for server_conf in ordered_servers:
-                docker_name = server_conf.get('docker_name')
-                if docker_name:
-                    info_config = info_manager.load_container_info(docker_name)
-                    if info_config.get('enabled', False):
-                        has_any_info = True
-                        break
-        except Exception as e:
-            logger.debug(f"Could not check info availability: {e}")
-        
-        if has_any_info:
-            embed.description += f"\n{translate('Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.')}"
-        
-        # Add Mech Status with animated WebP and progress bars (like Web UI)
-        try:
-            import sys
-            import os
-            # Add project root to Python path for service imports
-            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            if project_root not in sys.path:
-                sys.path.insert(0, project_root)
-                
-            from services.donation_service import get_donation_service
-            donation_service = get_donation_service()
-            donation_status = donation_service.get_status()
-            
-            current_fuel = donation_status.get('total_amount', 0)
-            total_donations = donation_status.get('total_donations_received', 0)
-            
-            # Get mech evolution and speed status
-            from utils.speed_levels import get_combined_mech_status
-            combined_status = get_combined_mech_status(current_fuel, total_donations)
-            evolution = combined_status['evolution']
-            speed = combined_status['speed']
-            
-            # Create fuel bar showing current fuel within current evolution level
-            # Both bars show progress within the current evolution level range
-            current_threshold = evolution.get('current_threshold', 0)
-            next_threshold = evolution.get('next_threshold', 20)
-            level_range = next_threshold - current_threshold
-            
-            # FUEL Bar: current_fuel within current level range
-            fuel_percentage = min(100, (current_fuel / level_range) * 100) if level_range > 0 else 0
-            fuel_bar = self._create_progress_bar(fuel_percentage, 20)
-            
-            # Evolution Bar: total_received_permanent within current level range  
-            next_percentage = evolution.get('progress_to_next', 0)
-            next_bar = self._create_progress_bar(next_percentage, 20)
-            
-            # Add animated mech FIRST (same as Web UI with shared caching)
-            try:
-                import sys
-                import os
-                # Add project root to Python path for service imports
-                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                if project_root not in sys.path:
-                    sys.path.insert(0, project_root)
-                    
-                from services.mech_animation_service import get_mech_animation_service
-                mech_service = get_mech_animation_service()
-                
-                # Create animation using service (uses internal caching)
-                animation_file = await mech_service.create_donation_animation_async(
-                    'Current Status', 
-                    f'${current_fuel:.2f}', 
-                    current_fuel
-                )
-                
-                if animation_file:
-                    embed.set_image(url=f"attachment://{animation_file.filename}")
-                    logger.info(f"✅ Created animated mech for fuel ${current_fuel:.2f}")
-                else:
-                    logger.warning("❌ Failed to create mech animation - no file returned")
-                    
-            except Exception as anim_error:
-                logger.error(f"❌ Mech animation error: {anim_error}", exc_info=True)
-                
-                # Fallback to static sprite
-                try:
-                    mech_sprite_path = Path(f"app/static/mech_sprites/mech_level_{evolution['level']}.png")
-                    if mech_sprite_path.exists():
-                        with open(mech_sprite_path, 'rb') as f:
-                            sprite_data = f.read()
-                        
-                        animation_file = discord.File(
-                            BytesIO(sprite_data), 
-                            filename=f"mech_level_{evolution['level']}.png"
-                        )
-                        embed.set_image(url=f"attachment://mech_level_{evolution['level']}.png")
-                        logger.info(f"✅ Using static fallback sprite for evolution level {evolution['level']}")
-                    else:
-                        logger.error(f"❌ Static sprite not found: {mech_sprite_path}")
-                except Exception as fallback_error:
-                    logger.error(f"❌ Fallback sprite failed: {fallback_error}", exc_info=True)
-            
-            # Create mech status text AFTER the animation (no bold formatting, simplified)
-            mech_status = f"{evolution['name']} (Level {evolution['level']})\n"
-            mech_status += f"Speed: {speed['description']}\n\n"
-            mech_status += f"🛢️ ${current_fuel:.2f}\n{fuel_bar} {fuel_percentage:.1f}%\n\n"
-            
-            if evolution.get('next_name'):
-                mech_status += f"⬆️ {evolution['next_name']}\n{next_bar} {next_percentage:.1f}%"
-            else:
-                mech_status += f"🌟 MAX EVOLUTION REACHED!"
-            
-            embed.add_field(name="Mech-onate", value=mech_status, inline=False)
-            
-            # Set the mech animation as embed image
-            if animation_file:
-                embed.set_image(url=f"attachment://{animation_file.filename}")
-                
-        except Exception as e:
-            logger.debug(f"Could not load mech status for /ss: {e}")
-        
-        # Add website URL as footer for better spacing
-        embed.set_footer(text="https://ddc.bot")
-        
-        # Return tuple (embed, animation_file)
-        return embed, animation_file
+    # NOTE: Old _create_overview_embed method was removed
+    # Use _create_overview_embed_expanded or _create_overview_embed_collapsed instead
 
     async def _create_overview_embed_expanded(self, ordered_servers, config):
         """Creates the server overview embed with EXPANDED mech status details.
@@ -2092,7 +1854,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             mech_status = f"{evolution['name']} (Level {evolution['level']})\n"
             mech_status += f"Speed: {speed['description']}\n\n"
             mech_status += f"🛢️ ${current_fuel:.2f}\n{fuel_bar} {fuel_percentage:.1f}%\n"
-            mech_status += f"Fuel Consumption: 🔻 0.04/h\n"  # Using red down arrow for negative indication
+            mech_status += f"Fuel Consumption: 🔻 0.04/h\n\n"  # Using red down arrow for negative indication
             
             if evolution.get('next_name'):
                 mech_status += f"⬆️ {evolution['next_name']}\n{next_bar} {next_percentage:.1f}%"
@@ -2106,8 +1868,13 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             embed.add_field(name="Mech-onate", value=mech_status, inline=False)
             
             # Set the mech animation as embed image
+            # Always set the same filename so Discord can reuse it on edits
             if animation_file:
-                embed.set_image(url=f"attachment://{animation_file.filename}")
+                animation_file.filename = "mech_animation.webp"  # Standardize filename
+                embed.set_image(url="attachment://mech_animation.webp")
+            else:
+                # For refreshes without animation file, reference the existing one
+                embed.set_image(url="attachment://mech_animation.webp")
                 
         except Exception as e:
             logger.debug(f"Could not load expanded mech status for /ss: {e}")
@@ -2270,8 +2037,13 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             embed.add_field(name="Mech-onate", value="*Click + to fuel/donate the Mech*", inline=False)
             
             # Set the mech animation as embed image
+            # Always set the same filename so Discord can reuse it on edits
             if animation_file:
-                embed.set_image(url=f"attachment://{animation_file.filename}")
+                animation_file.filename = "mech_animation.webp"  # Standardize filename
+                embed.set_image(url="attachment://mech_animation.webp")
+            else:
+                # For refreshes without animation file, reference the existing one
+                embed.set_image(url="attachment://mech_animation.webp")
                 
         except Exception as e:
             logger.debug(f"Could not load collapsed mech status for /ss: {e}")
@@ -2340,8 +2112,14 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 # If we can't respond, it means the interaction was already responded to
                 pass
 
-    async def _auto_update_ss_messages(self, reason: str):
-        """Auto-update all existing /ss messages in channels after donations"""
+    async def _auto_update_ss_messages(self, reason: str, force_recreate: bool = True):
+        """Auto-update all existing /ss messages in channels after donations
+        
+        Args:
+            reason: Reason for the update
+            force_recreate: If True, delete and recreate messages (for animation updates)
+                          If False, just edit the embed (for expand/collapse)
+        """
         try:
             logger.info(f"🔄 Auto-updating /ss messages: {reason}")
             
@@ -2393,14 +2171,31 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                         else:
                             embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
                         
-                        # Update the message (note: can't add files to edit, only embed)
-                        # Also need to update the view to maintain button states
-                        from .control_ui import MechView
-                        view = MechView(self, channel_id)
-                        await message.edit(embed=embed, view=view)
+                        if force_recreate:
+                            # Delete and recreate message with new animation
+                            await message.delete()
+                            
+                            # Create new view
+                            from .control_ui import MechView
+                            view = MechView(self, channel_id)
+                            
+                            # Send new message with fresh animation
+                            if animation_file:
+                                new_message = await channel.send(embed=embed, file=animation_file, view=view)
+                            else:
+                                new_message = await channel.send(embed=embed, view=view)
+                                
+                            # Update message tracking
+                            self.channel_server_message_ids[channel_id]['overview'] = new_message.id
+                            logger.debug(f"🔄 Recreated /ss message in {channel.name} with new animation")
+                        else:
+                            # Just edit the embed (for expand/collapse - no new animation)
+                            from .control_ui import MechView
+                            view = MechView(self, channel_id)
+                            await message.edit(embed=embed, view=view)
+                            logger.debug(f"✏️ Edited /ss message in {channel.name}")
                         
                         updated_count += 1
-                        logger.debug(f"✅ Updated /ss message in {channel.name}")
                         
                     except Exception as e:
                         logger.debug(f"Could not update /ss message in channel {channel_id}: {e}")
@@ -2412,6 +2207,10 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 
         except Exception as e:
             logger.error(f"Error in _auto_update_ss_messages: {e}")
+    
+    async def _edit_only_ss_messages(self, reason: str):
+        """Edit-only update for /ss messages (used for expand/collapse)"""
+        await self._auto_update_ss_messages(reason, force_recreate=False)
 
     # --- Heartbeat Loop ---
     @tasks.loop(minutes=1)
