@@ -197,28 +197,30 @@ class DonationManager:
             
             # Check for evolution level up
             evolution_level_up = new_level > old_level
+        else:
+            evolution_level_up = False
             
-            if evolution_level_up:
-                logger.info(f"Evolution level up from {old_level} to {new_level}!")
-                
-                # When evolution happens, reset fuel with 1$ bonus
-                # The evolution "costs" all accumulated fuel but gives 1$ to keep mech running
-                EVOLUTION_BONUS_FUEL = 1.0
-                
-                # Calculate what the new fuel should be after evolution
-                # Start with the amount that pushed us over the threshold
-                overflow = new_total - EVOLUTION_THRESHOLDS[new_level]
-                
-                # Set fuel to bonus + overflow
-                new_fuel_amount = EVOLUTION_BONUS_FUEL + overflow
-                
-                # Set the fuel directly (don't add to existing)
-                data["fuel_data"]["current_fuel"] = new_fuel_amount
-                
-                logger.info(f"Fuel after evolution: ${new_fuel_amount:.2f} (bonus: ${EVOLUTION_BONUS_FUEL:.2f}, overflow: ${overflow:.2f})")
-            else:
-                # No evolution, fuel just increases normally (already added above)
-                logger.info(f"Fuel increased by: ${amount:.2f}")
+        if amount > 0 and evolution_level_up:
+            logger.info(f"Evolution level up from {old_level} to {new_level}!")
+            
+            # When evolution happens, reset fuel with 1$ bonus
+            # The evolution "costs" all accumulated fuel but gives 1$ to keep mech running
+            EVOLUTION_BONUS_FUEL = 1.0
+            
+            # Calculate what the new fuel should be after evolution
+            # Start with the amount that pushed us over the threshold
+            overflow = new_total - EVOLUTION_THRESHOLDS[new_level]
+            
+            # Set fuel to bonus + overflow
+            new_fuel_amount = EVOLUTION_BONUS_FUEL + overflow
+            
+            # Set the fuel directly (don't add to existing)
+            data["fuel_data"]["current_fuel"] = new_fuel_amount
+            
+            logger.info(f"Fuel after evolution: ${new_fuel_amount:.2f} (bonus: ${EVOLUTION_BONUS_FUEL:.2f}, overflow: ${overflow:.2f})")
+        elif amount > 0:
+            # No evolution, fuel just increases normally (already added above)
+            logger.info(f"Fuel increased by: ${amount:.2f}")
             
             logger.info(f"Total donations received (permanent): ${new_total:.2f}")
         
@@ -240,6 +242,10 @@ class DonationManager:
         # Use DEBUG for consumption to reduce log spam, INFO for actual donations
         log_level = logger.debug if is_consumption else logger.info
         log_level(f"Added {amount}€ fuel. New total: {data['fuel_data']['current_fuel']:.2f}€")
+        
+        # Add evolution_level_up flag to return data for force_recreate decision
+        if amount > 0:
+            data['_evolution_level_up'] = evolution_level_up
         
         return data
     

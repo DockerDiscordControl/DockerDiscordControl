@@ -1554,7 +1554,8 @@ def submit_donation():
                     'amount': amount,
                     'message': f"🎉 **{donor_name}** donated **${amount:.2f}** to fuel the mech! Thank you! 🚀",
                     'timestamp': datetime.now(timezone.utc).isoformat(),
-                    'source': 'web_ui_modal'
+                    'source': 'web_ui_modal',
+                    'evolution_level_up': result.get('_evolution_level_up', False)
                 }
                 
                 # Limit queue size to prevent memory issues (max 100 pending)
@@ -1611,12 +1612,12 @@ def mech_animation():
             donation_service = get_donation_service()
             data = donation_service.get_status()
             total_donations = data.get('total_amount', 0)
-            current_app.logger.info(f"Got fuel from donation service: {total_donations}")
+            current_app.logger.debug(f"Got fuel from donation service: {total_donations}")
         except Exception as e:
             current_app.logger.error(f"Error getting donation status: {e}")
             total_donations = 20.0  # Fallback default
         
-        current_app.logger.info(f"Live mech animation request, fuel: {total_donations}")
+        current_app.logger.debug(f"Live mech animation request, fuel: {total_donations}")
         
         # Use centralized mech animation service with proper Web UI wrapper
         try:

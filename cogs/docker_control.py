@@ -425,6 +425,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         self.check_donation_broadcasts.start()
         self.expanded_states = {}  # For container expand/collapse
         self.mech_expanded_states = {}  # For mech expand/collapse in /ss
+        self.last_glvl_per_channel = {}  # Track Glvl per channel for change detection
         self.channel_server_message_ids: Dict[int, Dict[str, int]] = {}
         self.last_message_update_time: Dict[int, Dict[str, datetime]] = {}
         self.initial_messages_sent = False
@@ -2164,6 +2165,32 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                                 ordered_servers.append(server)
                                 seen_docker_names.add(docker_name)
                         
+                        # Auto-detect Glvl changes for force_recreate decision
+                        current_glvl = None
+                        try:
+                            # Get current mech status to extract Glvl
+                            from utils.speed_levels import get_combined_mech_status
+                            mech_status = get_combined_mech_status()
+                            current_glvl = mech_status.get('speed', {}).get('level', 0)
+                        except Exception as e:
+                            logger.debug(f"Could not get current Glvl: {e}")
+                        
+                        # Check if Glvl changed significantly (>= 1 level difference)
+                        glvl_changed = False
+                        if current_glvl is not None:
+                            last_glvl = self.last_glvl_per_channel.get(channel_id, 0)
+                            if abs(current_glvl - last_glvl) >= 1:
+                                glvl_changed = True
+                                logger.info(f"Significant Glvl change detected: {last_glvl} → {current_glvl}")
+                                self.last_glvl_per_channel[channel_id] = current_glvl
+                            elif last_glvl == 0:  # First time tracking
+                                self.last_glvl_per_channel[channel_id] = current_glvl
+                        
+                        # Override force_recreate if significant Glvl change detected
+                        if glvl_changed and not force_recreate:
+                            force_recreate = True
+                            logger.info(f"Upgrading to force_recreate=True due to significant Glvl change")
+                        
                         # Create updated embed based on expansion state
                         is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
                         if is_mech_expanded:
@@ -3047,6 +3074,9 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             if pending_broadcasts and len(pending_broadcasts) > 0:
                 logger.info(f"Found {len(pending_broadcasts)} pending donation broadcasts")
                 
+                # Track successfully processed broadcasts for evolution level-up detection
+                processed_broadcasts = []
+                
                 # Process each broadcast
                 for broadcast in pending_broadcasts[:]:  # Copy list to allow modification
                     try:
@@ -3112,6 +3142,9 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                         
                         logger.info(f"Donation broadcast sent to {sent_count} channels")
                         
+                        # Track successfully processed broadcast for evolution level-up detection
+                        processed_broadcasts.append(broadcast)
+                        
                         # Remove processed broadcast
                         pending_broadcasts.remove(broadcast)
                         
@@ -3126,7 +3159,16 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 donation_manager.save_data(donation_data)
                 
                 # Auto-update all /ss messages after donation processing
-                await self._auto_update_ss_messages("Donation received - auto-updating status")
+                if processed_broadcasts:  # Only update if we actually processed some broadcasts
+                    # Check if any processed broadcast was an evolution level-up
+                    evolution_level_up = any(broadcast.get('evolution_level_up', False) for broadcast in processed_broadcasts)
+                    
+                    if evolution_level_up:
+                        # Evolution = new animation needed (force_recreate=True)
+                        await self._auto_update_ss_messages("Evolution level up - updating mech animation", force_recreate=True)
+                    else:
+                        # Normal donation = just update embed (force_recreate=False)
+                        await self._auto_update_ss_messages("Donation received - updating status", force_recreate=False)
                 
         except Exception as e:
             logger.debug(f"Error in check_donation_broadcasts: {e}")
