@@ -646,20 +646,34 @@
             function cleanupOldDonationMarkers() {
                 const oneHourAgo = Date.now() - (60 * 60 * 1000);
                 const keysToRemove = [];
+                let totalCleaned = 0;
                 
-                // Find old donation markers
+                // Find old donation markers and other DDC data
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    if (key && key.startsWith('ddcDonationShown_')) {
-                        const timestamp = parseInt(key.replace('ddcDonationShown_', ''));
-                        if (timestamp < oneHourAgo) {
+                    if (key) {
+                        // Clean old donation markers
+                        if (key.startsWith('ddcDonationShown_')) {
+                            const timestamp = parseInt(key.replace('ddcDonationShown_', ''));
+                            if (isNaN(timestamp) || timestamp < oneHourAgo) {
+                                keysToRemove.push(key);
+                                totalCleaned++;
+                            }
+                        }
+                        // Also clean any malformed DDC keys
+                        else if (key.startsWith('ddc') && key.includes('undefined')) {
                             keysToRemove.push(key);
+                            totalCleaned++;
                         }
                     }
                 }
                 
                 // Remove old markers
                 keysToRemove.forEach(key => localStorage.removeItem(key));
+                
+                if (totalCleaned > 0) {
+                    console.log(`Cleaned ${totalCleaned} old localStorage entries`);
+                }
             }
             
             function showThankYouOverlay(donationType) {

@@ -35,7 +35,8 @@
       "Bash(mv:*)",
       "Bash(pip3 install:*)",
       "Bash(curl:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(python -m pytest systems/tests/test_mech_master.py -v)"
     ],
     "deny": []
   }

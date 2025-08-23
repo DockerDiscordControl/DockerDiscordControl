@@ -192,3 +192,7 @@ config/bot_config.json
 # Mech sprite sources (keep hidden)
 app/static/mech_sprites/
 *.png.backup
+
+# Fuel System Documentation (internal)
+FUEL_SYSTEM_MEMO.md
+FUEL_SYSTEM_FORMULAS.md

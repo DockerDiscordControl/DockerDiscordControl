@@ -26,6 +26,10 @@ class SpriteMechAnimator:
         self.sprite_width = 0
         self.sprite_height = 0
         
+        # PERFORMANCE: Global animation cache - shared between Web UI and Discord
+        self.animation_cache = {}
+        self.cache_max_size = 20  # Limit memory usage
+        
         # Load default spritesheet
         self.load_default_spritesheet()
         
@@ -118,20 +122,68 @@ class SpriteMechAnimator:
         return spritesheet.crop((left, top, right, bottom))
     
     async def create_donation_animation(self, donor_name: str, amount: str, total_donations: float) -> discord.File:
-        """Create animated WebP using real mech sprites"""
+        """Create animated WebP using real mech sprites with global caching"""
         try:
-            # Get evolution level for sprite selection
-            from utils.mech_evolutions import get_evolution_level
-            evolution_level = get_evolution_level(total_donations)
+            # EDGE CASE: Safely get evolution level with boundaries
+            try:
+                from utils.mech_evolutions import get_evolution_level
+                evolution_level = get_evolution_level(total_donations)
+                
+                # Validate evolution level boundaries
+                if evolution_level < 1:
+                    evolution_level = 1
+                elif evolution_level > 11:
+                    evolution_level = 11
+                    
+            except Exception as evo_error:
+                logger.error(f"Error getting evolution level: {evo_error}")
+                evolution_level = 1  # Safe fallback
             
-            speed_level = self.calculate_speed_level(total_donations)
-            frames = []
+            # EDGE CASE: Safely calculate speed level
+            try:
+                speed_level = self.calculate_speed_level(total_donations)
+                if speed_level < 0:
+                    speed_level = 0
+                elif speed_level > 101:
+                    speed_level = 101
+            except Exception as speed_error:
+                logger.error(f"Error calculating speed level: {speed_error}")
+                speed_level = 1  # Safe fallback
             
-            logger.info(f"Creating sprite mech animation for {donor_name}, evolution level: {evolution_level}, speed level: {speed_level}, fuel: {total_donations}")
-            
-            # If no fuel, create static "dead" mech
+            # EDGE CASE: Handle zero/negative fuel BEFORE caching
             if total_donations <= 0:
+                logger.info(f"Zero fuel detected, creating dead mech animation")
                 return await self.create_dead_mech_animation(donor_name)
+            
+            # PERFORMANCE: Create cache key based on fuel and evolution (not donor name)
+            # This allows sharing between Web UI and Discord
+            cache_key = f"fuel_{total_donations:.2f}_evo_{evolution_level}_speed_{speed_level}"
+            
+            # Check if we already have this animation cached
+            if cache_key in self.animation_cache:
+                cached_data = self.animation_cache[cache_key]
+                logger.debug(f"Using cached animation for {cache_key}")
+                
+                # EDGE CASE: Safely create Discord.File from cached bytes
+                try:
+                    if cached_data and len(cached_data) > 0:
+                        return discord.File(
+                            BytesIO(cached_data), 
+                            filename=f"mech_animation_{total_donations:.0f}.webp"
+                        )
+                    else:
+                        logger.warning(f"Invalid cached data for {cache_key}, removing from cache")
+                        del self.animation_cache[cache_key]
+                        # Fall through to create new animation
+                except Exception as cache_error:
+                    logger.error(f"Error using cached animation: {cache_error}")
+                    # Remove corrupted cache entry
+                    if cache_key in self.animation_cache:
+                        del self.animation_cache[cache_key]
+                    # Fall through to create new animation
+            
+            logger.info(f"Creating new sprite mech animation for evolution: {evolution_level}, speed: {speed_level}, fuel: {total_donations}")
+            frames = []
             
             for frame in range(self.frames):
                 # Create background
@@ -237,6 +289,38 @@ class SpriteMechAnimator:
                 return self._create_smaller_animation(frames, speed_level)
             
             logger.info(f"Sprite WebP animation created: {file_size} bytes")
+            
+            # PERFORMANCE: Cache the animation bytes for reuse
+            buffer.seek(0)
+            animation_bytes = buffer.getvalue()
+            
+            # EDGE CASE: Validate animation bytes before caching
+            if not animation_bytes or len(animation_bytes) < 100:  # Minimum viable WebP size
+                logger.error(f"Invalid animation created, size: {len(animation_bytes) if animation_bytes else 0}")
+                return self.create_static_fallback(donor_name, amount, speed_level)
+            
+            # EDGE CASE: Manage cache size safely (LRU-like)
+            if len(self.animation_cache) >= self.cache_max_size:
+                try:
+                    # Remove oldest entry safely
+                    if self.animation_cache:  # Additional safety check
+                        oldest_key = next(iter(self.animation_cache))
+                        del self.animation_cache[oldest_key]
+                        logger.debug(f"Removed old cache entry: {oldest_key}")
+                except (StopIteration, KeyError) as e:
+                    logger.warning(f"Cache management error: {e}, clearing cache")
+                    self.animation_cache.clear()
+            
+            # EDGE CASE: Safely cache the animation
+            try:
+                self.animation_cache[cache_key] = animation_bytes
+                logger.info(f"Cached animation: {cache_key} ({len(animation_bytes)} bytes)")
+            except MemoryError:
+                logger.error("Memory error caching animation, clearing cache")
+                self.animation_cache.clear()
+            except Exception as cache_err:
+                logger.error(f"Error caching animation: {cache_err}")
+            
             buffer.seek(0)
             return discord.File(buffer, filename="sprite_mech_donation.webp")
             
