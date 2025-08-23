@@ -423,7 +423,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         
         # Start donation broadcast checker
         self.check_donation_broadcasts.start()
-        self.expanded_states = {} 
+        self.expanded_states = {}  # For container expand/collapse
+        self.mech_expanded_states = {}  # For mech expand/collapse in /ss
         self.channel_server_message_ids: Dict[int, Dict[str, int]] = {}
         self.last_message_update_time: Dict[int, Dict[str, datetime]] = {}
         self.initial_messages_sent = False
@@ -452,6 +453,9 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 self.ordered_server_names = [s.get('docker_name') for s in config.get('servers', []) if s.get('docker_name')]
             save_server_order(self.ordered_server_names)
             logger.info(f"[Cog Init] Saved default server order: {self.ordered_server_names}")
+        
+        # Register persistent views for mech buttons
+        self._register_persistent_mech_views()
             
         # Initialize translations
         self.translations = get_translations()
@@ -1231,27 +1235,14 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                                     ordered_servers.append(server)
                                     seen_docker_names.add(docker_name)
                                     
-                            embed, animation_file = await self._create_overview_embed(ordered_servers, config)
+                            # For initial messages, always start in collapsed state
+                            channel_id = channel.id
+                            self.mech_expanded_states[channel_id] = False
+                            embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
                             
-                            # Create Mechonate button for donation (same as /ss command)
-                            from .translation_manager import _
-                            view = discord.ui.View(timeout=300)  # 5 minutes timeout
-                            mechonate_button = discord.ui.Button(
-                                label="Mech-onate",
-                                style=discord.ButtonStyle.green
-                            )
-                            
-                            async def mechonate_callback(interaction):
-                                """Handle Mechonate button click - trigger donate command logic"""
-                                try:
-                                    # Call the donate command logic directly
-                                    await self._handle_donate_interaction(interaction)
-                                except Exception as e:
-                                    logger.error(f"Error in mechonate button: {e}")
-                                    await interaction.response.send_message("❌ Error processing donation. Please try `/donate` directly.", ephemeral=True)
-                            
-                            mechonate_button.callback = mechonate_callback
-                            view.add_item(mechonate_button)
+                            # Create MechView with expand/collapse buttons for mech status
+                            from .control_ui import MechView
+                            view = MechView(self, channel_id)
                             
                             # Send with animation and button if available
                             if animation_file:
@@ -1446,27 +1437,18 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     ordered_servers.append(server)
                     seen_docker_names.add(docker_name)
             
-            embed, animation_file = await self._create_overview_embed(ordered_servers, config)
+            # Determine which embed to create based on mech expansion state
+            channel_id = ctx.channel.id
+            is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
             
-            # Create Mechonate button for donation
-            from .translation_manager import _
-            view = discord.ui.View(timeout=300)  # 5 minutes timeout
-            mechonate_button = discord.ui.Button(
-                label="Mech-onate",
-                style=discord.ButtonStyle.green
-            )
+            if is_mech_expanded:
+                embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config)
+            else:
+                embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
             
-            async def mechonate_callback(interaction):
-                """Handle Mechonate button click - trigger donate command logic"""
-                try:
-                    # Call the donate command logic directly
-                    await self._handle_donate_interaction(interaction)
-                except Exception as e:
-                    logger.error(f"Error in mechonate button: {e}")
-                    await interaction.response.send_message("❌ Error processing donation. Please try `/donate` directly.", ephemeral=True)
-            
-            mechonate_button.callback = mechonate_callback
-            view.add_item(mechonate_button)
+            # Create MechView with expand/collapse buttons for mech status
+            from .control_ui import MechView
+            view = MechView(self, channel_id)
             
             # EDGE CASE: Safely send embed with animation and button
             try:
@@ -1912,13 +1894,390 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             else:
                 mech_status += f"🌟 MAX EVOLUTION REACHED!"
             
-            embed.add_field(name="Mech-onation", value=mech_status, inline=False)
+            embed.add_field(name="Mech-onate", value=mech_status, inline=False)
+            
+            # Set the mech animation as embed image
+            if animation_file:
+                embed.set_image(url=f"attachment://{animation_file.filename}")
                 
         except Exception as e:
             logger.debug(f"Could not load mech status for /ss: {e}")
         
-        # Add the website URL without italic formatting
-        embed.description += f"\n\nhttps://ddc.bot"
+        # Add website URL as footer for better spacing
+        embed.set_footer(text="https://ddc.bot")
+        
+        # Return tuple (embed, animation_file)
+        return embed, animation_file
+
+    async def _create_overview_embed_expanded(self, ordered_servers, config):
+        """Creates the server overview embed with EXPANDED mech status details.
+        
+        Returns:
+            tuple: (embed, animation_file) where animation_file is None if no animation
+        """
+        # Import translation function locally to ensure it's accessible
+        from .translation_manager import _ as translate
+        
+        # Initialize animation file
+        animation_file = None
+        
+        # Create the overview embed
+        embed = discord.Embed(
+            title=translate("Server Overview"),
+            color=discord.Color.blue()
+        )
+
+        # Build server status lines (same logic as original)
+        now_utc = datetime.now(timezone.utc)
+        fresh_config = get_cached_config()
+        timezone_str = fresh_config.get('timezone') if fresh_config else config.get('timezone')
+        
+        current_time = format_datetime_with_timezone(now_utc, timezone_str, time_only=True)
+        
+        # Add timestamp at the top
+        last_update_text = translate("Last update")
+        
+        # Start building the content (same server status logic as original)
+        content_lines = [
+            f"{last_update_text}: {current_time}",
+            "┌── Status ─────────────────"
+        ]
+
+        # Add server statuses (copy from original method)
+        for server_conf in ordered_servers:
+            display_name = server_conf.get('name', server_conf.get('docker_name'))
+            docker_name = server_conf.get('docker_name')
+            if not display_name or not docker_name:
+                continue
+                
+            # Use cached data only (same as original)
+            cached_entry = self.status_cache.get(display_name)
+            status_result = None
+            
+            if cached_entry and cached_entry.get('data'):
+                import os
+                max_cache_age = int(os.environ.get('DDC_DOCKER_MAX_CACHE_AGE', '300'))
+                
+                if 'timestamp' in cached_entry:
+                    cache_age = (datetime.now(timezone.utc) - cached_entry['timestamp']).total_seconds()
+                    if cache_age > max_cache_age:
+                        logger.debug(f"Cache for {display_name} expired ({cache_age:.1f}s > {max_cache_age}s)")
+                        cached_entry = None
+                
+                if cached_entry and cached_entry.get('data'):
+                    status_result = cached_entry['data']
+            else:
+                logger.debug(f"[/serverstatus] No cache entry for '{display_name}' - Background loop will update")
+                status_result = None
+            
+            # Check if container has info available (same as original)
+            info_indicator = ""
+            try:
+                from utils.container_info_manager import get_container_info_manager
+                info_manager = get_container_info_manager()
+                info_config = info_manager.load_container_info(docker_name)
+                if info_config.get('enabled', False):
+                    info_indicator = " ℹ️"
+            except Exception as e:
+                logger.debug(f"Could not check info status for {docker_name}: {e}")
+            
+            # Process status result (same as original)
+            if status_result and isinstance(status_result, tuple) and len(status_result) == 6:
+                _, is_running, _, _, _, _ = status_result
+                
+                # Determine status icon (same logic as original)
+                if display_name in self.pending_actions:
+                    pending_timestamp = self.pending_actions[display_name]['timestamp']
+                    pending_duration = (now_utc - pending_timestamp).total_seconds()
+                    if pending_duration < 120:
+                        status_emoji = "🟡"
+                        status_text = translate("Pending")
+                    else:
+                        del self.pending_actions[display_name]
+                        status_emoji = "🟢" if is_running else "🔴"
+                        status_text = translate("Online") if is_running else translate("Offline")
+                else:
+                    status_emoji = "🟢" if is_running else "🔴"
+                    status_text = translate("Online") if is_running else translate("Offline")
+                
+                # Add status line with proper spacing and info indicator (match original format)
+                line = f"│ {status_emoji} {status_text:8} {display_name}{info_indicator}"
+                content_lines.append(line)
+            else:
+                # No cache data available - show loading status
+                status_emoji = "🔄"
+                status_text = translate("Loading")
+                line = f"│ {status_emoji} {status_text:8} {display_name}{info_indicator}"
+                content_lines.append(line)
+        
+        # Close server status box
+        content_lines.append("└───────────────────────────")
+        
+        # Combine all lines into the description
+        embed.description = "```\n" + "\n".join(content_lines) + "\n```"
+        
+        # Check if any containers have info available
+        has_any_info = False
+        try:
+            from utils.container_info_manager import get_container_info_manager
+            info_manager = get_container_info_manager()
+            for server_conf in ordered_servers:
+                docker_name = server_conf.get('docker_name')
+                if docker_name:
+                    info_config = info_manager.load_container_info(docker_name)
+                    if info_config.get('enabled', False):
+                        has_any_info = True
+                        break
+        except Exception as e:
+            logger.debug(f"Could not check info availability: {e}")
+        
+        if has_any_info:
+            embed.description += f"\n{translate('Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.')}"
+        
+        # Add EXPANDED Mech Status with detailed information and progress bars
+        try:
+            import sys
+            import os
+            # Add project root to Python path for service imports
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if project_root not in sys.path:
+                sys.path.insert(0, project_root)
+                
+            from services.donation_service import get_donation_service
+            donation_service = get_donation_service()
+            
+            # Get mech status data
+            status_data = donation_service.get_status()
+            current_fuel = status_data.get('total_amount', 0)
+            total_donations_received = status_data.get('total_donations_received', 0)
+            
+            # Get combined mech status (evolution + speed)
+            from utils.speed_levels import get_combined_mech_status
+            combined_status = get_combined_mech_status(current_fuel, total_donations_received)
+            evolution = combined_status['evolution']
+            speed = combined_status['speed']
+            
+            # Create mech animation
+            from services.mech_animation_service import get_mech_animation_service
+            mech_service = get_mech_animation_service()
+            animation_file = await mech_service.create_donation_animation_async(
+                'Current', f'{current_fuel}$', current_fuel
+            )
+            
+            # Calculate progress bars for EXPANDED view
+            # Fuel bar - within current evolution level
+            current_threshold = evolution.get('current_threshold', 0)
+            next_threshold = evolution.get('next_threshold', 20)
+            level_range = next_threshold - current_threshold
+            
+            if level_range > 0:
+                # Progress within current level range
+                fuel_progress_in_level = current_fuel - current_threshold
+                fuel_percentage = min(100, max(0, (fuel_progress_in_level / level_range) * 100))
+                fuel_bar = self._create_progress_bar(fuel_percentage)
+            else:
+                fuel_bar = self._create_progress_bar(0)
+                fuel_percentage = 0
+            
+            # Evolution/Next bar - also within current evolution level
+            if level_range > 0:
+                next_progress_in_level = total_donations_received - current_threshold
+                next_percentage = min(100, max(0, (next_progress_in_level / level_range) * 100))
+                next_bar = self._create_progress_bar(next_percentage)
+            else:
+                next_bar = self._create_progress_bar(0)
+                next_percentage = 0
+            
+            # Create EXPANDED mech status text with detailed information (no bold formatting)
+            mech_status = f"{evolution['name']} (Level {evolution['level']})\n"
+            mech_status += f"Speed: {speed['description']}\n\n"
+            mech_status += f"🛢️ ${current_fuel:.2f}\n{fuel_bar} {fuel_percentage:.1f}%\n"
+            mech_status += f"Fuel Consumption: 🔻 0.04/h\n"  # Using red down arrow for negative indication
+            
+            if evolution.get('next_name'):
+                mech_status += f"⬆️ {evolution['next_name']}\n{next_bar} {next_percentage:.1f}%"
+            else:
+                mech_status += f"🌟 MAX EVOLUTION REACHED!"
+            
+            # Add Glvl if available
+            if speed.get('glvl') is not None:
+                mech_status += f"\nGlvl: {speed['glvl']}"
+            
+            embed.add_field(name="Mech-onate", value=mech_status, inline=False)
+            
+            # Set the mech animation as embed image
+            if animation_file:
+                embed.set_image(url=f"attachment://{animation_file.filename}")
+                
+        except Exception as e:
+            logger.debug(f"Could not load expanded mech status for /ss: {e}")
+        
+        # Add website URL as footer for better spacing
+        embed.set_footer(text="https://ddc.bot")
+        
+        # Return tuple (embed, animation_file)
+        return embed, animation_file
+
+    async def _create_overview_embed_collapsed(self, ordered_servers, config):
+        """Creates the server overview embed with COLLAPSED mech status (animation only).
+        
+        Returns:
+            tuple: (embed, animation_file) where animation_file is None if no animation
+        """
+        # Import translation function locally to ensure it's accessible
+        from .translation_manager import _ as translate
+        
+        # Initialize animation file
+        animation_file = None
+        
+        # Create the overview embed
+        embed = discord.Embed(
+            title=translate("Server Overview"),
+            color=discord.Color.blue()
+        )
+
+        # Build server status lines (same logic as original)
+        now_utc = datetime.now(timezone.utc)
+        fresh_config = get_cached_config()
+        timezone_str = fresh_config.get('timezone') if fresh_config else config.get('timezone')
+        
+        current_time = format_datetime_with_timezone(now_utc, timezone_str, time_only=True)
+        
+        # Add timestamp at the top
+        last_update_text = translate("Last update")
+        
+        # Start building the content (same server status logic as original)
+        content_lines = [
+            f"{last_update_text}: {current_time}",
+            "┌── Status ─────────────────"
+        ]
+
+        # Add server statuses (copy from original method - same logic)
+        for server_conf in ordered_servers:
+            display_name = server_conf.get('name', server_conf.get('docker_name'))
+            docker_name = server_conf.get('docker_name')
+            if not display_name or not docker_name:
+                continue
+                
+            # Use cached data only (same as original)
+            cached_entry = self.status_cache.get(display_name)
+            status_result = None
+            
+            if cached_entry and cached_entry.get('data'):
+                import os
+                max_cache_age = int(os.environ.get('DDC_DOCKER_MAX_CACHE_AGE', '300'))
+                
+                if 'timestamp' in cached_entry:
+                    cache_age = (datetime.now(timezone.utc) - cached_entry['timestamp']).total_seconds()
+                    if cache_age > max_cache_age:
+                        logger.debug(f"Cache for {display_name} expired ({cache_age:.1f}s > {max_cache_age}s)")
+                        cached_entry = None
+                
+                if cached_entry and cached_entry.get('data'):
+                    status_result = cached_entry['data']
+            else:
+                logger.debug(f"[/serverstatus] No cache entry for '{display_name}' - Background loop will update")
+                status_result = None
+            
+            # Check if container has info available (same as original)
+            info_indicator = ""
+            try:
+                from utils.container_info_manager import get_container_info_manager
+                info_manager = get_container_info_manager()
+                info_config = info_manager.load_container_info(docker_name)
+                if info_config.get('enabled', False):
+                    info_indicator = " ℹ️"
+            except Exception as e:
+                logger.debug(f"Could not check info status for {docker_name}: {e}")
+            
+            # Process status result (same as original)
+            if status_result and isinstance(status_result, tuple) and len(status_result) == 6:
+                _, is_running, _, _, _, _ = status_result
+                
+                # Determine status icon (same logic as original)
+                if display_name in self.pending_actions:
+                    pending_timestamp = self.pending_actions[display_name]['timestamp']
+                    pending_duration = (now_utc - pending_timestamp).total_seconds()
+                    if pending_duration < 120:
+                        status_emoji = "🟡"
+                        status_text = translate("Pending")
+                    else:
+                        del self.pending_actions[display_name]
+                        status_emoji = "🟢" if is_running else "🔴"
+                        status_text = translate("Online") if is_running else translate("Offline")
+                else:
+                    status_emoji = "🟢" if is_running else "🔴"
+                    status_text = translate("Online") if is_running else translate("Offline")
+                
+                # Add status line with proper spacing and info indicator (match original format)
+                line = f"│ {status_emoji} {status_text:8} {display_name}{info_indicator}"
+                content_lines.append(line)
+            else:
+                # No cache data available - show loading status
+                status_emoji = "🔄"
+                status_text = translate("Loading")
+                line = f"│ {status_emoji} {status_text:8} {display_name}{info_indicator}"
+                content_lines.append(line)
+        
+        # Close server status box
+        content_lines.append("└───────────────────────────")
+        
+        # Combine all lines into the description
+        embed.description = "```\n" + "\n".join(content_lines) + "\n```"
+        
+        # Check if any containers have info available
+        has_any_info = False
+        try:
+            from utils.container_info_manager import get_container_info_manager
+            info_manager = get_container_info_manager()
+            for server_conf in ordered_servers:
+                docker_name = server_conf.get('docker_name')
+                if docker_name:
+                    info_config = info_manager.load_container_info(docker_name)
+                    if info_config.get('enabled', False):
+                        has_any_info = True
+                        break
+        except Exception as e:
+            logger.debug(f"Could not check info availability: {e}")
+        
+        if has_any_info:
+            embed.description += f"\n{translate('Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.')}"
+        
+        # Add COLLAPSED Mech Status (animation only, no text details)
+        try:
+            import sys
+            import os
+            # Add project root to Python path for service imports
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if project_root not in sys.path:
+                sys.path.insert(0, project_root)
+                
+            from services.donation_service import get_donation_service
+            donation_service = get_donation_service()
+            
+            # Get current fuel for animation
+            status_data = donation_service.get_status()
+            current_fuel = status_data.get('total_amount', 0)
+            
+            # Create mech animation (same as original)
+            from services.mech_animation_service import get_mech_animation_service
+            mech_service = get_mech_animation_service()
+            animation_file = await mech_service.create_donation_animation_async(
+                'Current', f'{current_fuel}$', current_fuel
+            )
+            
+            # For collapsed view, only add a simple field name (no detailed info)
+            embed.add_field(name="Mech-onate", value="*Click + to fuel/donate the Mech*", inline=False)
+            
+            # Set the mech animation as embed image
+            if animation_file:
+                embed.set_image(url=f"attachment://{animation_file.filename}")
+                
+        except Exception as e:
+            logger.debug(f"Could not load collapsed mech status for /ss: {e}")
+        
+        # Add website URL as footer for better spacing
+        embed.set_footer(text="https://ddc.bot")
         
         # Return tuple (embed, animation_file)
         return embed, animation_file
@@ -2027,11 +2386,18 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                                 ordered_servers.append(server)
                                 seen_docker_names.add(docker_name)
                         
-                        # Create updated embed
-                        embed, animation_file = await self._create_overview_embed(ordered_servers, config)
+                        # Create updated embed based on expansion state
+                        is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
+                        if is_mech_expanded:
+                            embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config)
+                        else:
+                            embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
                         
                         # Update the message (note: can't add files to edit, only embed)
-                        await message.edit(embed=embed)
+                        # Also need to update the view to maintain button states
+                        from .control_ui import MechView
+                        view = MechView(self, channel_id)
+                        await message.edit(embed=embed, view=view)
                         
                         updated_count += 1
                         logger.debug(f"✅ Updated /ss message in {channel.name}")
@@ -3061,11 +3427,18 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     ordered_servers.append(server)
                     seen_docker_names.add(docker_name)
             
-            # Create the updated embed
-            embed, animation_file = await self._create_overview_embed(ordered_servers, config)
+            # Create the updated embed based on expansion state
+            is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
+            if is_mech_expanded:
+                embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config)
+            else:
+                embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
             
             # Update the message (note: can't add files to edit, only embed)
-            await message.edit(embed=embed)
+            # Also need to update the view to maintain button states
+            from .control_ui import MechView
+            view = MechView(self, channel_id)
+            await message.edit(embed=embed, view=view)
             
             # Update message update timestamp, but NOT channel activity
             now_utc = datetime.now(timezone.utc)
@@ -3095,6 +3468,21 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         except Exception as e:
             logger.error(f"Error updating overview message in channel {channel_id}: {e}", exc_info=True)
             return False
+    
+    def _register_persistent_mech_views(self):
+        """Register persistent views for mech buttons to work after bot restart."""
+        try:
+            from .control_ui import MechExpandButton, MechCollapseButton, MechDonateButton
+            
+            # Register each button type for persistent views
+            # The actual channel_id will be extracted from custom_id during callback
+            self.bot.add_view(MechExpandButton(self, 0), message_id=None)  # Dummy instance for registration
+            self.bot.add_view(MechCollapseButton(self, 0), message_id=None)  # Dummy instance for registration  
+            self.bot.add_view(MechDonateButton(self, 0), message_id=None)  # Dummy instance for registration
+            
+            logger.info("✅ Registered persistent mech views for button persistence")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not register persistent mech views: {e}")
 
 # Setup function required for extension loading
 def setup(bot):

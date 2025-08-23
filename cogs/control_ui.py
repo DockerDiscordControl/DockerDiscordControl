@@ -1059,3 +1059,214 @@ class TaskDeletePanelView(View):
             
             row = i // 5  # 5 buttons per row
             self.add_item(TaskDeleteButton(cog_instance, task_id, task_description, row))
+
+
+# =============================================================================
+# MECH STATUS VIEW AND BUTTONS FOR /SS COMMAND
+# =============================================================================
+
+class MechView(View):
+    """View with expand/collapse buttons for Mech status in /ss command."""
+    
+    def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
+        super().__init__(timeout=None)  # Persistent view
+        self.cog = cog_instance
+        self.channel_id = channel_id
+        
+        # Check current mech expansion state for this channel
+        is_expanded = cog_instance.mech_expanded_states.get(channel_id, False)
+        
+        if is_expanded:
+            # Expanded state: Add "Mech -" and "Fuel/Donate" buttons
+            self.add_item(MechCollapseButton(cog_instance, channel_id))
+            self.add_item(MechDonateButton(cog_instance, channel_id))
+        else:
+            # Collapsed state: Add "Mech +" button
+            self.add_item(MechExpandButton(cog_instance, channel_id))
+
+
+class MechExpandButton(Button):
+    """Button to expand mech status details in /ss messages."""
+    
+    def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
+        self.cog = cog_instance
+        self.channel_id = channel_id
+        
+        super().__init__(
+            style=discord.ButtonStyle.primary,
+            label=None,
+            emoji="➕",
+            custom_id=f"mech_expand_{channel_id}",
+            row=0
+        )
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Expand mech status to show detailed information."""
+        try:
+            # Skip spam protection for now (SpamProtectionManager doesn't have the expected methods)
+            # TODO: Implement proper spam protection
+            
+            await interaction.response.defer()
+            
+            # Update expansion state
+            self.cog.mech_expanded_states[self.channel_id] = True
+            
+            # Regenerate the /ss embed with expanded mech information
+            embed, animation_file = await self._create_expanded_ss_embed()
+            
+            # Create new view for expanded state
+            view = MechView(self.cog, self.channel_id)
+            
+            # Update the message
+            if animation_file:
+                await interaction.edit_original_response(embed=embed, file=animation_file, view=view)
+            else:
+                await interaction.edit_original_response(embed=embed, view=view)
+                
+            logger.info(f"Mech status expanded for channel {self.channel_id} by {interaction.user.name}")
+            
+        except Exception as e:
+            logger.error(f"Error expanding mech status: {e}", exc_info=True)
+            try:
+                await interaction.followup.send("❌ Error expanding mech status.", ephemeral=True)
+            except:
+                pass
+    
+    async def _create_expanded_ss_embed(self):
+        """Create the expanded /ss embed with detailed mech information."""
+        # Get the current config and servers for the embed header
+        config = get_cached_config()
+        if not config:
+            # Fallback embed
+            embed = discord.Embed(title="Server Overview", color=discord.Color.blue())
+            embed.description = "Error: Could not load configuration."
+            return embed, None
+            
+        servers = config.get('servers', [])
+        servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
+        
+        # Build ordered servers list (same logic as serverstatus command)
+        ordered_servers = []
+        seen_docker_names = set()
+        
+        # First add servers in the defined order
+        for docker_name in self.cog.ordered_server_names:
+            if docker_name in servers_by_name:
+                ordered_servers.append(servers_by_name[docker_name])
+                seen_docker_names.add(docker_name)
+        
+        # Add any servers that weren't in the ordered list
+        for server in servers:
+            docker_name = server.get('docker_name')
+            if docker_name and docker_name not in seen_docker_names:
+                ordered_servers.append(server)
+                seen_docker_names.add(docker_name)
+        
+        # Create the expanded embed with detailed mech information
+        return await self.cog._create_overview_embed_expanded(ordered_servers, config)
+
+
+class MechCollapseButton(Button):
+    """Button to collapse mech status details in /ss messages."""
+    
+    def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
+        self.cog = cog_instance
+        self.channel_id = channel_id
+        
+        super().__init__(
+            style=discord.ButtonStyle.primary,
+            label=None,
+            emoji="➖",
+            custom_id=f"mech_collapse_{channel_id}",
+            row=0
+        )
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Collapse mech status to show only animation."""
+        try:
+            # Skip spam protection for now (SpamProtectionManager doesn't have the expected methods)
+            # TODO: Implement proper spam protection
+            
+            await interaction.response.defer()
+            
+            # Update expansion state
+            self.cog.mech_expanded_states[self.channel_id] = False
+            
+            # Regenerate the /ss embed with collapsed mech information
+            embed, animation_file = await self._create_collapsed_ss_embed()
+            
+            # Create new view for collapsed state
+            view = MechView(self.cog, self.channel_id)
+            
+            # Update the message
+            if animation_file:
+                await interaction.edit_original_response(embed=embed, file=animation_file, view=view)
+            else:
+                await interaction.edit_original_response(embed=embed, view=view)
+                
+            logger.info(f"Mech status collapsed for channel {self.channel_id} by {interaction.user.name}")
+            
+        except Exception as e:
+            logger.error(f"Error collapsing mech status: {e}", exc_info=True)
+            try:
+                await interaction.followup.send("❌ Error collapsing mech status.", ephemeral=True)
+            except:
+                pass
+    
+    async def _create_collapsed_ss_embed(self):
+        """Create the collapsed /ss embed with only mech animation."""
+        # Get the current config and servers for the embed header
+        config = get_cached_config()
+        if not config:
+            # Fallback embed
+            embed = discord.Embed(title="Server Overview", color=discord.Color.blue())
+            embed.description = "Error: Could not load configuration."
+            return embed, None
+            
+        servers = config.get('servers', [])
+        servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
+        
+        # Build ordered servers list (same logic as serverstatus command)
+        ordered_servers = []
+        seen_docker_names = set()
+        
+        # First add servers in the defined order
+        for docker_name in self.cog.ordered_server_names:
+            if docker_name in servers_by_name:
+                ordered_servers.append(servers_by_name[docker_name])
+                seen_docker_names.add(docker_name)
+        
+        # Add any servers that weren't in the ordered list
+        for server in servers:
+            docker_name = server.get('docker_name')
+            if docker_name and docker_name not in seen_docker_names:
+                ordered_servers.append(server)
+                seen_docker_names.add(docker_name)
+        
+        # Create the collapsed embed (only mech animation, no details)
+        return await self.cog._create_overview_embed_collapsed(ordered_servers, config)
+
+
+class MechDonateButton(Button):
+    """Button to trigger donation functionality from expanded mech view."""
+    
+    def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
+        self.cog = cog_instance
+        self.channel_id = channel_id
+        
+        super().__init__(
+            style=discord.ButtonStyle.green,
+            label="Fuel/Donate",
+            custom_id=f"mech_donate_{channel_id}",
+            row=0
+        )
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Trigger the donate functionality."""
+        try:
+            # Call the existing donate interaction handler
+            await self.cog._handle_donate_interaction(interaction)
+            
+        except Exception as e:
+            logger.error(f"Error in mech donate button: {e}", exc_info=True)
+            await interaction.response.send_message("❌ Error processing donation. Please try `/donate` directly.", ephemeral=True)
