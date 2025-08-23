@@ -13,6 +13,7 @@ Fuel is measured in dollars/euros and determines mech operation capability.
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 import logging
+from datetime import datetime, timezone
 from utils.logging_utils import get_module_logger
 
 logger = get_module_logger('fuel_system')
@@ -48,7 +49,72 @@ class FuelSystem:
     def __init__(self):
         """Initialize the fuel system"""
         self._state = FuelState()
+        self._donation_manager = None
         logger.info("Fuel system initialized")
+    
+    def connect_to_donation_manager(self):
+        """Connect to persistent donation manager for data storage"""
+        try:
+            from utils.donation_manager import get_donation_manager
+            self._donation_manager = get_donation_manager()
+            
+            # Load current state from persistent storage
+            self._sync_from_persistent_storage()
+            logger.info("✅ Connected to donation_manager for persistent storage")
+            return True
+        except ImportError:
+            logger.warning("⚠️ donation_manager not available - using in-memory storage only")
+            return False
+        except Exception as e:
+            logger.error(f"❌ Failed to connect to donation_manager: {e}")
+            return False
+    
+    def _sync_from_persistent_storage(self):
+        """Sync current state from persistent donation_manager data"""
+        if not self._donation_manager:
+            return
+            
+        try:
+            data = self._donation_manager.load_data()
+            fuel_data = data.get('fuel_data', {})
+            
+            # Map donation_manager data to FuelState
+            self._state = FuelState(
+                current_fuel=fuel_data.get('current_fuel', 0.0),
+                total_donations=fuel_data.get('total_received_permanent', 0.0),
+                last_donation=0.0,  # Not stored in donation_manager
+                last_donor=""       # Not stored in donation_manager
+            )
+            
+            logger.debug(f"Synced from persistent storage: ${self._state.current_fuel:.2f} fuel, "
+                        f"${self._state.total_donations:.2f} total donations")
+        except Exception as e:
+            logger.error(f"Error syncing from persistent storage: {e}")
+    
+    def _sync_to_persistent_storage(self):
+        """Sync current state to persistent donation_manager data"""
+        if not self._donation_manager:
+            return False
+            
+        try:
+            data = self._donation_manager.load_data()
+            
+            # Update fuel_data in donation_manager format
+            fuel_data = data.get('fuel_data', {})
+            fuel_data['current_fuel'] = self._state.current_fuel
+            fuel_data['total_received_permanent'] = self._state.total_donations
+            fuel_data['last_update'] = datetime.now(timezone.utc).isoformat()
+            
+            data['fuel_data'] = fuel_data
+            data['total_donations'] = self._state.total_donations
+            
+            success = self._donation_manager.save_data(data, silent=True)
+            if success:
+                logger.debug(f"Synced to persistent storage: ${self._state.current_fuel:.2f} fuel")
+            return success
+        except Exception as e:
+            logger.error(f"Error syncing to persistent storage: {e}")
+            return False
     
     # ========================================
     # FUEL STATE MANAGEMENT
@@ -118,6 +184,9 @@ class FuelSystem:
         logger.info(f"Donation processed: ${amount:.2f} from {donor_name}. "
                    f"Fuel: ${fuel_before:.2f} -> ${self._state.current_fuel:.2f}")
         
+        # Sync to persistent storage if connected
+        self._sync_to_persistent_storage()
+        
         return {
             'success': True,
             'amount': amount,
@@ -147,6 +216,9 @@ class FuelSystem:
             self._state.current_fuel -= amount
             logger.info(f"Fuel consumed: ${amount:.2f} for {reason}. "
                        f"Fuel: ${fuel_before:.2f} -> ${self._state.current_fuel:.2f}")
+            
+            # Sync to persistent storage if connected
+            self._sync_to_persistent_storage()
             return True
         else:
             logger.warning(f"Insufficient fuel for {reason}. "
@@ -213,6 +285,9 @@ class FuelSystem:
             
         logger.info(f"Fuel system reset. Fuel: ${fuel_before:.2f} -> $0.00. "
                    f"Total donations: {'preserved' if keep_total_donations else 'reset'}")
+        
+        # Sync to persistent storage if connected
+        self._sync_to_persistent_storage()
     
     def load_state(self, fuel_state: FuelState):
         """Load fuel state from external source"""
@@ -224,6 +299,9 @@ class FuelSystem:
         )
         logger.info(f"Fuel state loaded: ${self._state.current_fuel:.2f} fuel, "
                    f"${self._state.total_donations:.2f} total donations")
+        
+        # Sync to persistent storage if connected
+        self._sync_to_persistent_storage()
 
 
 # ========================================

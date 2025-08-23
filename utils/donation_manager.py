@@ -182,16 +182,16 @@ class DonationManager:
             from utils.mech_evolutions import EVOLUTION_THRESHOLDS
             
             # Calculate what evolution levels can be reached with this total
-            old_level = 0
-            new_level = 0
+            old_level = 1  # Default to level 1 (SCRAP MECH)
+            new_level = 1
             
-            for level in range(9, -1, -1):  # Check from highest to lowest
-                if old_total >= EVOLUTION_THRESHOLDS[level]:
+            for level in range(11, 0, -1):  # Check from highest (11) to lowest (1)
+                if level in EVOLUTION_THRESHOLDS and old_total >= EVOLUTION_THRESHOLDS[level]:
                     old_level = level
                     break
             
-            for level in range(9, -1, -1):  # Check from highest to lowest
-                if new_total >= EVOLUTION_THRESHOLDS[level]:
+            for level in range(11, 0, -1):  # Check from highest (11) to lowest (1)
+                if level in EVOLUTION_THRESHOLDS and new_total >= EVOLUTION_THRESHOLDS[level]:
                     new_level = level
                     break
             
@@ -201,21 +201,21 @@ class DonationManager:
             if evolution_level_up:
                 logger.info(f"Evolution level up from {old_level} to {new_level}!")
                 
-                # When evolution happens, reset fuel to $10 minimum
-                # The evolution "costs" all accumulated fuel
-                MINIMUM_FUEL_AFTER_EVOLUTION = 10.0
+                # When evolution happens, reset fuel with 1$ bonus
+                # The evolution "costs" all accumulated fuel but gives 1$ to keep mech running
+                EVOLUTION_BONUS_FUEL = 1.0
                 
                 # Calculate what the new fuel should be after evolution
                 # Start with the amount that pushed us over the threshold
                 overflow = new_total - EVOLUTION_THRESHOLDS[new_level]
                 
-                # Set fuel to overflow amount or minimum, whichever is higher
-                new_fuel_amount = max(overflow, MINIMUM_FUEL_AFTER_EVOLUTION)
+                # Set fuel to bonus + overflow
+                new_fuel_amount = EVOLUTION_BONUS_FUEL + overflow
                 
                 # Set the fuel directly (don't add to existing)
                 data["fuel_data"]["current_fuel"] = new_fuel_amount
                 
-                logger.info(f"Fuel after evolution: ${new_fuel_amount:.2f} (overflow: ${overflow:.2f}, minimum: ${MINIMUM_FUEL_AFTER_EVOLUTION:.2f})")
+                logger.info(f"Fuel after evolution: ${new_fuel_amount:.2f} (bonus: ${EVOLUTION_BONUS_FUEL:.2f}, overflow: ${overflow:.2f})")
             else:
                 # No evolution, fuel just increases normally (already added above)
                 logger.info(f"Fuel increased by: ${amount:.2f}")

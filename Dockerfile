@@ -49,6 +49,7 @@ COPY --chown=ddc:ddc bot.py .
 COPY --chown=ddc:ddc app/ app/
 COPY --chown=ddc:ddc utils/ utils/
 COPY --chown=ddc:ddc cogs/ cogs/
+COPY --chown=ddc:ddc services/ services/
 COPY --chown=ddc:ddc gunicorn_config.py .
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY --chown=ddc:ddc scripts/entrypoint.sh /app/entrypoint.sh

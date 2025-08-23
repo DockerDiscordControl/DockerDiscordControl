@@ -1486,26 +1486,42 @@ def submit_donation():
         # Round to 2 decimal places to prevent floating point issues
         amount = round(float(amount), 2)
         
-        # Validate donor name
+        # Validate and sanitize donor name
         if not isinstance(donor_name, str):
             donor_name = 'Anonymous'
         donor_name = donor_name.strip() or 'Anonymous'
-        if len(donor_name) > 50:
-            donor_name = donor_name[:50]
         
-        # Get donation manager with error handling
+        # Remove potentially dangerous characters (HTML, scripts, etc.)
+        import re
+        # Allow only alphanumeric, spaces, and basic punctuation
+        donor_name = re.sub(r'[^a-zA-Z0-9\s\-_\.]', '', donor_name)
+        donor_name = donor_name[:50]  # Limit length
+        
+        # Final check - if empty after sanitization, use Anonymous
+        if not donor_name.strip():
+            donor_name = 'Anonymous'
+        
+        # Get donation service with error handling
         try:
-            donation_manager = get_donation_manager()
+            import sys
+            import os
+            # Add project root to Python path for service imports
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            if project_root not in sys.path:
+                sys.path.insert(0, project_root)
+                
+            from services.donation_service import get_donation_service
+            donation_service = get_donation_service()
         except Exception as e:
-            current_app.logger.error(f"Could not get donation manager: {e}")
+            current_app.logger.error(f"Could not get donation service: {e}")
             return jsonify({'success': False, 'error': 'Donation system unavailable'}), 503
         
         # Add fuel to the system with error handling
-        try:
-            result = donation_manager.add_fuel(amount, 'manual_web', donor_name)
-        except Exception as e:
-            current_app.logger.error(f"Error adding fuel: {e}")
-            return jsonify({'success': False, 'error': 'Failed to process donation'}), 500
+        result = donation_service.add_fuel(amount, 'manual_web', donor_name)
+        if not result.get('success', False):
+            error_msg = result.get('error', 'Failed to process donation')
+            current_app.logger.error(f"Error adding fuel: {error_msg}")
+            return jsonify({'success': False, 'error': error_msg}), 500
         
         current_app.logger.info(f"Manual donation submitted: ${amount} from {donor_name}, Discord: {publish_to_discord}")
         
@@ -1517,12 +1533,44 @@ def submit_donation():
             details=f"Amount: ${amount}, Donor: {donor_name}, Discord: {publish_to_discord}, Source: {source}"
         )
         
-        # Discord publishing note: The donation is now recorded in the system via donation_manager.add_fuel()
-        # The existing Discord `/donate` and `/donatebroadcast` commands will use this data
-        # No separate Discord broadcast needed here - the integration is already complete
-        discord_success = publish_to_discord  # Flag for UI feedback
+        # Discord publishing - store in donation_manager for Discord bot to pick up
+        discord_success = False
         if publish_to_discord:
-            current_app.logger.info(f"Manual donation ${amount} from {donor_name} available for Discord broadcast via /donate command")
+            try:
+                # Record the donation with broadcast flag for Discord
+                donation_manager.record_donation(
+                    donation_type="web_manual_broadcast",
+                    user_identifier=f"Web UI: {donor_name}",
+                    amount=amount
+                )
+                
+                # Store pending broadcast info in donation data file
+                donation_data = donation_manager.load_data()
+                if 'pending_discord_broadcasts' not in donation_data:
+                    donation_data['pending_discord_broadcasts'] = []
+                
+                broadcast_data = {
+                    'donor_name': donor_name,
+                    'amount': amount,
+                    'message': f"🎉 **{donor_name}** donated **${amount:.2f}** to fuel the mech! Thank you! 🚀",
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': 'web_ui_modal'
+                }
+                
+                # Limit queue size to prevent memory issues (max 100 pending)
+                if len(donation_data['pending_discord_broadcasts']) >= 100:
+                    current_app.logger.warning(f"Donation broadcast queue full, removing oldest")
+                    donation_data['pending_discord_broadcasts'] = donation_data['pending_discord_broadcasts'][-99:]
+                
+                donation_data['pending_discord_broadcasts'].append(broadcast_data)
+                donation_manager.save_data(donation_data)
+                
+                discord_success = True
+                current_app.logger.info(f"Donation broadcast queued for Discord: {donor_name} - ${amount}")
+                
+            except Exception as discord_error:
+                current_app.logger.warning(f"Could not queue donation for Discord broadcast: {discord_error}")
+                # Don't fail the entire request if Discord queueing fails
         
         # Get updated status
         new_fuel = result.get('fuel_data', {}).get('current_fuel', 0)
@@ -1552,60 +1600,39 @@ def mech_animation():
         total_donations = 0
         
         try:
-            from utils.donation_manager import get_donation_manager
-            donation_manager = get_donation_manager()
-            data = donation_manager.get_status()
+            import sys
+            import os
+            # Add project root to Python path for service imports
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            if project_root not in sys.path:
+                sys.path.insert(0, project_root)
+            
+            from services.donation_service import get_donation_service
+            donation_service = get_donation_service()
+            data = donation_service.get_status()
             total_donations = data.get('total_amount', 0)
-            current_app.logger.info(f"Got fuel from donation_manager: {total_donations}")
+            current_app.logger.info(f"Got fuel from donation service: {total_donations}")
         except Exception as e:
             current_app.logger.error(f"Error getting donation status: {e}")
             total_donations = 20.0  # Fallback default
         
         current_app.logger.info(f"Live mech animation request, fuel: {total_donations}")
         
-        # Direct sprite animator usage without services to avoid import issues
+        # Use centralized mech animation service with proper Web UI wrapper
         try:
-            from utils.sprite_mech_animator import get_sprite_animator
-            from io import BytesIO
-            import asyncio
-            from concurrent.futures import ThreadPoolExecutor
+            import sys
+            import os
+            # Add project root to Python path for service imports
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            if project_root not in sys.path:
+                sys.path.insert(0, project_root)
+                
+            from services.mech_animation_service import get_mech_animation_service
             
-            sprite_animator = get_sprite_animator()
+            mech_service = get_mech_animation_service()
             
-            # Run async code in thread to avoid event loop conflicts
-            def create_animation_in_thread():
-                new_loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(new_loop)
-                try:
-                    result = new_loop.run_until_complete(
-                        sprite_animator.create_donation_animation('Current', f'{total_donations}$', total_donations)
-                    )
-                    return result
-                finally:
-                    new_loop.close()
-            
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(create_animation_in_thread)
-                animation_file = future.result(timeout=10)
-            
-            # Extract bytes from discord.File
-            if hasattr(animation_file, 'fp'):
-                animation_file.fp.seek(0)
-                if hasattr(animation_file.fp, 'getvalue'):
-                    file_data = animation_file.fp.getvalue()
-                else:
-                    file_data = animation_file.fp.read()
-            else:
-                # Fallback if structure is different
-                file_data = bytes(animation_file)
-            
-            current_app.logger.info(f"Created mech animation: {len(file_data)} bytes")
-            
-            return Response(
-                file_data,
-                mimetype='image/webp',
-                headers={'Cache-Control': 'no-cache, no-store, must-revalidate'}
-            )
+            # Use service's create_web_response method for proper Flask integration
+            return mech_service.create_web_response('Current', f'{total_donations}$', total_donations)
             
         except Exception as e:
             current_app.logger.error(f"Error creating mech animation: {e}", exc_info=True)
@@ -1644,9 +1671,6 @@ def mech_animation():
 def test_mech_animation():
     """Test endpoint for generating mech animations using centralized service."""
     try:
-        from utils.sprite_mech_animator import get_sprite_animator
-        import asyncio
-        
         data = request.get_json()
         donor_name = data.get('donor_name', 'Test User')
         amount = data.get('amount', '10$')
@@ -1655,14 +1679,14 @@ def test_mech_animation():
         current_app.logger.info(f"Generating mech animation for {donor_name}, donations: {total_donations}")
         
         # Use service layer for proper async handling
-        try:
-            from services.mech_animation_service import get_mech_animation_service
-            mech_service = get_mech_animation_service()
-            return mech_service.create_web_response(donor_name, amount, total_donations)
-        except ImportError:
-            # Fallback - create simple error response
-            return Response(
-                b'Error: Service not available',
+        from services.mech_animation_service import get_mech_animation_service
+        mech_service = get_mech_animation_service()
+        return mech_service.create_web_response(donor_name, amount, total_donations)
+        
+    except ImportError:
+        # Fallback - create simple error response
+        return Response(
+            b'Error: Service not available',
                 mimetype='text/plain',
                 status=500
             )

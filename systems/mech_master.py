@@ -35,6 +35,16 @@ from .animation_system import AnimationSystem
 
 logger = get_module_logger('mech_master')
 
+# Global instance for easy access
+_mech_master_instance = None
+
+def get_mech_master() -> 'MechMaster':
+    """Get the global MechMaster instance"""
+    global _mech_master_instance
+    if _mech_master_instance is None:
+        _mech_master_instance = MechMaster()
+    return _mech_master_instance
+
 
 class MechMaster:
     """
@@ -56,7 +66,27 @@ class MechMaster:
         self.speed_system = SpeedSystem()
         self.animation_system = AnimationSystem()
         
+        # Connect to persistent storage
+        self._connect_to_persistent_storage()
+        
         logger.info("Mech Master System initialized - all subsystems ready")
+    
+    def _connect_to_persistent_storage(self):
+        """Connect all subsystems to persistent donation_manager storage"""
+        connected_systems = []
+        
+        # Connect fuel system to persistent storage
+        if self.fuel_system.connect_to_donation_manager():
+            connected_systems.append("FuelSystem")
+        
+        # Future: Connect other systems as needed
+        # if self.evolution_system.connect_to_donation_manager():
+        #     connected_systems.append("EvolutionSystem")
+        
+        if connected_systems:
+            logger.info(f"✅ Connected to persistent storage: {', '.join(connected_systems)}")
+        else:
+            logger.warning("⚠️ No subsystems connected to persistent storage - using in-memory only")
     
     # ========================================
     # DONATION PROCESSING

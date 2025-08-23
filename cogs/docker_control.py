@@ -15,6 +15,8 @@ import logging
 import time
 import threading
 from typing import Dict, Any, List, Optional, Tuple, Union
+from io import BytesIO
+from pathlib import Path
 
 # Import app_commands using central utility
 from utils.app_commands_helper import get_app_commands, get_discord_option
@@ -196,13 +198,13 @@ class DonationBroadcastModal(discord.ui.Modal):
         )
         self.add_item(self.name_input)
         
-        # Amount field (optional)
+        # Amount field (optional) - with $ prefix and numeric validation
         self.amount_input = discord.ui.InputText(
-            label=_("Donation Amount (optional)"),
-            placeholder=_("e.g. 5 Euro, $10, etc. (leave empty if you prefer not to share)"),
+            label=_("💰 Donation Amount (optional)"),
+            placeholder=_("10.50 (numbers only, $ will be added automatically)"),
             style=discord.InputTextStyle.short,
             required=False,
-            max_length=20
+            max_length=10  # Reduced for numbers only
         )
         self.add_item(self.amount_input)
     
@@ -211,84 +213,63 @@ class DonationBroadcastModal(discord.ui.Modal):
         try:
             # Get values from modal
             donor_name = self.name_input.value or interaction.user.name
-            amount = self.amount_input.value.strip() if self.amount_input.value else ""
+            raw_amount = self.amount_input.value.strip() if self.amount_input.value else ""
             
-            # Load and select a random quote
-            import json
-            import random
-            from pathlib import Path
+            # Validate and format amount with $ prefix
+            amount = ""
+            amount_validation_error = None
+            if raw_amount:
+                # Check for negative signs first (reject negative numbers)
+                if '-' in raw_amount:
+                    amount_validation_error = f"⚠️ Invalid amount: '{raw_amount}' - negative amounts not allowed"
+                else:
+                    # Remove any non-numeric characters except dots and commas
+                    import re
+                    cleaned_amount = re.sub(r'[^\d.,]', '', raw_amount)
+                    
+                    # Replace comma with dot for decimal separator
+                    cleaned_amount = cleaned_amount.replace(',', '.')
+                    
+                    # Validate numeric format
+                    try:
+                        numeric_value = float(cleaned_amount)
+                        if numeric_value > 0:
+                            # Format with $ prefix
+                            amount = f"${numeric_value:.2f}"
+                        elif numeric_value == 0:
+                            # Invalid: zero
+                            amount_validation_error = f"⚠️ Invalid amount: '{raw_amount}' - must be greater than 0"
+                        else:
+                            amount_validation_error = f"⚠️ Invalid amount: '{raw_amount}' - please use only numbers"
+                    except ValueError:
+                        # Invalid: not a valid number
+                        amount_validation_error = f"⚠️ Invalid amount: '{raw_amount}' - please use only numbers (e.g. 10.50)"
             
-            quote_text = ""
-            quote_author = ""
+            # If there's a validation error, show it and return
+            if amount_validation_error:
+                from .translation_manager import _
+                await interaction.response.send_message(
+                    amount_validation_error + _("\n\nTip: Use format like: 10.50 or 5 ($ will be added automatically)"),
+                    ephemeral=True
+                )
+                return
             
-            try:
-                # Get current language
-                from .translation_manager import TranslationManager
-                tm = TranslationManager()
-                current_lang = tm.get_current_language()
-                
-                # Select appropriate quotes file based on language
-                lang_suffix = "de" if current_lang == "de" else "en" if current_lang == "en" else "fr"
-                quotes_file = Path(f"utils/donation_quotes_{lang_suffix}.json")
-                
-                # Fallback to German quotes if language-specific file doesn't exist
-                if not quotes_file.exists():
-                    quotes_file = Path("utils/donation_quotes.json")
-                
-                if quotes_file.exists():
-                    with open(quotes_file, 'r', encoding='utf-8') as f:
-                        quotes_data = json.load(f)
-                    
-                    # Filter unused quotes
-                    unused_quotes = [q for q in quotes_data['quotes'] if not q.get('used', False)]
-                    
-                    # If all quotes are used, reset them
-                    if not unused_quotes:
-                        for quote in quotes_data['quotes']:
-                            quote['used'] = False
-                        unused_quotes = quotes_data['quotes']
-                        quotes_data['lastReset'] = datetime.now().isoformat()
-                    
-                    # Select random quote
-                    selected_quote = random.choice(unused_quotes)
-                    quote_text = selected_quote['text']
-                    quote_author = selected_quote['author']
-                    
-                    # Mark as used
-                    for quote in quotes_data['quotes']:
-                        if quote['text'] == quote_text:
-                            quote['used'] = True
-                            break
-                    
-                    # Save updated quotes
-                    with open(quotes_file, 'w', encoding='utf-8') as f:
-                        json.dump(quotes_data, f, indent=2, ensure_ascii=False)
-                        
-                    logger.info(f"Selected quote from {quote_author} for donation broadcast")
-                    
-            except Exception as quote_error:
-                logger.debug(f"Could not load quote: {quote_error}")
-                # Fallback quote if loading fails
-                quote_text = "Die beste Art, sich selbst zu finden, besteht darin, sich im Dienst an anderen zu verlieren."
-                quote_author = "Mahatma Gandhi"
-            
-            # Create broadcast message with new format (translated)
-            from .translation_manager import _
-            if amount:
-                broadcast_text = _("{donor_name} supports DDC with {amount} – thank you so much ❤️").format(
-                    donor_name=f"**{donor_name}**",
-                    amount=f"**{amount}**"
+            # Get the cog instance to access the shared method
+            cog = interaction.client.get_cog('DockerControlCog')
+            if cog:
+                # Create broadcast message using shared logic
+                broadcast_text, evolution_status, speed_status = await cog._create_donation_broadcast_message(
+                    donor_name=donor_name,
+                    amount_text=amount if amount else None
                 )
             else:
+                # Fallback if cog not found
+                from .translation_manager import _
                 broadcast_text = _("{donor_name} supports DDC – thank you so much ❤️").format(
                     donor_name=f"**{donor_name}**"
                 )
-            
-            # Add quote if available
-            if quote_text:
-                broadcast_text += f"\n\n_{quote_text}_"
-                if quote_author:
-                    broadcast_text += f"\n– {quote_author}"
+                evolution_status = ""
+                speed_status = ""
             
             # Track the donation broadcast
             if self.donation_manager_available:
@@ -314,45 +295,38 @@ class DonationBroadcastModal(discord.ui.Modal):
                         amount=donation_amount_euros
                     )
                     logger.info(f"Donation broadcast by {interaction.user.name} as '{donor_name}' with amount: {donation_amount_euros}€")
+                    
+                    # Auto-update /ss messages after discord modal donation
+                    if donation_amount_euros and donation_amount_euros > 0:
+                        cog = interaction.client.get_cog('DockerControlCog')
+                        if cog:
+                            await cog._auto_update_ss_messages(f"Discord modal donation: {donor_name} ${donation_amount_euros:.2f}")
                 except Exception as e:
                     logger.debug(f"Could not track donation broadcast: {e}")
             
             # Try to create sprite mech animation
             animation_file = None
-            speed_status = ""
-            evolution_status = ""
             try:
-                # Get current fuel amount and total donations for status calculation
+                # Get current fuel for animation
                 current_fuel = 0
-                total_donations_received = 0
                 if self.donation_manager_available:
                     try:
                         donation_status = donation_manager.get_status()
                         current_fuel = donation_status.get('total_amount', 0)
-                        total_donations_received = donation_status.get('total_donations_received', 0)
                     except:
                         pass
                 
-                # Get combined mech status (evolution + speed)
-                from utils.speed_levels import get_combined_mech_status
-                from utils.mech_evolutions import get_evolution_info
-                
-                combined_status = get_combined_mech_status(current_fuel, total_donations_received)
-                evolution = combined_status['evolution']
-                speed = combined_status['speed']
-                
-                # Create status strings
-                speed_status = f"**Speed: {speed['description']}** (Fuel: ${current_fuel:.2f})"
-                evolution_status = f"**Evolution: Level {evolution['level']} - {evolution['name']}**"
-                
-                # Add next evolution info if not maxed
-                if evolution.get('next_name'):
-                    evolution_status += f"\n*Next: {evolution['next_name']} (${evolution['amount_needed']:.0f} more needed)*"
-                
-                # Create sprite-based animation
-                from utils.sprite_mech_animator import get_sprite_animator
-                sprite_animator = get_sprite_animator()
-                animation_file = await sprite_animator.create_donation_animation(
+                # Create sprite-based animation using service
+                import sys
+                import os
+                # Add project root to Python path for service imports  
+                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                if project_root not in sys.path:
+                    sys.path.insert(0, project_root)
+                    
+                from services.mech_animation_service import get_mech_animation_service
+                mech_service = get_mech_animation_service()
+                animation_file = await mech_service.create_donation_animation_async(
                     donor_name,
                     amount, 
                     current_fuel
@@ -386,22 +360,27 @@ class DonationBroadcastModal(discord.ui.Modal):
                             color=0x00ff41
                         )
                         
-                        # Add mech status fields if available
-                        if evolution_status:
-                            embed.add_field(name="🤖 Mech Evolution", value=evolution_status, inline=False)
-                        if speed_status:
-                            embed.add_field(name="⚡ Current Status", value=speed_status, inline=False)
+                        # Add mech status as simple text (no bold, no icons, no animation)
+                        if evolution_status or speed_status:
+                            status_text = ""
+                            if evolution_status:
+                                # Remove bold formatting and add simple text
+                                clean_evolution = evolution_status.replace("**Evolution: Level", "Evolution: Level").replace("**", "")
+                                status_text += clean_evolution
+                            if speed_status:
+                                # Remove bold formatting and add simple text
+                                clean_speed = speed_status.replace("**Speed:", "Speed:").replace("**", "")
+                                if status_text:
+                                    status_text += "\n" + clean_speed
+                                else:
+                                    status_text = clean_speed
+                            
+                            embed.add_field(name="Mech Status", value=status_text, inline=False)
                         
-                        # Add animation to first channel only
-                        if animation_file and first_channel_with_animation:
-                            embed.set_image(url=f"attachment://{animation_file.filename}")
-                            await channel.send(embed=embed, file=animation_file)
-                            first_channel_with_animation = False
-                            logger.info(f"Donation broadcast with WebP animation sent to channel {channel.name}")
-                        else:
-                            embed.set_footer(text="https://ddc.bot")
-                            await channel.send(embed=embed)
-                            logger.info(f"Donation broadcast sent to channel {channel.name}")
+                        # Send without animation (animation will be in /ss command instead)
+                        embed.set_footer(text="https://ddc.bot")
+                        await channel.send(embed=embed)
+                        logger.info(f"Donation broadcast sent to channel {channel.name}")
                         
                         sent_count += 1
                     else:
@@ -441,6 +420,9 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         # Basic initialization
         self.bot = bot
         self.config = config
+        
+        # Start donation broadcast checker
+        self.check_donation_broadcasts.start()
         self.expanded_states = {} 
         self.channel_server_message_ids: Dict[int, Dict[str, int]] = {}
         self.last_message_update_time: Dict[int, Dict[str, datetime]] = {}
@@ -1249,8 +1231,35 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                                     ordered_servers.append(server)
                                     seen_docker_names.add(docker_name)
                                     
-                            embed = await self._create_overview_embed(ordered_servers, config)
-                            message = await channel.send(embed=embed)
+                            embed, animation_file = await self._create_overview_embed(ordered_servers, config)
+                            
+                            # Create Mechonate button for donation (same as /ss command)
+                            from .translation_manager import _
+                            view = discord.ui.View(timeout=300)  # 5 minutes timeout
+                            mechonate_button = discord.ui.Button(
+                                label="Mech-onate",
+                                style=discord.ButtonStyle.green
+                            )
+                            
+                            async def mechonate_callback(interaction):
+                                """Handle Mechonate button click - trigger donate command logic"""
+                                try:
+                                    # Call the donate command logic directly
+                                    await self._handle_donate_interaction(interaction)
+                                except Exception as e:
+                                    logger.error(f"Error in mechonate button: {e}")
+                                    await interaction.response.send_message("❌ Error processing donation. Please try `/donate` directly.", ephemeral=True)
+                            
+                            mechonate_button.callback = mechonate_callback
+                            view.add_item(mechonate_button)
+                            
+                            # Send with animation and button if available
+                            if animation_file:
+                                logger.info(f"✅ Sending initial message with animation and Mechonate button to {channel.name}")
+                                message = await channel.send(embed=embed, file=animation_file, view=view)
+                            else:
+                                logger.warning(f"⚠️ Sending initial message WITHOUT animation to {channel.name}")
+                                message = await channel.send(embed=embed, view=view)
                             
                             # Track the overview message
                             if channel.id not in self.channel_server_message_ids:
@@ -1437,10 +1446,50 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     ordered_servers.append(server)
                     seen_docker_names.add(docker_name)
             
-            embed = await self._create_overview_embed(ordered_servers, config)
+            embed, animation_file = await self._create_overview_embed(ordered_servers, config)
             
-            # Send the embed using followup
-            message = await ctx.followup.send(embed=embed)
+            # Create Mechonate button for donation
+            from .translation_manager import _
+            view = discord.ui.View(timeout=300)  # 5 minutes timeout
+            mechonate_button = discord.ui.Button(
+                label="Mech-onate",
+                style=discord.ButtonStyle.green
+            )
+            
+            async def mechonate_callback(interaction):
+                """Handle Mechonate button click - trigger donate command logic"""
+                try:
+                    # Call the donate command logic directly
+                    await self._handle_donate_interaction(interaction)
+                except Exception as e:
+                    logger.error(f"Error in mechonate button: {e}")
+                    await interaction.response.send_message("❌ Error processing donation. Please try `/donate` directly.", ephemeral=True)
+            
+            mechonate_button.callback = mechonate_callback
+            view.add_item(mechonate_button)
+            
+            # EDGE CASE: Safely send embed with animation and button
+            try:
+                if animation_file:
+                    # Validate file before sending
+                    if hasattr(animation_file, 'fp') and animation_file.fp:
+                        message = await ctx.followup.send(embed=embed, file=animation_file, view=view)
+                        logger.info("✅ Sent /ss with animation and Mechonate button")
+                    else:
+                        logger.warning("Animation file invalid, sending without animation")
+                        message = await ctx.followup.send(embed=embed, view=view)
+                else:
+                    logger.warning("No animation file attached, sending embed only")
+                    message = await ctx.followup.send(embed=embed, view=view)
+            except discord.HTTPException as e:
+                logger.error(f"Discord error sending animation: {e}")
+                # Fallback: Send without animation but with button
+                try:
+                    message = await ctx.followup.send(embed=embed, view=view)
+                except Exception as fallback_error:
+                    logger.error(f"Critical: Could not send embed at all: {fallback_error}")
+                    await ctx.followup.send("Error generating server status overview.", ephemeral=True)
+                    return
             
             # Update tracking information
             now_utc = datetime.now(timezone.utc)
@@ -1467,10 +1516,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
 
     @commands.slash_command(name="ss", description=_("Shortcut: Shows the status of all containers"), guild_ids=get_guild_id())
     async def ss(self, ctx):
-        # Check spam protection first  
-        if not await self._check_spam_protection(ctx, "serverstatus"):  # ss uses same cooldown as serverstatus
-            return
         """Shortcut for the serverstatus command."""
+        # Directly call serverstatus (it has its own spam protection check)
         await self.serverstatus(ctx)
 
     async def command(self, ctx: discord.ApplicationContext, 
@@ -1640,9 +1687,16 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 pass
 
     async def _create_overview_embed(self, ordered_servers, config):
-        """Creates the server overview embed with the status of all servers."""
+        """Creates the server overview embed with the status of all servers.
+        
+        Returns:
+            tuple: (embed, animation_file) where animation_file is None if no animation
+        """
         # Import translation function locally to ensure it's accessible
         from .translation_manager import _ as translate
+        
+        # Initialize animation file
+        animation_file = None
         
         # Create the overview embed
         embed = discord.Embed(
@@ -1766,10 +1820,232 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         if has_any_info:
             embed.description += f"\n{translate('Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.')}"
         
+        # Add Mech Status with animated WebP and progress bars (like Web UI)
+        try:
+            import sys
+            import os
+            # Add project root to Python path for service imports
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if project_root not in sys.path:
+                sys.path.insert(0, project_root)
+                
+            from services.donation_service import get_donation_service
+            donation_service = get_donation_service()
+            donation_status = donation_service.get_status()
+            
+            current_fuel = donation_status.get('total_amount', 0)
+            total_donations = donation_status.get('total_donations_received', 0)
+            
+            # Get mech evolution and speed status
+            from utils.speed_levels import get_combined_mech_status
+            combined_status = get_combined_mech_status(current_fuel, total_donations)
+            evolution = combined_status['evolution']
+            speed = combined_status['speed']
+            
+            # Create fuel bar showing current fuel within current evolution level
+            # Both bars show progress within the current evolution level range
+            current_threshold = evolution.get('current_threshold', 0)
+            next_threshold = evolution.get('next_threshold', 20)
+            level_range = next_threshold - current_threshold
+            
+            # FUEL Bar: current_fuel within current level range
+            fuel_percentage = min(100, (current_fuel / level_range) * 100) if level_range > 0 else 0
+            fuel_bar = self._create_progress_bar(fuel_percentage, 20)
+            
+            # Evolution Bar: total_received_permanent within current level range  
+            next_percentage = evolution.get('progress_to_next', 0)
+            next_bar = self._create_progress_bar(next_percentage, 20)
+            
+            # Add animated mech FIRST (same as Web UI with shared caching)
+            try:
+                import sys
+                import os
+                # Add project root to Python path for service imports
+                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                if project_root not in sys.path:
+                    sys.path.insert(0, project_root)
+                    
+                from services.mech_animation_service import get_mech_animation_service
+                mech_service = get_mech_animation_service()
+                
+                # Create animation using service (uses internal caching)
+                animation_file = await mech_service.create_donation_animation_async(
+                    'Current Status', 
+                    f'${current_fuel:.2f}', 
+                    current_fuel
+                )
+                
+                if animation_file:
+                    embed.set_image(url=f"attachment://{animation_file.filename}")
+                    logger.info(f"✅ Created animated mech for fuel ${current_fuel:.2f}")
+                else:
+                    logger.warning("❌ Failed to create mech animation - no file returned")
+                    
+            except Exception as anim_error:
+                logger.error(f"❌ Mech animation error: {anim_error}", exc_info=True)
+                
+                # Fallback to static sprite
+                try:
+                    mech_sprite_path = Path(f"app/static/mech_sprites/mech_level_{evolution['level']}.png")
+                    if mech_sprite_path.exists():
+                        with open(mech_sprite_path, 'rb') as f:
+                            sprite_data = f.read()
+                        
+                        animation_file = discord.File(
+                            BytesIO(sprite_data), 
+                            filename=f"mech_level_{evolution['level']}.png"
+                        )
+                        embed.set_image(url=f"attachment://mech_level_{evolution['level']}.png")
+                        logger.info(f"✅ Using static fallback sprite for evolution level {evolution['level']}")
+                    else:
+                        logger.error(f"❌ Static sprite not found: {mech_sprite_path}")
+                except Exception as fallback_error:
+                    logger.error(f"❌ Fallback sprite failed: {fallback_error}", exc_info=True)
+            
+            # Create mech status text AFTER the animation (no bold formatting, simplified)
+            mech_status = f"{evolution['name']} (Level {evolution['level']})\n"
+            mech_status += f"Speed: {speed['description']}\n\n"
+            mech_status += f"🛢️ ${current_fuel:.2f}\n{fuel_bar} {fuel_percentage:.1f}%\n\n"
+            
+            if evolution.get('next_name'):
+                mech_status += f"⬆️ {evolution['next_name']}\n{next_bar} {next_percentage:.1f}%"
+            else:
+                mech_status += f"🌟 MAX EVOLUTION REACHED!"
+            
+            embed.add_field(name="Mech-onation", value=mech_status, inline=False)
+                
+        except Exception as e:
+            logger.debug(f"Could not load mech status for /ss: {e}")
+        
         # Add the website URL without italic formatting
         embed.description += f"\n\nhttps://ddc.bot"
         
-        return embed
+        # Return tuple (embed, animation_file)
+        return embed, animation_file
+
+    def _create_progress_bar(self, percentage: float, length: int = 20) -> str:
+        """Create a text progress bar like the Web UI."""
+        filled = int((percentage / 100) * length)
+        empty = length - filled
+        bar = "█" * filled + "░" * empty
+        return bar
+
+    async def _handle_donate_interaction(self, interaction):
+        """Handle Mechonate button interaction - shows donation options."""
+        try:
+            from .translation_manager import _
+            
+            # Try to import donation manager with backwards compatibility
+            try:
+                from utils.donation_manager import get_donation_manager
+                donation_manager_available = True
+            except ImportError:
+                donation_manager_available = False
+            
+            # Create donation embed (same as /donate command)
+            embed = discord.Embed(
+                title=_('Support DockerDiscordControl'),
+                description=_(
+                    'If DDC helps you, please consider supporting ongoing development. '
+                    'Donations help cover hosting, CI, maintenance, and feature work.'
+                ),
+                color=0x00ff41
+            )
+            embed.add_field(
+                name=_('Choose your preferred method:'),
+                value=_('Click one of the buttons below to support DDC development'),
+                inline=False
+            )
+            embed.set_footer(text="https://ddc.bot")
+            
+            # Create view with donation buttons
+            try:
+                view = DonationView(donation_manager_available)
+                await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+                logger.info(f"Mechonate button used by user {interaction.user.name} ({interaction.user.id})")
+            except Exception as view_error:
+                logger.error(f"Error creating DonationView: {view_error}")
+                # Fallback without view
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                
+        except Exception as e:
+            logger.error(f"Error in _handle_donate_interaction: {e}", exc_info=True)
+            try:
+                error_embed = discord.Embed(
+                    title="❌ Error",
+                    description=_("An error occurred while showing donation information. Please try again later."),
+                    color=discord.Color.red()
+                )
+                await interaction.response.send_message(embed=error_embed, ephemeral=True)
+            except:
+                # If we can't respond, it means the interaction was already responded to
+                pass
+
+    async def _auto_update_ss_messages(self, reason: str):
+        """Auto-update all existing /ss messages in channels after donations"""
+        try:
+            logger.info(f"🔄 Auto-updating /ss messages: {reason}")
+            
+            # Get all channels with overview messages
+            updated_count = 0
+            for channel_id, messages in self.channel_server_message_ids.items():
+                if 'overview' in messages:
+                    try:
+                        channel = self.bot.get_channel(channel_id)
+                        if not channel:
+                            continue
+                            
+                        message_id = messages['overview']
+                        message = await channel.fetch_message(message_id)
+                        if not message:
+                            continue
+                        
+                        # Get fresh server data
+                        config = get_cached_config()
+                        if not config:
+                            continue
+                            
+                        servers = config.get('servers', [])
+                        ordered_servers = []
+                        seen_docker_names = set()
+                        
+                        # Apply server ordering
+                        from utils.server_order import get_server_order
+                        server_order = get_server_order()
+                        
+                        for server_name in server_order:
+                            for server in servers:
+                                docker_name = server.get('docker_name')
+                                if server.get('name') == server_name and docker_name and docker_name not in seen_docker_names:
+                                    ordered_servers.append(server)
+                                    seen_docker_names.add(docker_name)
+                        
+                        # Add remaining servers
+                        for server in servers:
+                            docker_name = server.get('docker_name')
+                            if docker_name and docker_name not in seen_docker_names:
+                                ordered_servers.append(server)
+                                seen_docker_names.add(docker_name)
+                        
+                        # Create updated embed
+                        embed, animation_file = await self._create_overview_embed(ordered_servers, config)
+                        
+                        # Update the message (note: can't add files to edit, only embed)
+                        await message.edit(embed=embed)
+                        
+                        updated_count += 1
+                        logger.debug(f"✅ Updated /ss message in {channel.name}")
+                        
+                    except Exception as e:
+                        logger.debug(f"Could not update /ss message in channel {channel_id}: {e}")
+            
+            if updated_count > 0:
+                logger.info(f"✅ Auto-updated {updated_count} /ss messages after donation")
+            else:
+                logger.debug("No /ss messages found to update")
+                
+        except Exception as e:
+            logger.error(f"Error in _auto_update_ss_messages: {e}")
 
     # --- Heartbeat Loop ---
     @tasks.loop(minutes=1)
@@ -2464,6 +2740,237 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             except:
                 pass  # If we can't send error message, just log it
 
+    # --- Shared Donation Message Creation ---
+    async def _create_donation_broadcast_message(self, donor_name: str, amount_text: str = None, amount_numeric: float = None) -> tuple:
+        """Create rich donation broadcast message used by both Discord modal and Web UI.
+        
+        Returns:
+            tuple: (broadcast_text, evolution_status, speed_status)
+        """
+        from .translation_manager import _
+        import json
+        import random
+        from pathlib import Path
+        from datetime import datetime
+        
+        # Load and select a random quote
+        quote_text = ""
+        quote_author = ""
+        
+        try:
+            # Get current language
+            from .translation_manager import TranslationManager
+            tm = TranslationManager()
+            current_lang = tm.get_current_language()
+            
+            # Select appropriate quotes file based on language
+            lang_suffix = "de" if current_lang == "de" else "en" if current_lang == "en" else "fr"
+            quotes_file = Path(f"utils/donation_quotes_{lang_suffix}.json")
+            
+            # Fallback to German quotes if language-specific file doesn't exist
+            if not quotes_file.exists():
+                quotes_file = Path("utils/donation_quotes.json")
+            
+            if quotes_file.exists():
+                with open(quotes_file, 'r', encoding='utf-8') as f:
+                    quotes_data = json.load(f)
+                
+                # Filter unused quotes
+                unused_quotes = [q for q in quotes_data['quotes'] if not q.get('used', False)]
+                
+                # If all quotes are used, reset them
+                if not unused_quotes:
+                    for quote in quotes_data['quotes']:
+                        quote['used'] = False
+                    unused_quotes = quotes_data['quotes']
+                    quotes_data['lastReset'] = datetime.now().isoformat()
+                
+                # Select random quote
+                selected_quote = random.choice(unused_quotes)
+                quote_text = selected_quote['text']
+                quote_author = selected_quote['author']
+                
+                # Mark as used
+                for quote in quotes_data['quotes']:
+                    if quote['text'] == quote_text:
+                        quote['used'] = True
+                        break
+                
+                # Save updated quotes
+                with open(quotes_file, 'w', encoding='utf-8') as f:
+                    json.dump(quotes_data, f, indent=2, ensure_ascii=False)
+                    
+        except Exception as quote_error:
+            logger.debug(f"Could not load quote: {quote_error}")
+            quote_text = "Die beste Art, sich selbst zu finden, besteht darin, sich im Dienst an anderen zu verlieren."
+            quote_author = "Mahatma Gandhi"
+        
+        # Create broadcast message with new format (translated)
+        if amount_text or amount_numeric:
+            # Use provided amount text or format numeric amount
+            amount_display = amount_text if amount_text else f"${amount_numeric:.2f}"
+            broadcast_text = _("{donor_name} supports DDC with {amount} – thank you so much ❤️").format(
+                donor_name=f"**{donor_name}**",
+                amount=f"**{amount_display}**"
+            )
+        else:
+            broadcast_text = _("{donor_name} supports DDC – thank you so much ❤️").format(
+                donor_name=f"**{donor_name}**"
+            )
+        
+        # Add quote if available
+        if quote_text:
+            broadcast_text += f"\n\n_{quote_text}_"
+            if quote_author:
+                broadcast_text += f"\n– {quote_author}"
+        
+        # Get mech status for display
+        evolution_status = ""
+        speed_status = ""
+        try:
+            # Get donation service
+            import sys
+            import os
+            # Add project root to Python path for service imports
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if project_root not in sys.path:
+                sys.path.insert(0, project_root)
+                
+            from services.donation_service import get_donation_service
+            donation_service = get_donation_service()
+            donation_status = donation_service.get_status()
+            
+            current_fuel = donation_status.get('total_amount', 0)
+            total_donations = donation_status.get('total_donations_received', 0)
+            
+            # Get evolution and speed info
+            from utils.speed_levels import get_combined_mech_status
+            
+            combined_status = get_combined_mech_status(current_fuel, total_donations)
+            evolution = combined_status['evolution']
+            speed = combined_status['speed']
+            
+            # Create status strings
+            speed_status = f"**Speed: {speed['description']}** (Fuel: ${current_fuel:.2f})"
+            evolution_status = f"**Evolution: Level {evolution['level']} - {evolution['name']}**"
+            
+            # Add next evolution info if not maxed
+            if evolution.get('next_name'):
+                evolution_status += f"\n*Next: {evolution['next_name']} (${evolution['amount_needed']:.0f} more needed)*"
+            
+        except Exception as status_error:
+            logger.debug(f"Could not get mech status: {status_error}")
+        
+        return broadcast_text, evolution_status, speed_status
+
+    # --- Donation Broadcast Check Loop ---
+    @tasks.loop(seconds=5)
+    async def check_donation_broadcasts(self):
+        """Check for pending donation broadcasts from Web UI and send them to Discord."""
+        try:
+            # Get donation manager
+            try:
+                from utils.donation_manager import get_donation_manager
+                donation_manager = get_donation_manager()
+            except ImportError:
+                return  # Donation manager not available
+            
+            # Load donation data to get pending broadcasts
+            donation_data = donation_manager.load_data()
+            pending_broadcasts = donation_data.get('pending_discord_broadcasts', [])
+            
+            if pending_broadcasts and len(pending_broadcasts) > 0:
+                logger.info(f"Found {len(pending_broadcasts)} pending donation broadcasts")
+                
+                # Process each broadcast
+                for broadcast in pending_broadcasts[:]:  # Copy list to allow modification
+                    try:
+                        # Get all connected channels
+                        config = get_cached_config()
+                        if not config:
+                            continue
+                            
+                        channels_config = config.get('channel_permissions', {})
+                        sent_count = 0
+                        
+                        # Extract broadcast data
+                        donor_name = broadcast.get('donor_name', 'Anonymous')
+                        amount = broadcast.get('amount', 0)
+                        
+                        # Create broadcast message using shared logic
+                        broadcast_text, evolution_status, speed_status = await self._create_donation_broadcast_message(
+                            donor_name=donor_name,
+                            amount_numeric=amount if amount else None
+                        )
+                        
+                        # Create the donation message embed
+                        embed = discord.Embed(
+                            title=_("💝 Donation received"),
+                            description=broadcast_text,
+                            color=0x00ff41
+                        )
+                        
+                        # Add mech status as simple text (no bold, no icons)
+                        if evolution_status or speed_status:
+                            status_text = ""
+                            if evolution_status:
+                                # Remove bold formatting and add simple text
+                                clean_evolution = evolution_status.replace("**Evolution: Level", "Evolution: Level").replace("**", "")
+                                status_text += clean_evolution
+                            if speed_status:
+                                # Remove bold formatting and add simple text
+                                clean_speed = speed_status.replace("**Speed:", "Speed:").replace("**", "")
+                                if status_text:
+                                    status_text += "\n" + clean_speed
+                                else:
+                                    status_text = clean_speed
+                            
+                            embed.add_field(name="Mech Status", value=status_text, inline=False)
+                        
+                        # Send to all channels with rate limit protection
+                        max_channels_per_broadcast = 10  # Limit to prevent rate limiting
+                        for channel_id_str, channel_info in channels_config.items():
+                            if sent_count >= max_channels_per_broadcast:
+                                logger.info(f"Rate limit protection: Stopping at {sent_count} channels")
+                                break
+                                
+                            try:
+                                channel_id = int(channel_id_str)
+                                channel = self.bot.get_channel(channel_id)
+                                
+                                if channel and channel.permissions_for(channel.guild.me).send_messages:
+                                    await channel.send(embed=embed)
+                                    sent_count += 1
+                                    await asyncio.sleep(1.0)  # Increased delay for safety
+                            except Exception as channel_error:
+                                logger.debug(f"Could not send to channel {channel_id_str}: {channel_error}")
+                        
+                        logger.info(f"Donation broadcast sent to {sent_count} channels")
+                        
+                        # Remove processed broadcast
+                        pending_broadcasts.remove(broadcast)
+                        
+                    except Exception as broadcast_error:
+                        logger.error(f"Error processing donation broadcast: {broadcast_error}")
+                        # Remove failed broadcast to prevent infinite loop
+                        if broadcast in pending_broadcasts:
+                            pending_broadcasts.remove(broadcast)
+                
+                # Update donation data with remaining broadcasts
+                donation_data['pending_discord_broadcasts'] = pending_broadcasts
+                donation_manager.save_data(donation_data)
+                
+                # Auto-update all /ss messages after donation processing
+                await self._auto_update_ss_messages("Donation received - auto-updating status")
+                
+        except Exception as e:
+            logger.debug(f"Error in check_donation_broadcasts: {e}")
+    
+    @check_donation_broadcasts.before_loop
+    async def before_check_donation_broadcasts(self):
+        """Wait until the bot is ready before starting the loop."""
+        await self.bot.wait_until_ready()
+    
     # --- Cog Teardown ---
     def cog_unload(self):
         """Cancel all running background tasks when the cog is unloaded."""
@@ -2471,6 +2978,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         if hasattr(self, 'heartbeat_send_loop') and self.heartbeat_send_loop.is_running(): self.heartbeat_send_loop.cancel()
         if hasattr(self, 'status_update_loop') and self.status_update_loop.is_running(): self.status_update_loop.cancel()
         if hasattr(self, 'periodic_message_edit_loop') and self.periodic_message_edit_loop.is_running(): self.periodic_message_edit_loop.cancel()
+        if hasattr(self, 'check_donation_broadcasts') and self.check_donation_broadcasts.is_running(): self.check_donation_broadcasts.cancel()
         if hasattr(self, 'inactivity_check_loop') and self.inactivity_check_loop.is_running(): self.inactivity_check_loop.cancel()
         if hasattr(self, 'performance_cache_clear_loop') and self.performance_cache_clear_loop.is_running(): self.performance_cache_clear_loop.cancel()
         logger.info("All direct Cog loops cancellation attempted.")
@@ -2554,9 +3062,9 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     seen_docker_names.add(docker_name)
             
             # Create the updated embed
-            embed = await self._create_overview_embed(ordered_servers, config)
+            embed, animation_file = await self._create_overview_embed(ordered_servers, config)
             
-            # Update the message
+            # Update the message (note: can't add files to edit, only embed)
             await message.edit(embed=embed)
             
             # Update message update timestamp, but NOT channel activity

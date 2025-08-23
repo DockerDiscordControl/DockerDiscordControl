@@ -69,13 +69,16 @@ class MechAnimationService:
                 future = executor.submit(run_async_in_thread)
                 animation_file = future.result(timeout=30)  # 30 second timeout
             
-            # Extract raw bytes
-            if hasattr(animation_file, 'fp') and hasattr(animation_file.fp, 'getvalue'):
+            # Extract raw bytes from discord.File
+            if hasattr(animation_file, 'fp'):
                 animation_file.fp.seek(0)
-                return animation_file.fp.getvalue()
+                if hasattr(animation_file.fp, 'getvalue'):
+                    return animation_file.fp.getvalue()
+                else:
+                    return animation_file.fp.read()
             else:
-                animation_file.fp.seek(0)
-                return animation_file.fp.read()
+                # Fallback if it's already bytes
+                return animation_file if isinstance(animation_file, bytes) else b''
             
         except Exception as e:
             logger.error(f"Error in sync animation creation: {e}")
