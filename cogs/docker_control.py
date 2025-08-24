@@ -274,10 +274,25 @@ class DonationBroadcastModal(discord.ui.Modal):
             
             # FIRST: Process the donation to update fuel values
             donation_amount_euros = None
+            evolution_occurred = False
+            old_fuel = 0
+            new_fuel = 0
+            old_evolution_level = None
+            new_evolution_level = None
+            
             if self.donation_manager_available:
                 try:
                     from utils.donation_manager import get_donation_manager
                     donation_manager = get_donation_manager()
+                    
+                    # Get OLD fuel/evolution state before donation
+                    old_status = donation_manager.get_status()
+                    old_fuel = old_status.get('total_amount', 0)
+                    
+                    # Get old evolution level
+                    from utils.mech_evolutions import get_evolution_level, get_evolution_info
+                    old_total_donations = old_status.get('total_donations_received', 0)
+                    old_evolution_level = get_evolution_level(old_total_donations)
                     
                     # Parse amount if provided
                     if amount:
@@ -290,12 +305,24 @@ class DonationBroadcastModal(discord.ui.Modal):
                             logger.info(f"Parsed donation amount: {donation_amount_euros}€ from '{amount}'")
                     
                     # Record donation with amount BEFORE creating broadcast message
-                    donation_manager.record_donation(
+                    result = donation_manager.record_donation(
                         donation_type="discord_broadcast",
                         user_identifier=f"Discord User: {interaction.user.name} ({interaction.user.id}) as '{donor_name}'",
                         amount=donation_amount_euros
                     )
                     logger.info(f"Donation recorded by {interaction.user.name} as '{donor_name}' with amount: {donation_amount_euros}€")
+                    
+                    # Check if evolution occurred
+                    evolution_occurred = result.get('_evolution_level_up', False)
+                    
+                    # Get NEW fuel/evolution state after donation
+                    new_status = donation_manager.get_status()
+                    new_fuel = new_status.get('total_amount', 0)
+                    new_total_donations = new_status.get('total_donations_received', 0)
+                    new_evolution_level = get_evolution_level(new_total_donations)
+                    
+                    if evolution_occurred:
+                        logger.info(f"EVOLUTION OCCURRED! Level {old_evolution_level} → {new_evolution_level}, Fuel reset: ${old_fuel:.2f} → ${new_fuel:.2f}")
                     
                     # Auto-update /ss messages immediately after donation processing
                     if donation_amount_euros and donation_amount_euros > 0:
@@ -317,7 +344,11 @@ class DonationBroadcastModal(discord.ui.Modal):
                 # Create broadcast message using shared logic (now with updated values)
                 broadcast_text, evolution_status, speed_status = await cog._create_donation_broadcast_message(
                     donor_name=donor_name,
-                    amount_text=amount if amount else None
+                    amount_text=amount if amount else None,
+                    evolution_occurred=evolution_occurred,
+                    old_evolution_level=old_evolution_level,
+                    new_evolution_level=new_evolution_level,
+                    surplus_fuel=new_fuel if evolution_occurred else None
                 )
             else:
                 # Fallback if cog not found
@@ -3026,9 +3057,20 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 pass  # If we can't send error message, just log it
 
     # --- Shared Donation Message Creation ---
-    async def _create_donation_broadcast_message(self, donor_name: str, amount_text: str = None, amount_numeric: float = None) -> tuple:
+    async def _create_donation_broadcast_message(self, donor_name: str, amount_text: str = None, amount_numeric: float = None,
+                                                   evolution_occurred: bool = False, old_evolution_level: int = None, 
+                                                   new_evolution_level: int = None, surplus_fuel: float = None) -> tuple:
         """Create rich donation broadcast message used by both Discord modal and Web UI.
         
+        Args:
+            donor_name: Name of donor
+            amount_text: Formatted amount text (e.g. "$10.00")
+            amount_numeric: Numeric amount in euros
+            evolution_occurred: Whether an evolution happened
+            old_evolution_level: Previous evolution level (if evolution occurred)
+            new_evolution_level: New evolution level (if evolution occurred)
+            surplus_fuel: Remaining fuel after evolution reset
+            
         Returns:
             tuple: (broadcast_text, evolution_status, speed_status)
         """
@@ -3103,7 +3145,28 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 donor_name=f"**{donor_name}**"
             )
         
-        # Add quote if available
+        # If evolution occurred, add celebration message BEFORE quote
+        if evolution_occurred and new_evolution_level:
+            # Get evolution names
+            from utils.mech_evolutions import get_evolution_info
+            new_evolution_info = get_evolution_info(surplus_fuel * 1000 if surplus_fuel else 0)  # Dummy high value to get level info
+            
+            # Import names directly based on level
+            from utils.mech_evolutions import EVOLUTION_NAMES
+            new_evolution_name = EVOLUTION_NAMES.get(new_evolution_level, "UNKNOWN MECH")
+            
+            # Build evolution celebration message
+            evolution_celebration = f"\n\n**{_('MECH EVOLUTION ACHIEVED!')}**\n"
+            evolution_celebration += _("Your Mech has ascended to the next evolution stage: {evolution_name}").format(
+                evolution_name=_(new_evolution_name)
+            ) + "\n"
+            evolution_celebration += _("The fuel system has been reset and refueled with the remaining surplus of ${surplus:.2f}.").format(
+                surplus=surplus_fuel
+            )
+            
+            broadcast_text += evolution_celebration
+        
+        # Add quote if available (after evolution message)
         if quote_text:
             broadcast_text += f"\n\n_{quote_text}_"
             if quote_author:
