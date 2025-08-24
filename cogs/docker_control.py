@@ -1608,7 +1608,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             )
             embed.add_field(
                 name=_('Choose your preferred method:'),
-                value=_('Click one of the buttons below to support DDC development'),
+                value=_('Click one of the buttons below to support DDC development') + '\n\nhttps://ddc.bot',
                 inline=False
             )
             embed.set_footer(text="https://ddc.bot")
@@ -2129,7 +2129,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             )
             embed.add_field(
                 name=_('Choose your preferred method:'),
-                value=_('Click one of the buttons below to support DDC development'),
+                value=_('Click one of the buttons below to support DDC development') + '\n\nhttps://ddc.bot',
                 inline=False
             )
             embed.set_footer(text="https://ddc.bot")
