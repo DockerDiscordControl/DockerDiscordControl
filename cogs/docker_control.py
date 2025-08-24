@@ -302,8 +302,8 @@ class DonationBroadcastModal(discord.ui.Modal):
                         cog = interaction.client.get_cog('DockerControlCog')
                         if cog:
                             try:
-                                from .translation_manager import translate
-                                await cog._auto_update_ss_messages(translate("Donation recorded - updating fuel status"), force_recreate=False)
+                                from .translation_manager import _
+                                await cog._auto_update_ss_messages(_("Donation recorded - updating fuel status"), force_recreate=False)
                                 logger.info("Auto-refreshed /ss messages immediately after donation processing")
                             except Exception as refresh_error:
                                 logger.error(f"Error refreshing /ss messages after donation: {refresh_error}")
