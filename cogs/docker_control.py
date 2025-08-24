@@ -2299,7 +2299,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                             last_glvl = self.last_glvl_per_channel.get(channel_id, 0)
                             if abs(current_glvl - last_glvl) >= 1:
                                 glvl_changed = True
-                                glvl_change_text = translate("Significant Glvl change detected")
+                                from .translation_manager import _
+                                glvl_change_text = _("Significant Glvl change detected")
                                 logger.info(f"{glvl_change_text}: {last_glvl} → {current_glvl}")
                                 self.last_glvl_per_channel[channel_id] = current_glvl
                                 self.mech_state_manager.set_last_glvl(channel_id, current_glvl)
@@ -2313,7 +2314,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                             if self.mech_state_manager.should_force_recreate(channel_id):
                                 force_recreate = True
                                 self.mech_state_manager.mark_force_recreate(channel_id)
-                                upgrade_text = translate("Upgrading to force_recreate=True due to significant Glvl change")
+                                from .translation_manager import _
+                                upgrade_text = _("Upgrading to force_recreate=True due to significant Glvl change")
                                 logger.info(f"{upgrade_text}")
                             else:
                                 logger.debug(f"Rate limited force_recreate for channel {channel_id} (Glvl change)")
