@@ -282,17 +282,13 @@ class DonationBroadcastModal(discord.ui.Modal):
             
             if self.donation_manager_available:
                 try:
-                    from utils.donation_manager import get_donation_manager
-                    donation_manager = get_donation_manager()
+                    from services.mech_service import get_mech_service
+                    mech_service = get_mech_service()
                     
-                    # Get OLD fuel/evolution state before donation
-                    old_status = donation_manager.get_status()
-                    old_fuel = old_status.get('total_amount', 0)
-                    
-                    # Get old evolution level
-                    from utils.mech_evolutions import get_evolution_level, get_evolution_info
-                    old_total_donations = old_status.get('total_donations_received', 0)
-                    old_evolution_level = get_evolution_level(old_total_donations)
+                    # Get OLD state before donation
+                    old_state = mech_service.get_state()
+                    old_fuel = old_state.fuel
+                    old_evolution_level = old_state.level
                     
                     # Parse amount if provided
                     if amount:
@@ -304,22 +300,18 @@ class DonationBroadcastModal(discord.ui.Modal):
                             donation_amount_euros = float(amount_match.group(1))
                             logger.info(f"Parsed donation amount: {donation_amount_euros}€ from '{amount}'")
                     
-                    # Record donation with amount BEFORE creating broadcast message
-                    result = donation_manager.record_donation(
-                        donation_type="discord_broadcast",
-                        user_identifier=f"Discord User: {interaction.user.name} ({interaction.user.id}) as '{donor_name}'",
-                        amount=donation_amount_euros
+                    # Record donation with NEW service
+                    new_state = mech_service.add_donation(
+                        username=f"Discord:{interaction.user.name}",
+                        amount=int(donation_amount_euros) if donation_amount_euros else 0
                     )
-                    logger.info(f"Donation recorded by {interaction.user.name} as '{donor_name}' with amount: {donation_amount_euros}€")
+                    logger.info(f"NEW SERVICE: Donation recorded by {interaction.user.name} -> ${donation_amount_euros}")
                     
-                    # Check if evolution occurred
-                    evolution_occurred = result.get('_evolution_level_up', False)
-                    
-                    # Get NEW fuel/evolution state after donation
-                    new_status = donation_manager.get_status()
-                    new_fuel = new_status.get('total_amount', 0)
-                    new_total_donations = new_status.get('total_donations_received', 0)
-                    new_evolution_level = get_evolution_level(new_total_donations)
+                    # Check if evolution occurred by comparing levels
+                    evolution_occurred = new_state.level > old_state.level
+                    new_fuel = new_state.fuel
+                    new_total_donations = new_state.total_donated
+                    new_evolution_level = new_state.level
                     
                     if evolution_occurred:
                         logger.info(f"EVOLUTION OCCURRED! Level {old_evolution_level} → {new_evolution_level}, Fuel reset: ${old_fuel:.2f} → ${new_fuel:.2f}")
@@ -1886,25 +1878,32 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             if project_root not in sys.path:
                 sys.path.insert(0, project_root)
             
-            logger.info("DEBUG: Importing donation_service")
-            from services.donation_service import get_donation_service
-            donation_service = get_donation_service()
-            logger.info("DEBUG: donation_service created")
+            logger.info("DEBUG: Using new MechService")
+            from services.mech_service import get_mech_service
+            mech_service = get_mech_service()
+            mech_state = mech_service.get_state()
+            logger.info("DEBUG: new MechService created")
             
-            # Get mech status data
-            logger.info("DEBUG: Getting status data for expanded embed")
-            status_data = donation_service.get_status()
-            current_fuel = status_data.get('total_amount', 0)
-            total_donations_received = status_data.get('total_donations_received', 0)
-            logger.info(f"DEBUG: Expanded embed loaded fuel=${current_fuel:.2f}, total_donations=${total_donations_received:.2f}")
+            # Get clean data from new service
+            current_fuel = mech_state.fuel
+            total_donations_received = mech_state.total_donated
+            logger.info(f"NEW SERVICE: fuel=${current_fuel}, total_donations=${total_donations_received}, level={mech_state.level} ({mech_state.level_name})")
             
-            # Get combined mech status (evolution + speed)
-            logger.info("DEBUG: Getting combined mech status")
-            from utils.speed_levels import get_combined_mech_status
-            combined_status = get_combined_mech_status(current_fuel, total_donations_received)
-            evolution = combined_status['evolution']
-            speed = combined_status['speed']
-            logger.info(f"DEBUG: Got evolution={evolution['name']}, speed={speed['description']}")
+            # Evolution info from new service
+            evolution = {
+                'name': mech_state.level_name,
+                'level': mech_state.level,
+                'current_threshold': 0,  # Will be calculated from level
+                'next_threshold': mech_state.next_level_threshold
+            }
+            
+            # Speed info from glvl
+            speed = {
+                'level': mech_state.glvl,
+                'description': f"Glvl {mech_state.glvl}/{mech_state.glvl_max}"
+            }
+            
+            logger.info(f"NEW SERVICE: evolution={evolution['name']}, glvl={mech_state.glvl}/{mech_state.glvl_max}")
             
             # Create mech animation with fallback
             try:
@@ -1922,34 +1921,33 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 else:
                     embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
             
-            # Calculate progress bars for EXPANDED view
-            current_threshold = evolution.get('current_threshold', 0)
-            next_threshold = evolution.get('next_threshold', 20)
-            evolution_level_range = next_threshold - current_threshold
+            # Use clean progress bar data from new service - NO MORE MANUAL CALCULATION! 🎯
+            fuel_current = mech_state.bars.fuel_current
+            fuel_max = mech_state.bars.fuel_max_for_level
+            evolution_current = mech_state.bars.mech_progress_current  
+            evolution_max = mech_state.bars.mech_progress_max
             
-            logger.info(f"FUEL BAR DEBUG: fuel=${current_fuel:.2f}, current_threshold=${current_threshold}, next_threshold=${next_threshold}")
+            logger.info(f"NEW SERVICE BARS: fuel={fuel_current}/{fuel_max}, evolution={evolution_current}/{evolution_max}")
             
-            # Fuel bar - shows fuel within current evolution level + 1€ bonus
-            # Max = evolution threshold + 1€, resets to 1€ on evolution
-            fuel_level_range = evolution_level_range + 1  # +1€ bonus for evolution
-            if fuel_level_range > 0:
-                fuel_progress_in_level = current_fuel - current_threshold
-                fuel_percentage = min(100, max(0, (fuel_progress_in_level / fuel_level_range) * 100))
-                logger.info(f"FUEL BAR DEBUG: progress_in_level=${fuel_progress_in_level:.2f}, level_range={fuel_level_range}, percentage={fuel_percentage:.1f}%")
+            # Calculate percentages from clean data
+            if fuel_max > 0:
+                fuel_percentage = min(100, max(0, (fuel_current / fuel_max) * 100))
                 fuel_bar = self._create_progress_bar(fuel_percentage)
+                logger.info(f"NEW SERVICE: Fuel bar {fuel_percentage:.1f}% ({fuel_current}/{fuel_max})")
             else:
                 fuel_bar = self._create_progress_bar(0)
                 fuel_percentage = 0
-                logger.info(f"FUEL BAR DEBUG: fuel_level_range=0, showing 0%")
+                logger.info(f"NEW SERVICE: Fuel bar 0% (max=0)")
             
-            # Evolution bar - shows progress to next evolution level, resets to 0% on evolution
-            if evolution_level_range > 0:
-                next_progress_in_level = total_donations_received - current_threshold
-                next_percentage = min(100, max(0, (next_progress_in_level / evolution_level_range) * 100))
+            # Evolution bar from clean data  
+            if evolution_max > 0:
+                next_percentage = min(100, max(0, (evolution_current / evolution_max) * 100))
                 next_bar = self._create_progress_bar(next_percentage)
+                logger.info(f"NEW SERVICE: Evolution bar {next_percentage:.1f}% ({evolution_current}/{evolution_max})")
             else:
-                next_bar = self._create_progress_bar(0)
+                next_bar = self._create_progress_bar(0) 
                 next_percentage = 0
+                logger.info(f"NEW SERVICE: Evolution bar 0% (max level reached)")
             
             # Create EXPANDED mech status text with detailed information (no bold formatting)
             evolution_name = translate(evolution['name'])
