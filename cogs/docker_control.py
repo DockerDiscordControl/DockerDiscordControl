@@ -375,7 +375,7 @@ class DonationBroadcastModal(discord.ui.Modal):
                                 else:
                                     status_text = clean_speed
                             
-                            embed.add_field(name="Mech Status", value=status_text, inline=False)
+                            embed.add_field(name=translate("Mech Status"), value=status_text, inline=False)
                         
                         # Send without animation (animation will be in /ss command instead)
                         embed.set_footer(text="https://ddc.bot")
@@ -1799,26 +1799,33 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         
         # Add EXPANDED Mech Status with detailed information and progress bars
         try:
+            logger.info("DEBUG: Starting mech status loading for /ss")
             import sys
             import os
             # Add project root to Python path for service imports
             project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             if project_root not in sys.path:
                 sys.path.insert(0, project_root)
-                
+            
+            logger.info("DEBUG: Importing donation_service")
             from services.donation_service import get_donation_service
             donation_service = get_donation_service()
+            logger.info("DEBUG: donation_service created")
             
             # Get mech status data
+            logger.info("DEBUG: Getting status data")
             status_data = donation_service.get_status()
             current_fuel = status_data.get('total_amount', 0)
             total_donations_received = status_data.get('total_donations_received', 0)
+            logger.info(f"DEBUG: Got fuel={current_fuel}, total_donations={total_donations_received}")
             
             # Get combined mech status (evolution + speed)
+            logger.info("DEBUG: Getting combined mech status")
             from utils.speed_levels import get_combined_mech_status
             combined_status = get_combined_mech_status(current_fuel, total_donations_received)
             evolution = combined_status['evolution']
             speed = combined_status['speed']
+            logger.info(f"DEBUG: Got evolution={evolution['name']}, speed={speed['description']}")
             
             # Create mech animation
             from services.mech_animation_service import get_mech_animation_service
@@ -1852,21 +1859,28 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 next_percentage = 0
             
             # Create EXPANDED mech status text with detailed information (no bold formatting)
-            mech_status = f"{evolution['name']} (Level {evolution['level']})\n"
-            mech_status += f"Speed: {speed['description']}\n\n"
+            evolution_name = translate(evolution['name'])
+            level_text = translate("Level")
+            mech_status = f"{evolution_name} ({level_text} {evolution['level']})\n"
+            speed_text = translate("Speed")
+            mech_status += f"{speed_text}: {speed['description']}\n\n"
             mech_status += f"🛢️ ${current_fuel:.2f}\n{fuel_bar} {fuel_percentage:.1f}%\n"
-            mech_status += f"Fuel Consumption: 🔻 0.04/h\n\n"  # Using red down arrow for negative indication
+            fuel_consumption_text = translate("Fuel Consumption")
+            mech_status += f"{fuel_consumption_text}: 🔻 0.04/h\n\n"  # Using red down arrow for negative indication
             
             if evolution.get('next_name'):
-                mech_status += f"⬆️ {evolution['next_name']}\n{next_bar} {next_percentage:.1f}%"
+                next_evolution_name = translate(evolution['next_name'])
+                mech_status += f"⬆️ {next_evolution_name}\n{next_bar} {next_percentage:.1f}%"
             else:
-                mech_status += f"🌟 MAX EVOLUTION REACHED!"
+                max_evolution_text = translate("MAX EVOLUTION REACHED!")
+                mech_status += f"🌟 {max_evolution_text}"
             
             # Add Glvl if available
             if speed.get('glvl') is not None:
-                mech_status += f"\nGlvl: {speed['glvl']}"
+                glvl_text = translate("Glvl")
+                mech_status += f"\n{glvl_text}: {speed['glvl']}"
             
-            embed.add_field(name="Mech-onate", value=mech_status, inline=False)
+            embed.add_field(name=translate("Mech-onate (Expanded)"), value=mech_status, inline=False)
             
             # Set the mech animation as embed image
             # Always set the same filename so Discord can reuse it on edits
@@ -1878,7 +1892,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 embed.set_image(url="attachment://mech_animation.webp")
                 
         except Exception as e:
-            logger.debug(f"Could not load expanded mech status for /ss: {e}")
+            logger.error(f"Could not load expanded mech status for /ss: {e}", exc_info=True)
         
         # Add website URL as footer for better spacing
         embed.set_footer(text="https://ddc.bot")
@@ -2035,7 +2049,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             )
             
             # For collapsed view, only add a simple field name (no detailed info)
-            embed.add_field(name="Mech-onate", value="*Click + to fuel/donate the Mech*", inline=False)
+            embed.add_field(name=translate("Mech-onate (Collapsed)"), value=translate("*Click + to fuel/donate the Mech*"), inline=False)
             
             # Set the mech animation as embed image
             # Always set the same filename so Discord can reuse it on edits
@@ -2047,7 +2061,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 embed.set_image(url="attachment://mech_animation.webp")
                 
         except Exception as e:
-            logger.debug(f"Could not load collapsed mech status for /ss: {e}")
+            logger.error(f"Could not load collapsed mech status for /ss: {e}", exc_info=True)
         
         # Add website URL as footer for better spacing
         embed.set_footer(text="https://ddc.bot")
@@ -2065,7 +2079,6 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
     async def _handle_donate_interaction(self, interaction):
         """Handle Mechonate button interaction - shows donation options."""
         try:
-            from .translation_manager import _
             
             # Try to import donation manager with backwards compatibility
             try:
@@ -2168,9 +2181,16 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                         # Auto-detect Glvl changes for force_recreate decision
                         current_glvl = None
                         try:
+                            # Get current fuel amount for Glvl calculation
+                            from utils.donation_manager import get_donation_manager
+                            donation_manager = get_donation_manager()
+                            donation_data = donation_manager.load_data()
+                            current_fuel = donation_data.get('fuel_data', {}).get('current_fuel', 0.0)
+                            total_donations = donation_data.get('fuel_data', {}).get('total_received_permanent', 0.0)
+                            
                             # Get current mech status to extract Glvl
                             from utils.speed_levels import get_combined_mech_status
-                            mech_status = get_combined_mech_status()
+                            mech_status = get_combined_mech_status(current_fuel, total_donations)
                             current_glvl = mech_status.get('speed', {}).get('level', 0)
                         except Exception as e:
                             logger.debug(f"Could not get current Glvl: {e}")
@@ -2181,7 +2201,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                             last_glvl = self.last_glvl_per_channel.get(channel_id, 0)
                             if abs(current_glvl - last_glvl) >= 1:
                                 glvl_changed = True
-                                logger.info(f"Significant Glvl change detected: {last_glvl} → {current_glvl}")
+                                glvl_change_text = translate("Significant Glvl change detected")
+                                logger.info(f"{glvl_change_text}: {last_glvl} → {current_glvl}")
                                 self.last_glvl_per_channel[channel_id] = current_glvl
                             elif last_glvl == 0:  # First time tracking
                                 self.last_glvl_per_channel[channel_id] = current_glvl
@@ -2189,7 +2210,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                         # Override force_recreate if significant Glvl change detected
                         if glvl_changed and not force_recreate:
                             force_recreate = True
-                            logger.info(f"Upgrading to force_recreate=True due to significant Glvl change")
+                            upgrade_text = translate("Upgrading to force_recreate=True due to significant Glvl change")
+                            logger.info(f"{upgrade_text}")
                         
                         # Create updated embed based on expansion state
                         is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
@@ -3044,11 +3066,15 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             
             # Create status strings
             speed_status = f"**Speed: {speed['description']}** (Fuel: ${current_fuel:.2f})"
-            evolution_status = f"**Evolution: Level {evolution['level']} - {evolution['name']}**"
+            evolution_name = _(evolution['name'])
+            evolution_text = translate("Evolution")
+            level_text = translate("Level")
+            evolution_status = f"**{evolution_text}: {level_text} {evolution['level']} - {evolution_name}**"
             
             # Add next evolution info if not maxed
             if evolution.get('next_name'):
-                evolution_status += f"\n*Next: {evolution['next_name']} (${evolution['amount_needed']:.0f} more needed)*"
+                next_evolution_name = translate(evolution['next_name'])
+                evolution_status += f"\n*Next: {next_evolution_name} (${evolution['amount_needed']:.0f} more needed)*"
             
         except Exception as status_error:
             logger.debug(f"Could not get mech status: {status_error}")
@@ -3120,7 +3146,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                                 else:
                                     status_text = clean_speed
                             
-                            embed.add_field(name="Mech Status", value=status_text, inline=False)
+                            embed.add_field(name=translate("Mech Status"), value=status_text, inline=False)
                         
                         # Send to all channels with rate limit protection
                         max_channels_per_broadcast = 10  # Limit to prevent rate limiting
@@ -3165,10 +3191,10 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     
                     if evolution_level_up:
                         # Evolution = new animation needed (force_recreate=True)
-                        await self._auto_update_ss_messages("Evolution level up - updating mech animation", force_recreate=True)
+                        await self._auto_update_ss_messages(translate("Evolution level up - updating mech animation"), force_recreate=True)
                     else:
                         # Normal donation = just update embed (force_recreate=False)
-                        await self._auto_update_ss_messages("Donation received - updating status", force_recreate=False)
+                        await self._auto_update_ss_messages(translate("Donation received - updating status"), force_recreate=False)
                 
         except Exception as e:
             logger.debug(f"Error in check_donation_broadcasts: {e}")

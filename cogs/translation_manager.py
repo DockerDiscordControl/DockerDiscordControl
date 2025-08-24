@@ -298,6 +298,38 @@ class TranslationManager:
                 "❌ An error occurred while saving container info: {error}": "❌ Fehler beim Speichern der Container-Info: {error}",
                 "❌ An error occurred while saving container info. Please try again.": "❌ Fehler beim Speichern der Container-Info. Bitte erneut versuchen.",
                 
+                # Mech System translations (German)
+                "Mech-onate": "Mech-oniere",
+                "Mech-onate (Expanded)": "Mech-oniere (Erweitert)", 
+                "Mech-onate (Collapsed)": "Mech-oniere (Eingeklappt)",
+                "Click + to fuel/donate the Mech": "Klicke + um den Mech zu betanken/spenden",
+                "Mech Status": "Mech Status",
+                "Evolution": "Evolution",
+                "Level": "Level",
+                "Speed": "Geschwindigkeit", 
+                "Fuel": "Treibstoff",
+                "Fuel Consumption": "Treibstoffverbrauch",
+                "Glvl": "Glvl",
+                "Fuel/Donate": "Betanken/Spenden",
+                "Evolution level up - updating mech animation": "Evolution Level-Up - Mech Animation wird aktualisiert",
+                "Donation received - updating status": "Spende erhalten - Status wird aktualisiert",
+                "Significant Glvl change detected": "Signifikante Glvl-Änderung erkannt",
+                "Upgrading to force_recreate=True due to significant Glvl change": "Upgrade auf force_recreate=True aufgrund signifikanter Glvl-Änderung",
+                
+                # Evolution Names (German)
+                "SCRAP MECH": "SCHROTT MECH",
+                "REPAIRED MECH": "REPARIERTER MECH", 
+                "STANDARD MECH": "STANDARD MECH",
+                "ENHANCED MECH": "VERSTÄRKTER MECH",
+                "ADVANCED MECH": "FORTGESCHRITTENER MECH",
+                "ELITE MECH": "ELITE MECH",
+                "CYBER MECH": "CYBER MECH",
+                "PLASMA MECH": "PLASMA MECH",
+                "QUANTUM MECH": "QUANTUM MECH", 
+                "DIVINE MECH": "GÖTTLICHER MECH",
+                "OMEGA MECH": "OMEGA MECH",
+                "MAX EVOLUTION REACHED!": "MAXIMALE EVOLUTION ERREICHT!",
+                
                 # Period texts for schedule_info
                 "all": "alle",
                 "next_week": "nächste_woche",
@@ -757,6 +789,38 @@ class TranslationManager:
                 "Thank you **{donor_name}** for your generosity! 🙏": "Merci **{donor_name}** pour votre générosité! 🙏",
                 "❌ Error sending donation broadcast. Please try again later.": "❌ Erreur lors de l'envoi de l'annonce de don. Veuillez réessayer plus tard.",
                 "Thank you for your support!": "Merci pour votre soutien !",
+                
+                # Mech System translations (French)
+                "Mech-onate": "Mech-onner",
+                "Mech-onate (Expanded)": "Mech-onner (Étendu)", 
+                "Mech-onate (Collapsed)": "Mech-onner (Réduit)",
+                "Click + to fuel/donate the Mech": "Cliquez + pour alimenter/faire un don au Mech",
+                "Mech Status": "Statut du Mech",
+                "Evolution": "Évolution",
+                "Level": "Niveau",
+                "Speed": "Vitesse", 
+                "Fuel": "Carburant",
+                "Fuel Consumption": "Consommation de carburant",
+                "Glvl": "Glvl",
+                "Fuel/Donate": "Carburant/Don",
+                "Evolution level up - updating mech animation": "Montée de niveau d'évolution - mise à jour de l'animation du mech",
+                "Donation received - updating status": "Don reçu - mise à jour du statut",
+                "Significant Glvl change detected": "Changement significatif de Glvl détecté",
+                "Upgrading to force_recreate=True due to significant Glvl change": "Mise à niveau vers force_recreate=True en raison d'un changement significatif de Glvl",
+                
+                # Evolution Names (French)
+                "SCRAP MECH": "MECH FERRAILLE",
+                "REPAIRED MECH": "MECH RÉPARÉ",
+                "STANDARD MECH": "MECH STANDARD", 
+                "ENHANCED MECH": "MECH AMÉLIORÉ",
+                "ADVANCED MECH": "MECH AVANCÉ",
+                "ELITE MECH": "MECH ÉLITE",
+                "CYBER MECH": "MECH CYBER",
+                "PLASMA MECH": "MECH PLASMA",
+                "QUANTUM MECH": "MECH QUANTIQUE",
+                "DIVINE MECH": "MECH DIVIN",
+                "OMEGA MECH": "MECH OMEGA",
+                "MAX EVOLUTION REACHED!": "ÉVOLUTION MAXIMALE ATTEINTE!",
             },
             # Fallback English (or add more languages)
             'en': {
@@ -1053,6 +1117,38 @@ class TranslationManager:
 
                 # Error messages
                 "Error during execution: {error}": "Error during execution: {error}",
+                
+                # Mech System translations (English)
+                "Mech-onate": "Mech-onate",
+                "Mech-onate (Expanded)": "Mech-onate (Expanded)", 
+                "Mech-onate (Collapsed)": "Mech-onate (Collapsed)",
+                "Click + to fuel/donate the Mech": "Click + to fuel/donate the Mech",
+                "Mech Status": "Mech Status",
+                "Evolution": "Evolution",
+                "Level": "Level",
+                "Speed": "Speed", 
+                "Fuel": "Fuel",
+                "Fuel Consumption": "Fuel Consumption",
+                "Glvl": "Glvl",
+                "Fuel/Donate": "Fuel/Donate",
+                "Evolution level up - updating mech animation": "Evolution level up - updating mech animation",
+                "Donation received - updating status": "Donation received - updating status",
+                "Significant Glvl change detected": "Significant Glvl change detected",
+                "Upgrading to force_recreate=True due to significant Glvl change": "Upgrading to force_recreate=True due to significant Glvl change",
+                
+                # Evolution Names (English) 
+                "SCRAP MECH": "SCRAP MECH",
+                "REPAIRED MECH": "REPAIRED MECH",
+                "STANDARD MECH": "STANDARD MECH",
+                "ENHANCED MECH": "ENHANCED MECH", 
+                "ADVANCED MECH": "ADVANCED MECH",
+                "ELITE MECH": "ELITE MECH",
+                "CYBER MECH": "CYBER MECH",
+                "PLASMA MECH": "PLASMA MECH",
+                "QUANTUM MECH": "QUANTUM MECH",
+                "DIVINE MECH": "DIVINE MECH", 
+                "OMEGA MECH": "OMEGA MECH",
+                "MAX EVOLUTION REACHED!": "MAXIMALE EVOLUTION ERREICHT!",
             }
             # Add other languages here if needed
         }

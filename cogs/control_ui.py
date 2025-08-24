@@ -1252,7 +1252,7 @@ class MechDonateButton(Button):
         
         super().__init__(
             style=discord.ButtonStyle.green,
-            label="Fuel/Donate",
+            label=_("Fuel/Donate"),
             custom_id=f"mech_donate_{channel_id}",
             row=0
         )
