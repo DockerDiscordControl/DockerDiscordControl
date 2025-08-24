@@ -1110,6 +1110,8 @@ class MechExpandButton(Button):
             
             # Update expansion state
             self.cog.mech_expanded_states[self.channel_id] = True
+            # Persist state
+            self.cog.mech_state_manager.set_expanded_state(self.channel_id, True)
             
             # Regenerate the /ss embed with expanded mech information
             embed, _ = await self._create_expanded_ss_embed()  # Ignore animation_file
@@ -1189,6 +1191,8 @@ class MechCollapseButton(Button):
             
             # Update expansion state
             self.cog.mech_expanded_states[self.channel_id] = False
+            # Persist state
+            self.cog.mech_state_manager.set_expanded_state(self.channel_id, False)
             
             # Regenerate the /ss embed with collapsed mech information
             embed, _ = await self._create_collapsed_ss_embed()  # Ignore animation_file

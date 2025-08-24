@@ -421,11 +421,23 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         self.bot = bot
         self.config = config
         
+        # Initialize Mech State Manager for persistence
+        from utils.mech_state_manager import get_mech_state_manager
+        self.mech_state_manager = get_mech_state_manager()
+        
+        # Load persisted states
+        state_data = self.mech_state_manager.load_state()
+        self.mech_expanded_states = {
+            int(k): v for k, v in state_data.get("mech_expanded_states", {}).items()
+        }
+        self.last_glvl_per_channel = {
+            int(k): v for k, v in state_data.get("last_glvl_per_channel", {}).items()
+        }
+        logger.info(f"Loaded persisted Mech states: {len(self.mech_expanded_states)} expanded, {len(self.last_glvl_per_channel)} Glvl tracked")
+        
         # Start donation broadcast checker
         self.check_donation_broadcasts.start()
         self.expanded_states = {}  # For container expand/collapse
-        self.mech_expanded_states = {}  # For mech expand/collapse in /ss
-        self.last_glvl_per_channel = {}  # Track Glvl per channel for change detection
         self.channel_server_message_ids: Dict[int, Dict[str, int]] = {}
         self.last_message_update_time: Dict[int, Dict[str, datetime]] = {}
         self.initial_messages_sent = False
@@ -1239,6 +1251,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                             # For initial messages, always start in collapsed state
                             channel_id = channel.id
                             self.mech_expanded_states[channel_id] = False
+                            self.mech_state_manager.set_expanded_state(channel_id, False)
                             embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
                             
                             # Create MechView with expand/collapse buttons for mech status
@@ -1827,12 +1840,21 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             speed = combined_status['speed']
             logger.info(f"DEBUG: Got evolution={evolution['name']}, speed={speed['description']}")
             
-            # Create mech animation
-            from services.mech_animation_service import get_mech_animation_service
-            mech_service = get_mech_animation_service()
-            animation_file = await mech_service.create_donation_animation_async(
-                'Current', f'{current_fuel}$', current_fuel
-            )
+            # Create mech animation with fallback
+            try:
+                from services.mech_animation_service import get_mech_animation_service
+                mech_service = get_mech_animation_service()
+                animation_file = await mech_service.create_donation_animation_async(
+                    'Current', f'{current_fuel}$', current_fuel
+                )
+            except Exception as e:
+                logger.warning(f"Animation service failed (graceful degradation): {e}")
+                animation_file = None
+                # Add fallback visual indicator in embed
+                if not embed.footer or not embed.footer.text:
+                    embed.set_footer(text="🎬 Animation service temporarily unavailable")
+                else:
+                    embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
             
             # Calculate progress bars for EXPANDED view
             # Fuel bar - within current evolution level
@@ -2041,12 +2063,21 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             status_data = donation_service.get_status()
             current_fuel = status_data.get('total_amount', 0)
             
-            # Create mech animation (same as original)
-            from services.mech_animation_service import get_mech_animation_service
-            mech_service = get_mech_animation_service()
-            animation_file = await mech_service.create_donation_animation_async(
-                'Current', f'{current_fuel}$', current_fuel
-            )
+            # Create mech animation with fallback
+            try:
+                from services.mech_animation_service import get_mech_animation_service
+                mech_service = get_mech_animation_service()
+                animation_file = await mech_service.create_donation_animation_async(
+                    'Current', f'{current_fuel}$', current_fuel
+                )
+            except Exception as e:
+                logger.warning(f"Animation service failed (graceful degradation): {e}")
+                animation_file = None
+                # Add fallback visual indicator in embed
+                if not embed.footer or not embed.footer.text:
+                    embed.set_footer(text="🎬 Animation service temporarily unavailable")
+                else:
+                    embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
             
             # For collapsed view, only add a simple field name (no detailed info)
             embed.add_field(name=translate("Mech-onate (Collapsed)"), value=translate("*Click + to fuel/donate the Mech*"), inline=False)
@@ -2204,14 +2235,22 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                                 glvl_change_text = translate("Significant Glvl change detected")
                                 logger.info(f"{glvl_change_text}: {last_glvl} → {current_glvl}")
                                 self.last_glvl_per_channel[channel_id] = current_glvl
+                                self.mech_state_manager.set_last_glvl(channel_id, current_glvl)
                             elif last_glvl == 0:  # First time tracking
                                 self.last_glvl_per_channel[channel_id] = current_glvl
+                                self.mech_state_manager.set_last_glvl(channel_id, current_glvl)
                         
                         # Override force_recreate if significant Glvl change detected
                         if glvl_changed and not force_recreate:
-                            force_recreate = True
-                            upgrade_text = translate("Upgrading to force_recreate=True due to significant Glvl change")
-                            logger.info(f"{upgrade_text}")
+                            # Check rate limit before allowing force_recreate
+                            if self.mech_state_manager.should_force_recreate(channel_id):
+                                force_recreate = True
+                                self.mech_state_manager.mark_force_recreate(channel_id)
+                                upgrade_text = translate("Upgrading to force_recreate=True due to significant Glvl change")
+                                logger.info(f"{upgrade_text}")
+                            else:
+                                logger.debug(f"Rate limited force_recreate for channel {channel_id} (Glvl change)")
+                                force_recreate = False
                         
                         # Create updated embed based on expansion state
                         is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
@@ -3190,7 +3229,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     evolution_level_up = any(broadcast.get('evolution_level_up', False) for broadcast in processed_broadcasts)
                     
                     if evolution_level_up:
-                        # Evolution = new animation needed (force_recreate=True)
+                        # Evolution = new animation needed (force_recreate=True with rate limit check)
+                        # Rate limit is bypassed for evolution since it's a rare event
                         await self._auto_update_ss_messages(translate("Evolution level up - updating mech animation"), force_recreate=True)
                     else:
                         # Normal donation = just update embed (force_recreate=False)
