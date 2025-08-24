@@ -1892,24 +1892,25 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
             
             # Calculate progress bars for EXPANDED view
-            # Fuel bar - within current evolution level
             current_threshold = evolution.get('current_threshold', 0)
             next_threshold = evolution.get('next_threshold', 20)
-            level_range = next_threshold - current_threshold
+            evolution_level_range = next_threshold - current_threshold
             
-            if level_range > 0:
-                # Progress within current level range
+            # Fuel bar - shows fuel within current evolution level + 1€ bonus
+            # Max = evolution threshold + 1€, resets to 1€ on evolution
+            fuel_level_range = evolution_level_range + 1  # +1€ bonus for evolution
+            if fuel_level_range > 0:
                 fuel_progress_in_level = current_fuel - current_threshold
-                fuel_percentage = min(100, max(0, (fuel_progress_in_level / level_range) * 100))
+                fuel_percentage = min(100, max(0, (fuel_progress_in_level / fuel_level_range) * 100))
                 fuel_bar = self._create_progress_bar(fuel_percentage)
             else:
                 fuel_bar = self._create_progress_bar(0)
                 fuel_percentage = 0
             
-            # Evolution/Next bar - also within current evolution level
-            if level_range > 0:
+            # Evolution bar - shows progress to next evolution level, resets to 0% on evolution
+            if evolution_level_range > 0:
                 next_progress_in_level = total_donations_received - current_threshold
-                next_percentage = min(100, max(0, (next_progress_in_level / level_range) * 100))
+                next_percentage = min(100, max(0, (next_progress_in_level / evolution_level_range) * 100))
                 next_bar = self._create_progress_bar(next_percentage)
             else:
                 next_bar = self._create_progress_bar(0)
