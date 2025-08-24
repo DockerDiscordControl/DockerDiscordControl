@@ -324,14 +324,18 @@ class DonationBroadcastModal(discord.ui.Modal):
                     if evolution_occurred:
                         logger.info(f"EVOLUTION OCCURRED! Level {old_evolution_level} → {new_evolution_level}, Fuel reset: ${old_fuel:.2f} → ${new_fuel:.2f}")
                     
-                    # Auto-update /ss messages immediately after donation processing
+                    # Auto-update /ss messages after donation processing with small delay
                     if donation_amount_euros and donation_amount_euros > 0:
                         cog = interaction.client.get_cog('DockerControlCog')
                         if cog:
                             try:
                                 from .translation_manager import _
+                                # Add small delay to ensure data is fully persisted
+                                import asyncio
+                                await asyncio.sleep(0.1)  # 100ms delay to ensure file system sync
+                                logger.info(f"About to refresh /ss messages. Current fuel should be: ${new_fuel:.2f}")
                                 await cog._auto_update_ss_messages(_("Donation recorded - updating fuel status"), force_recreate=True)
-                                logger.info("Auto-refreshed /ss messages immediately after donation processing")
+                                logger.info("Auto-refreshed /ss messages after donation processing with delay")
                             except Exception as refresh_error:
                                 logger.error(f"Error refreshing /ss messages after donation: {refresh_error}")
                     
@@ -1888,11 +1892,11 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             logger.info("DEBUG: donation_service created")
             
             # Get mech status data
-            logger.info("DEBUG: Getting status data")
+            logger.info("DEBUG: Getting status data for expanded embed")
             status_data = donation_service.get_status()
             current_fuel = status_data.get('total_amount', 0)
             total_donations_received = status_data.get('total_donations_received', 0)
-            logger.info(f"DEBUG: Got fuel={current_fuel}, total_donations={total_donations_received}")
+            logger.info(f"DEBUG: Expanded embed loaded fuel=${current_fuel:.2f}, total_donations=${total_donations_received:.2f}")
             
             # Get combined mech status (evolution + speed)
             logger.info("DEBUG: Getting combined mech status")
