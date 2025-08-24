@@ -1902,7 +1902,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 glvl_text = translate("Glvl")
                 mech_status += f"\n{glvl_text}: {speed['glvl']}"
             
-            embed.add_field(name=translate("Mech-onate (Expanded)"), value=mech_status, inline=False)
+            embed.add_field(name=translate("Donation Engine"), value=mech_status, inline=False)
             
             # Set the mech animation as embed image
             # Always set the same filename so Discord can reuse it on edits
@@ -2080,7 +2080,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
             
             # For collapsed view, only add a simple field name (no detailed info)
-            embed.add_field(name=translate("Mech-onate (Collapsed)"), value=translate("*Click + to fuel/donate the Mech*"), inline=False)
+            embed.add_field(name=translate("Donation Engine"), value=translate("*Click + to fuel/donate the Mech*"), inline=False)
             
             # Set the mech animation as embed image
             # Always set the same filename so Discord can reuse it on edits

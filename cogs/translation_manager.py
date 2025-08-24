@@ -300,8 +300,7 @@ class TranslationManager:
                 
                 # Mech System translations (German)
                 "Mech-onate": "Mech-oniere",
-                "Mech-onate (Expanded)": "Mech-oniere (Erweitert)", 
-                "Mech-onate (Collapsed)": "Mech-oniere (Eingeklappt)",
+                "Donation Engine": "Spendenmotor",
                 "Click + to fuel/donate the Mech": "Klicke + um den Mech zu betanken/spenden",
                 "Mech Status": "Mech Status",
                 "Evolution": "Evolution",
@@ -792,8 +791,7 @@ class TranslationManager:
                 
                 # Mech System translations (French)
                 "Mech-onate": "Mech-onner",
-                "Mech-onate (Expanded)": "Mech-onner (Étendu)", 
-                "Mech-onate (Collapsed)": "Mech-onner (Réduit)",
+                "Donation Engine": "Moteur Solidaire",
                 "Click + to fuel/donate the Mech": "Cliquez + pour alimenter/faire un don au Mech",
                 "Mech Status": "Statut du Mech",
                 "Evolution": "Évolution",
@@ -1120,8 +1118,7 @@ class TranslationManager:
                 
                 # Mech System translations (English)
                 "Mech-onate": "Mech-onate",
-                "Mech-onate (Expanded)": "Mech-onate (Expanded)", 
-                "Mech-onate (Collapsed)": "Mech-onate (Collapsed)",
+                "Donation Engine": "Donation Engine",
                 "Click + to fuel/donate the Mech": "Click + to fuel/donate the Mech",
                 "Mech Status": "Mech Status",
                 "Evolution": "Evolution",
