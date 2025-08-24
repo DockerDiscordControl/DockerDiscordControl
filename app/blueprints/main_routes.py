@@ -1390,72 +1390,94 @@ def get_donation_history():
 @main_bp.route('/api/donation/add-fuel', methods=['POST'])
 @auth.login_required
 def add_test_fuel():
-    """Add or remove fuel for testing (requires auth)."""
+    """Add or remove fuel for testing (requires auth) - USING NEW MECH SERVICE."""
     try:
         data = request.get_json()
         amount = data.get('amount', 0)
         donation_type = data.get('type', 'test')
         user = data.get('user', 'Test')
         
-        donation_manager = get_donation_manager()
+        # Use new MechService instead of old donation_manager
+        from services.mech_service import get_mech_service
+        mech_service = get_mech_service()
         
-        if amount > 0:
-            # Add fuel
-            result = donation_manager.add_fuel(amount, donation_type, user)
-            current_app.logger.info(f"Added {amount} fuel, new total: {result.get('fuel_data', {}).get('current_fuel', 0)}")
-            return jsonify({'success': True, 'fuel': result.get('fuel_data', {}).get('current_fuel', 0)})
-        elif amount < 0:
-            # Remove fuel (add negative amount)
-            result = donation_manager.add_fuel(amount, donation_type, user)
-            return jsonify({'success': True, 'fuel': result.get('fuel_data', {}).get('current_fuel', 0)})
+        if amount != 0:
+            # Add donation (positive or negative)
+            if amount > 0:
+                result_state = mech_service.add_donation(f"WebUI:{user}", int(amount))
+                current_app.logger.info(f"NEW SERVICE: Added ${amount} fuel, new total: ${result_state.fuel}")
+            else:
+                # For negative amounts, we need to handle differently since add_donation only accepts positive
+                # Get current state and calculate what the new total should be
+                current_state = mech_service.get_state()
+                # This is a limitation - new service doesn't easily support negative donations
+                # For now, return error for negative amounts
+                return jsonify({'success': False, 'error': 'Negative fuel amounts not supported in new service yet'}), 400
+                
+            return jsonify({
+                'success': True, 
+                'fuel': result_state.fuel,
+                'level': result_state.level,
+                'level_name': result_state.level_name,
+                'total_donated': result_state.total_donated
+            })
         else:
             return jsonify({'success': False, 'error': 'Amount must be non-zero'}), 400
             
     except Exception as e:
-        current_app.logger.error(f"Error adding test fuel: {e}")
+        current_app.logger.error(f"Error adding test fuel with new service: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @main_bp.route('/api/donation/reset-fuel', methods=['POST'])
-@auth.login_required
+@auth.login_required  
 def reset_fuel():
-    """Reset fuel to 0 for testing (requires auth)."""
+    """Reset fuel to 0 for testing (requires auth) - USING NEW MECH SERVICE."""
     try:
-        donation_manager = get_donation_manager()
-        data = donation_manager.load_data()
+        # NEW SERVICE: Reset by clearing donation file
+        from services.mech_service import get_mech_service
+        mech_service = get_mech_service()
         
-        # Reset fuel data
-        data['fuel_data'] = {
-            'current_fuel': 0.0,
-            'last_update': datetime.now(timezone.utc).isoformat(),
-            'donation_amounts': []
-        }
+        # Reset by directly modifying the store
+        store_data = {"donations": []}
+        mech_service.store.save(store_data)
         
-        donation_manager.save_data(data)
+        # Get new state (should be Level 1, 0 fuel)
+        reset_state = mech_service.get_state()
         
-        return jsonify({'success': True, 'message': 'Fuel reset to 0'})
+        current_app.logger.info(f"NEW SERVICE: Fuel reset - Level {reset_state.level}, Fuel ${reset_state.fuel}")
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Fuel reset to 0 using new MechService',
+            'level': reset_state.level,
+            'level_name': reset_state.level_name,
+            'fuel': reset_state.fuel,
+            'total_donated': reset_state.total_donated
+        })
     except Exception as e:
-        current_app.logger.error(f"Error resetting fuel: {e}")
+        current_app.logger.error(f"Error resetting fuel with new service: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @main_bp.route('/api/donation/consume-fuel', methods=['POST'])
 @auth.login_required
 def consume_fuel():
-    """Consume fuel in real-time (requires auth)."""
+    """Get current fuel state - NEW SERVICE HANDLES DECAY AUTOMATICALLY."""
     try:
-        data = request.get_json()
-        consume_amount = data.get('amount', 0.00003472)  # Default 3-second consumption
+        # NEW SERVICE: Decay happens automatically in get_state()
+        from services.mech_service import get_mech_service
+        mech_service = get_mech_service()
         
-        donation_manager = get_donation_manager()
+        # Just get current state - decay is calculated automatically
+        current_state = mech_service.get_state()
         
-        # Add negative fuel (consumption)
-        result = donation_manager.add_fuel(-consume_amount, 'consumption', 'Automatic')
-        
-        new_fuel = result.get('fuel_data', {}).get('current_fuel', 0)
+        current_app.logger.debug(f"NEW SERVICE: Fuel consumption check - current fuel: ${current_state.fuel}")
         
         return jsonify({
             'success': True, 
-            'new_fuel': max(0, new_fuel),  # Never go below 0
-            'consumed': consume_amount
+            'new_fuel': max(0, current_state.fuel),
+            'level': current_state.level,
+            'level_name': current_state.level_name,
+            'message': 'Fuel decay calculated automatically by new service'
         })
         
     except Exception as e:
