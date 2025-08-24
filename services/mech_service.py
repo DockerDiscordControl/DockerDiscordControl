@@ -205,6 +205,7 @@ class MechService:
         fuel: float = 0.0  # internal float to support fractional decay
         lvl: MechLevel = MECH_LEVELS[0]
         last_ts: Optional[datetime] = None
+        last_evolution_ts: Optional[datetime] = None
 
         for d in donations:
             ts = self._parse_iso(d["ts"])
@@ -225,12 +226,19 @@ class MechService:
                     lvl = nxt
                     # fresh level starts with 1 + overshoot beyond this level's threshold
                     fuel = 1.0 + max(0, total - lvl.threshold)
+                    last_evolution_ts = ts  # Track when evolution occurred
                     continue
                 break
 
-        # decay from last donation to "now"
+        # decay from last donation to "now" - but only if enough time passed since evolution
         if last_ts is not None:
-            fuel = max(0.0, fuel - self._decay_amount(last_ts, now))
+            # If evolution just happened, don't apply immediate decay
+            if last_evolution_ts == last_ts:
+                # Evolution just occurred - no decay yet, mech has fresh fuel
+                pass
+            else:
+                # Normal decay from last donation
+                fuel = max(0.0, fuel - self._decay_amount(last_ts, now))
 
         # Compose bars & glvl
         nxt = _next_level(lvl)
