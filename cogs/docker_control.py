@@ -330,7 +330,7 @@ class DonationBroadcastModal(discord.ui.Modal):
                         if cog:
                             try:
                                 from .translation_manager import _
-                                await cog._auto_update_ss_messages(_("Donation recorded - updating fuel status"), force_recreate=False)
+                                await cog._auto_update_ss_messages(_("Donation recorded - updating fuel status"), force_recreate=True)
                                 logger.info("Auto-refreshed /ss messages immediately after donation processing")
                             except Exception as refresh_error:
                                 logger.error(f"Error refreshing /ss messages after donation: {refresh_error}")
