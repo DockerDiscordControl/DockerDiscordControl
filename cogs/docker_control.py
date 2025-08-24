@@ -2259,8 +2259,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                         seen_docker_names = set()
                         
                         # Apply server ordering
-                        from utils.server_order import get_server_order
-                        server_order = get_server_order()
+                        from utils.server_order import load_server_order
+                        server_order = load_server_order()
                         
                         for server_name in server_order:
                             for server in servers:
