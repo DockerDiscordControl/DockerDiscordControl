@@ -1889,12 +1889,22 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             total_donations_received = mech_state.total_donated
             logger.info(f"NEW SERVICE: fuel=${current_fuel}, total_donations=${total_donations_received}, level={mech_state.level} ({mech_state.level_name})")
             
-            # Evolution info from new service
+            # Evolution info from new service with next_name for UI
+            from services.mech_service import MECH_LEVELS
+            next_name = None
+            if mech_state.next_level_threshold is not None:
+                # Find next level name from MECH_LEVELS
+                for level_info in MECH_LEVELS:
+                    if level_info.threshold == mech_state.next_level_threshold:
+                        next_name = level_info.name
+                        break
+            
             evolution = {
                 'name': mech_state.level_name,
                 'level': mech_state.level,
-                'current_threshold': 0,  # Will be calculated from level
-                'next_threshold': mech_state.next_level_threshold
+                'current_threshold': 0,  # Will be calculated from level if needed
+                'next_threshold': mech_state.next_level_threshold,
+                'next_name': next_name  # This was missing!
             }
             
             # Speed info from glvl
