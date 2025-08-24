@@ -300,8 +300,8 @@ class TranslationManager:
                 
                 # Mech System translations (German)
                 "Mech-onate": "Mech-oniere",
-                "Donation Engine": "Spendenmotor",
-                "Click + to fuel/donate the Mech": "Klicke + um den Mech zu betanken/spenden",
+                "Donation Engine": "Donation Engine",
+                "Click + to fuel/donate the Mech": "Klicke auf +, um die Mech-Details zu sehen",
                 "Mech Status": "Mech Status",
                 "Evolution": "Evolution",
                 "Level": "Level",
@@ -309,7 +309,7 @@ class TranslationManager:
                 "Fuel": "Treibstoff",
                 "Fuel Consumption": "Treibstoffverbrauch",
                 "Glvl": "Glvl",
-                "Fuel/Donate": "Betanken/Spenden",
+                "Fuel/Donate": "Mit Spende auftanken",
                 "Evolution level up - updating mech animation": "Evolution Level-Up - Mech Animation wird aktualisiert",
                 "Donation received - updating status": "Spende erhalten - Status wird aktualisiert",
                 "Significant Glvl change detected": "Signifikante Glvl-Änderung erkannt",
@@ -791,8 +791,8 @@ class TranslationManager:
                 
                 # Mech System translations (French)
                 "Mech-onate": "Mech-onner",
-                "Donation Engine": "Moteur Solidaire",
-                "Click + to fuel/donate the Mech": "Cliquez + pour alimenter/faire un don au Mech",
+                "Donation Engine": "Donation Engine",
+                "Click + to fuel/donate the Mech": "Cliquez sur + pour voir les détails du Mech",
                 "Mech Status": "Statut du Mech",
                 "Evolution": "Évolution",
                 "Level": "Niveau",
@@ -800,7 +800,7 @@ class TranslationManager:
                 "Fuel": "Carburant",
                 "Fuel Consumption": "Consommation de carburant",
                 "Glvl": "Glvl",
-                "Fuel/Donate": "Carburant/Don",
+                "Fuel/Donate": "Donner pour alimenter",
                 "Evolution level up - updating mech animation": "Montée de niveau d'évolution - mise à jour de l'animation du mech",
                 "Donation received - updating status": "Don reçu - mise à jour du statut",
                 "Significant Glvl change detected": "Changement significatif de Glvl détecté",
@@ -1119,7 +1119,7 @@ class TranslationManager:
                 # Mech System translations (English)
                 "Mech-onate": "Mech-onate",
                 "Donation Engine": "Donation Engine",
-                "Click + to fuel/donate the Mech": "Click + to fuel/donate the Mech",
+                "Click + to fuel/donate the Mech": "Click + to view Mech details",
                 "Mech Status": "Mech Status",
                 "Evolution": "Evolution",
                 "Level": "Level",
@@ -1127,7 +1127,7 @@ class TranslationManager:
                 "Fuel": "Fuel",
                 "Fuel Consumption": "Fuel Consumption",
                 "Glvl": "Glvl",
-                "Fuel/Donate": "Fuel/Donate",
+                "Fuel/Donate": "Donate to Fuel",
                 "Evolution level up - updating mech animation": "Evolution level up - updating mech animation",
                 "Donation received - updating status": "Donation received - updating status",
                 "Significant Glvl change detected": "Significant Glvl change detected",
