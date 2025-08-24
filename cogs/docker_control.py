@@ -2080,7 +2080,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
             
             # For collapsed view, only add a simple field name (no detailed info)
-            embed.add_field(name=translate("Donation Engine"), value=translate("*Click + to view Mech details*"), inline=False)
+            embed.add_field(name=translate("Donation Engine"), value="*" + translate("Click + to view Mech details") + "*", inline=False)
             
             # Set the mech animation as embed image
             # Always set the same filename so Discord can reuse it on edits
