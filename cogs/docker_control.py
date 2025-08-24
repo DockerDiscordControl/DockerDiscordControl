@@ -272,10 +272,49 @@ class DonationBroadcastModal(discord.ui.Modal):
                 )
                 return
             
-            # Get the cog instance to access the shared method
+            # FIRST: Process the donation to update fuel values
+            donation_amount_euros = None
+            if self.donation_manager_available:
+                try:
+                    from utils.donation_manager import get_donation_manager
+                    donation_manager = get_donation_manager()
+                    
+                    # Parse amount if provided
+                    if amount:
+                        # Try to extract numeric value from amount string
+                        import re
+                        # Match patterns like "10€", "$10", "10 Euro", "10 Dollar", "10", etc.
+                        amount_match = re.search(r'(\d+(?:\.\d+)?)', amount)
+                        if amount_match:
+                            donation_amount_euros = float(amount_match.group(1))
+                            logger.info(f"Parsed donation amount: {donation_amount_euros}€ from '{amount}'")
+                    
+                    # Record donation with amount BEFORE creating broadcast message
+                    donation_manager.record_donation(
+                        donation_type="discord_broadcast",
+                        user_identifier=f"Discord User: {interaction.user.name} ({interaction.user.id}) as '{donor_name}'",
+                        amount=donation_amount_euros
+                    )
+                    logger.info(f"Donation recorded by {interaction.user.name} as '{donor_name}' with amount: {donation_amount_euros}€")
+                    
+                    # Auto-update /ss messages immediately after donation processing
+                    if donation_amount_euros and donation_amount_euros > 0:
+                        cog = interaction.client.get_cog('DockerControlCog')
+                        if cog:
+                            try:
+                                from .translation_manager import translate
+                                await cog._auto_update_ss_messages(translate("Donation recorded - updating fuel status"), force_recreate=False)
+                                logger.info("Auto-refreshed /ss messages immediately after donation processing")
+                            except Exception as refresh_error:
+                                logger.error(f"Error refreshing /ss messages after donation: {refresh_error}")
+                    
+                except Exception as e:
+                    logger.error(f"Error processing donation: {e}")
+            
+            # SECOND: Create broadcast message with UPDATED fuel values
             cog = interaction.client.get_cog('DockerControlCog')
             if cog:
-                # Create broadcast message using shared logic
+                # Create broadcast message using shared logic (now with updated values)
                 broadcast_text, evolution_status, speed_status = await cog._create_donation_broadcast_message(
                     donor_name=donor_name,
                     amount_text=amount if amount else None
@@ -288,39 +327,6 @@ class DonationBroadcastModal(discord.ui.Modal):
                 )
                 evolution_status = ""
                 speed_status = ""
-            
-            # Track the donation broadcast
-            if self.donation_manager_available:
-                try:
-                    from utils.donation_manager import get_donation_manager
-                    donation_manager = get_donation_manager()
-                    
-                    # Parse amount if provided
-                    donation_amount_euros = None
-                    if amount:
-                        # Try to extract numeric value from amount string
-                        import re
-                        # Match patterns like "10€", "$10", "10 Euro", "10 Dollar", "10", etc.
-                        amount_match = re.search(r'(\d+(?:\.\d+)?)', amount)
-                        if amount_match:
-                            donation_amount_euros = float(amount_match.group(1))
-                            logger.info(f"Parsed donation amount: {donation_amount_euros}€ from '{amount}'")
-                    
-                    # Record donation with amount
-                    donation_manager.record_donation(
-                        donation_type="discord_broadcast",
-                        user_identifier=f"Discord User: {interaction.user.name} ({interaction.user.id}) as '{donor_name}'",
-                        amount=donation_amount_euros
-                    )
-                    logger.info(f"Donation broadcast by {interaction.user.name} as '{donor_name}' with amount: {donation_amount_euros}€")
-                    
-                    # Auto-update /ss messages after discord modal donation
-                    if donation_amount_euros and donation_amount_euros > 0:
-                        cog = interaction.client.get_cog('DockerControlCog')
-                        if cog:
-                            await cog._auto_update_ss_messages(f"Discord modal donation: {donor_name} ${donation_amount_euros:.2f}")
-                except Exception as e:
-                    logger.debug(f"Could not track donation broadcast: {e}")
             
             # Try to create sprite mech animation
             animation_file = None
@@ -425,16 +431,6 @@ class DonationBroadcastModal(discord.ui.Modal):
                 response_text += _("Your donation has been recorded and helps fuel the Donation Engine.")
             
             await interaction.response.send_message(response_text, ephemeral=True)
-            
-            # Auto-refresh /ss messages since fuel status has changed
-            try:
-                cog = interaction.client.get_cog('DockerControlCog')
-                if cog:
-                    from .translation_manager import translate
-                    await cog._auto_update_ss_messages(translate("Donation recorded - updating fuel status"), force_recreate=False)
-                    logger.info("Auto-refreshed /ss messages after donation modal submission")
-            except Exception as refresh_error:
-                logger.error(f"Error refreshing /ss messages after donation: {refresh_error}")
             
         except Exception as e:
             logger.error(f"Error in donation broadcast modal: {e}")
