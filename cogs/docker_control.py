@@ -2321,9 +2321,12 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                         
                         # Create updated embed based on expansion state
                         is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
+                        logger.info(f"AUTO-UPDATE: Channel {channel_id} is_expanded={is_mech_expanded}, force_recreate={force_recreate}")
                         if is_mech_expanded:
+                            logger.info(f"AUTO-UPDATE: Creating expanded embed for channel {channel_id}")
                             embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config)
                         else:
+                            logger.info(f"AUTO-UPDATE: Creating collapsed embed for channel {channel_id}")
                             embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
                         
                         if force_recreate:
@@ -2342,18 +2345,18 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                                 
                             # Update message tracking
                             self.channel_server_message_ids[channel_id]['overview'] = new_message.id
-                            logger.debug(f"🔄 Recreated /ss message in {channel.name} with new animation")
+                            logger.info(f"🔄 AUTO-UPDATE: Successfully recreated /ss message in {channel.name} with new animation")
                         else:
                             # Just edit the embed (for expand/collapse - no new animation)
                             from .control_ui import MechView
                             view = MechView(self, channel_id)
                             await message.edit(embed=embed, view=view)
-                            logger.debug(f"✏️ Edited /ss message in {channel.name}")
+                            logger.info(f"✏️ AUTO-UPDATE: Successfully edited /ss message in {channel.name}")
                         
                         updated_count += 1
                         
                     except Exception as e:
-                        logger.debug(f"Could not update /ss message in channel {channel_id}: {e}")
+                        logger.error(f"AUTO-UPDATE ERROR: Could not update /ss message in channel {channel_id}: {e}", exc_info=True)
             
             if updated_count > 0:
                 logger.info(f"✅ Auto-updated {updated_count} /ss messages after donation")
