@@ -37,7 +37,8 @@
       "Bash(curl:*)",
       "Bash(mkdir:*)",
       "Bash(python -m pytest systems/tests/test_mech_master.py -v)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(sudo python3:*)"
     ],
     "deny": []
   }

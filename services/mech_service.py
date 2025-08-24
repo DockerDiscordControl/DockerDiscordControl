@@ -73,6 +73,10 @@ class _Store:
 
     def load(self) -> Dict[str, Any]:
         if not self.path.exists():
+            # Try to migrate from old donation.json format
+            old_donation_file = self.path.parent / "donation.json"
+            if old_donation_file.exists():
+                return self._migrate_from_old_format(old_donation_file)
             return {"donations": []}
         try:
             with self.path.open("r", encoding="utf-8") as f:
@@ -82,6 +86,40 @@ class _Store:
         if "donations" not in data or not isinstance(data["donations"], list):
             data["donations"] = []
         return data
+    
+    def _migrate_from_old_format(self, old_file: Path) -> Dict[str, Any]:
+        """Migrate from old donation.json format to new format"""
+        try:
+            with old_file.open("r", encoding="utf-8") as f:
+                old_data = json.load(f)
+            
+            # Extract total donations from old format
+            fuel_data = old_data.get('fuel_data', {})
+            total_donations = fuel_data.get('total_received_permanent', 0.0)
+            
+            if total_donations > 0:
+                # Create migration entry with current timestamp
+                migration_donation = {
+                    "username": "MIGRATION_FROM_OLD_SYSTEM", 
+                    "amount": int(total_donations),
+                    "ts": datetime.now().isoformat()
+                }
+                
+                # Save to new format (this will create the file)
+                new_data = {"donations": [migration_donation]}
+                try:
+                    self.save(new_data)
+                    print(f"✅ AUTO-MIGRATED: ${total_donations} from old donation system")
+                except:
+                    print(f"⚠️ Could not save migration, using in-memory data")
+                
+                return new_data
+            else:
+                return {"donations": []}
+                
+        except Exception as e:
+            print(f"⚠️ Migration failed: {e}")
+            return {"donations": []}
 
     def save(self, data: Dict[str, Any]) -> None:
         tmp = self.path.with_suffix(self.path.suffix + ".tmp")
