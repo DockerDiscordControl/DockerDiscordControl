@@ -1927,16 +1927,20 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             next_threshold = evolution.get('next_threshold', 20)
             evolution_level_range = next_threshold - current_threshold
             
+            logger.info(f"FUEL BAR DEBUG: fuel=${current_fuel:.2f}, current_threshold=${current_threshold}, next_threshold=${next_threshold}")
+            
             # Fuel bar - shows fuel within current evolution level + 1€ bonus
             # Max = evolution threshold + 1€, resets to 1€ on evolution
             fuel_level_range = evolution_level_range + 1  # +1€ bonus for evolution
             if fuel_level_range > 0:
                 fuel_progress_in_level = current_fuel - current_threshold
                 fuel_percentage = min(100, max(0, (fuel_progress_in_level / fuel_level_range) * 100))
+                logger.info(f"FUEL BAR DEBUG: progress_in_level=${fuel_progress_in_level:.2f}, level_range={fuel_level_range}, percentage={fuel_percentage:.1f}%")
                 fuel_bar = self._create_progress_bar(fuel_percentage)
             else:
                 fuel_bar = self._create_progress_bar(0)
                 fuel_percentage = 0
+                logger.info(f"FUEL BAR DEBUG: fuel_level_range=0, showing 0%")
             
             # Evolution bar - shows progress to next evolution level, resets to 0% on evolution
             if evolution_level_range > 0:
