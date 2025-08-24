@@ -187,9 +187,12 @@ class DonationBroadcastModal(discord.ui.Modal):
         super().__init__(title=_("📢 Broadcast Your Donation"))
         self.donation_manager_available = donation_manager_available
         
-        # Name field (pre-filled with Discord username)
+        # Add subtitle as description (not a field)
+        self.description = _("Your donation supports DDC and fuels the Donation Engine")
+        
+        # Name field (pre-filled with Discord username) - now marked as required
         self.name_input = discord.ui.InputText(
-            label=_("Your Name"),
+            label=_("Your Name") + " *",
             placeholder=_("How should we display your name?"),
             value=default_name,
             style=discord.InputTextStyle.short,
@@ -198,15 +201,26 @@ class DonationBroadcastModal(discord.ui.Modal):
         )
         self.add_item(self.name_input)
         
-        # Amount field (optional) - with $ prefix and numeric validation
+        # Amount field (optional) - with updated label and placeholder
         self.amount_input = discord.ui.InputText(
             label=_("💰 Donation Amount (optional)"),
             placeholder=_("10.50 (numbers only, $ will be added automatically)"),
             style=discord.InputTextStyle.short,
             required=False,
-            max_length=10  # Reduced for numbers only
+            max_length=10
         )
         self.add_item(self.amount_input)
+        
+        # Public sharing field - using simple X system
+        self.share_input = discord.ui.InputText(
+            label=_("📢 Share donation publicly?"),
+            placeholder=_("Remove X to keep private"),
+            value="X",  # Default to sharing (X = share)
+            style=discord.InputTextStyle.short,
+            required=False,
+            max_length=10
+        )
+        self.add_item(self.share_input)
     
     async def callback(self, interaction: discord.Interaction):
         """Handle modal submission."""
@@ -214,6 +228,10 @@ class DonationBroadcastModal(discord.ui.Modal):
             # Get values from modal
             donor_name = self.name_input.value or interaction.user.name
             raw_amount = self.amount_input.value.strip() if self.amount_input.value else ""
+            
+            # Check sharing preference - simple X system
+            share_preference = self.share_input.value.strip() if self.share_input.value else ""
+            should_share_publicly = "X" in share_preference.upper() or "x" in share_preference
             
             # Validate and format amount with $ prefix
             amount = ""
@@ -336,70 +354,87 @@ class DonationBroadcastModal(discord.ui.Modal):
                 logger.debug(f"Could not create mech animation: {anim_error}")
                 animation_file = None
             
-            # Send to all channels (using existing donatebroadcast logic)
-            from utils.config_cache import get_cached_config
-            config = get_cached_config()
-            channels_config = config.get('channel_permissions', {})
-            
+            # Only send to channels if sharing publicly
             sent_count = 0
             failed_count = 0
             
-            # For animation, we'll send to first channel only (to avoid rate limits)
-            first_channel_with_animation = True
+            if should_share_publicly:
+                # Send to all channels (using existing donatebroadcast logic)
+                from utils.config_cache import get_cached_config
+                config = get_cached_config()
+                channels_config = config.get('channel_permissions', {})
             
-            for channel_id_str, channel_info in channels_config.items():
-                try:
-                    channel_id = int(channel_id_str)
-                    channel = interaction.client.get_channel(channel_id)
-                    
-                    if channel:
-                        from .translation_manager import _
-                        embed = discord.Embed(
-                            title=_("💝 Donation received"),
-                            description=broadcast_text,
-                            color=0x00ff41
-                        )
+                # For animation, we'll send to first channel only (to avoid rate limits)
+                first_channel_with_animation = True
+                
+                for channel_id_str, channel_info in channels_config.items():
+                    try:
+                        channel_id = int(channel_id_str)
+                        channel = interaction.client.get_channel(channel_id)
                         
-                        # Add mech status as simple text (no bold, no icons, no animation)
-                        if evolution_status or speed_status:
-                            status_text = ""
-                            if evolution_status:
-                                # Remove bold formatting and add simple text
-                                clean_evolution = evolution_status.replace("**Evolution: Level", "Evolution: Level").replace("**", "")
-                                status_text += clean_evolution
-                            if speed_status:
-                                # Remove bold formatting and add simple text
-                                clean_speed = speed_status.replace("**Speed:", "Speed:").replace("**", "")
-                                if status_text:
-                                    status_text += "\n" + clean_speed
-                                else:
-                                    status_text = clean_speed
+                        if channel:
+                            from .translation_manager import _
+                            embed = discord.Embed(
+                                title=_("💝 Donation received"),
+                                description=broadcast_text,
+                                color=0x00ff41
+                            )
                             
-                            embed.add_field(name=translate("Mech Status"), value=status_text, inline=False)
-                        
-                        # Send without animation (animation will be in /ss command instead)
-                        embed.set_footer(text="https://ddc.bot")
-                        await channel.send(embed=embed)
-                        logger.info(f"Donation broadcast sent to channel {channel.name}")
-                        
-                        sent_count += 1
-                    else:
+                            # Add mech status as simple text (no bold, no icons, no animation)
+                            if evolution_status or speed_status:
+                                status_text = ""
+                                if evolution_status:
+                                    # Remove bold formatting and add simple text
+                                    clean_evolution = evolution_status.replace("**Evolution: Level", "Evolution: Level").replace("**", "")
+                                    status_text += clean_evolution
+                                if speed_status:
+                                    # Remove bold formatting and add simple text
+                                    clean_speed = speed_status.replace("**Speed:", "Speed:").replace("**", "")
+                                    if status_text:
+                                        status_text += "\n" + clean_speed
+                                    else:
+                                        status_text = clean_speed
+                                
+                                embed.add_field(name=_("Mech Status"), value=status_text, inline=False)
+                            
+                            # Send without animation (animation will be in /ss command instead)
+                            embed.set_footer(text="https://ddc.bot")
+                            await channel.send(embed=embed)
+                            logger.info(f"Donation broadcast sent to channel {channel.name}")
+                            
+                            sent_count += 1
+                        else:
+                            failed_count += 1
+                            logger.warning(f"Could not find channel {channel_id}")
+                            
+                    except Exception as channel_error:
                         failed_count += 1
-                        logger.warning(f"Could not find channel {channel_id}")
-                        
-                except Exception as channel_error:
-                    failed_count += 1
-                    logger.error(f"Error sending to channel {channel_id_str}: {channel_error}")
+                        logger.error(f"Error sending to channel {channel_id_str}: {channel_error}")
             
             # Respond to user (translated)
             from .translation_manager import _
-            response_text = _("✅ **Donation broadcast sent!**") + "\n\n"
-            response_text += _("📢 Sent to **{count}** channels").format(count=sent_count) + "\n"
-            if failed_count > 0:
-                response_text += _("⚠️ Failed to send to {count} channels").format(count=failed_count) + "\n"
-            response_text += "\n" + _("Thank you **{donor_name}** for your generosity! 🙏").format(donor_name=donor_name)
+            if should_share_publicly:
+                response_text = _("✅ **Donation broadcast sent!**") + "\n\n"
+                response_text += _("📢 Sent to **{count}** channels").format(count=sent_count) + "\n"
+                if failed_count > 0:
+                    response_text += _("⚠️ Failed to send to {count} channels").format(count=failed_count) + "\n"
+                response_text += "\n" + _("Thank you **{donor_name}** for your generosity! 🙏").format(donor_name=donor_name)
+            else:
+                response_text = _("✅ **Donation recorded privately!**") + "\n\n"
+                response_text += _("Thank you **{donor_name}** for your generous support! 🙏").format(donor_name=donor_name) + "\n"
+                response_text += _("Your donation has been recorded and helps fuel the Donation Engine.")
             
             await interaction.response.send_message(response_text, ephemeral=True)
+            
+            # Auto-refresh /ss messages since fuel status has changed
+            try:
+                cog = interaction.client.get_cog('DockerControlCog')
+                if cog:
+                    from .translation_manager import translate
+                    await cog._auto_update_ss_messages(translate("Donation recorded - updating fuel status"), force_recreate=False)
+                    logger.info("Auto-refreshed /ss messages after donation modal submission")
+            except Exception as refresh_error:
+                logger.error(f"Error refreshing /ss messages after donation: {refresh_error}")
             
         except Exception as e:
             logger.error(f"Error in donation broadcast modal: {e}")
