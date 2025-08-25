@@ -1907,10 +1907,21 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 'next_name': next_name  # This was missing!
             }
             
-            # Speed info from glvl - get full speed description
+            # Speed info from glvl - get full speed description with translations
             try:
                 from utils.speed_levels import get_combined_mech_status
-                combined_status = get_combined_mech_status(current_fuel, total_donations_received)
+                # Try to get language from config
+                try:
+                    from utils.config_manager import get_config_manager
+                    config_manager = get_config_manager()
+                    config = config_manager.get_config()
+                    language = config.get('language', 'en').lower()
+                    if language not in ['en', 'de', 'fr']:
+                        language = 'en'
+                except:
+                    language = 'en'
+                
+                combined_status = get_combined_mech_status(current_fuel, total_donations_received, language)
                 speed = combined_status['speed']
                 # Add glvl info to the speed object
                 speed['glvl'] = mech_state.glvl
@@ -2312,7 +2323,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                             
                             # Get current mech status to extract Glvl
                             from utils.speed_levels import get_combined_mech_status
-                            mech_status = get_combined_mech_status(current_fuel, total_donations)
+                            # Use default language for internal calculations (glvl doesn't need translation)
+                            mech_status = get_combined_mech_status(current_fuel, total_donations, 'en')
                             current_glvl = mech_status.get('speed', {}).get('level', 0)
                         except Exception as e:
                             logger.debug(f"Could not get current Glvl: {e}")
@@ -3227,7 +3239,18 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             # Get evolution and speed info
             from utils.speed_levels import get_combined_mech_status
             
-            combined_status = get_combined_mech_status(current_fuel, total_donations)
+            # Get language from config for status messages
+            try:
+                from utils.config_manager import get_config_manager
+                config_manager = get_config_manager()
+                config = config_manager.get_config()
+                language = config.get('language', 'en').lower()
+                if language not in ['en', 'de', 'fr']:
+                    language = 'en'
+            except:
+                language = 'en'
+                
+            combined_status = get_combined_mech_status(current_fuel, total_donations, language)
             evolution = combined_status['evolution']
             speed = combined_status['speed']
             

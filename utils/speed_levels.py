@@ -5,6 +5,23 @@ Each $10 = 1 level, up to level 101 at $1010+
 Now combined with evolution system for visual appearance
 """
 
+import json
+import os
+from pathlib import Path
+
+# Load translations
+def load_speed_translations():
+    """Load speed translations from JSON file."""
+    try:
+        translations_file = Path(__file__).parent / "speed_translations.json"
+        with open(translations_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Warning: Could not load speed translations: {e}")
+        return None
+
+SPEED_TRANSLATIONS = load_speed_translations()
+
 SPEED_DESCRIPTIONS = {
     0: ("OFFLINE", "#888888"),
     1: ("Motionless", "#4a4a4a"),
@@ -180,7 +197,31 @@ def get_speed_emoji(level: int) -> str:
     """
     return ""  # No emoji needed - mech animation shows speed
 
-def get_combined_mech_status(fuel_amount: float, total_donations_received: float = None) -> dict:
+def get_translated_speed_description(level: int, language: str = "en") -> str:
+    """
+    Get translated speed description for a given level.
+    
+    Args:
+        level: Speed level (0-101)
+        language: Language code ('en', 'de', 'fr')
+        
+    Returns:
+        Translated speed description
+    """
+    if SPEED_TRANSLATIONS and "speed_descriptions" in SPEED_TRANSLATIONS:
+        try:
+            level_str = str(level)
+            if level_str in SPEED_TRANSLATIONS["speed_descriptions"]:
+                translations = SPEED_TRANSLATIONS["speed_descriptions"][level_str]
+                if language in translations:
+                    return translations[language]
+        except Exception as e:
+            print(f"Error getting translation for level {level}, language {language}: {e}")
+    
+    # Fallback to English from SPEED_DESCRIPTIONS
+    return SPEED_DESCRIPTIONS.get(level, SPEED_DESCRIPTIONS[0])[0]
+
+def get_combined_mech_status(fuel_amount: float, total_donations_received: float = None, language: str = None) -> dict:
     """
     Get combined evolution and speed status for the mech.
     
@@ -188,6 +229,7 @@ def get_combined_mech_status(fuel_amount: float, total_donations_received: float
         fuel_amount: Current fuel amount (for speed)
         total_donations_received: Total donations ever received (for evolution).
                                 If None, uses fuel_amount for backwards compatibility.
+        language: Language code ('en', 'de', 'fr'). If None, tries to get from config.
         
     Returns:
         Dictionary with evolution info, speed info, and combined status
@@ -212,6 +254,18 @@ def get_combined_mech_status(fuel_amount: float, total_donations_received: float
             'next_description': 'Basic repairs complete',
             'amount_needed': 20
         }
+    
+    # Get language from config if not provided
+    if language is None:
+        try:
+            from utils.config_manager import get_config_manager
+            config_manager = get_config_manager()
+            config = config_manager.get_config()
+            language = config.get('language', 'en').lower()
+            if language not in ['en', 'de', 'fr']:
+                language = 'en'
+        except:
+            language = 'en'
     
     # Get speed info based on FUEL amount
     speed_description, speed_color = get_speed_info(fuel_amount)
@@ -256,14 +310,17 @@ def get_combined_mech_status(fuel_amount: float, total_donations_received: float
         else:
             speed_level = 100
     
+    # Get translated speed description
+    translated_speed_description = get_translated_speed_description(speed_level, language)
+    
     return {
         'evolution': evolution_info,
         'speed': {
             'level': speed_level,
-            'description': speed_description,
+            'description': translated_speed_description,
             'color': speed_color
         },
-        'combined_status': f"{evolution_info['name']} - {speed_description}",
+        'combined_status': f"{evolution_info['name']} - {translated_speed_description}",
         'primary_color': evolution_info['color'],  # Use evolution color as primary
         'fuel_amount': fuel_amount,
         'total_donations_received': total_donations_received
