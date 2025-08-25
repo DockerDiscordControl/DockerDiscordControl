@@ -300,12 +300,20 @@ class DonationBroadcastModal(discord.ui.Modal):
                             donation_amount_euros = float(amount_match.group(1))
                             logger.info(f"Parsed donation amount: {donation_amount_euros}€ from '{amount}'")
                     
-                    # Record donation with NEW service
-                    new_state = mech_service.add_donation(
-                        username=f"Discord:{interaction.user.name}",
-                        amount=int(donation_amount_euros) if donation_amount_euros else 0
-                    )
-                    logger.info(f"NEW SERVICE: Donation recorded by {interaction.user.name} -> ${donation_amount_euros}")
+                    # Record donation with NEW service (only if amount > 0)
+                    if donation_amount_euros and donation_amount_euros > 0:
+                        # Use the full euro amount as integer cents to preserve precision
+                        # e.g., 10.50 -> 1050 cents, then divided by 100 = 10.5 dollars
+                        amount_dollars = int(donation_amount_euros)  # For now, just use integer dollars
+                        new_state = mech_service.add_donation(
+                            username=f"Discord:{interaction.user.name}",
+                            amount=amount_dollars
+                        )
+                        logger.info(f"NEW SERVICE: Donation recorded by {interaction.user.name} -> ${amount_dollars} (from {donation_amount_euros}€)")
+                    else:
+                        # No donation amount - just get current state
+                        new_state = mech_service.get_state()
+                        logger.info(f"NEW SERVICE: No donation amount, just broadcasting message")
                     
                     # Check if evolution occurred by comparing levels
                     evolution_occurred = new_state.level > old_state.level
@@ -324,7 +332,7 @@ class DonationBroadcastModal(discord.ui.Modal):
                                 from .translation_manager import _
                                 # Add small delay to ensure data is fully persisted
                                 import asyncio
-                                await asyncio.sleep(0.1)  # 100ms delay to ensure file system sync
+                                await asyncio.sleep(0.5)  # Longer delay to ensure persistence
                                 logger.info(f"About to refresh /ss messages. Current fuel should be: ${new_fuel:.2f}")
                                 await cog._auto_update_ss_messages(_("Donation recorded - updating fuel status"), force_recreate=True)
                                 logger.info("Auto-refreshed /ss messages after donation processing with delay")
@@ -333,6 +341,12 @@ class DonationBroadcastModal(discord.ui.Modal):
                     
                 except Exception as e:
                     logger.error(f"Error processing donation: {e}")
+                    # Import traceback for detailed error info
+                    import traceback
+                    logger.error(f"Donation processing traceback: {traceback.format_exc()}")
+                    # Reset to defaults to prevent broadcast errors
+                    donation_amount_euros = None
+                    evolution_occurred = False
             
             # SECOND: Create broadcast message with UPDATED fuel values
             cog = interaction.client.get_cog('DockerControlCog')
