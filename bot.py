@@ -37,7 +37,7 @@ try:
     from utils.dynamic_cooldown_manager import apply_dynamic_cooldowns_to_bot
     dynamic_cooldowns_available = True
 except ImportError:
-    logger.warning("Dynamic cooldowns not available - using legacy cooldowns")
+    print("Dynamic cooldowns not available - using legacy cooldowns")
     dynamic_cooldowns_available = False
     apply_dynamic_cooldowns_to_bot = lambda bot: None
 
@@ -45,14 +45,14 @@ try:
     from utils.update_notifier import get_update_notifier
     update_notifier_available = True
 except ImportError:
-    logger.warning("Update notifier not available - skipping update notifications")
+    print("Update notifier not available - skipping update notifications")
     update_notifier_available = False
 
 try:
     from utils.donation_manager import get_donation_manager
     donation_manager_available = True
 except ImportError:
-    logger.warning("Donation manager not available - skipping donation messages")
+    print("Donation manager not available - skipping donation messages")
     donation_manager_available = False
 # Import the internal translation system
 from cogs.translation_manager import _, get_translations

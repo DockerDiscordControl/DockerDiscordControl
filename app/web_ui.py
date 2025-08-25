@@ -122,16 +122,54 @@ def create_app(test_config=None):
     
     # Add custom filter to reduce noise from frequent fuel consumption requests
     class ConsumeFuelLogFilter(logging.Filter):
+        def __init__(self):
+            super().__init__()
+            # Check if we're in DEBUG mode
+            self.debug_mode = app.config.get('LOG_LEVEL', 'INFO').upper() == 'DEBUG'
+            
         def filter(self, record):
-            # Filter out access logs for /api/donation/consume-fuel endpoint
-            if hasattr(record, 'getMessage'):
-                message = record.getMessage()
-                return not ('/api/donation/consume-fuel' in message and record.levelno <= logging.INFO)
+            # In DEBUG mode, allow all logs (don't filter anything)
+            if self.debug_mode:
+                return True
+                
+            # In INFO/WARNING mode, filter out consume-fuel noise
+            record_str = str(record)
+            message = getattr(record, 'message', '')
+            
+            # Check all possible attributes for consume-fuel pattern
+            checks = [
+                hasattr(record, 'getMessage') and 'consume-fuel' in record.getMessage(),
+                'consume-fuel' in str(message),
+                'consume-fuel' in record_str,
+                hasattr(record, 'args') and 'consume-fuel' in str(record.args),
+                hasattr(record, 'msg') and 'consume-fuel' in str(record.msg),
+            ]
+            
+            # If any check matches and it's INFO level or below, filter it out
+            if any(checks) and record.levelno <= logging.INFO:
+                return False
             return True
     
-    # Apply filter to werkzeug logger (handles HTTP access logs)
-    werkzeug_logger = logging.getLogger('werkzeug')
-    werkzeug_logger.addFilter(ConsumeFuelLogFilter())
+    # Apply filter to ALL possible loggers
+    loggers_to_filter = [
+        '',  # Root logger
+        'werkzeug',
+        'gunicorn.access', 
+        'gunicorn.error',
+        'flask.app',
+        'app.blueprints.main_routes',
+        '__main__'
+    ]
+    
+    for logger_name in loggers_to_filter:
+        logger = logging.getLogger(logger_name)
+        logger.addFilter(ConsumeFuelLogFilter())
+        
+    debug_mode = app.config.get('LOG_LEVEL', 'INFO').upper() == 'DEBUG'
+    if debug_mode:
+        app.logger.info("ConsumeFuelLogFilter installed but DISABLED (DEBUG mode - showing all logs)")
+    else:
+        app.logger.info("ConsumeFuelLogFilter installed and ACTIVE (INFO mode - filtering consume-fuel noise)")
 
     # Apply ProxyFix
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)

@@ -66,6 +66,10 @@ def init_limiter(app):
         if request.path.startswith('/static/'):
             return None
             
+        # Exclude status endpoints from rate limiting (they need frequent access)
+        if request.path.startswith('/api/donation/status') or request.path.startswith('/health'):
+            return None
+            
         # Only limit authentication requests
         if 'Authorization' in request.headers:
             client_ip = request.remote_addr

@@ -39,7 +39,7 @@ from utils.scheduler import (
 )
 from utils.action_logger import log_user_action
 from utils.spam_protection_manager import get_spam_protection_manager
-from utils.donation_manager import get_donation_manager
+# Removed: from utils.donation_manager import get_donation_manager  # No longer used - replaced by MechService
 
 # Define COMMON_TIMEZONES here if it's only used by routes in this blueprint
 # Or import it if it's defined centrally and used by multiple blueprints
@@ -1289,36 +1289,49 @@ def save_spam_protection():
 
 @main_bp.route('/api/donation/status', methods=['GET'])
 def get_donation_status():
-    """Get current donation status with speed information (no auth required)."""
+    """Get current donation status with speed information - USING NEW MECH SERVICE."""
     try:
-        # Try to use the service, fall back to direct import if needed
-        try:
-            from services.donation_service import get_donation_service
-            donation_service = get_donation_service()
-            status = donation_service.get_status()
-        except ImportError:
-            # Fallback to direct import
-            from utils.donation_manager import get_donation_manager
-            from utils.speed_levels import get_speed_info, get_speed_emoji
-            donation_manager = get_donation_manager()
-            status = donation_manager.get_status()
-            
-            # Add speed information manually
-            total_amount = status.get('total_amount', 0)
-            description, color = get_speed_info(total_amount)
-            level = min(int(total_amount / 10), 101) if total_amount > 0 else 0
-            emoji = get_speed_emoji(level)
-            
-            status['speed'] = {
+        # Use new MechService
+        from services.mech_service import get_mech_service
+        from utils.speed_levels import get_speed_info, get_speed_emoji
+        
+        mech_service = get_mech_service()
+        mech_state = mech_service.get_state()
+        
+        # Convert MechState to status format for compatibility
+        total_amount = mech_state.total_donated
+        description, color = get_speed_info(total_amount)
+        level = min(int(total_amount / 10), 101) if total_amount > 0 else 0
+        emoji = get_speed_emoji(level)
+        
+        # Create status object compatible with Web UI
+        status = {
+            'total_amount': total_amount,
+            'current_fuel': mech_state.fuel,
+            'current_fuel_raw': mech_service.get_fuel_with_decimals(),  # Raw fuel with decimals for UI
+            'mech_level': mech_state.level,
+            'mech_level_name': mech_state.level_name,
+            'next_level_threshold': mech_state.next_level_threshold,
+            'glvl': mech_state.glvl,
+            'glvl_max': mech_state.glvl_max,
+            'bars': {
+                'mech_progress_current': mech_state.bars.mech_progress_current,
+                'mech_progress_max': mech_state.bars.mech_progress_max,
+                'fuel_current': mech_state.bars.fuel_current,
+                'fuel_max_for_level': mech_state.bars.fuel_max_for_level,
+            },
+            'speed': {
                 'level': level,
                 'description': description,
                 'emoji': emoji,
                 'color': color,
                 'formatted_status': f"{emoji} {description}"
             }
+        }
+        
         return jsonify(status)
     except Exception as e:
-        current_app.logger.error(f"Error getting donation status: {e}")
+        current_app.logger.error(f"Error getting donation status with new MechService: {e}")
         return jsonify({'error': 'Failed to load donation status'}), 500
 
 @main_bp.route('/api/donation/click', methods=['POST'])
@@ -1377,18 +1390,9 @@ def record_donation_click():
         current_app.logger.error(f"Error recording donation click: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@main_bp.route('/api/donation/history', methods=['GET'])
-@auth.login_required
-def get_donation_history():
-    """Get donation history (requires auth)."""
-    try:
-        limit = request.args.get('limit', 10, type=int)
-        donation_manager = get_donation_manager()
-        history = donation_manager.get_history(limit)
-        return jsonify({'history': history})
-    except Exception as e:
-        current_app.logger.error(f"Error getting donation history: {e}")
-        return jsonify({'error': 'Failed to load donation history'}), 500
+# Donation history functionality removed - not used by Web UI
+# New MechService stores donations in JSON format but doesn't provide history API
+# If needed in future, can be implemented by reading mech_donations.json directly
 
 @main_bp.route('/api/donation/add-fuel', methods=['POST'])
 @auth.login_required
@@ -1616,11 +1620,11 @@ def mech_animation():
             if project_root not in sys.path:
                 sys.path.insert(0, project_root)
             
-            from services.donation_service import get_donation_service
-            donation_service = get_donation_service()
-            data = donation_service.get_status()
-            total_donations = data.get('total_amount', 0)
-            current_app.logger.debug(f"Got fuel from donation service: {total_donations}")
+            from services.mech_service import get_mech_service
+            mech_service = get_mech_service()
+            mech_state = mech_service.get_state()
+            total_donations = mech_state.total_donated
+            current_app.logger.debug(f"Got total donations from mech service: {total_donations}")
         except Exception as e:
             current_app.logger.error(f"Error getting donation status: {e}")
             total_donations = 20.0  # Fallback default
@@ -1636,12 +1640,21 @@ def mech_animation():
             if project_root not in sys.path:
                 sys.path.insert(0, project_root)
                 
-            from services.mech_animation_service import get_mech_animation_service
+            # Use sprite animator directly for Web UI (avoids event loop conflicts)
+            from utils.sprite_mech_animator import get_sprite_animator
+            sprite_animator = get_sprite_animator()
             
-            mech_service = get_mech_animation_service()
+            # Create animation bytes synchronously
+            animation_bytes = sprite_animator.create_donation_animation_sync(
+                "Current", f'{total_donations}$', total_donations
+            )
             
-            # Use service's create_web_response method for proper Flask integration
-            return mech_service.create_web_response('Current', f'{total_donations}$', total_donations)
+            # Return as Flask Response
+            return Response(
+                animation_bytes,
+                mimetype='image/webp',
+                headers={'Cache-Control': 'max-age=300'}
+            )
             
         except Exception as e:
             current_app.logger.error(f"Error creating mech animation: {e}", exc_info=True)
@@ -1687,10 +1700,21 @@ def test_mech_animation():
         
         current_app.logger.info(f"Generating mech animation for {donor_name}, donations: {total_donations}")
         
-        # Use service layer for proper async handling
-        from services.mech_animation_service import get_mech_animation_service
-        mech_service = get_mech_animation_service()
-        return mech_service.create_web_response(donor_name, amount, total_donations)
+        # Use sprite animator directly for Web UI (avoids event loop conflicts)
+        from utils.sprite_mech_animator import get_sprite_animator
+        sprite_animator = get_sprite_animator()
+        
+        # Create animation bytes synchronously
+        animation_bytes = sprite_animator.create_donation_animation_sync(
+            donor_name, amount, total_donations
+        )
+        
+        # Return as Flask Response
+        return Response(
+            animation_bytes,
+            mimetype='image/webp',
+            headers={'Cache-Control': 'max-age=60'}
+        )
         
     except ImportError:
         # Fallback - create simple error response

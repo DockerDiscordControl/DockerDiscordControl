@@ -121,6 +121,136 @@ class SpriteMechAnimator:
         
         return spritesheet.crop((left, top, right, bottom))
     
+    def create_donation_animation_sync(self, donor_name: str, amount: str, total_donations: float) -> bytes:
+        """Create animated WebP synchronously for Web UI use"""
+        try:
+            # Same logic as async version but returns bytes directly
+            from utils.mech_evolutions import get_evolution_level
+            evolution_level = get_evolution_level(total_donations)
+            
+            if evolution_level < 1:
+                evolution_level = 1
+            elif evolution_level > 11:
+                evolution_level = 11
+                
+            speed_level = self.calculate_speed_level(total_donations)
+            if speed_level < 0:
+                speed_level = 0
+            elif speed_level > 101:
+                speed_level = 101
+                
+            if total_donations <= 0:
+                return self.create_dead_mech_animation_sync(donor_name)
+            
+            # Same caching logic
+            cache_key = f"fuel_{total_donations:.2f}_evo_{evolution_level}_speed_{speed_level}"
+            
+            if cache_key in self.animation_cache:
+                cached_data = self.animation_cache[cache_key]
+                if cached_data and len(cached_data) > 0:
+                    return cached_data
+                else:
+                    del self.animation_cache[cache_key]
+            
+            # Create frames (same logic as async version)
+            frames = []
+            
+            for frame in range(self.frames):
+                img = Image.new('RGBA', (self.width, self.height), (47, 49, 54, 255))
+                
+                sprite = self.get_sprite_frame(frame, evolution_level)
+                if sprite:
+                    # Same sprite processing logic
+                    base_scale = 0.24
+                    base_width = int(self.sprite_width * base_scale)
+                    base_height = int(self.sprite_height * base_scale)
+                    
+                    speed_scale_factor = 1.0 + (speed_level * 0.03)
+                    new_width = int(base_width * speed_scale_factor)
+                    new_height = int(base_height * speed_scale_factor)
+                    
+                    sprite = sprite.resize((new_width, new_height), Image.NEAREST)
+                    
+                    x = (self.width - new_width) // 2
+                    y = (self.height - new_height) // 2
+                    
+                    # Same glow effects
+                    if speed_level >= 50:
+                        glow_sprite = sprite.copy()
+                        glow_sprite = glow_sprite.resize((new_width + 10, new_height + 10), Image.NEAREST)
+                        glow_x = x - 5
+                        glow_y = y - 5
+                        
+                        for offset in [(0,0), (1,0), (0,1), (1,1), (-1,0), (0,-1), (-1,-1), (1,-1), (-1,1)]:
+                            glow_pos = (glow_x + offset[0], glow_y + offset[1])
+                            if speed_level == 101:
+                                import random
+                                rainbow_colors = [
+                                    (255, 0, 0, 100), (255, 127, 0, 100), (255, 255, 0, 100),
+                                    (0, 255, 0, 100), (0, 0, 255, 100), (75, 0, 130, 100),
+                                    (148, 0, 211, 100), (255, 0, 255, 100),
+                                ]
+                                color = rainbow_colors[frame % len(rainbow_colors)]
+                                img.paste(color, glow_pos, glow_sprite)
+                            elif speed_level >= 100:
+                                img.paste((255, 255, 0, 80), glow_pos, glow_sprite)
+                            elif speed_level >= 90:
+                                img.paste((255, 215, 0, 60), glow_pos, glow_sprite)
+                            elif speed_level >= 70:
+                                img.paste((128, 0, 255, 40), glow_pos, glow_sprite)
+                            else:
+                                img.paste((0, 255, 255, 30), glow_pos, glow_sprite)
+                    
+                    img.paste(sprite, (x, y), sprite)
+                    self._add_speed_effects(img, speed_level, frame)
+                
+                frames.append(img)
+            
+            # Create WebP animation
+            buffer = BytesIO()
+            
+            if speed_level <= 0:
+                duration = 800
+            elif speed_level == 101:
+                duration = 25
+            else:
+                duration = max(50, 600 - (speed_level * 5.5))
+            
+            frames[0].save(
+                buffer, 
+                format='WebP',
+                save_all=True,
+                append_images=frames[1:],
+                duration=duration,
+                loop=0,
+                quality=85,
+                method=6,
+                lossless=False
+            )
+            
+            buffer.seek(0)
+            file_size = buffer.getbuffer().nbytes
+            
+            if file_size > self.max_file_size:
+                return self._create_smaller_animation_sync(frames, speed_level)
+            
+            animation_bytes = buffer.getvalue()
+            
+            # Cache management
+            if len(self.animation_cache) >= self.cache_max_size:
+                if self.animation_cache:
+                    oldest_key = next(iter(self.animation_cache))
+                    del self.animation_cache[oldest_key]
+            
+            self.animation_cache[cache_key] = animation_bytes
+            logger.info(f"Cached animation: {cache_key} ({len(animation_bytes)} bytes)")
+            
+            return animation_bytes
+            
+        except Exception as e:
+            logger.error(f"Error creating sync sprite animation: {e}")
+            return self.create_static_fallback_sync(donor_name, amount, speed_level)
+
     async def create_donation_animation(self, donor_name: str, amount: str, total_donations: float) -> discord.File:
         """Create animated WebP using real mech sprites with global caching"""
         try:
@@ -544,6 +674,107 @@ class SpriteMechAnimator:
         
         buffer.seek(0)
         return discord.File(buffer, filename="sprite_mech_small.webp")
+    
+    def _create_smaller_animation_sync(self, frames, speed_level) -> bytes:
+        """Create smaller animation if original is too large (sync version)"""
+        buffer = BytesIO()
+        duration = max(100, 250 - (speed_level * 30))
+        
+        frames[0].save(
+            buffer, 
+            format='WebP',
+            save_all=True,
+            append_images=frames[1:],
+            duration=duration,
+            loop=0,
+            quality=60,
+            method=4,
+            lossless=False
+        )
+        
+        buffer.seek(0)
+        return buffer.getvalue()
+    
+    def create_dead_mech_animation_sync(self, donor_name: str) -> bytes:
+        """Create static dead mech (no fuel) - sync version"""
+        try:
+            sprite = self.get_sprite_frame(0, evolution_level=1)
+            if not sprite:
+                return self.create_static_fallback_sync(donor_name, "0€", 0)
+            
+            base_scale = 0.24
+            base_width = int(self.sprite_width * base_scale)
+            base_height = int(self.sprite_height * base_scale)
+            sprite = sprite.resize((base_width, base_height), Image.NEAREST)
+            
+            img = Image.new('RGBA', (self.width, self.height), (20, 20, 25, 255))
+            
+            # Darken the sprite
+            dead_sprite = Image.new('RGBA', sprite.size)
+            sprite_data = sprite.load()
+            dead_sprite_data = dead_sprite.load()
+            
+            for y in range(sprite.size[1]):
+                for x in range(sprite.size[0]):
+                    r, g, b, a = sprite_data[x, y]
+                    gray = int((r + g + b) / 3 * 0.3)
+                    
+                    if (r + g + b > 400 and b > 150):
+                        dead_sprite_data[x, y] = (30, 30, 35, a)
+                    else:
+                        dead_sprite_data[x, y] = (gray, gray, gray, a)
+            
+            x = (self.width - base_width) // 2
+            y = (self.height - base_height) // 2
+            img.paste(dead_sprite, (x, y), dead_sprite)
+            
+            # Add "NO FUEL" text
+            from PIL import ImageDraw
+            draw = ImageDraw.Draw(img)
+            draw.text((10, 10), "NO FUEL", fill=(80, 80, 80, 255))
+            draw.text((10, self.height - 25), "$0", fill=(60, 60, 60, 255))
+            
+            buffer = BytesIO()
+            img.save(buffer, format='WebP', quality=90)
+            buffer.seek(0)
+            
+            logger.info("Created dead mech animation (no fuel)")
+            return buffer.getvalue()
+            
+        except Exception as e:
+            logger.error(f"Error creating dead mech animation: {e}")
+            return self.create_static_fallback_sync(donor_name, "0€", 0)
+    
+    def create_static_fallback_sync(self, donor_name: str, amount: str, speed_level: int) -> bytes:
+        """Create static image fallback (sync version)"""
+        try:
+            img = Image.new('RGBA', (self.width, self.height), (47, 49, 54, 255))
+            
+            sprite = self.get_sprite_frame(0, evolution_level=0)
+            if sprite:
+                base_scale = 0.24
+                base_width = int(self.sprite_width * base_scale)
+                base_height = int(self.sprite_height * base_scale)
+                sprite = sprite.resize((base_width, base_height), Image.NEAREST)
+                
+                x = (self.width - base_width) // 2
+                y = (self.height - base_height) // 2
+                img.paste(sprite, (x, y), sprite)
+            
+            buffer = BytesIO()
+            img.save(buffer, format='WebP', quality=90)
+            buffer.seek(0)
+            
+            return buffer.getvalue()
+            
+        except Exception as e:
+            logger.error(f"Error creating static fallback: {e}")
+            # Ultra fallback
+            buffer = BytesIO()
+            fallback_img = Image.new('RGBA', (100, 50), (47, 49, 54, 255))
+            fallback_img.save(buffer, format='WebP')
+            buffer.seek(0)
+            return buffer.getvalue()
     
     def create_static_fallback(self, donor_name: str, amount: str, speed_level: int):
         """Create static image fallback"""

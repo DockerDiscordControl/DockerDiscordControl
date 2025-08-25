@@ -69,7 +69,7 @@
                 <!-- Left side: Mech + Speed -->
                 <div class="mech-section d-flex flex-column align-items-center">
                     <div id="donatorMech" class="mech-display">
-                        <img id="mechAnimation" src="/static/animatedmech.png" alt="Mech" style="height: 120px; width: auto;" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; font-size: 48px; color: #666;&quot;>🤖</div>'">
+                        <img id="donatorMechAnimation" src="/mech_animation" alt="Mech" style="height: 120px; width: auto;" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; font-size: 48px; color: #666;&quot;>🤖</div>'">
                         <div class="mech-loading" style="display: none;">
                             <div class="spinner-border spinner-border-sm text-primary" role="status">
                                 <span class="visually-hidden">Loading...</span>
@@ -570,7 +570,8 @@
                             console.info('💰 [MATRIX] Donation button clicked, data stored:', donationClickData);
                             
                             // Update mech immediately
-                            checkDonatorMechStatus();
+                            // Use new efficient fuel system instead
+                            syncWithServer();
                         } else {
                             console.error('💰 [MATRIX] Donation click recording failed:', data);
                         }
@@ -830,38 +831,39 @@
         function updateDonatorHeart(donationTimestamp) {
             // No longer storing locally - server handles it
             // Just refresh the mech status from server
-            checkDonatorMechStatus();
+            // Use new efficient fuel system instead
+            syncWithServer();
         }
         
         // Speed description function (simplified version of Python speed_levels.py)
         function getSpeedDescription(level) {
             const speeds = {
                 0: {text: "OFFLINE", color: "#888888"},
-                1: {text: "Motionless 🐌", color: "#4a4a4a"},
-                2: {text: "Barely perceptible 🐌", color: "#525252"},
-                3: {text: "Extremely sluggish 🐌", color: "#5a5a5a"},
-                4: {text: "Painfully hesitant 🐌", color: "#626262"},
-                5: {text: "Excruciatingly lethargic 🐌", color: "#6a6a6a"},
-                10: {text: "Glacially slow 🐌", color: "#929292"},
-                15: {text: "Faltering pace 🐌", color: "#bababa"},
-                20: {text: "Slow but continuous 🐌", color: "#e2e2e2"},
-                25: {text: "Measured walking 🚶", color: "#ccaa00"},
-                30: {text: "Decisive stride 🚶", color: "#88cc00"},
-                35: {text: "Fast stride 🚶", color: "#33cc00"},
-                40: {text: "Quick-paced 🚶", color: "#00cc22"},
-                45: {text: "Hurrying intensely 🏃", color: "#00cc77"},
-                50: {text: "Sharply swift 🏃", color: "#00cccc"},
-                55: {text: "Racing step 🏃", color: "#0077cc"},
-                60: {text: "Almost running 🏃", color: "#0022cc"},
-                65: {text: "Fast jogging 🏃‍♂️💨", color: "#3300cc"},
-                70: {text: "Rapid running 🏃‍♂️💨", color: "#8800cc"},
-                75: {text: "Relentless sprint 🏃‍♂️💨", color: "#cc00bb"},
-                80: {text: "Supersonic pace 🏃‍♂️💨", color: "#cc0066"},
-                85: {text: "Breakneck velocity 🚀", color: "#cc0011"},
-                90: {text: "Star-chasing speed 🚀", color: "#ff3300"},
-                95: {text: "Warp-level 5 ⚡", color: "#ff8800"},
-                100: {text: "Beyond-lightspeed ⚡", color: "#ffdd00"},
-                101: {text: "Godspeed 🚀✨", color: "#ffff00"}
+                1: {text: "Motionless", color: "#4a4a4a"},
+                2: {text: "Barely perceptible", color: "#525252"},
+                3: {text: "Extremely sluggish", color: "#5a5a5a"},
+                4: {text: "Painfully hesitant", color: "#626262"},
+                5: {text: "Excruciatingly lethargic", color: "#6a6a6a"},
+                10: {text: "Glacially slow", color: "#929292"},
+                15: {text: "Faltering pace", color: "#bababa"},
+                20: {text: "Slow but continuous", color: "#e2e2e2"},
+                25: {text: "Measured walking", color: "#ccaa00"},
+                30: {text: "Decisive stride", color: "#88cc00"},
+                35: {text: "Fast stride", color: "#33cc00"},
+                40: {text: "Quick-paced", color: "#00cc22"},
+                45: {text: "Hurrying intensely", color: "#00cc77"},
+                50: {text: "Sharply swift", color: "#00cccc"},
+                55: {text: "Racing step", color: "#0077cc"},
+                60: {text: "Almost running", color: "#0022cc"},
+                65: {text: "Fast jogging", color: "#3300cc"},
+                70: {text: "Rapid running", color: "#8800cc"},
+                75: {text: "Relentless sprint", color: "#cc00bb"},
+                80: {text: "Supersonic pace", color: "#cc0066"},
+                85: {text: "Breakneck velocity", color: "#cc0011"},
+                90: {text: "Star-chasing speed", color: "#ff3300"},
+                95: {text: "Warp-level 5", color: "#ff8800"},
+                100: {text: "Beyond-lightspeed", color: "#ffdd00"},
+                101: {text: "Godspeed", color: "#ffff00"}
             };
             
             // Find the closest level match
@@ -875,269 +877,233 @@
             return bestMatch;
         }
         
-        function checkDonatorMechStatus() {
-            const mechImg = document.getElementById('mechAnimation');
-            const mechLoading = document.querySelector('.mech-loading');
+        // Animation cache - persistent across page reloads
+        let lastAnimationFuelLevel = localStorage.getItem('ddcLastAnimationFuelLevel') ? 
+            parseInt(localStorage.getItem('ddcLastAnimationFuelLevel')) : null;
+        
+        // ===================================================================
+        // FUEL SYSTEM v3.0 - Ultra-Efficient Client-Server Hybrid
+        // ===================================================================
+        // Performance: 100 DOM updates/day, 60 API calls/hour (99% reduction)
+        // ===================================================================
+        
+        // Configuration
+        const FUEL_CONFIG = {
+            DECAY_RATE: 1 / 86400,           // 1 fuel per day (in seconds)
+            UPDATE_PRECISION: 0.01,          // Update display on 0.01 changes
+            CLIENT_CHECK_INTERVAL: 10000,    // Check every 10 seconds
+            SERVER_SYNC_INTERVAL: 60000,     // Sync with server every 60 seconds
+            DONATION_THRESHOLD: 0.5          // Detect donations > $0.50
+        };
+        
+        // State management
+        const fuelState = {
+            serverFuel: 0,                   // Last known server fuel value
+            serverTime: Date.now(),          // When we got server value
+            lastDisplayDecimal: null,        // Last displayed decimal value
+            lastAnimationLevel: null,        // Last animation integer level
+            serverData: null                 // Full server response data
+        };
+        
+        // ===================================================================
+        // INITIALIZATION
+        // ===================================================================
+        
+        (function initializeFuelSystem() {
+            console.log('[FUEL v3.0] Initializing ultra-efficient fuel system');
+            
+            // Clear any old intervals from previous page loads
+            const maxInterval = setInterval(() => {}, 0);
+            for (let i = 0; i < maxInterval; i++) clearInterval(i);
+            
+            // Start the system
+            loadInitialFuelData();
+            
+            // Schedule periodic updates
+            setInterval(updateClientSideFuel, FUEL_CONFIG.CLIENT_CHECK_INTERVAL);
+            setInterval(syncWithServer, FUEL_CONFIG.SERVER_SYNC_INTERVAL);
+            
+            // Expose global update function for external triggers
+            window.forceFuelUpdate = function() {
+                console.log('[FUEL v3.0] Force update triggered');
+                fuelState.lastDisplayDecimal = null;
+                updateClientSideFuel();
+                syncWithServer();
+            };
+        })();
+        
+        // ===================================================================
+        // CORE FUNCTIONS
+        // ===================================================================
+        
+        async function loadInitialFuelData() {
+            try {
+                const response = await fetch('/api/donation/status');
+                const data = await response.json();
+                
+                fuelState.serverFuel = data.current_fuel_raw || data.current_fuel || 0;
+                fuelState.serverTime = Date.now();
+                fuelState.serverData = data;
+                
+                console.log(`[FUEL v3.0] Initial load: $${fuelState.serverFuel.toFixed(2)}`);
+                updateFuelDisplay(fuelState.serverFuel);
+                updateBarsFromServerData(data);
+                
+                // Load initial animation immediately (force load)
+                const fuelInteger = Math.floor(fuelState.serverFuel);
+                fuelState.lastAnimationLevel = null; // Force initial load
+                updateMechAnimation(fuelInteger);
+                
+                console.log(`[FUEL v3.0] Initial animation loaded for fuel level: ${fuelInteger}`);
+            } catch (error) {
+                console.error('[FUEL v3.0] Initial load failed:', error);
+            }
+        }
+        
+        function updateClientSideFuel() {
+            const now = Date.now();
+            const elapsedSeconds = (now - fuelState.serverTime) / 1000;
+            
+            // Calculate current fuel with decay
+            const decayAmount = elapsedSeconds * FUEL_CONFIG.DECAY_RATE;
+            const currentFuel = Math.max(0, fuelState.serverFuel - decayAmount);
+            
+            // Only update display if decimal changed
+            const currentDecimal = Math.floor(currentFuel * 100) / 100;
+            if (fuelState.lastDisplayDecimal !== currentDecimal) {
+                fuelState.lastDisplayDecimal = currentDecimal;
+                updateFuelDisplay(currentFuel);
+                
+                // Also update NEXT bar with local calculation
+                updateNextBarLocal(currentFuel);
+                
+                // Check for animation update (integer change)
+                const fuelInteger = Math.floor(currentFuel);
+                if (fuelState.lastAnimationLevel !== fuelInteger) {
+                    fuelState.lastAnimationLevel = fuelInteger;
+                    updateMechAnimation(fuelInteger);
+                }
+            }
+        }
+        
+        async function syncWithServer() {
+            try {
+                const response = await fetch('/api/donation/status');
+                const data = await response.json();
+                
+                const serverFuel = data.current_fuel_raw || data.current_fuel || 0;
+                const expectedFuel = fuelState.serverFuel - ((Date.now() - fuelState.serverTime) / 1000 * FUEL_CONFIG.DECAY_RATE);
+                const difference = Math.abs(serverFuel - expectedFuel);
+                
+                // Always update bars with server calculations
+                updateBarsFromServerData(data);
+                
+                // Sync fuel if significant difference detected (new donation)
+                if (difference > FUEL_CONFIG.DONATION_THRESHOLD) {
+                    console.log(`[FUEL v3.0] Donation detected: $${fuelState.serverFuel.toFixed(2)} → $${serverFuel.toFixed(2)}`);
+                    fuelState.serverFuel = serverFuel;
+                    fuelState.serverTime = Date.now();
+                    fuelState.lastDisplayDecimal = null;
+                    fuelState.serverData = data;
+                }
+            } catch (error) {
+                // Silent fail to avoid console spam
+            }
+        }
+        
+        function updateFuelDisplay(fuelAmount) {
+            // Simple display update - all complex calculations come from server
+            const fuelAmountEl = document.getElementById('fuelAmount');
+            if (fuelAmountEl) {
+                fuelAmountEl.textContent = `$${fuelAmount.toFixed(2)}`;
+            }
+            
+            // For bars, we need the full server data, not just fuel amount
+            // This will be updated when we get server response
+        }
+        
+        function updateNextBarLocal(fuelAmount) {
+            // There is no NEXT bar in HTML - this function does nothing currently
+            // The Evolution bar shows progress to next evolution level, not next dollar
+            // If we want a "next dollar" bar, we need to add it to the HTML
+        }
+        
+        function updateBarsFromServerData(data) {
+            // Use ACTUAL server calculations from MechService
             const fuelLevel = document.getElementById('fuelLevel');
-            const fuelAmountElement = document.getElementById('fuelAmount');
+            const evolutionProgress = document.getElementById('evolutionProgress');
+            const nextEvolutionName = document.getElementById('nextEvolutionName');
+            const nextEvolutionAmount = document.getElementById('nextEvolutionAmount');
             
-            if (!mechImg || !fuelLevel || !fuelAmountElement) return;
+            // Update FUEL Bar using server's bar calculations
+            if (fuelLevel && data.bars) {
+                const percentage = (data.bars.fuel_current / data.bars.fuel_max_for_level) * 100;
+                fuelLevel.style.width = `${Math.min(100, percentage)}%`;
+                
+                // Color based on actual fuel amount
+                const fuel = data.current_fuel_raw || data.current_fuel || 0;
+                if (fuel >= 500) {
+                    fuelLevel.style.background = 'linear-gradient(90deg, #00ffff 0%, #0099ff 50%, #00ffff 100%)';
+                } else if (fuel >= 250) {
+                    fuelLevel.style.background = 'linear-gradient(90deg, #00ff00 0%, #00dd00 50%, #00ff00 100%)';
+                } else if (fuel >= 100) {
+                    fuelLevel.style.background = 'linear-gradient(90deg, #ffcc00 0%, #ff9900 50%, #ffcc00 100%)';
+                } else if (fuel >= 50) {
+                    fuelLevel.style.background = 'linear-gradient(90deg, #ff6600 0%, #ff3300 50%, #ff6600 100%)';
+                } else {
+                    fuelLevel.style.background = 'linear-gradient(90deg, #cc0000 0%, #990000 50%, #cc0000 100%)';
+                }
+            }
             
-            // Fetch donation status from server
-            fetch('/api/donation/status')
-                .then(response => response.json())
-                .then(data => {
-                    // Get fuel amount (for speed) and total donations received (for evolution)
-                    const fuelAmount = data.total_amount || 0;  // Current fuel
-                    const totalDonationsReceived = data.total_donations_received || 0;  // Total ever donated
-                    
-                    // Update speed status based on FUEL
-                    const speedStatus = document.getElementById('speedStatusOverlay');
-                    let speedText = '';
-                    let speedColor = '#888';
-                    
-                    // Speed descriptions with colors from speed_system.py
-                    const speedDescriptions = {
-                        0: ["OFFLINE", "#888888"],
-                        1: ["Motionless", "#4a4a4a"], 2: ["Barely perceptible", "#525252"], 3: ["Extremely sluggish", "#5a5a5a"], 4: ["Painfully hesitant", "#626262"], 5: ["Excruciatingly lethargic", "#6a6a6a"],
-                        6: ["Ultra-slow", "#727272"], 7: ["Almost crawling", "#7a7a7a"], 8: ["Truly crawling", "#828282"], 9: ["Snail-paced", "#8a8a8a"], 10: ["Glacially slow", "#929292"],
-                        11: ["Heavy-footed", "#9a9a9a"], 12: ["Weary plodding", "#a2a2a2"], 13: ["Drearily trudging", "#aaaaaa"], 14: ["Stumbling forward", "#b2b2b2"], 15: ["Faltering pace", "#bababa"],
-                        16: ["Limping along", "#c2c2c2"], 17: ["Dragging feet", "#cacaca"], 18: ["Reluctant stride", "#d2d2d2"], 19: ["Sluggish shuffling", "#dadada"], 20: ["Slow but continuous", "#e2e2e2"],
-                        21: ["Leisurely relaxed", "#cc6600"], 22: ["Casual and easy", "#cc7700"], 23: ["Moderately steady", "#cc8800"], 24: ["Comfortable stride", "#cc9900"], 25: ["Measured walking", "#ccaa00"],
-                        26: ["Balanced and even", "#ccbb00"], 27: ["Mildly brisk", "#bbcc00"], 28: ["Purposeful steady", "#aacc00"], 29: ["Clearly brisker", "#99cc00"], 30: ["Decisive stride", "#88cc00"],
-                        31: ["Quickened step", "#77cc00"], 32: ["Energetic pace", "#66cc00"], 33: ["Noticeably brisk", "#55cc00"], 34: ["Sharply focused", "#44cc00"], 35: ["Fast stride", "#33cc00"],
-                        36: ["Strong and firm", "#22cc00"], 37: ["Forcefully brisk", "#11cc00"], 38: ["Rapid walking", "#00cc00"], 39: ["Swift step", "#00cc11"], 40: ["Quick-paced", "#00cc22"],
-                        41: ["Very brisk", "#00cc33"], 42: ["Clearly fast", "#00cc44"], 43: ["Forcefully rapid", "#00cc55"], 44: ["Rushing forward", "#00cc66"], 45: ["Hurrying intensely", "#00cc77"],
-                        46: ["Lively fast", "#00cc88"], 47: ["Speedy motion", "#00cc99"], 48: ["Snappy fast", "#00ccaa"], 49: ["Nimble quick", "#00ccbb"], 50: ["Sharply swift", "#00cccc"],
-                        60: ["Almost running", "#0022cc"], 70: ["Rapid running", "#8800cc"], 80: ["Supersonic pace", "#cc0066"], 90: ["Star-chasing speed", "#ff3300"], 
-                        95: ["Warp-level 5", "#ff8800"], 99: ["True lightspeed", "#ffcc00"], 100: ["Beyond-lightspeed", "#ffdd00"], 101: ["REALITY-BENDING OMNISPEED", "#ff00ff"]
-                    };
-                    
-                    // Calculate speed level based on fuel amount
-                    let speedLevel = 0;
-                    if (fuelAmount <= 0) {
-                        speedLevel = 0;
-                    } else if (fuelAmount <= 100) {
-                        // Levels 1-4: Direct 1:1 mapping
-                        speedLevel = Math.min(Math.floor(fuelAmount), 100);
-                    } else {
-                        // Higher levels: complex calculation based on evolution
-                        speedLevel = Math.min(Math.floor(fuelAmount / 10), 100);
-                        if (fuelAmount >= 20000) speedLevel = 101; // TRANSCENDENT
-                    }
-                    
-                    // Update evolution status based on TOTAL DONATIONS
-                    const evolutionThresholds = [0, 20, 50, 100, 200, 400, 800, 1500, 2500, 4000];
+            // Update Evolution Bar (the "NEXT" bar for evolution progress)
+            if (evolutionProgress && data) {
+                // Use server data for evolution progress
+                if (data.bars && data.bars.mech_progress_current !== undefined && data.bars.mech_progress_max !== undefined) {
+                    const percentage = (data.bars.mech_progress_current / data.bars.mech_progress_max) * 100;
+                    evolutionProgress.style.width = `${Math.min(100, percentage)}%`;
+                }
+                
+                // Update evolution text
+                if (nextEvolutionName && data.mech_level_name) {
+                    // Get next evolution name based on current level
                     const evolutionNames = [
                         "SCRAP MECH", "REPAIRED MECH", "STANDARD MECH", "ENHANCED MECH",
                         "ADVANCED MECH", "ELITE MECH", "CYBER MECH", "PLASMA MECH",
                         "QUANTUM MECH", "DIVINE MECH"
                     ];
-                    
-                    let evolutionLevel = 0;
-                    for (let i = evolutionThresholds.length - 1; i >= 0; i--) {
-                        if (totalDonationsReceived >= evolutionThresholds[i]) {
-                            evolutionLevel = i;
-                            break;
-                        }
+                    const currentLevel = data.mech_level || 1;
+                    if (currentLevel < evolutionNames.length) {
+                        nextEvolutionName.textContent = evolutionNames[currentLevel]; // Next level name
                     }
-                    
-                    // Update evolution display
-                    const evolutionProgressEl = document.getElementById('evolutionProgress');
-                    const nextEvolutionNameEl = document.getElementById('nextEvolutionName');
-                    const nextEvolutionAmountEl = document.getElementById('nextEvolutionAmount');
-                    const nextEvolutionInfoEl = document.getElementById('nextEvolutionInfo');
-                    
-                    if (evolutionProgressEl) {
-                        if (evolutionLevel < 9) {
-                            const currentThreshold = evolutionThresholds[evolutionLevel];
-                            const nextThreshold = evolutionThresholds[evolutionLevel + 1];
-                            const progress = ((totalDonationsReceived - currentThreshold) / (nextThreshold - currentThreshold)) * 100;
-                            
-                            evolutionProgressEl.style.width = `${Math.min(100, Math.max(0, progress))}%`;
-                            nextEvolutionNameEl.textContent = evolutionNames[evolutionLevel + 1];
-                            const amountNeeded = nextThreshold - totalDonationsReceived;
-                            nextEvolutionAmountEl.textContent = `$${amountNeeded.toFixed(0)} needed`;
-                            nextEvolutionInfoEl.style.display = 'inline';
-                        } else {
-                            // Max level reached
-                            evolutionProgressEl.style.width = '100%';
-                            nextEvolutionInfoEl.textContent = 'MAX LEVEL REACHED';
-                            nextEvolutionInfoEl.style.color = '#ffcc00';
-                        }
-                    }
-                    
-                    // Get speed description and color based on calculated level
-                    const speedInfo = speedDescriptions[speedLevel] || speedDescriptions[0];
-                    speedText = speedInfo[0];
-                    speedColor = speedInfo[1];
-                    
-                    if (speedStatus) {
-                        speedStatus.textContent = speedText;
-                        speedStatus.style.color = speedColor;
-                    }
-                    
-                    // Update fuel gauge - based on evolution level gap + $10 buffer
-                    // Level 0: $20 needed for Level 1 + $10 buffer = $30 max
-                    // Level 1: $30 needed for Level 2 ($50-$20) + $10 buffer = $40 max  
-                    // Level 2: $50 needed for Level 3 ($100-$50) + $10 buffer = $60 max
-                    let maxFuelForBar = 30; // Default for level 0 ($20 + $10)
-                    
-                    if (evolutionLevel < 9) {
-                        // Gap between current and next evolution level + $10 buffer
-                        const currentThreshold = evolutionThresholds[evolutionLevel];
-                        const nextThreshold = evolutionThresholds[evolutionLevel + 1];
-                        const evolutionGap = nextThreshold - currentThreshold;
-                        maxFuelForBar = evolutionGap + 10;
-                    }
-                    
-                    // Fuel bar represents current fuel with same scale as evolution bar
-                    const fuelPercent = Math.min((fuelAmount / maxFuelForBar) * 100, 100);
-                    fuelLevel.style.width = fuelPercent + '%';
-                    fuelAmountElement.textContent = '$' + fuelAmount.toFixed(2);
-                    
-                    // Update fuel bar color based on fuel amount
-                    if (fuelAmount >= 1000) {
-                        fuelLevel.style.background = 'linear-gradient(90deg, #ffd700 0%, #ffff00 50%, #ffd700 100%)'; // Gold
-                    } else if (fuelAmount >= 500) {
-                        fuelLevel.style.background = 'linear-gradient(90deg, #00ffff 0%, #00ccff 50%, #00ffff 100%)'; // Cyan
-                    } else if (fuelAmount >= 250) {
-                        fuelLevel.style.background = 'linear-gradient(90deg, #00ff00 0%, #00dd00 50%, #00ff00 100%)'; // Green
-                    } else if (fuelAmount >= 100) {
-                        fuelLevel.style.background = 'linear-gradient(90deg, #ffcc00 0%, #ff9900 50%, #ffcc00 100%)'; // Orange
-                    } else if (fuelAmount >= 50) {
-                        fuelLevel.style.background = 'linear-gradient(90deg, #ff6600 0%, #ff3300 50%, #ff6600 100%)'; // Red-Orange
-                    } else {
-                        fuelLevel.style.background = 'linear-gradient(90deg, #cc0000 0%, #990000 50%, #cc0000 100%)'; // Red
-                    }
-                    
-                    // Generate mech animation
-                    if (mechLoading) mechLoading.style.display = 'block';
-                    mechImg.style.display = 'none';
-                    
-                    fetch('/mech_animation')
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                        }
-                        return response.blob();
-                    })
-                    .then(blob => {
-                        const url = URL.createObjectURL(blob);
-                        mechImg.src = url;
-                        mechImg.style.display = 'block';
-                        if (mechLoading) mechLoading.style.display = 'none';
-                        
-                        // Set title based on speed level
-                        let speedText = 'Walking';
-                        if (fuelAmount >= 1000) speedText = 'LIGHTSPEED!';
-                        else if (fuelAmount >= 500) speedText = 'Hyperspeed';
-                        else if (fuelAmount >= 250) speedText = 'Sprinting';
-                        else if (fuelAmount >= 100) speedText = 'Running';
-                        else if (fuelAmount >= 50) speedText = 'Jogging';
-                        
-                        mechImg.parentElement.parentElement.title = `Mech Status: ${speedText} | Fuel: ${fuelAmount.toFixed(2)}€`;
-                    })
-                    .catch(error => {
-                        console.error('Error generating mech animation:', error);
-                        if (mechLoading) mechLoading.style.display = 'none';
-                    });
-                    
-                    return;  // Skip old heart animation code
-                    
-                    const daysSinceDonation = data.days_since_donation;
-                    
-                    if (daysSinceDonation <= 30) {
-                // Calculate exact day (0-30)
-                const dayNumber = Math.floor(daysSinceDonation);
-                const fadePercentage = daysSinceDonation / 30;
-                
-                // Calculate color transition from #36cfff (neon blue) to #6c757d (gray)
-                const startR = 0x36, startG = 0xcf, startB = 0xff; // #36cfff
-                const endR = 0x6c, endG = 0x75, endB = 0x7d;       // #6c757d
-                
-                const currentR = Math.round(startR + (endR - startR) * fadePercentage);
-                const currentG = Math.round(startG + (endG - startG) * fadePercentage);
-                const currentB = Math.round(startB + (endB - startB) * fadePercentage);
-                
-                const currentColor = `rgb(${currentR}, ${currentG}, ${currentB})`;
-                
-                // Reset styles
-                heart.style.color = '';
-                heart.style.filter = '';
-                heart.style.textShadow = '';
-                heart.style.animation = '';
-                
-                if (dayNumber <= 7) {
-                    // Days 0-7: Fast pulse + full glow
-                    heart.className = 'bi bi-heart-fill donator-heart active';
-                    const pulseSpeed = 1 + (dayNumber * 0.2); // 1s to 2.4s
-                    heart.style.animation = `heartPulseFast ${pulseSpeed}s ease-in-out infinite`;
-                    heart.title = `Fresh donation! Thank you! ❤️ (Day ${dayNumber})`;
-                } else if (dayNumber <= 15) {
-                    // Days 8-15: Medium pulse + medium glow
-                    heart.className = 'bi bi-heart-fill donator-heart fading';
-                    heart.style.color = currentColor;
-                    
-                    // Reduced glow
-                    const glowStrength = 1 - ((dayNumber - 7) / 8) * 0.7; // 100% to 30%
-                    const glowColor = `rgba(54, 207, 255, ${glowStrength})`;
-                    heart.style.textShadow = `0 0 ${10 * glowStrength}px ${glowColor}, 0 0 ${20 * glowStrength}px ${glowColor}`;
-                    
-                    const pulseSpeed = 2.4 + ((dayNumber - 7) * 0.3); // 2.4s to 4.8s
-                    heart.style.animation = `heartPulseMedium ${pulseSpeed}s ease-in-out infinite`;
-                    
-                    const daysLeft = Math.ceil(30 - daysSinceDonation);
-                    heart.title = `Donator status expires in ${daysLeft} days. Thank you! ❤️ (Day ${dayNumber})`;
-                } else if (dayNumber <= 28) {
-                    // Days 16-28: Slow pulse + no glow
-                    heart.className = 'bi bi-heart-fill donator-heart fading';
-                    heart.style.color = currentColor;
-                    heart.style.textShadow = 'none';
-                    
-                    const pulseSpeed = 4.8 + ((dayNumber - 15) * 0.4); // 4.8s to 10s
-                    heart.style.animation = `heartPulseSlow ${pulseSpeed}s ease-in-out infinite`;
-                    
-                    const daysLeft = Math.ceil(30 - daysSinceDonation);
-                    heart.title = `Donator status expires in ${daysLeft} days. Thank you! ❤️ (Day ${dayNumber})`;
-                } else {
-                    // Days 29-30: Very slow pulse + almost gray
-                    heart.className = 'bi bi-heart-fill donator-heart fading';
-                    heart.style.color = currentColor;
-                    heart.style.textShadow = 'none';
-                    
-                    const pulseSpeed = 10 + ((dayNumber - 28) * 5); // 10s to 20s
-                    heart.style.animation = `heartPulseVerySlow ${pulseSpeed}s ease-in-out infinite`;
-                    
-                    const daysLeft = Math.ceil(30 - daysSinceDonation);
-                    heart.title = `Donator status expires in ${daysLeft} days. Thank you! ❤️ (Day ${dayNumber})`;
                 }
-                    } else {
-                        // Expired - gray heart
-                        heart.className = 'bi bi-heart-fill donator-heart inactive';
-                        heart.style.color = ''; // Reset inline style
-                        heart.style.filter = ''; // Reset inline style
-                        heart.style.textShadow = ''; // Reset inline style
-                        heart.style.animation = '';
-                        heart.title = 'Support DDC development ❤️';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching donation status:', error);
-                    // On error, show inactive heart
-                    heart.className = 'bi bi-heart-fill donator-heart inactive';
-                    heart.style.color = '';
-                    heart.style.filter = '';
-                    heart.style.textShadow = '';
-                    heart.style.animation = '';
-                });
+                
+                if (nextEvolutionAmount && data.next_level_threshold) {
+                    const currentTotal = data.total_amount || 0;
+                    const needed = Math.max(0, data.next_level_threshold - currentTotal);
+                    nextEvolutionAmount.textContent = `$${needed.toFixed(0)} needed`;
+                }
+            }
         }
         
-        // Check mech status on page load
-        checkDonatorMechStatus();
-        
-        // Update mech status every 5 minutes (server-side tracking now)
-        setInterval(checkDonatorMechStatus, 5 * 60 * 1000);
+        function updateMechAnimation(fuelInteger) {
+            const mechImg = document.getElementById('donatorMechAnimation');
+            if (mechImg) {
+                // Cache key for localStorage
+                const cacheKey = `ddcMechAnimation_${fuelInteger}`;
+                const lastLevel = localStorage.getItem('ddcLastAnimationFuelLevel');
+                
+                // Force reload if no previous level stored OR level changed
+                if (lastLevel === null || lastLevel !== fuelInteger.toString()) {
+                    mechImg.src = `/mech_animation?t=${Date.now()}`;
+                    localStorage.setItem('ddcLastAnimationFuelLevel', fuelInteger.toString());
+                    console.log(`[FUEL] Animation updated for fuel level: ${fuelInteger} (was: ${lastLevel || 'none'})`);
+                } else {
+                    console.log(`[FUEL] Animation unchanged for fuel level: ${fuelInteger}`);
+                }
+            } else {
+                console.error('[FUEL] Mech animation element not found!');
+            }
+        }
         
         // Consume fuel every 3 seconds (backend only, no Next Bar animation)
         function consumeFuel() {
@@ -1163,12 +1129,13 @@
                     .then(data => {
                         if (data.success) {
                             // Update display with new amount
-                            fuelAmount.textContent = '$' + data.new_fuel.toFixed(5);
+                            fuelAmount.textContent = '$' + data.new_fuel.toFixed(2);
                             
                             // If fuel hits 0, refresh mech animation
                             if (data.new_fuel <= 0) {
                                 setTimeout(() => {
-                                    checkDonatorMechStatus();
+                                    // Use new efficient fuel system instead
+                            syncWithServer();
                                 }, 1500);
                             }
                         }
@@ -1180,8 +1147,8 @@
             }
         }
         
-        // Start fuel consumption every 3 seconds
-        setInterval(consumeFuel, 3000);
+        // OLD: Fuel consumption moved to efficient client-side system above
+        // setInterval(consumeFuel, 3000); // DISABLED - using client-side calculation
         
         // Flash consumption overlay with fade animation every 3 seconds (only if fuel > 0)
         function flashConsumptionOverlay() {
@@ -1206,8 +1173,8 @@
             }
         }
         
-        // Start consumption overlay flash every 3 seconds
-        setInterval(flashConsumptionOverlay, 3000);
+        // OLD: Consumption overlay moved to efficient client-side system
+        // setInterval(flashConsumptionOverlay, 3000); // DISABLED - using client-side calculation
         
         // Donation Modal Functions
         function showDonationModal() {
@@ -1335,7 +1302,8 @@
                     closeDonationModal();
                     
                     // Refresh mech status to show new fuel
-                    checkDonatorMechStatus();
+                    // Use new efficient fuel system instead
+            syncWithServer();
                     
                     // Show success message
                     showSuccessMessage(`🚀 Thank you ${donorName}! $${amount} added to mech fuel!`);
@@ -1465,10 +1433,23 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Refresh mech status immediately
-                    checkDonatorMechStatus();
-                    // Show brief notification
-                    showNotification(`${amount > 0 ? '+' : ''}$${amount} Fuel ${amount > 0 ? 'added' : 'removed'}!`, amount > 0 ? 'success' : 'warning');
+                    // Force immediate update after donation
+                    console.log('[FUEL v3.0] Test donation triggered - forcing immediate update');
+                    
+                    // Force immediate update with new fuel value
+                    fuelState.serverFuel += amount;
+                    fuelState.serverTime = Date.now();
+                    fuelState.lastDisplayDecimal = null;
+                    
+                    // Update display immediately (including NEXT bar)
+                    updateClientSideFuel();
+                    updateNextBarLocal(fuelState.serverFuel);
+                    
+                    // Sync with server to get exact calculations
+                    syncWithServer().then(() => {
+                        showNotification(`${amount > 0 ? '+' : ''}$${amount} Fuel ${amount > 0 ? 'added' : 'removed'}!`, amount > 0 ? 'success' : 'warning');
+                    });
+                    
                 } else {
                     showNotification('Error updating fuel: ' + (data.error || 'Unknown error'), 'danger');
                 }
@@ -1490,8 +1471,18 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        checkDonatorMechStatus();
-                        showNotification('Fuel reset to $0', 'info');
+                        // Reset local state
+                        fuelState.serverFuel = 0;
+                        fuelState.serverTime = Date.now();
+                        fuelState.lastDisplayDecimal = null;
+                        fuelState.lastAnimationLevel = null;
+                        
+                        // Update display and sync (including NEXT bar)
+                        updateClientSideFuel();
+                        updateNextBarLocal(0);
+                        syncWithServer().then(() => {
+                            showNotification('Fuel reset to $0', 'info');
+                        });
                     } else {
                         showNotification('Error resetting fuel', 'danger');
                     }
@@ -1590,12 +1581,12 @@
                 else if (donations >= 5) speedLevel = 2;
                 
                 const speedTexts = {
-                    1: "Walking 🚶",
-                    2: "Jogging 🏃",
-                    3: "Running 🏃💨",
-                    4: "Sprinting ⚡",
-                    5: "Hyperspeed 🚀",
-                    6: "LIGHTSPEED! ⚡💫"
+                    1: "Walking",
+                    2: "Jogging",
+                    3: "Running",
+                    4: "Sprinting",
+                    5: "Hyperspeed",
+                    6: "LIGHTSPEED!"
                 };
                 
                 stats.innerHTML = `
@@ -1722,12 +1713,12 @@
             else if (donations >= 5) speedLevel = 2;
             
             const speedTexts = {
-                1: "Walking 🚶",
-                2: "Jogging 🏃",
-                3: "Running 🏃💨",
-                4: "Sprinting ⚡",
-                5: "Hyperspeed 🚀",
-                6: "LIGHTSPEED! ⚡💫"
+                1: "Walking",
+                2: "Jogging", 
+                3: "Running",
+                4: "Sprinting",
+                5: "Hyperspeed",
+                6: "LIGHTSPEED!"
             };
             
             // Calculate animation duration (faster = shorter duration)

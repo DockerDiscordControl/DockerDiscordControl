@@ -358,14 +358,14 @@ class DonationBroadcastModal(discord.ui.Modal):
             # Try to create sprite mech animation
             animation_file = None
             try:
-                # Get current fuel for animation
-                current_fuel = 0
-                if self.donation_manager_available:
-                    try:
-                        donation_status = donation_manager.get_status()
-                        current_fuel = donation_status.get('total_amount', 0)
-                    except:
-                        pass
+                # Get current fuel for animation using MechService
+                try:
+                    from services.mech_service import get_mech_service
+                    mech_service = get_mech_service()
+                    current_fuel = mech_service.get_fuel_with_decimals()
+                except Exception as e:
+                    logger.debug(f"Could not get fuel from MechService: {e}")
+                    current_fuel = 0
                 
                 # Create sprite-based animation using service
                 import sys
@@ -1885,9 +1885,9 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             logger.info("DEBUG: new MechService created")
             
             # Get clean data from new service
-            current_fuel = mech_state.fuel
+            current_fuel = mech_service.get_fuel_with_decimals()  # Use decimal version for accurate display
             total_donations_received = mech_state.total_donated
-            logger.info(f"NEW SERVICE: fuel=${current_fuel}, total_donations=${total_donations_received}, level={mech_state.level} ({mech_state.level_name})")
+            logger.info(f"NEW SERVICE: fuel=${current_fuel:.2f}, total_donations=${total_donations_received}, level={mech_state.level} ({mech_state.level_name})")
             
             # Evolution info from new service with next_name for UI
             from services.mech_service import MECH_LEVELS
@@ -1907,11 +1907,22 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 'next_name': next_name  # This was missing!
             }
             
-            # Speed info from glvl
-            speed = {
-                'level': mech_state.glvl,
-                'description': f"Glvl {mech_state.glvl}/{mech_state.glvl_max}"
-            }
+            # Speed info from glvl - get full speed description
+            try:
+                from utils.speed_levels import get_combined_mech_status
+                combined_status = get_combined_mech_status(current_fuel, total_donations_received)
+                speed = combined_status['speed']
+                # Add glvl info to the speed object
+                speed['glvl'] = mech_state.glvl
+                speed['glvl_max'] = mech_state.glvl_max
+            except Exception as e:
+                logger.debug(f"Could not get speed description: {e}")
+                # Fallback to simple glvl display
+                speed = {
+                    'level': mech_state.glvl,
+                    'description': f"Glvl {mech_state.glvl}/{mech_state.glvl_max}",
+                    'glvl': mech_state.glvl
+                }
             
             logger.info(f"NEW SERVICE: evolution={evolution['name']}, glvl={mech_state.glvl}/{mech_state.glvl_max}")
             
@@ -1932,7 +1943,11 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
             
             # Use clean progress bar data from new service - NO MORE MANUAL CALCULATION! 🎯
-            fuel_current = mech_state.bars.fuel_current
+            # For Level 1, use decimal fuel for accurate percentage
+            if mech_state.level == 1:
+                fuel_current = current_fuel  # Use decimal value for Level 1
+            else:
+                fuel_current = mech_state.bars.fuel_current  # Use integer for Level 2+
             fuel_max = mech_state.bars.fuel_max_for_level
             evolution_current = mech_state.bars.mech_progress_current  
             evolution_max = mech_state.bars.mech_progress_max
@@ -1976,10 +1991,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 max_evolution_text = translate("MAX EVOLUTION REACHED!")
                 mech_status += f"🌟 {max_evolution_text}"
             
-            # Add Glvl if available
-            if speed.get('glvl') is not None:
-                glvl_text = translate("Glvl")
-                mech_status += f"\n{glvl_text}: {speed['glvl']}"
+            # Glvl info is now included in speed description, no need for separate line
             
             embed.add_field(name=translate("Donation Engine"), value=mech_status, inline=False)
             
@@ -2135,12 +2147,12 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             if project_root not in sys.path:
                 sys.path.insert(0, project_root)
                 
-            from services.donation_service import get_donation_service
-            donation_service = get_donation_service()
+            from services.mech_service import get_mech_service
+            mech_service = get_mech_service()
             
             # Get current fuel for animation
-            status_data = donation_service.get_status()
-            current_fuel = status_data.get('total_amount', 0)
+            mech_state = mech_service.get_state()
+            current_fuel = mech_service.get_fuel_with_decimals()
             
             # Create mech animation with fallback
             try:
@@ -2291,12 +2303,12 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                         # Auto-detect Glvl changes for force_recreate decision
                         current_glvl = None
                         try:
-                            # Get current fuel amount for Glvl calculation
-                            from utils.donation_manager import get_donation_manager
-                            donation_manager = get_donation_manager()
-                            donation_data = donation_manager.load_data()
-                            current_fuel = donation_data.get('fuel_data', {}).get('current_fuel', 0.0)
-                            total_donations = donation_data.get('fuel_data', {}).get('total_received_permanent', 0.0)
+                            # Get current fuel amount for Glvl calculation using MechService
+                            from services.mech_service import get_mech_service
+                            mech_service = get_mech_service()
+                            mech_state = mech_service.get_state()
+                            current_fuel = mech_service.get_fuel_with_decimals()
+                            total_donations = mech_state.total_donated
                             
                             # Get current mech status to extract Glvl
                             from utils.speed_levels import get_combined_mech_status
@@ -3205,12 +3217,12 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             if project_root not in sys.path:
                 sys.path.insert(0, project_root)
                 
-            from services.donation_service import get_donation_service
-            donation_service = get_donation_service()
-            donation_status = donation_service.get_status()
+            from services.mech_service import get_mech_service
+            mech_service = get_mech_service()
+            mech_state = mech_service.get_state()
             
-            current_fuel = donation_status.get('total_amount', 0)
-            total_donations = donation_status.get('total_donations_received', 0)
+            current_fuel = mech_service.get_fuel_with_decimals()
+            total_donations = mech_state.total_donated
             
             # Get evolution and speed info
             from utils.speed_levels import get_combined_mech_status

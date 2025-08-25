@@ -73,10 +73,6 @@ class _Store:
 
     def load(self) -> Dict[str, Any]:
         if not self.path.exists():
-            # Try to migrate from old donation.json format
-            old_donation_file = self.path.parent / "donation.json"
-            if old_donation_file.exists():
-                return self._migrate_from_old_format(old_donation_file)
             return {"donations": []}
         try:
             with self.path.open("r", encoding="utf-8") as f:
@@ -86,46 +82,18 @@ class _Store:
         if "donations" not in data or not isinstance(data["donations"], list):
             data["donations"] = []
         return data
-    
-    def _migrate_from_old_format(self, old_file: Path) -> Dict[str, Any]:
-        """Migrate from old donation.json format to new format"""
-        try:
-            with old_file.open("r", encoding="utf-8") as f:
-                old_data = json.load(f)
-            
-            # Extract total donations from old format
-            fuel_data = old_data.get('fuel_data', {})
-            total_donations = fuel_data.get('total_received_permanent', 0.0)
-            
-            if total_donations > 0:
-                # Create migration entry with current timestamp
-                migration_donation = {
-                    "username": "MIGRATION_FROM_OLD_SYSTEM", 
-                    "amount": int(total_donations),
-                    "ts": datetime.now().isoformat()
-                }
-                
-                # Save to new format (this will create the file)
-                new_data = {"donations": [migration_donation]}
-                try:
-                    self.save(new_data)
-                    print(f"✅ AUTO-MIGRATED: ${total_donations} from old donation system")
-                except:
-                    print(f"⚠️ Could not save migration, using in-memory data")
-                
-                return new_data
-            else:
-                return {"donations": []}
-                
-        except Exception as e:
-            print(f"⚠️ Migration failed: {e}")
-            return {"donations": []}
 
     def save(self, data: Dict[str, Any]) -> None:
-        tmp = self.path.with_suffix(self.path.suffix + ".tmp")
-        with tmp.open("w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        tmp.replace(self.path)
+        try:
+            # Try atomic write with temp file
+            tmp = self.path.with_suffix(self.path.suffix + ".tmp")
+            with tmp.open("w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            tmp.replace(self.path)
+        except PermissionError:
+            # Fallback: direct write (less safe but works with restricted permissions)
+            with self.path.open("w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
 
 
 # ---------------------------
@@ -246,22 +214,31 @@ class MechService:
         progress_current = 0 if delta is None else max(0, total - lvl.threshold)
         progress_max = 0 if delta is None else delta
 
-        # Fuel bar max
+        # Fuel bar max - Level 1 starts at 0, Level 2+ starts at 1 + overshoot
         if delta is None:
             fuel_max = 100
+        elif lvl.level == 1:
+            fuel_max = delta  # Level 1 starts at 0, so max = delta
         else:
-            fuel_max = delta + 1  # "+1" rule
+            fuel_max = delta + 1  # Level 2+ starts at 1 + overshoot, so max = delta + 1
 
-        # glvl mapping
+        # glvl mapping - consistent with fuel_max calculation
         if delta is None:
             glvl_max = 100
             glvl = min(glvl_max, int(math.floor(fuel)))
         elif delta <= 100:
-            glvl_max = max(0, delta - 1)
-            glvl = min(glvl_max, int(math.floor(fuel)))
+            if lvl.level == 1:
+                glvl_max = delta  # Level 1: full delta range
+                glvl = min(glvl_max, int(math.floor(fuel)))
+            else:
+                glvl_max = max(0, delta - 1)  # Level 2+: delta-1 to account for +1 start
+                glvl = min(glvl_max, int(math.floor(fuel)))
         else:
             glvl_max = 100
-            glvl = int(math.floor((fuel * 100) / (delta + 1)))
+            if lvl.level == 1:
+                glvl = int(math.floor((fuel * 100) / delta))  # Level 1: simple mapping
+            else:
+                glvl = int(math.floor((fuel * 100) / (delta + 1)))  # Level 2+: account for +1
             if glvl > glvl_max:
                 glvl = glvl_max
 
@@ -282,6 +259,51 @@ class MechService:
             glvl_max=int(glvl_max),
             bars=bars,
         )
+
+    def get_fuel_with_decimals(self) -> float:
+        """Get raw fuel value with decimal places for Web UI display"""
+        data = self.store.load()
+        donations = data["donations"]
+        
+        total = 0.0
+        fuel = 0.0
+        lvl = MECH_LEVELS[0]  # Start at level 1
+        now = self._now()
+        last_ts = None
+        last_evolution_ts = None
+
+        for d in donations:
+            ts = self._parse_iso(d["ts"])
+            
+            # Apply decay from last donation to current donation
+            if last_ts is not None:
+                fuel = max(0.0, fuel - self._decay_amount(last_ts, ts))
+            last_ts = ts
+
+            amount = int(d["amount"])
+            total += amount
+            fuel += amount
+
+            # Handle level-ups
+            while True:
+                nxt = _next_level(lvl)
+                if not nxt:
+                    break
+                if total >= nxt.threshold:
+                    lvl = nxt
+                    fuel = 1.0 + max(0, total - lvl.threshold)
+                    last_evolution_ts = ts
+                    continue
+                break
+
+        # Final decay from last donation to now
+        if last_ts is not None:
+            if last_evolution_ts == last_ts:
+                pass  # No decay if evolution just occurred
+            else:
+                fuel = max(0.0, fuel - self._decay_amount(last_ts, now))
+
+        return fuel  # Return raw float with decimals
 
     # -------- Helpers --------
 
