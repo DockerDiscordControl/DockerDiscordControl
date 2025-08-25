@@ -119,6 +119,19 @@ def create_app(test_config=None):
     if not app.logger.handlers: # Add handler only if none exist
         app.logger.addHandler(handler)
     app.logger.info(f"Flask Logger initialized with {app.config['LOG_LEVEL']} level.")
+    
+    # Add custom filter to reduce noise from frequent fuel consumption requests
+    class ConsumeFuelLogFilter(logging.Filter):
+        def filter(self, record):
+            # Filter out access logs for /api/donation/consume-fuel endpoint
+            if hasattr(record, 'getMessage'):
+                message = record.getMessage()
+                return not ('/api/donation/consume-fuel' in message and record.levelno <= logging.INFO)
+            return True
+    
+    # Apply filter to werkzeug logger (handles HTTP access logs)
+    werkzeug_logger = logging.getLogger('werkzeug')
+    werkzeug_logger.addFilter(ConsumeFuelLogFilter())
 
     # Apply ProxyFix
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)

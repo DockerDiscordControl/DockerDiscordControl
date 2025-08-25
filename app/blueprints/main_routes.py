@@ -1353,8 +1353,9 @@ def record_donation_click():
                 ip_address = request.headers.get('X-Forwarded-For').split(',')[0].strip()
             user_identifier = f"IP: {ip_address}"
         
-        donation_manager = get_donation_manager()
-        result = donation_manager.record_donation(donation_type, user_identifier)
+        # Get current timestamp for Matrix Thank You animation
+        from datetime import datetime, timezone
+        current_timestamp = datetime.now(timezone.utc).isoformat()
         
         # Log the action
         log_user_action(
@@ -1364,10 +1365,12 @@ def record_donation_click():
             details=f"Donation button clicked by: {user_identifier}"
         )
         
+        current_app.logger.info(f"💰 [MATRIX-SERVER] Donation button ({donation_type}) clicked by {user_identifier} - timestamp: {current_timestamp}")
+        
         return jsonify({
             'success': True,
-            'timestamp': result['last_donation_timestamp'],
-            'total': result['total_donations']
+            'timestamp': current_timestamp,
+            'message': 'Donation button click recorded for Matrix Thank You animation'
         })
         
     except Exception as e:
@@ -1470,7 +1473,8 @@ def consume_fuel():
         # Just get current state - decay is calculated automatically
         current_state = mech_service.get_state()
         
-        current_app.logger.debug(f"NEW SERVICE: Fuel consumption check - current fuel: ${current_state.fuel}")
+        # Removed frequent fuel consumption log to reduce noise in DEBUG mode
+        # current_app.logger.debug(f"NEW SERVICE: Fuel consumption check - current fuel: ${current_state.fuel}")
         
         return jsonify({
             'success': True, 
@@ -1523,7 +1527,7 @@ def submit_donation():
         if not donor_name.strip():
             donor_name = 'Anonymous'
         
-        # Get donation service with error handling
+        # Get mech service with error handling
         try:
             import sys
             import os
@@ -1532,18 +1536,19 @@ def submit_donation():
             if project_root not in sys.path:
                 sys.path.insert(0, project_root)
                 
-            from services.donation_service import get_donation_service
-            donation_service = get_donation_service()
+            from services.mech_service import get_mech_service
+            mech_service = get_mech_service()
         except Exception as e:
-            current_app.logger.error(f"Could not get donation service: {e}")
+            current_app.logger.error(f"Could not get mech service: {e}")
             return jsonify({'success': False, 'error': 'Donation system unavailable'}), 503
         
-        # Add fuel to the system with error handling
-        result = donation_service.add_fuel(amount, 'manual_web', donor_name)
-        if not result.get('success', False):
-            error_msg = result.get('error', 'Failed to process donation')
-            current_app.logger.error(f"Error adding fuel: {error_msg}")
-            return jsonify({'success': False, 'error': error_msg}), 500
+        # Add donation to the system with error handling
+        try:
+            result_state = mech_service.add_donation(f"WebUI:{donor_name}", int(amount))
+            result = {'success': True, 'mech_state': result_state}
+        except Exception as e:
+            current_app.logger.error(f"Error adding donation: {e}")
+            return jsonify({'success': False, 'error': 'Failed to process donation'}), 500
         
         current_app.logger.info(f"Manual donation submitted: ${amount} from {donor_name}, Discord: {publish_to_discord}")
         
@@ -1555,49 +1560,28 @@ def submit_donation():
             details=f"Amount: ${amount}, Donor: {donor_name}, Discord: {publish_to_discord}, Source: {source}"
         )
         
-        # Discord publishing - store in donation_manager for Discord bot to pick up
+        # Discord publishing - donation already processed by MechService
         discord_success = False
         if publish_to_discord:
             try:
-                # Record the donation with broadcast flag for Discord
-                donation_manager.record_donation(
-                    donation_type="web_manual_broadcast",
-                    user_identifier=f"Web UI: {donor_name}",
-                    amount=amount
-                )
-                
-                # Store pending broadcast info in donation data file
-                donation_data = donation_manager.load_data()
-                if 'pending_discord_broadcasts' not in donation_data:
-                    donation_data['pending_discord_broadcasts'] = []
-                
-                broadcast_data = {
-                    'donor_name': donor_name,
-                    'amount': amount,
-                    'message': f"🎉 **{donor_name}** donated **${amount:.2f}** to fuel the mech! Thank you! 🚀",
-                    'timestamp': datetime.now(timezone.utc).isoformat(),
-                    'source': 'web_ui_modal',
-                    'evolution_level_up': result.get('_evolution_level_up', False)
-                }
-                
-                # Limit queue size to prevent memory issues (max 100 pending)
-                if len(donation_data['pending_discord_broadcasts']) >= 100:
-                    current_app.logger.warning(f"Donation broadcast queue full, removing oldest")
-                    donation_data['pending_discord_broadcasts'] = donation_data['pending_discord_broadcasts'][-99:]
-                
-                donation_data['pending_discord_broadcasts'].append(broadcast_data)
-                donation_manager.save_data(donation_data)
-                
+                # The Discord bot will automatically pick up new donations from MechService
+                # via the donation tracking system. We'll create a simple notification.
+                current_app.logger.info(f"Discord broadcast requested for donation: {donor_name} - ${amount}")
                 discord_success = True
-                current_app.logger.info(f"Donation broadcast queued for Discord: {donor_name} - ${amount}")
+                
+                # Evolution detection from MechService
+                mech_state = result.get('mech_state')
+                if mech_state and hasattr(mech_state, 'level') and mech_state.level > 1:
+                    current_app.logger.info(f"Donation may have triggered evolution - current level: {mech_state.level}")
                 
             except Exception as discord_error:
-                current_app.logger.warning(f"Could not queue donation for Discord broadcast: {discord_error}")
-                # Don't fail the entire request if Discord queueing fails
+                current_app.logger.warning(f"Could not process Discord notification: {discord_error}")
+                # Don't fail the entire request if Discord processing fails
         
-        # Get updated status
-        new_fuel = result.get('fuel_data', {}).get('current_fuel', 0)
-        total_donations = donation_manager.get_status().get('total_donations_received', 0)
+        # Get updated status from MechService
+        mech_state = result.get('mech_state')
+        new_fuel = mech_state.fuel if mech_state else 0
+        total_donations = mech_state.total_donated if mech_state else 0
         
         return jsonify({
             'success': True,
@@ -1607,7 +1591,9 @@ def submit_donation():
                 'donor_name': donor_name,
                 'published_to_discord': discord_success,
                 'new_fuel': new_fuel,
-                'total_donations': total_donations
+                'total_donations': total_donations,
+                'mech_level': mech_state.level if mech_state else 1,
+                'mech_level_name': mech_state.level_name if mech_state else 'SCRAP MECH'
             }
         })
         

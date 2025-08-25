@@ -51,6 +51,9 @@
                     <button type="button" class="btn btn-sm btn-secondary" onclick="resetFuel()" title="Reset to 0">
                         <i class="bi bi-arrow-counterclockwise"></i> Reset
                     </button>
+                    <button type="button" class="btn btn-sm btn-info" onclick="testMatrixThankYou()" title="Test Matrix Thank You Animation">
+                        <i class="bi bi-play-circle"></i> Matrix
+                    </button>
                 </div>
             </div>
         </div>
@@ -559,17 +562,21 @@
                     .then(data => {
                         if (data.success) {
                             // Store for thank you display
-                            localStorage.setItem('ddcDonationClick', JSON.stringify({
+                            const donationClickData = {
                                 type: donationType,
-                                timestamp: data.timestamp
-                            }));
+                                timestamp: Date.now() // Use milliseconds for easier comparison
+                            };
+                            localStorage.setItem('ddcDonationClick', JSON.stringify(donationClickData));
+                            console.info('💰 [MATRIX] Donation button clicked, data stored:', donationClickData);
                             
                             // Update mech immediately
                             checkDonatorMechStatus();
+                        } else {
+                            console.error('💰 [MATRIX] Donation click recording failed:', data);
                         }
                     })
                     .catch(error => {
-                        console.error('Error recording donation:', error);
+                        console.error('💰 [MATRIX] Error recording donation click:', error);
                     });
                     
                     // Allow normal link behavior (open in new tab)
@@ -580,29 +587,32 @@
             // Check for donation return on page focus/load
             let isProcessingDonationReturn = false;
             function checkForDonationReturn() {
-                console.log('checkForDonationReturn called');
+                console.info('🔍 [MATRIX] checkForDonationReturn called');
                 if (isProcessingDonationReturn) {
-                    console.log('Already processing, returning');
+                    console.info('🔍 [MATRIX] Already processing, returning');
                     return; // Prevent multiple simultaneous calls
                 }
                 
                 const donationData = localStorage.getItem('ddcDonationClick');
-                console.log('localStorage data:', donationData);
+                console.info('🔍 [MATRIX] localStorage data:', donationData);
                 if (donationData) {
                     try {
                         isProcessingDonationReturn = true;
                         const data = JSON.parse(donationData);
                         const timeSinceClick = Date.now() - data.timestamp;
                         
-                        console.log('Time since click:', timeSinceClick);
-                        // Show thank you if donation was clicked within last 10 minutes
-                        if (timeSinceClick < 10 * 60 * 1000) {
+                        console.info('🔍 [MATRIX] Time since click:', timeSinceClick, 'ms (', Math.round(timeSinceClick/1000), 'seconds )');
+                        // Show thank you if donation was clicked within last 60 minutes
+                        if (timeSinceClick < 60 * 60 * 1000) {
                             // Mark as shown with timestamp to prevent multiple shows of SAME click
                             const shownKey = `ddcDonationShown_${data.timestamp}`;
-                            console.log('Checking if already shown:', shownKey);
+                            console.info('🔍 [MATRIX] Checking if already shown:', shownKey);
                             
-                            if (!localStorage.getItem(shownKey)) {
-                                console.log('Showing thank you overlay');
+                            const alreadyShown = localStorage.getItem(shownKey);
+                            console.info('🔍 [MATRIX] Already shown result:', alreadyShown);
+                            
+                            if (!alreadyShown) {
+                                console.info('✅ [MATRIX] SHOWING THANK YOU OVERLAY!');
                                 // Mark this specific donation click as shown
                                 localStorage.setItem(shownKey, 'true');
                                 
@@ -677,7 +687,7 @@
             }
             
             function showThankYouOverlay(donationType) {
-                console.log('showThankYouOverlay called with type:', donationType);
+                console.info('🚀 [MATRIX] showThankYouOverlay called with type:', donationType);
                 showMatrixTerminal();
             }
             
@@ -689,16 +699,44 @@
             
             // Check when window gets focus (user returns from donation page)
             window.addEventListener('focus', function() {
+                console.info('👁️ [MATRIX] Window focus event triggered');
                 // Small delay to ensure page is fully focused
                 setTimeout(checkForDonationReturn, 500);
             });
             
             // Check on visibility change (better detection for modern browsers)
             document.addEventListener('visibilitychange', function() {
+                console.info('👁️ [MATRIX] Visibility change event triggered, hidden:', document.hidden);
                 if (!document.hidden) {
                     setTimeout(checkForDonationReturn, 500);
                 }
             });
+            
+            // Additional periodic check for new tab scenarios
+            // Check every 5 seconds if there's a pending donation click
+            setInterval(function() {
+                const donationData = localStorage.getItem('ddcDonationClick');
+                if (donationData) {
+                    try {
+                        const data = JSON.parse(donationData);
+                        const timeSinceClick = Date.now() - data.timestamp;
+                        // If donation was clicked within last 60 minutes and no processing in progress
+                        if (timeSinceClick < 60 * 60 * 1000 && !isProcessingDonationReturn) {
+                            const shownKey = `ddcDonationShown_${data.timestamp}`;
+                            // Only check if not already shown
+                            if (!localStorage.getItem(shownKey)) {
+                                console.info('🔄 [MATRIX] Periodic check found pending donation - checking for return');
+                                checkForDonationReturn();
+                            } else {
+                                console.info('🔄 [MATRIX] Periodic check: donation already shown');
+                            }
+                        }
+                    } catch (e) {
+                        // Invalid data, clean up
+                        localStorage.removeItem('ddcDonationClick');
+                    }
+                }
+            }, 5000); // Check every 5 seconds
             
             // Auto-close after 8 seconds OR click overlay to close immediately
             let autoCloseTimer = null;
@@ -736,15 +774,15 @@
         // Matrix Terminal Animation
         
         function showMatrixTerminal() {
-            console.log('showMatrixTerminal called');
+            console.info('🎬 [MATRIX] showMatrixTerminal called');
             const overlay = document.getElementById('thankYouOverlay');
             const textElement = document.getElementById('thankYouText');
             
-            console.log('Matrix overlay:', overlay);
-            console.log('Matrix text element:', textElement);
+            console.info('🎬 [MATRIX] Matrix overlay:', overlay);
+            console.info('🎬 [MATRIX] Matrix text element:', textElement);
             
             if (!overlay || !textElement) {
-                console.error('Matrix elements not found!');
+                console.error('🎬 [MATRIX] Matrix elements not found!');
                 return;
             }
             
@@ -1361,6 +1399,17 @@
         window.testMatrixThankYou = function() {
             console.log('testMatrixThankYou called');
             
+            // Clear any old shown markers to ensure animation shows
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('ddcDonationShown_')) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            console.log('Cleared old shown markers:', keysToRemove.length);
+            
             // Simulate donation button click for testing
             const donationData = {
                 type: 'coffee',
@@ -1376,6 +1425,28 @@
             } else {
                 console.error('checkForDonationReturn not yet available');
             }
+        }
+        
+        // Direct Matrix Animation Test (bypasses localStorage)
+        window.testMatrixAnimationDirect = function() {
+            console.log('testMatrixAnimationDirect called - bypassing localStorage logic');
+            showMatrixTerminal();
+        }
+        
+        // Debug localStorage function
+        window.debugLocalStorage = function() {
+            console.log('=== localStorage Debug ===');
+            console.log('ddcDonationClick:', localStorage.getItem('ddcDonationClick'));
+            
+            const keysWithShown = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('ddcDonationShown_')) {
+                    keysWithShown.push(key + ' = ' + localStorage.getItem(key));
+                }
+            }
+            console.log('Shown markers:', keysWithShown);
+            console.log('=== End localStorage Debug ===');
         }
         
         // Test Functions for Adding/Removing Fuel
