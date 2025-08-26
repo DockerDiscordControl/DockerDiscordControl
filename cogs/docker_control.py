@@ -1684,12 +1684,16 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             if not await self._check_spam_protection(ctx, "donate"):
                 return
                 
-            # Try to import donation manager with backwards compatibility
+            # Check if MechService is available
             try:
-                from utils.donation_manager import get_donation_manager
+                from services.mech_service import get_mech_service
+                # Test if we can get the service
+                mech_service = get_mech_service()
                 donation_manager_available = True
-            except ImportError:
+                logger.info("MechService is available for donations")
+            except Exception as e:
                 donation_manager_available = False
+                logger.warning(f"MechService not available: {e}")
             
             await ctx.defer(ephemeral=True)
             
@@ -1743,12 +1747,16 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             if not await self._check_spam_protection(ctx, "donatebroadcast"):
                 return
                 
-            # Try to import donation manager with backwards compatibility
+            # Check if MechService is available
             try:
-                from utils.donation_manager import get_donation_manager
+                from services.mech_service import get_mech_service
+                # Test if we can get the service
+                mech_service = get_mech_service()
                 donation_manager_available = True
-            except ImportError:
+                logger.info("MechService is available for donations")
+            except Exception as e:
                 donation_manager_available = False
+                logger.warning(f"MechService not available: {e}")
             
             # Simple response first
             await ctx.respond("Processing donation broadcast...", ephemeral=True)
@@ -2251,12 +2259,16 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         """Handle Mechonate button interaction - shows donation options."""
         try:
             
-            # Try to import donation manager with backwards compatibility
+            # Check if MechService is available
             try:
-                from utils.donation_manager import get_donation_manager
+                from services.mech_service import get_mech_service
+                # Test if we can get the service
+                mech_service = get_mech_service()
                 donation_manager_available = True
-            except ImportError:
+                logger.info("MechService is available for donations")
+            except Exception as e:
                 donation_manager_available = False
+                logger.warning(f"MechService not available: {e}")
             
             # Create donation embed (same as /donate command)
             embed = discord.Embed(
