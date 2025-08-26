@@ -1695,6 +1695,17 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 donation_manager_available = False
                 logger.warning(f"MechService not available: {e}")
             
+            # Check if donations are disabled by premium key
+            from utils.donation_utils import is_donations_disabled
+            if is_donations_disabled():
+                embed = discord.Embed(
+                    title="🔐 Premium Features Active",
+                    description="Donations are disabled via premium key. Thank you for supporting DDC!",
+                    color=0xFFD700  # Gold color
+                )
+                await ctx.respond(embed=embed, ephemeral=True)
+                return
+            
             await ctx.defer(ephemeral=True)
             
             # Create donation embed
@@ -1914,9 +1925,15 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         if has_any_info:
             embed.description += f"\n{translate('Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.')}"
         
-        # Add EXPANDED Mech Status with detailed information and progress bars
-        try:
-            logger.info("DEBUG: Starting mech status loading for /ss")
+        # Check if donations are disabled by premium key
+        from utils.donation_utils import is_donations_disabled
+        donations_disabled = is_donations_disabled()
+        
+        # Add EXPANDED Mech Status with detailed information and progress bars (skip if donations disabled)
+        mechonate_button = None
+        if not donations_disabled:
+            try:
+                logger.info("DEBUG: Starting mech status loading for /ss")
             import sys
             import os
             # Add project root to Python path for service imports
@@ -2061,8 +2078,12 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 # For refreshes without animation file, reference the existing one
                 embed.set_image(url="attachment://mech_animation.webp")
                 
-        except Exception as e:
-            logger.error(f"Could not load expanded mech status for /ss: {e}", exc_info=True)
+            except Exception as e:
+                logger.error(f"Could not load expanded mech status for /ss: {e}", exc_info=True)
+        else:
+            # Donations disabled - no mech components
+            animation_file = None
+            logger.info("Donations disabled - skipping mech status for /ss")
         
         # Add website URL as footer for better spacing
         embed.set_footer(text="https://ddc.bot")
@@ -2195,8 +2216,14 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         if has_any_info:
             embed.description += f"\n{translate('Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.')}"
         
-        # Add COLLAPSED Mech Status (animation only, no text details)
-        try:
+        # Check if donations are disabled by premium key
+        from utils.donation_utils import is_donations_disabled
+        donations_disabled = is_donations_disabled()
+        
+        # Add COLLAPSED Mech Status (animation only, no text details) (skip if donations disabled)
+        animation_file = None
+        if not donations_disabled:
+            try:
             import sys
             import os
             # Add project root to Python path for service imports
@@ -2239,8 +2266,12 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 # For refreshes without animation file, reference the existing one
                 embed.set_image(url="attachment://mech_animation.webp")
                 
-        except Exception as e:
-            logger.error(f"Could not load collapsed mech status for /ss: {e}", exc_info=True)
+            except Exception as e:
+                logger.error(f"Could not load collapsed mech status for /ss: {e}", exc_info=True)
+        else:
+            # Donations disabled - no mech components
+            animation_file = None
+            logger.info("Donations disabled - skipping collapsed mech status for /ss")
         
         # Add website URL as footer for better spacing
         embed.set_footer(text="https://ddc.bot")
@@ -2269,6 +2300,17 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             except Exception as e:
                 donation_manager_available = False
                 logger.warning(f"MechService not available: {e}")
+            
+            # Check if donations are disabled by premium key
+            from utils.donation_utils import is_donations_disabled
+            if is_donations_disabled():
+                embed = discord.Embed(
+                    title="🔐 Premium Features Active",
+                    description="Donations are disabled via premium key. Thank you for supporting DDC!",
+                    color=0xFFD700  # Gold color
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
             
             # Create donation embed (same as /donate command)
             embed = discord.Embed(
