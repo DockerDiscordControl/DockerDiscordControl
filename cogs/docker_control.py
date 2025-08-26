@@ -224,10 +224,14 @@ class DonationBroadcastModal(discord.ui.Modal):
     
     async def callback(self, interaction: discord.Interaction):
         """Handle modal submission."""
+        logger.info(f"=== DONATION MODAL CALLBACK STARTED ===")
+        logger.info(f"User: {interaction.user.name}, Raw inputs: name={self.name_input.value}, amount={self.amount_input.value}")
+        
         try:
             # Get values from modal
             donor_name = self.name_input.value or interaction.user.name
             raw_amount = self.amount_input.value.strip() if self.amount_input.value else ""
+            logger.info(f"Processed values: donor_name={donor_name}, raw_amount={raw_amount}")
             
             # Check sharing preference - simple X system
             share_preference = self.share_input.value.strip() if self.share_input.value else ""
@@ -280,36 +284,56 @@ class DonationBroadcastModal(discord.ui.Modal):
             old_evolution_level = None
             new_evolution_level = None
             
+            logger.info(f"Donation manager available: {self.donation_manager_available}")
             if self.donation_manager_available:
+                logger.info(f"Processing donation with amount: {amount}")
                 try:
                     from services.mech_service import get_mech_service
                     mech_service = get_mech_service()
                     
                     # Get OLD state before donation
                     old_state = mech_service.get_state()
+                    logger.info(f"Old state: fuel={old_state.fuel}, level={old_state.level}, total={old_state.total_donated}")
                     old_fuel = old_state.fuel
                     old_evolution_level = old_state.level
                     
                     # Parse amount if provided
+                    logger.info(f"Checking if amount exists: {amount}")
                     if amount:
                         # Try to extract numeric value from amount string
                         import re
                         # Match patterns like "10€", "$10", "10 Euro", "10 Dollar", "10", etc.
                         amount_match = re.search(r'(\d+(?:\.\d+)?)', amount)
+                        logger.info(f"Amount match result: {amount_match}")
                         if amount_match:
                             donation_amount_euros = float(amount_match.group(1))
                             logger.info(f"Parsed donation amount: {donation_amount_euros}€ from '{amount}'")
                     
                     # Record donation with NEW service (only if amount > 0)
+                    donation_recorded = False
+                    logger.info(f"Checking donation_amount_euros: {donation_amount_euros}")
                     if donation_amount_euros and donation_amount_euros > 0:
-                        # Use the full euro amount as integer cents to preserve precision
-                        # e.g., 10.50 -> 1050 cents, then divided by 100 = 10.5 dollars
-                        amount_dollars = int(donation_amount_euros)  # For now, just use integer dollars
-                        new_state = mech_service.add_donation(
-                            username=f"Discord:{interaction.user.name}",
-                            amount=amount_dollars
-                        )
-                        logger.info(f"NEW SERVICE: Donation recorded by {interaction.user.name} -> ${amount_dollars} (from {donation_amount_euros}€)")
+                        logger.info(f"Attempting to record donation of {donation_amount_euros}€")
+                        try:
+                            # Use the full euro amount as integer cents to preserve precision
+                            # e.g., 10.50 -> 1050 cents, then divided by 100 = 10.5 dollars
+                            amount_dollars = int(donation_amount_euros)  # For now, just use integer dollars
+                            logger.info(f"Calling mech_service.add_donation with username=Discord:{interaction.user.name}, amount={amount_dollars}")
+                            new_state = mech_service.add_donation(
+                                username=f"Discord:{interaction.user.name}",
+                                amount=amount_dollars
+                            )
+                            donation_recorded = True
+                            logger.info(f"NEW SERVICE: Donation SUCCESSFULLY recorded by {interaction.user.name} -> ${amount_dollars} (from {donation_amount_euros}€)")
+                        except PermissionError as pe:
+                            logger.error(f"PERMISSION ERROR: Cannot save donation due to file permissions: {pe}")
+                            # Still get current state for display, but mark as failed
+                            new_state = mech_service.get_state()
+                            donation_recorded = False
+                        except Exception as de:
+                            logger.error(f"DONATION ERROR: Failed to record donation: {de}")
+                            new_state = mech_service.get_state()
+                            donation_recorded = False
                     else:
                         # No donation amount - just get current state
                         new_state = mech_service.get_state()
