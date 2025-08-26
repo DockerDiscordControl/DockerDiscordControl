@@ -196,7 +196,7 @@
                         <div class="row g-3 align-items-end">
                             <div class="col-md-6">
                                 <label class="form-label">Disable Donation System Key <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Enter a valid key to completely remove all donation buttons, mech animations, and fuel bars from both Web UI and Discord. Purchase key at Buy Me a Coffee."></i></label>
-                                <input type="text" class="form-control" id="donation_disable_key" name="donation_disable_key" value="{{ config.donation_disable_key or '' }}" placeholder="DDC-DISABLE-2025-PREMIUM" maxlength="50">
+                                <input type="text" class="form-control" id="donation_disable_key" name="donation_disable_key" value="{{ config.donation_disable_key or '' }}" placeholder="DDC-PRO-24K5-9XH7-M3NQ-YZEF-2025" maxlength="80">
                                 <div class="form-text">
                                     <span id="keyStatus" class="text-muted">Enter key to disable all donation features</span>
                                 </div>
@@ -207,7 +207,7 @@
                                         <i class="bi bi-check-circle"></i> Validate Key
                                     </button>
                                     <a href="https://buymeacoffee.com/dockerdiscordcontrol/e/450553" target="_blank" rel="noopener noreferrer" class="btn btn-warning">
-                                        <i class="bi bi-cup-hot"></i> Buy Key
+                                        <i class="bi bi-award"></i> Buy License
                                     </a>
                                 </div>
                                 <div class="form-text mt-2">Purchase a key to completely remove all donation elements</div>
@@ -294,23 +294,26 @@ function updateKeyStatus() {
     if (keyInput && keyStatus) {
         const keyValue = keyInput.value.trim();
         if (!keyValue) {
-            keyStatus.textContent = 'Enter premium key to disable all donation features';
+            keyStatus.textContent = 'Enter premium license key to disable all donation features';
             keyStatus.className = 'text-muted';
         } else if (validateKeyFormat(keyValue)) {
-            keyStatus.textContent = '✅ Valid premium key - donations will be disabled';
+            keyStatus.textContent = '✅ Valid license key - donations will be disabled';
             keyStatus.className = 'text-success';
         } else {
-            keyStatus.textContent = '❌ Invalid key - purchase at Buy Me a Coffee';
+            keyStatus.textContent = '❌ Invalid license key - purchase at Buy Me a Coffee';
             keyStatus.className = 'text-danger';
         }
     }
 }
 
 function validateKeyFormat(key) {
-    // Fixed keys for premium users
+    // Complex license-style keys that look authentic for purchase
     const validKeys = [
-        'DDC-DISABLE-2025-PREMIUM',
-        'DDC-PREMIUM-DISABLE-2025'
+        'DDC-PRO-24K5-9XH7-M3NQ-YZEF-2025',        // Professional license style
+        'DDC-LIFETIME-8F9A-3P2K-7QLM-BHXC-2025',   // Lifetime license style
+        'DOCKER-DISCORD-CTRL-9G4B-5ZNW-PREMIUM',   // Full product name style
+        'DDC-COMMERCIAL-KL8E-4RTS-6MQV-DISABLE',   // Commercial license
+        'DDC-2025-ENTERPRISE-3YH9-BMKX-7FQL-PRO'   // Enterprise edition
     ];
     return validKeys.includes(key.toUpperCase());
 }
@@ -329,15 +332,15 @@ function validateDonationKey() {
     }
     
     if (validateKeyFormat(key)) {
-        keyStatus.textContent = '✅ Key validated! Donations will be completely disabled.';
+        keyStatus.textContent = '✅ License key validated! Donations will be completely disabled.';
         keyStatus.className = 'text-success';
         
         // Show success message
         setTimeout(() => {
-            keyStatus.textContent = '✅ Valid premium key - save settings to apply changes';
+            keyStatus.textContent = '✅ Valid license key - save settings to apply changes';
         }, 2000);
     } else {
-        keyStatus.textContent = '❌ Invalid key. Purchase the premium key at Buy Me a Coffee.';
+        keyStatus.textContent = '❌ Invalid license key. Purchase a valid license at Buy Me a Coffee.';
         keyStatus.className = 'text-danger';
     }
 }
