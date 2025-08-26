@@ -75,10 +75,10 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
         self.checkbox_enabled = discord.ui.InputText(
             label=_("☑️ Enable Info Button"),
             style=InputTextStyle.short,
-            value="x" if enabled else "",
+            value="X" if enabled else "",
             max_length=1,
             required=False,
-            placeholder=_("Type 'x' to enable, leave empty to disable")
+            placeholder=_("Type 'X' to enable, leave empty to disable")
         )
         self.add_item(self.checkbox_enabled)
         
@@ -87,10 +87,10 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
         self.checkbox_show_ip = discord.ui.InputText(
             label=_("🌐 Show IP Address"),
             style=InputTextStyle.short,
-            value="x" if show_ip else "",
+            value="X" if show_ip else "",
             max_length=1,
             required=False,
-            placeholder=_("Type 'x' to show IP, leave empty to hide")
+            placeholder=_("Type 'X' to show IP, leave empty to hide")
         )
         self.add_item(self.checkbox_show_ip)
     
