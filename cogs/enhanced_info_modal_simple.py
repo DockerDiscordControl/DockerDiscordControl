@@ -55,7 +55,7 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
             value=self.container_info.get('custom_ip', ''),
             max_length=100,
             required=False,
-            placeholder=_("mydomain.com or 192.168.1.100")
+            placeholder=_("Empty = auto WAN IP")
         )
         self.add_item(self.custom_ip)
         
