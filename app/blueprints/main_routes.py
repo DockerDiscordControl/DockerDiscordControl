@@ -613,8 +613,13 @@ def config_page():
     config_with_env = config.copy()
     config_with_env['env'] = env_vars
     
+    # Check if donations are disabled by key
+    from utils.donation_utils import is_donations_disabled
+    donations_disabled = is_donations_disabled()
+    
     return render_template('config.html', 
                            config=config_with_env,
+                           donations_disabled=donations_disabled,
                            common_timezones=COMMON_TIMEZONES, # Use imported COMMON_TIMEZONES
                            current_timezone=config.get('selected_timezone', 'UTC'),
                            all_containers=live_containers_list,  # Renamed from 'containers' to 'all_containers'

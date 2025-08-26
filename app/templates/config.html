@@ -12,7 +12,8 @@
     <h2 class="text-center my-3">DockerDiscordControl</h2>
     <p class="text-center lead" style="color:#adb5bd;">Configure your DDC Bot here.</p>
 
-    {# Donation Section #}
+    {# Donation Section - Only show if not disabled by key #}
+    {% if not donations_disabled %}
     <div class="text-center my-4 donation-section" id="donationSection">
         <p style="color:#adb5bd; margin-bottom: 10px;">If you find DDC helpful, consider supporting its development:</p>
         <span class="d-inline-block mx-2 align-middle">
@@ -159,6 +160,7 @@
             </div>
         </div>
     </div>
+    {% endif %} {# End donations_disabled check #}
 
     <style>
         /* Donation Button Animations */

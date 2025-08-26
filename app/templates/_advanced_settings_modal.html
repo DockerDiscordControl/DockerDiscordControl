@@ -186,6 +186,35 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Donation System Control -->
+                <div class="card bg-secondary mb-3">
+                    <div class="card-header text-light">
+                        <h6 class="mb-0"><i class="bi bi-shield-check"></i> Donation System Control</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-6">
+                                <label class="form-label">Disable Donation System Key <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Enter a valid key to completely remove all donation buttons, mech animations, and fuel bars from both Web UI and Discord. Purchase key at Buy Me a Coffee."></i></label>
+                                <input type="text" class="form-control" id="donation_disable_key" name="donation_disable_key" value="{{ config.donation_disable_key or '' }}" placeholder="DDC-DISABLE-2025-PREMIUM" maxlength="50">
+                                <div class="form-text">
+                                    <span id="keyStatus" class="text-muted">Enter key to disable all donation features</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-outline-info" onclick="validateDonationKey()">
+                                        <i class="bi bi-check-circle"></i> Validate Key
+                                    </button>
+                                    <a href="https://buymeacoffee.com/dockerdiscordcontrol/e/450553" target="_blank" rel="noopener noreferrer" class="btn btn-warning">
+                                        <i class="bi bi-cup-hot"></i> Buy Key
+                                    </a>
+                                </div>
+                                <div class="form-text mt-2">Purchase a key to completely remove all donation elements</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -223,6 +252,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (advancedModal) {
         advancedModal.addEventListener('shown.bs.modal', function() {
             updateCacheTTL();
+            updateKeyStatus();
             // Re-initialize tooltips in case they weren't ready before
             const modalTooltips = this.querySelectorAll('[data-bs-toggle="tooltip"]');
             [...modalTooltips].forEach(tooltip => {
@@ -256,4 +286,67 @@ function saveAdvancedSettings() {
         }
     }, 1000); // Give time for save to complete
 }
+
+function updateKeyStatus() {
+    const keyInput = document.getElementById('donation_disable_key');
+    const keyStatus = document.getElementById('keyStatus');
+    
+    if (keyInput && keyStatus) {
+        const keyValue = keyInput.value.trim();
+        if (!keyValue) {
+            keyStatus.textContent = 'Enter premium key to disable all donation features';
+            keyStatus.className = 'text-muted';
+        } else if (validateKeyFormat(keyValue)) {
+            keyStatus.textContent = '✅ Valid premium key - donations will be disabled';
+            keyStatus.className = 'text-success';
+        } else {
+            keyStatus.textContent = '❌ Invalid key - purchase at Buy Me a Coffee';
+            keyStatus.className = 'text-danger';
+        }
+    }
+}
+
+function validateKeyFormat(key) {
+    // Fixed keys for premium users
+    const validKeys = [
+        'DDC-DISABLE-2025-PREMIUM',
+        'DDC-PREMIUM-DISABLE-2025'
+    ];
+    return validKeys.includes(key.toUpperCase());
+}
+
+function validateDonationKey() {
+    const keyInput = document.getElementById('donation_disable_key');
+    const keyStatus = document.getElementById('keyStatus');
+    
+    if (!keyInput || !keyStatus) return;
+    
+    const key = keyInput.value.trim();
+    if (!key) {
+        keyStatus.textContent = '❌ Please enter a key first';
+        keyStatus.className = 'text-danger';
+        return;
+    }
+    
+    if (validateKeyFormat(key)) {
+        keyStatus.textContent = '✅ Key validated! Donations will be completely disabled.';
+        keyStatus.className = 'text-success';
+        
+        // Show success message
+        setTimeout(() => {
+            keyStatus.textContent = '✅ Valid premium key - save settings to apply changes';
+        }, 2000);
+    } else {
+        keyStatus.textContent = '❌ Invalid key. Purchase the premium key at Buy Me a Coffee.';
+        keyStatus.className = 'text-danger';
+    }
+}
+
+// Update key status when typing and add event listener
+document.addEventListener('DOMContentLoaded', function() {
+    const keyInput = document.getElementById('donation_disable_key');
+    if (keyInput) {
+        keyInput.addEventListener('input', updateKeyStatus);
+    }
+});
 </script>
