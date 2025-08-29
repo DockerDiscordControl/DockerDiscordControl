@@ -29,8 +29,8 @@ if 'DDC_DISCORD_SKIP_TOKEN_LOCK' not in os.environ:
     os.environ['DDC_DISCORD_SKIP_TOKEN_LOCK'] = 'true'
 
 # Import custom modules
-from utils.config_loader import load_config, save_config
-from utils.logging_utils import setup_logger, refresh_debug_status, setup_all_loggers
+from utils.config_loader import load_config
+from utils.logging_utils import setup_logger
 from utils.config_cache import init_config_cache, get_cached_config
 # Import new features with backwards compatibility
 try:
@@ -55,7 +55,7 @@ except ImportError:
     print("Donation manager not available - skipping donation messages")
     donation_manager_available = False
 # Import the internal translation system
-from cogs.translation_manager import _, get_translations
+from cogs.translation_manager import _
 # Import scheduler service
 from utils.scheduler_service import start_scheduler_service, stop_scheduler_service
 # Import the centralized action logger (ensures proper logger initialization)
@@ -489,28 +489,6 @@ async def on_ready():
             if cog:
                 logger.info("Executing initialization of DockerControlCog (loop checks & initial send)...")
 
-                # --- IMPORTANT: Start loops BEFORE send_initial_status ---
-                # Start loops manually if they exist and are not running
-                # if hasattr(cog, 'heartbeat_send_loop') and not cog.heartbeat_send_loop.is_running():
-                #     cog.heartbeat_send_loop.start()
-                #     logger.info("Heartbeat loop in Cog started manually.")
-                # # Start the cache loop HERE
-                # if hasattr(cog, 'status_update_loop') and not cog.status_update_loop.is_running():
-                #     cog.status_update_loop.start()
-                #     logger.info("Status update loop in Cog started manually.")
-                #  # Start the edit loop HERE (or after send_initial_status? Better here)
-                # if hasattr(cog, 'periodic_message_edit_loop') and not cog.periodic_message_edit_loop.is_running():
-                #     cog.periodic_message_edit_loop.start()
-                #     logger.info("Periodic message edit loop in Cog started manually.")
-                # # Start inactivity loop
-                # if hasattr(cog, 'inactivity_check_loop') and not cog.inactivity_check_loop.is_running():
-                #     cog.inactivity_check_loop.start()
-                #     logger.info("Inactivity check loop in Cog started manually.")
-
-                # Call send_initial_status only AFTER starting the loops
-                # await cog.send_initial_status() # This call is now handled by the Cog itself in __init__ via create_task
-
-                # --- End of loop start logic ---
 
             else:
                 logger.error("Could not retrieve DockerControlCog instance!")

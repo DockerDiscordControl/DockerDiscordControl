@@ -1111,8 +1111,20 @@ class MechExpandButton(Button):
     async def callback(self, interaction: discord.Interaction):
         """Expand mech status to show detailed information."""
         try:
-            # Skip spam protection for now (SpamProtectionManager doesn't have the expected methods)
-            # TODO: Implement proper spam protection
+            # Apply spam protection
+            from utils.spam_protection_manager import get_spam_protection_manager
+            spam_manager = get_spam_protection_manager()
+            if spam_manager.is_enabled():
+                cooldown = spam_manager.get_button_cooldown("info")
+                # Use simple rate limiting for buttons
+                import time
+                current_time = time.time()
+                user_id = str(interaction.user.id)
+                last_click = getattr(self, f'_last_click_{user_id}', 0)
+                if current_time - last_click < cooldown:
+                    await interaction.response.send_message(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
+                    return
+                setattr(self, f'_last_click_{user_id}', current_time)
             
             await interaction.response.defer()
             
@@ -1192,8 +1204,20 @@ class MechCollapseButton(Button):
     async def callback(self, interaction: discord.Interaction):
         """Collapse mech status to show only animation."""
         try:
-            # Skip spam protection for now (SpamProtectionManager doesn't have the expected methods)
-            # TODO: Implement proper spam protection
+            # Apply spam protection
+            from utils.spam_protection_manager import get_spam_protection_manager
+            spam_manager = get_spam_protection_manager()
+            if spam_manager.is_enabled():
+                cooldown = spam_manager.get_button_cooldown("info")
+                # Use simple rate limiting for buttons
+                import time
+                current_time = time.time()
+                user_id = str(interaction.user.id)
+                last_click = getattr(self, f'_last_click_{user_id}', 0)
+                if current_time - last_click < cooldown:
+                    await interaction.response.send_message(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
+                    return
+                setattr(self, f'_last_click_{user_id}', current_time)
             
             await interaction.response.defer()
             

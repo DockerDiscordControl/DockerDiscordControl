@@ -34,14 +34,6 @@ def get_guild_id() -> Union[List[int], None]:
     logger.warning("No valid guild_id found in config. Commands will be registered globally.")
     return None
 
-# Old function commented out
-# async def container_select(ctx: discord.AutocompleteContext) -> List[str]:
-#     """ Returns a list of configured Docker containers for autocomplete. """
-#     config = load_config()
-#     servers = config.get('servers', [])
-#     # We return the `docker_name` as this is the unique identifier
-#     # that we need for actions.
-#     return [server.get('docker_name') for server in servers if server.get('docker_name')]
 
 # Updated function for Discord Autocomplete
 async def container_select(original_ctx, original_current):
