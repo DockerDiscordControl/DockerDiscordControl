@@ -190,13 +190,26 @@
                 <!-- Donation System Control -->
                 <div class="card bg-secondary mb-3">
                     <div class="card-header text-light">
-                        <h6 class="mb-0"><i class="bi bi-shield-check"></i> Donation System Control</h6>
+                        <h6 class="mb-0">
+                            <i class="bi bi-shield-check"></i> Donation System Control
+                            {% if config.donation_disable_key and donations_disabled %}
+                            <span class="badge bg-success ms-2" id="donationHeaderBadge">
+                                <i class="bi bi-check-circle-fill"></i> PREMIUM ACTIVE
+                            </span>
+                            {% endif %}
+                        </h6>
                     </div>
                     <div class="card-body">
+                        {% if config.donation_disable_key and donations_disabled %}
+                        <div class="alert alert-success mb-3" role="alert" id="donationStatusAlert">
+                            <i class="bi bi-check-circle-fill"></i> <strong>Donation System is DISABLED</strong><br>
+                            <small>All donation elements are hidden in Web UI and Discord. Remove the key below to re-enable donations.</small>
+                        </div>
+                        {% endif %}
                         <div class="row g-3 align-items-end">
                             <div class="col-md-6">
                                 <label class="form-label">Disable Donation System Key <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Enter a valid key to completely remove all donation buttons, mech animations, and fuel bars from both Web UI and Discord. Purchase key at Buy Me a Coffee."></i></label>
-                                <input type="text" class="form-control" id="donation_disable_key" name="donation_disable_key" value="{{ config.donation_disable_key or '' }}" placeholder="DDC-PRO-24K5-9XH7-M3NQ-YZEF-2025" maxlength="80">
+                                <input type="text" class="form-control" id="donation_disable_key" name="donation_disable_key" value="{{ config.donation_disable_key or '' }}" placeholder="DDC-EXAMPLE-XXXX-XXXX-XXXX-XXXX-2025" maxlength="80">
                                 <div class="form-text">
                                     <span id="keyStatus" class="text-muted">Enter key to disable all donation features</span>
                                 </div>
@@ -206,7 +219,7 @@
                                     <button type="button" class="btn btn-outline-info" onclick="validateDonationKey()">
                                         <i class="bi bi-check-circle"></i> Validate Key
                                     </button>
-                                    <a href="https://buymeacoffee.com/dockerdiscordcontrol/e/450553" target="_blank" rel="noopener noreferrer" class="btn btn-warning">
+                                    <a href="https://buymeacoffee.com/dockerdiscordcontrol/extras" target="_blank" rel="noopener noreferrer" class="btn btn-warning">
                                         <i class="bi bi-award"></i> Buy License
                                     </a>
                                 </div>
@@ -265,6 +278,47 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function saveAdvancedSettings() {
+    // Copy advanced settings values to main form before saving
+    const mainForm = document.getElementById('config-form');
+    const advancedModal = document.getElementById('advancedSettingsModal');
+    
+    if (mainForm && advancedModal) {
+        // Get all input fields from the advanced settings modal
+        const advancedInputs = advancedModal.querySelectorAll('input[name^="env_"], input[name="donation_disable_key"]');
+        
+        console.log(`Found ${advancedInputs.length} advanced inputs to copy`);
+        
+        // Specifically check for donation key
+        const donationKeyInput = advancedModal.querySelector('input[name="donation_disable_key"]');
+        if (donationKeyInput) {
+            console.log(`Donation key input found with value: "${donationKeyInput.value}"`);
+        } else {
+            console.log('WARNING: Donation key input NOT FOUND!');
+        }
+        
+        advancedInputs.forEach(input => {
+            // Find or create corresponding hidden input in main form
+            let mainInput = mainForm.querySelector(`input[name="${input.name}"]`);
+            
+            if (!mainInput) {
+                // Create hidden input if it doesn't exist
+                mainInput = document.createElement('input');
+                mainInput.type = 'hidden';
+                mainInput.name = input.name;
+                mainForm.appendChild(mainInput);
+            }
+            
+            // Copy value
+            if (input.type === 'checkbox') {
+                mainInput.value = input.checked ? '1' : '0';
+            } else {
+                mainInput.value = input.value;
+            }
+            
+            console.log(`Copied ${input.name} = ${mainInput.value} to main form`);
+        });
+    }
+    
     // Trigger unsaved changes warning to show that settings have changed
     if (typeof showUnsavedChangesAlert === 'function') {
         showUnsavedChangesAlert(true);
@@ -306,16 +360,85 @@ function updateKeyStatus() {
     }
 }
 
+function decryptKey(encryptedKey, cryptoKey = 'NothingToEncrypt') {
+    try {
+        // Decode base64
+        const encrypted = atob(encryptedKey);
+        
+        // Convert string to bytes (compatible with older browsers)
+        const keyBytes = [];
+        for (let i = 0; i < cryptoKey.length; i++) {
+            keyBytes.push(cryptoKey.charCodeAt(i));
+        }
+        
+        let decrypted = '';
+        for (let i = 0; i < encrypted.length; i++) {
+            const encByte = encrypted.charCodeAt(i);
+            const keyByte = keyBytes[i % keyBytes.length];
+            decrypted += String.fromCharCode(encByte ^ keyByte);
+        }
+        
+        return decrypted;
+    } catch (e) {
+        console.error('Key decryption failed:', e);
+        return '';
+    }
+}
+
 function validateKeyFormat(key) {
-    // Complex license-style keys that look authentic for purchase
-    const validKeys = [
-        'DDC-PRO-24K5-9XH7-M3NQ-YZEF-2025',        // Professional license style
-        'DDC-LIFETIME-8F9A-3P2K-7QLM-BHXC-2025',   // Lifetime license style
-        'DOCKER-DISCORD-CTRL-9G4B-5ZNW-PREMIUM',   // Full product name style
-        'DDC-COMMERCIAL-KL8E-4RTS-6MQV-DISABLE',   // Commercial license
-        'DDC-2025-ENTERPRISE-3YH9-BMKX-7FQL-PRO'   // Enterprise edition
+    // Encrypted donation keys - use decryptKey() to get actual keys
+    const encryptedKeys = [
+        'Cis3RTk8KHldcSVWX0AoPHlCOVsnP0oNNQAoTkBJQkE=',          // Professional license
+        'Cis3RSUnIRE7DCMmX0E2TQ9CRzhbJUpjPgkjTjAxKDdjXURaXA==',    // Lifetime license
+        'CiA3Iyw8ShAmFi0sID1dNxo9OEVQKVMWQnA0LSVUICYLIj09JA==',    // Full product name
+        'Cis3RSohKhkqFy0qMzVdPwJXMUVdPDMHQnMjMiRUND0dLjYkLA==',    // Commercial license
+        'Cis3RVteVWFCACA3NysgJgc8MUVaNy9tQgcjKCpURzIfI1k4OyE='     // Enterprise edition
     ];
-    return validKeys.includes(key.toUpperCase());
+    
+    // Decrypt and check
+    try {
+        const validKeys = encryptedKeys.map(encrypted => decryptKey(encrypted));
+        console.log('Decrypted keys:', validKeys.slice(0, 2)); // Show first 2 for debugging
+        const result = validKeys.some(validKey => validKey.toUpperCase() === key.toUpperCase());
+        console.log('Key validation result:', result, 'for key:', key);
+        return result;
+    } catch (e) {
+        console.error('validateKeyFormat error:', e);
+        return false;
+    }
+}
+
+function updateDonationStatus(isValid) {
+    const statusAlert = document.getElementById('donationStatusAlert');
+    const headerBadge = document.getElementById('donationHeaderBadge');
+    
+    if (isValid) {
+        // Show success status
+        if (!statusAlert) {
+            const alertHtml = `
+                <div class="alert alert-success mb-3" role="alert" id="donationStatusAlert">
+                    <i class="bi bi-check-circle-fill"></i> <strong>Donation System will be DISABLED</strong><br>
+                    <small>Save the configuration to apply changes. All donation elements will be hidden.</small>
+                </div>`;
+            const cardBody = document.querySelector('.card-body');
+            if (cardBody) {
+                cardBody.insertAdjacentHTML('afterbegin', alertHtml);
+            }
+        }
+        if (!headerBadge) {
+            const badgeHtml = `<span class="badge bg-success ms-2" id="donationHeaderBadge">
+                <i class="bi bi-check-circle-fill"></i> PREMIUM ACTIVE
+            </span>`;
+            const header = document.querySelector('.card-header h6');
+            if (header && !header.querySelector('#donationHeaderBadge')) {
+                header.insertAdjacentHTML('beforeend', badgeHtml);
+            }
+        }
+    } else {
+        // Remove success status if key is invalid/removed
+        if (statusAlert) statusAlert.remove();
+        if (headerBadge) headerBadge.remove();
+    }
 }
 
 function validateDonationKey() {
@@ -328,12 +451,14 @@ function validateDonationKey() {
     if (!key) {
         keyStatus.textContent = '❌ Please enter a key first';
         keyStatus.className = 'text-danger';
+        updateDonationStatus(false);
         return;
     }
     
     if (validateKeyFormat(key)) {
         keyStatus.textContent = '✅ License key validated! Donations will be completely disabled.';
         keyStatus.className = 'text-success';
+        updateDonationStatus(true);
         
         // Show success message
         setTimeout(() => {
@@ -342,6 +467,7 @@ function validateDonationKey() {
     } else {
         keyStatus.textContent = '❌ Invalid license key. Purchase a valid license at Buy Me a Coffee.';
         keyStatus.className = 'text-danger';
+        updateDonationStatus(false);
     }
 }
 

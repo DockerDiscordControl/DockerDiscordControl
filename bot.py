@@ -671,7 +671,7 @@ async def on_ready():
         _initial_startup_done = True # Prevents re-execution
         logger.info("Initialization complete.")
 
-    logger.info(f"{bot.user.name} is ready.")
+    logger.info("DDC is ready.")
 
 @bot.event
 async def on_error(event, *args, **kwargs):
@@ -681,6 +681,11 @@ async def on_error(event, *args, **kwargs):
 @bot.event
 async def on_command_error(ctx, error):
     """Centralized error handling for all slash commands"""
+    
+    # Skip error handling for donate commands - they have their own robust handling
+    if hasattr(ctx, 'command') and str(ctx.command) in ['donate', 'donatebroadcast']:
+        return
+    
     # Handle cooldown errors
     if isinstance(error, commands.CommandOnCooldown):
         seconds = error.retry_after

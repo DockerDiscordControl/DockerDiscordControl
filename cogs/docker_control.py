@@ -87,22 +87,20 @@ class DonationView(discord.ui.View):
         # Import translation function
         from .translation_manager import _
         
-        # Add Buy Me a Coffee button (interactive with tracking)
+        # Add Buy Me a Coffee button (direct link)
         coffee_button = discord.ui.Button(
             label=_("☕ Buy Me a Coffee"),
-            style=discord.ButtonStyle.primary,
-            custom_id="donation_coffee"
+            style=discord.ButtonStyle.link,
+            url="https://buymeacoffee.com/dockerdiscordcontrol"
         )
-        coffee_button.callback = self.coffee_clicked
         self.add_item(coffee_button)
         
-        # Add PayPal button (interactive with tracking)
+        # Add PayPal button (direct link)
         paypal_button = discord.ui.Button(
             label=_("💳 PayPal"),
-            style=discord.ButtonStyle.primary,
-            custom_id="donation_paypal"
+            style=discord.ButtonStyle.link,
+            url="https://www.paypal.com/donate/?hosted_button_id=XKVC6SFXU2GW4"
         )
-        paypal_button.callback = self.paypal_clicked
         self.add_item(paypal_button)
         
         # Add Broadcast Donation button
@@ -113,61 +111,6 @@ class DonationView(discord.ui.View):
         )
         broadcast_button.callback = self.broadcast_clicked
         self.add_item(broadcast_button)
-        
-    
-    async def coffee_clicked(self, interaction: discord.Interaction):
-        """Handle Buy Me a Coffee button click."""
-        try:
-            # Track the click
-            if self.donation_manager_available:
-                try:
-                    from utils.donation_manager import get_donation_manager
-                    donation_manager = get_donation_manager()
-                    donation_manager.record_donation(
-                        donation_type="discord_coffee",
-                        user_identifier=f"Discord User: {interaction.user.name} ({interaction.user.id})"
-                    )
-                    logger.info(f"Coffee donation button clicked by {interaction.user.name}")
-                except Exception as e:
-                    logger.debug(f"Could not track coffee click: {e}")
-            
-            # Send response with link (URLs in <> brackets suppress embeds automatically)
-            await interaction.response.send_message(
-                f"☕ **Thank you {interaction.user.name} for supporting DDC!**\n\n"
-                "Click here to donate via Buy Me a Coffee:\n"
-                "<https://buymeacoffee.com/dockerdiscordcontrol>\n\n"
-                "_Your support helps keep DDC running and improving!_ ❤️",
-                ephemeral=True
-            )
-        except Exception as e:
-            logger.error(f"Error in coffee_clicked: {e}")
-    
-    async def paypal_clicked(self, interaction: discord.Interaction):
-        """Handle PayPal button click."""
-        try:
-            # Track the click
-            if self.donation_manager_available:
-                try:
-                    from utils.donation_manager import get_donation_manager
-                    donation_manager = get_donation_manager()
-                    donation_manager.record_donation(
-                        donation_type="discord_paypal",
-                        user_identifier=f"Discord User: {interaction.user.name} ({interaction.user.id})"
-                    )
-                    logger.info(f"PayPal donation button clicked by {interaction.user.name}")
-                except Exception as e:
-                    logger.debug(f"Could not track PayPal click: {e}")
-            
-            # Send response with link (URLs in <> brackets suppress embeds automatically)
-            await interaction.response.send_message(
-                f"💳 **Thank you {interaction.user.name} for supporting DDC!**\n\n"
-                "Click here to donate via PayPal:\n"
-                "<https://www.paypal.com/donate/?hosted_button_id=XKVC6SFXU2GW4>\n\n"
-                "_Your support helps keep DDC running and improving!_ ❤️",
-                ephemeral=True
-            )
-        except Exception as e:
-            logger.error(f"Error in paypal_clicked: {e}")
     
     async def broadcast_clicked(self, interaction: discord.Interaction):
         """Handle Broadcast Donation button click."""
@@ -516,6 +459,16 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         # Basic initialization
         self.bot = bot
         self.config = config
+        
+        # Check if donations are disabled and remove donation commands
+        try:
+            from utils.donation_utils import is_donations_disabled
+            if is_donations_disabled():
+                logger.info("Donations are disabled - removing donation commands")
+                # Remove donate and donatebroadcast commands after cog is initialized
+                self.donations_disabled = True
+        except:
+            self.donations_disabled = False
         
         # Initialize Mech State Manager for persistence
         from utils.mech_state_manager import get_mech_state_manager
@@ -1486,7 +1439,15 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     last_use = spam_manager._command_cooldowns.get(cooldown_key, 0)
                     if current_time - last_use < cooldown_seconds:
                         remaining = int(cooldown_seconds - (current_time - last_use))
-                        await ctx.respond(f"❌ Command on cooldown. Try again in {remaining} seconds.", ephemeral=True)
+                        try:
+                            # Check if we need to use followup (for donate commands that defer)
+                            if command_name in ['donate', 'donatebroadcast']:
+                                await ctx.followup.send(f"❌ Command on cooldown. Try again in {remaining} seconds.")
+                            else:
+                                await ctx.respond(f"❌ Command on cooldown. Try again in {remaining} seconds.", ephemeral=True)
+                        except Exception:
+                            # If response fails, still prevent command execution
+                            pass
                         return False
                 else:
                     spam_manager._command_cooldowns = {}
@@ -1676,37 +1637,43 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         embed = discord.Embed(title="🏓", description=ping_message, color=discord.Color.blurple())
         await ctx.respond(embed=embed)
     
-    @commands.slash_command(name="donate", description=_("Show donation information to support the project"), guild_ids=get_guild_id())
+    @commands.slash_command(name="donate", description="Show donation information to support the project", guild_ids=get_guild_id())
     async def donate_command(self, ctx: discord.ApplicationContext):
         """Show donation links to support DockerDiscordControl development."""
+        # IMMEDIATELY defer to prevent timeout - this MUST be first!
         try:
-            # Check spam protection first
-            if not await self._check_spam_protection(ctx, "donate"):
-                return
-                
-            # Check if MechService is available
-            try:
-                from services.mech_service import get_mech_service
-                # Test if we can get the service
-                mech_service = get_mech_service()
-                donation_manager_available = True
-                logger.info("MechService is available for donations")
-            except Exception as e:
-                donation_manager_available = False
-                logger.warning(f"MechService not available: {e}")
-            
-            # Check if donations are disabled by premium key
+            await ctx.defer(ephemeral=True)
+        except:
+            # Interaction already expired - nothing we can do
+            return
+        
+        # NOW check if donations are disabled
+        try:
             from utils.donation_utils import is_donations_disabled
             if is_donations_disabled():
-                embed = discord.Embed(
-                    title="🔐 Premium Features Active",
-                    description="Donations are disabled via premium key. Thank you for supporting DDC!",
-                    color=0xFFD700  # Gold color
-                )
-                await ctx.respond(embed=embed, ephemeral=True)
+                # Send minimal response via followup since we deferred
+                try:
+                    await ctx.followup.send(".", delete_after=0.1)
+                except:
+                    pass
                 return
+        except:
+            pass
+        
+        # Check spam protection
+        if not await self._check_spam_protection(ctx, "donate"):
+            return
             
-            await ctx.defer(ephemeral=True)
+        try:
+            # Donations enabled - show normal donation UI
+            # Check MechService availability
+            donation_manager_available = False
+            try:
+                from services.mech_service import get_mech_service
+                mech_service = get_mech_service()
+                donation_manager_available = True
+            except:
+                pass
             
             # Create donation embed
             embed = discord.Embed(
@@ -1724,78 +1691,74 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             )
             embed.set_footer(text="https://ddc.bot")
             
-            # Create view with donation buttons
+            # Send with or without view (use followup since we deferred)
             try:
                 view = DonationView(donation_manager_available)
-                await ctx.followup.send(embed=embed, view=view, ephemeral=True)
-            except Exception as view_error:
-                logger.error(f"Error creating DonationView: {view_error}")
-                # Fallback without view
-                await ctx.followup.send(embed=embed, ephemeral=True)
-            
-            logger.info(f"Donate command used by user {ctx.user.name} ({ctx.user.id}) in channel {ctx.channel.id}")
-            
-            # Note: We don't track /donate command usage - only actual button clicks
-            return  # Important: Exit here to avoid error handler
-            
+                await ctx.followup.send(embed=embed, view=view)
+            except:
+                await ctx.followup.send(embed=embed)
+                
         except Exception as e:
             logger.error(f"Error in donate command: {e}", exc_info=True)
-            try:
-                error_embed = discord.Embed(
-                    title="❌ Error",
-                    description=_("An error occurred while showing donation information. Please try again later."),
-                    color=discord.Color.red()
-                )
-                await ctx.followup.send(embed=error_embed, ephemeral=True)
-            except:
-                pass
 
-    @commands.slash_command(name="donatebroadcast", description="Send donation message to all channels (admin only)", guild_ids=get_guild_id())
-    async def donate_broadcast_command(self, ctx: discord.ApplicationContext):
-        """Force send donation message to all connected channels."""
+    async def _handle_donate_interaction(self, interaction: discord.Interaction):
+        """Handle donation button interactions from mech UI."""
+        # This should never be called when donations are disabled
+        # (buttons shouldn't exist) but check anyway for safety
         try:
-            # Check spam protection first
-            if not await self._check_spam_protection(ctx, "donatebroadcast"):
+            from utils.donation_utils import is_donations_disabled
+            if is_donations_disabled():
+                # Silently ignore
                 return
-                
-            # Check if MechService is available
+        except:
+            pass
+            
+        try:
+            # Immediately defer to prevent interaction expiry
+            await interaction.response.defer(ephemeral=True)
+            
+            # Donations enabled - show normal donation UI
+            
+            # Check MechService availability
+            donation_manager_available = False
             try:
                 from services.mech_service import get_mech_service
-                # Test if we can get the service
                 mech_service = get_mech_service()
                 donation_manager_available = True
-                logger.info("MechService is available for donations")
-            except Exception as e:
-                donation_manager_available = False
-                logger.warning(f"MechService not available: {e}")
-            
-            # Simple response first
-            await ctx.respond("Processing donation broadcast...", ephemeral=True)
-            
-            # Check if user has admin permissions
-            if not ctx.author.guild_permissions.administrator:
-                await ctx.edit_original_response(content="❌ Access denied. Administrator permissions required.")
-                return
-
-            if not donation_manager_available:
-                await ctx.edit_original_response(content="❌ Error: Donation manager not available.")
-                return
-
-            # Use donation manager
-            donation_manager = get_donation_manager()
-            result = await donation_manager.send_donation_message(self.bot, force=True)
-
-            if result["success"]:
-                await ctx.edit_original_response(content=f"✅ Success! Donation message sent to {result['channels_sent']} channels.")
-            else:
-                await ctx.edit_original_response(content=f"❌ Failed: {result['message']}")
-
-        except Exception as e:
-            logger.error(f"Error in donate_broadcast command: {e}", exc_info=True)
-            try:
-                await ctx.edit_original_response(content=f"❌ Error: {str(e)}")
             except:
                 pass
+            
+            # Create donation embed
+            embed = discord.Embed(
+                title=_('Support DockerDiscordControl'),
+                description=_(
+                    'If DDC helps you, please consider supporting ongoing development. '
+                    'Donations help cover hosting, CI, maintenance, and feature work.'
+                ),
+                color=0x00ff41
+            )
+            embed.add_field(
+                name=_('Choose your preferred method:'),
+                value=_('Click one of the buttons below to support DDC development'),
+                inline=False
+            )
+            embed.set_footer(text="https://ddc.bot")
+            
+            # Send with or without view
+            try:
+                view = DonationView(donation_manager_available)
+                await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+            except:
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                
+        except discord.NotFound:
+            # Interaction expired - silently ignore
+            pass
+        except Exception as e:
+            # Only log unexpected errors, not Discord timing issues
+            if "Unknown interaction" not in str(e):
+                logger.error(f"Unexpected error in donate interaction: {e}", exc_info=True)
+
 
     # NOTE: Old _create_overview_embed method was removed
     # Use _create_overview_embed_expanded or _create_overview_embed_collapsed instead
@@ -1934,150 +1897,150 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         if not donations_disabled:
             try:
                 logger.info("DEBUG: Starting mech status loading for /ss")
-            import sys
-            import os
-            # Add project root to Python path for service imports
-            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            if project_root not in sys.path:
-                sys.path.insert(0, project_root)
-            
-            logger.info("DEBUG: Using new MechService")
-            from services.mech_service import get_mech_service
-            mech_service = get_mech_service()
-            mech_state = mech_service.get_state()
-            logger.info("DEBUG: new MechService created")
-            
-            # Get clean data from new service
-            current_fuel = mech_service.get_fuel_with_decimals()  # Use decimal version for accurate display
-            total_donations_received = mech_state.total_donated
-            logger.info(f"NEW SERVICE: fuel=${current_fuel:.2f}, total_donations=${total_donations_received}, level={mech_state.level} ({mech_state.level_name})")
-            
-            # Evolution info from new service with next_name for UI
-            from services.mech_service import MECH_LEVELS
-            next_name = None
-            if mech_state.next_level_threshold is not None:
-                # Find next level name from MECH_LEVELS
-                for level_info in MECH_LEVELS:
-                    if level_info.threshold == mech_state.next_level_threshold:
-                        next_name = level_info.name
-                        break
-            
-            evolution = {
-                'name': mech_state.level_name,
-                'level': mech_state.level,
-                'current_threshold': 0,  # Will be calculated from level if needed
-                'next_threshold': mech_state.next_level_threshold,
-                'next_name': next_name  # This was missing!
-            }
-            
-            # Speed info from glvl - get full speed description with translations
-            try:
-                from utils.speed_levels import get_combined_mech_status
-                # Try to get language from config
-                try:
-                    from utils.config_manager import get_config_manager
-                    config_manager = get_config_manager()
-                    config = config_manager.get_config()
-                    language = config.get('language', 'en').lower()
-                    if language not in ['en', 'de', 'fr']:
-                        language = 'en'
-                except:
-                    language = 'en'
+                import sys
+                import os
+                # Add project root to Python path for service imports
+                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                if project_root not in sys.path:
+                    sys.path.insert(0, project_root)
                 
-                combined_status = get_combined_mech_status(current_fuel, total_donations_received, language)
-                speed = combined_status['speed']
-                # Add glvl info to the speed object
-                speed['glvl'] = mech_state.glvl
-                speed['glvl_max'] = mech_state.glvl_max
-            except Exception as e:
-                logger.debug(f"Could not get speed description: {e}")
-                # Fallback to simple glvl display
-                speed = {
-                    'level': mech_state.glvl,
-                    'description': f"Glvl {mech_state.glvl}/{mech_state.glvl_max}",
-                    'glvl': mech_state.glvl
+                logger.info("DEBUG: Using new MechService")
+                from services.mech_service import get_mech_service
+                mech_service = get_mech_service()
+                mech_state = mech_service.get_state()
+                logger.info("DEBUG: new MechService created")
+                
+                # Get clean data from new service
+                current_fuel = mech_service.get_fuel_with_decimals()  # Use decimal version for accurate display
+                total_donations_received = mech_state.total_donated
+                logger.info(f"NEW SERVICE: fuel=${current_fuel:.2f}, total_donations=${total_donations_received}, level={mech_state.level} ({mech_state.level_name})")
+                
+                # Evolution info from new service with next_name for UI
+                from services.mech_service import MECH_LEVELS
+                next_name = None
+                if mech_state.next_level_threshold is not None:
+                    # Find next level name from MECH_LEVELS
+                    for level_info in MECH_LEVELS:
+                        if level_info.threshold == mech_state.next_level_threshold:
+                            next_name = level_info.name
+                            break
+                
+                evolution = {
+                    'name': mech_state.level_name,
+                    'level': mech_state.level,
+                    'current_threshold': 0,  # Will be calculated from level if needed
+                    'next_threshold': mech_state.next_level_threshold,
+                    'next_name': next_name  # This was missing!
                 }
-            
-            logger.info(f"NEW SERVICE: evolution={evolution['name']}, glvl={mech_state.glvl}/{mech_state.glvl_max}")
-            
-            # Create mech animation with fallback
-            try:
-                from services.mech_animation_service import get_mech_animation_service
-                mech_service = get_mech_animation_service()
-                animation_file = await mech_service.create_donation_animation_async(
-                    'Current', f'{current_fuel}$', current_fuel
-                )
-            except Exception as e:
-                logger.warning(f"Animation service failed (graceful degradation): {e}")
-                animation_file = None
-                # Add fallback visual indicator in embed
-                if not embed.footer or not embed.footer.text:
-                    embed.set_footer(text="🎬 Animation service temporarily unavailable")
-                else:
-                    embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
-            
-            # Use clean progress bar data from new service - NO MORE MANUAL CALCULATION! 🎯
-            # For Level 1, use decimal fuel for accurate percentage
-            if mech_state.level == 1:
-                fuel_current = current_fuel  # Use decimal value for Level 1
-            else:
-                fuel_current = mech_state.bars.fuel_current  # Use integer for Level 2+
-            fuel_max = mech_state.bars.fuel_max_for_level
-            evolution_current = mech_state.bars.mech_progress_current  
-            evolution_max = mech_state.bars.mech_progress_max
-            
-            logger.info(f"NEW SERVICE BARS: fuel={fuel_current}/{fuel_max}, evolution={evolution_current}/{evolution_max}")
-            
-            # Calculate percentages from clean data
-            if fuel_max > 0:
-                fuel_percentage = min(100, max(0, (fuel_current / fuel_max) * 100))
-                fuel_bar = self._create_progress_bar(fuel_percentage)
-                logger.info(f"NEW SERVICE: Fuel bar {fuel_percentage:.1f}% ({fuel_current}/{fuel_max})")
-            else:
-                fuel_bar = self._create_progress_bar(0)
-                fuel_percentage = 0
-                logger.info(f"NEW SERVICE: Fuel bar 0% (max=0)")
-            
-            # Evolution bar from clean data  
-            if evolution_max > 0:
-                next_percentage = min(100, max(0, (evolution_current / evolution_max) * 100))
-                next_bar = self._create_progress_bar(next_percentage)
-                logger.info(f"NEW SERVICE: Evolution bar {next_percentage:.1f}% ({evolution_current}/{evolution_max})")
-            else:
-                next_bar = self._create_progress_bar(0) 
-                next_percentage = 0
-                logger.info(f"NEW SERVICE: Evolution bar 0% (max level reached)")
-            
-            # Create EXPANDED mech status text with detailed information (no bold formatting)
-            evolution_name = translate(evolution['name'])
-            level_text = translate("Level")
-            mech_status = f"{evolution_name} ({level_text} {evolution['level']})\n"
-            speed_text = translate("Speed")
-            mech_status += f"{speed_text}: {speed['description']}\n\n"
-            mech_status += f"🛢️ ${current_fuel:.2f}\n{fuel_bar} {fuel_percentage:.1f}%\n"
-            fuel_consumption_text = translate("Fuel Consumption")
-            mech_status += f"{fuel_consumption_text}: 🔻 0.04/h\n\n"  # Using red down arrow for negative indication
-            
-            if evolution.get('next_name'):
-                next_evolution_name = translate(evolution['next_name'])
-                mech_status += f"⬆️ {next_evolution_name}\n{next_bar} {next_percentage:.1f}%"
-            else:
-                max_evolution_text = translate("MAX EVOLUTION REACHED!")
-                mech_status += f"🌟 {max_evolution_text}"
-            
-            # Glvl info is now included in speed description, no need for separate line
-            
-            embed.add_field(name=translate("Donation Engine"), value=mech_status, inline=False)
-            
-            # Set the mech animation as embed image
-            # Always set the same filename so Discord can reuse it on edits
-            if animation_file:
-                animation_file.filename = "mech_animation.webp"  # Standardize filename
-                embed.set_image(url="attachment://mech_animation.webp")
-            else:
-                # For refreshes without animation file, reference the existing one
-                embed.set_image(url="attachment://mech_animation.webp")
                 
+                # Speed info from glvl - get full speed description with translations
+                try:
+                    from utils.speed_levels import get_combined_mech_status
+                    # Try to get language from config
+                    try:
+                        from utils.config_manager import get_config_manager
+                        config_manager = get_config_manager()
+                        config = config_manager.get_config()
+                        language = config.get('language', 'en').lower()
+                        if language not in ['en', 'de', 'fr']:
+                            language = 'en'
+                    except:
+                        language = 'en'
+                    
+                    combined_status = get_combined_mech_status(current_fuel, total_donations_received, language)
+                    speed = combined_status['speed']
+                    # Add glvl info to the speed object
+                    speed['glvl'] = mech_state.glvl
+                    speed['glvl_max'] = mech_state.glvl_max
+                except Exception as e:
+                    logger.debug(f"Could not get speed description: {e}")
+                    # Fallback to simple glvl display
+                    speed = {
+                        'level': mech_state.glvl,
+                        'description': f"Glvl {mech_state.glvl}/{mech_state.glvl_max}",
+                        'glvl': mech_state.glvl
+                    }
+                
+                logger.info(f"NEW SERVICE: evolution={evolution['name']}, glvl={mech_state.glvl}/{mech_state.glvl_max}")
+                
+                # Create mech animation with fallback
+                try:
+                    from services.mech_animation_service import get_mech_animation_service
+                    mech_service = get_mech_animation_service()
+                    animation_file = await mech_service.create_donation_animation_async(
+                        'Current', f'{current_fuel}$', current_fuel
+                    )
+                except Exception as e:
+                    logger.warning(f"Animation service failed (graceful degradation): {e}")
+                    animation_file = None
+                    # Add fallback visual indicator in embed
+                    if not embed.footer or not embed.footer.text:
+                        embed.set_footer(text="🎬 Animation service temporarily unavailable")
+                    else:
+                        embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
+                
+                # Use clean progress bar data from new service - NO MORE MANUAL CALCULATION! 🎯
+                # For Level 1, use decimal fuel for accurate percentage
+                if mech_state.level == 1:
+                    fuel_current = current_fuel  # Use decimal value for Level 1
+                else:
+                    fuel_current = mech_state.bars.fuel_current  # Use integer for Level 2+
+                fuel_max = mech_state.bars.fuel_max_for_level
+                evolution_current = mech_state.bars.mech_progress_current  
+                evolution_max = mech_state.bars.mech_progress_max
+                
+                logger.info(f"NEW SERVICE BARS: fuel={fuel_current}/{fuel_max}, evolution={evolution_current}/{evolution_max}")
+                
+                # Calculate percentages from clean data
+                if fuel_max > 0:
+                    fuel_percentage = min(100, max(0, (fuel_current / fuel_max) * 100))
+                    fuel_bar = self._create_progress_bar(fuel_percentage)
+                    logger.info(f"NEW SERVICE: Fuel bar {fuel_percentage:.1f}% ({fuel_current}/{fuel_max})")
+                else:
+                    fuel_bar = self._create_progress_bar(0)
+                    fuel_percentage = 0
+                    logger.info(f"NEW SERVICE: Fuel bar 0% (max=0)")
+                
+                # Evolution bar from clean data  
+                if evolution_max > 0:
+                    next_percentage = min(100, max(0, (evolution_current / evolution_max) * 100))
+                    next_bar = self._create_progress_bar(next_percentage)
+                    logger.info(f"NEW SERVICE: Evolution bar {next_percentage:.1f}% ({evolution_current}/{evolution_max})")
+                else:
+                    next_bar = self._create_progress_bar(0) 
+                    next_percentage = 0
+                    logger.info(f"NEW SERVICE: Evolution bar 0% (max level reached)")
+                
+                # Create EXPANDED mech status text with detailed information (no bold formatting)
+                evolution_name = translate(evolution['name'])
+                level_text = translate("Level")
+                mech_status = f"{evolution_name} ({level_text} {evolution['level']})\n"
+                speed_text = translate("Speed")
+                mech_status += f"{speed_text}: {speed['description']}\n\n"
+                mech_status += f"🛢️ ${current_fuel:.2f}\n{fuel_bar} {fuel_percentage:.1f}%\n"
+                fuel_consumption_text = translate("Fuel Consumption")
+                mech_status += f"{fuel_consumption_text}: 🔻 0.04/h\n\n"  # Using red down arrow for negative indication
+                
+                if evolution.get('next_name'):
+                    next_evolution_name = translate(evolution['next_name'])
+                    mech_status += f"⬆️ {next_evolution_name}\n{next_bar} {next_percentage:.1f}%"
+                else:
+                    max_evolution_text = translate("MAX EVOLUTION REACHED!")
+                    mech_status += f"🌟 {max_evolution_text}"
+                
+                # Glvl info is now included in speed description, no need for separate line
+                
+                embed.add_field(name=translate("Donation Engine"), value=mech_status, inline=False)
+                
+                # Set the mech animation as embed image
+                # Always set the same filename so Discord can reuse it on edits
+                if animation_file:
+                    animation_file.filename = "mech_animation.webp"  # Standardize filename
+                    embed.set_image(url="attachment://mech_animation.webp")
+                else:
+                    # For refreshes without animation file, reference the existing one
+                    embed.set_image(url="attachment://mech_animation.webp")
+                    
             except Exception as e:
                 logger.error(f"Could not load expanded mech status for /ss: {e}", exc_info=True)
         else:
@@ -2224,47 +2187,47 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         animation_file = None
         if not donations_disabled:
             try:
-            import sys
-            import os
-            # Add project root to Python path for service imports
-            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            if project_root not in sys.path:
-                sys.path.insert(0, project_root)
+                import sys
+                import os
+                # Add project root to Python path for service imports
+                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                if project_root not in sys.path:
+                    sys.path.insert(0, project_root)
+                    
+                from services.mech_service import get_mech_service
+                mech_service = get_mech_service()
                 
-            from services.mech_service import get_mech_service
-            mech_service = get_mech_service()
-            
-            # Get current fuel for animation
-            mech_state = mech_service.get_state()
-            current_fuel = mech_service.get_fuel_with_decimals()
-            
-            # Create mech animation with fallback
-            try:
-                from services.mech_animation_service import get_mech_animation_service
-                mech_service = get_mech_animation_service()
-                animation_file = await mech_service.create_donation_animation_async(
-                    'Current', f'{current_fuel}$', current_fuel
-                )
-            except Exception as e:
-                logger.warning(f"Animation service failed (graceful degradation): {e}")
-                animation_file = None
-                # Add fallback visual indicator in embed
-                if not embed.footer or not embed.footer.text:
-                    embed.set_footer(text="🎬 Animation service temporarily unavailable")
+                # Get current fuel for animation
+                mech_state = mech_service.get_state()
+                current_fuel = mech_service.get_fuel_with_decimals()
+                
+                # Create mech animation with fallback
+                try:
+                    from services.mech_animation_service import get_mech_animation_service
+                    mech_service = get_mech_animation_service()
+                    animation_file = await mech_service.create_donation_animation_async(
+                        'Current', f'{current_fuel}$', current_fuel
+                    )
+                except Exception as e:
+                    logger.warning(f"Animation service failed (graceful degradation): {e}")
+                    animation_file = None
+                    # Add fallback visual indicator in embed
+                    if not embed.footer or not embed.footer.text:
+                        embed.set_footer(text="🎬 Animation service temporarily unavailable")
+                    else:
+                        embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
+                
+                # For collapsed view, only add a simple field name (no detailed info)
+                embed.add_field(name=translate("Donation Engine"), value="*" + translate("Click + to view Mech details") + "*", inline=False)
+                
+                # Set the mech animation as embed image
+                # Always set the same filename so Discord can reuse it on edits
+                if animation_file:
+                    animation_file.filename = "mech_animation.webp"  # Standardize filename
+                    embed.set_image(url="attachment://mech_animation.webp")
                 else:
-                    embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
-            
-            # For collapsed view, only add a simple field name (no detailed info)
-            embed.add_field(name=translate("Donation Engine"), value="*" + translate("Click + to view Mech details") + "*", inline=False)
-            
-            # Set the mech animation as embed image
-            # Always set the same filename so Discord can reuse it on edits
-            if animation_file:
-                animation_file.filename = "mech_animation.webp"  # Standardize filename
-                embed.set_image(url="attachment://mech_animation.webp")
-            else:
-                # For refreshes without animation file, reference the existing one
-                embed.set_image(url="attachment://mech_animation.webp")
+                    # For refreshes without animation file, reference the existing one
+                    embed.set_image(url="attachment://mech_animation.webp")
                 
             except Exception as e:
                 logger.error(f"Could not load collapsed mech status for /ss: {e}", exc_info=True)
@@ -3640,4 +3603,19 @@ def setup(bot):
     from utils.config_manager import get_config_manager
     config_manager = get_config_manager()
     config = config_manager.get_config()
-    bot.add_cog(DockerControlCog(bot, config))
+    cog = DockerControlCog(bot, config)
+    
+    # Remove donation commands if donations are disabled
+    try:
+        from utils.donation_utils import is_donations_disabled
+        if is_donations_disabled():
+            # Remove the donate and donatebroadcast commands
+            commands_to_remove = ['donate', 'donatebroadcast']
+            for cmd_name in commands_to_remove:
+                if cmd_name in bot.application_commands:
+                    del bot.application_commands[cmd_name]
+                    logger.info(f"Removed /{cmd_name} command - donations disabled")
+    except Exception as e:
+        logger.debug(f"Could not remove donation commands: {e}")
+    
+    bot.add_cog(cog)

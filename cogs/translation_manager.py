@@ -91,6 +91,7 @@ class TranslationManager:
                 "Refresh Button": "Aktualisieren-Button",
                 "Spam protection settings saved successfully!": "Spam-Schutz Einstellungen erfolgreich gespeichert!",
                 "Failed to save container info. Please try again.": "Container-Informationen konnten nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+                
                 # Update notifications
                 "DockerDiscordControl Update": "DockerDiscordControl Update",
                 "New features available!": "Neue Features verfügbar!",
@@ -147,6 +148,7 @@ class TranslationManager:
                 "Your donation has been recorded and helps fuel the Donation Engine.": "Deine Spende wurde erfasst und hilft dabei, die Donation Engine zu füllen.",
                 "❌ Error sending donation broadcast. Please try again later.": "❌ Fehler beim Senden der Spendenankündigung. Bitte später erneut versuchen.",
                 "Thank you for your support!": "Vielen Dank für deine Unterstützung!",
+                
                 "DockerDiscordControl": "DockerDiscordSteuerung",
                 "This command is not allowed in this channel.": "Dieser Befehl ist in diesem Kanal nicht erlaubt.",
                 "Force update initiated. All status messages will be regenerated.": "Forciertes Update initiiert. Alle Statusnachrichten werden neu generiert.",
@@ -766,6 +768,7 @@ class TranslationManager:
                 "Info Button": "Bouton Info",
                 "Refresh Button": "Bouton Actualiser",
                 "Spam protection settings saved successfully!": "Paramètres de protection anti-spam enregistrés avec succès!",
+                
                 # Donation messages
                 "Show donation information to support the project": "Afficher les informations de don pour soutenir le projet",
                 "An error occurred while showing donation information. Please try again later.": "Une erreur s'est produite lors de l'affichage des informations de don. Veuillez réessayer plus tard.",
@@ -814,6 +817,7 @@ class TranslationManager:
                 "Your donation has been recorded and helps fuel the Donation Engine.": "Votre don a été enregistré et aide à alimenter la Donation Engine.",
                 "❌ Error sending donation broadcast. Please try again later.": "❌ Erreur lors de l'envoi de l'annonce de don. Veuillez réessayer plus tard.",
                 "Thank you for your support!": "Merci pour votre soutien !",
+                
                 
                 # Mech System translations (French)
                 "Mech-onate": "Mech-onner",
@@ -1173,6 +1177,8 @@ class TranslationManager:
                 "Donation received - updating status": "Donation received - updating status",
                 "Donation recorded - updating fuel status": "Donation recorded - updating fuel status",
                 "MECH EVOLUTION ACHIEVED!": "MECH EVOLUTION ACHIEVED!",
+                
+                
                 "Your Mech has ascended to the next evolution stage: {evolution_name}": "Your Mech has ascended to the next evolution stage: {evolution_name}",
                 "The fuel system has been reset and refueled with the remaining surplus of ${surplus:.2f}.": "The fuel system has been reset and refueled with the remaining surplus of ${surplus:.2f}.",
                 "Significant Glvl change detected": "Significant Glvl change detected",

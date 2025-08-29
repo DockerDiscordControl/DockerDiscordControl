@@ -15,15 +15,12 @@ def is_donations_disabled() -> bool:
     Returns:
         bool: True if donations should be hidden, False otherwise
     """
+    from utils.donation_config import is_donations_disabled as check_donation_config
+    
     try:
-        config = load_config()
-        donation_key = config.get('donation_disable_key', '').strip()
-        
-        if not donation_key:
-            return False
-            
-        return validate_donation_key(donation_key)
+        return check_donation_config()
     except Exception:
+        # If any error occurs, default to donations enabled
         return False
 
 
@@ -40,16 +37,14 @@ def validate_donation_key(key: str) -> bool:
     if not key:
         return False
     
-    # Complex license-style keys that look authentic for purchase
-    VALID_KEYS = [
-        "DDC-PRO-24K5-9XH7-M3NQ-YZEF-2025",        # Professional license style
-        "DDC-LIFETIME-8F9A-3P2K-7QLM-BHXC-2025",   # Lifetime license style  
-        "DOCKER-DISCORD-CTRL-9G4B-5ZNW-PREMIUM",   # Full product name style
-        "DDC-COMMERCIAL-KL8E-4RTS-6MQV-DISABLE",   # Commercial license
-        "DDC-2025-ENTERPRISE-3YH9-BMKX-7FQL-PRO"   # Enterprise edition
-    ]
-    
-    return key.strip().upper() in [k.upper() for k in VALID_KEYS]
+    # Get valid keys from encrypted storage
+    from utils.key_crypto import get_valid_donation_keys
+    try:
+        valid_keys = get_valid_donation_keys()
+        return key.strip().upper() in [k.upper() for k in valid_keys]
+    except Exception:
+        # Fallback: If crypto module fails, deny access (fail secure)
+        return False
 
 
 def get_valid_keys() -> list:
@@ -59,13 +54,12 @@ def get_valid_keys() -> list:
     Returns:
         list: List of valid keys that can be purchased
     """
-    return [
-        "DDC-PRO-24K5-9XH7-M3NQ-YZEF-2025",
-        "DDC-LIFETIME-8F9A-3P2K-7QLM-BHXC-2025",   
-        "DOCKER-DISCORD-CTRL-9G4B-5ZNW-PREMIUM",
-        "DDC-COMMERCIAL-KL8E-4RTS-6MQV-DISABLE",
-        "DDC-2025-ENTERPRISE-3YH9-BMKX-7FQL-PRO"
-    ]
+    from utils.key_crypto import get_valid_donation_keys
+    try:
+        return get_valid_donation_keys()
+    except Exception:
+        # Fallback: If crypto module fails, return empty list
+        return []
 
 
 def generate_sample_key() -> str:

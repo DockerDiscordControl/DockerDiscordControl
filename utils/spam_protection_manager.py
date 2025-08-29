@@ -37,7 +37,6 @@ class SpamProtectionManager:
                 "help": 3,           # /help command
                 "ping": 3,           # /ping command
                 "donate": 5,         # /donate command
-                "donatebroadcast": 60, # /donatebroadcast command
                 "task": 5,           # /task command (generic) - reduced for easier task creation
                 "task_info": 5,      # /task_info command
                 "task_once": 5,      # /task_once command - reduced for easier task creation

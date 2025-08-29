@@ -48,8 +48,8 @@ class DynamicCooldownManager:
             'info_edit': 'info_edit',
             'help': 'help',
             'ping': 'ping',
-            'donate': 'donate',
-            'donatebroadcast': 'donatebroadcast',
+            # 'donate': 'donate',  # Disabled - using custom spam protection
+            # 'donatebroadcast': 'donatebroadcast',  # Disabled - using custom spam protection
             'task': 'task',          # Generic task command
             'task_info': 'task_info',
             'task_once': 'task_once',
@@ -148,12 +148,21 @@ class DynamicCooldownManager:
                         except Exception as e:
                             logger.debug(f"Could not apply cooldown to {command.name}: {e}")
                 else:
-                    # Remove cooldown if disabled
+                    # Create empty cooldown mapping if disabled (prevents None attribute errors)
                     try:
-                        command._buckets = None
-                        logger.debug(f"Removed cooldown from command: {command.name}")
-                    except Exception as e:
-                        logger.debug(f"Could not remove cooldown from {command.name}: {e}")
+                        # Create a no-op cooldown (0 seconds = no cooldown)
+                        empty_cooldown = commands.Cooldown(1, 0.0)
+                        command._buckets = commands.CooldownMapping(empty_cooldown, commands.BucketType.user)
+                        logger.debug(f"Applied empty cooldown to command: {command.name}")
+                    except (TypeError, AttributeError):
+                        try:
+                            # Try PyCord style
+                            empty_cooldown = commands.Cooldown(1, 0.0)
+                            command._buckets = commands.CooldownMapping(empty_cooldown)
+                            logger.debug(f"Applied empty cooldown (PyCord) to command: {command.name}")
+                        except Exception as e:
+                            logger.debug(f"Could not apply empty cooldown to {command.name}: {e}")
+                            # Fallback: Keep existing buckets if we can't create empty ones
         
         logger.info(f"Applied dynamic cooldowns to {applied_count} commands")
 

@@ -850,6 +850,12 @@ class ScheduledTask:
 def create_donation_system_task() -> ScheduledTask:
     """Create the hard-coded donation system task."""
     try:
+        # Check if donations are disabled
+        from utils.donation_utils import is_donations_disabled
+        if is_donations_disabled():
+            logger.debug("Donation system task skipped - donations disabled by premium key")
+            return None
+        
         # Get configured timezone or fall back to default
         try:
             from utils.config_cache import get_cached_config
@@ -1347,6 +1353,18 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
     """
     execution_start = time.time()
     logger.info(f"Executing scheduled task ID: {task.task_id} ({task.container_name} {task.action})")
+    
+    # Check if this is a donation task and donations are disabled
+    if task.action == "donation_message":
+        from utils.donation_utils import is_donations_disabled
+        if is_donations_disabled():
+            logger.info(f"Skipping donation task {task.task_id} - donations disabled by premium key")
+            # Update task as if it ran successfully to reschedule it
+            task.last_run_success = True
+            task.last_run_error = None
+            task.update_after_execution()
+            update_task(task)
+            return True  # Return true so it reschedules normally
     
     try:
         # Create a timeout for the docker action

@@ -15,6 +15,7 @@ from .control_helpers import _channel_has_permission, _get_pending_embed
 from utils.logging_utils import get_module_logger
 from utils.action_logger import log_user_action
 from .translation_manager import _
+from utils.donation_utils import is_donations_disabled
 
 logger = get_module_logger('control_ui')
 
@@ -1072,6 +1073,13 @@ class MechView(View):
         super().__init__(timeout=None)  # Persistent view
         self.cog = cog_instance
         self.channel_id = channel_id
+        
+        # Check if donations are disabled
+        donations_disabled = is_donations_disabled()
+        
+        # Skip all mech buttons if donations are disabled
+        if donations_disabled:
+            return
         
         # Check current mech expansion state for this channel
         is_expanded = cog_instance.mech_expanded_states.get(channel_id, False)

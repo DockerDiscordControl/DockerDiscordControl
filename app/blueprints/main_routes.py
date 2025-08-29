@@ -613,9 +613,14 @@ def config_page():
     config_with_env = config.copy()
     config_with_env['env'] = env_vars
     
-    # Check if donations are disabled by key
+    # Check if donations are disabled by key and load current donation key
     from utils.donation_utils import is_donations_disabled
+    from utils.donation_config import get_donation_disable_key
     donations_disabled = is_donations_disabled()
+    current_donation_key = get_donation_disable_key() or ''
+    
+    # Add donation key to config for template access
+    config_with_env['donation_disable_key'] = current_donation_key
     
     return render_template('config.html', 
                            config=config_with_env,
@@ -666,6 +671,17 @@ def save_config_api():
         
         # Process form
         form_data = request.form.to_dict(flat=False)
+        
+        # Debug: Check for donation key
+        print(f"[CONFIG-DEBUG] Form data keys: {list(form_data.keys())[:20]}...")
+        if 'donation_disable_key' in form_data:
+            print(f"[CONFIG-DEBUG] Found donation_disable_key in form: {form_data['donation_disable_key']}")
+        else:
+            print("[CONFIG-DEBUG] NO donation_disable_key in form data!")
+            # Check for any keys with 'donation' in name
+            donation_keys = [k for k in form_data.keys() if 'donation' in k.lower()]
+            if donation_keys:
+                print(f"[CONFIG-DEBUG] Found these donation-related keys: {donation_keys}")
         
         # Convert all lists with only one element to normal values
         # This logic can be adjusted if you want to keep certain fields as lists
