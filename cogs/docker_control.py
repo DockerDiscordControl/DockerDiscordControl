@@ -79,10 +79,12 @@ docker_status_cache_lock = threading.Lock()  # Thread safety for global status c
 class DonationView(discord.ui.View):
     """View with donation buttons that track clicks."""
     
-    def __init__(self, donation_manager_available: bool):
-        super().__init__(timeout=300)  # 5 minutes timeout
+    def __init__(self, donation_manager_available: bool, message=None):
+        super().__init__(timeout=890)  # 14.8 minutes (just under Discord's 15-minute limit)
         self.donation_manager_available = donation_manager_available
-        logger.info(f"DonationView initialized with donation_manager_available: {donation_manager_available}")
+        self.message = message  # Store reference to the message for auto-delete
+        self.auto_delete_task = None
+        logger.info(f"DonationView initialized with donation_manager_available: {donation_manager_available}, timeout: 890s")
         
         # Import translation function
         from .translation_manager import _
@@ -111,6 +113,45 @@ class DonationView(discord.ui.View):
         )
         broadcast_button.callback = self.broadcast_clicked
         self.add_item(broadcast_button)
+    
+    async def on_timeout(self):
+        """Called when the view times out."""
+        try:
+            # Cancel auto-delete task if it exists
+            if self.auto_delete_task and not self.auto_delete_task.done():
+                self.auto_delete_task.cancel()
+            
+            # Delete the message when timeout occurs
+            if self.message:
+                logger.info("DonationView timeout reached, deleting message to prevent inactive buttons")
+                try:
+                    await self.message.delete()
+                except discord.NotFound:
+                    logger.debug("Message already deleted")
+                except Exception as e:
+                    logger.error(f"Error deleting donation message on timeout: {e}")
+        except Exception as e:
+            logger.error(f"Error in DonationView.on_timeout: {e}")
+    
+    async def start_auto_delete_timer(self):
+        """Start the auto-delete timer that runs shortly before timeout."""
+        import asyncio
+        try:
+            # Wait for 885 seconds (14.75 minutes), then delete message
+            # This gives us a 5-second buffer before Discord's timeout
+            await asyncio.sleep(885)
+            if self.message:
+                logger.info("Auto-deleting donation message before Discord timeout")
+                try:
+                    await self.message.delete()
+                except discord.NotFound:
+                    logger.debug("Message already deleted")
+                except Exception as e:
+                    logger.error(f"Error auto-deleting donation message: {e}")
+        except asyncio.CancelledError:
+            logger.debug("Auto-delete timer cancelled")
+        except Exception as e:
+            logger.error(f"Error in auto-delete timer: {e}")
     
     async def broadcast_clicked(self, interaction: discord.Interaction):
         """Handle Broadcast Donation button click."""
@@ -169,6 +210,13 @@ class DonationBroadcastModal(discord.ui.Modal):
         """Handle modal submission."""
         logger.info(f"=== DONATION MODAL CALLBACK STARTED ===")
         logger.info(f"User: {interaction.user.name}, Raw inputs: name={self.name_input.value}, amount={self.amount_input.value}")
+        
+        # Send immediate acknowledgment to avoid timeout
+        from .translation_manager import _
+        await interaction.response.send_message(
+            _("⏳ Processing your donation... Please wait a moment."),
+            ephemeral=True
+        )
         
         try:
             # Get values from modal
@@ -438,15 +486,26 @@ class DonationBroadcastModal(discord.ui.Modal):
                 response_text += _("Thank you **{donor_name}** for your generous support! 🙏").format(donor_name=donor_name) + "\n"
                 response_text += _("Your donation has been recorded and helps fuel the Donation Engine.")
             
-            await interaction.response.send_message(response_text, ephemeral=True)
+            # Since we already sent acknowledgment, use followup for final response
+            await interaction.followup.send(response_text, ephemeral=True)
+            
+            # Delete the "Processing..." message
+            try:
+                await interaction.delete_original_response()
+            except:
+                pass  # Ignore if already deleted or expired
             
         except Exception as e:
             logger.error(f"Error in donation broadcast modal: {e}")
             from .translation_manager import _
-            await interaction.response.send_message(
-                _("❌ Error sending donation broadcast. Please try again later."),
-                ephemeral=True
-            )
+            try:
+                # Since we already sent acknowledgment, always use followup
+                await interaction.followup.send(
+                    _("❌ Error sending donation broadcast. Please try again later."),
+                    ephemeral=True
+                )
+            except Exception as followup_error:
+                logger.error(f"Could not send error response: {followup_error}")
 
 
 class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin, CommandHandlersMixin):
@@ -1424,8 +1483,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
     # --- Slash Commands ---
     async def _check_spam_protection(self, ctx: discord.ApplicationContext, command_name: str) -> bool:
         """Check spam protection for a command. Returns True if command can proceed, False if on cooldown."""
-        from utils.spam_protection_manager import get_spam_protection_manager
-        spam_manager = get_spam_protection_manager()
+        from services.infrastructure.spam_protection_service import get_spam_protection_service
+        spam_manager = get_spam_protection_service()
         
         if spam_manager.is_enabled():
             cooldown_seconds = spam_manager.get_command_cooldown(command_name)
@@ -1694,7 +1753,11 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             # Send with or without view (use followup since we deferred)
             try:
                 view = DonationView(donation_manager_available)
-                await ctx.followup.send(embed=embed, view=view)
+                message = await ctx.followup.send(embed=embed, view=view)
+                # Update view with message reference and start auto-delete timer
+                view.message = message
+                import asyncio
+                view.auto_delete_task = asyncio.create_task(view.start_auto_delete_timer())
             except:
                 await ctx.followup.send(embed=embed)
                 
@@ -1747,6 +1810,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             # Send with or without view
             try:
                 view = DonationView(donation_manager_available)
+                # Note: Ephemeral messages don't need auto-delete as they're private
                 await interaction.followup.send(embed=embed, view=view, ephemeral=True)
             except:
                 await interaction.followup.send(embed=embed, ephemeral=True)
@@ -1827,10 +1891,10 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             # Check if container has info available (same as original)
             info_indicator = ""
             try:
-                from utils.container_info_manager import get_container_info_manager
-                info_manager = get_container_info_manager()
-                info_config = info_manager.load_container_info(docker_name)
-                if info_config.get('enabled', False):
+                from services.infrastructure.container_info_service import get_container_info_service
+                info_service = get_container_info_service()
+                info_result = info_service.get_container_info(docker_name)
+                if info_result.success and info_result.data.enabled:
                     info_indicator = " ℹ️"
             except Exception as e:
                 logger.debug(f"Could not check info status for {docker_name}: {e}")
@@ -1967,8 +2031,12 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 try:
                     from services.mech_animation_service import get_mech_animation_service
                     mech_service = get_mech_animation_service()
+                    # Get total_donated from MechService (not animation service)
+                    from services.mech_service import get_mech_service as get_data_service
+                    data_service = get_data_service()
+                    total_donated = data_service.get_state().total_donated
                     animation_file = await mech_service.create_donation_animation_async(
-                        'Current', f'{current_fuel}$', current_fuel
+                        'Current', f'{current_fuel}$', total_donated
                     )
                 except Exception as e:
                     logger.warning(f"Animation service failed (graceful degradation): {e}")
@@ -2118,10 +2186,10 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             # Check if container has info available (same as original)
             info_indicator = ""
             try:
-                from utils.container_info_manager import get_container_info_manager
-                info_manager = get_container_info_manager()
-                info_config = info_manager.load_container_info(docker_name)
-                if info_config.get('enabled', False):
+                from services.infrastructure.container_info_service import get_container_info_service
+                info_service = get_container_info_service()
+                info_result = info_service.get_container_info(docker_name)
+                if info_result.success and info_result.data.enabled:
                     info_indicator = " ℹ️"
             except Exception as e:
                 logger.debug(f"Could not check info status for {docker_name}: {e}")
@@ -2205,8 +2273,12 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 try:
                     from services.mech_animation_service import get_mech_animation_service
                     mech_service = get_mech_animation_service()
+                    # Get total_donated from MechService (not animation service)
+                    from services.mech_service import get_mech_service as get_data_service
+                    data_service = get_data_service()
+                    total_donated = data_service.get_state().total_donated
                     animation_file = await mech_service.create_donation_animation_async(
-                        'Current', f'{current_fuel}$', current_fuel
+                        'Current', f'{current_fuel}$', total_donated
                     )
                 except Exception as e:
                     logger.warning(f"Animation service failed (graceful degradation): {e}")
@@ -2294,6 +2366,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             # Create view with donation buttons
             try:
                 view = DonationView(donation_manager_available)
+                # Note: Ephemeral messages don't need auto-delete as they're private
                 await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
                 logger.info(f"Mechonate button used by user {interaction.user.name} ({interaction.user.id})")
             except Exception as view_error:
@@ -3106,11 +3179,11 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 return
             
             # Load container info to check if info is enabled
-            from utils.container_info_manager import get_container_info_manager
-            info_manager = get_container_info_manager()
-            info_config = info_manager.load_container_info(container_name)
+            from services.infrastructure.container_info_service import get_container_info_service
+            info_service = get_container_info_service()
+            info_result = info_service.get_container_info(container_name)
             
-            if not info_config.get('enabled', False):
+            if not (info_result.success and info_result.data.enabled):
                 if deferred:
                     await ctx.followup.send(_("Container information is not enabled for '{container}'.").format(container=container_name), ephemeral=True)
                 else:

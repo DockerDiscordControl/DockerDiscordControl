@@ -16,8 +16,8 @@ class SpriteMechAnimator:
     """Creates animations using the actual mech spritesheet"""
     
     def __init__(self):
-        self.width = 200  # Smaller canvas for smaller mech
-        self.height = 100  # Proportional height  
+        self.width = 256   # Breite bleibt bei 256px
+        self.height = 137  # Höhe: 256 * (2/3) * (4/5) = 137px (1/3 + 1/5 kleiner)
         self.frames = 6   # Match spritesheet frames
         self.max_file_size = 500_000  # 500KB limit
         
@@ -32,6 +32,186 @@ class SpriteMechAnimator:
         
         # Load default spritesheet
         self.load_default_spritesheet()
+    
+    # --- HELPER METHODS FOR CLEAN EFFECTS ---
+    DEBUG_VIS = False  # Optional debug overlay
+    
+    
+    # Frames mit Bodenkontakt pro Zykluslänge (0-basiert)
+    FOOTFALL_MAP = {
+        6: [1, 4],   # 2x3-Spritesheet
+    }
+    
+    # ---------- CLEAN BEHIND-ONLY BACKGROUND ----------
+    BG2 = {
+        "gamma": 2.2,                 # dämpft Low-End kräftiger
+        "rows_min": 6, "rows_max": 28,
+        "dash_min": 6, "dash_max": 18,
+        "opacity_min": 60, "opacity_max": 160,
+        "px_per_frame_min": 0.6, "px_per_frame_max": 6.0,
+        "tint_far": (205,210,235),    # kühles Grau (fern)
+        "tint_near": (160,200,255),   # Cyan (nah)
+        "top_margin": 0.12, "bot_margin": 0.88,  # Arbeitsbereich
+        "deadzone_top": 0.28, "deadzone_bot": 0.72  # Mech-Sperrzone (fallback)
+    }
+    
+    def _clamp01(self, x: float) -> float:
+        return 0.0 if x < 0 else 1.0 if x > 1 else x
+    
+    def _ease_out(self, t: float) -> float:
+        t = self._clamp01(t)
+        return 1 - (1 - t) ** 3
+    
+    def _speed_norm(self, speed_level: int) -> float:
+        return self._clamp01(speed_level / 100.0)
+    
+    def _ease_bg2(self, x: float) -> float:
+        x = max(0.0, min(1.0, x)) ** self.BG2["gamma"]
+        return 1 - (1 - x) ** 3
+    
+    def _smoothstep(self, x: float) -> float:
+        """Smooth transition curve for better feel"""
+        x = self._clamp01(x)
+        return x * x * (3 - 2 * x)
+    
+    def _is_foot_down(self, frame_idx: int) -> bool:
+        cycle = getattr(self, "frames", 6)
+        falls = self.FOOTFALL_MAP.get(cycle)
+        if not falls:  # Fallback: zwei Kontakte ungefähr halbiert
+            falls = [cycle // 3, (2 * cycle) // 3]
+        return (frame_idx % cycle) in falls
+    
+    def _spawn_ground_dust(self, img, base_x: int, base_y: int, speed_level: int, frame: int):
+        from PIL import ImageDraw
+        draw = ImageDraw.Draw(img)
+        e = self._ease_out(self._speed_norm(speed_level))
+        puffs = 2 + int(4 * e)
+        life = 22
+        for i in range(puffs):
+            age = (frame + i * 7) % life
+            t = age / life
+            x = base_x - int((8 + 10 * e) * t)
+            y = base_y - int(4 * t)
+            r = 1 + int(3 * t)
+            a = 100 - int(80 * t)
+            draw.ellipse([x - r, y - r, x + r, y + r], fill=(125, 120, 110, max(10, a)))
+    
+    def _step_profile(self, speed_level: int) -> dict:
+        """Simple step profiling for the new clean system"""
+        if speed_level == 101:
+            return {"mode": "TRANSCENDENT"}
+        
+        step = max(0, min(50, speed_level // 2))
+        x = step / 50.0
+        e = self._ease_out(x)
+        
+        return {
+            "step": step, 
+            "ease": e,
+            "jitter_px": 0 if step < 15 else 1 + (step - 15) // 10,  # 0..3
+            "chromatic_px": 0 if step < 6 else 1 + (step - 6) // 12
+        }
+    
+    def _chromatic_on_sprite(self, img, sprite, pos, shift_px: int):
+        """Masken-basierte Chromatic Aberration nur auf Sprite"""
+        if not sprite or not pos or shift_px <= 0: 
+            return
+        from PIL import ImageChops, ImageFilter
+        sx, sy = pos
+        a = sprite.split()[-1]
+        mask = a.filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(1))
+        bbox = mask.getbbox()
+        if not bbox: 
+            return
+        bx0, by0, bx1, by1 = bbox
+        region = img.crop((sx+bx0, sy+by0, sx+bx1, sy+by1))
+        r,g,b,a_reg = region.split()
+        r = ImageChops.offset(r, -shift_px, 0)
+        b = ImageChops.offset(b,  shift_px, 0)
+        region_shifted = Image.merge("RGBA", (r,g,b,a_reg))
+        img.paste(region_shifted, (sx+bx0, sy+by0), mask.crop((bx0,by0,bx1,by1)))
+    
+    def _render_bg_effects_v2(self, speed_level: int, frame: int, sprite=None, pos=None):
+        from PIL import Image, ImageDraw
+        W, H = self.width, self.height
+        bg = Image.new("RGBA", (W, H), (0,0,0,0))
+        draw = ImageDraw.Draw(bg)
+
+        # Ease / Intensität
+        e = self._ease_bg2(speed_level/100.0)
+
+        # Arbeitsbereich
+        top = int(H * self.BG2["top_margin"])
+        bot = int(H * self.BG2["bot_margin"])
+
+        # Deadzone um den Mech
+        if sprite is not None and pos is not None:
+            sx, sy = pos; sw, sh = sprite.size
+            dz_top = sy + int(sh * 0.30)
+            dz_bot = sy + int(sh * 0.70)
+        else:
+            dz_top = int(H * self.BG2["deadzone_top"])
+            dz_bot = int(H * self.BG2["deadzone_bot"])
+
+        # Zeilenanzahl / Dash-Länge / Deckkraft – alle quantisiert (verhindert Moiré)
+        rows_total = int(round(self.BG2["rows_min"] + (self.BG2["rows_max"]-self.BG2["rows_min"]) * e))
+        dash = int(round(self.BG2["dash_min"] + (self.BG2["dash_max"]-self.BG2["dash_min"]) * e))
+        dash -= dash % 2                         # gerade Zahl -> weniger Artefakte
+        gap = dash                               # 1:1
+        period = dash + gap
+        op = int(round(self.BG2["opacity_min"] + (self.BG2["opacity_max"]-self.BG2["opacity_min"]) * e))
+
+        # Scroll-Speed (parallax, aber NUR horizontal)
+        v_far  = self.BG2["px_per_frame_min"] + (self.BG2["px_per_frame_max"]-self.BG2["px_per_frame_min"]) * (e*0.6)
+        v_near = self.BG2["px_per_frame_min"] + (self.BG2["px_per_frame_max"]-self.BG2["px_per_frame_min"]) * e
+
+        # Symmetrische Zeilen: Hälfte oben, Hälfte unten (Deckkraft halbieren oben)
+        rows_top  = rows_total // 2
+        rows_bot  = rows_total - rows_top
+        # gleichmässige Abstände, kein Jitter
+        def make_rows(n, y0, y1):
+            if n <= 0 or y1 <= y0: return []
+            step = max(6, (y1 - y0) // (n + 1))
+            return [y0 + step*(i+1) for i in range(n)]
+
+        ys_top = make_rows(rows_top, top, dz_top)
+        ys_bot = make_rows(rows_bot, dz_bot, bot)
+
+        def draw_layer(ys, speed_px, tint, opacity, phase_shift):
+            r,g,b = tint
+            col = (r, g, b, opacity)
+            for i, yy in enumerate(ys):
+                offset = int((frame * speed_px + (i * phase_shift)) % period)
+                x0 = -offset
+                while x0 < W:
+                    x1 = x0 + dash
+                    sx = max(0, x0); ex = min(W, x1)
+                    if ex > sx:
+                        draw.line([sx, yy, ex, yy], fill=col, width=2)
+                    x0 += period
+
+        # FAR (oben etwas blasser), NEAR (unten etwas stärker)
+        draw_layer(ys_top, v_far,  self.BG2["tint_far"],  max(40, op-40), 7)
+        draw_layer(ys_bot, v_near, self.BG2["tint_near"], op,             11)
+
+        return bg
+
+    def speed_to_frame_duration_ms(self, speed: int) -> int:
+        if speed <= 0:   
+            return 400  # Halbiert von 800
+        if speed >= 101: 
+            return 25   # Bleibt bei 25 (schon sehr schnell)
+        x = self._speed_norm(speed)
+        eased = self._ease_out(x)
+        return int(round(375 - 350 * eased))  # Halbiert: 375ms → 25ms
+    
+    
+    def _fixed_scale_171px(self, sprite_h: int) -> float:
+        """Feste Skalierung: Mech um 1/3 größer - 171px Höhe"""
+        # Ziel: Mech hat 128px * 1.33 = ~171px Höhe
+        target_h = int(128 * 1.33)  # 171px = 1/3 größer als 128px
+        scale = target_h / max(1, sprite_h)
+        return scale
         
     def load_default_spritesheet(self):
         """Load the default mech spritesheet as fallback"""
@@ -110,14 +290,19 @@ class SpriteMechAnimator:
         if not spritesheet:
             return None
             
+        # Calculate sprite dimensions for this specific spritesheet
+        sheet_width, sheet_height = spritesheet.size
+        sprite_width = sheet_width // 3  # 3 columns
+        sprite_height = sheet_height // 2  # 2 rows
+        
         # Calculate sprite position in 2x3 grid
         col = frame_index % 3
         row = frame_index // 3
         
-        left = col * self.sprite_width
-        top = row * self.sprite_height
-        right = left + self.sprite_width
-        bottom = top + self.sprite_height
+        left = col * sprite_width
+        top = row * sprite_height
+        right = left + sprite_width
+        bottom = top + sprite_height
         
         return spritesheet.crop((left, top, right, bottom))
     
@@ -143,7 +328,10 @@ class SpriteMechAnimator:
                 return self.create_dead_mech_animation_sync(donor_name)
             
             # Same caching logic
-            cache_key = f"fuel_{total_donations:.2f}_evo_{evolution_level}_speed_{speed_level}"
+            # Create quantized cache key for better hit rate
+            speed_q = round(speed_level, 1)  
+            fuel_q = round(total_donations, 2)
+            cache_key = f"fuel_{fuel_q:.2f}_evo_{evolution_level}_speed_{speed_q:.1f}"
             
             if cache_key in self.animation_cache:
                 cached_data = self.animation_cache[cache_key]
@@ -156,65 +344,47 @@ class SpriteMechAnimator:
             frames = []
             
             for frame in range(self.frames):
-                img = Image.new('RGBA', (self.width, self.height), (47, 49, 54, 255))
+                img = Image.new('RGBA', (self.width, self.height), (0, 0, 0, 0))  # Transparent background
                 
                 sprite = self.get_sprite_frame(frame, evolution_level)
                 if sprite:
-                    # Same sprite processing logic
-                    base_scale = 0.24
-                    base_width = int(self.sprite_width * base_scale)
-                    base_height = int(self.sprite_height * base_scale)
+                    # Get actual sprite dimensions
+                    actual_sprite_width, actual_sprite_height = sprite.size
                     
-                    speed_scale_factor = 1.0 + (speed_level * 0.03)
+                    # Scale sprite 
+                    base_scale = self._fixed_scale_171px(actual_sprite_height)
+                    base_width = int(actual_sprite_width * base_scale)
+                    base_height = int(actual_sprite_height * base_scale)
+                    
+                    # Dezenter Bump: max. +10 % bei Speed 100 (ease-out)
+                    x = max(0.0, min(1.0, speed_level / 100.0))
+                    e = 1 - (1 - x) ** 3
+                    speed_scale_factor = 1.0 + 0.10 * e
                     new_width = int(base_width * speed_scale_factor)
                     new_height = int(base_height * speed_scale_factor)
                     
                     sprite = sprite.resize((new_width, new_height), Image.NEAREST)
                     
+                    # Center sprite on canvas
                     x = (self.width - new_width) // 2
                     y = (self.height - new_height) // 2
                     
-                    # Same glow effects
-                    if speed_level >= 50:
-                        glow_sprite = sprite.copy()
-                        glow_sprite = glow_sprite.resize((new_width + 10, new_height + 10), Image.NEAREST)
-                        glow_x = x - 5
-                        glow_y = y - 5
-                        
-                        for offset in [(0,0), (1,0), (0,1), (1,1), (-1,0), (0,-1), (-1,-1), (1,-1), (-1,1)]:
-                            glow_pos = (glow_x + offset[0], glow_y + offset[1])
-                            if speed_level == 101:
-                                import random
-                                rainbow_colors = [
-                                    (255, 0, 0, 100), (255, 127, 0, 100), (255, 255, 0, 100),
-                                    (0, 255, 0, 100), (0, 0, 255, 100), (75, 0, 130, 100),
-                                    (148, 0, 211, 100), (255, 0, 255, 100),
-                                ]
-                                color = rainbow_colors[frame % len(rainbow_colors)]
-                                img.paste(color, glow_pos, glow_sprite)
-                            elif speed_level >= 100:
-                                img.paste((255, 255, 0, 80), glow_pos, glow_sprite)
-                            elif speed_level >= 90:
-                                img.paste((255, 215, 0, 60), glow_pos, glow_sprite)
-                            elif speed_level >= 70:
-                                img.paste((128, 0, 255, 40), glow_pos, glow_sprite)
-                            else:
-                                img.paste((0, 255, 255, 30), glow_pos, glow_sprite)
+                    # Add screen shake using profile system
+                    prof = self._step_profile(int(speed_level))
+                    if prof["jitter_px"] > 0:
+                        jitter = int(prof["jitter_px"])
+                        x += (frame % (2*jitter+1)) - jitter
+                        y += ((frame*2) % (2*jitter+1)) - jitter
                     
+                    # Nur der Mech - alle Effekte deaktiviert
                     img.paste(sprite, (x, y), sprite)
-                    self._add_speed_effects(img, speed_level, frame)
                 
                 frames.append(img)
             
             # Create WebP animation
             buffer = BytesIO()
             
-            if speed_level <= 0:
-                duration = 800
-            elif speed_level == 101:
-                duration = 25
-            else:
-                duration = max(50, 600 - (speed_level * 5.5))
+            duration = self.speed_to_frame_duration_ms(speed_level)
             
             frames[0].save(
                 buffer, 
@@ -285,9 +455,10 @@ class SpriteMechAnimator:
                 logger.info(f"Zero fuel detected, creating dead mech animation")
                 return await self.create_dead_mech_animation(donor_name)
             
-            # PERFORMANCE: Create cache key based on fuel and evolution (not donor name)
-            # This allows sharing between Web UI and Discord
-            cache_key = f"fuel_{total_donations:.2f}_evo_{evolution_level}_speed_{speed_level}"
+            # PERFORMANCE: Create cache key with quantization for better cache hit rate
+            speed_q = round(speed_level, 1)
+            fuel_q = round(total_donations, 2)
+            cache_key = f"fuel_{fuel_q:.2f}_evo_{evolution_level}_speed_{speed_q:.1f}"
             
             # Check if we already have this animation cached
             if cache_key in self.animation_cache:
@@ -316,19 +487,24 @@ class SpriteMechAnimator:
             frames = []
             
             for frame in range(self.frames):
-                # Create background
-                img = Image.new('RGBA', (self.width, self.height), (47, 49, 54, 255))
+                # Create transparent background
+                img = Image.new('RGBA', (self.width, self.height), (0, 0, 0, 0))
                 
                 # Get sprite frame for current evolution level
                 sprite = self.get_sprite_frame(frame, evolution_level)
                 if sprite:
-                    # Scale sprite to show full mech (50% bigger than 0.16)
-                    base_scale = 0.24  # Scale down to ~82x123 pixels for full mech visibility
-                    base_width = int(self.sprite_width * base_scale)
-                    base_height = int(self.sprite_height * base_scale)
+                    # Get actual sprite dimensions (not the cached default dimensions)
+                    actual_sprite_width, actual_sprite_height = sprite.size
                     
-                    # Then apply speed-based scaling (very subtle)
-                    speed_scale_factor = 1.0 + (speed_level * 0.03)  # 1.0 to 1.18x max
+                    # Scale sprite 
+                    base_scale = self._fixed_scale_171px(actual_sprite_height)
+                    base_width = int(actual_sprite_width * base_scale)
+                    base_height = int(actual_sprite_height * base_scale)
+                    
+                    # Dezenter Bump: max. +10 % bei Speed 100 (ease-out)
+                    x = max(0.0, min(1.0, speed_level / 100.0))
+                    e = 1 - (1 - x) ** 3
+                    speed_scale_factor = 1.0 + 0.10 * e
                     new_width = int(base_width * speed_scale_factor)
                     new_height = int(base_height * speed_scale_factor)
                     
@@ -338,49 +514,15 @@ class SpriteMechAnimator:
                     x = (self.width - new_width) // 2
                     y = (self.height - new_height) // 2
                     
-                    # Add glow effect for high speed levels
-                    if speed_level >= 50:  # Start glow at level 50
-                        glow_sprite = sprite.copy()
-                        glow_sprite = glow_sprite.resize((new_width + 10, new_height + 10), Image.NEAREST)
-                        glow_x = x - 5
-                        glow_y = y - 5
-                        
-                        # Create glow by pasting multiple times with offset
-                        for offset in [(0,0), (1,0), (0,1), (1,1), (-1,0), (0,-1), (-1,-1), (1,-1), (-1,1)]:
-                            glow_pos = (glow_x + offset[0], glow_y + offset[1])
-                            if speed_level == 101:
-                                # TRANSCENDENT MODE - Rainbow reality-warping glow!
-                                import random
-                                rainbow_colors = [
-                                    (255, 0, 0, 100),    # Red
-                                    (255, 127, 0, 100),  # Orange
-                                    (255, 255, 0, 100),  # Yellow
-                                    (0, 255, 0, 100),    # Green
-                                    (0, 0, 255, 100),    # Blue
-                                    (75, 0, 130, 100),   # Indigo
-                                    (148, 0, 211, 100),  # Violet
-                                    (255, 0, 255, 100),  # Magenta
-                                ]
-                                color = rainbow_colors[frame % len(rainbow_colors)]
-                                img.paste(color, glow_pos, glow_sprite)
-                            elif speed_level >= 100:
-                                # Divine gold glow for Godspeed
-                                img.paste((255, 255, 0, 80), glow_pos, glow_sprite)
-                            elif speed_level >= 90:
-                                # Gold glow for near-lightspeed
-                                img.paste((255, 215, 0, 60), glow_pos, glow_sprite)
-                            elif speed_level >= 70:
-                                # Purple glow for running speeds
-                                img.paste((128, 0, 255, 40), glow_pos, glow_sprite)
-                            else:
-                                # Cyan glow for fast walking
-                                img.paste((0, 255, 255, 30), glow_pos, glow_sprite)
+                    # Add screen shake using profile system
+                    prof = self._step_profile(int(speed_level))
+                    if prof["jitter_px"] > 0:
+                        jitter = int(prof["jitter_px"])
+                        x += (frame % (2*jitter+1)) - jitter
+                        y += ((frame*2) % (2*jitter+1)) - jitter
                     
-                    # Paste main sprite
+                    # Nur der Mech - alle Effekte deaktiviert
                     img.paste(sprite, (x, y), sprite)
-                    
-                    # Add speed effects
-                    self._add_speed_effects(img, speed_level, frame)
                     
                     # No text overlay on animation anymore
                 
@@ -389,15 +531,8 @@ class SpriteMechAnimator:
             # Create WebP animation
             buffer = BytesIO()
             
-            # Calculate duration based on speed level (faster = shorter duration)
-            # Scale for 100 levels: very slow at level 1, super fast at level 100
-            if speed_level <= 0:
-                duration = 800  # Very slow for offline/no fuel
-            elif speed_level == 101:
-                duration = 25  # TRANSCENDENT - Reality itself cannot keep up!
-            else:
-                # Map level 1-100 to duration 600ms-50ms
-                duration = max(50, 600 - (speed_level * 5.5))
+            # Calculate duration using easing curve
+            duration = self.speed_to_frame_duration_ms(speed_level)
             
             frames[0].save(
                 buffer, 
@@ -466,10 +601,11 @@ class SpriteMechAnimator:
             if not sprite:
                 return self.create_static_fallback(donor_name, "0€", 0)
             
-            # Scale sprite (50% bigger)
-            base_scale = 0.24
-            base_width = int(self.sprite_width * base_scale)
-            base_height = int(self.sprite_height * base_scale)
+            # Get actual sprite dimensions and scale
+            actual_sprite_width, actual_sprite_height = sprite.size
+            base_scale = 0.85
+            base_width = int(actual_sprite_width * base_scale)
+            base_height = int(actual_sprite_height * base_scale)
             sprite = sprite.resize((base_width, base_height), Image.NEAREST)
             
             # Create dark image for "dead" mech
@@ -518,147 +654,220 @@ class SpriteMechAnimator:
             logger.error(f"Error creating dead mech animation: {e}")
             return self.create_static_fallback(donor_name, "0€", 0)
     
-    def _add_speed_effects(self, img: Image, speed_level: int, frame: int):
-        """Add visual effects based on speed level"""
+    def _add_speed_effects(self, img, speed_level, frame: int, sprite=None, pos=None):
+        """Super saubere Step-basierte Speed-Effekte mit präziser Mech-Sperrzone"""
+        from PIL import ImageDraw
+        import math, random
+        
+        # Ensure speed_level is integer to avoid float errors
+        speed_level = int(speed_level)
+        
         draw = ImageDraw.Draw(img)
-        
-        # TRANSCENDENT MODE - REALITY ITSELF BENDS!
+
+        # --- 101: Portal/Transcendent (dein bestehender Look) ---
         if speed_level == 101:
-            # Reality-warping portal effects
-            import math
-            center_x = self.width // 2
-            center_y = self.height // 2
-            
-            # Draw multiple rotating portals
+            cx, cy = self.width // 2, self.height // 2
             for ring in range(5):
-                radius = 30 + ring * 15
-                for angle_offset in range(0, 360, 30):
-                    angle = (angle_offset + frame * 10 * (ring + 1)) % 360
-                    rad = math.radians(angle)
-                    x = center_x + int(radius * math.cos(rad))
-                    y = center_y + int(radius * math.sin(rad))
-                    
-                    # Rainbow portal particles
-                    rainbow_colors = [
-                        (255, 0, 0), (255, 127, 0), (255, 255, 0),
-                        (0, 255, 0), (0, 0, 255), (148, 0, 211)
-                    ]
-                    color = rainbow_colors[(frame + ring) % len(rainbow_colors)]
-                    draw.ellipse([x-3, y-3, x+3, y+3], fill=color + (255,))
-            
-            # Reality tears - diagonal lines across the screen
-            for i in range(10):
-                tear_offset = (frame * 5) % self.width
-                x_start = (i * 20 + tear_offset) % self.width
-                draw.line([x_start, 0, x_start + 10, self.height], 
-                         fill=(255, 0, 255, 150), width=1)
-            
-            # "TRANSCENDENT" text flickering
+                r = 30 + ring * 15 + (frame * 3 + ring * 7) % 10
+                hue = (frame * 12 + ring * 60) % 360
+                # simple HSV ohne Abhängigkeiten:
+                import colorsys
+                col = tuple(int(c * 255) for c in colorsys.hsv_to_rgb(hue/360.0, 0.85, 1.0)) + (220,)
+                draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=col, width=2)
+            for i in range(8):
+                x = (i * 20 + (frame * 9)) % self.width
+                draw.line([x, 0, x + 8, self.height], fill=(255, 0, 255, 140), width=1)
             if frame % 3 == 0:
-                draw.text((5, 5), "TRANSCENDENT", fill=(255, 255, 255, 255))
-            
-            return  # Skip normal effects for transcendent mode
-        
-        # Speed lines behind mech (start at level 30)
-        if speed_level >= 30:
-            center_y = self.height // 2
-            num_lines = min(max(1, (speed_level - 30) // 5), 15)  # 1-15 lines based on speed
-            
-            for i in range(num_lines):
-                line_x = 20 + i * 10
-                line_length = 10 + (speed_level // 5)  # Longer lines at higher speeds
-                opacity = max(50, min(255, 100 + speed_level))
-                
-                # Animated offset based on frame
-                offset = (frame * (1 + speed_level // 20)) % 15
-                
-                start_x = line_x - offset
-                end_x = start_x + line_length
-                
-                # Color based on speed level
-                if speed_level >= 100:
-                    color = (255, 255, 255, opacity)  # Pure white for Godspeed
-                elif speed_level >= 90:
-                    color = (255, 215, 0, opacity)   # Gold for near-lightspeed
-                elif speed_level >= 70:
-                    color = (128, 0, 255, opacity)   # Purple for running
-                elif speed_level >= 50:
-                    color = (0, 255, 255, opacity)   # Cyan for fast walking
-                else:
-                    color = (0, 255, 0, opacity)     # Green for moderate speed
-                
-                draw.line([start_x, center_y - 2, end_x, center_y - 2], fill=color, width=2)
-                draw.line([start_x, center_y + 2, end_x, center_y + 2], fill=color, width=2)
-        
-        # Lightning effects for extreme speeds
-        if speed_level >= 90 and frame % 2 == 0:
-            # Add lightning bolts
-            bolt_x = self.width - 40
-            bolt_y = 20
-            
-            draw.line([bolt_x, bolt_y, bolt_x + 10, bolt_y + 15], fill=(255, 255, 0, 255), width=3)
-            draw.line([bolt_x + 10, bolt_y + 15, bolt_x + 5, bolt_y + 25], fill=(255, 255, 0, 255), width=3)
-            draw.line([bolt_x + 5, bolt_y + 25, bolt_x + 15, bolt_y + 35], fill=(255, 255, 0, 255), width=3)
+                draw.text((6, 6), "TRANSCENDENT", fill=(255, 255, 255, 255))
+            return
+
+        # --- Step-Profil: jede 2. Stufe sichtbar anders ---
+        step = max(0, min(50, speed_level // 2))
+        x = self._speed_norm(speed_level)
+        e = self._ease_out(x)
+        variant = step % 6
+        hue_boost = 180 if variant == 2 else (300 if variant == 3 else 0)
+        tilt_deg  = -6 if variant == 1 else (6 if variant == 0 else 0)
+        chroma_px = 0 if step < 6 else 1 + (step - 6) // 12  # 0..4
+
+        # --- Speed-Lines (segmentiert, neutral, ohne Schlangen) ---
+        # Sperrzone um den Mech, damit nichts quer drüberzeichnet
+        if sprite is not None and pos is not None:
+            sx, sy = pos; sw, sh = sprite.size
+            excl_top = sy + int(sh * 0.30)
+            excl_bot = sy + int(sh * 0.70)
+        else:
+            mid = self.height // 2
+            excl_top, excl_bot = mid - 12, mid + 12
+
+        step = max(0, min(50, int(speed_level//2)))
+        x = max(0.0, min(1.0, speed_level/100.0))
+        e = 1 - (1 - x) ** 3
+
+        # Anzahl/Y-Verteilung
+        lines   = 4 + step                # 4..54
+        spacing = max(6, 12 - int(8*e))   # dichter bei hoher Speed
+        ys = []
+        top, bot = int(self.height*0.12), int(self.height*0.88)
+        y = top
+        while len(ys) < lines and y < bot:
+            if not (excl_top <= y <= excl_bot):
+                ys.append(y)
+            y += spacing
+
+        # Segmentierte Dashes
+        dash    = 8 + step//2             # 8..33
+        gap     = dash                    # 1:1
+        period  = dash + gap
+        offset_speed = 1 + step//8        # Bewegungsgeschwindigkeit
+
+        # kühle Palette (kein Grün)
+        if step >= 45:
+            rgba = (255, 230, 200, 120 + int(120*e))   # warm-weiss/goldig
+        elif step >= 30:
+            rgba = (160, 120, 255, 110 + int(130*e))   # soft-violett
+        elif step >= 15:
+            rgba = (0, 220, 255, 100 + int(140*e))     # cyan
+        else:
+            rgba = (200, 210, 240, 90 + int(120*e))    # kühles Grau
+
+        for i, yy in enumerate(ys):
+            offset = (frame * offset_speed + i * 7) % period
+            x0 = -offset
+            while x0 < self.width:
+                x1 = x0 + dash
+                if x1 > 0:
+                    # clamp auf Bild
+                    sx = max(0, int(x0)); ex = min(self.width, int(x1))
+                    if ex > sx:
+                        draw.line([sx, yy, ex, yy], fill=rgba, width=2)
+                x0 += period
+
+        # --- Starfield (kühlt, Richtung wechselt periodisch) ---
+        if step >= 3:
+            reverse = -1 if variant == 5 else 1
+            trails = int(6 + 2 * step)
+            trail_len = int(6 + step)
+            adv = int(2 + step // 2)
+            for i in range(trails):
+                y = (i * 37 + frame * 3) % self.height
+                sx = (self.width + 20) - reverse * ((frame * adv + i * 13) % (self.width + 40))
+                ex = sx - reverse * trail_len
+                op = 40 + int(110 * e)
+                draw.line([sx, y, ex, y], fill=(200, 210, 240, op), width=1)
+
+        # --- Afterimages (echte Geisterbilder) ---
+        if sprite is not None and pos is not None and step >= 7:
+            count = int(max(0, (step - 6) // 2))   # wächst Schritt für Schritt
+            off = int(2 + step // 8)
+            sx, sy = pos
+            for i in range(1, count + 1):
+                ghost = sprite.copy()
+                r, g, b, a = ghost.split()
+                fade = max(18, int(120 * (1 - i / (count + 0.75))))
+                a = a.point(lambda v, f=fade: int(v * (f / 255.0)))
+                ghost.putalpha(a)
+                img.paste(ghost, (sx - i * off, sy), ghost)
+
+        # --- Sparks / Lightning / Shockwave ---
+        if step >= 11:
+            for i in range(int(step - 10)):
+                yy = (self.height // 2 - 22) + ((i * 29 + frame * 5) % 44) - 22
+                xx = self.width // 2 + 28 + (i % 2) * 6
+                draw.line([xx, yy, xx + 3, yy + 2], fill=(255, 225, 120, 200), width=1)
+
+        if step >= 21 and frame % 2 == 0:
+            dens = int(step - 20)
+            rnd = random.Random(int(9000 + step + frame * 31))
+            for _ in range(1 + dens // 4):
+                bx = self.width - 40 - rnd.randint(0, 12)
+                by = 14 + rnd.randint(0, 24)
+                draw.line([bx, by, bx + 10, by + 15], fill=(255, 255, 0, 255), width=3)
+                draw.line([bx + 10, by + 15, bx + 5,  by + 25], fill=(255, 255, 0, 255), width=3)
+                draw.line([bx + 5,  by + 25, bx + 15, by + 35], fill=(255, 255, 0, 255), width=3)
+
+        # Shockwave-Kreis entfernt - sah komisch aus
+
+        # --- Chromatic nur auf Sprite (kein Schleier) ---
+        if chroma_px > 0 and sprite is not None and pos is not None:
+            self._chromatic_on_sprite(img, sprite, pos, chroma_px)
+
+        # --- Bodenstaub exakt bei Fusskontakt ---
+        frame_in_cycle = frame % getattr(self, "frames", 6)
+        if self._is_foot_down(frame_in_cycle):
+            foot_x = (self.width // 2) - 6
+            ground_y = int(self.height * 0.82)
+            self._spawn_ground_dust(img, foot_x, ground_y, speed_level, frame)
+
+        # --- optionales Debug-Overlay ---
+        if self.DEBUG_VIS and sprite is not None and pos is not None:
+            sx, sy = pos
+            sw, sh = sprite.size
+            draw.rectangle([sx, sy, sx + sw, sy + sh], outline=(0, 255, 0, 120), width=1)
     
-    
-    def calculate_speed_level(self, total_donations: float) -> int:
-        """Calculate speed level based on donation amount and mech evolution level (1-100 scale, 101 for OMEGA perfection)"""
+    # --- CLEAN UTILITY METHODS ---
+
+    def calculate_speed_level(self, total_donations: float) -> float:
+        """
+        Continuous speed 0..100 (101 = OMEGA) without reset on level-up.
+        Each evolution level has its own speed range that connects seamlessly.
+        """
         if total_donations <= 0:
-            return 0
-        
-        # Import here to avoid circular imports
+            return 0.0
+
         from utils.mech_evolutions import get_evolution_level, EVOLUTION_THRESHOLDS
-        
-        # Get current mech evolution level
-        mech_level = get_evolution_level(total_donations)
-        
-        # SPECIAL CASE: Level 11 (OMEGA MECH) at exactly max fuel = Glvl 101!
-        if mech_level == 11:
-            # Level 11 has no next level, so we calculate based on a theoretical max
-            # Let's say Level 11 "max" is $20000 (double the requirement)
-            theoretical_max = 20000
-            current_threshold = EVOLUTION_THRESHOLDS[11]  # 10000
-            fuel_in_level = total_donations - current_threshold
-            max_fuel_for_level = theoretical_max - current_threshold  # 10000
-            
-            if fuel_in_level >= max_fuel_for_level:
-                # TRANSCENDENT MODE ACTIVATED!
-                return 101
-            elif fuel_in_level == 0:
-                return 1
-            else:
-                glvl = int((fuel_in_level / max_fuel_for_level) * 100)
-                return min(max(1, glvl), 100)
-        
-        # For levels 1-4: Direct 1:1 mapping (1$ = 1 Glvl)
-        if mech_level <= 4:
-            # Cap at 100 for these levels
-            return min(int(total_donations), 100)
-        
-        # For levels 5-10: Dynamic distribution across 100 levels
-        # Calculate the fuel range for current level
-        current_threshold = EVOLUTION_THRESHOLDS[mech_level]
-        next_threshold = EVOLUTION_THRESHOLDS.get(mech_level + 1, current_threshold * 2)
-        
-        # Calculate fuel within current level range
-        fuel_in_level = total_donations - current_threshold
-        max_fuel_for_level = next_threshold - current_threshold
-        
-        # Calculate Glvl as percentage of max fuel for this level
-        if max_fuel_for_level > 0:
-            # If at exact threshold, start at 1
-            if fuel_in_level == 0:
-                return 1
-            glvl = int((fuel_in_level / max_fuel_for_level) * 100)
-            return min(max(1, glvl), 100)  # Ensure between 1-100
-        
-        return 100  # Max level reached
+
+        lvl = max(1, min(11, get_evolution_level(total_donations)))
+
+        # Speed range per level (seamless: max(L) == min(L+1))
+        base_min = 6.0
+        base_max = 100.0
+        step = (base_max - base_min) / 10.0  # 10 levels -> 10 equal segments
+
+        def range_for_level(L: int) -> tuple:
+            if L >= 11:
+                return (100.0, 101.0)  # OMEGA window
+            lo = base_min + (L - 1) * step
+            hi = base_min + L * step
+            return (lo, hi)
+
+        # Current level thresholds
+        cur_th = EVOLUTION_THRESHOLDS[lvl]
+        nxt_th = EVOLUTION_THRESHOLDS.get(lvl + 1, cur_th * 2)
+
+        # Progress within level (0..1), smoothed
+        span = max(1.0, float(nxt_th - cur_th))
+        p = self._smoothstep((total_donations - cur_th) / span)
+
+        lo, hi = range_for_level(lvl)
+
+        # OMEGA: Full >= Level-11-Threshold -> 101
+        if lvl == 11 and total_donations >= cur_th:
+            return 101.0
+
+        return lo + (hi - lo) * p
+
+    def speed_to_frame_duration_ms(self, speed: float) -> int:
+        """
+        Map 0..100 (101) to 375..25 ms with ease-out curve (HALBIERT).
+        Low speed feels 'heavy', high speed very responsive.
+        """
+        if speed <= 0:
+            return 400  # Halbiert von 800
+        if speed >= 101:
+            return 25   # OMEGA (bleibt gleich)
+
+        x = min(1.0, max(0.0, speed / 100.0))
+        # Ease-out (cubic): small increments early very noticeable,
+        # later dollars saturate smoothly
+        eased = 1 - (1 - x) ** 3
+        return int(round(375 - 350 * eased))  # Halbiert: 375ms → 25ms
     
     def _create_smaller_animation(self, frames, speed_level):
         """Create smaller animation if original is too large"""
         # Reduce quality and try again
         buffer = BytesIO()
-        duration = max(100, 250 - (speed_level * 30))
+        duration = self.speed_to_frame_duration_ms(speed_level)
         
         frames[0].save(
             buffer, 
@@ -678,7 +887,7 @@ class SpriteMechAnimator:
     def _create_smaller_animation_sync(self, frames, speed_level) -> bytes:
         """Create smaller animation if original is too large (sync version)"""
         buffer = BytesIO()
-        duration = max(100, 250 - (speed_level * 30))
+        duration = self.speed_to_frame_duration_ms(speed_level)
         
         frames[0].save(
             buffer, 
@@ -702,9 +911,11 @@ class SpriteMechAnimator:
             if not sprite:
                 return self.create_static_fallback_sync(donor_name, "0€", 0)
             
-            base_scale = 0.24
-            base_width = int(self.sprite_width * base_scale)
-            base_height = int(self.sprite_height * base_scale)
+            # Get actual sprite dimensions and scale
+            actual_sprite_width, actual_sprite_height = sprite.size
+            base_scale = 0.85
+            base_width = int(actual_sprite_width * base_scale)
+            base_height = int(actual_sprite_height * base_scale)
             sprite = sprite.resize((base_width, base_height), Image.NEAREST)
             
             img = Image.new('RGBA', (self.width, self.height), (20, 20, 25, 255))
@@ -752,7 +963,7 @@ class SpriteMechAnimator:
             
             sprite = self.get_sprite_frame(0, evolution_level=0)
             if sprite:
-                base_scale = 0.24
+                base_scale = 0.85
                 base_width = int(self.sprite_width * base_scale)
                 base_height = int(self.sprite_height * base_scale)
                 sprite = sprite.resize((base_width, base_height), Image.NEAREST)
@@ -785,7 +996,7 @@ class SpriteMechAnimator:
             sprite = self.get_sprite_frame(0, evolution_level=0)
             if sprite:
                 # Scale sprite (50% bigger)
-                base_scale = 0.24
+                base_scale = 0.85
                 base_width = int(self.sprite_width * base_scale)
                 base_height = int(self.sprite_height * base_scale)
                 sprite = sprite.resize((base_width, base_height), Image.NEAREST)
