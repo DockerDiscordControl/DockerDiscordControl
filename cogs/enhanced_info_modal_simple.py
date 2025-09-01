@@ -11,7 +11,7 @@ from typing import Optional
 from discord import InputTextStyle
 from utils.logging_utils import get_module_logger
 from services.infrastructure.container_info_service import get_container_info_service, ContainerInfo
-from utils.action_logger import log_user_action
+from services.infrastructure.action_logger import log_user_action
 from cogs.translation_manager import _
 # Channel-based security is already handled in command_handlers.py
 

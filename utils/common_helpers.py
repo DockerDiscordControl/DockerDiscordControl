@@ -462,14 +462,4 @@ def _is_valid_ip(ip: str) -> bool:
     except socket.error:
         return False
 
-def validate_container_info_text(text: str) -> bool:
-    """
-    Validate container info text meets requirements.
-    
-    Args:
-        text: Info text to validate
-        
-    Returns:
-        bool: True if valid (within 250 character limit)
-    """
-    return len(text) <= 250 
+ 

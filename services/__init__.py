@@ -4,8 +4,11 @@ Services Package - Clean service architecture for DDC
 
 This package contains professional business logic services organized by domain:
 - infrastructure: Core infrastructure services (logging, container info, spam protection)  
-- config: Configuration domain services (bot, docker, web, channels)
-- mech: Donation and mech animation services
+- config: Unified configuration service (replaces old config_loader/manager)
+- docker_service: Docker container management utilities
+- donation: Donation system and disable key management
+- mech: Donation mech animation and state services
+- scheduling: Task scheduler and helper services
 
 All services follow clean architecture patterns:
 - Immutable dataclasses for type safety
@@ -29,12 +32,11 @@ from .infrastructure.action_log_service import get_action_log_service
 from .infrastructure.spam_protection_service import get_spam_protection_service
 
 # Config Services
-from .config.unified_config_service import get_unified_config_service
-from .config.bot_config_service import get_bot_config_service
-from .config.docker_config_service import get_docker_config_service
+from .config.config_service import get_config_service
 
 # Mech Services
-from .mech_service import get_mech_service
+from .mech.mech_service import get_mech_service
+from .mech.mech_animation_service import get_mech_animation_service
 
 __all__ = [
     # Infrastructure
@@ -42,9 +44,8 @@ __all__ = [
     'get_action_log_service', 
     'get_spam_protection_service',
     # Config
-    'get_unified_config_service',
-    'get_bot_config_service',
-    'get_docker_config_service',
+    'get_config_service',
     # Mech
-    'get_mech_service'
+    'get_mech_service',
+    'get_mech_animation_service'
 ]

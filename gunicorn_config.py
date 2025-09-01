@@ -29,7 +29,7 @@ sys.path.insert(0, '/app')
 # which is handled by Gunicorn itself.
 try:
     # Import directly from source modules, not via app.web_ui
-    from utils.config_loader import load_config
+    from services.config.config_service import load_config
     from app.utils.web_helpers import get_docker_containers_live 
     # Setup logger
     logging.basicConfig(level=logging.INFO) # Ensure basicConfig is called somewhere
@@ -40,7 +40,8 @@ except ImportError as e:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     logger.error(f"Error importing required components: {e}.") 
-    sys.exit("Critical import error in gunicorn_config.py")
+    print(f"Critical import error in gunicorn_config.py: {e}")
+    sys.exit(1)
 
 
 # --- Optimized Gunicorn Configuration for Discord Bot Web UI ---

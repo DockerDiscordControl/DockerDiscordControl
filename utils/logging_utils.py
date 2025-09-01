@@ -52,7 +52,7 @@ def is_debug_mode_enabled() -> bool:
         
         # Lazy load config to avoid circular dependency during initialization
         try:
-            from utils.config_manager import get_config_manager
+            from services.config.config_service import get_config_service as get_config_manager
             config = get_config_manager().get_config(force_reload=False)
         except Exception as config_error:
             # During service initialization, config may not be available yet
@@ -134,7 +134,7 @@ class TimezoneFormatter(logging.Formatter):
             
             # Try to load the timezone from the configuration
             try:
-                from utils.config_loader import load_config
+                from services.config.config_service import load_config
                 config = load_config()
                 timezone_str = config.get('timezone', 'Europe/Berlin')
             except Exception:
@@ -231,8 +231,8 @@ def refresh_debug_status():
         
         # Force cache invalidation to ensure we get the latest config
         try:
-            from utils.config_manager import get_config_manager
-            get_config_manager().invalidate_cache()
+            from services.config.config_service import get_config_service as get_config_manager
+            get_config_manager()._invalidate_cache()
         except Exception as e:
             print(f"Failed to invalidate config cache: {e}")
         

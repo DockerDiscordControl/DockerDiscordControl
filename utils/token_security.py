@@ -14,15 +14,15 @@ logger = logging.getLogger(__name__)
 class TokenSecurityManager:
     """Manages bot token encryption and security operations."""
     
-    def __init__(self, config_manager=None):
-        self.config_manager = config_manager
-        if not config_manager:
+    def __init__(self, config_service=None):
+        self.config_service = config_service
+        if not config_service:
             try:
-                from utils.config_manager import ConfigManager
-                self.config_manager = ConfigManager()
+                from services.config.config_service import get_config_service
+                self.config_service = get_config_service()
             except ImportError:
-                logger.error("ConfigManager not available for token encryption")
-                self.config_manager = None
+                logger.error("ConfigService not available for token encryption")
+                self.config_service = None
     
     def encrypt_existing_plaintext_token(self) -> bool:
         """
@@ -67,11 +67,11 @@ class TokenSecurityManager:
                 return True
             
             # Encrypt the token
-            if not self.config_manager:
-                logger.error("ConfigManager not available for encryption")
+            if not self.config_service:
+                logger.error("ConfigService not available for encryption")
                 return False
             
-            encrypted_token = self.config_manager._encrypt_token(current_token, password_hash)
+            encrypted_token = self.config_service.encrypt_token(current_token, password_hash)
             
             if encrypted_token:
                 # Update bot config with encrypted token

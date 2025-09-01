@@ -20,7 +20,8 @@ import pytz
 
 # Import auth from app.auth
 from app.auth import auth 
-from utils.config_loader import load_config, save_config, DEFAULT_CONFIG # Import DEFAULT_CONFIG
+from services.config.config_service import load_config, save_config
+# Removed DEFAULT_CONFIG import - not needed anymore
 
 from app.utils.container_info_web_handler import save_container_info_from_web, load_container_info_for_web
 from app.utils.web_helpers import (
@@ -33,11 +34,11 @@ from app.utils.port_diagnostics import run_port_diagnostics
 from app.utils.shared_data import get_active_containers, load_active_containers_from_config
 from app.constants import COMMON_TIMEZONES # Import from new constants file
 # Import scheduler functions for the main page
-from utils.scheduler import (
+from services.scheduling.scheduler import (
     load_tasks, 
     DAYS_OF_WEEK
 )
-from utils.action_logger import log_user_action
+from services.infrastructure.action_logger import log_user_action
 from services.infrastructure.spam_protection_service import get_spam_protection_service
 # Removed: from utils.donation_manager import get_donation_manager  # No longer used - replaced by MechService
 
@@ -643,16 +644,24 @@ def config_page():
     config_with_env['env'] = env_vars
     
     # Check if donations are disabled by key and load current donation key
-    from utils.donation_utils import is_donations_disabled
-    from utils.donation_config import get_donation_disable_key
+    from services.donation.donation_utils import is_donations_disabled
+    from services.donation.donation_config import get_donation_disable_key
     donations_disabled = is_donations_disabled()
     current_donation_key = get_donation_disable_key() or ''
     
     # Add donation key to config for template access
     config_with_env['donation_disable_key'] = current_donation_key
     
+    # Get DEFAULT_CONFIG from ConfigService for template compatibility
+    from services.config.config_service import get_config_service
+    config_service = get_config_service()
+    DEFAULT_CONFIG = {
+        'default_channel_permissions': config_service._get_default_channels_config()['default_channel_permissions']
+    }
+    
     return render_template('config.html', 
                            config=config_with_env,
+                           DEFAULT_CONFIG=DEFAULT_CONFIG,
                            donations_disabled=donations_disabled,
                            common_timezones=COMMON_TIMEZONES, # Use imported COMMON_TIMEZONES
                            current_timezone=config.get('selected_timezone', 'UTC'),
@@ -668,7 +677,7 @@ def config_page():
                            version_tag=now, 
                            show_clear_logs_button=config.get('show_clear_logs_button', True),
                            show_download_logs_button=config.get('show_download_logs_button', True),
-                           DEFAULT_CONFIG=DEFAULT_CONFIG, # Add DEFAULT_CONFIG
+                           # Removed DEFAULT_CONFIG - not needed anymore
                            tasks=formatted_tasks # Add schedule data
                           )
 
@@ -682,14 +691,18 @@ def save_config_api():
     result = {'success': False, 'message': 'An unexpected error occurred.'}
     
     try:
-        from utils.config_loader import (
-            process_config_form, BOT_CONFIG_FILE, DOCKER_CONFIG_FILE, 
-            CHANNELS_CONFIG_FILE, WEB_CONFIG_FILE
-        )
+        from services.config.config_service import process_config_form
+        # Get config file paths from config service
+        from services.config.config_service import get_config_service
+        config_service = get_config_service()
+        BOT_CONFIG_FILE = config_service.bot_config_file
+        DOCKER_CONFIG_FILE = config_service.docker_config_file
+        CHANNELS_CONFIG_FILE = config_service.channels_config_file
+        WEB_CONFIG_FILE = config_service.web_config_file
         
         # Explicitly import server_order utilities
         try:
-            from utils.server_order import save_server_order
+            from services.docker.server_order import save_server_order
             server_order_utils_available = True
         except ImportError:
             server_order_utils_available = False
@@ -797,11 +810,11 @@ def save_config_api():
             # Invalidate caches if critical settings changed
             if critical_settings_changed:
                 try:
-                    # Invalidate ConfigManager cache
-                    from utils.config_manager import get_config_manager
-                    config_manager = get_config_manager()
-                    config_manager.invalidate_cache()
-                    logger.info("ConfigManager cache invalidated due to critical settings change")
+                    # Invalidate ConfigService cache
+                    from services.config.config_service import get_config_service
+                    config_service = get_config_service()
+                    config_service._invalidate_cache()
+                    logger.info("ConfigService cache invalidated due to critical settings change")
                     
                     # Invalidate config cache
                     from utils.config_cache import get_config_cache
@@ -861,7 +874,7 @@ def save_config_api():
                 
                 # Update scheduler logging if available
                 try:
-                    from utils.scheduler import initialize_logging
+                    from services.scheduling.scheduler import initialize_logging
                     initialize_logging()
                     logger.info("Scheduler logging settings updated after configuration save")
                 except ImportError:
@@ -1242,7 +1255,7 @@ def performance_stats():
         
         # Get scheduler service statistics
         try:
-            from utils.scheduler_service import get_scheduler_stats
+            from services.scheduling.scheduler_service import get_scheduler_stats
             performance_data['scheduler'] = get_scheduler_stats()
         except Exception as e:
             logger.warning(f"Could not get scheduler stats: {e}")
@@ -1343,8 +1356,8 @@ def get_donation_status():
     """Get current donation status with speed information - USING NEW MECH SERVICE."""
     try:
         # Use new MechService
-        from services.mech_service import get_mech_service
-        from utils.speed_levels import get_speed_info, get_speed_emoji
+        from services.mech.mech_service import get_mech_service
+        from services.mech.speed_levels import get_speed_info, get_speed_emoji
         
         mech_service = get_mech_service()
         mech_state = mech_service.get_state()
@@ -1456,7 +1469,7 @@ def add_test_fuel():
         user = data.get('user', 'Test')
         
         # Use new MechService instead of old donation_manager
-        from services.mech_service import get_mech_service
+        from services.mech.mech_service import get_mech_service
         mech_service = get_mech_service()
         
         if amount != 0:
@@ -1492,7 +1505,7 @@ def reset_fuel():
     """Reset fuel to 0 for testing (requires auth) - USING NEW MECH SERVICE."""
     try:
         # NEW SERVICE: Reset by clearing donation file
-        from services.mech_service import get_mech_service
+        from services.mech.mech_service import get_mech_service
         mech_service = get_mech_service()
         
         # Reset by directly modifying the store
@@ -1522,7 +1535,7 @@ def consume_fuel():
     """Get current fuel state - NEW SERVICE HANDLES DECAY AUTOMATICALLY."""
     try:
         # NEW SERVICE: Decay happens automatically in get_state()
-        from services.mech_service import get_mech_service
+        from services.mech.mech_service import get_mech_service
         mech_service = get_mech_service()
         
         # Just get current state - decay is calculated automatically
@@ -1591,7 +1604,7 @@ def submit_donation():
             if project_root not in sys.path:
                 sys.path.insert(0, project_root)
                 
-            from services.mech_service import get_mech_service
+            from services.mech.mech_service import get_mech_service
             mech_service = get_mech_service()
         except Exception as e:
             current_app.logger.error(f"Could not get mech service: {e}")
@@ -1671,7 +1684,7 @@ def mech_animation():
             if project_root not in sys.path:
                 sys.path.insert(0, project_root)
             
-            from services.mech_service import get_mech_service
+            from services.mech.mech_service import get_mech_service
             mech_service = get_mech_service()
             mech_state = mech_service.get_state()
             total_donations = mech_state.total_donated
@@ -1692,11 +1705,11 @@ def mech_animation():
                 sys.path.insert(0, project_root)
                 
             # Use sprite animator directly for Web UI (avoids event loop conflicts)
-            from utils.sprite_mech_animator import get_sprite_animator
+            from services.mech.sprite_mech_animator import get_sprite_animator
             sprite_animator = get_sprite_animator()
             
             # Get both current fuel and total donated for proper animation
-            from services.mech_service import get_mech_service
+            from services.mech.mech_service import get_mech_service
             mech_service = get_mech_service()
             mech_state = mech_service.get_state()
             current_fuel = mech_service.get_fuel_with_decimals()
@@ -1759,11 +1772,11 @@ def test_mech_animation():
         current_app.logger.info(f"Generating mech animation for {donor_name}, donations: {total_donations}")
         
         # Use sprite animator directly for Web UI (avoids event loop conflicts)
-        from utils.sprite_mech_animator import get_sprite_animator
+        from services.mech.sprite_mech_animator import get_sprite_animator
         sprite_animator = get_sprite_animator()
         
         # Get mech state for proper evolution level calculation
-        from services.mech_service import get_mech_service
+        from services.mech.mech_service import get_mech_service
         mech_service = get_mech_service()
         mech_state = mech_service.get_state()
         
@@ -1813,7 +1826,7 @@ def simulate_donation_broadcast():
 def get_mech_speed_config():
     """Get speed configuration using new 101-level system."""
     try:
-        from utils.speed_levels import get_speed_info, get_speed_emoji
+        from services.mech.speed_levels import get_speed_info, get_speed_emoji
         
         data = request.get_json()
         total_donations = data.get('total_donations', 0)

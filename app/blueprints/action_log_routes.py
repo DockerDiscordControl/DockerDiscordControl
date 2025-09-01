@@ -41,7 +41,7 @@ except ImportError:
 
 # Import the central ACTION_LOG_FILE constant and log_user_action function
 try:
-    from utils.action_logger import log_user_action, _ACTION_LOG_FILE as ACTION_LOG_FILE
+    from services.infrastructure.action_logger import log_user_action, _ACTION_LOG_FILE as ACTION_LOG_FILE
 except ImportError:
     # Fallback for tests or when the central version is not available
     from app.utils.web_helpers import ACTION_LOG_FILE, log_user_action

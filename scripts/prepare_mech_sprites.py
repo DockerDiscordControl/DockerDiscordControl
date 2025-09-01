@@ -12,7 +12,7 @@ Usage:
 import sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
-from utils.mech_sprite_encoder import encode_sprite_to_file, decode_sprite_from_file
+from services.mech.mech_sprite_encoder import encode_sprite_to_file, decode_sprite_from_file
 
 def create_placeholder_sprites():
     """Create placeholder sprites for each mech level"""
@@ -165,7 +165,7 @@ def main():
     if command == "create":
         create_placeholder_sprites()
     elif command == "encode":
-        from utils.mech_sprite_encoder import encode_all_sprites
+        from services.mech.mech_sprite_encoder import encode_all_sprites
         encode_all_sprites()
     elif command == "test":
         test_encoding()

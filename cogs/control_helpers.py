@@ -8,7 +8,7 @@
 
 import discord
 from typing import List, Dict, Any, Optional, Union
-from utils.config_loader import load_config
+from services.config.config_service import load_config
 from utils.config_cache import get_cached_config, get_cached_servers, get_cached_guild_id  # Performance optimization
 from .translation_manager import _ # Import the translation function
 from utils.time_utils import format_datetime_with_timezone, get_datetime_imports # Import time helper

@@ -48,30 +48,50 @@ LOG_DIR = os.path.join(_PROJECT_ROOT_HELPER, 'logs')
 ACTION_LOG_FILE = os.path.join(LOG_DIR, 'user_actions.log')
 DISCORD_LOG_FILE = os.path.join(LOG_DIR, 'discord.log')
 
+# Helper function to get advanced settings from config
+def _get_advanced_setting(key: str, default_value, value_type=int):
+    """Get advanced setting value with fallback to environment variable."""
+    try:
+        from services.config.config_service import get_config_service
+        config = get_config_service().get_config()
+        advanced_settings = config.get('advanced_settings', {})
+        value = advanced_settings.get(key, os.environ.get(key, default_value))
+        if value_type == bool:
+            # Special handling for boolean values
+            if isinstance(value, bool):
+                return value
+            return str(value).lower() in ('true', '1', 'yes', 'on')
+        return value_type(value)
+    except Exception:
+        fallback = os.environ.get(key, default_value)
+        if value_type == bool:
+            return str(fallback).lower() in ('true', '1', 'yes', 'on')
+        return value_type(fallback)
+
 # Improved cache configuration
 # CRITICAL: Cache duration MUST be shorter than minimum update interval (1 minute)
 # Keep at 45 seconds to ensure fresh data for 1-minute Web UI updates
-DEFAULT_CACHE_DURATION = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', 45))
+DEFAULT_CACHE_DURATION = _get_advanced_setting('DDC_DOCKER_CACHE_DURATION', 30)
 # Minimum time between Docker API requests in seconds
-DOCKER_QUERY_COOLDOWN = float(os.environ.get('DDC_DOCKER_QUERY_COOLDOWN', 1.0))
+DOCKER_QUERY_COOLDOWN = _get_advanced_setting('DDC_DOCKER_QUERY_COOLDOWN', 2.0, float)
 # Maximum age for container data before forced update in seconds
 # Keep at 90 seconds (1.5x cache duration) to support 1-minute updates
-MAX_CACHE_AGE = int(os.environ.get('DDC_DOCKER_MAX_CACHE_AGE', 90))
+MAX_CACHE_AGE = _get_advanced_setting('DDC_DOCKER_MAX_CACHE_AGE', 300)
 # Flag to enable background refresh
-ENABLE_BACKGROUND_REFRESH = os.environ.get('DDC_ENABLE_BACKGROUND_REFRESH', 'true').lower() == 'true'
+ENABLE_BACKGROUND_REFRESH = _get_advanced_setting('DDC_ENABLE_BACKGROUND_REFRESH', True, bool)
 # Background refresh interval - MUST be frequent for 1-minute update intervals
 # Keep at 30 seconds to support minimum 1-minute Web UI update intervals
-BACKGROUND_REFRESH_INTERVAL = int(os.environ.get('DDC_BACKGROUND_REFRESH_INTERVAL', 30))
+BACKGROUND_REFRESH_INTERVAL = _get_advanced_setting('DDC_BACKGROUND_REFRESH_INTERVAL', 300)
 # Background refresh limit - Maximum containers to refresh per cycle
-BACKGROUND_REFRESH_LIMIT = int(os.environ.get('DDC_BACKGROUND_REFRESH_LIMIT', 50))
+BACKGROUND_REFRESH_LIMIT = _get_advanced_setting('DDC_BACKGROUND_REFRESH_LIMIT', 50)
 # Background refresh timeout - Timeout for each refresh operation
-BACKGROUND_REFRESH_TIMEOUT = int(os.environ.get('DDC_BACKGROUND_REFRESH_TIMEOUT', 30))
+BACKGROUND_REFRESH_TIMEOUT = _get_advanced_setting('DDC_BACKGROUND_REFRESH_TIMEOUT', 30)
 # Max containers to display in Web UI
-MAX_CONTAINERS_DISPLAY = int(os.environ.get('DDC_MAX_CONTAINERS_DISPLAY', 100))
+MAX_CONTAINERS_DISPLAY = _get_advanced_setting('DDC_MAX_CONTAINERS_DISPLAY', 100)
 # Memory optimization: Limit maximum containers in cache
-MAX_CACHED_CONTAINERS = int(os.environ.get('DDC_MAX_CACHED_CONTAINERS', 100))
+MAX_CACHED_CONTAINERS = _get_advanced_setting('DDC_MAX_CACHED_CONTAINERS', 100)
 # Memory optimization: Cache cleanup interval (can be longer since it's just cleanup)
-CACHE_CLEANUP_INTERVAL = int(os.environ.get('DDC_CACHE_CLEANUP_INTERVAL', 300))  # 5 minutes
+CACHE_CLEANUP_INTERVAL = _get_advanced_setting('DDC_CACHE_CLEANUP_INTERVAL', 300)  # 5 minutes
 
 # Extended cache structure with TTL and container-specific timestamps
 docker_cache = {
@@ -96,12 +116,12 @@ action_logger = logging.getLogger('user_actions')
 # --- Helper Functions ---
 def setup_action_logger(app_instance):
     """
-    Checks if the central action logger from utils.action_logger is correctly initialized.
+    Checks if the central action logger from services.infrastructure.action_logger is correctly initialized.
     This function no longer initializes the logger itself, but only tries to use it.
     """
     try:
         # Import the central logger
-        from utils.action_logger import user_action_logger, _ACTION_LOG_FILE
+        from services.infrastructure.action_logger import user_action_logger, _ACTION_LOG_FILE
         
         # Check if the configuration was successful
         if not any(isinstance(h, logging.FileHandler) for h in user_action_logger.handlers):
@@ -111,7 +131,7 @@ def setup_action_logger(app_instance):
             
         return user_action_logger
     except ImportError as e:
-        app_instance.logger.error(f"Failed to import user_action_logger from utils.action_logger: {e}")
+        app_instance.logger.error(f"Failed to import user_action_logger from services.infrastructure.action_logger: {e}")
         return logging.getLogger('user_actions')  # Fallback
     except Exception as e:
         app_instance.logger.error(f"Unexpected error checking action logger: {e}")
@@ -125,7 +145,7 @@ def log_user_action(action: str, target: str, source: str = "Web UI", details: s
     """
     try:
         # Import here to avoid circular imports
-        from utils.action_logger import log_user_action as central_log_user_action
+        from services.infrastructure.action_logger import log_user_action as central_log_user_action
         
         # Get the current user if available
         user = "System"
@@ -549,7 +569,7 @@ def set_initial_password_from_env():
         return
     try:
         # Attempt to import config_loader dynamically, as it might also be refactored
-        from utils.config_loader import load_config, save_config
+        from services.config.config_service import load_config, save_config
         
         config_path_check = os.path.join(_PROJECT_ROOT_HELPER, "config", "config.json")
         init_pass_logger.info(f"Attempting to load config from: {config_path_check} for initial password set.")

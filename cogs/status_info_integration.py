@@ -489,7 +489,7 @@ class LiveLogView(discord.ui.View):
         """Get the last 50 log lines for the container."""
         try:
             import docker
-            from utils.docker_utils import get_docker_client
+            from services.docker_service.docker_utils import get_docker_client
             from utils.common_helpers import validate_container_name
             
             # Validate container name for security
@@ -649,7 +649,7 @@ class DebugLogsButton(discord.ui.Button):
         """Get the last 50 log lines for the container."""
         try:
             import docker
-            from utils.docker_utils import get_docker_client
+            from services.docker_service.docker_utils import get_docker_client
             from utils.common_helpers import validate_container_name
             
             # Validate container name for security

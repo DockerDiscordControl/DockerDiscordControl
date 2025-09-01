@@ -264,9 +264,9 @@ def get_cached_config() -> Dict[str, Any]:
     Returns:
         The configuration dictionary
     """
-    # Use ConfigManager directly instead of multiple cache layers
-    from utils.config_manager import get_config_manager
-    return get_config_manager().get_config()
+    # Use ConfigService directly instead of multiple cache layers
+    from services.config.config_service import get_config_service
+    return get_config_service().get_config()
 
 def get_cached_servers() -> List[Dict[str, Any]]:
     """

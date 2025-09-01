@@ -1,45 +1,54 @@
 # DockerDiscordControl 🐳
 
-[![Version](https://img.shields.io/github/v/release/DockerDiscordControl/DockerDiscordControl?style=for-the-badge&label=Version)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/latest) [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.22-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Ready-blue?style=for-the-badge)](./UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
+[![Version](https://img.shields.io/github/v/release/DockerDiscordControl/DockerDiscordControl?style=for-the-badge&label=Version)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/latest) [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.22.1-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Ready-blue?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
 
 A powerful Discord bot and web interface to manage Docker containers remotely. This application bridges the gap between Discord and your Docker environment, allowing container monitoring and control directly through Discord channels.
 
 **Homepage:** [https://ddc.bot](https://ddc.bot) | **[Complete Documentation](../../wiki)**
 
-Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is an ultra-optimized, ~200MB Alpine Linux build with the latest security patches and enhanced performance.
+Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is an ultra-optimized Alpine Linux build with the latest security patches and enhanced performance.
 
-## 🆕 Latest Updates (v1.1.3c)
+## 🆕 Latest Updates (v2.0)
 
-### ✅ **v1.1.3c - Python 3.13 Compatibility & Docker Fixes**
+### ✅ **v2.0 - Complete Service Architecture & Enhanced Features**
 
-🐍 **Python 3.13 Support:**
-- **NEW:** Full Python 3.13 compatibility with audioop module fixes
-- Smart conditional dependency resolution based on Python version
-- Backward compatibility maintained for Python 3.11+ environments
+🏗️ **Service Architecture:**
+- **NEW:** Complete modular service architecture replacing legacy utils system
+- Centralized ConfigService with automatic migration from old configurations
+- Service-oriented design for better maintainability and scalability
+- Thread-safe singleton patterns for all core services
 
-🐳 **Docker Build Improvements:**
-- Fixed Docker Hub build failures with conditional audioop-lts installation
-- Enhanced build process with better caching and error handling
-- Streamlined dependency management for multiple Python versions
+📊 **Container Information System:**
+- **NEW:** Detailed container/server info function accessible via Discord and Web UI
+- Real-time status monitoring with comprehensive container metrics
+- Enhanced logging and performance tracking capabilities
+- Improved Docker Engine integration with better error handling
 
-🔐 **Security & Stability Enhancements:**
-- Fixed channel regeneration errors with missing config parameters
-- Improved Discord command timeout handling with proper defer() implementation
-- Resolved Web UI 500 errors and pytz compatibility issues
-- Enhanced secure configuration handling and token encryption
+⚙️ **Advanced Settings & Configuration:**
+- **NEW:** Advanced Settings panel in Web UI for power users
+- Comprehensive spam protection settings with rate limiting
+- Environment variable fallback system for production deployments
+- Enhanced security with improved token encryption and validation
 
-🔧 **Bug Fixes & Optimizations:**
-- Fixed scheduled tasks loading and display issues
-- Enhanced message update time tracking for recreated messages
-- Consolidated configuration system for better performance
-- Improved error handling and logging throughout the application
+💰 **Donation System with Animated Mech:**
+- **NEW:** Integrated donation tracking system with visual feedback
+- Animated mech character that evolves based on donation levels
+- Real-time fuel system with WebP animations and particle effects
+- Donation disable system with encrypted keys for clean presentation
 
-🏥 **Enhanced Monitoring:**
-- Better health check endpoints and container monitoring
-- Improved inactivity detection and auto-refresh mechanisms
-- Streamlined Docker Engine integration and status reporting
+🐳 **Ultra-Optimized Image:**
+- **Enhanced:** Ultra-compact Alpine 3.22.1 image (176MB) with multi-stage build
+- 61% size reduction through streamlined dependency management  
+- Production-only runtime with build dependencies completely removed
+- Enhanced security with latest patches and minimal attack surface
 
-**🚀 Production-ready with enhanced security, Python 3.13 support, and improved stability!**
+🔐 **Security & Migration:**
+- Automatic token migration ensuring seamless upgrades from older versions
+- Enhanced encryption compatibility with backward support
+- Improved configuration validation and error handling
+- Production-ready security hardening throughout
+
+**🚀 Production-ready v2.0 with complete architecture overhaul, advanced features, and seamless migration!**
 
 ## Platform Selection
 
@@ -166,7 +175,7 @@ docker run -d --name ddc \
 - Install via **Community Applications**
 - Search for "DockerDiscordControl"
 - **One-click install** with pre-configured paths
-- [📖 Detailed Unraid Setup](UNRAID.md)
+- [📖 Detailed Unraid Setup](docs/UNRAID.md)
 
 #### Configuration
 
@@ -279,16 +288,12 @@ The default build for this repository is now the stable, optimized Alpine image.
 ## 🐳 Docker Images
 
 **Ultra-optimized Alpine Linux image:**
-- **Size:** ~200MB (78% smaller than previous versions)
-- **Base:** Alpine Linux 3.22.1 (latest secure version)
-- **Security:** Latest Flask 3.1.1 & Werkzeug 3.1.3 (all CVEs fixed)
-- **Performance:** Optimized for minimal resource usage
+- **Size:** 176MB with multi-stage build optimization
+- **Base:** Alpine Linux 3.22.1 (latest secure version)  
+- **Architecture:** Service-oriented modular design (v2.0)
+- **Security:** Latest dependencies with all CVEs fixed
+- **Performance:** Optimized for minimal resource usage and fast startup
 
-```bash
-docker pull dockerdiscordcontrol/dockerdiscordcontrol:alpine-optimized
-```
-
-**Standard image:**
 ```bash
 docker pull dockerdiscordcontrol/dockerdiscordcontrol:latest
 ```
@@ -330,7 +335,7 @@ docker pull dockerdiscordcontrol/dockerdiscordcontrol:latest
 | [Performance](../../wiki/Performance‐and‐Architecture) | V3.0 optimizations & monitoring |
 | [Alpine Migration](../../wiki/Alpine‐Linux‐Migration) | Benefits, security, optimization |
 | [Memory Optimization](../../wiki/Memory‐Optimization) | Resource management, limits |
-| [Unraid Setup](UNRAID.md) | Community Applications guide |
+| [Unraid Setup](docs/UNRAID.md) | Community Applications guide |
 | [Troubleshooting](../../wiki/Troubleshooting) | Common issues & solutions |
 | [Development](../../wiki/Development) | Contributing & development setup |
 | [Security](../../wiki/Security) | Best practices & considerations |

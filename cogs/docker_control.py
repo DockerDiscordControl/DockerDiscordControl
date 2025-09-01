@@ -24,17 +24,16 @@ app_commands = get_app_commands()
 DiscordOption = get_discord_option()
 
 # Import our utility functions
-from utils.config_loader import load_config, DEFAULT_CONFIG
-from utils.config_manager import get_config_manager
+from services.config.config_service import load_config, get_config_service
 from utils.config_cache import get_cached_config  # CRITICAL: Import the real function
-from utils.docker_utils import get_docker_info, get_docker_stats, docker_action
+from services.docker_service.docker_utils import get_docker_info, get_docker_stats, docker_action
 
 from utils.time_utils import format_datetime_with_timezone
 from utils.logging_utils import setup_logger
-from utils.server_order import load_server_order, save_server_order
+from services.docker_service.server_order import load_server_order, save_server_order
 
 # Import scheduler module
-from utils.scheduler import (
+from services.scheduling.scheduler import (
     ScheduledTask, add_task, delete_task, update_task, load_tasks,
     get_tasks_for_container, get_next_week_tasks, get_tasks_in_timeframe,
     VALID_CYCLES, VALID_ACTIONS, DAYS_OF_WEEK,
@@ -67,7 +66,7 @@ from .status_handlers import StatusHandlersMixin
 from .command_handlers import CommandHandlersMixin
 
 # Import central logging function
-from utils.action_logger import log_user_action
+from services.infrastructure.action_logger import log_user_action
 
 # Configure logger for the cog using utility (INFO for release)
 logger = setup_logger('ddc.docker_control', level=logging.INFO)
@@ -76,436 +75,8 @@ logger = setup_logger('ddc.docker_control', level=logging.INFO)
 docker_status_cache = {}
 docker_status_cache_lock = threading.Lock()  # Thread safety for global status cache
 
-class DonationView(discord.ui.View):
-    """View with donation buttons that track clicks."""
-    
-    def __init__(self, donation_manager_available: bool, message=None):
-        super().__init__(timeout=890)  # 14.8 minutes (just under Discord's 15-minute limit)
-        self.donation_manager_available = donation_manager_available
-        self.message = message  # Store reference to the message for auto-delete
-        self.auto_delete_task = None
-        logger.info(f"DonationView initialized with donation_manager_available: {donation_manager_available}, timeout: 890s")
-        
-        # Import translation function
-        from .translation_manager import _
-        
-        # Add Buy Me a Coffee button (direct link)
-        coffee_button = discord.ui.Button(
-            label=_("☕ Buy Me a Coffee"),
-            style=discord.ButtonStyle.link,
-            url="https://buymeacoffee.com/dockerdiscordcontrol"
-        )
-        self.add_item(coffee_button)
-        
-        # Add PayPal button (direct link)
-        paypal_button = discord.ui.Button(
-            label=_("💳 PayPal"),
-            style=discord.ButtonStyle.link,
-            url="https://www.paypal.com/donate/?hosted_button_id=XKVC6SFXU2GW4"
-        )
-        self.add_item(paypal_button)
-        
-        # Add Broadcast Donation button
-        broadcast_button = discord.ui.Button(
-            label=_("📢 Broadcast Donation"),
-            style=discord.ButtonStyle.success,
-            custom_id="donation_broadcast"
-        )
-        broadcast_button.callback = self.broadcast_clicked
-        self.add_item(broadcast_button)
-    
-    async def on_timeout(self):
-        """Called when the view times out."""
-        try:
-            # Cancel auto-delete task if it exists
-            if self.auto_delete_task and not self.auto_delete_task.done():
-                self.auto_delete_task.cancel()
-            
-            # Delete the message when timeout occurs
-            if self.message:
-                logger.info("DonationView timeout reached, deleting message to prevent inactive buttons")
-                try:
-                    await self.message.delete()
-                except discord.NotFound:
-                    logger.debug("Message already deleted")
-                except Exception as e:
-                    logger.error(f"Error deleting donation message on timeout: {e}")
-        except Exception as e:
-            logger.error(f"Error in DonationView.on_timeout: {e}")
-    
-    async def start_auto_delete_timer(self):
-        """Start the auto-delete timer that runs shortly before timeout."""
-        import asyncio
-        try:
-            # Wait for 885 seconds (14.75 minutes), then delete message
-            # This gives us a 5-second buffer before Discord's timeout
-            await asyncio.sleep(885)
-            if self.message:
-                logger.info("Auto-deleting donation message before Discord timeout")
-                try:
-                    await self.message.delete()
-                except discord.NotFound:
-                    logger.debug("Message already deleted")
-                except Exception as e:
-                    logger.error(f"Error auto-deleting donation message: {e}")
-        except asyncio.CancelledError:
-            logger.debug("Auto-delete timer cancelled")
-        except Exception as e:
-            logger.error(f"Error in auto-delete timer: {e}")
-    
-    async def broadcast_clicked(self, interaction: discord.Interaction):
-        """Handle Broadcast Donation button click."""
-        try:
-            # Show modal for donation details
-            modal = DonationBroadcastModal(self.donation_manager_available, interaction.user.name)
-            await interaction.response.send_modal(modal)
-        except Exception as e:
-            logger.error(f"Error in broadcast_clicked: {e}")
-
-
-class DonationBroadcastModal(discord.ui.Modal):
-    """Modal for donation broadcast details."""
-    
-    def __init__(self, donation_manager_available: bool, default_name: str):
-        from .translation_manager import _
-        super().__init__(title=_("📢 Broadcast Your Donation"))
-        self.donation_manager_available = donation_manager_available
-        
-        # Add subtitle as description (not a field)
-        self.description = _("Your donation supports DDC and fuels the Donation Engine")
-        
-        # Name field (pre-filled with Discord username) - now marked as required
-        self.name_input = discord.ui.InputText(
-            label=_("Your Name") + " *",
-            placeholder=_("How should we display your name?"),
-            value=default_name,
-            style=discord.InputTextStyle.short,
-            required=True,
-            max_length=50
-        )
-        self.add_item(self.name_input)
-        
-        # Amount field (optional) - with updated label and placeholder
-        self.amount_input = discord.ui.InputText(
-            label=_("💰 Donation Amount (optional)"),
-            placeholder=_("10.50 (numbers only, $ will be added automatically)"),
-            style=discord.InputTextStyle.short,
-            required=False,
-            max_length=10
-        )
-        self.add_item(self.amount_input)
-        
-        # Public sharing field - using simple X system
-        self.share_input = discord.ui.InputText(
-            label=_("📢 Share donation publicly?"),
-            placeholder=_("Remove X to keep private"),
-            value="X",  # Default to sharing (X = share)
-            style=discord.InputTextStyle.short,
-            required=False,
-            max_length=10
-        )
-        self.add_item(self.share_input)
-    
-    async def callback(self, interaction: discord.Interaction):
-        """Handle modal submission."""
-        logger.info(f"=== DONATION MODAL CALLBACK STARTED ===")
-        logger.info(f"User: {interaction.user.name}, Raw inputs: name={self.name_input.value}, amount={self.amount_input.value}")
-        
-        # Send immediate acknowledgment to avoid timeout
-        from .translation_manager import _
-        await interaction.response.send_message(
-            _("⏳ Processing your donation... Please wait a moment."),
-            ephemeral=True
-        )
-        
-        try:
-            # Get values from modal
-            donor_name = self.name_input.value or interaction.user.name
-            raw_amount = self.amount_input.value.strip() if self.amount_input.value else ""
-            logger.info(f"Processed values: donor_name={donor_name}, raw_amount={raw_amount}")
-            
-            # Check sharing preference - simple X system
-            share_preference = self.share_input.value.strip() if self.share_input.value else ""
-            should_share_publicly = "X" in share_preference.upper() or "x" in share_preference
-            
-            # Validate and format amount with $ prefix
-            amount = ""
-            amount_validation_error = None
-            if raw_amount:
-                # Check for negative signs first (reject negative numbers)
-                if '-' in raw_amount:
-                    amount_validation_error = f"⚠️ Invalid amount: '{raw_amount}' - negative amounts not allowed"
-                else:
-                    # Remove any non-numeric characters except dots and commas
-                    import re
-                    cleaned_amount = re.sub(r'[^\d.,]', '', raw_amount)
-                    
-                    # Replace comma with dot for decimal separator
-                    cleaned_amount = cleaned_amount.replace(',', '.')
-                    
-                    # Validate numeric format
-                    try:
-                        numeric_value = float(cleaned_amount)
-                        if numeric_value > 0:
-                            # Format with $ prefix
-                            amount = f"${numeric_value:.2f}"
-                        elif numeric_value == 0:
-                            # Invalid: zero
-                            amount_validation_error = f"⚠️ Invalid amount: '{raw_amount}' - must be greater than 0"
-                        else:
-                            amount_validation_error = f"⚠️ Invalid amount: '{raw_amount}' - please use only numbers"
-                    except ValueError:
-                        # Invalid: not a valid number
-                        amount_validation_error = f"⚠️ Invalid amount: '{raw_amount}' - please use only numbers (e.g. 10.50)"
-            
-            # If there's a validation error, show it and return
-            if amount_validation_error:
-                from .translation_manager import _
-                await interaction.response.send_message(
-                    amount_validation_error + _("\n\nTip: Use format like: 10.50 or 5 ($ will be added automatically)"),
-                    ephemeral=True
-                )
-                return
-            
-            # FIRST: Process the donation to update fuel values
-            donation_amount_euros = None
-            evolution_occurred = False
-            old_fuel = 0
-            new_fuel = 0
-            old_evolution_level = None
-            new_evolution_level = None
-            
-            logger.info(f"Donation manager available: {self.donation_manager_available}")
-            if self.donation_manager_available:
-                logger.info(f"Processing donation with amount: {amount}")
-                try:
-                    from services.mech_service import get_mech_service
-                    mech_service = get_mech_service()
-                    
-                    # Get OLD state before donation
-                    old_state = mech_service.get_state()
-                    logger.info(f"Old state: fuel={old_state.fuel}, level={old_state.level}, total={old_state.total_donated}")
-                    old_fuel = old_state.fuel
-                    old_evolution_level = old_state.level
-                    
-                    # Parse amount if provided
-                    logger.info(f"Checking if amount exists: {amount}")
-                    if amount:
-                        # Try to extract numeric value from amount string
-                        import re
-                        # Match patterns like "10€", "$10", "10 Euro", "10 Dollar", "10", etc.
-                        amount_match = re.search(r'(\d+(?:\.\d+)?)', amount)
-                        logger.info(f"Amount match result: {amount_match}")
-                        if amount_match:
-                            donation_amount_euros = float(amount_match.group(1))
-                            logger.info(f"Parsed donation amount: {donation_amount_euros}€ from '{amount}'")
-                    
-                    # Record donation with NEW service (only if amount > 0)
-                    donation_recorded = False
-                    logger.info(f"Checking donation_amount_euros: {donation_amount_euros}")
-                    if donation_amount_euros and donation_amount_euros > 0:
-                        logger.info(f"Attempting to record donation of {donation_amount_euros}€")
-                        try:
-                            # Use the full euro amount as integer cents to preserve precision
-                            # e.g., 10.50 -> 1050 cents, then divided by 100 = 10.5 dollars
-                            amount_dollars = int(donation_amount_euros)  # For now, just use integer dollars
-                            logger.info(f"Calling mech_service.add_donation with username=Discord:{interaction.user.name}, amount={amount_dollars}")
-                            new_state = mech_service.add_donation(
-                                username=f"Discord:{interaction.user.name}",
-                                amount=amount_dollars
-                            )
-                            donation_recorded = True
-                            logger.info(f"NEW SERVICE: Donation SUCCESSFULLY recorded by {interaction.user.name} -> ${amount_dollars} (from {donation_amount_euros}€)")
-                        except PermissionError as pe:
-                            logger.error(f"PERMISSION ERROR: Cannot save donation due to file permissions: {pe}")
-                            # Still get current state for display, but mark as failed
-                            new_state = mech_service.get_state()
-                            donation_recorded = False
-                        except Exception as de:
-                            logger.error(f"DONATION ERROR: Failed to record donation: {de}")
-                            new_state = mech_service.get_state()
-                            donation_recorded = False
-                    else:
-                        # No donation amount - just get current state
-                        new_state = mech_service.get_state()
-                        logger.info(f"NEW SERVICE: No donation amount, just broadcasting message")
-                    
-                    # Check if evolution occurred by comparing levels
-                    evolution_occurred = new_state.level > old_state.level
-                    new_fuel = new_state.fuel
-                    new_total_donations = new_state.total_donated
-                    new_evolution_level = new_state.level
-                    
-                    if evolution_occurred:
-                        logger.info(f"EVOLUTION OCCURRED! Level {old_evolution_level} → {new_evolution_level}, Fuel reset: ${old_fuel:.2f} → ${new_fuel:.2f}")
-                    
-                    # Auto-update /ss messages after donation processing with small delay
-                    if donation_amount_euros and donation_amount_euros > 0:
-                        cog = interaction.client.get_cog('DockerControlCog')
-                        if cog:
-                            try:
-                                from .translation_manager import _
-                                # Add small delay to ensure data is fully persisted
-                                import asyncio
-                                await asyncio.sleep(0.5)  # Longer delay to ensure persistence
-                                logger.info(f"About to refresh /ss messages. Current fuel should be: ${new_fuel:.2f}")
-                                await cog._auto_update_ss_messages(_("Donation recorded - updating fuel status"), force_recreate=True)
-                                logger.info("Auto-refreshed /ss messages after donation processing with delay")
-                            except Exception as refresh_error:
-                                logger.error(f"Error refreshing /ss messages after donation: {refresh_error}")
-                    
-                except Exception as e:
-                    logger.error(f"Error processing donation: {e}")
-                    # Import traceback for detailed error info
-                    import traceback
-                    logger.error(f"Donation processing traceback: {traceback.format_exc()}")
-                    # Reset to defaults to prevent broadcast errors
-                    donation_amount_euros = None
-                    evolution_occurred = False
-            
-            # SECOND: Create broadcast message with UPDATED fuel values
-            cog = interaction.client.get_cog('DockerControlCog')
-            if cog:
-                # Create broadcast message using shared logic (now with updated values)
-                broadcast_text, evolution_status, speed_status = await cog._create_donation_broadcast_message(
-                    donor_name=donor_name,
-                    amount_text=amount if amount else None,
-                    evolution_occurred=evolution_occurred,
-                    old_evolution_level=old_evolution_level,
-                    new_evolution_level=new_evolution_level,
-                    surplus_fuel=new_fuel if evolution_occurred else None
-                )
-            else:
-                # Fallback if cog not found
-                from .translation_manager import _
-                broadcast_text = _("{donor_name} supports DDC – thank you so much ❤️").format(
-                    donor_name=f"**{donor_name}**"
-                )
-                evolution_status = ""
-                speed_status = ""
-            
-            # Try to create sprite mech animation
-            animation_file = None
-            try:
-                # Get current fuel for animation using MechService
-                try:
-                    from services.mech_service import get_mech_service
-                    mech_service = get_mech_service()
-                    current_fuel = mech_service.get_fuel_with_decimals()
-                except Exception as e:
-                    logger.debug(f"Could not get fuel from MechService: {e}")
-                    current_fuel = 0
-                
-                # Create sprite-based animation using service
-                import sys
-                import os
-                # Add project root to Python path for service imports  
-                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                if project_root not in sys.path:
-                    sys.path.insert(0, project_root)
-                    
-                from services.mech_animation_service import get_mech_animation_service
-                mech_service = get_mech_animation_service()
-                animation_file = await mech_service.create_donation_animation_async(
-                    donor_name,
-                    amount, 
-                    current_fuel
-                )
-                logger.info(f"Created sprite mech animation for donation broadcast")
-            except Exception as anim_error:
-                logger.debug(f"Could not create mech animation: {anim_error}")
-                animation_file = None
-            
-            # Only send to channels if sharing publicly
-            sent_count = 0
-            failed_count = 0
-            
-            if should_share_publicly:
-                # Send to all channels (using existing donatebroadcast logic)
-                from utils.config_cache import get_cached_config
-                config = get_cached_config()
-                channels_config = config.get('channel_permissions', {})
-            
-                # For animation, we'll send to first channel only (to avoid rate limits)
-                first_channel_with_animation = True
-                
-                for channel_id_str, channel_info in channels_config.items():
-                    try:
-                        channel_id = int(channel_id_str)
-                        channel = interaction.client.get_channel(channel_id)
-                        
-                        if channel:
-                            from .translation_manager import _
-                            embed = discord.Embed(
-                                title=_("💝 Donation received"),
-                                description=broadcast_text,
-                                color=0x00ff41
-                            )
-                            
-                            # Add mech status as simple text (no bold, no icons, no animation)
-                            if evolution_status or speed_status:
-                                status_text = ""
-                                if evolution_status:
-                                    # Remove bold formatting and add simple text
-                                    clean_evolution = evolution_status.replace("**Evolution: Level", "Evolution: Level").replace("**", "")
-                                    status_text += clean_evolution
-                                if speed_status:
-                                    # Remove bold formatting and add simple text
-                                    clean_speed = speed_status.replace("**Speed:", "Speed:").replace("**", "")
-                                    if status_text:
-                                        status_text += "\n" + clean_speed
-                                    else:
-                                        status_text = clean_speed
-                                
-                                embed.add_field(name=_("Mech Status"), value=status_text, inline=False)
-                            
-                            # Send without animation (animation will be in /ss command instead)
-                            embed.set_footer(text="https://ddc.bot")
-                            await channel.send(embed=embed)
-                            logger.info(f"Donation broadcast sent to channel {channel.name}")
-                            
-                            sent_count += 1
-                        else:
-                            failed_count += 1
-                            logger.warning(f"Could not find channel {channel_id}")
-                            
-                    except Exception as channel_error:
-                        failed_count += 1
-                        logger.error(f"Error sending to channel {channel_id_str}: {channel_error}")
-            
-            # Respond to user (translated)
-            from .translation_manager import _
-            if should_share_publicly:
-                response_text = _("✅ **Donation broadcast sent!**") + "\n\n"
-                response_text += _("📢 Sent to **{count}** channels").format(count=sent_count) + "\n"
-                if failed_count > 0:
-                    response_text += _("⚠️ Failed to send to {count} channels").format(count=failed_count) + "\n"
-                response_text += "\n" + _("Thank you **{donor_name}** for your generosity! 🙏").format(donor_name=donor_name)
-            else:
-                response_text = _("✅ **Donation recorded privately!**") + "\n\n"
-                response_text += _("Thank you **{donor_name}** for your generous support! 🙏").format(donor_name=donor_name) + "\n"
-                response_text += _("Your donation has been recorded and helps fuel the Donation Engine.")
-            
-            # Since we already sent acknowledgment, use followup for final response
-            await interaction.followup.send(response_text, ephemeral=True)
-            
-            # Delete the "Processing..." message
-            try:
-                await interaction.delete_original_response()
-            except:
-                pass  # Ignore if already deleted or expired
-            
-        except Exception as e:
-            logger.error(f"Error in donation broadcast modal: {e}")
-            from .translation_manager import _
-            try:
-                # Since we already sent acknowledgment, always use followup
-                await interaction.followup.send(
-                    _("❌ Error sending donation broadcast. Please try again later."),
-                    ephemeral=True
-                )
-            except Exception as followup_error:
-                logger.error(f"Could not send error response: {followup_error}")
+# Import donation UI components
+from .donation_ui import DonationView, DonationBroadcastModal
 
 
 class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin, CommandHandlersMixin):
@@ -521,7 +92,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         
         # Check if donations are disabled and remove donation commands
         try:
-            from utils.donation_utils import is_donations_disabled
+            from services.donation.donation_utils import is_donations_disabled
             if is_donations_disabled():
                 logger.info("Donations are disabled - removing donation commands")
                 # Remove donate and donatebroadcast commands after cog is initialized
@@ -530,7 +101,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             self.donations_disabled = False
         
         # Initialize Mech State Manager for persistence
-        from utils.mech_state_manager import get_mech_state_manager
+        from services.mech.mech_state_manager import get_mech_state_manager
         self.mech_state_manager = get_mech_state_manager()
         
         # Load persisted states
@@ -751,9 +322,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         now_utc = datetime.now(timezone.utc)
         
         channel_permissions_config = config.get('channel_permissions', {})
-        # Ensure DEFAULT_CONFIG is accessible here if not already a class/instance variable
-        # It was imported at the top of the file: from utils.config_loader import DEFAULT_CONFIG
-        default_perms = DEFAULT_CONFIG.get('default_channel_permissions', {})
+        # Get default permissions from config
+        default_perms = {}
 
         for channel_id in list(self.channel_server_message_ids.keys()):
             if channel_id not in self.channel_server_message_ids or not self.channel_server_message_ids[channel_id]:
@@ -1037,8 +607,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             """
             channel_permissions = current_config.get('channel_permissions', {})
             channel_config_specific = channel_permissions.get(str(channel_id))
-            default_recreate_enabled = DEFAULT_CONFIG.get('default_channel_permissions', {}).get('recreate_messages_on_inactivity', True)
-            default_timeout_minutes = DEFAULT_CONFIG.get('default_channel_permissions', {}).get('inactivity_timeout_minutes', 10)
+            default_recreate_enabled = True
+            default_timeout_minutes = 10
             recreate_enabled = default_recreate_enabled
             timeout_minutes = default_timeout_minutes
             if channel_config_specific:
@@ -1095,10 +665,9 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
 
         channel_id = message.channel.id
         channel_permissions = self.config.get('channel_permissions', {})
-        # Need to access DEFAULT_CONFIG correctly, it might not be directly available as self.DEFAULT_CONFIG
-        # It's imported in this module
-        default_perms_inactivity = DEFAULT_CONFIG.get('default_channel_permissions', {}).get('recreate_messages_on_inactivity', True)
-        default_perms_timeout = DEFAULT_CONFIG.get('default_channel_permissions', {}).get('inactivity_timeout_minutes', 10)
+        # Use direct default values since DEFAULT_CONFIG was removed
+        default_perms_inactivity = True
+        default_perms_timeout = 10
 
         channel_config = channel_permissions.get(str(channel_id))
 
@@ -1623,8 +1192,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             logger.error(f"Error in serverstatus command: {e}", exc_info=True)
             try:
                 await ctx.followup.send(_("An error occurred while generating the overview."), ephemeral=True)
-            except:
-                pass
+            except Exception as e:
+                logger.error(f"Error generating overview: {e}")
 
     @commands.slash_command(name="ss", description=_("Shortcut: Shows the status of all containers"), guild_ids=get_guild_id())
     async def ss(self, ctx):
@@ -1708,16 +1277,16 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         
         # NOW check if donations are disabled
         try:
-            from utils.donation_utils import is_donations_disabled
+            from services.donation.donation_utils import is_donations_disabled
             if is_donations_disabled():
                 # Send minimal response via followup since we deferred
                 try:
                     await ctx.followup.send(".", delete_after=0.1)
-                except:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Followup cleanup failed: {e}")
                 return
-        except:
-            pass
+        except Exception as e:
+            logger.debug(f"Donation check failed: {e}")
         
         # Check spam protection
         if not await self._check_spam_protection(ctx, "donate"):
@@ -1728,7 +1297,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             # Check MechService availability
             donation_manager_available = False
             try:
-                from services.mech_service import get_mech_service
+                from services.mech.mech_service import get_mech_service
                 mech_service = get_mech_service()
                 donation_manager_available = True
             except:
@@ -1769,7 +1338,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         # This should never be called when donations are disabled
         # (buttons shouldn't exist) but check anyway for safety
         try:
-            from utils.donation_utils import is_donations_disabled
+            from services.donation.donation_utils import is_donations_disabled
             if is_donations_disabled():
                 # Silently ignore
                 return
@@ -1785,7 +1354,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             # Check MechService availability
             donation_manager_available = False
             try:
-                from services.mech_service import get_mech_service
+                from services.mech.mech_service import get_mech_service
                 mech_service = get_mech_service()
                 donation_manager_available = True
             except:
@@ -1953,7 +1522,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             embed.description += f"\n{translate('Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.')}"
         
         # Check if donations are disabled by premium key
-        from utils.donation_utils import is_donations_disabled
+        from services.donation.donation_utils import is_donations_disabled
         donations_disabled = is_donations_disabled()
         
         # Add EXPANDED Mech Status with detailed information and progress bars (skip if donations disabled)
@@ -1969,7 +1538,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     sys.path.insert(0, project_root)
                 
                 logger.info("DEBUG: Using new MechService")
-                from services.mech_service import get_mech_service
+                from services.mech.mech_service import get_mech_service
                 mech_service = get_mech_service()
                 mech_state = mech_service.get_state()
                 logger.info("DEBUG: new MechService created")
@@ -1980,7 +1549,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 logger.info(f"NEW SERVICE: fuel=${current_fuel:.2f}, total_donations=${total_donations_received}, level={mech_state.level} ({mech_state.level_name})")
                 
                 # Evolution info from new service with next_name for UI
-                from services.mech_service import MECH_LEVELS
+                from services.mech.mech_service import MECH_LEVELS
                 next_name = None
                 if mech_state.next_level_threshold is not None:
                     # Find next level name from MECH_LEVELS
@@ -1999,11 +1568,11 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 
                 # Speed info from glvl - get full speed description with translations
                 try:
-                    from utils.speed_levels import get_combined_mech_status
+                    from services.mech.speed_levels import get_combined_mech_status
                     # Try to get language from config
                     try:
-                        from utils.config_manager import get_config_manager
-                        config_manager = get_config_manager()
+                        from services.config.config_service import get_config_service
+                        config_manager = get_config_service()
                         config = config_manager.get_config()
                         language = config.get('language', 'en').lower()
                         if language not in ['en', 'de', 'fr']:
@@ -2029,10 +1598,10 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 
                 # Create mech animation with fallback
                 try:
-                    from services.mech_animation_service import get_mech_animation_service
+                    from services.mech.mech_animation_service import get_mech_animation_service
                     mech_service = get_mech_animation_service()
                     # Get total_donated from MechService (not animation service)
-                    from services.mech_service import get_mech_service as get_data_service
+                    from services.mech.mech_service import get_mech_service as get_data_service
                     data_service = get_data_service()
                     total_donated = data_service.get_state().total_donated
                     animation_file = await mech_service.create_donation_animation_async(
@@ -2248,7 +1817,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             embed.description += f"\n{translate('Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.')}"
         
         # Check if donations are disabled by premium key
-        from utils.donation_utils import is_donations_disabled
+        from services.donation.donation_utils import is_donations_disabled
         donations_disabled = is_donations_disabled()
         
         # Add COLLAPSED Mech Status (animation only, no text details) (skip if donations disabled)
@@ -2262,7 +1831,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 if project_root not in sys.path:
                     sys.path.insert(0, project_root)
                     
-                from services.mech_service import get_mech_service
+                from services.mech.mech_service import get_mech_service
                 mech_service = get_mech_service()
                 
                 # Get current fuel for animation
@@ -2271,10 +1840,10 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 
                 # Create mech animation with fallback
                 try:
-                    from services.mech_animation_service import get_mech_animation_service
+                    from services.mech.mech_animation_service import get_mech_animation_service
                     mech_service = get_mech_animation_service()
                     # Get total_donated from MechService (not animation service)
-                    from services.mech_service import get_mech_service as get_data_service
+                    from services.mech.mech_service import get_mech_service as get_data_service
                     data_service = get_data_service()
                     total_donated = data_service.get_state().total_donated
                     animation_file = await mech_service.create_donation_animation_async(
@@ -2327,7 +1896,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             
             # Check if MechService is available
             try:
-                from services.mech_service import get_mech_service
+                from services.mech.mech_service import get_mech_service
                 # Test if we can get the service
                 mech_service = get_mech_service()
                 donation_manager_available = True
@@ -2337,7 +1906,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 logger.warning(f"MechService not available: {e}")
             
             # Check if donations are disabled by premium key
-            from utils.donation_utils import is_donations_disabled
+            from services.donation.donation_utils import is_donations_disabled
             if is_donations_disabled():
                 embed = discord.Embed(
                     title="🔐 Premium Features Active",
@@ -2422,7 +1991,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                         seen_docker_names = set()
                         
                         # Apply server ordering
-                        from utils.server_order import load_server_order
+                        from services.docker_service.server_order import load_server_order
                         server_order = load_server_order()
                         
                         for server_name in server_order:
@@ -2443,14 +2012,14 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                         current_glvl = None
                         try:
                             # Get current fuel amount for Glvl calculation using MechService
-                            from services.mech_service import get_mech_service
+                            from services.mech.mech_service import get_mech_service
                             mech_service = get_mech_service()
                             mech_state = mech_service.get_state()
                             current_fuel = mech_service.get_fuel_with_decimals()
                             total_donations = mech_state.total_donated
                             
                             # Get current mech status to extract Glvl
-                            from utils.speed_levels import get_combined_mech_status
+                            from services.mech.speed_levels import get_combined_mech_status
                             # Use default language for internal calculations (glvl doesn't need translation)
                             mech_status = get_combined_mech_status(current_fuel, total_donations, 'en')
                             current_glvl = mech_status.get('speed', {}).get('level', 0)
@@ -2736,8 +2305,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     logger.debug(f"Channel {channel_id} has no specific config, skipping")
                     continue
                     
-                recreate_enabled = channel_config.get('recreate_messages_on_inactivity', DEFAULT_CONFIG.get('default_channel_permissions', {}).get('recreate_messages_on_inactivity', True))
-                timeout_minutes = channel_config.get('inactivity_timeout_minutes', DEFAULT_CONFIG.get('default_channel_permissions', {}).get('inactivity_timeout_minutes', 10))
+                recreate_enabled = channel_config.get('recreate_messages_on_inactivity', True)
+                timeout_minutes = channel_config.get('inactivity_timeout_minutes', 10)
                 
                 logger.debug(f"Channel {channel_id} - recreate_enabled={recreate_enabled}, timeout_minutes={timeout_minutes}")
                 
@@ -3028,8 +2597,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 return
             
             # Import necessary scheduler functions
-            from utils.scheduler import load_tasks, delete_task
-            from utils.action_logger import log_user_action
+            from services.scheduling.scheduler import load_tasks, delete_task
+            from services.infrastructure.action_logger import log_user_action
             
             # Find the task
             all_tasks = load_tasks()
@@ -3082,7 +2651,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 return
             
             # Import necessary scheduler functions
-            from utils.scheduler import load_tasks, CYCLE_ONCE
+            from services.scheduling.scheduler import load_tasks, CYCLE_ONCE
             from .control_ui import TaskDeletePanelView
             import time
             
@@ -3357,7 +2926,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             if project_root not in sys.path:
                 sys.path.insert(0, project_root)
                 
-            from services.mech_service import get_mech_service
+            from services.mech.mech_service import get_mech_service
             mech_service = get_mech_service()
             mech_state = mech_service.get_state()
             
@@ -3365,12 +2934,12 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             total_donations = mech_state.total_donated
             
             # Get evolution and speed info
-            from utils.speed_levels import get_combined_mech_status
+            from services.mech.speed_levels import get_combined_mech_status
             
             # Get language from config for status messages
             try:
-                from utils.config_manager import get_config_manager
-                config_manager = get_config_manager()
+                from services.config.config_service import get_config_service
+                config_manager = get_config_service()
                 config = config_manager.get_config()
                 language = config.get('language', 'en').lower()
                 if language not in ['en', 'de', 'fr']:
@@ -3673,14 +3242,14 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
 # Setup function required for extension loading
 def setup(bot):
     """Setup function to add the cog to the bot when loaded as an extension."""
-    from utils.config_manager import get_config_manager
-    config_manager = get_config_manager()
+    from services.config.config_service import get_config_service
+    config_manager = get_config_service()
     config = config_manager.get_config()
     cog = DockerControlCog(bot, config)
     
     # Remove donation commands if donations are disabled
     try:
-        from utils.donation_utils import is_donations_disabled
+        from services.donation.donation_utils import is_donations_disabled
         if is_donations_disabled():
             # Remove the donate and donatebroadcast commands
             commands_to_remove = ['donate', 'donatebroadcast']

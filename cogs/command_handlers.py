@@ -12,8 +12,8 @@ from typing import Dict, Any, Optional
 
 # Import necessary utilities
 from utils.logging_utils import setup_logger
-from utils.docker_utils import docker_action
-from utils.action_logger import log_user_action
+from services.docker_service.docker_utils import docker_action
+from services.infrastructure.action_logger import log_user_action
 
 # Import helper functions
 from .control_helpers import _channel_has_permission

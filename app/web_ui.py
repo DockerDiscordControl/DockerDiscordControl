@@ -9,7 +9,7 @@ import re
 from werkzeug.middleware.proxy_fix import ProxyFix
 from utils.time_utils import format_datetime_with_timezone
 import logging.handlers
-from utils.config_loader import load_config, save_config, DEFAULT_CONFIG
+from services.config.config_service import load_config, save_config
 # Import auth from .auth
 from .auth import auth, init_limiter
 from app.utils.web_helpers import (

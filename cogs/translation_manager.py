@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from functools import lru_cache
-from utils.config_loader import load_config
+from services.config.config_service import load_config
 import logging
 from utils.logging_utils import setup_logger
 

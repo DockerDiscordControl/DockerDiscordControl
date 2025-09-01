@@ -15,10 +15,10 @@ from utils.app_commands_helper import get_app_commands
 app_commands = get_app_commands()
 
 # Import utility functions
-from utils.config_loader import load_config
+from services.config.config_service import load_config
 from utils.config_cache import get_cached_config, get_cached_servers
 from utils.logging_utils import setup_logger
-from utils.scheduler import (
+from services.scheduling.scheduler import (
     VALID_CYCLES, VALID_ACTIONS, DAYS_OF_WEEK,
     parse_time_string, parse_month_string, parse_weekday_string
 )
@@ -56,7 +56,7 @@ async def schedule_container_select(
     
     active_docker_data_set = set() # Stores (docker_name, is_running)
     try:
-        from utils.docker_utils import get_containers_data
+        from services.docker_service.docker_utils import get_containers_data
         containers_data = await get_containers_data() # This has its own 10s cache
         
         if containers_data:
@@ -350,7 +350,7 @@ async def schedule_task_id_select(
     value_being_typed = ctx.value
     
     try:
-        from utils.scheduler import load_tasks, CYCLE_ONCE
+        from services.scheduling.scheduler import load_tasks, CYCLE_ONCE
         import time
         
         # Load all tasks

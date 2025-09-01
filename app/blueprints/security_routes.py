@@ -53,7 +53,7 @@ def encrypt_token():
         
         if success:
             # Log the action
-            from utils.action_logger import log_user_action
+            from services.infrastructure.action_logger import log_user_action
             from flask import session
             user = session.get('user', 'Unknown')
             
@@ -94,7 +94,7 @@ def get_migration_help():
         
         # 🔒 SECURITY ENHANCEMENT: Log access but never log token content
         if migration_info['success']:
-            from utils.action_logger import log_user_action
+            from services.infrastructure.action_logger import log_user_action
             from flask import session
             user = session.get('user', 'Unknown')
             

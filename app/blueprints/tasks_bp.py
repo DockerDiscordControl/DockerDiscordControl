@@ -6,12 +6,12 @@ import time
 from app.utils.shared_data import get_active_containers, load_active_containers_from_config
 # Import log_user_action for User Action Logging
 try:
-    from utils.action_logger import log_user_action
+    from services.infrastructure.action_logger import log_user_action
 except ImportError:
     from app.utils.web_helpers import log_user_action
 
 # Import the centralized task management functions
-from utils.scheduler import load_tasks, save_tasks, ScheduledTask, CYCLE_CRON, CYCLE_ONCE # CYCLE_CRON for validation
+from services.scheduling.scheduler import load_tasks, save_tasks, ScheduledTask, CYCLE_CRON, CYCLE_ONCE # CYCLE_CRON for validation
 from utils.config_cache import get_cached_config  # Import for configuration and timezone
 
 tasks_bp = Blueprint('tasks_bp', __name__, url_prefix='/tasks')
@@ -156,10 +156,10 @@ def add_task():
             current_app.logger.error(f"Error creating ScheduledTask instance: {e}", exc_info=True)
             return jsonify({"error": "Internal error creating task object. Please check the logs for details."}), 500
 
-        # Import add_task from utils.scheduler to avoid name conflicts
-        from utils.scheduler import add_task as scheduler_add_task
+        # Import add_task from services.scheduling.scheduler to avoid name conflicts
+        from services.scheduling.scheduler import add_task as scheduler_add_task
         
-        # Use the add_task function from utils.scheduler
+        # Use the add_task function from services.scheduling.scheduler
         if scheduler_add_task(new_scheduled_task):
             current_app.logger.info(f"New task {new_scheduled_task.task_id} added via Web UI.")
             
@@ -185,7 +185,7 @@ def add_task():
 @tasks_bp.route('/list', methods=['GET'])
 def list_tasks():
     """Returns the list of saved tasks using centralized task management."""
-    # Load tasks from utils.scheduler returns a list of ScheduledTask objects
+    # Load tasks from services.scheduling.scheduler returns a list of ScheduledTask objects
     scheduled_tasks_objects = load_tasks() 
     
     # Load the configuration for timezone and other settings
@@ -294,7 +294,7 @@ def list_tasks():
     
     # Save changes for deactivated tasks
     if tasks_to_update:
-        from utils.scheduler import update_task
+        from services.scheduling.scheduler import update_task
         for task in tasks_to_update:
             update_task(task)
             current_app.logger.info(f"Task {task.task_id} was marked as expired and deactivated. Changes saved.")
@@ -350,7 +350,7 @@ def update_task_status():
         return jsonify({"success": False, "error": "Missing is_active flag"}), 400
     
     # Import required functions
-    from utils.scheduler import find_task_by_id, update_task
+    from services.scheduling.scheduler import find_task_by_id, update_task
     
     # Find the task by ID
     task = find_task_by_id(task_id)
@@ -390,8 +390,8 @@ def delete_task_route(task_id):
     if not task_id:
         return jsonify({"success": False, "error": "Missing task_id"}), 400
     
-    # Import the delete_task function from utils.scheduler
-    from utils.scheduler import delete_task, find_task_by_id
+    # Import the delete_task function from services.scheduling.scheduler
+    from services.scheduling.scheduler import delete_task, find_task_by_id
     
     # Check first if the task exists
     task = find_task_by_id(task_id)
@@ -427,7 +427,7 @@ def edit_task_route(task_id):
         return jsonify({"success": False, "error": "Missing task_id"}), 400
     
     # Import required functions
-    from utils.scheduler import find_task_by_id, update_task
+    from services.scheduling.scheduler import find_task_by_id, update_task
     
     # Find the task by ID
     task = find_task_by_id(task_id)

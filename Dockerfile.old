@@ -52,4 +52,42 @@ RUN addgroup -g 1000 -S ddc \
 
 # Copy only essential files with proper ownership
 COPY --chown=ddc:ddc bot.py .
-COPY --
+COPY --chown=ddc:ddc app/ app/
+COPY --chown=ddc:ddc utils/ utils/
+COPY --chown=ddc:ddc cogs/ cogs/
+COPY --chown=ddc:ddc services/ services/
+COPY --chown=ddc:ddc gunicorn_config.py .
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY --chown=ddc:ddc scripts/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+
+# Setup directories and permissions for non-root operation
+RUN mkdir -p /app/config /app/logs /app/scripts \
+    && mkdir -p /app/config/info /app/config/tasks \
+    && chown -R ddc:ddc /app \
+    && chmod -R 755 /app \
+    && chmod -R 775 /app/config /app/logs \
+    && find /app -name "*.pyc" -delete \
+    && find /app -name "__pycache__" -exec rm -rf {} + || true \
+    && find /app -name "*.md" -not -path "/app/README.md" -not -path "/app/CLAUDE.md" -delete || true \
+    && find /app -name "test_*.py" -delete || true \
+    && find /app -name "*test*.webp" -delete || true \
+    && find /app -name "debug_*.png" -delete || true
+
+# Set environment
+ENV PATH="/venv/bin:$PATH" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    TZ="Europe/Berlin"
+
+# Create a symlink for the timezone
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Switch to non-root user for security
+USER ddc
+
+EXPOSE 9374
+
+# Use entrypoint script for proper initialization
+ENTRYPOINT ["/app/entrypoint.sh"]

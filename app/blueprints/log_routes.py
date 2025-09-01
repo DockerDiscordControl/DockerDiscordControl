@@ -162,7 +162,7 @@ def get_action_logs():
     
     try:
         # Import here to avoid circular imports
-        from utils.action_logger import get_action_logs_text
+        from services.infrastructure.action_logger import get_action_logs_text
         
         action_log_content = get_action_logs_text(limit=500)
         
@@ -183,7 +183,7 @@ def get_action_logs_json():
     
     try:
         # Import here to avoid circular imports
-        from utils.action_logger import get_action_logs_json
+        from services.infrastructure.action_logger import get_action_logs_json
         
         action_logs = get_action_logs_json(limit=500)
         

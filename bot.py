@@ -29,12 +29,12 @@ if 'DDC_DISCORD_SKIP_TOKEN_LOCK' not in os.environ:
     os.environ['DDC_DISCORD_SKIP_TOKEN_LOCK'] = 'true'
 
 # Import custom modules
-from utils.config_loader import load_config
+from services.config.config_service import load_config
 from utils.logging_utils import setup_logger
 from utils.config_cache import init_config_cache, get_cached_config
 # Import new features with backwards compatibility
 try:
-    from utils.dynamic_cooldown_manager import apply_dynamic_cooldowns_to_bot
+    from services.infrastructure.dynamic_cooldown_manager import apply_dynamic_cooldowns_to_bot
     dynamic_cooldowns_available = True
 except ImportError:
     print("Dynamic cooldowns not available - using legacy cooldowns")
@@ -42,14 +42,14 @@ except ImportError:
     apply_dynamic_cooldowns_to_bot = lambda bot: None
 
 try:
-    from utils.update_notifier import get_update_notifier
+    from services.infrastructure.update_notifier import get_update_notifier
     update_notifier_available = True
 except ImportError:
     print("Update notifier not available - skipping update notifications")
     update_notifier_available = False
 
 try:
-    from utils.donation_manager import get_donation_manager
+    from services.donation.donation_manager import get_donation_manager
     donation_manager_available = True
 except ImportError:
     print("Donation manager not available - skipping donation messages")
@@ -57,7 +57,7 @@ except ImportError:
 # Import the internal translation system
 from cogs.translation_manager import _
 # Import scheduler service
-from utils.scheduler_service import start_scheduler_service, stop_scheduler_service
+from services.scheduling.scheduler_service import start_scheduler_service, stop_scheduler_service
 # Import the centralized action logger (ensures proper logger initialization)
 # Import cogs helper functions
 from cogs.control_helpers import container_select
@@ -71,15 +71,15 @@ app_commands, DiscordOption, app_commands_available = initialize_app_commands()
 # Preliminary logger for the import phase
 _import_logger = logging.getLogger("discord.app_commands_import")
 
-# Direct access to config_manager, if available, for better token decryption
+# Direct access to config service for better token decryption
 try:
-    from utils.config_manager import get_config_manager
-    config_manager_available = True
+    from services.config.config_service import get_config_service
+    config_service_available = True
 except ImportError:
-    config_manager_available = False
+    config_service_available = False
 
 # Global variables and configuration loading
-config_manager_instance = None  # Fix for global variable scope
+config_service_instance = None
 loaded_main_config = load_config()
 
 # Initialize config cache for performance optimization
@@ -138,6 +138,7 @@ def _attach_bot_file_handlers(bot_logger: logging.Logger) -> None:
         try:
             print(f"Failed to initialize bot file handlers: {e}")
         except Exception:
+            # Fallback to stdout if file handler fails
             pass
 
 _attach_bot_file_handlers(logger)
@@ -216,6 +217,7 @@ async def action_select(ctx, current):
                     container_name = value
                     break
         except (AttributeError, TypeError):
+            # Skip malformed option entries
             pass
     
     # Extract the search text (current) from the context
@@ -751,18 +753,25 @@ def get_decrypted_bot_token():
         return token
         
     # 2. Third method: Use ConfigManager directly (use global instance to preserve cache)
-    if config_manager_available:
+    if config_service_available:
         try:
             logger.info("Attempting to use ConfigManager for token decryption")
-            # Use global config_manager instance to preserve _failed_decrypt_cache
-            global config_manager_instance
-            if 'config_manager_instance' not in globals():
-                config_manager_instance = get_config_manager()
-            config = config_manager_instance.get_config(force_reload=True)
+            # Use config service instance for token decryption
+            config_service = get_config_service()
+            config = config_service.get_config(force_reload=True)
+            # Try both the decrypted version and manual decryption
             token = config.get('bot_token_decrypted_for_usage')
             if token:
-                logger.info("Successfully decrypted token using ConfigManager")
+                logger.info("Successfully got pre-decrypted token from ConfigService")
                 return token
+            # If no pre-decrypted token, try manual decryption
+            encrypted_token = config.get('bot_token')
+            password_hash = config.get('web_ui_password_hash')
+            if encrypted_token and password_hash:
+                decrypted = config_service.decrypt_token(encrypted_token, password_hash)
+                if decrypted:
+                    logger.info("Successfully decrypted token using ConfigService")
+                    return decrypted
         except Exception as e:
             logger.warning(f"Error using ConfigManager: {e}")
     
@@ -783,10 +792,10 @@ def get_decrypted_bot_token():
             encrypted_token = bot_config.get('bot_token')
             password_hash = web_config.get('web_ui_password_hash')
             
-            if encrypted_token and password_hash and config_manager_available:
-                # Try direct decryption
-                config_manager = get_config_manager()
-                decrypted = config_manager._decrypt_token(encrypted_token, password_hash)
+            if encrypted_token and password_hash:
+                # Try direct decryption using new config service (using global import)
+                config_service = get_config_service()
+                decrypted = config_service.decrypt_token(encrypted_token, password_hash)
                 if decrypted:
                     logger.info("Successfully performed direct token decryption")
                     return decrypted

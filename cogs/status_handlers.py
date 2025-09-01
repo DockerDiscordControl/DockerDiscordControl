@@ -19,9 +19,9 @@ import discord
 
 # Import necessary utilities
 from utils.logging_utils import setup_logger, get_module_logger
-from utils.docker_utils import get_docker_info, get_docker_stats
+from services.docker_service.docker_utils import get_docker_info, get_docker_stats
 from utils.time_utils import format_datetime_with_timezone
-from utils.config_loader import load_config
+from services.config.config_service import load_config
 
 # Import helper functions
 from .control_helpers import _channel_has_permission, _get_pending_embed

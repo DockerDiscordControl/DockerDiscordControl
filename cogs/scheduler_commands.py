@@ -16,10 +16,10 @@ import traceback
 # Import necessary utilities
 from utils.logging_utils import setup_logger
 from utils.time_utils import format_datetime_with_timezone
-from utils.config_loader import load_config
+from services.config.config_service import load_config
 from utils.config_cache import get_cached_config  # Performance optimization
-from utils.action_logger import log_user_action
-from utils.scheduler import (
+from services.infrastructure.action_logger import log_user_action
+from services.scheduling.scheduler import (
     ScheduledTask, add_task, delete_task, update_task, load_tasks,
     get_tasks_for_container, get_next_week_tasks, get_tasks_in_timeframe,
     VALID_CYCLES, VALID_ACTIONS, DAYS_OF_WEEK,
@@ -41,7 +41,7 @@ from .autocomplete_handlers import (
 )
 
 # Import helper functions
-from utils.schedule_helpers import (
+from services.scheduling.schedule_helpers import (
     parse_and_validate_time, create_and_save_task, 
     check_schedule_permissions, handle_schedule_command_error,
     create_task_success_message, ScheduleValidationError

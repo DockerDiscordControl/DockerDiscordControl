@@ -13,9 +13,9 @@ from utils.config_cache import get_cached_config
 from utils.time_utils import format_datetime_with_timezone
 from .control_helpers import _channel_has_permission, _get_pending_embed
 from utils.logging_utils import get_module_logger
-from utils.action_logger import log_user_action
+from services.infrastructure.action_logger import log_user_action
 from .translation_manager import _
-from utils.donation_utils import is_donations_disabled
+from services.donation.donation_utils import is_donations_disabled
 
 logger = get_module_logger('control_ui')
 
@@ -271,7 +271,7 @@ class ActionButton(Button):
 
             async def run_docker_action():
                 try:
-                    from utils.docker_utils import docker_action
+                    from services.docker_service.docker_utils import docker_action
                     success = await docker_action(self.docker_name, self.action)
                     logger.info(f"[ACTION_BTN] Docker {self.action} for '{self.display_name}' completed: success={success}")
                     
@@ -927,7 +927,7 @@ class ContainerInfoModal(discord.ui.Modal):
                 return
             
             # Update configuration
-            from utils.config_manager import get_config_manager
+            from services.config.config_service import get_config_service as get_config_manager
             config_manager = get_config_manager()
             
             # Get current info config and update custom text
@@ -942,7 +942,7 @@ class ContainerInfoModal(discord.ui.Modal):
                 )
                 
                 # Log the action
-                from utils.action_logger import log_user_action
+                from services.infrastructure.action_logger import log_user_action
                 log_user_action(
                     action="INFO_EDIT",
                     user=interaction.user,
@@ -1005,7 +1005,7 @@ class TaskDeleteButton(Button):
         try:
             await interaction.response.defer(ephemeral=True)
             
-            from utils.scheduler import load_tasks, delete_task
+            from services.scheduling.scheduler import load_tasks, delete_task
             
             config = get_cached_config()
             if not _get_cached_channel_permission(interaction.channel.id, 'schedule', config):

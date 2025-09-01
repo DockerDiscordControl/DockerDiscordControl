@@ -11,7 +11,7 @@ from discord.ui import Modal, View, Button
 from discord import InputTextStyle
 from utils.logging_utils import get_module_logger
 from services.infrastructure.container_info_service import get_container_info_service, ContainerInfo
-from utils.action_logger import log_user_action
+from services.infrastructure.action_logger import log_user_action
 
 logger = get_module_logger('enhanced_info_modal')
 
