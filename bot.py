@@ -314,8 +314,8 @@ def setup_app_commands():
                     container_name: Option(str, "The Docker container to control", autocomplete=container_select),
                     action: Option(str, "The action to perform", autocomplete=action_select)
                 ):
-                    from utils.spam_protection_manager import get_spam_protection_manager
-                    spam_manager = get_spam_protection_manager()
+                    from services.infrastructure.spam_protection_service import get_spam_protection_service
+                    spam_manager = get_spam_protection_service()
                     if spam_manager.is_enabled():
                         try:
                             if spam_manager.is_on_cooldown(ctx.author.id, "command"):
@@ -339,8 +339,8 @@ def setup_app_commands():
                     container: Option(str, "The Docker container to edit info for", autocomplete=container_select)
                 ):
                     """Edit container information."""
-                    from utils.spam_protection_manager import get_spam_protection_manager
-                    spam_manager = get_spam_protection_manager()
+                    from services.infrastructure.spam_protection_service import get_spam_protection_service
+                    spam_manager = get_spam_protection_service()
                     if spam_manager.is_enabled():
                         try:
                             if spam_manager.is_on_cooldown(ctx.author.id, "ddc"):
@@ -363,8 +363,8 @@ def setup_app_commands():
                     container_name: discord.Option(str, "The Docker container to control", autocomplete=container_select),
                     action: discord.Option(str, "The action to perform", autocomplete=action_select)
                 ):
-                    from utils.spam_protection_manager import get_spam_protection_manager
-                    spam_manager = get_spam_protection_manager()
+                    from services.infrastructure.spam_protection_service import get_spam_protection_service
+                    spam_manager = get_spam_protection_service()
                     if spam_manager.is_enabled():
                         try:
                             if spam_manager.is_on_cooldown(ctx.author.id, "command"):
@@ -388,8 +388,8 @@ def setup_app_commands():
                     container: discord.Option(str, "The Docker container to edit info for", autocomplete=container_select)
                 ):
                     """Edit container information."""
-                    from utils.spam_protection_manager import get_spam_protection_manager
-                    spam_manager = get_spam_protection_manager()
+                    from services.infrastructure.spam_protection_service import get_spam_protection_service
+                    spam_manager = get_spam_protection_service()
                     if spam_manager.is_enabled():
                         try:
                             if spam_manager.is_on_cooldown(ctx.author.id, "ddc"):

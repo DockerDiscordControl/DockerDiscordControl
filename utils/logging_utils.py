@@ -50,9 +50,16 @@ def is_debug_mode_enabled() -> bool:
         # Store previous value to detect changes
         previous_value = _debug_mode_enabled
         
-        # Load config without force invalidation (cache will be used if available)
-        from utils.config_manager import get_config_manager
-        config = get_config_manager().get_config(force_reload=False)
+        # Lazy load config to avoid circular dependency during initialization
+        try:
+            from utils.config_manager import get_config_manager
+            config = get_config_manager().get_config(force_reload=False)
+        except Exception as config_error:
+            # During service initialization, config may not be available yet
+            if _debug_mode_enabled is None:
+                _debug_mode_enabled = False  # Safe default
+            delattr(is_debug_mode_enabled, '_loading')
+            return _debug_mode_enabled
         
         # Use the cached value of debug mode if available
         _debug_mode_enabled = config.get('scheduler_debug_mode', False)
@@ -123,12 +130,16 @@ class TimezoneFormatter(logging.Formatter):
         ct = self.converter(record.created)
         
         try:
-            from utils.config_loader import load_config
             import pytz
             
             # Try to load the timezone from the configuration
-            config = load_config()
-            timezone_str = config.get('timezone', 'Europe/Berlin')
+            try:
+                from utils.config_loader import load_config
+                config = load_config()
+                timezone_str = config.get('timezone', 'Europe/Berlin')
+            except Exception:
+                # During initialization, use safe default
+                timezone_str = 'Europe/Berlin'
             
             # Convert the timestamp to the configured timezone
             tz = pytz.timezone(timezone_str)

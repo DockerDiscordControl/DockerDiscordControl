@@ -40,8 +40,8 @@ class CommandHandlersMixin:
         """
         # Check action-specific spam protection for start/stop/restart
         if action.lower() in ['start', 'stop', 'restart']:
-            from utils.spam_protection_manager import get_spam_protection_manager
-            spam_manager = get_spam_protection_manager()
+            from services.infrastructure.spam_protection_service import get_spam_protection_service
+            spam_manager = get_spam_protection_service()
             if spam_manager.is_enabled():
                 try:
                     if spam_manager.is_on_cooldown(ctx.author.id, action.lower()):

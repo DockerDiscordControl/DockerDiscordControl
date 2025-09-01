@@ -38,7 +38,7 @@ from utils.scheduler import (
     DAYS_OF_WEEK
 )
 from utils.action_logger import log_user_action
-from utils.spam_protection_manager import get_spam_protection_manager
+from services.infrastructure.spam_protection_service import get_spam_protection_service
 # Removed: from utils.donation_manager import get_donation_manager  # No longer used - replaced by MechService
 
 # Define COMMON_TIMEZONES here if it's only used by routes in this blueprint
@@ -435,11 +435,31 @@ def config_page():
     now = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S") # datetime is now imported
     live_containers_list, cache_error = get_docker_containers_live(logger)
     
+    # If Docker is not available, create synthetic container list from config
+    if not live_containers_list and config.get('servers'):
+        live_containers_list = []
+        for server in config.get('servers', []):
+            synthetic_container = {
+                'id': server.get('docker_name', 'unknown'),
+                'name': server.get('docker_name'),  # Use docker_name as container.name
+                'status': 'unknown',
+                'state': 'unknown',
+                'image': 'unknown',
+                'running': False
+            }
+            live_containers_list.append(synthetic_container)
+        logger.info(f"Created synthetic container list with {len(live_containers_list)} containers from config")
+    
     configured_servers = {}
     for server in config.get('servers', []):
-        server_name = server.get('docker_name')
-        if server_name:
-            configured_servers[server_name] = server
+        # Use docker_name as key for consistency
+        docker_name = server.get('docker_name')
+        if docker_name:
+            configured_servers[docker_name] = server
+            # Also add with 'name' as key for template compatibility
+            display_name = server.get('name', docker_name)
+            if display_name and display_name != docker_name:
+                configured_servers[display_name] = server
             
     # NEW: Load active containers from the shared data class
     # Update active containers from configuration
@@ -483,12 +503,15 @@ def config_page():
     if formatted_timestamp == "Never" and docker_cache.get('global_timestamp'):
         try:
             # Convert timestamp to configured timezone
+            import pytz  # Local import to avoid scope issues
             tz = pytz.timezone(timezone_str)
             dt = datetime.fromtimestamp(docker_cache['global_timestamp'], tz=tz)
             formatted_timestamp = dt.strftime('%Y-%m-%d %H:%M:%S %Z')
             logger.debug(f"Using global_timestamp for container list update time: {formatted_timestamp}")
         except Exception as e:
             logger.error(f"Error formatting global_timestamp: {e}")
+            # Fallback to system timezone
+            formatted_timestamp = datetime.fromtimestamp(docker_cache['global_timestamp']).strftime('%Y-%m-%d %H:%M:%S')
     
     # Load schedules for display on the main page
     tasks_list = load_tasks()
@@ -567,7 +590,13 @@ def config_page():
         })
     
     # Load container info from separate JSON files
-    container_names = [container.get("name", "Unknown") for container in live_containers_list] if live_containers_list else []
+    # Use live containers if available, otherwise fall back to configured servers
+    if live_containers_list:
+        container_names = [container.get("name", "Unknown") for container in live_containers_list]
+    else:
+        # Fallback: Use configured server names when Docker is not available
+        container_names = [server.get("docker_name", server.get("name", "Unknown")) for server in config.get('servers', [])]
+    
     container_info_data = load_container_info_for_web(container_names)
     
     # ADVANCED SETTINGS: Load from config (preferred) or environment variables as fallback
@@ -705,22 +734,19 @@ def save_config_api():
         if success:
             from utils.config_manager import get_config_manager
             config_manager = get_config_manager()
-            permission_results = config_manager.check_all_permissions()
-            
-            permission_errors = []
-            for file_path, (has_permission, error_msg) in permission_results.items():
-                if not has_permission:
-                    permission_errors.append(error_msg)
-            
-            if permission_errors:
-                logger.error(f"Cannot save configuration due to permission errors: {permission_errors}")
-                result = {
-                    'success': False,
-                    'message': 'Cannot save configuration: File permission errors. Check server logs for details.',
-                    'permission_errors': permission_errors
-                }
-                flash('Error: Configuration files are not writable. Please check file permissions.', 'danger')
-                return jsonify(result) if request.headers.get('X-Requested-With') == 'XMLHttpRequest' else redirect(url_for('.config_page'))
+            # Permission check - warn but don't block on Unraid
+            try:
+                permission_results = config_manager.check_all_permissions()
+                permission_errors = []
+                for file_path, (has_permission, error_msg) in permission_results.items():
+                    if not has_permission:
+                        permission_errors.append(error_msg)
+                
+                if permission_errors:
+                    logger.warning(f"Permission warnings (common on Unraid): {permission_errors}")
+                    # Don't block save - Docker container may have different permissions
+            except Exception as perm_error:
+                logger.warning(f"Permission check failed (ignoring): {perm_error}")
         
         # Check if critical settings that require cache invalidation have changed
         critical_settings_changed = False
@@ -1273,8 +1299,9 @@ def performance_stats():
 def get_spam_protection():
     """Get current spam protection settings."""
     try:
-        spam_manager = get_spam_protection_manager()
-        settings = spam_manager.load_settings()
+        spam_service = get_spam_protection_service()
+        result = spam_service.get_config()
+        settings = result.data.to_dict() if result.success else {}
         return jsonify(settings)
     except Exception as e:
         current_app.logger.error(f"Error getting spam protection settings: {e}")
@@ -1289,8 +1316,11 @@ def save_spam_protection():
         if not settings:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
         
-        spam_manager = get_spam_protection_manager()
-        success = spam_manager.save_settings(settings)
+        spam_service = get_spam_protection_service()
+        from services.infrastructure.spam_protection_service import SpamProtectionConfig
+        config = SpamProtectionConfig.from_dict(settings)
+        result = spam_service.save_config(config)
+        success = result.success
         
         if success:
             # Log the action
@@ -1665,9 +1695,16 @@ def mech_animation():
             from utils.sprite_mech_animator import get_sprite_animator
             sprite_animator = get_sprite_animator()
             
-            # Create animation bytes synchronously
+            # Get both current fuel and total donated for proper animation
+            from services.mech_service import get_mech_service
+            mech_service = get_mech_service()
+            mech_state = mech_service.get_state()
+            current_fuel = mech_service.get_fuel_with_decimals()
+            total_donated = mech_state.total_donated
+            
+            # Create animation bytes synchronously - use total_donated for evolution
             animation_bytes = sprite_animator.create_donation_animation_sync(
-                "Current", f'{total_donations}$', total_donations
+                "Current", f'{current_fuel}$', total_donated
             )
             
             # Return as Flask Response
@@ -1725,9 +1762,17 @@ def test_mech_animation():
         from utils.sprite_mech_animator import get_sprite_animator
         sprite_animator = get_sprite_animator()
         
+        # Get mech state for proper evolution level calculation
+        from services.mech_service import get_mech_service
+        mech_service = get_mech_service()
+        mech_state = mech_service.get_state()
+        
+        # Use total_donated for evolution level (not affected by fuel decay)
+        total_donated_for_evolution = mech_state.total_donated
+        
         # Create animation bytes synchronously
         animation_bytes = sprite_animator.create_donation_animation_sync(
-            donor_name, amount, total_donations
+            donor_name, amount, total_donated_for_evolution
         )
         
         # Return as Flask Response

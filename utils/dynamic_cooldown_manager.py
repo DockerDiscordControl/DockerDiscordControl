@@ -6,7 +6,7 @@ Dynamic Cooldown Manager - Manages dynamic cooldowns for Discord commands
 import logging
 from discord.ext import commands
 from typing import Dict, Any, Optional
-from utils.spam_protection_manager import get_spam_protection_manager
+from services.infrastructure.spam_protection_service import get_spam_protection_service
 from utils.logging_utils import get_module_logger
 
 logger = get_module_logger('dynamic_cooldown')
@@ -15,7 +15,7 @@ class DynamicCooldownManager:
     """Manages dynamic cooldowns for Discord commands."""
     
     def __init__(self):
-        self.spam_manager = get_spam_protection_manager()
+        self.spam_manager = get_spam_protection_service()
         self._cooldown_mappings = {}
         
     def before_invoke_check(self):
@@ -103,8 +103,10 @@ class DynamicCooldownManager:
         """Apply dynamic cooldowns to all bot commands."""
         logger.info("Applying dynamic cooldowns to bot commands...")
         
-        # Reload settings to get latest values
-        self.spam_manager.load_settings()
+        # Reload settings to get latest values  
+        config_result = self.spam_manager.load_settings()
+        if not config_result.success:
+            logger.warning(f"Failed to reload spam protection settings: {config_result.error}")
         
         # Handle different Discord library versions
         commands_to_process = []

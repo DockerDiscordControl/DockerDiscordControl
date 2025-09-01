@@ -15,7 +15,7 @@ import discord
 import os
 from typing import Dict, Any, Optional, List
 from utils.logging_utils import get_module_logger
-from utils.container_info_manager import get_container_info_manager
+from services.infrastructure.container_info_service import get_container_info_service
 from utils.time_utils import get_datetime_imports
 
 # Get datetime imports
@@ -65,8 +65,8 @@ class EditInfoButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         """Handle edit info button click."""
         # Check button cooldown first  
-        from utils.spam_protection_manager import get_spam_protection_manager
-        spam_manager = get_spam_protection_manager()
+        from services.infrastructure.spam_protection_service import get_spam_protection_service
+        spam_manager = get_spam_protection_service()
         
         if spam_manager.is_enabled():
             cooldown_seconds = spam_manager.get_button_cooldown("info")
@@ -329,8 +329,8 @@ class LiveLogView(discord.ui.View):
     async def manual_refresh(self, interaction: discord.Interaction):
         """Manual refresh button."""
         # Check button cooldown first
-        from utils.spam_protection_manager import get_spam_protection_manager
-        spam_manager = get_spam_protection_manager()
+        from services.infrastructure.spam_protection_service import get_spam_protection_service
+        spam_manager = get_spam_protection_service()
         
         if spam_manager.is_enabled():
             cooldown_seconds = spam_manager.get_button_cooldown("live_refresh")
@@ -540,8 +540,8 @@ class DebugLogsButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         """Handle debug logs button click with live-updating response."""
         # Check button cooldown first  
-        from utils.spam_protection_manager import get_spam_protection_manager
-        spam_manager = get_spam_protection_manager()
+        from services.infrastructure.spam_protection_service import get_spam_protection_service
+        spam_manager = get_spam_protection_service()
         
         if spam_manager.is_enabled():
             cooldown_seconds = spam_manager.get_button_cooldown("logs")  # Use logs cooldown
@@ -697,8 +697,9 @@ class StatusInfoView(discord.ui.View):
         self.container_name = server_config.get('docker_name')
         
         # Load container info to check if info is enabled
-        info_manager = get_container_info_manager()
-        self.info_config = info_manager.load_container_info(self.container_name)
+        info_service = get_container_info_service()
+        info_result = info_service.get_container_info(self.container_name)
+        self.info_config = info_result.data.to_dict() if info_result.success else {}
         
         # Only add info button if info is enabled
         if self.info_config.get('enabled', False):
@@ -896,8 +897,9 @@ def create_enhanced_status_embed(
     try:
         # Load container info
         container_name = server_config.get('docker_name')
-        info_manager = get_container_info_manager()
-        info_config = info_manager.load_container_info(container_name)
+        info_service = get_container_info_service()
+        info_result = info_service.get_container_info(container_name)
+        info_config = info_result.data.to_dict() if info_result.success else {}
         
         if not info_config.get('enabled', False):
             return original_embed

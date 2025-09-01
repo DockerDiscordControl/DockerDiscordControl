@@ -213,19 +213,19 @@ class ActionButton(Button):
     async def callback(self, interaction: discord.Interaction):
         """Callback for Start, Stop, Restart actions."""
         # Check button-specific spam protection
-        from utils.spam_protection_manager import get_spam_protection_manager
-        spam_manager = get_spam_protection_manager()
+        from services.infrastructure.spam_protection_service import get_spam_protection_service
+        spam_service = get_spam_protection_service()
         
-        if spam_manager.is_enabled():
+        if spam_service.is_enabled():
             try:
-                if spam_manager.is_on_cooldown(interaction.user.id, self.action):
-                    remaining_time = spam_manager.get_remaining_cooldown(interaction.user.id, self.action)
+                if spam_service.is_on_cooldown(interaction.user.id, self.action):
+                    remaining_time = spam_service.get_remaining_cooldown(interaction.user.id, self.action)
                     await interaction.response.send_message(
                         f"⏰ Please wait {remaining_time:.1f} seconds before using '{self.action}' button again.", 
                         ephemeral=True
                     )
                     return
-                spam_manager.add_user_cooldown(interaction.user.id, self.action)
+                spam_service.add_user_cooldown(interaction.user.id, self.action)
             except Exception as e:
                 logger.error(f"Spam protection error for button '{self.action}': {e}")
         
@@ -350,19 +350,19 @@ class ToggleButton(Button):
     async def callback(self, interaction: discord.Interaction):
         """ULTRA-OPTIMIZED toggle function mit allen 6 Performance-Optimierungen."""
         # Check spam protection for toggle action
-        from utils.spam_protection_manager import get_spam_protection_manager
-        spam_manager = get_spam_protection_manager()
+        from services.infrastructure.spam_protection_service import get_spam_protection_service
+        spam_service = get_spam_protection_service()
         
-        if spam_manager.is_enabled():
+        if spam_service.is_enabled():
             try:
-                if spam_manager.is_on_cooldown(interaction.user.id, "refresh"):
-                    remaining_time = spam_manager.get_remaining_cooldown(interaction.user.id, "refresh")
+                if spam_service.is_on_cooldown(interaction.user.id, "refresh"):
+                    remaining_time = spam_service.get_remaining_cooldown(interaction.user.id, "refresh")
                     await interaction.response.send_message(
                         f"⏰ Please wait {remaining_time:.1f} seconds before toggling view again.", 
                         ephemeral=True
                     )
                     return
-                spam_manager.add_user_cooldown(interaction.user.id, "refresh")
+                spam_service.add_user_cooldown(interaction.user.id, "refresh")
             except Exception as e:
                 logger.error(f"Spam protection error for toggle button: {e}")
         
@@ -561,11 +561,15 @@ class ControlView(View):
         allowed_actions = server_config.get('allowed_actions', [])
         details_allowed = server_config.get('allow_detailed_status', True)
         is_expanded = cog_instance.expanded_states.get(display_name, False)
-        # Load info from separate JSON file
-        from utils.container_info_manager import get_container_info_manager
-        info_manager = get_container_info_manager()
+        # Load info from service
+        from services.infrastructure.container_info_service import get_container_info_service
+        info_service = get_container_info_service()
         docker_name = server_config.get('docker_name')
-        info_config = info_manager.load_container_info(docker_name) if docker_name else {}
+        if docker_name:
+            info_result = info_service.get_container_info(docker_name)
+            info_config = info_result.data.to_dict() if info_result.success else {}
+        else:
+            info_config = {}
 
         # Check if channel has info permission
         from utils.config_cache import get_cached_config
@@ -594,8 +598,8 @@ class ControlView(View):
             if channel_has_control_permission and "start" in allowed_actions:
                 self.add_item(ActionButton(cog_instance, server_config, "start", discord.ButtonStyle.secondary, None, "▶️", row=0))
             
-            # Info button for offline containers (only when expanded and info is enabled) - rightmost position
-            if channel_has_info_permission and info_config.get('enabled', False) and is_expanded:
+            # Info button for offline containers (when info is enabled) - rightmost position
+            if channel_has_info_permission and info_config.get('enabled', False):
                 self.add_item(InfoButton(cog_instance, server_config, row=0))
     
     def _channel_has_info_permission(self, channel_has_control_permission: bool, config: dict) -> bool:
@@ -633,19 +637,19 @@ class InfoButton(Button):
     async def callback(self, interaction: discord.Interaction):
         """Display container info with admin buttons in control channels."""
         # Check spam protection for info button
-        from utils.spam_protection_manager import get_spam_protection_manager
-        spam_manager = get_spam_protection_manager()
+        from services.infrastructure.spam_protection_service import get_spam_protection_service
+        spam_service = get_spam_protection_service()
         
-        if spam_manager.is_enabled():
+        if spam_service.is_enabled():
             try:
-                if spam_manager.is_on_cooldown(interaction.user.id, "info"):
-                    remaining_time = spam_manager.get_remaining_cooldown(interaction.user.id, "info")
+                if spam_service.is_on_cooldown(interaction.user.id, "info"):
+                    remaining_time = spam_service.get_remaining_cooldown(interaction.user.id, "info")
                     await interaction.response.send_message(
                         f"⏰ Please wait {remaining_time:.1f} seconds before using info button again.", 
                         ephemeral=True
                     )
                     return
-                spam_manager.add_user_cooldown(interaction.user.id, "info")
+                spam_service.add_user_cooldown(interaction.user.id, "info")
             except Exception as e:
                 logger.error(f"Spam protection error for info button: {e}")
         try:
@@ -664,11 +668,15 @@ class InfoButton(Button):
                 )
                 return
             
-            # Get info configuration from separate JSON file
-            from utils.container_info_manager import get_container_info_manager
-            info_manager = get_container_info_manager()
+            # Get info configuration from service
+            from services.infrastructure.container_info_service import get_container_info_service
+            info_service = get_container_info_service()
             docker_name = self.server_config.get('docker_name')
-            info_config = info_manager.load_container_info(docker_name) if docker_name else {}
+            if docker_name:
+                info_result = info_service.get_container_info(docker_name)
+                info_config = info_result.data.to_dict() if info_result.success else {}
+            else:
+                info_config = {}
             if not info_config.get('enabled', False):
                 await interaction.followup.send(
                     "ℹ️ Container info is not configured for this container.",
@@ -975,19 +983,19 @@ class TaskDeleteButton(Button):
     async def callback(self, interaction: discord.Interaction):
         """Deletes the scheduled task."""
         # Check spam protection for task delete
-        from utils.spam_protection_manager import get_spam_protection_manager
-        spam_manager = get_spam_protection_manager()
+        from services.infrastructure.spam_protection_service import get_spam_protection_service
+        spam_service = get_spam_protection_service()
         
-        if spam_manager.is_enabled():
+        if spam_service.is_enabled():
             try:
-                if spam_manager.is_on_cooldown(interaction.user.id, "task_delete"):
-                    remaining_time = spam_manager.get_remaining_cooldown(interaction.user.id, "task_delete")
+                if spam_service.is_on_cooldown(interaction.user.id, "task_delete"):
+                    remaining_time = spam_service.get_remaining_cooldown(interaction.user.id, "task_delete")
                     await interaction.response.send_message(
                         f"⏰ Please wait {remaining_time:.1f} seconds before deleting another task.", 
                         ephemeral=True
                     )
                     return
-                spam_manager.add_user_cooldown(interaction.user.id, "task_delete")
+                spam_service.add_user_cooldown(interaction.user.id, "task_delete")
             except Exception as e:
                 logger.error(f"Spam protection error for task delete button: {e}")
         
@@ -1112,10 +1120,10 @@ class MechExpandButton(Button):
         """Expand mech status to show detailed information."""
         try:
             # Apply spam protection
-            from utils.spam_protection_manager import get_spam_protection_manager
-            spam_manager = get_spam_protection_manager()
-            if spam_manager.is_enabled():
-                cooldown = spam_manager.get_button_cooldown("info")
+            from services.infrastructure.spam_protection_service import get_spam_protection_service
+            spam_service = get_spam_protection_service()
+            if spam_service.is_enabled():
+                cooldown = spam_service.get_button_cooldown("info")
                 # Use simple rate limiting for buttons
                 import time
                 current_time = time.time()
@@ -1205,10 +1213,10 @@ class MechCollapseButton(Button):
         """Collapse mech status to show only animation."""
         try:
             # Apply spam protection
-            from utils.spam_protection_manager import get_spam_protection_manager
-            spam_manager = get_spam_protection_manager()
-            if spam_manager.is_enabled():
-                cooldown = spam_manager.get_button_cooldown("info")
+            from services.infrastructure.spam_protection_service import get_spam_protection_service
+            spam_service = get_spam_protection_service()
+            if spam_service.is_enabled():
+                cooldown = spam_service.get_button_cooldown("info")
                 # Use simple rate limiting for buttons
                 import time
                 current_time = time.time()

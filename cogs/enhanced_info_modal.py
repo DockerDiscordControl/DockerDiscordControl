@@ -10,7 +10,7 @@ from typing import Optional
 from discord.ui import Modal, View, Button
 from discord import InputTextStyle
 from utils.logging_utils import get_module_logger
-from utils.container_info_manager import get_container_info_manager
+from services.infrastructure.container_info_service import get_container_info_service, ContainerInfo
 from utils.action_logger import log_user_action
 
 logger = get_module_logger('enhanced_info_modal')
@@ -146,8 +146,17 @@ class ContainerSettingsView(View):
                 'custom_text': custom_text
             }
             
-            # Save to JSON file
-            success = modal.info_manager.save_container_info(modal.container_name, updated_info)
+            # Create ContainerInfo object and save via service
+            container_info = ContainerInfo(
+                enabled=self.enabled,
+                show_ip=self.show_ip,
+                custom_ip=custom_ip,
+                custom_port='',  # Not used in this modal
+                custom_text=custom_text
+            )
+            
+            result = modal.info_service.save_container_info(modal.container_name, container_info)
+            success = result.success
             
             if success:
                 # Log the action
@@ -248,9 +257,10 @@ class EnhancedContainerInfoModal(Modal):
         self.container_name = container_name
         self.display_name = display_name or container_name
         
-        # Load container info from JSON file
-        self.info_manager = get_container_info_manager()
-        self.container_info = self.info_manager.load_container_info(container_name)
+        # Load container info from service
+        self.info_service = get_container_info_service()
+        info_result = self.info_service.get_container_info(container_name)
+        self.container_info = info_result.data.to_dict() if info_result.success else {}
         
         title = f"📝 Edit Info: {self.display_name}"
         if len(title) > 45:  # Discord modal title limit
@@ -368,9 +378,10 @@ class ContainerInfoDisplayModal(Modal):
         self.container_name = container_name
         self.display_name = display_name or container_name
         
-        # Load container info
-        self.info_manager = get_container_info_manager()
-        self.container_info = self.info_manager.load_container_info(container_name)
+        # Load container info from service
+        self.info_service = get_container_info_service()
+        info_result = self.info_service.get_container_info(container_name)
+        self.container_info = info_result.data.to_dict() if info_result.success else {}
         
         title = f"📋 Info: {self.display_name}"
         if len(title) > 45:
