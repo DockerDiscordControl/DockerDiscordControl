@@ -1506,13 +1506,13 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         # Check if any containers have info available
         has_any_info = False
         try:
-            from utils.container_info_manager import get_container_info_manager
-            info_manager = get_container_info_manager()
+            from services.infrastructure.container_info_service import get_container_info_service
+            info_service = get_container_info_service()
             for server_conf in ordered_servers:
                 docker_name = server_conf.get('docker_name')
                 if docker_name:
-                    info_config = info_manager.load_container_info(docker_name)
-                    if info_config.get('enabled', False):
+                    info_result = info_service.get_container_info(docker_name)
+                    if info_result.success and info_result.data.enabled:
                         has_any_info = True
                         break
         except Exception as e:
@@ -1801,13 +1801,13 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         # Check if any containers have info available
         has_any_info = False
         try:
-            from utils.container_info_manager import get_container_info_manager
-            info_manager = get_container_info_manager()
+            from services.infrastructure.container_info_service import get_container_info_service
+            info_service = get_container_info_service()
             for server_conf in ordered_servers:
                 docker_name = server_conf.get('docker_name')
                 if docker_name:
-                    info_config = info_manager.load_container_info(docker_name)
-                    if info_config.get('enabled', False):
+                    info_result = info_service.get_container_info(docker_name)
+                    if info_result.success and info_result.data.enabled:
                         has_any_info = True
                         break
         except Exception as e:
@@ -2759,33 +2759,54 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     await ctx.respond(_("Container information is not enabled for '{container}'.").format(container=container_name), ephemeral=True)
                 return
             
+            # Convert ContainerInfo to dict for compatibility
+            info_config = info_result.data.to_dict()
+            
+            # Check if this is a control channel
+            has_control = _channel_has_permission(ctx.channel_id, 'control', config) if config else False
+            
             # Generate info embed using the same logic as StatusInfoButton
             from .status_info_integration import StatusInfoButton
             info_button = StatusInfoButton(self, server_config, info_config)
-            embed = await info_button._generate_info_embed()
+            embed = await info_button._generate_info_embed(include_protected=has_control)
             
-            # Check if this is a control channel to show admin buttons
-            has_control = _channel_has_permission(ctx.channel_id, 'control', config) if config else False
-            
-            # Create view with admin buttons if in control channel
+            # Create view with appropriate buttons based on channel type
             view = None
             if has_control:
+                # Control channel: Show admin buttons (Edit Info, Protected Info Edit, Debug)
                 from .status_info_integration import ContainerInfoAdminView
                 view = ContainerInfoAdminView(self, server_config, info_config)
+            else:
+                # Status channel: Show protected info button if enabled
+                if info_config.get('protected_enabled', False):
+                    from .status_info_integration import ProtectedInfoOnlyView
+                    view = ProtectedInfoOnlyView(self, server_config, info_config)
             
             # Send response based on whether we successfully deferred
-            if deferred:
-                if view:
-                    await ctx.followup.send(embed=embed, view=view, ephemeral=True)
+            try:
+                if deferred:
+                    if view:
+                        await ctx.followup.send(embed=embed, view=view, ephemeral=True)
+                    else:
+                        await ctx.followup.send(embed=embed, ephemeral=True)
                 else:
-                    await ctx.followup.send(embed=embed, ephemeral=True)
-            else:
-                if view:
-                    await ctx.respond(embed=embed, view=view, ephemeral=True)
+                    if view:
+                        await ctx.respond(embed=embed, view=view, ephemeral=True)
+                    else:
+                        await ctx.respond(embed=embed, ephemeral=True)
+            except discord.errors.HTTPException as e:
+                if "already been acknowledged" in str(e):
+                    # Fallback: Try followup instead
+                    logger.warning(f"Interaction already acknowledged, trying followup for {container_name}")
+                    if view:
+                        await ctx.followup.send(embed=embed, view=view, ephemeral=True)
+                    else:
+                        await ctx.followup.send(embed=embed, ephemeral=True)
                 else:
-                    await ctx.respond(embed=embed, ephemeral=True)
+                    raise
             
             logger.info(f"Info command executed for {container_name} by user {ctx.author.id} in channel {ctx.channel_id} (info: {has_info_permission}, control: {has_control}, deferred: {deferred})")
+            return  # Important: Return here to prevent fall-through to error handling
             
         except Exception as e:
             logger.error(f"Error in info command for {container_name}: {e}", exc_info=True)

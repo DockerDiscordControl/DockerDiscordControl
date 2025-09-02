@@ -20,6 +20,10 @@ class ContainerInfo:
     custom_ip: str
     custom_port: str
     custom_text: str
+    # Protected information fields
+    protected_enabled: bool
+    protected_content: str
+    protected_password: str
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'ContainerInfo':
@@ -29,7 +33,10 @@ class ContainerInfo:
             show_ip=bool(data.get('show_ip', False)),
             custom_ip=str(data.get('custom_ip', '')),
             custom_port=str(data.get('custom_port', '')),
-            custom_text=str(data.get('custom_text', ''))
+            custom_text=str(data.get('custom_text', '')),
+            protected_enabled=bool(data.get('protected_enabled', False)),
+            protected_content=str(data.get('protected_content', ''))[:250],  # Max 250 chars
+            protected_password=str(data.get('protected_password', ''))[:60]   # Max 60 chars
         )
     
     def to_dict(self) -> Dict[str, Any]:
@@ -39,7 +46,10 @@ class ContainerInfo:
             'show_ip': self.show_ip,
             'custom_ip': self.custom_ip,
             'custom_port': self.custom_port,
-            'custom_text': self.custom_text
+            'custom_text': self.custom_text,
+            'protected_enabled': self.protected_enabled,
+            'protected_content': self.protected_content,
+            'protected_password': self.protected_password
         }
 
 @dataclass(frozen=True)
@@ -85,7 +95,10 @@ class ContainerInfoService:
                     show_ip=False,
                     custom_ip='',
                     custom_port='',
-                    custom_text=''
+                    custom_text='',
+                    protected_enabled=False,
+                    protected_content='',
+                    protected_password=''
                 )
                 return ServiceResult(success=True, data=default_info)
             

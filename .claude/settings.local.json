@@ -25,7 +25,8 @@
       "Bash(grep:*)",
       "Bash(docker images:*)",
       "Bash(ssh:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

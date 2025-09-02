@@ -152,12 +152,17 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
                 ip_warning = _("\n⚠️ IP format might be invalid: `{ip}`").format(ip=custom_ip[:50])
             
             # Create ContainerInfo object and save via service
+            # Preserve existing protected info if it exists
+            existing_info = self.container_info
             container_info = ContainerInfo(
                 enabled=enabled,
                 show_ip=show_ip,
                 custom_ip=custom_ip,
                 custom_port=custom_port,
-                custom_text=custom_text
+                custom_text=custom_text,
+                protected_enabled=existing_info.get('protected_enabled', False),
+                protected_content=existing_info.get('protected_content', ''),
+                protected_password=existing_info.get('protected_password', '')
             )
             
             result = self.info_service.save_container_info(self.container_name, container_info)
@@ -235,10 +240,8 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
                 
             else:
                 # More detailed error logging
-                logger.error(f"Container info save returned False for {self.container_name}")
-                logger.error(f"Attempted to save data: {updated_info}")
-                logger.error(f"Config dir exists: {self.info_manager.config_dir.exists()}")
-                logger.error(f"Config dir writable: {os.access(self.info_manager.config_dir, os.W_OK)}")
+                logger.error(f"Container info save failed for {self.container_name}: {result.error}")
+                logger.error(f"Attempted to save container_info object")
                 
                 await interaction.response.send_message(
                     _("❌ Failed to save container info for **{name}**. Check permissions on config directory.").format(name=self.display_name),
@@ -250,7 +253,6 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
         except Exception as e:
             logger.error(f"Error in container info modal submission: {e}", exc_info=True)
             logger.error(f"Container: {self.container_name}, Display: {self.display_name}")
-            logger.error(f"Config dir: {self.info_manager.config_dir}")
             
             # Check if interaction already responded
             if not interaction.response.is_done():
@@ -261,6 +263,282 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
             else:
                 await interaction.followup.send(
                     _("❌ An error occurred while saving container info: {error}").format(error=str(e)[:100]),
+                    ephemeral=True
+                )
+
+
+class ProtectedInfoModal(discord.ui.Modal):
+    """Modal for managing protected container information."""
+    
+    def __init__(self, cog_instance, container_name: str, display_name: str = None):
+        self.cog = cog_instance
+        self.container_name = container_name
+        self.display_name = display_name or container_name
+        
+        # Load container info from service
+        self.info_service = get_container_info_service()
+        info_result = self.info_service.get_container_info(container_name)
+        self.container_info = info_result.data.to_dict() if info_result.success else {}
+        
+        title = f"🔒 Protected Info: {self.display_name}"
+        if len(title) > 45:  # Discord modal title limit
+            title = f"🔒 Protected: {self.display_name[:30]}..."
+        
+        super().__init__(title=title, timeout=300)
+        
+        # Protected Info Enable field
+        protected_enabled = self.container_info.get('protected_enabled', False)
+        self.protected_enabled = discord.ui.InputText(
+            label=_("🔐 Geschützte Informationen aktivieren"),
+            style=InputTextStyle.short,
+            value="X" if protected_enabled else "",
+            max_length=1,
+            required=False,
+            placeholder=_("'X' eingeben zum Aktivieren, leer lassen zum Deaktivieren")
+        )
+        self.add_item(self.protected_enabled)
+        
+        # Protected Content field
+        self.protected_content = discord.ui.InputText(
+            label=_("🔒 Geschützte Information"),
+            style=InputTextStyle.long,
+            value=self.container_info.get('protected_content', ''),
+            max_length=250,
+            required=False,
+            placeholder=_("Geheime Server-Details, Admin-Passwörter, etc. (max 250 Zeichen)")
+        )
+        self.add_item(self.protected_content)
+        
+        # Protected Password field
+        self.protected_password = discord.ui.InputText(
+            label=_("🗝️ Passwort für geschützte Informationen"),
+            style=InputTextStyle.short,
+            value=self.container_info.get('protected_password', ''),
+            max_length=60,
+            required=False,
+            placeholder=_("Passwort zum Schutz der geheimen Informationen (max 60 Zeichen)")
+        )
+        self.add_item(self.protected_password)
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle protected info modal submission."""
+        logger.info(f"Protected info callback called for {self.container_name} by {interaction.user}")
+        
+        try:
+            # Process inputs
+            protected_enabled_value = self.protected_enabled.value.strip().lower()
+            protected_content = self.protected_content.value.strip()
+            protected_password = self.protected_password.value.strip()
+            
+            # Parse protected enabled checkbox
+            protected_enabled = bool(protected_enabled_value and protected_enabled_value in ['x', 'X', '1', 'yes', 'y', 'true', 't'])
+            
+            # Validate inputs
+            if protected_enabled and not protected_content:
+                await interaction.response.send_message(
+                    _("❌ Geschützte Informationen sind aktiviert, aber kein Inhalt angegeben."),
+                    ephemeral=True
+                )
+                return
+            
+            if protected_enabled and not protected_password:
+                await interaction.response.send_message(
+                    _("❌ Geschützte Informationen sind aktiviert, aber kein Passwort angegeben."),
+                    ephemeral=True
+                )
+                return
+            
+            # Sanitize inputs
+            protected_content = re.sub(r'[`@#]', '', protected_content)
+            protected_content = re.sub(r'<[^>]*>', '', protected_content)
+            
+            # Load existing container info and update protected fields
+            existing_result = self.info_service.get_container_info(self.container_name)
+            if existing_result.success:
+                existing_info = existing_result.data.to_dict()
+            else:
+                # Create default info if none exists
+                existing_info = {
+                    'enabled': False,
+                    'show_ip': False,
+                    'custom_ip': '',
+                    'custom_port': '',
+                    'custom_text': ''
+                }
+            
+            # Create updated ContainerInfo with protected info
+            container_info = ContainerInfo(
+                enabled=existing_info['enabled'],
+                show_ip=existing_info['show_ip'],
+                custom_ip=existing_info['custom_ip'],
+                custom_port=existing_info['custom_port'],
+                custom_text=existing_info['custom_text'],
+                protected_enabled=protected_enabled,
+                protected_content=protected_content,
+                protected_password=protected_password
+            )
+            
+            result = self.info_service.save_container_info(self.container_name, container_info)
+            
+            if result.success:
+                # Log the action
+                log_user_action(
+                    action="PROTECTED_INFO_EDIT",
+                    target=self.display_name,
+                    user=str(interaction.user),
+                    source="Discord Modal",
+                    details=f"Container: {self.container_name}, Protected enabled: {protected_enabled}, Content length: {len(protected_content)}, Guild: {interaction.guild.name if interaction.guild else 'DM'}"
+                )
+                
+                # Create success embed
+                embed = discord.Embed(
+                    title=_("🔒 Geschützte Informationen aktualisiert"),
+                    description=_("Geschützte Informationen für **{name}** erfolgreich gespeichert").format(name=self.display_name),
+                    color=discord.Color.green()
+                )
+                
+                if protected_enabled:
+                    embed.add_field(
+                        name=_("✅ Status"),
+                        value=_("🔐 Geschützte Informationen aktiviert\n🗝️ Passwort gesetzt\n📄 {content_length} Zeichen Inhalt").format(content_length=len(protected_content)),
+                        inline=False
+                    )
+                else:
+                    embed.add_field(
+                        name=_("❌ Status"),
+                        value=_("🔓 Geschützte Informationen deaktiviert"),
+                        inline=False
+                    )
+                
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                logger.info(f"Protected info updated for {self.container_name} by {interaction.user}")
+                
+            else:
+                logger.error(f"Protected info save failed for {self.container_name}: {result.error}")
+                await interaction.response.send_message(
+                    _("❌ Fehler beim Speichern der geschützten Informationen für **{name}**").format(name=self.display_name),
+                    ephemeral=True
+                )
+                
+        except Exception as e:
+            logger.error(f"Error in protected info modal submission: {e}", exc_info=True)
+            
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    _("❌ Ein Fehler ist aufgetreten: {error}").format(error=str(e)[:100]),
+                    ephemeral=True
+                )
+            else:
+                await interaction.followup.send(
+                    _("❌ Ein Fehler ist aufgetreten: {error}").format(error=str(e)[:100]),
+                    ephemeral=True
+                )
+
+
+class PasswordValidationModal(discord.ui.Modal):
+    """Modal for validating password to access protected information."""
+    
+    def __init__(self, cog_instance, container_name: str, display_name: str, container_info: dict):
+        self.cog = cog_instance
+        self.container_name = container_name
+        self.display_name = display_name or container_name
+        self.container_info = container_info
+        
+        title = f"🔐 Password: {self.display_name}"
+        if len(title) > 45:  # Discord modal title limit
+            title = f"🔐 Password: {self.display_name[:30]}..."
+        
+        super().__init__(title=title, timeout=300)
+        
+        # Password field
+        self.password_input = discord.ui.InputText(
+            label=_("🗝️ Password"),
+            style=InputTextStyle.short,
+            max_length=60,
+            required=True,
+            placeholder=_("Enter password to access protected information")
+        )
+        self.add_item(self.password_input)
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle password validation."""
+        logger.info(f"Password validation attempt for {self.container_name} by {interaction.user}")
+        
+        try:
+            entered_password = self.password_input.value.strip()
+            stored_password = self.container_info.get('protected_password', '')
+            
+            if not stored_password:
+                await interaction.response.send_message(
+                    _("❌ No password is set for this container's protected information."),
+                    ephemeral=True
+                )
+                return
+            
+            if entered_password != stored_password:
+                # Log failed attempt
+                log_user_action(
+                    action="PROTECTED_INFO_FAILED",
+                    target=self.display_name,
+                    user=str(interaction.user),
+                    source="Discord Modal",
+                    details=f"Container: {self.container_name}, Failed password attempt, Guild: {interaction.guild.name if interaction.guild else 'DM'}"
+                )
+                
+                await interaction.response.send_message(
+                    _("❌ Incorrect password. Access denied."),
+                    ephemeral=True
+                )
+                return
+            
+            # Password correct - show protected info
+            protected_content = self.container_info.get('protected_content', '')
+            
+            if not protected_content:
+                await interaction.response.send_message(
+                    _("❌ No protected information available for this container."),
+                    ephemeral=True
+                )
+                return
+            
+            # Log successful access
+            log_user_action(
+                action="PROTECTED_INFO_ACCESS",
+                target=self.display_name,
+                user=str(interaction.user),
+                source="Discord Modal",
+                details=f"Container: {self.container_name}, Successful access, Guild: {interaction.guild.name if interaction.guild else 'DM'}"
+            )
+            
+            # Create protected info embed
+            embed = discord.Embed(
+                title=f"🔐 {self.display_name} - {_('Protected Information')}",
+                description=protected_content,
+                color=discord.Color.orange()
+            )
+            
+            embed.add_field(
+                name=_("⚠️ Security Notice"),
+                value=_("This information is confidential. Do not share it publicly."),
+                inline=False
+            )
+            
+            embed.set_footer(text=f"Accessed by {interaction.user.display_name} • Container: {self.container_name}")
+            
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            logger.info(f"Protected info accessed for {self.container_name} by {interaction.user}")
+            
+        except Exception as e:
+            logger.error(f"Error in password validation modal: {e}", exc_info=True)
+            
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    _("❌ An error occurred during password validation: {error}").format(error=str(e)[:100]),
+                    ephemeral=True
+                )
+            else:
+                await interaction.followup.send(
+                    _("❌ An error occurred during password validation: {error}").format(error=str(e)[:100]),
                     ephemeral=True
                 )
     

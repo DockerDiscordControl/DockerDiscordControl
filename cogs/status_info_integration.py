@@ -43,9 +43,80 @@ class ContainerInfoAdminView(discord.ui.View):
         # Add Edit Info button
         self.add_item(EditInfoButton(cog_instance, server_config, info_config))
         
+        # Add Protected Info Edit button (for editing protected info settings)
+        self.add_item(ProtectedInfoEditButton(cog_instance, server_config, info_config))
+        
         # Add Debug button
         self.add_item(DebugLogsButton(cog_instance, server_config))
         
+
+class ProtectedInfoEditButton(discord.ui.Button):
+    """Protected Info Edit button for managing protected container information."""
+    
+    def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any]):
+        super().__init__(
+            style=discord.ButtonStyle.secondary,
+            emoji="🔒",
+            label=None,
+            custom_id=f"protected_edit_{server_config.get('docker_name')}"
+        )
+        self.cog = cog_instance
+        self.server_config = server_config
+        self.info_config = info_config
+        self.container_name = server_config.get('docker_name')
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle protected info edit button click."""
+        # Check button cooldown first  
+        from services.infrastructure.spam_protection_service import get_spam_protection_service
+        spam_manager = get_spam_protection_service()
+        
+        if spam_manager.is_enabled():
+            cooldown_seconds = spam_manager.get_button_cooldown("info")
+            current_time = time.time()
+            cooldown_key = f"button_protected_edit_{interaction.user.id}"
+            
+            if hasattr(self.cog, '_button_cooldowns'):
+                if cooldown_key in self.cog._button_cooldowns:
+                    last_use = self.cog._button_cooldowns[cooldown_key]
+                    if current_time - last_use < cooldown_seconds:
+                        remaining = cooldown_seconds - (current_time - last_use)
+                        await interaction.response.send_message(
+                            f"⏰ Please wait {remaining:.1f} more seconds before using this button again.", 
+                            ephemeral=True
+                        )
+                        return
+            else:
+                self.cog._button_cooldowns = {}
+            
+            # Record button use
+            self.cog._button_cooldowns[cooldown_key] = current_time
+            
+        try:
+            # Import modal from enhanced_info_modal_simple
+            from .enhanced_info_modal_simple import ProtectedInfoModal
+            
+            # Get display name
+            display_name = self.server_config.get('name', self.container_name)
+            
+            modal = ProtectedInfoModal(
+                self.cog,
+                container_name=self.container_name,
+                display_name=display_name
+            )
+            
+            await interaction.response.send_modal(modal)
+            logger.info(f"Opened protected info edit modal for {self.container_name} for user {interaction.user.id}")
+            
+        except Exception as e:
+            logger.error(f"Error opening protected info edit modal for {self.container_name}: {e}", exc_info=True)
+            try:
+                await interaction.response.send_message(
+                    _("❌ Could not open protected info edit modal. Please try again later."),
+                    ephemeral=True
+                )
+            except:
+                pass
 
 class EditInfoButton(discord.ui.Button):
     """Edit Info button for container info admin view."""
@@ -704,6 +775,25 @@ class StatusInfoView(discord.ui.View):
         # Only add info button if info is enabled
         if self.info_config.get('enabled', False):
             self.add_item(StatusInfoButton(cog_instance, server_config, self.info_config))
+        
+        # Add Protected Info button if protected info is enabled (for password validation)
+        if self.info_config.get('protected_enabled', False):
+            self.add_item(ProtectedInfoButton(cog_instance, server_config, self.info_config))
+
+class ProtectedInfoOnlyView(discord.ui.View):
+    """
+    View for /info command in status channels that only shows protected info button.
+    """
+    
+    def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any]):
+        super().__init__(timeout=1800)  # 30 minute timeout
+        self.cog = cog_instance
+        self.server_config = server_config
+        self.info_config = info_config
+        
+        # Only add Protected Info button (no regular info button since we're already showing info)
+        if self.info_config.get('protected_enabled', False):
+            self.add_item(ProtectedInfoButton(cog_instance, server_config, self.info_config))
     
 class StatusInfoButton(discord.ui.Button):
     """
@@ -727,15 +817,15 @@ class StatusInfoButton(discord.ui.Button):
         try:
             await interaction.response.defer(ephemeral=True)
             
-            # Generate info embed
-            embed = await self._generate_info_embed()
-            
-            # Check if this is a control channel to show admin buttons
+            # Check if this is a control channel
             from .control_helpers import _channel_has_permission
             from utils.config_cache import get_cached_config
             
             config = get_cached_config()
             has_control = _channel_has_permission(interaction.channel_id, 'control', config) if config else False
+            
+            # Generate info embed (with protected info if in control channel)
+            embed = await self._generate_info_embed(include_protected=has_control)
             
             # Enhanced debug logging
             logger.info(f"StatusInfoButton callback - Channel ID: {interaction.channel_id} (type: {type(interaction.channel_id)}), has_control: {has_control}")
@@ -772,8 +862,12 @@ class StatusInfoButton(discord.ui.Button):
             except:
                 pass  # Ignore errors in error handling
     
-    async def _generate_info_embed(self) -> discord.Embed:
-        """Generate the container info embed for display."""
+    async def _generate_info_embed(self, include_protected: bool = False) -> discord.Embed:
+        """Generate the container info embed for display.
+        
+        Args:
+            include_protected: Whether to include protected information (for control channels)
+        """
         display_name = self.server_config.get('name', self.container_name)
         
         # Create embed with container branding
@@ -788,13 +882,20 @@ class StatusInfoButton(discord.ui.Button):
         # Add custom text if provided
         custom_text = self.info_config.get('custom_text', '').strip()
         if custom_text:
-            description_parts.append(f"```\n{custom_text}\n```")
+            description_parts.append(f"{custom_text}")
         
         # Add IP information if enabled
         if self.info_config.get('show_ip', False):
             ip_info = await self._get_ip_info()
             if ip_info:
                 description_parts.append(ip_info)
+        
+        # Add protected information if in control channel and enabled
+        if include_protected and self.info_config.get('protected_enabled', False):
+            protected_content = self.info_config.get('protected_content', '').strip()
+            if protected_content:
+                description_parts.append("\n**🔐 Protected Information:**")
+                description_parts.append(protected_content)
         
         # Add container status info
         status_info = self._get_status_info()
@@ -874,6 +975,77 @@ class StatusInfoButton(discord.ui.Button):
         # Status information (State/Uptime) is already displayed in the main status embed above,
         # so we don't need to duplicate it in the info section
         return None
+
+class ProtectedInfoButton(discord.ui.Button):
+    """
+    Protected Info button for status-only channels - opens password validation modal.
+    """
+    
+    def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any]):
+        super().__init__(
+            style=discord.ButtonStyle.secondary,
+            emoji="🔐",
+            label=None,
+            custom_id=f"protected_info_{server_config.get('docker_name')}"
+        )
+        self.cog = cog_instance
+        self.server_config = server_config
+        self.info_config = info_config
+        self.container_name = server_config.get('docker_name')
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle protected info button click - open password validation modal."""
+        # Check button cooldown first  
+        from services.infrastructure.spam_protection_service import get_spam_protection_service
+        spam_manager = get_spam_protection_service()
+        
+        if spam_manager.is_enabled():
+            cooldown_seconds = spam_manager.get_button_cooldown("info")
+            current_time = time.time()
+            cooldown_key = f"button_protected_{interaction.user.id}"
+            
+            if hasattr(self.cog, '_button_cooldowns'):
+                if cooldown_key in self.cog._button_cooldowns:
+                    last_use = self.cog._button_cooldowns[cooldown_key]
+                    if current_time - last_use < cooldown_seconds:
+                        remaining = cooldown_seconds - (current_time - last_use)
+                        await interaction.response.send_message(
+                            f"⏰ Please wait {remaining:.1f} more seconds before using this button again.", 
+                            ephemeral=True
+                        )
+                        return
+            else:
+                self.cog._button_cooldowns = {}
+            
+            # Record button use
+            self.cog._button_cooldowns[cooldown_key] = current_time
+            
+        try:
+            # Import password validation modal from enhanced_info_modal_simple
+            from .enhanced_info_modal_simple import PasswordValidationModal
+            
+            # Get display name
+            display_name = self.server_config.get('name', self.container_name)
+            
+            modal = PasswordValidationModal(
+                self.cog,
+                container_name=self.container_name,
+                display_name=display_name,
+                container_info=self.info_config
+            )
+            
+            await interaction.response.send_modal(modal)
+            logger.info(f"Opened password validation modal for {self.container_name} for user {interaction.user.id}")
+            
+        except Exception as e:
+            logger.error(f"Error opening password validation modal for {self.container_name}: {e}", exc_info=True)
+            try:
+                await interaction.response.send_message(
+                    _("❌ Could not open protected info modal. Please try again later."),
+                    ephemeral=True
+                )
+            except:
+                pass
 
 def create_enhanced_status_embed(
     original_embed: discord.Embed, 
