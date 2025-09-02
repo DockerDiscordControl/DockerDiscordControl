@@ -1544,9 +1544,9 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 logger.info("DEBUG: new MechService created")
                 
                 # Get clean data from new service
-                current_fuel = mech_service.get_fuel_with_decimals()  # Use decimal version for accurate display
+                current_Power = mech_service.get_Power_with_decimals()  # Use decimal version for accurate display
                 total_donations_received = mech_state.total_donated
-                logger.info(f"NEW SERVICE: fuel=${current_fuel:.2f}, total_donations=${total_donations_received}, level={mech_state.level} ({mech_state.level_name})")
+                logger.info(f"NEW SERVICE: Power=${current_Power:.2f}, total_donations=${total_donations_received}, level={mech_state.level} ({mech_state.level_name})")
                 
                 # Evolution info from new service with next_name for UI
                 from services.mech.mech_service import MECH_LEVELS
@@ -1580,7 +1580,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     except:
                         language = 'en'
                     
-                    combined_status = get_combined_mech_status(current_fuel, total_donations_received, language)
+                    combined_status = get_combined_mech_status(current_Power, total_donations_received, language)
                     speed = combined_status['speed']
                     # Add glvl info to the speed object
                     speed['glvl'] = mech_state.glvl
@@ -1605,7 +1605,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     data_service = get_data_service()
                     total_donated = data_service.get_state().total_donated
                     animation_file = await mech_service.create_donation_animation_async(
-                        'Current', f'{current_fuel}$', total_donated
+                        'Current', f'{current_Power}$', total_donated
                     )
                 except Exception as e:
                     logger.warning(f"Animation service failed (graceful degradation): {e}")
@@ -1617,26 +1617,26 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                         embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
                 
                 # Use clean progress bar data from new service - NO MORE MANUAL CALCULATION! 🎯
-                # For Level 1, use decimal fuel for accurate percentage
+                # For Level 1, use decimal Power for accurate percentage
                 if mech_state.level == 1:
-                    fuel_current = current_fuel  # Use decimal value for Level 1
+                    Power_current = current_Power  # Use decimal value for Level 1
                 else:
-                    fuel_current = mech_state.bars.fuel_current  # Use integer for Level 2+
-                fuel_max = mech_state.bars.fuel_max_for_level
+                    Power_current = mech_state.bars.Power_current  # Use integer for Level 2+
+                Power_max = mech_state.bars.Power_max_for_level
                 evolution_current = mech_state.bars.mech_progress_current  
                 evolution_max = mech_state.bars.mech_progress_max
                 
-                logger.info(f"NEW SERVICE BARS: fuel={fuel_current}/{fuel_max}, evolution={evolution_current}/{evolution_max}")
+                logger.info(f"NEW SERVICE BARS: Power={Power_current}/{Power_max}, evolution={evolution_current}/{evolution_max}")
                 
                 # Calculate percentages from clean data
-                if fuel_max > 0:
-                    fuel_percentage = min(100, max(0, (fuel_current / fuel_max) * 100))
-                    fuel_bar = self._create_progress_bar(fuel_percentage)
-                    logger.info(f"NEW SERVICE: Fuel bar {fuel_percentage:.1f}% ({fuel_current}/{fuel_max})")
+                if Power_max > 0:
+                    Power_percentage = min(100, max(0, (Power_current / Power_max) * 100))
+                    Power_bar = self._create_progress_bar(Power_percentage)
+                    logger.info(f"NEW SERVICE: Power bar {Power_percentage:.1f}% ({Power_current}/{Power_max})")
                 else:
-                    fuel_bar = self._create_progress_bar(0)
-                    fuel_percentage = 0
-                    logger.info(f"NEW SERVICE: Fuel bar 0% (max=0)")
+                    Power_bar = self._create_progress_bar(0)
+                    Power_percentage = 0
+                    logger.info(f"NEW SERVICE: Power bar 0% (max=0)")
                 
                 # Evolution bar from clean data  
                 if evolution_max > 0:
@@ -1654,9 +1654,9 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 mech_status = f"{evolution_name} ({level_text} {evolution['level']})\n"
                 speed_text = translate("Speed")
                 mech_status += f"{speed_text}: {speed['description']}\n\n"
-                mech_status += f"🛢️ ${current_fuel:.2f}\n{fuel_bar} {fuel_percentage:.1f}%\n"
-                fuel_consumption_text = translate("Fuel Consumption")
-                mech_status += f"{fuel_consumption_text}: 🔻 0.04/h\n\n"  # Using red down arrow for negative indication
+                mech_status += f"⚡ ${current_Power:.2f}\n{Power_bar} {Power_percentage:.1f}%\n"
+                Power_consumption_text = translate("Power Consumption")
+                mech_status += f"{Power_consumption_text}: 🔻 0.04/h\n\n"  # Using red down arrow for negative indication
                 
                 if evolution.get('next_name'):
                     next_evolution_name = translate(evolution['next_name'])
@@ -1834,9 +1834,9 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 from services.mech.mech_service import get_mech_service
                 mech_service = get_mech_service()
                 
-                # Get current fuel for animation
+                # Get current Power for animation
                 mech_state = mech_service.get_state()
-                current_fuel = mech_service.get_fuel_with_decimals()
+                current_Power = mech_service.get_Power_with_decimals()
                 
                 # Create mech animation with fallback
                 try:
@@ -1847,7 +1847,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     data_service = get_data_service()
                     total_donated = data_service.get_state().total_donated
                     animation_file = await mech_service.create_donation_animation_async(
-                        'Current', f'{current_fuel}$', total_donated
+                        'Current', f'{current_Power}$', total_donated
                     )
                 except Exception as e:
                     logger.warning(f"Animation service failed (graceful degradation): {e}")
@@ -2011,17 +2011,17 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                         # Auto-detect Glvl changes for force_recreate decision
                         current_glvl = None
                         try:
-                            # Get current fuel amount for Glvl calculation using MechService
+                            # Get current Power amount for Glvl calculation using MechService
                             from services.mech.mech_service import get_mech_service
                             mech_service = get_mech_service()
                             mech_state = mech_service.get_state()
-                            current_fuel = mech_service.get_fuel_with_decimals()
+                            current_Power = mech_service.get_Power_with_decimals()
                             total_donations = mech_state.total_donated
                             
                             # Get current mech status to extract Glvl
                             from services.mech.speed_levels import get_combined_mech_status
                             # Use default language for internal calculations (glvl doesn't need translation)
-                            mech_status = get_combined_mech_status(current_fuel, total_donations, 'en')
+                            mech_status = get_combined_mech_status(current_Power, total_donations, 'en')
                             current_glvl = mech_status.get('speed', {}).get('level', 0)
                         except Exception as e:
                             logger.debug(f"Could not get current Glvl: {e}")
@@ -2801,7 +2801,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
     # --- Shared Donation Message Creation ---
     async def _create_donation_broadcast_message(self, donor_name: str, amount_text: str = None, amount_numeric: float = None,
                                                    evolution_occurred: bool = False, old_evolution_level: int = None, 
-                                                   new_evolution_level: int = None, surplus_fuel: float = None) -> tuple:
+                                                   new_evolution_level: int = None, surplus_Power: float = None) -> tuple:
         """Create rich donation broadcast message used by both Discord modal and Web UI.
         
         Args:
@@ -2811,7 +2811,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             evolution_occurred: Whether an evolution happened
             old_evolution_level: Previous evolution level (if evolution occurred)
             new_evolution_level: New evolution level (if evolution occurred)
-            surplus_fuel: Remaining fuel after evolution reset
+            surplus_Power: Remaining Power after evolution reset
             
         Returns:
             tuple: (broadcast_text, evolution_status, speed_status)
@@ -2891,7 +2891,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         if evolution_occurred and new_evolution_level:
             # Get evolution names
             from utils.mech_evolutions import get_evolution_info
-            new_evolution_info = get_evolution_info(surplus_fuel * 1000 if surplus_fuel else 0)  # Dummy high value to get level info
+            new_evolution_info = get_evolution_info(surplus_Power * 1000 if surplus_Power else 0)  # Dummy high value to get level info
             
             # Import names directly based on level
             from utils.mech_evolutions import EVOLUTION_NAMES
@@ -2902,8 +2902,8 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             evolution_celebration += _("Your Mech has ascended to the next evolution stage: {evolution_name}").format(
                 evolution_name=_(new_evolution_name)
             ) + "\n"
-            evolution_celebration += _("The fuel system has been reset and refueled with the remaining surplus of ${surplus:.2f}.").format(
-                surplus=surplus_fuel
+            evolution_celebration += _("The Power system has been reset and rePowered with the remaining surplus of ${surplus:.2f}.").format(
+                surplus=surplus_Power
             )
             
             broadcast_text += evolution_celebration
@@ -2930,7 +2930,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             mech_service = get_mech_service()
             mech_state = mech_service.get_state()
             
-            current_fuel = mech_service.get_fuel_with_decimals()
+            current_Power = mech_service.get_Power_with_decimals()
             total_donations = mech_state.total_donated
             
             # Get evolution and speed info
@@ -2947,12 +2947,12 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             except:
                 language = 'en'
                 
-            combined_status = get_combined_mech_status(current_fuel, total_donations, language)
+            combined_status = get_combined_mech_status(current_Power, total_donations, language)
             evolution = combined_status['evolution']
             speed = combined_status['speed']
             
             # Create status strings
-            speed_status = f"**Speed: {speed['description']}** (Fuel: ${current_fuel:.2f})"
+            speed_status = f"**Speed: {speed['description']}** (⚡ Power: ${current_Power:.2f})"
             evolution_name = _(evolution['name'])
             evolution_text = translate("Evolution")
             level_text = translate("Level")

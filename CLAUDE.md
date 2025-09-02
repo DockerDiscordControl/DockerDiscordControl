@@ -14,13 +14,13 @@
 ## Architecture Notes
 - Discord bot uses asyncio event loop
 - Web UI uses Gevent for threading compatibility
-- Mech service handles fuel decay and level calculations
+- Mech service handles power decay and level calculations
 - Animation system uses PIL/Pillow for WebP generation
 
-## Fuel System v3.0 - Ultra Optimized
-- **Client-side Fuel Calculation**: `seconds / 86400` (1 fuel per day) 
+## Power System v3.0 - Ultra Optimized
+- **Client-side Power Calculation**: `seconds / 86400` (1 power per day) 
 - **Smart Update Logic**: Check every 10s, update only on 0.01 decimal change
 - **Actual Updates**: Only 100 DOM updates per day (every 14.4 minutes average)
 - **Server Sync**: Every 60s only for new donations (>$0.50 difference)
 - **Performance**: 99.9% reduction - from 1200 to 60 API calls/hour
-- **Animation**: Only regenerates on integer fuel changes ($1 increments)
+- **Animation**: Only regenerates on integer power changes ($1 increments)

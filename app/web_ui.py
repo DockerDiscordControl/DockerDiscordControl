@@ -120,8 +120,8 @@ def create_app(test_config=None):
         app.logger.addHandler(handler)
     app.logger.info(f"Flask Logger initialized with {app.config['LOG_LEVEL']} level.")
     
-    # Add custom filter to reduce noise from frequent fuel consumption requests
-    class ConsumeFuelLogFilter(logging.Filter):
+    # Add custom filter to reduce noise from frequent power consumption requests
+    class ConsumePowerLogFilter(logging.Filter):
         def __init__(self):
             super().__init__()
             # Check if we're in DEBUG mode
@@ -132,17 +132,17 @@ def create_app(test_config=None):
             if self.debug_mode:
                 return True
                 
-            # In INFO/WARNING mode, filter out consume-fuel noise
+            # In INFO/WARNING mode, filter out consume-power noise
             record_str = str(record)
             message = getattr(record, 'message', '')
             
-            # Check all possible attributes for consume-fuel pattern
+            # Check all possible attributes for consume-power pattern
             checks = [
-                hasattr(record, 'getMessage') and 'consume-fuel' in record.getMessage(),
-                'consume-fuel' in str(message),
-                'consume-fuel' in record_str,
-                hasattr(record, 'args') and 'consume-fuel' in str(record.args),
-                hasattr(record, 'msg') and 'consume-fuel' in str(record.msg),
+                hasattr(record, 'getMessage') and 'consume-power' in record.getMessage(),
+                'consume-power' in str(message),
+                'consume-power' in record_str,
+                hasattr(record, 'args') and 'consume-power' in str(record.args),
+                hasattr(record, 'msg') and 'consume-power' in str(record.msg),
             ]
             
             # If any check matches and it's INFO level or below, filter it out
@@ -163,13 +163,13 @@ def create_app(test_config=None):
     
     for logger_name in loggers_to_filter:
         logger = logging.getLogger(logger_name)
-        logger.addFilter(ConsumeFuelLogFilter())
+        logger.addFilter(ConsumePowerLogFilter())
         
     debug_mode = app.config.get('LOG_LEVEL', 'INFO').upper() == 'DEBUG'
     if debug_mode:
-        app.logger.info("ConsumeFuelLogFilter installed but DISABLED (DEBUG mode - showing all logs)")
+        app.logger.info("ConsumePowerLogFilter installed but DISABLED (DEBUG mode - showing all logs)")
     else:
-        app.logger.info("ConsumeFuelLogFilter installed and ACTIVE (INFO mode - filtering consume-fuel noise)")
+        app.logger.info("ConsumePowerLogFilter installed and ACTIVE (INFO mode - filtering consume-power noise)")
 
     # Apply ProxyFix
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)

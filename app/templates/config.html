@@ -31,25 +31,25 @@
         <div class="w-100 mt-2">
             <div class="text-center">
                 <div class="btn-group" role="group" aria-label="Donation controls">
-                    <button type="button" class="btn btn-sm btn-success" onclick="addTestFuel(5)" title="Add $5">
+                    <button type="button" class="btn btn-sm btn-success" onclick="addTestPower(5)" title="Add $5">
                         <i class="bi bi-plus-circle"></i> +$5
                     </button>
-                    <button type="button" class="btn btn-sm btn-success" onclick="addTestFuel(10)" title="Add $10">
+                    <button type="button" class="btn btn-sm btn-success" onclick="addTestPower(10)" title="Add $10">
                         <i class="bi bi-plus-circle"></i> +$10
                     </button>
-                    <button type="button" class="btn btn-sm btn-success" onclick="addTestFuel(50)" title="Add $50">
+                    <button type="button" class="btn btn-sm btn-success" onclick="addTestPower(50)" title="Add $50">
                         <i class="bi bi-plus-circle"></i> +$50
                     </button>
-                    <button type="button" class="btn btn-sm btn-warning" onclick="addTestFuel(100)" title="Add $100">
+                    <button type="button" class="btn btn-sm btn-warning" onclick="addTestPower(100)" title="Add $100">
                         <i class="bi bi-plus-circle"></i> +$100
                     </button>
-                    <button type="button" class="btn btn-sm btn-warning" onclick="addTestFuel(500)" title="Add $500">
+                    <button type="button" class="btn btn-sm btn-warning" onclick="addTestPower(500)" title="Add $500">
                         <i class="bi bi-rocket"></i> +$500
                     </button>
-                    <button type="button" class="btn btn-sm btn-danger" onclick="addTestFuel(-10)" title="Remove $10">
+                    <button type="button" class="btn btn-sm btn-danger" onclick="addTestPower(-10)" title="Remove $10">
                         <i class="bi bi-dash-circle"></i> -$10
                     </button>
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="resetFuel()" title="Reset to 0">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="resetPower()" title="Reset to 0">
                         <i class="bi bi-arrow-counterclockwise"></i> Reset
                     </button>
                     <button type="button" class="btn btn-sm btn-info" onclick="testMatrixThankYou()" title="Test Matrix Thank You Animation">
@@ -59,9 +59,9 @@
             </div>
         </div>
         
-        <!-- Mech Fuel Call-to-Action -->
+        <!-- Mech Power Call-to-Action -->
         <div class="text-center mb-3">
-            <p style="color:#adb5bd; margin-bottom: 10px;">Fuel the Mech with your donations to bring it to life!</p>
+            <p style="color:#adb5bd; margin-bottom: 10px;">⚡ Power the Mech with your donations to bring it to life!</p>
         </div>
         
         <!-- Donator Mech Animation - Below buttons -->
@@ -76,7 +76,7 @@
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                         </div>
-                        <div id="fuelConsumptionOverlay" class="fuel-consumption-overlay">-$0.00003472</div>
+                        <div id="powerConsumptionOverlay" class="power-consumption-overlay">-$0.00003472</div>
                         <div id="speedStatusOverlay" class="speed-status-overlay">OFFLINE</div>
                     </div>
                 </div>
@@ -84,16 +84,16 @@
                 <!-- Right side: Gauge Container -->
                 <div class="gauge-container">
                     
-                    <!-- Fuel Bar -->
+                    <!-- Power Bar -->
                     <div class="bar-row">
                         <div class="bar-wrapper">
-                            <div class="fuel-bar">
-                                <div id="fuelLevel" class="fuel-fill" style="width: 0%"></div>
+                            <div class="power-bar">
+                                <div id="powerLevel" class="power-fill" style="width: 0%"></div>
                             </div>
                         </div>
                         <div class="bar-label">
-                            <span style="color: #ff4444; font-weight: bold;">FUEL</span>
-                            <span id="fuelAmount" style="color: #ffaa00; margin-left: 5px;">$0</span>
+                            <span style="color: #ff4444; font-weight: bold;">POWER</span>
+                            <span id="powerAmount" style="color: #ffaa00; margin-left: 5px;">$0</span>
                         </div>
                     </div>
                     
@@ -131,22 +131,22 @@
             <div class="donation-modal">
                 <div class="donation-modal-header">
                     <h4>🎉 Thank you for your donation!</h4>
-                    <p>Please enter your donation details to fuel the mech:</p>
+                    <p>Please enter your donation details to power the mech:</p>
                 </div>
                 <div class="donation-modal-body">
                     <form id="donationForm">
                         <div class="form-group">
-                            <label for="donationAmount">Donation Amount ($)</label>
+                            <label for="donationAmount" id="donationAmountLabel">Donation Amount ($)</label>
                             <input type="number" id="donationAmount" class="form-control" min="0.01" step="0.01" placeholder="5.00" required>
                         </div>
                         <div class="form-group">
-                            <label for="donorName">Donor Name (optional)</label>
+                            <label for="donorName" id="donorNameLabel">Donor Name (optional)</label>
                             <input type="text" id="donorName" class="form-control" placeholder="Anonymous" maxlength="50">
                         </div>
                         <div class="form-group">
                             <div class="form-check">
                                 <input type="checkbox" id="publishToDiscord" class="form-check-input" checked>
-                                <label for="publishToDiscord" class="form-check-label">
+                                <label for="publishToDiscord" class="form-check-label" id="publishToDiscordLabel">
                                     Announce donation in Discord channels
                                 </label>
                             </div>
@@ -155,7 +155,7 @@
                 </div>
                 <div class="donation-modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeDonationModal()">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="submitDonation()">🚀 Fuel the Mech!</button>
+                    <button type="button" class="btn btn-primary" onclick="submitDonation()">🚀 ⚡ Power the Mech!</button>
                 </div>
             </div>
         </div>
@@ -257,7 +257,7 @@
             margin-bottom: 4px;
         }
         
-        .fuel-consumption-overlay {
+        .power-consumption-overlay {
             position: absolute;
             top: 2px;
             right: 2px;
@@ -440,7 +440,7 @@
             margin-left: 0;
         }
         
-        .fuel-bar, .evolution-bar {
+        .power-bar, .evolution-bar {
             width: 150px;
             height: 28px;
             background: #1a1a1a;
@@ -451,7 +451,7 @@
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
         }
         
-        .fuel-fill {
+        .power-fill {
             height: 100%;
             background: linear-gradient(90deg, #cc0000 0%, #ff3333 50%, #ff6666 100%);
             transition: width 0.5s ease;
@@ -479,7 +479,7 @@
             border-top: 1px dotted #444;
         }
         
-        .fuel-amount {
+        .Power-amount {
             font-size: 14px;
             font-weight: bold;
             color: #ffcc00;
@@ -572,7 +572,7 @@
                             console.info('💰 [MATRIX] Donation button clicked, data stored:', donationClickData);
                             
                             // Update mech immediately
-                            // Use new efficient fuel system instead
+                            // Use new efficient Power system instead
                             syncWithServer();
                         } else {
                             console.error('💰 [MATRIX] Donation click recording failed:', data);
@@ -833,7 +833,7 @@
         function updateDonatorHeart(donationTimestamp) {
             // No longer storing locally - server handles it
             // Just refresh the mech status from server
-            // Use new efficient fuel system instead
+            // Use new efficient Power system instead
             syncWithServer();
         }
         
@@ -880,18 +880,18 @@
         }
         
         // Animation cache - persistent across page reloads
-        let lastAnimationFuelLevel = localStorage.getItem('ddcLastAnimationFuelLevel') ? 
-            parseInt(localStorage.getItem('ddcLastAnimationFuelLevel')) : null;
+        let lastAnimationPowerLevel = localStorage.getItem('ddcLastAnimationPowerLevel') ? 
+            parseInt(localStorage.getItem('ddcLastAnimationPowerLevel')) : null;
         
         // ===================================================================
-        // FUEL SYSTEM v3.0 - Ultra-Efficient Client-Server Hybrid
+        // POWER SYSTEM v3.0 - Ultra-Efficient Client-Server Hybrid
         // ===================================================================
         // Performance: 100 DOM updates/day, 60 API calls/hour (99% reduction)
         // ===================================================================
         
         // Configuration
-        const FUEL_CONFIG = {
-            DECAY_RATE: 1 / 86400,           // 1 fuel per day (in seconds)
+        const POWER_CONFIG = {
+            DECAY_RATE: 1 / 86400,           // 1 Power per day (in seconds)
             UPDATE_PRECISION: 0.01,          // Update display on 0.01 changes
             CLIENT_CHECK_INTERVAL: 10000,    // Check every 10 seconds
             SERVER_SYNC_INTERVAL: 60000,     // Sync with server every 60 seconds
@@ -899,8 +899,8 @@
         };
         
         // State management
-        const fuelState = {
-            serverFuel: 0,                   // Last known server fuel value
+        const PowerState = {
+            serverPower: 0,                   // Last known server Power value
             serverTime: Date.now(),          // When we got server value
             lastDisplayDecimal: null,        // Last displayed decimal value
             lastAnimationLevel: null,        // Last animation integer level
@@ -911,25 +911,25 @@
         // INITIALIZATION
         // ===================================================================
         
-        (function initializeFuelSystem() {
-            console.log('[FUEL v3.0] Initializing ultra-efficient fuel system');
+        (function initializePowerSystem() {
+            console.log('[POWER v3.0] Initializing ultra-efficient Power system');
             
             // Clear any old intervals from previous page loads
             const maxInterval = setInterval(() => {}, 0);
             for (let i = 0; i < maxInterval; i++) clearInterval(i);
             
             // Start the system
-            loadInitialFuelData();
+            loadInitialPowerData();
             
             // Schedule periodic updates
-            setInterval(updateClientSideFuel, FUEL_CONFIG.CLIENT_CHECK_INTERVAL);
-            setInterval(syncWithServer, FUEL_CONFIG.SERVER_SYNC_INTERVAL);
+            setInterval(updateClientSidePower, POWER_CONFIG.CLIENT_CHECK_INTERVAL);
+            setInterval(syncWithServer, POWER_CONFIG.SERVER_SYNC_INTERVAL);
             
             // Expose global update function for external triggers
-            window.forceFuelUpdate = function() {
-                console.log('[FUEL v3.0] Force update triggered');
-                fuelState.lastDisplayDecimal = null;
-                updateClientSideFuel();
+            window.forcePowerUpdate = function() {
+                console.log('[POWER v3.0] Force update triggered');
+                PowerState.lastDisplayDecimal = null;
+                updateClientSidePower();
                 syncWithServer();
             };
         })();
@@ -938,52 +938,52 @@
         // CORE FUNCTIONS
         // ===================================================================
         
-        async function loadInitialFuelData() {
+        async function loadInitialPowerData() {
             try {
                 const response = await fetch('/api/donation/status');
                 const data = await response.json();
                 
-                fuelState.serverFuel = data.current_fuel_raw || data.current_fuel || 0;
-                fuelState.serverTime = Date.now();
-                fuelState.serverData = data;
+                PowerState.serverPower = data.current_Power_raw || data.current_Power || 0;
+                PowerState.serverTime = Date.now();
+                PowerState.serverData = data;
                 
-                console.log(`[FUEL v3.0] Initial load: $${fuelState.serverFuel.toFixed(2)}`);
-                updateFuelDisplay(fuelState.serverFuel);
+                console.log(`[POWER v3.0] Initial load: $${PowerState.serverPower.toFixed(2)}`);
+                updatePowerDisplay(PowerState.serverPower);
                 updateBarsFromServerData(data);
                 
                 // Load initial animation immediately (force load)
-                const fuelInteger = Math.floor(fuelState.serverFuel);
-                fuelState.lastAnimationLevel = null; // Force initial load
-                updateMechAnimation(fuelInteger);
+                const PowerInteger = Math.floor(PowerState.serverPower);
+                PowerState.lastAnimationLevel = null; // Force initial load
+                updateMechAnimation(PowerInteger);
                 
-                console.log(`[FUEL v3.0] Initial animation loaded for fuel level: ${fuelInteger}`);
+                console.log(`[POWER v3.0] Initial animation loaded for Power level: ${PowerInteger}`);
             } catch (error) {
-                console.error('[FUEL v3.0] Initial load failed:', error);
+                console.error('[POWER v3.0] Initial load failed:', error);
             }
         }
         
-        function updateClientSideFuel() {
+        function updateClientSidePower() {
             const now = Date.now();
-            const elapsedSeconds = (now - fuelState.serverTime) / 1000;
+            const elapsedSeconds = (now - PowerState.serverTime) / 1000;
             
-            // Calculate current fuel with decay
-            const decayAmount = elapsedSeconds * FUEL_CONFIG.DECAY_RATE;
-            const currentFuel = Math.max(0, fuelState.serverFuel - decayAmount);
+            // Calculate current Power with decay
+            const decayAmount = elapsedSeconds * POWER_CONFIG.DECAY_RATE;
+            const currentPower = Math.max(0, PowerState.serverPower - decayAmount);
             
             // Only update display if decimal changed
-            const currentDecimal = Math.floor(currentFuel * 100) / 100;
-            if (fuelState.lastDisplayDecimal !== currentDecimal) {
-                fuelState.lastDisplayDecimal = currentDecimal;
-                updateFuelDisplay(currentFuel);
+            const currentDecimal = Math.floor(currentPower * 100) / 100;
+            if (PowerState.lastDisplayDecimal !== currentDecimal) {
+                PowerState.lastDisplayDecimal = currentDecimal;
+                updatePowerDisplay(currentPower);
                 
                 // Also update NEXT bar with local calculation
-                updateNextBarLocal(currentFuel);
+                updateNextBarLocal(currentPower);
                 
                 // Check for animation update (integer change)
-                const fuelInteger = Math.floor(currentFuel);
-                if (fuelState.lastAnimationLevel !== fuelInteger) {
-                    fuelState.lastAnimationLevel = fuelInteger;
-                    updateMechAnimation(fuelInteger);
+                const PowerInteger = Math.floor(currentPower);
+                if (PowerState.lastAnimationLevel !== PowerInteger) {
+                    PowerState.lastAnimationLevel = PowerInteger;
+                    updateMechAnimation(PowerInteger);
                 }
             }
         }
@@ -993,38 +993,38 @@
                 const response = await fetch('/api/donation/status');
                 const data = await response.json();
                 
-                const serverFuel = data.current_fuel_raw || data.current_fuel || 0;
-                const expectedFuel = fuelState.serverFuel - ((Date.now() - fuelState.serverTime) / 1000 * FUEL_CONFIG.DECAY_RATE);
-                const difference = Math.abs(serverFuel - expectedFuel);
+                const serverPower = data.current_Power_raw || data.current_Power || 0;
+                const expectedPower = PowerState.serverPower - ((Date.now() - PowerState.serverTime) / 1000 * POWER_CONFIG.DECAY_RATE);
+                const difference = Math.abs(serverPower - expectedPower);
                 
                 // Always update bars with server calculations
                 updateBarsFromServerData(data);
                 
-                // Sync fuel if significant difference detected (new donation)
-                if (difference > FUEL_CONFIG.DONATION_THRESHOLD) {
-                    console.log(`[FUEL v3.0] Donation detected: $${fuelState.serverFuel.toFixed(2)} → $${serverFuel.toFixed(2)}`);
-                    fuelState.serverFuel = serverFuel;
-                    fuelState.serverTime = Date.now();
-                    fuelState.lastDisplayDecimal = null;
-                    fuelState.serverData = data;
+                // Sync Power if significant difference detected (new donation)
+                if (difference > POWER_CONFIG.DONATION_THRESHOLD) {
+                    console.log(`[POWER v3.0] Donation detected: $${PowerState.serverPower.toFixed(2)} → $${serverPower.toFixed(2)}`);
+                    PowerState.serverPower = serverPower;
+                    PowerState.serverTime = Date.now();
+                    PowerState.lastDisplayDecimal = null;
+                    PowerState.serverData = data;
                 }
             } catch (error) {
                 // Silent fail to avoid console spam
             }
         }
         
-        function updateFuelDisplay(fuelAmount) {
+        function updatePowerDisplay(powerAmount) {
             // Simple display update - all complex calculations come from server
-            const fuelAmountEl = document.getElementById('fuelAmount');
-            if (fuelAmountEl) {
-                fuelAmountEl.textContent = `$${fuelAmount.toFixed(2)}`;
+            const powerAmountEl = document.getElementById('powerAmount');
+            if (powerAmountEl) {
+                powerAmountEl.textContent = `$${powerAmount.toFixed(2)}`;
             }
             
-            // For bars, we need the full server data, not just fuel amount
+            // For bars, we need the full server data, not just Power amount
             // This will be updated when we get server response
         }
         
-        function updateNextBarLocal(fuelAmount) {
+        function updateNextBarLocal(powerAmount) {
             // There is no NEXT bar in HTML - this function does nothing currently
             // The Evolution bar shows progress to next evolution level, not next dollar
             // If we want a "next dollar" bar, we need to add it to the HTML
@@ -1032,28 +1032,28 @@
         
         function updateBarsFromServerData(data) {
             // Use ACTUAL server calculations from MechService
-            const fuelLevel = document.getElementById('fuelLevel');
+            const powerLevel = document.getElementById('powerLevel');
             const evolutionProgress = document.getElementById('evolutionProgress');
             const nextEvolutionName = document.getElementById('nextEvolutionName');
             const nextEvolutionAmount = document.getElementById('nextEvolutionAmount');
             
-            // Update FUEL Bar using server's bar calculations
-            if (fuelLevel && data.bars) {
-                const percentage = (data.bars.fuel_current / data.bars.fuel_max_for_level) * 100;
-                fuelLevel.style.width = `${Math.min(100, percentage)}%`;
+            // Update POWER Bar using server's bar calculations
+            if (powerLevel && data.bars) {
+                const percentage = (data.bars.Power_current / data.bars.Power_max_for_level) * 100;
+                powerLevel.style.width = `${Math.min(100, percentage)}%`;
                 
-                // Color based on actual fuel amount
-                const fuel = data.current_fuel_raw || data.current_fuel || 0;
-                if (fuel >= 500) {
-                    fuelLevel.style.background = 'linear-gradient(90deg, #00ffff 0%, #0099ff 50%, #00ffff 100%)';
-                } else if (fuel >= 250) {
-                    fuelLevel.style.background = 'linear-gradient(90deg, #00ff00 0%, #00dd00 50%, #00ff00 100%)';
-                } else if (fuel >= 100) {
-                    fuelLevel.style.background = 'linear-gradient(90deg, #ffcc00 0%, #ff9900 50%, #ffcc00 100%)';
-                } else if (fuel >= 50) {
-                    fuelLevel.style.background = 'linear-gradient(90deg, #ff6600 0%, #ff3300 50%, #ff6600 100%)';
+                // Color based on actual Power amount
+                const Power = data.current_Power_raw || data.current_Power || 0;
+                if (Power >= 500) {
+                    powerLevel.style.background = 'linear-gradient(90deg, #00ffff 0%, #0099ff 50%, #00ffff 100%)';
+                } else if (Power >= 250) {
+                    powerLevel.style.background = 'linear-gradient(90deg, #00ff00 0%, #00dd00 50%, #00ff00 100%)';
+                } else if (Power >= 100) {
+                    powerLevel.style.background = 'linear-gradient(90deg, #ffcc00 0%, #ff9900 50%, #ffcc00 100%)';
+                } else if (Power >= 50) {
+                    powerLevel.style.background = 'linear-gradient(90deg, #ff6600 0%, #ff3300 50%, #ff6600 100%)';
                 } else {
-                    fuelLevel.style.background = 'linear-gradient(90deg, #cc0000 0%, #990000 50%, #cc0000 100%)';
+                    powerLevel.style.background = 'linear-gradient(90deg, #cc0000 0%, #990000 50%, #cc0000 100%)';
                 }
             }
             
@@ -1087,38 +1087,38 @@
             }
         }
         
-        function updateMechAnimation(fuelInteger) {
+        function updateMechAnimation(PowerInteger) {
             const mechImg = document.getElementById('donatorMechAnimation');
             if (mechImg) {
                 // Cache key for localStorage
-                const cacheKey = `ddcMechAnimation_${fuelInteger}`;
-                const lastLevel = localStorage.getItem('ddcLastAnimationFuelLevel');
+                const cacheKey = `ddcMechAnimation_${PowerInteger}`;
+                const lastLevel = localStorage.getItem('ddcLastAnimationPowerLevel');
                 
                 // Force reload if no previous level stored OR level changed
-                if (lastLevel === null || lastLevel !== fuelInteger.toString()) {
+                if (lastLevel === null || lastLevel !== PowerInteger.toString()) {
                     mechImg.src = `/mech_animation?t=${Date.now()}`;
-                    localStorage.setItem('ddcLastAnimationFuelLevel', fuelInteger.toString());
-                    console.log(`[FUEL] Animation updated for fuel level: ${fuelInteger} (was: ${lastLevel || 'none'})`);
+                    localStorage.setItem('ddcLastAnimationPowerLevel', PowerInteger.toString());
+                    console.log(`[POWER] Animation updated for Power level: ${PowerInteger} (was: ${lastLevel || 'none'})`);
                 } else {
-                    console.log(`[FUEL] Animation unchanged for fuel level: ${fuelInteger}`);
+                    console.log(`[POWER] Animation unchanged for Power level: ${PowerInteger}`);
                 }
             } else {
-                console.error('[FUEL] Mech animation element not found!');
+                console.error('[POWER] Mech animation element not found!');
             }
         }
         
-        // Consume fuel every 3 seconds (backend only, no Next Bar animation)
-        function consumeFuel() {
-            const fuelAmount = document.getElementById('fuelAmount');
+        // Consume Power every 3 seconds (backend only, no Next Bar animation)
+        function consumePower() {
+            const powerAmount = document.getElementById('powerAmount');
             
-            if (fuelAmount) {
-                // Parse current fuel amount
-                const currentFuel = parseFloat(fuelAmount.textContent.replace('$', ''));
+            if (powerAmount) {
+                // Parse current Power amount
+                const currentPower = parseFloat(powerAmount.textContent.replace('$', ''));
                 
-                // Only consume fuel if we have fuel
-                if (currentFuel > 0) {
-                    // Actually consume fuel on server
-                    fetch('/api/donation/consume-fuel', {
+                // Only consume Power if we have Power
+                if (currentPower > 0) {
+                    // Actually consume Power on server
+                    fetch('/api/donation/consume-Power', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -1131,38 +1131,38 @@
                     .then(data => {
                         if (data.success) {
                             // Update display with new amount
-                            fuelAmount.textContent = '$' + data.new_fuel.toFixed(2);
+                            powerAmount.textContent = '$' + data.new_Power.toFixed(2);
                             
-                            // If fuel hits 0, refresh mech animation
-                            if (data.new_fuel <= 0) {
+                            // If Power hits 0, refresh mech animation
+                            if (data.new_Power <= 0) {
                                 setTimeout(() => {
-                                    // Use new efficient fuel system instead
+                                    // Use new efficient Power system instead
                             syncWithServer();
                                 }, 1500);
                             }
                         }
                     })
                     .catch(error => {
-                        console.error('Error consuming fuel:', error);
+                        console.error('Error consuming Power:', error);
                     });
                 }
             }
         }
         
-        // OLD: Fuel consumption moved to efficient client-side system above
-        // setInterval(consumeFuel, 3000); // DISABLED - using client-side calculation
+        // OLD: Power consumption moved to efficient client-side system above
+        // setInterval(consumePower, 3000); // DISABLED - using client-side calculation
         
-        // Flash consumption overlay with fade animation every 3 seconds (only if fuel > 0)
+        // Flash consumption overlay with fade animation every 3 seconds (only if Power > 0)
         function flashConsumptionOverlay() {
-            const overlay = document.getElementById('fuelConsumptionOverlay');
-            const fuelAmount = document.getElementById('fuelAmount');
+            const overlay = document.getElementById('powerConsumptionOverlay');
+            const powerAmount = document.getElementById('powerAmount');
             
-            if (overlay && fuelAmount) {
-                // Parse current fuel amount
-                const currentFuel = parseFloat(fuelAmount.textContent.replace('$', ''));
+            if (overlay && powerAmount) {
+                // Parse current Power amount
+                const currentPower = parseFloat(powerAmount.textContent.replace('$', ''));
                 
-                // Only show consumption animation if we have fuel
-                if (currentFuel > 0) {
+                // Only show consumption animation if we have Power
+                if (currentPower > 0) {
                     overlay.style.transition = 'opacity 0.3s ease-in';
                     overlay.style.opacity = '1';
                     
@@ -1264,7 +1264,7 @@
             function resetSubmitButton() {
                 if (submitBtn) {
                     submitBtn.disabled = false;
-                    submitBtn.textContent = '🚀 Fuel the Mech!';
+                    submitBtn.textContent = '🚀 ⚡ Power the Mech!';
                 }
             }
             
@@ -1303,12 +1303,12 @@
                     // Close modal
                     closeDonationModal();
                     
-                    // Refresh mech status to show new fuel
-                    // Use new efficient fuel system instead
+                    // Refresh mech status to show new Power
+                    // Use new efficient Power system instead
             syncWithServer();
                     
                     // Show success message
-                    showSuccessMessage(`🚀 Thank you ${donorName}! $${amount} added to mech fuel!`);
+                    showSuccessMessage(`🚀 Thank you ${donorName}! $${amount} added to mech Power!`);
                 } else {
                     alert('Error processing donation: ' + (data.error || 'Unknown error'));
                     resetSubmitButton();
@@ -1419,9 +1419,9 @@
             console.log('=== End localStorage Debug ===');
         }
         
-        // Test Functions for Adding/Removing Fuel
-        function addTestFuel(amount) {
-            fetch('/api/donation/add-fuel', {
+        // Test Functions for Adding/Removing Power
+        function addTestPower(amount) {
+            fetch('/api/donation/add-Power', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1436,35 +1436,35 @@
             .then(data => {
                 if (data.success) {
                     // Force immediate update after donation
-                    console.log('[FUEL v3.0] Test donation triggered - forcing immediate update');
+                    console.log('[POWER v3.0] Test donation triggered - forcing immediate update');
                     
-                    // Force immediate update with new fuel value
-                    fuelState.serverFuel += amount;
-                    fuelState.serverTime = Date.now();
-                    fuelState.lastDisplayDecimal = null;
+                    // Force immediate update with new Power value
+                    PowerState.serverPower += amount;
+                    PowerState.serverTime = Date.now();
+                    PowerState.lastDisplayDecimal = null;
                     
                     // Update display immediately (including NEXT bar)
-                    updateClientSideFuel();
-                    updateNextBarLocal(fuelState.serverFuel);
+                    updateClientSidePower();
+                    updateNextBarLocal(PowerState.serverPower);
                     
                     // Sync with server to get exact calculations
                     syncWithServer().then(() => {
-                        showNotification(`${amount > 0 ? '+' : ''}$${amount} Fuel ${amount > 0 ? 'added' : 'removed'}!`, amount > 0 ? 'success' : 'warning');
+                        showNotification(`${amount > 0 ? '+' : ''}$${amount} Power ${amount > 0 ? 'added' : 'removed'}!`, amount > 0 ? 'success' : 'warning');
                     });
                     
                 } else {
-                    showNotification('Error updating fuel: ' + (data.error || 'Unknown error'), 'danger');
+                    showNotification('Error updating Power: ' + (data.error || 'Unknown error'), 'danger');
                 }
             })
             .catch(error => {
-                console.error('Error adding fuel:', error);
-                showNotification('Error updating fuel', 'danger');
+                console.error('Error adding Power:', error);
+                showNotification('Error updating Power', 'danger');
             });
         }
         
-        function resetFuel() {
-            if (confirm('Reset fuel to 0€? This will clear all donations.')) {
-                fetch('/api/donation/reset-fuel', {
+        function resetPower() {
+            if (confirm('Reset Power to 0€? This will clear all donations.')) {
+                fetch('/api/donation/reset-Power', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1474,24 +1474,24 @@
                 .then(data => {
                     if (data.success) {
                         // Reset local state
-                        fuelState.serverFuel = 0;
-                        fuelState.serverTime = Date.now();
-                        fuelState.lastDisplayDecimal = null;
-                        fuelState.lastAnimationLevel = null;
+                        PowerState.serverPower = 0;
+                        PowerState.serverTime = Date.now();
+                        PowerState.lastDisplayDecimal = null;
+                        PowerState.lastAnimationLevel = null;
                         
                         // Update display and sync (including NEXT bar)
-                        updateClientSideFuel();
+                        updateClientSidePower();
                         updateNextBarLocal(0);
                         syncWithServer().then(() => {
-                            showNotification('Fuel reset to $0', 'info');
+                            showNotification('Power reset to $0', 'info');
                         });
                     } else {
-                        showNotification('Error resetting fuel', 'danger');
+                        showNotification('Error resetting Power', 'danger');
                     }
                 })
                 .catch(error => {
-                    console.error('Error resetting fuel:', error);
-                    showNotification('Error resetting fuel', 'danger');
+                    console.error('Error resetting Power:', error);
+                    showNotification('Error resetting Power', 'danger');
                 });
             }
         }

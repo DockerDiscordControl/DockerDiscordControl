@@ -591,15 +591,17 @@ class ControlView(View):
                     self.add_item(ActionButton(cog_instance, server_config, "restart", discord.ButtonStyle.secondary, None, "🔄", row=button_row))
                 
                 # Info button comes AFTER action buttons (rightmost position)
-                if channel_has_info_permission and info_config.get('enabled', False):
+                # In control channels, show info button for all expanded containers (allows adding info)
+                if channel_has_info_permission:
                     self.add_item(InfoButton(cog_instance, server_config, row=button_row))
         else:
             # Start button for offline containers
             if channel_has_control_permission and "start" in allowed_actions:
                 self.add_item(ActionButton(cog_instance, server_config, "start", discord.ButtonStyle.secondary, None, "▶️", row=0))
             
-            # Info button for offline containers (when info is enabled) - rightmost position
-            if channel_has_info_permission and info_config.get('enabled', False):
+            # Info button for offline containers - rightmost position
+            # In control channels, show info button for all expanded containers (allows adding info)
+            if channel_has_info_permission:
                 self.add_item(InfoButton(cog_instance, server_config, row=0))
     
     def _channel_has_info_permission(self, channel_has_control_permission: bool, config: dict) -> bool:
@@ -678,11 +680,38 @@ class InfoButton(Button):
             else:
                 info_config = {}
             if not info_config.get('enabled', False):
-                await interaction.followup.send(
-                    "ℹ️ Container info is not configured for this container.",
-                    ephemeral=True
-                )
-                return
+                # Check if user can edit (in control channels, users can add info)
+                from .control_helpers import _channel_has_permission
+                has_control = _channel_has_permission(channel_id, 'control', config) if config else False
+                
+                if has_control:
+                    # Create empty info template with Edit/Log buttons
+                    display_name = self.server_config.get('display_name', 'Unknown')
+                    
+                    # Create default empty info config
+                    empty_info_config = {
+                        'enabled': True,
+                        'info_text': 'Click Edit to add container information.',
+                        'ip_url': '',
+                        'port': '',
+                        'show_ip': False
+                    }
+                    
+                    # Generate info embed using the empty template
+                    from .status_info_integration import StatusInfoButton, ContainerInfoAdminView
+                    info_button = StatusInfoButton(self.cog, self.server_config, empty_info_config)
+                    embed = await info_button._generate_info_embed()
+                    
+                    # Add admin buttons for editing
+                    admin_view = ContainerInfoAdminView(self.cog, self.server_config, empty_info_config)
+                    await interaction.followup.send(embed=embed, view=admin_view, ephemeral=True)
+                    return
+                else:
+                    await interaction.followup.send(
+                        "ℹ️ Container info is not configured for this container.",
+                        ephemeral=True
+                    )
+                    return
             
             # Use the same logic as StatusInfoButton for consistency
             from .status_info_integration import StatusInfoButton, ContainerInfoAdminView
@@ -1093,7 +1122,7 @@ class MechView(View):
         is_expanded = cog_instance.mech_expanded_states.get(channel_id, False)
         
         if is_expanded:
-            # Expanded state: Add "Mech -" and "Fuel/Donate" buttons
+            # Expanded state: Add "Mech -" and "Power/Donate" buttons
             self.add_item(MechCollapseButton(cog_instance, channel_id))
             self.add_item(MechDonateButton(cog_instance, channel_id))
         else:
@@ -1296,7 +1325,7 @@ class MechDonateButton(Button):
         
         super().__init__(
             style=discord.ButtonStyle.green,
-            label=_("Fuel/Donate"),
+            label=_("Power/Donate"),
             custom_id=f"mech_donate_{channel_id}",
             row=0
         )

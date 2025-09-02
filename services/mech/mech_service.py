@@ -13,7 +13,7 @@ import math
 #   - Single donation pool per DDC instance (no guild dimension)
 #   - JSON persistence
 #   - Level thresholds per spec
-#   - Fuel rules per spec (fresh level = 1 + overshoot)
+#   - Power rules per spec (fresh level = 1 + overshoot)
 #   - Decay always second-accurate (rolling)
 #   - Clean DTOs for UI (progress bars, glvl mapping)
 # =============================================================
@@ -104,8 +104,8 @@ class _Store:
 class MechBars:
     mech_progress_current: int
     mech_progress_max: int
-    fuel_current: int
-    fuel_max_for_level: int
+    Power_current: int
+    Power_max_for_level: int
 
 
 @dataclass(frozen=True)
@@ -114,7 +114,7 @@ class MechState:
     level: int
     level_name: str
     next_level_threshold: Optional[int]  # None when at MAX
-    fuel: int
+    Power: int
     glvl: int
     glvl_max: int
     bars: MechBars
@@ -130,15 +130,15 @@ class MechService:
     Rules:
     - Donations persist in JSON (username, amount, timestamp).
     - Mech level from cumulative donations.
-    - Fuel increases by donation dollars.
-    - On level-up, Fuel resets to 1 plus overshoot beyond the new level threshold.
-    - Fuel decays continuously: 1 fuel per 86400 seconds (second-accurate).
+    - Power increases by donation dollars.
+    - On level-up, Power resets to 1 plus overshoot beyond the new level threshold.
+    - Power decays continuously: 1 Power per 86400 seconds (second-accurate).
     - Bars:
         * Mech progress: 0..Δ (Δ = distance to next level)
-        * Fuel bar: 0..(Δ + 1) (fresh level = 1); at MAX level 0..100
+        * Power bar: 0..(Δ + 1) (fresh level = 1); at MAX level 0..100
     - glvl mapping:
-        * If Δ ≤ 100: glvl = fuel, capped at (Δ - 1)
-        * If Δ > 100: linear mapping fuel → 0..100 over (Δ + 1)
+        * If Δ ≤ 100: glvl = Power, capped at (Δ - 1)
+        * If Δ > 100: linear mapping Power → 0..100 over (Δ + 1)
     """
 
     def __init__(self, json_path: str | Path, tz: str = "Europe/Zurich") -> None:
@@ -170,7 +170,7 @@ class MechService:
         donations.sort(key=lambda d: d["ts"])  # chronological
 
         total: int = 0
-        fuel: float = 0.0  # internal float to support fractional decay
+        Power: float = 0.0  # internal float to support fractional decay
         lvl: MechLevel = MECH_LEVELS[0]
         last_ts: Optional[datetime] = None
         last_evolution_ts: Optional[datetime] = None
@@ -178,12 +178,12 @@ class MechService:
         for d in donations:
             ts = self._parse_iso(d["ts"])
             if last_ts is not None:
-                fuel = max(0.0, fuel - self._decay_amount(last_ts, ts))
+                Power = max(0.0, Power - self._decay_amount(last_ts, ts))
             last_ts = ts
 
             amount = int(d["amount"])
             total += amount
-            fuel += amount
+            Power += amount
 
             # Handle (possibly multi-step) level-ups in one donation
             while True:
@@ -193,7 +193,7 @@ class MechService:
                 if total >= nxt.threshold:
                     lvl = nxt
                     # fresh level starts with 1 + overshoot beyond this level's threshold
-                    fuel = 1.0 + max(0, total - lvl.threshold)
+                    Power = 1.0 + max(0, total - lvl.threshold)
                     last_evolution_ts = ts  # Track when evolution occurred
                     continue
                 break
@@ -202,11 +202,11 @@ class MechService:
         if last_ts is not None:
             # If evolution just happened, don't apply immediate decay
             if last_evolution_ts == last_ts:
-                # Evolution just occurred - no decay yet, mech has fresh fuel
+                # Evolution just occurred - no decay yet, mech has fresh Power
                 pass
             else:
                 # Normal decay from last donation
-                fuel = max(0.0, fuel - self._decay_amount(last_ts, now))
+                Power = max(0.0, Power - self._decay_amount(last_ts, now))
 
         # Compose bars & glvl
         nxt = _next_level(lvl)
@@ -214,39 +214,39 @@ class MechService:
         progress_current = 0 if delta is None else max(0, total - lvl.threshold)
         progress_max = 0 if delta is None else delta
 
-        # Fuel bar max - Level 1 starts at 0, Level 2+ starts at 1 + overshoot
+        # Power bar max - Level 1 starts at 0, Level 2+ starts at 1 + overshoot
         if delta is None:
-            fuel_max = 100
+            Power_max = 100
         elif lvl.level == 1:
-            fuel_max = delta  # Level 1 starts at 0, so max = delta
+            Power_max = delta  # Level 1 starts at 0, so max = delta
         else:
-            fuel_max = delta + 1  # Level 2+ starts at 1 + overshoot, so max = delta + 1
+            Power_max = delta + 1  # Level 2+ starts at 1 + overshoot, so max = delta + 1
 
-        # glvl mapping - consistent with fuel_max calculation
+        # glvl mapping - consistent with Power_max calculation
         if delta is None:
             glvl_max = 100
-            glvl = min(glvl_max, int(math.floor(fuel)))
+            glvl = min(glvl_max, int(math.floor(Power)))
         elif delta <= 100:
             if lvl.level == 1:
                 glvl_max = delta  # Level 1: full delta range
-                glvl = min(glvl_max, int(math.floor(fuel)))
+                glvl = min(glvl_max, int(math.floor(Power)))
             else:
                 glvl_max = max(0, delta - 1)  # Level 2+: delta-1 to account for +1 start
-                glvl = min(glvl_max, int(math.floor(fuel)))
+                glvl = min(glvl_max, int(math.floor(Power)))
         else:
             glvl_max = 100
             if lvl.level == 1:
-                glvl = int(math.floor((fuel * 100) / delta))  # Level 1: simple mapping
+                glvl = int(math.floor((Power * 100) / delta))  # Level 1: simple mapping
             else:
-                glvl = int(math.floor((fuel * 100) / (delta + 1)))  # Level 2+: account for +1
+                glvl = int(math.floor((Power * 100) / (delta + 1)))  # Level 2+: account for +1
             if glvl > glvl_max:
                 glvl = glvl_max
 
         bars = MechBars(
             mech_progress_current=int(progress_current),
             mech_progress_max=int(progress_max),
-            fuel_current=int(max(0, math.floor(fuel))),
-            fuel_max_for_level=int(fuel_max),
+            Power_current=int(max(0, math.floor(Power))),
+            Power_max_for_level=int(Power_max),
         )
 
         return MechState(
@@ -254,19 +254,19 @@ class MechService:
             level=lvl.level,
             level_name=lvl.name,
             next_level_threshold=None if not nxt else nxt.threshold,
-            fuel=int(max(0, math.floor(fuel))),
+            Power=int(max(0, math.floor(Power))),
             glvl=int(glvl),
             glvl_max=int(glvl_max),
             bars=bars,
         )
 
-    def get_fuel_with_decimals(self) -> float:
-        """Get raw fuel value with decimal places for Web UI display"""
+    def get_Power_with_decimals(self) -> float:
+        """Get raw Power value with decimal places for Web UI display"""
         data = self.store.load()
         donations = data["donations"]
         
         total = 0.0
-        fuel = 0.0
+        Power = 0.0
         lvl = MECH_LEVELS[0]  # Start at level 1
         now = self._now()
         last_ts = None
@@ -277,12 +277,12 @@ class MechService:
             
             # Apply decay from last donation to current donation
             if last_ts is not None:
-                fuel = max(0.0, fuel - self._decay_amount(last_ts, ts))
+                Power = max(0.0, Power - self._decay_amount(last_ts, ts))
             last_ts = ts
 
             amount = int(d["amount"])
             total += amount
-            fuel += amount
+            Power += amount
 
             # Handle level-ups
             while True:
@@ -291,7 +291,7 @@ class MechService:
                     break
                 if total >= nxt.threshold:
                     lvl = nxt
-                    fuel = 1.0 + max(0, total - lvl.threshold)
+                    Power = 1.0 + max(0, total - lvl.threshold)
                     last_evolution_ts = ts
                     continue
                 break
@@ -301,9 +301,9 @@ class MechService:
             if last_evolution_ts == last_ts:
                 pass  # No decay if evolution just occurred
             else:
-                fuel = max(0.0, fuel - self._decay_amount(last_ts, now))
+                Power = max(0.0, Power - self._decay_amount(last_ts, now))
 
-        return fuel  # Return raw float with decimals
+        return Power  # Return raw float with decimals
 
     # -------- Helpers --------
 
@@ -315,7 +315,7 @@ class MechService:
         return dt if dt.tzinfo else dt.replace(tzinfo=self.tz)
 
     def _decay_amount(self, a: datetime, b: datetime) -> float:
-        """Fuel consumption between a→b, always rolling (second-accurate)."""
+        """Power consumption between a→b, always rolling (second-accurate)."""
         sec = (b.astimezone(self.tz) - a.astimezone(self.tz)).total_seconds()
         return max(0.0, sec / 86400.0)
 

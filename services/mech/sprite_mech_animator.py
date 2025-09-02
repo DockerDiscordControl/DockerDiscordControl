@@ -330,8 +330,8 @@ class SpriteMechAnimator:
             # Same caching logic
             # Create quantized cache key for better hit rate
             speed_q = round(speed_level, 1)  
-            fuel_q = round(total_donations, 2)
-            cache_key = f"fuel_{fuel_q:.2f}_evo_{evolution_level}_speed_{speed_q:.1f}"
+            Power_q = round(total_donations, 2)
+            cache_key = f"Power_{Power_q:.2f}_evo_{evolution_level}_speed_{speed_q:.1f}"
             
             if cache_key in self.animation_cache:
                 cached_data = self.animation_cache[cache_key]
@@ -450,15 +450,15 @@ class SpriteMechAnimator:
                 logger.error(f"Error calculating speed level: {speed_error}")
                 speed_level = 1  # Safe fallback
             
-            # EDGE CASE: Handle zero/negative fuel BEFORE caching
+            # EDGE CASE: Handle zero/negative Power BEFORE caching
             if total_donations <= 0:
-                logger.info(f"Zero fuel detected, creating dead mech animation")
+                logger.info(f"Zero Power detected, creating dead mech animation")
                 return await self.create_dead_mech_animation(donor_name)
             
             # PERFORMANCE: Create cache key with quantization for better cache hit rate
             speed_q = round(speed_level, 1)
-            fuel_q = round(total_donations, 2)
-            cache_key = f"fuel_{fuel_q:.2f}_evo_{evolution_level}_speed_{speed_q:.1f}"
+            Power_q = round(total_donations, 2)
+            cache_key = f"Power_{Power_q:.2f}_evo_{evolution_level}_speed_{speed_q:.1f}"
             
             # Check if we already have this animation cached
             if cache_key in self.animation_cache:
@@ -483,7 +483,7 @@ class SpriteMechAnimator:
                         del self.animation_cache[cache_key]
                     # Fall through to create new animation
             
-            logger.info(f"Creating new sprite mech animation for evolution: {evolution_level}, speed: {speed_level}, fuel: {total_donations}")
+            logger.info(f"Creating new sprite mech animation for evolution: {evolution_level}, speed: {speed_level}, Power: {total_donations}")
             frames = []
             
             for frame in range(self.frames):
@@ -594,7 +594,7 @@ class SpriteMechAnimator:
             return self.create_static_fallback(donor_name, amount, speed_level)
     
     async def create_dead_mech_animation(self, donor_name: str) -> discord.File:
-        """Create static dead mech (no fuel)"""
+        """Create static dead mech (no Power)"""
         try:
             # Use first frame of Level 1 (SCRAP MECH) - it's already broken!
             sprite = self.get_sprite_frame(0, evolution_level=1)  # Static pose of scrap mech
@@ -636,10 +636,10 @@ class SpriteMechAnimator:
             y = (self.height - base_height) // 2
             img.paste(dead_sprite, (x, y), dead_sprite)
             
-            # Add "NO FUEL" text
+            # Add "NO POWER" text
             from PIL import ImageDraw
             draw = ImageDraw.Draw(img)
-            draw.text((10, 10), "NO FUEL", fill=(80, 80, 80, 255))
+            draw.text((10, 10), "NO POWER", fill=(80, 80, 80, 255))
             draw.text((10, self.height - 25), "$0", fill=(60, 60, 60, 255))
             
             # Create static WebP
@@ -647,7 +647,7 @@ class SpriteMechAnimator:
             img.save(buffer, format='WebP', quality=90)
             buffer.seek(0)
             
-            logger.info("Created dead mech animation (no fuel)")
+            logger.info("Created dead mech animation (no Power)")
             return discord.File(buffer, filename="dead_mech.webp")
             
         except Exception as e:
@@ -905,7 +905,7 @@ class SpriteMechAnimator:
         return buffer.getvalue()
     
     def create_dead_mech_animation_sync(self, donor_name: str) -> bytes:
-        """Create static dead mech (no fuel) - sync version"""
+        """Create static dead mech (no Power) - sync version"""
         try:
             sprite = self.get_sprite_frame(0, evolution_level=1)
             if not sprite:
@@ -939,17 +939,17 @@ class SpriteMechAnimator:
             y = (self.height - base_height) // 2
             img.paste(dead_sprite, (x, y), dead_sprite)
             
-            # Add "NO FUEL" text
+            # Add "NO POWER" text
             from PIL import ImageDraw
             draw = ImageDraw.Draw(img)
-            draw.text((10, 10), "NO FUEL", fill=(80, 80, 80, 255))
+            draw.text((10, 10), "NO POWER", fill=(80, 80, 80, 255))
             draw.text((10, self.height - 25), "$0", fill=(60, 60, 60, 255))
             
             buffer = BytesIO()
             img.save(buffer, format='WebP', quality=90)
             buffer.seek(0)
             
-            logger.info("Created dead mech animation (no fuel)")
+            logger.info("Created dead mech animation (no Power)")
             return buffer.getvalue()
             
         except Exception as e:

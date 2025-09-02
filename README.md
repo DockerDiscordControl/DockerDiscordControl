@@ -33,7 +33,7 @@ Control your Docker containers directly from Discord! This application provides 
 💰 **Donation System with Animated Mech:**
 - **NEW:** Integrated donation tracking system with visual feedback
 - Animated mech character that evolves based on donation levels
-- Real-time fuel system with WebP animations and particle effects
+- Real-time power system with WebP animations and particle effects
 - Donation disable system with encrypted keys for clean presentation
 
 🐳 **Ultra-Optimized Image:**

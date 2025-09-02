@@ -32,7 +32,7 @@ class MechAnimationService:
     async def create_donation_animation_async(self, donor_name: str, amount: str, total_donations: float):
         """Create donation animation and return discord.File object for Discord use"""
         try:
-            logger.info(f"Creating mech animation for {donor_name}, fuel: {total_donations}")
+            logger.info(f"Creating mech animation for {donor_name}, Power: {total_donations}")
             
             # Create the discord.File animation
             animation_file = await self.sprite_animator.create_donation_animation(

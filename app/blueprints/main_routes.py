@@ -1371,8 +1371,8 @@ def get_donation_status():
         # Create status object compatible with Web UI
         status = {
             'total_amount': total_amount,
-            'current_fuel': mech_state.fuel,
-            'current_fuel_raw': mech_service.get_fuel_with_decimals(),  # Raw fuel with decimals for UI
+            'current_Power': mech_state.Power,
+            'current_Power_raw': mech_service.get_Power_with_decimals(),  # Raw Power with decimals for UI
             'mech_level': mech_state.level,
             'mech_level_name': mech_state.level_name,
             'next_level_threshold': mech_state.next_level_threshold,
@@ -1381,8 +1381,8 @@ def get_donation_status():
             'bars': {
                 'mech_progress_current': mech_state.bars.mech_progress_current,
                 'mech_progress_max': mech_state.bars.mech_progress_max,
-                'fuel_current': mech_state.bars.fuel_current,
-                'fuel_max_for_level': mech_state.bars.fuel_max_for_level,
+                'Power_current': mech_state.bars.Power_current,
+                'Power_max_for_level': mech_state.bars.Power_max_for_level,
             },
             'speed': {
                 'level': level,
@@ -1458,10 +1458,10 @@ def record_donation_click():
 # New MechService stores donations in JSON format but doesn't provide history API
 # If needed in future, can be implemented by reading mech_donations.json directly
 
-@main_bp.route('/api/donation/add-fuel', methods=['POST'])
+@main_bp.route('/api/donation/add-power', methods=['POST'])
 @auth.login_required
-def add_test_fuel():
-    """Add or remove fuel for testing (requires auth) - USING NEW MECH SERVICE."""
+def add_test_Power():
+    """Add or remove Power for testing (requires auth) - USING NEW MECH SERVICE."""
     try:
         data = request.get_json()
         amount = data.get('amount', 0)
@@ -1476,18 +1476,18 @@ def add_test_fuel():
             # Add donation (positive or negative)
             if amount > 0:
                 result_state = mech_service.add_donation(f"WebUI:{user}", int(amount))
-                current_app.logger.info(f"NEW SERVICE: Added ${amount} fuel, new total: ${result_state.fuel}")
+                current_app.logger.info(f"NEW SERVICE: Added ${amount} Power, new total: ${result_state.Power}")
             else:
                 # For negative amounts, we need to handle differently since add_donation only accepts positive
                 # Get current state and calculate what the new total should be
                 current_state = mech_service.get_state()
                 # This is a limitation - new service doesn't easily support negative donations
                 # For now, return error for negative amounts
-                return jsonify({'success': False, 'error': 'Negative fuel amounts not supported in new service yet'}), 400
+                return jsonify({'success': False, 'error': 'Negative Power amounts not supported in new service yet'}), 400
                 
             return jsonify({
                 'success': True, 
-                'fuel': result_state.fuel,
+                'Power': result_state.Power,
                 'level': result_state.level,
                 'level_name': result_state.level_name,
                 'total_donated': result_state.total_donated
@@ -1496,13 +1496,13 @@ def add_test_fuel():
             return jsonify({'success': False, 'error': 'Amount must be non-zero'}), 400
             
     except Exception as e:
-        current_app.logger.error(f"Error adding test fuel with new service: {e}")
+        current_app.logger.error(f"Error adding test Power with new service: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@main_bp.route('/api/donation/reset-fuel', methods=['POST'])
+@main_bp.route('/api/donation/reset-power', methods=['POST'])
 @auth.login_required  
-def reset_fuel():
-    """Reset fuel to 0 for testing (requires auth) - USING NEW MECH SERVICE."""
+def reset_Power():
+    """Reset Power to 0 for testing (requires auth) - USING NEW MECH SERVICE."""
     try:
         # NEW SERVICE: Reset by clearing donation file
         from services.mech.mech_service import get_mech_service
@@ -1512,27 +1512,27 @@ def reset_fuel():
         store_data = {"donations": []}
         mech_service.store.save(store_data)
         
-        # Get new state (should be Level 1, 0 fuel)
+        # Get new state (should be Level 1, 0 Power)
         reset_state = mech_service.get_state()
         
-        current_app.logger.info(f"NEW SERVICE: Fuel reset - Level {reset_state.level}, Fuel ${reset_state.fuel}")
+        current_app.logger.info(f"NEW SERVICE: Power reset - Level {reset_state.level}, Power ${reset_state.Power}")
         
         return jsonify({
             'success': True, 
-            'message': 'Fuel reset to 0 using new MechService',
+            'message': 'Power reset to 0 using new MechService',
             'level': reset_state.level,
             'level_name': reset_state.level_name,
-            'fuel': reset_state.fuel,
+            'Power': reset_state.Power,
             'total_donated': reset_state.total_donated
         })
     except Exception as e:
-        current_app.logger.error(f"Error resetting fuel with new service: {e}")
+        current_app.logger.error(f"Error resetting Power with new service: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@main_bp.route('/api/donation/consume-fuel', methods=['POST'])
+@main_bp.route('/api/donation/consume-power', methods=['POST'])
 @auth.login_required
-def consume_fuel():
-    """Get current fuel state - NEW SERVICE HANDLES DECAY AUTOMATICALLY."""
+def consume_Power():
+    """Get current Power state - NEW SERVICE HANDLES DECAY AUTOMATICALLY."""
     try:
         # NEW SERVICE: Decay happens automatically in get_state()
         from services.mech.mech_service import get_mech_service
@@ -1541,19 +1541,19 @@ def consume_fuel():
         # Just get current state - decay is calculated automatically
         current_state = mech_service.get_state()
         
-        # Removed frequent fuel consumption log to reduce noise in DEBUG mode
-        # current_app.logger.debug(f"NEW SERVICE: Fuel consumption check - current fuel: ${current_state.fuel}")
+        # Removed frequent Power consumption log to reduce noise in DEBUG mode
+        # current_app.logger.debug(f"NEW SERVICE: Power consumption check - current Power: ${current_state.Power}")
         
         return jsonify({
             'success': True, 
-            'new_fuel': max(0, current_state.fuel),
+            'new_Power': max(0, current_state.Power),
             'level': current_state.level,
             'level_name': current_state.level_name,
-            'message': 'Fuel decay calculated automatically by new service'
+            'message': 'Power decay calculated automatically by new service'
         })
         
     except Exception as e:
-        current_app.logger.error(f"Error consuming fuel: {e}")
+        current_app.logger.error(f"Error consuming Power: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @main_bp.route('/api/donation/submit', methods=['POST'])
@@ -1648,7 +1648,7 @@ def submit_donation():
         
         # Get updated status from MechService
         mech_state = result.get('mech_state')
-        new_fuel = mech_state.fuel if mech_state else 0
+        new_Power = mech_state.Power if mech_state else 0
         total_donations = mech_state.total_donated if mech_state else 0
         
         return jsonify({
@@ -1658,7 +1658,7 @@ def submit_donation():
                 'amount': amount,
                 'donor_name': donor_name,
                 'published_to_discord': discord_success,
-                'new_fuel': new_fuel,
+                'new_Power': new_Power,
                 'total_donations': total_donations,
                 'mech_level': mech_state.level if mech_state else 1,
                 'mech_level_name': mech_state.level_name if mech_state else 'SCRAP MECH'
@@ -1671,7 +1671,7 @@ def submit_donation():
 
 @main_bp.route('/mech_animation')
 def mech_animation():
-    """Live mech animation endpoint based on current fuel level - simplified version."""
+    """Live mech animation endpoint based on current Power level - simplified version."""
     try:
         # Get current donation status with multiple fallbacks
         total_donations = 0
@@ -1693,7 +1693,7 @@ def mech_animation():
             current_app.logger.error(f"Error getting donation status: {e}")
             total_donations = 20.0  # Fallback default
         
-        current_app.logger.debug(f"Live mech animation request, fuel: {total_donations}")
+        current_app.logger.debug(f"Live mech animation request, Power: {total_donations}")
         
         # Use centralized mech animation service with proper Web UI wrapper
         try:
@@ -1708,16 +1708,16 @@ def mech_animation():
             from services.mech.sprite_mech_animator import get_sprite_animator
             sprite_animator = get_sprite_animator()
             
-            # Get both current fuel and total donated for proper animation
+            # Get both current Power and total donated for proper animation
             from services.mech.mech_service import get_mech_service
             mech_service = get_mech_service()
             mech_state = mech_service.get_state()
-            current_fuel = mech_service.get_fuel_with_decimals()
+            current_Power = mech_service.get_Power_with_decimals()
             total_donated = mech_state.total_donated
             
             # Create animation bytes synchronously - use total_donated for evolution
             animation_bytes = sprite_animator.create_donation_animation_sync(
-                "Current", f'{current_fuel}$', total_donated
+                "Current", f'{current_Power}$', total_donated
             )
             
             # Return as Flask Response
@@ -1735,7 +1735,7 @@ def mech_animation():
                 from PIL import Image, ImageDraw
                 img = Image.new('RGBA', (341, 512), (47, 49, 54, 255))
                 draw = ImageDraw.Draw(img)
-                draw.text((10, 10), f"Fuel: ${total_donations:.2f}", fill=(255, 255, 255, 255))
+                draw.text((10, 10), f"Power: ${total_donations:.2f}", fill=(255, 255, 255, 255))
                 draw.text((10, 30), "Mech Offline", fill=(255, 0, 0, 255))
                 
                 buffer = BytesIO()
@@ -1780,7 +1780,7 @@ def test_mech_animation():
         mech_service = get_mech_service()
         mech_state = mech_service.get_state()
         
-        # Use total_donated for evolution level (not affected by fuel decay)
+        # Use total_donated for evolution level (not affected by Power decay)
         total_donated_for_evolution = mech_state.total_donated
         
         # Create animation bytes synchronously

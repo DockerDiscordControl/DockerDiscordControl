@@ -39,9 +39,9 @@ class DonationManager:
                 "discord_paypal": 0,
                 "discord_broadcast": 0
             },
-            "fuel_data": {
-                "current_fuel": 0.0,  # Current fuel amount in euros
-                "last_update": None,  # Last time fuel was updated
+            "Power_data": {
+                "current_Power": 0.0,  # Current Power amount in euros
+                "last_update": None,  # Last time Power was updated
                 "donation_amounts": [],  # List of actual donation amounts
                 "total_received_permanent": 0.0  # Permanent record of total donations (never decreases)
             }
@@ -96,47 +96,47 @@ class DonationManager:
             logger.error(f"Error saving donation data: {e}")
             return False
     
-    def update_fuel(self, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Update fuel based on time passed (consume 1€ per day).
+    def update_Power(self, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Update Power based on time passed (consume 1€ per day).
         
         Args:
             data: Optional existing data to update
             
         Returns:
-            Updated data with current fuel level
+            Updated data with current Power level
         """
         if data is None:
             data = self.load_data()
         
-        # Initialize fuel_data if not present
-        if "fuel_data" not in data:
-            data["fuel_data"] = {
-                "current_fuel": 0.0,
+        # Initialize Power_data if not present
+        if "Power_data" not in data:
+            data["Power_data"] = {
+                "current_Power": 0.0,
                 "last_update": None,
                 "donation_amounts": []
             }
         
-        fuel_data = data["fuel_data"]
+        Power_data = data["Power_data"]
         now = datetime.now(timezone.utc)
         
-        # If we have a last update time, calculate fuel consumption
-        if fuel_data["last_update"]:
-            last_update = datetime.fromisoformat(fuel_data["last_update"])
+        # If we have a last update time, calculate Power consumption
+        if Power_data["last_update"]:
+            last_update = datetime.fromisoformat(Power_data["last_update"])
             days_passed = (now - last_update).total_seconds() / (60 * 60 * 24)
             
             # Consume 1€ per day
-            fuel_consumed = days_passed * 1.0
-            fuel_data["current_fuel"] = max(0, fuel_data["current_fuel"] - fuel_consumed)
+            Power_consumed = days_passed * 1.0
+            Power_data["current_Power"] = max(0, Power_data["current_Power"] - Power_consumed)
             
-            logger.debug(f"Fuel consumption: {fuel_consumed:.2f}€ over {days_passed:.2f} days")
+            logger.debug(f"Power consumption: {Power_consumed:.2f}€ over {days_passed:.2f} days")
         
         # Update timestamp
-        fuel_data["last_update"] = now.isoformat()
+        Power_data["last_update"] = now.isoformat()
         
         return data
     
-    def add_fuel(self, amount: float, donation_type: str = "manual", user_identifier: Optional[str] = None) -> Dict[str, Any]:
-        """Add fuel (donation amount) to the system.
+    def add_Power(self, amount: float, donation_type: str = "manual", user_identifier: Optional[str] = None) -> Dict[str, Any]:
+        """Add Power (donation amount) to the system.
         
         Args:
             amount: Amount in euros to add
@@ -148,35 +148,35 @@ class DonationManager:
         """
         data = self.load_data()
         
-        # Update fuel first (to consume any time-based reduction)
-        data = self.update_fuel(data)
+        # Update Power first (to consume any time-based reduction)
+        data = self.update_Power(data)
         
-        # Add new fuel
-        if "fuel_data" not in data:
-            data["fuel_data"] = {
-                "current_fuel": 0.0,
+        # Add new Power
+        if "Power_data" not in data:
+            data["Power_data"] = {
+                "current_Power": 0.0,
                 "last_update": None,
                 "donation_amounts": []
             }
         
-        data["fuel_data"]["current_fuel"] += amount
+        data["Power_data"]["current_Power"] += amount
         
-        # If it's a positive amount (donation), handle evolution and fuel logic like gas tank
+        # If it's a positive amount (donation), handle evolution and Power logic like gas tank
         if amount > 0:
             # Store old total for evolution level comparison
-            old_total = data["fuel_data"].get("total_received_permanent", 0.0)
+            old_total = data["Power_data"].get("total_received_permanent", 0.0)
             
-            if "total_received_permanent" not in data["fuel_data"]:
+            if "total_received_permanent" not in data["Power_data"]:
                 # Calculate from history if not present
                 total = 0.0
-                for donation in data["fuel_data"].get("donation_amounts", []):
+                for donation in data["Power_data"].get("donation_amounts", []):
                     if donation.get("amount", 0) > 0:
                         total += donation["amount"]
-                data["fuel_data"]["total_received_permanent"] = total
+                data["Power_data"]["total_received_permanent"] = total
                 old_total = total
             
             new_total = old_total + amount
-            data["fuel_data"]["total_received_permanent"] = new_total
+            data["Power_data"]["total_received_permanent"] = new_total
             
             # Import evolution thresholds for level-up detection
             from services.mech.mech_evolutions import EVOLUTION_THRESHOLDS
@@ -203,29 +203,29 @@ class DonationManager:
         if amount > 0 and evolution_level_up:
             logger.info(f"Evolution level up from {old_level} to {new_level}!")
             
-            # When evolution happens, reset fuel with 1$ bonus
-            # The evolution "costs" all accumulated fuel but gives 1$ to keep mech running
-            EVOLUTION_BONUS_FUEL = 1.0
+            # When evolution happens, reset Power with 1$ bonus
+            # The evolution "costs" all accumulated Power but gives 1$ to keep mech running
+            EVOLUTION_BONUS_POWER = 1.0
             
-            # Calculate what the new fuel should be after evolution
+            # Calculate what the new Power should be after evolution
             # Start with the amount that pushed us over the threshold
             overflow = new_total - EVOLUTION_THRESHOLDS[new_level]
             
-            # Set fuel to bonus + overflow
-            new_fuel_amount = EVOLUTION_BONUS_FUEL + overflow
+            # Set Power to bonus + overflow
+            new_Power_amount = EVOLUTION_BONUS_POWER + overflow
             
-            # Set the fuel directly (don't add to existing)
-            data["fuel_data"]["current_fuel"] = new_fuel_amount
+            # Set the Power directly (don't add to existing)
+            data["Power_data"]["current_Power"] = new_Power_amount
             
-            logger.info(f"Fuel after evolution: ${new_fuel_amount:.2f} (bonus: ${EVOLUTION_BONUS_FUEL:.2f}, overflow: ${overflow:.2f})")
+            logger.info(f"Power after evolution: ${new_Power_amount:.2f} (bonus: ${EVOLUTION_BONUS_POWER:.2f}, overflow: ${overflow:.2f})")
         elif amount > 0:
-            # No evolution, fuel just increases normally (already added above)
-            logger.info(f"Fuel increased by: ${amount:.2f}")
+            # No evolution, Power just increases normally (already added above)
+            logger.info(f"Power increased by: ${amount:.2f}")
             
             logger.info(f"Total donations received (permanent): ${new_total:.2f}")
         
         # Record the donation amount
-        data["fuel_data"]["donation_amounts"].append({
+        data["Power_data"]["donation_amounts"].append({
             "amount": amount,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "type": donation_type,
@@ -233,7 +233,7 @@ class DonationManager:
         })
         
         # Keep only last 100 donation amounts
-        data["fuel_data"]["donation_amounts"] = data["fuel_data"]["donation_amounts"][-100:]
+        data["Power_data"]["donation_amounts"] = data["Power_data"]["donation_amounts"][-100:]
         
         # Use silent save for consumption to reduce log spam
         is_consumption = donation_type == "consumption"
@@ -241,7 +241,7 @@ class DonationManager:
         
         # Use DEBUG for consumption to reduce log spam, INFO for actual donations
         log_level = logger.debug if is_consumption else logger.info
-        log_level(f"Added {amount}€ fuel. New total: {data['fuel_data']['current_fuel']:.2f}€")
+        log_level(f"Added {amount}€ Power. New total: {data['Power_data']['current_Power']:.2f}€")
         
         # Add evolution_level_up flag to return data for force_recreate decision
         if amount > 0:
@@ -263,12 +263,12 @@ class DonationManager:
         data = self.load_data()
         timestamp = datetime.now(timezone.utc).timestamp() * 1000  # JavaScript compatible timestamp
         
-        # If amount is provided, add it as fuel
+        # If amount is provided, add it as Power
         if amount and amount > 0:
-            data = self.add_fuel(amount, donation_type, user_identifier)
+            data = self.add_Power(amount, donation_type, user_identifier)
         else:
-            # Just update fuel to apply time-based consumption
-            data = self.update_fuel(data)
+            # Just update Power to apply time-based consumption
+            data = self.update_Power(data)
         
         # Update last donation timestamp
         data["last_donation_timestamp"] = timestamp
@@ -299,41 +299,41 @@ class DonationManager:
         """Get current donation status for mech display.
         
         Returns:
-            Dictionary with donation status info including fuel data
+            Dictionary with donation status info including Power data
         """
         data = self.load_data()
         
-        # Update fuel to get current amount after consumption
-        data = self.update_fuel(data)
-        self.save_data(data)  # Save the updated fuel
+        # Update Power to get current amount after consumption
+        data = self.update_Power(data)
+        self.save_data(data)  # Save the updated Power
         
-        # Get current fuel amount
-        current_fuel = 0.0
-        if "fuel_data" in data:
-            current_fuel = data["fuel_data"].get("current_fuel", 0.0)
+        # Get current Power amount
+        current_Power = 0.0
+        if "Power_data" in data:
+            current_Power = data["Power_data"].get("current_Power", 0.0)
         
         # Get permanent total donations (for evolution level - never decreases)
         total_donations_received = 0.0
-        if "fuel_data" in data:
+        if "Power_data" in data:
             # Use permanent total if available
-            if "total_received_permanent" in data["fuel_data"]:
-                total_donations_received = data["fuel_data"]["total_received_permanent"]
+            if "total_received_permanent" in data["Power_data"]:
+                total_donations_received = data["Power_data"]["total_received_permanent"]
             else:
                 # Calculate from history if not present (backwards compatibility)
-                for donation in data["fuel_data"].get("donation_amounts", []):
+                for donation in data["Power_data"].get("donation_amounts", []):
                     if donation.get("amount", 0) > 0:
                         total_donations_received += donation["amount"]
                 # Store it for next time
-                data["fuel_data"]["total_received_permanent"] = total_donations_received
+                data["Power_data"]["total_received_permanent"] = total_donations_received
         
         result = {
             "has_donated": data["last_donation_timestamp"] is not None,
             "timestamp": data["last_donation_timestamp"],
             "total_donations": data["total_donations"],
             "stats": data["donation_stats"],
-            "total_amount": current_fuel,  # Current fuel level in euros (for speed)
+            "total_amount": current_Power,  # Current Power level in euros (for speed)
             "total_donations_received": total_donations_received,  # Total ever donated (for evolution)
-            "fuel_data": data.get("fuel_data", {})
+            "Power_data": data.get("Power_data", {})
         }
         
         # Calculate days since last donation if applicable

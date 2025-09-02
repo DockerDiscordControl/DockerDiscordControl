@@ -152,16 +152,16 @@ def get_speed_info(donation_amount: float) -> tuple:
         # Level 11 has no next level, so we calculate based on a theoretical max
         theoretical_max = 20000  # Double the requirement
         current_threshold = EVOLUTION_THRESHOLDS[11]  # 10000
-        fuel_in_level = donation_amount - current_threshold
-        max_fuel_for_level = theoretical_max - current_threshold  # 10000
+        Power_in_level = donation_amount - current_threshold
+        max_Power_for_level = theoretical_max - current_threshold  # 10000
         
-        if fuel_in_level >= max_fuel_for_level:
+        if Power_in_level >= max_Power_for_level:
             # TRANSCENDENT MODE!
             return SPEED_DESCRIPTIONS[101]
-        elif fuel_in_level == 0:
+        elif Power_in_level == 0:
             level = 1
         else:
-            level = int((fuel_in_level / max_fuel_for_level) * 100)
+            level = int((Power_in_level / max_Power_for_level) * 100)
             level = min(max(1, level), 100)
     # For levels 1-4: Direct 1:1 mapping (1$ = 1 Glvl)
     elif mech_level <= 4:
@@ -169,21 +169,21 @@ def get_speed_info(donation_amount: float) -> tuple:
         level = min(int(donation_amount), 100)
     else:
         # For levels 5-10: Dynamic distribution across 100 levels
-        # Calculate the fuel range for current level
+        # Calculate the Power range for current level
         current_threshold = EVOLUTION_THRESHOLDS[mech_level]
         next_threshold = EVOLUTION_THRESHOLDS.get(mech_level + 1, current_threshold * 2)
         
-        # Calculate fuel within current level range
-        fuel_in_level = donation_amount - current_threshold
-        max_fuel_for_level = next_threshold - current_threshold
+        # Calculate Power within current level range
+        Power_in_level = donation_amount - current_threshold
+        max_Power_for_level = next_threshold - current_threshold
         
-        # Calculate Glvl as percentage of max fuel for this level
-        if max_fuel_for_level > 0:
+        # Calculate Glvl as percentage of max Power for this level
+        if max_Power_for_level > 0:
             # If at exact threshold, start at 1
-            if fuel_in_level == 0:
+            if Power_in_level == 0:
                 level = 1
             else:
-                level = int((fuel_in_level / max_fuel_for_level) * 100)
+                level = int((Power_in_level / max_Power_for_level) * 100)
                 level = min(max(1, level), 100)  # Ensure between 1-100
         else:
             level = 100  # Max level reached
@@ -221,22 +221,22 @@ def get_translated_speed_description(level: int, language: str = "en") -> str:
     # Fallback to English from SPEED_DESCRIPTIONS
     return SPEED_DESCRIPTIONS.get(level, SPEED_DESCRIPTIONS[0])[0]
 
-def get_combined_mech_status(fuel_amount: float, total_donations_received: float = None, language: str = None) -> dict:
+def get_combined_mech_status(Power_amount: float, total_donations_received: float = None, language: str = None) -> dict:
     """
     Get combined evolution and speed status for the mech.
     
     Args:
-        fuel_amount: Current fuel amount (for speed)
+        Power_amount: Current Power amount (for speed)
         total_donations_received: Total donations ever received (for evolution).
-                                If None, uses fuel_amount for backwards compatibility.
+                                If None, uses Power_amount for backwards compatibility.
         language: Language code ('en', 'de', 'fr'). If None, tries to get from config.
         
     Returns:
         Dictionary with evolution info, speed info, and combined status
     """
-    # If total_donations_received not provided, use fuel_amount for backwards compatibility
+    # If total_donations_received not provided, use Power_amount for backwards compatibility
     if total_donations_received is None:
-        total_donations_received = fuel_amount
+        total_donations_received = Power_amount
     
     # Import here to avoid circular imports
     try:
@@ -267,45 +267,45 @@ def get_combined_mech_status(fuel_amount: float, total_donations_received: float
         except:
             language = 'en'
     
-    # Get speed info based on FUEL amount
-    speed_description, speed_color = get_speed_info(fuel_amount)
+    # Get speed info based on POWER amount
+    speed_description, speed_color = get_speed_info(Power_amount)
     
     # Calculate speed level with new logic
     from services.mech.mech_evolutions import get_evolution_level, EVOLUTION_THRESHOLDS
-    mech_level = get_evolution_level(fuel_amount)
+    mech_level = get_evolution_level(Power_amount)
     
-    if fuel_amount <= 0:
+    if Power_amount <= 0:
         speed_level = 0
     elif mech_level == 11:
         # SPECIAL CASE: Level 11 can reach Glvl 101!
         theoretical_max = 20000
         current_threshold = EVOLUTION_THRESHOLDS[11]
-        fuel_in_level = fuel_amount - current_threshold
-        max_fuel_for_level = theoretical_max - current_threshold
+        Power_in_level = Power_amount - current_threshold
+        max_Power_for_level = theoretical_max - current_threshold
         
-        if fuel_in_level >= max_fuel_for_level:
+        if Power_in_level >= max_Power_for_level:
             speed_level = 101  # TRANSCENDENT!
-        elif fuel_in_level == 0:
+        elif Power_in_level == 0:
             speed_level = 1
         else:
-            speed_level = int((fuel_in_level / max_fuel_for_level) * 100)
+            speed_level = int((Power_in_level / max_Power_for_level) * 100)
             speed_level = min(max(1, speed_level), 100)
     elif mech_level <= 4:
         # For levels 1-4: Direct 1:1 mapping
-        speed_level = min(int(fuel_amount), 100)
+        speed_level = min(int(Power_amount), 100)
     else:
         # For levels 5-10: Dynamic distribution
         current_threshold = EVOLUTION_THRESHOLDS[mech_level]
         next_threshold = EVOLUTION_THRESHOLDS.get(mech_level + 1, current_threshold * 2)
-        fuel_in_level = fuel_amount - current_threshold
-        max_fuel_for_level = next_threshold - current_threshold
+        Power_in_level = Power_amount - current_threshold
+        max_Power_for_level = next_threshold - current_threshold
         
-        if max_fuel_for_level > 0:
+        if max_Power_for_level > 0:
             # If at exact threshold, start at 1
-            if fuel_in_level == 0:
+            if Power_in_level == 0:
                 speed_level = 1
             else:
-                speed_level = int((fuel_in_level / max_fuel_for_level) * 100)
+                speed_level = int((Power_in_level / max_Power_for_level) * 100)
                 speed_level = min(max(1, speed_level), 100)
         else:
             speed_level = 100
@@ -322,6 +322,6 @@ def get_combined_mech_status(fuel_amount: float, total_donations_received: float
         },
         'combined_status': f"{evolution_info['name']} - {translated_speed_description}",
         'primary_color': evolution_info['color'],  # Use evolution color as primary
-        'fuel_amount': fuel_amount,
+        'Power_amount': Power_amount,
         'total_donations_received': total_donations_received
     }

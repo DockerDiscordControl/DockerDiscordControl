@@ -291,7 +291,7 @@ class DonationBroadcastModal(discord.ui.Modal):
             else:
                 response_text = _("✅ **Donation recorded privately!**") + "\n\n"
                 response_text += _("Thank you **{donor_name}** for your generous support! 🙏").format(donor_name=donor_name) + "\n"
-                response_text += _("Your donation has been recorded and helps fuel the Donation Engine.")
+                response_text += _("Your donation has been recorded and helps Power the Donation Engine.")
             
             # Use followup for final response
             await interaction.followup.send(response_text, ephemeral=True)
