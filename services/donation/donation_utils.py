@@ -1,49 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-Donation system utilities for checking if donations are disabled via key.
+Donation Utils - Minimal compatibility functions
+Now primarily uses MechService, these are compatibility functions.
 """
 
-import re
-from typing import Optional
-from services.config.config_service import load_config
-
-
 def is_donations_disabled() -> bool:
-    """
-    Check if donations are disabled by a valid key.
-    
-    Returns:
-        bool: True if donations should be hidden, False otherwise
-    """
-    from services.donation.donation_config import is_donations_disabled as check_donation_config
-    
+    """Check if donations are disabled by premium key (compatibility function)."""
     try:
-        return check_donation_config()
-    except Exception:
-        # If any error occurs, default to donations enabled
+        from services.config.config_service import get_config_service
+        config_service = get_config_service()
+        config = config_service.get_config()
+        return bool(config.get('donation_disable_key'))
+    except:
         return False
-
 
 def validate_donation_key(key: str) -> bool:
-    """
-    Validate a donation disable key with complex format for authenticity.
-    
-    Args:
-        key: The key to validate (complex license-style format)
-        
-    Returns:
-        bool: True if key is valid, False otherwise
-    """
-    if not key:
-        return False
-    
-    # Get valid keys from encrypted storage
-    from utils.key_crypto import get_valid_donation_keys
+    """Validate donation key (compatibility function)."""
     try:
-        valid_keys = get_valid_donation_keys()
-        return key.strip().upper() in [k.upper() for k in valid_keys]
-    except Exception:
-        # Fallback: If crypto module fails, deny access (fail secure)
+        from services.config.config_service import get_config_service
+        config_service = get_config_service()
+        return config_service.validate_donation_key(key)
+    except:
         return False
-
-

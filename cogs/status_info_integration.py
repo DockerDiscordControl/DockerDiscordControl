@@ -32,13 +32,15 @@ class ContainerInfoAdminView(discord.ui.View):
     Admin view for container info with Edit and Debug buttons (control channels only).
     """
     
-    def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any]):
-        # Extend timeout to 30 minutes for Info messages (they are not frequently used)
-        super().__init__(timeout=1800)  # 30 minute timeout
+    def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any], message=None):
+        # Set timeout to maximum (just under Discord's 15-minute limit)
+        super().__init__(timeout=890)  # 14.8 minutes timeout
         self.cog = cog_instance
         self.server_config = server_config
         self.info_config = info_config
         self.container_name = server_config.get('docker_name')
+        self.message = message  # Store reference to the message for auto-delete
+        self.auto_delete_task = None
         
         # Add Edit Info button
         self.add_item(EditInfoButton(cog_instance, server_config, info_config))
@@ -48,6 +50,44 @@ class ContainerInfoAdminView(discord.ui.View):
         
         # Add Debug button
         self.add_item(DebugLogsButton(cog_instance, server_config))
+
+    async def on_timeout(self):
+        """Called when the view times out."""
+        try:
+            # Cancel auto-delete task if it exists
+            if self.auto_delete_task and not self.auto_delete_task.done():
+                self.auto_delete_task.cancel()
+            
+            # Delete the message when timeout occurs
+            if self.message:
+                logger.info("ContainerInfoAdminView timeout reached, deleting message to prevent inactive buttons")
+                try:
+                    await self.message.delete()
+                except discord.NotFound:
+                    logger.debug("Message already deleted")
+                except Exception as e:
+                    logger.error(f"Error deleting info message on timeout: {e}")
+        except Exception as e:
+            logger.error(f"Error in ContainerInfoAdminView.on_timeout: {e}")
+    
+    async def start_auto_delete_timer(self):
+        """Start the auto-delete timer that runs shortly before timeout."""
+        try:
+            # Wait for 885 seconds (14.75 minutes), then delete message
+            # This gives us a 5-second buffer before Discord's timeout
+            await asyncio.sleep(885)
+            if self.message:
+                logger.info("Auto-deleting info message before Discord timeout")
+                try:
+                    await self.message.delete()
+                except discord.NotFound:
+                    logger.debug("Message already deleted")
+                except Exception as e:
+                    logger.error(f"Error auto-deleting info message: {e}")
+        except asyncio.CancelledError:
+            logger.debug("Auto-delete timer cancelled")
+        except Exception as e:
+            logger.error(f"Error in auto-delete timer: {e}")
         
 
 class ProtectedInfoEditButton(discord.ui.Button):
@@ -801,10 +841,14 @@ class StatusInfoButton(discord.ui.Button):
     """
     
     def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any]):
+        # Truncate container name for mobile display (max 20 chars)
+        display_name = server_config.get('name', server_config.get('docker_name', 'Container'))
+        truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
+        
         super().__init__(
             style=discord.ButtonStyle.secondary,
             emoji="ℹ️",
-            label="Info",
+            label=truncated_name,
             custom_id=f"status_info_{server_config.get('docker_name')}"
         )
         self.cog = cog_instance
@@ -870,6 +914,12 @@ class StatusInfoButton(discord.ui.Button):
         """
         display_name = self.server_config.get('name', self.container_name)
         
+        # Load fresh container info data to get latest protected info
+        from services.infrastructure.container_info_service import get_container_info_service
+        info_service = get_container_info_service()
+        info_result = info_service.get_container_info(self.container_name)
+        fresh_info_config = info_result.data.to_dict() if info_result.success else self.info_config
+        
         # Create embed with container branding
         embed = discord.Embed(
             title=f"📋 {display_name} - Container Info",
@@ -880,19 +930,19 @@ class StatusInfoButton(discord.ui.Button):
         description_parts = []
         
         # Add custom text if provided
-        custom_text = self.info_config.get('custom_text', '').strip()
+        custom_text = fresh_info_config.get('custom_text', '').strip()
         if custom_text:
             description_parts.append(f"{custom_text}")
         
         # Add IP information if enabled
-        if self.info_config.get('show_ip', False):
+        if fresh_info_config.get('show_ip', False):
             ip_info = await self._get_ip_info()
             if ip_info:
                 description_parts.append(ip_info)
         
         # Add protected information if in control channel and enabled
-        if include_protected and self.info_config.get('protected_enabled', False):
-            protected_content = self.info_config.get('protected_content', '').strip()
+        if include_protected and fresh_info_config.get('protected_enabled', False):
+            protected_content = fresh_info_config.get('protected_content', '').strip()
             if protected_content:
                 description_parts.append("\n**🔐 Protected Information:**")
                 description_parts.append(protected_content)

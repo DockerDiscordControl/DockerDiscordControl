@@ -75,8 +75,7 @@ logger = setup_logger('ddc.docker_control', level=logging.INFO)
 docker_status_cache = {}
 docker_status_cache_lock = threading.Lock()  # Thread safety for global status cache
 
-# Import donation UI components
-from .donation_ui import DonationView, DonationBroadcastModal
+# DonationView will be defined in this file
 
 
 class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin, CommandHandlersMixin):
@@ -114,8 +113,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         }
         logger.info(f"Loaded persisted Mech states: {len(self.mech_expanded_states)} expanded, {len(self.last_glvl_per_channel)} Glvl tracked")
         
-        # Start donation broadcast checker
-        self.check_donation_broadcasts.start()
+        # Old donation broadcast checker removed - now handled by MechService
         self.expanded_states = {}  # For container expand/collapse
         self.channel_server_message_ids: Dict[int, Dict[str, int]] = {}
         self.last_message_update_time: Dict[int, Dict[str, datetime]] = {}
@@ -1237,23 +1235,55 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
     # Decorator adjusted
     @commands.slash_command(name="help", description=_("Displays help for available commands"), guild_ids=get_guild_id())
     async def help_command(self, ctx: discord.ApplicationContext):
-        # Check spam protection first
+        # IMMEDIATELY defer to prevent timeout - this MUST be first!
+        try:
+            await ctx.defer(ephemeral=True)
+        except:
+            # Interaction already expired - nothing we can do
+            return
+            
+        # Check spam protection after deferring
         if not await self._check_spam_protection(ctx, "help"):
+            try:
+                await ctx.followup.send(".", delete_after=0.1)
+            except:
+                pass
             return
         """Displays help information about available commands."""
         embed = discord.Embed(
             title=_("DockerDiscordControl - Help"),
-            description=_("Here are the available commands:"),
+            description=_("Commands are organized by channel type:"),
             color=discord.Color.blue()
         )
-        embed.add_field(name="`/serverstatus` or `/ss`", value=_("Displays the status of all configured Docker containers."), inline=False)
-        embed.add_field(name="`/command <container> <action>`", value=_("Controls a specific Docker container. Actions: `start`, `stop`, `restart`. Requires permissions."), inline=False)
-        embed.add_field(name="`/control`", value=_("(Re)generates the main control panel message in channels configured for it."), inline=False)
-        embed.add_field(name="`/help`", value=_("Shows this help message."), inline=False)
-        embed.add_field(name="`/ping`", value=_("Checks the bot's latency."), inline=False)
+        
+        # General Commands (work everywhere)
+        embed.add_field(name=f"🌐 {_('General Commands')}", value=f"`/help` - {_('Shows this help message.')}\n`/ping` - {_('Checks the bot latency.')}\n`/donate` - {_('Shows donation information to support the project.')}", inline=False)
+        
+        # Status Channel Commands
+        embed.add_field(name=f"📊 {_('Status Channel Commands')}", value=f"`/serverstatus` or `/ss` - {_('Displays the status of all configured Docker containers.')}\n`/info <container>` - {_('Shows detailed information about a specific container.')}", inline=False)
+        
+        # Control Channel Commands  
+        embed.add_field(name=f"⚙️ {_('Control Channel Commands')}", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n`/command <container> <action>` - {_('Controls a specific Docker container. Actions: start, stop, restart. Requires permissions.')}", inline=False)
+        
+        # Add status indicators explanation
+        embed.add_field(name=_("Status Indicators"), value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n🔄 {_('Container status loading')}", inline=False)
+        
+        # Add info system explanation  
+        embed.add_field(name=_("Info System"), value=f"ℹ️ {_('Click for container details')}\n🔒 {_('Protected info (control channels only)')}\n🔓 {_('Public info available')}", inline=False)
+        
+        # Add control buttons explanation
+        embed.add_field(name=_("Control Buttons (Admin Channels)"), value=f"📝 {_('Edit container info text')}\n📋 {_('View container logs')}", inline=False)
         embed.set_footer(text="https://ddc.bot")
 
-        await ctx.respond(embed=embed, ephemeral=True)
+        try:
+            await ctx.followup.send(embed=embed, ephemeral=True)
+        except Exception as e:
+            logger.error(f"Failed to send help message: {e}")
+            # Fallback - try to send minimal message
+            try:
+                await ctx.followup.send(_("Help information is temporarily unavailable."), ephemeral=True)
+            except:
+                pass
 
     @commands.slash_command(name="ping", description=_("Shows the bot's latency"), guild_ids=get_guild_id())
     async def ping_command(self, ctx: discord.ApplicationContext):
@@ -1295,11 +1325,11 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         try:
             # Donations enabled - show normal donation UI
             # Check MechService availability
-            donation_manager_available = False
+            mech_service_available = False
             try:
                 from services.mech.mech_service import get_mech_service
                 mech_service = get_mech_service()
-                donation_manager_available = True
+                mech_service_available = True
             except:
                 pass
             
@@ -1321,11 +1351,10 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             
             # Send with or without view (use followup since we deferred)
             try:
-                view = DonationView(donation_manager_available)
+                view = DonationView(mech_service_available)
                 message = await ctx.followup.send(embed=embed, view=view)
                 # Update view with message reference and start auto-delete timer
                 view.message = message
-                import asyncio
                 view.auto_delete_task = asyncio.create_task(view.start_auto_delete_timer())
             except:
                 await ctx.followup.send(embed=embed)
@@ -1352,11 +1381,11 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             # Donations enabled - show normal donation UI
             
             # Check MechService availability
-            donation_manager_available = False
+            mech_service_available = False
             try:
                 from services.mech.mech_service import get_mech_service
                 mech_service = get_mech_service()
-                donation_manager_available = True
+                mech_service_available = True
             except:
                 pass
             
@@ -1378,7 +1407,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             
             # Send with or without view
             try:
-                view = DonationView(donation_manager_available)
+                view = DonationView(mech_service_available)
                 # Note: Ephemeral messages don't need auto-delete as they're private
                 await interaction.followup.send(embed=embed, view=view, ephemeral=True)
             except:
@@ -1482,19 +1511,20 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     else:
                         del self.pending_actions[display_name]
                         status_emoji = "🟢" if is_running else "🔴"
-                        status_text = translate("Online") if is_running else translate("Offline")
                 else:
                     status_emoji = "🟢" if is_running else "🔴"
-                    status_text = translate("Online") if is_running else translate("Offline")
                 
+                # Truncate display name for mobile (max 20 chars)
+                truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
                 # Add status line with proper spacing and info indicator (match original format)
-                line = f"│ {status_emoji} {status_text:8} {display_name}{info_indicator}"
+                line = f"│ {status_emoji} {truncated_name}{info_indicator}"
                 content_lines.append(line)
             else:
                 # No cache data available - show loading status
                 status_emoji = "🔄"
-                status_text = translate("Loading")
-                line = f"│ {status_emoji} {status_text:8} {display_name}{info_indicator}"
+                # Truncate display name for mobile (max 20 chars)
+                truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
+                line = f"│ {status_emoji} {truncated_name}{info_indicator}"
                 content_lines.append(line)
         
         # Close server status box
@@ -1777,19 +1807,20 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     else:
                         del self.pending_actions[display_name]
                         status_emoji = "🟢" if is_running else "🔴"
-                        status_text = translate("Online") if is_running else translate("Offline")
                 else:
                     status_emoji = "🟢" if is_running else "🔴"
-                    status_text = translate("Online") if is_running else translate("Offline")
                 
+                # Truncate display name for mobile (max 20 chars)
+                truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
                 # Add status line with proper spacing and info indicator (match original format)
-                line = f"│ {status_emoji} {status_text:8} {display_name}{info_indicator}"
+                line = f"│ {status_emoji} {truncated_name}{info_indicator}"
                 content_lines.append(line)
             else:
                 # No cache data available - show loading status
                 status_emoji = "🔄"
-                status_text = translate("Loading")
-                line = f"│ {status_emoji} {status_text:8} {display_name}{info_indicator}"
+                # Truncate display name for mobile (max 20 chars)
+                truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
+                line = f"│ {status_emoji} {truncated_name}{info_indicator}"
                 content_lines.append(line)
         
         # Close server status box
@@ -1899,15 +1930,22 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 from services.mech.mech_service import get_mech_service
                 # Test if we can get the service
                 mech_service = get_mech_service()
-                donation_manager_available = True
+                mech_service_available = True
                 logger.info("MechService is available for donations")
             except Exception as e:
-                donation_manager_available = False
+                mech_service_available = False
                 logger.warning(f"MechService not available: {e}")
             
-            # Check if donations are disabled by premium key
-            from services.donation.donation_utils import is_donations_disabled
-            if is_donations_disabled():
+            # Check if donations are disabled by premium key (now use config service)
+            try:
+                from services.config.config_service import get_config_service
+                config_service = get_config_service()
+                config = config_service.get_config()
+                donations_disabled = bool(config.get('donation_disable_key'))
+            except:
+                donations_disabled = False
+                
+            if donations_disabled:
                 embed = discord.Embed(
                     title="🔐 Premium Features Active",
                     description="Donations are disabled via premium key. Thank you for supporting DDC!",
@@ -1934,7 +1972,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             
             # Create view with donation buttons
             try:
-                view = DonationView(donation_manager_available)
+                view = DonationView(mech_service_available)
                 # Note: Ephemeral messages don't need auto-delete as they're private
                 await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
                 logger.info(f"Mechonate button used by user {interaction.user.name} ({interaction.user.id})")
@@ -2819,7 +2857,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             except:
                 pass  # If we can't send error message, just log it
 
-    # --- Shared Donation Message Creation ---
+    # --- DEPRECATED: Old Donation Message Creation (now handled by MechService) ---
     async def _create_donation_broadcast_message(self, donor_name: str, amount_text: str = None, amount_numeric: float = None,
                                                    evolution_occurred: bool = False, old_evolution_level: int = None, 
                                                    new_evolution_level: int = None, surplus_Power: float = None) -> tuple:
@@ -2996,14 +3034,15 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         try:
             # Get donation manager
             try:
-                from utils.donation_manager import get_donation_manager
-                donation_manager = get_donation_manager()
+                from services.mech.mech_service import get_mech_service
+                mech_service = get_mech_service()
             except ImportError:
-                return  # Donation manager not available
+                return  # Mech service not available
             
-            # Load donation data to get pending broadcasts
-            donation_data = donation_manager.load_data()
-            pending_broadcasts = donation_data.get('pending_discord_broadcasts', [])
+            # Load donation data to get pending broadcasts (via MechService)
+            # Note: pending_discord_broadcasts functionality has been migrated to Web UI modal system
+            # This check is kept for compatibility but likely unused
+            return  # Skip this check as broadcasts now handled via Web UI modal directly
             
             if pending_broadcasts and len(pending_broadcasts) > 0:
                 logger.info(f"Found {len(pending_broadcasts)} pending donation broadcasts")
@@ -3249,16 +3288,339 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         """Register persistent views for mech buttons to work after bot restart."""
         try:
             from .control_ui import MechExpandButton, MechCollapseButton, MechDonateButton
+            import discord
             
-            # Register each button type for persistent views
-            # The actual channel_id will be extracted from custom_id during callback
-            self.bot.add_view(MechExpandButton(self, 0), message_id=None)  # Dummy instance for registration
-            self.bot.add_view(MechCollapseButton(self, 0), message_id=None)  # Dummy instance for registration  
-            self.bot.add_view(MechDonateButton(self, 0), message_id=None)  # Dummy instance for registration
+            # Create persistent views for mech buttons
+            # These views will persist across bot restarts
+            class PersistentMechExpandView(discord.ui.View):
+                def __init__(self, cog_instance):
+                    super().__init__(timeout=None)
+                    self.add_item(MechExpandButton(cog_instance, 0))  # Pass cog_instance correctly
+            
+            class PersistentMechCollapseView(discord.ui.View):
+                def __init__(self, cog_instance):
+                    super().__init__(timeout=None)
+                    self.add_item(MechCollapseButton(cog_instance, 0))  # Pass cog_instance correctly
+            
+            class PersistentMechDonateView(discord.ui.View):
+                def __init__(self, cog_instance):
+                    super().__init__(timeout=None)
+                    self.add_item(MechDonateButton(cog_instance, 0))  # Pass cog_instance correctly
+            
+            # Register persistent views with proper cog instance
+            self.bot.add_view(PersistentMechExpandView(self))
+            self.bot.add_view(PersistentMechCollapseView(self))
+            self.bot.add_view(PersistentMechDonateView(self))
             
             logger.info("✅ Registered persistent mech views for button persistence")
         except Exception as e:
             logger.warning(f"⚠️ Could not register persistent mech views: {e}")
+
+
+class DonationView(discord.ui.View):
+    """View with donation buttons that track clicks."""
+    
+    def __init__(self, donation_manager_available: bool, message=None):
+        super().__init__(timeout=890)  # 14.8 minutes (just under Discord's 15-minute limit)
+        self.donation_manager_available = donation_manager_available
+        self.message = message  # Store reference to the message for auto-delete
+        self.auto_delete_task = None
+        logger.info(f"DonationView initialized with donation_manager_available: {donation_manager_available}, timeout: 890s")
+        
+        # Import translation function
+        from .translation_manager import _
+        
+        # Add Buy Me a Coffee button (direct link)
+        coffee_button = discord.ui.Button(
+            label=_("☕ Buy Me a Coffee"),
+            style=discord.ButtonStyle.link,
+            url="https://buymeacoffee.com/dockerdiscordcontrol"
+        )
+        self.add_item(coffee_button)
+        
+        # Add PayPal button (direct link)
+        paypal_button = discord.ui.Button(
+            label=_("💳 PayPal"),
+            style=discord.ButtonStyle.link,
+            url="https://www.paypal.com/donate/?hosted_button_id=XKVC6SFXU2GW4"
+        )
+        self.add_item(paypal_button)
+        
+        # Add Broadcast Donation button
+        broadcast_button = discord.ui.Button(
+            label=_("📢 Broadcast Donation"),
+            style=discord.ButtonStyle.success,
+            custom_id="donation_broadcast"
+        )
+        broadcast_button.callback = self.broadcast_clicked
+        self.add_item(broadcast_button)
+
+    async def on_timeout(self):
+        """Called when the view times out."""
+        try:
+            # Cancel auto-delete task if it exists
+            if self.auto_delete_task and not self.auto_delete_task.done():
+                self.auto_delete_task.cancel()
+            
+            # Delete the message when timeout occurs
+            if self.message:
+                logger.info("DonationView timeout reached, deleting message to prevent inactive buttons")
+                try:
+                    await self.message.delete()
+                except discord.NotFound:
+                    logger.debug("Message already deleted")
+                except Exception as e:
+                    logger.error(f"Error deleting donation message on timeout: {e}")
+        except Exception as e:
+            logger.error(f"Error in DonationView.on_timeout: {e}")
+    
+    async def start_auto_delete_timer(self):
+        """Start the auto-delete timer that runs shortly before timeout."""
+        try:
+            # Wait for 885 seconds (14.75 minutes), then delete message
+            # This gives us a 5-second buffer before Discord's timeout
+            await asyncio.sleep(885)
+            if self.message:
+                logger.info("Auto-deleting donation message before Discord timeout")
+                try:
+                    await self.message.delete()
+                except discord.NotFound:
+                    logger.debug("Message already deleted")
+                except Exception as e:
+                    logger.error(f"Error auto-deleting donation message: {e}")
+        except asyncio.CancelledError:
+            logger.debug("Auto-delete timer cancelled")
+        except Exception as e:
+            logger.error(f"Error in auto-delete timer: {e}")
+    
+    async def broadcast_clicked(self, interaction: discord.Interaction):
+        """Handle Broadcast Donation button click."""
+        try:
+            # Show modal for donation details
+            modal = DonationBroadcastModal(self.donation_manager_available, interaction.user.name)
+            await interaction.response.send_modal(modal)
+        except Exception as e:
+            logger.error(f"Error in broadcast_clicked: {e}")
+
+
+class DonationBroadcastModal(discord.ui.Modal):
+    """Modal for donation broadcast details."""
+    
+    def __init__(self, donation_manager_available: bool, default_name: str):
+        from .translation_manager import _
+        super().__init__(title=_("📢 Broadcast Your Donation"))
+        self.donation_manager_available = donation_manager_available
+        
+        # Name field (pre-filled with Discord username)
+        self.name_input = discord.ui.InputText(
+            label=_("Your Name") + " *",
+            placeholder=_("How should we display your name?"),
+            value=default_name,
+            style=discord.InputTextStyle.short,
+            required=True,
+            max_length=50
+        )
+        self.add_item(self.name_input)
+        
+        # Amount field (optional)
+        self.amount_input = discord.ui.InputText(
+            label=_("💰 Donation Amount (optional)"),
+            placeholder=_("10.50 (numbers only, $ will be added automatically)"),
+            style=discord.InputTextStyle.short,
+            required=False,
+            max_length=10
+        )
+        self.add_item(self.amount_input)
+        
+        # Public sharing field
+        self.share_input = discord.ui.InputText(
+            label=_("📢 Share donation publicly?"),
+            placeholder=_("Remove X to keep private"),
+            value="X",  # Default to sharing
+            style=discord.InputTextStyle.short,
+            required=False,
+            max_length=10
+        )
+        self.add_item(self.share_input)
+
+    async def callback(self, interaction: discord.Interaction):
+        """Handle modal submission."""
+        logger.info(f"=== DONATION MODAL CALLBACK STARTED ===")
+        logger.info(f"User: {interaction.user.name}, Raw inputs: name={self.name_input.value}, amount={self.amount_input.value}")
+        
+        # Send immediate acknowledgment to avoid timeout
+        from .translation_manager import _
+        await interaction.response.send_message(
+            _("⏳ Processing your donation... Please wait a moment."),
+            ephemeral=True
+        )
+        
+        try:
+            # Get values from modal
+            donor_name = self.name_input.value or interaction.user.name
+            raw_amount = self.amount_input.value.strip() if self.amount_input.value else ""
+            logger.info(f"Processed values: donor_name={donor_name}, raw_amount={raw_amount}")
+            
+            # Check sharing preference
+            share_preference = self.share_input.value.strip() if self.share_input.value else ""
+            should_share_publicly = "X" in share_preference.upper() or "x" in share_preference
+            
+            # Validate and format amount
+            import re
+            amount = ""
+            amount_validation_error = None
+            if raw_amount:
+                if '-' in raw_amount:
+                    amount_validation_error = f"⚠️ Invalid amount: '{raw_amount}' - negative amounts not allowed"
+                else:
+                    cleaned_amount = re.sub(r'[^\d.,]', '', raw_amount)
+                    cleaned_amount = cleaned_amount.replace(',', '.')
+                    
+                    try:
+                        numeric_value = float(cleaned_amount)
+                        if numeric_value > 0:
+                            amount = f"${numeric_value:.2f}"
+                        elif numeric_value == 0:
+                            amount_validation_error = f"⚠️ Invalid amount: '{raw_amount}' - must be greater than 0"
+                        else:
+                            amount_validation_error = f"⚠️ Invalid amount: '{raw_amount}' - please use only numbers"
+                    except ValueError:
+                        amount_validation_error = f"⚠️ Invalid amount: '{raw_amount}' - please use only numbers (e.g. 10.50)"
+            
+            if amount_validation_error:
+                await interaction.followup.send(
+                    amount_validation_error + _("\n\nTip: Use format like: 10.50 or 5 ($ will be added automatically)"),
+                    ephemeral=True
+                )
+                return
+            
+            # Process donation through mech service
+            donation_amount_euros = None
+            evolution_occurred = False
+            old_evolution_level = None
+            new_evolution_level = None
+            
+            if self.donation_manager_available:
+                try:
+                    from services.mech.mech_service import get_mech_service
+                    mech_service = get_mech_service()
+                    
+                    # Get old state before donation
+                    old_state = mech_service.get_state()
+                    old_evolution_level = old_state.level
+                    
+                    # Parse amount if provided
+                    if amount:
+                        amount_match = re.search(r'(\d+(?:\.\d+)?)', amount)
+                        if amount_match:
+                            donation_amount_euros = float(amount_match.group(1))
+                    
+                    # Record donation if amount > 0
+                    if donation_amount_euros and donation_amount_euros > 0:
+                        amount_dollars = int(donation_amount_euros)
+                        new_state = mech_service.add_donation(
+                            username=f"Discord:{interaction.user.name}",
+                            amount=amount_dollars
+                        )
+                        logger.info(f"Donation recorded: ${amount_dollars}")
+                    else:
+                        new_state = mech_service.get_state()
+                    
+                    # Check if evolution occurred
+                    evolution_occurred = new_state.level > old_state.level
+                    new_evolution_level = new_state.level
+                    
+                    if evolution_occurred:
+                        logger.info(f"EVOLUTION! Level {old_evolution_level} → {new_evolution_level}")
+                        
+                except Exception as e:
+                    logger.error(f"Error processing donation: {e}")
+                    evolution_occurred = False
+            
+            # Create broadcast message
+            if amount:
+                broadcast_text = _("{donor_name} donated {amount} to DDC – thank you so much ❤️").format(
+                    donor_name=f"**{donor_name}**",
+                    amount=f"**{amount}**"
+                )
+            else:
+                broadcast_text = _("{donor_name} supports DDC – thank you so much ❤️").format(
+                    donor_name=f"**{donor_name}**"
+                )
+            
+            # Create evolution status
+            evolution_status = ""
+            if evolution_occurred:
+                evolution_status = _("**Evolution: Level {old} → {new}!**").format(
+                    old=old_evolution_level, 
+                    new=new_evolution_level
+                )
+            
+            # Send to channels if sharing publicly
+            sent_count = 0
+            failed_count = 0
+            
+            if should_share_publicly:
+                from utils.config_cache import get_cached_config
+                config = get_cached_config()
+                channels_config = config.get('channel_permissions', {})
+                
+                for channel_id_str, channel_info in channels_config.items():
+                    try:
+                        channel_id = int(channel_id_str)
+                        channel = interaction.client.get_channel(channel_id)
+                        
+                        if channel:
+                            embed = discord.Embed(
+                                title=_("💝 Donation received"),
+                                description=broadcast_text,
+                                color=0x00ff41
+                            )
+                            
+                            if evolution_status:
+                                embed.add_field(name=_("Mech Status"), value=evolution_status, inline=False)
+                            
+                            embed.set_footer(text="https://ddc.bot")
+                            await channel.send(embed=embed)
+                            sent_count += 1
+                        else:
+                            failed_count += 1
+                            
+                    except Exception as channel_error:
+                        failed_count += 1
+                        logger.error(f"Error sending to channel {channel_id_str}: {channel_error}")
+            
+            # Respond to user
+            if should_share_publicly:
+                response_text = _("✅ **Donation broadcast sent!**") + "\n\n"
+                response_text += _("📢 Sent to **{count}** channels").format(count=sent_count) + "\n"
+                if failed_count > 0:
+                    response_text += _("⚠️ Failed to send to {count} channels").format(count=failed_count) + "\n"
+                response_text += "\n" + _("Thank you **{donor_name}** for your generosity! 🙏").format(donor_name=donor_name)
+            else:
+                response_text = _("✅ **Donation recorded privately!**") + "\n\n"
+                response_text += _("Thank you **{donor_name}** for your generous support! 🙏").format(donor_name=donor_name) + "\n"
+                response_text += _("Your donation has been recorded and helps fuel the Donation Engine.")
+            
+            # Use followup for final response
+            await interaction.followup.send(response_text, ephemeral=True)
+            
+            # Clean up processing message
+            try:
+                await interaction.delete_original_response()
+            except:
+                pass  # Ignore if already deleted or expired
+            
+        except Exception as e:
+            logger.error(f"Error in donation broadcast modal: {e}")
+            try:
+                await interaction.followup.send(
+                    _("❌ Error sending donation broadcast. Please try again later."),
+                    ephemeral=True
+                )
+            except Exception as followup_error:
+                logger.error(f"Could not send error response: {followup_error}")
+
 
 # Setup function required for extension loading
 def setup(bot):

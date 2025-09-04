@@ -699,12 +699,20 @@ class InfoButton(Button):
                     
                     # Generate info embed using the empty template
                     from .status_info_integration import StatusInfoButton, ContainerInfoAdminView
+                    from .control_helpers import _channel_has_permission
+                    
                     info_button = StatusInfoButton(self.cog, self.server_config, empty_info_config)
-                    embed = await info_button._generate_info_embed()
+                    
+                    # Check if control channel for protected info
+                    has_control = _channel_has_permission(channel_id, 'control', config) if config else False
+                    embed = await info_button._generate_info_embed(include_protected=has_control)
                     
                     # Add admin buttons for editing
                     admin_view = ContainerInfoAdminView(self.cog, self.server_config, empty_info_config)
-                    await interaction.followup.send(embed=embed, view=admin_view, ephemeral=True)
+                    message = await interaction.followup.send(embed=embed, view=admin_view, ephemeral=True)
+                    # Update view with message reference and start auto-delete timer
+                    admin_view.message = message
+                    admin_view.auto_delete_task = asyncio.create_task(admin_view.start_auto_delete_timer())
                     return
                 else:
                     await interaction.followup.send(
@@ -719,19 +727,25 @@ class InfoButton(Button):
             
             # Generate info embed using StatusInfoButton logic
             info_button = StatusInfoButton(self.cog, self.server_config, info_config)
-            embed = await info_button._generate_info_embed()
             
             # Since this is in ControlView, we know it's a control channel, so add admin buttons
             has_control = _channel_has_permission(channel_id, 'control', config) if config else False
+            
+            # Generate embed with protected info if in control channel
+            embed = await info_button._generate_info_embed(include_protected=has_control)
             
             view = None
             if has_control:
                 view = ContainerInfoAdminView(self.cog, self.server_config, info_config)
                 logger.info(f"InfoButton (ControlView) created admin view for {docker_name} in control channel {channel_id}")
+                
+                message = await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+                # Update view with message reference and start auto-delete timer
+                view.message = message
+                view.auto_delete_task = asyncio.create_task(view.start_auto_delete_timer())
             else:
                 logger.warning(f"InfoButton (ControlView) no control permission for {docker_name} in channel {channel_id}")
-            
-            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+                await interaction.followup.send(embed=embed, view=view, ephemeral=True)
             
         except Exception as e:
             logger.error(f"[INFO_BTN] Error showing info for '{self.display_name}': {e}")
@@ -1339,3 +1353,7 @@ class MechDonateButton(Button):
         except Exception as e:
             logger.error(f"Error in mech donate button: {e}", exc_info=True)
             await interaction.response.send_message("❌ Error processing donation. Please try `/donate` directly.", ephemeral=True)
+
+
+# DonationView has been moved back to docker_control.py where it belongs
+    

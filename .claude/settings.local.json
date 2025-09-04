@@ -1,32 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(./rebuild.sh)",
-      "Bash(./scripts/rebuild.sh:*)",
-      "Bash(find:*)",
-      "Bash(ASYNC_ARCHITECTURE_GUIDELINES.md )",
-      "Bash(BOT_INFO.local.md )",
-      "Bash(CHATGPT_DAMAGE_REPORT.md )",
-      "Bash(CONFIG_MIGRATION_DOCUMENTATION.md )",
-      "Bash(CONTAINER_INFO_IMPLEMENTATION.md )",
-      "Bash(CONTRIBUTING.md )",
-      "Bash(FUEL_SYSTEM_FORMULAS.md )",
-      "Bash(FUEL_SYSTEM_MEMO.md )",
-      "Bash(github_issue_response.md )",
-      "Bash(MECH_SYSTEM_MEMO.md )",
-      "Bash(PERFORMANCE_OPTIMIZATION.md )",
-      "Bash(PERMISSIONS_GUIDE.md )",
-      "Bash(WEB_UI_DESIGN_DOCUMENTATION.txt )",
-      "Bash(CONFIG_PATH_INFO.txt )",
-      "Bash(requirements-dev.txt )",
-      "Bash(scripts/deploy-instructions.md )",
-      "Bash(scripts/README.md )",
-      "Bash(tree:*)",
-      "Bash(grep:*)",
-      "Bash(docker images:*)",
-      "Bash(ssh:*)",
-      "Bash(git add:*)",
-      "Bash(git push:*)"
+      "Bash(DDC_WEB_PORT=5001 python3:*)",
+      "Read(/tmp/**)",
+      "Read(/tmp/**)",
+      "Read(/tmp/**)",
+      "Read(/tmp/**)"
     ],
     "deny": [],
     "ask": []

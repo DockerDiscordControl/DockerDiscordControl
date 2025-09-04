@@ -48,12 +48,7 @@ except ImportError:
     print("Update notifier not available - skipping update notifications")
     update_notifier_available = False
 
-try:
-    from services.donation.donation_manager import get_donation_manager
-    donation_manager_available = True
-except ImportError:
-    print("Donation manager not available - skipping donation messages")
-    donation_manager_available = False
+# Old donation manager removed - now using MechService
 # Import the internal translation system
 from cogs.translation_manager import _
 # Import scheduler service
@@ -615,38 +610,7 @@ async def on_ready():
         else:
             logger.debug("Update notifier not available - skipping update notifications")
 
-        # Donation message scheduling: check at startup and then periodically (e.g., every 6 hours)
-        if donation_manager_available:
-            try:
-                logger.info("Checking for donation message...")
-                donation_manager = get_donation_manager()
-                result = await donation_manager.send_donation_message(bot)
-                if result["success"]:
-                    logger.info(f"Donation message sent: {result['message']}")
-                else:
-                    logger.debug(f"No donation message sent: {result['message']}")
-
-                async def periodic_donation_check():
-                    while True:
-                        try:
-                            await asyncio.sleep(6 * 60 * 60)  # 6 hours
-                            logger.info("Periodic donation check...")
-                            res = await donation_manager.send_donation_message(bot)
-                            if res["success"]:
-                                logger.info(f"Donation message sent: {res['message']}")
-                            else:
-                                logger.debug(f"No donation message sent: {res['message']}")
-                        except asyncio.CancelledError:
-                            break
-                        except Exception as e:
-                            logger.error(f"Error in periodic donation check: {e}", exc_info=True)
-
-                # Fire-and-forget periodic task
-                bot.loop.create_task(periodic_donation_check())
-            except Exception as e:
-                logger.error(f"Error sending donation message: {e}", exc_info=True)
-        else:
-            logger.debug("Donation manager not available - skipping donation messages")
+        # Old donation message scheduling removed - now handled by MechService
 
         _initial_startup_done = True # Prevents re-execution
         logger.info("Initialization complete.")

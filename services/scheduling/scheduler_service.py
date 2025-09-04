@@ -217,28 +217,9 @@ class SchedulerService:
             logger.error(f"Error in system tasks check: {e}")
     
     async def _check_donation_task(self):
-        """Check if donation message should be sent."""
-        try:
-            # Import here to avoid circular imports
-            from utils.donation_manager import get_donation_manager
-            
-            donation_manager = get_donation_manager()
-            if donation_manager.should_send_donation_message():
-                bot = get_bot_instance()
-                if bot:
-                    logger.info("Scheduler: Sending donation message at configured time (13:37)")
-                    result = await donation_manager.send_donation_message(bot)
-                    if result["success"]:
-                        logger.info(f"Scheduler: Donation message sent successfully: {result['message']}")
-                    else:
-                        logger.debug(f"Scheduler: No donation message sent: {result['message']}")
-                else:
-                    logger.warning("Scheduler: Bot instance not available for donation message")
-        except ImportError:
-            # Donation manager not available
-            pass
-        except Exception as e:
-            logger.debug(f"Error checking donation task: {e}")
+        """DEPRECATED: Old donation message check - now handled by MechService."""
+        # Old donation task removed - MechService handles donation messages now
+        pass
     
     async def _check_and_execute_tasks(self):
         """Checks all tasks and executes those that are due with CPU optimization."""
