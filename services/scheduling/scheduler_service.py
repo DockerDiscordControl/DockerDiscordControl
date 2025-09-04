@@ -209,17 +209,12 @@ class SchedulerService:
         return base_interval
     
     async def _check_system_tasks(self):
-        """Check and execute system tasks like donation messages."""
+        """Check and execute system tasks."""
         try:
-            # Check for donation messages (every 2 minutes - more efficient than 1 minute)
-            await self._check_donation_task()
+            # System tasks can be added here as needed
+            pass
         except Exception as e:
             logger.error(f"Error in system tasks check: {e}")
-    
-    async def _check_donation_task(self):
-        """DEPRECATED: Old donation message check - now handled by MechService."""
-        # Old donation task removed - MechService handles donation messages now
-        pass
     
     async def _check_and_execute_tasks(self):
         """Checks all tasks and executes those that are due with CPU optimization."""
