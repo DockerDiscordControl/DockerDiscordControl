@@ -1252,27 +1252,30 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         """Displays help information about available commands."""
         embed = discord.Embed(
             title=_("DockerDiscordControl - Help"),
-            description=_("Commands are organized by channel type:"),
+            description=_("Commands are organized by channel type:") + "\n\u200b",
             color=discord.Color.blue()
         )
         
+        # Info hint as first field with spacing
+        embed.add_field(name="**Tip**", value=_("Use /info <servername> to get detailed information about containers with ℹ️ indicators.") + "\n\u200b", inline=False)
+        
         # General Commands (work everywhere)
-        embed.add_field(name=f"🌐 {_('General Commands')}", value=f"`/help` - {_('Shows this help message.')}\n`/ping` - {_('Checks the bot latency.')}\n`/donate` - {_('Shows donation information to support the project.')}", inline=False)
+        embed.add_field(name=f"🌐 **{_('General Commands')}**", value=f"`/help` - {_('Shows this help message.')}\n`/ping` - {_('Checks the bot latency.')}\n`/donate` - {_('Shows donation information to support the project.')}" + "\n\u200b", inline=False)
         
         # Status Channel Commands
-        embed.add_field(name=f"📊 {_('Status Channel Commands')}", value=f"`/serverstatus` or `/ss` - {_('Displays the status of all configured Docker containers.')}\n`/info <container>` - {_('Shows detailed information about a specific container.')}", inline=False)
+        embed.add_field(name=f"📊 **{_('Status Channel Commands')}**", value=f"`/serverstatus` or `/ss` - {_('Displays the status of all configured Docker containers.')}" + "\n\u200b", inline=False)
         
         # Control Channel Commands  
-        embed.add_field(name=f"⚙️ {_('Control Channel Commands')}", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n`/command <container> <action>` - {_('Controls a specific Docker container. Actions: start, stop, restart. Requires permissions.')}", inline=False)
+        embed.add_field(name=f"⚙️ **{_('Control Channel Commands')}**", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n`/command <container> <action>` - {_('Controls a specific Docker container. Actions: start, stop, restart. Requires permissions.')}" + "\n\u200b", inline=False)
         
         # Add status indicators explanation
-        embed.add_field(name=_("Status Indicators"), value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n🔄 {_('Container status loading')}", inline=False)
+        embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n🔄 {_('Container status loading')}" + "\n\u200b", inline=False)
         
         # Add info system explanation  
-        embed.add_field(name=_("Info System"), value=f"ℹ️ {_('Click for container details')}\n🔒 {_('Protected info (control channels only)')}\n🔓 {_('Public info available')}", inline=False)
+        embed.add_field(name=f"**{_('Info System')}**", value=f"ℹ️ {_('Click for container details')}\n🔒 {_('Protected info (control channels only)')}\n🔓 {_('Public info available')}" + "\n\u200b", inline=False)
         
-        # Add control buttons explanation
-        embed.add_field(name=_("Control Buttons (Admin Channels)"), value=f"📝 {_('Edit container info text')}\n📋 {_('View container logs')}", inline=False)
+        # Add control buttons explanation (no spacing after last field)
+        embed.add_field(name=f"**{_('Control Buttons (Admin Channels)')}**", value=f"📝 {_('Edit container info text')}\n📋 {_('View container logs')}", inline=False)
         embed.set_footer(text="https://ddc.bot")
 
         try:
@@ -1549,7 +1552,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             logger.debug(f"Could not check info availability: {e}")
         
         if has_any_info:
-            embed.description += f"\n{translate('Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.')}"
+            embed.description += f"\n{translate('Use **/help** for more information about available commands.')}"
         
         # Check if donations are disabled by premium key
         from services.donation.donation_utils import is_donations_disabled
@@ -1684,13 +1687,13 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 mech_status = f"{evolution_name} ({level_text} {evolution['level']})\n"
                 speed_text = translate("Speed")
                 mech_status += f"{speed_text}: {speed['description']}\n\n"
-                mech_status += f"⚡ ${current_Power:.2f}\n{Power_bar} {Power_percentage:.1f}%\n"
+                mech_status += f"⚡ ${current_Power:.2f}\n`{Power_bar}` {Power_percentage:.1f}%\n"
                 Power_consumption_text = translate("Power Consumption")
                 mech_status += f"{Power_consumption_text}: 🔻 0.04/h\n\n"  # Using red down arrow for negative indication
                 
                 if evolution.get('next_name'):
                     next_evolution_name = translate(evolution['next_name'])
-                    mech_status += f"⬆️ {next_evolution_name}\n{next_bar} {next_percentage:.1f}%"
+                    mech_status += f"⬆️ {next_evolution_name}\n`{next_bar}` {next_percentage:.1f}%"
                 else:
                     max_evolution_text = translate("MAX EVOLUTION REACHED!")
                     mech_status += f"🌟 {max_evolution_text}"
@@ -1845,7 +1848,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             logger.debug(f"Could not check info availability: {e}")
         
         if has_any_info:
-            embed.description += f"\n{translate('Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.')}"
+            embed.description += f"\n{translate('Use **/help** for more information about available commands.')}"
         
         # Check if donations are disabled by premium key
         from services.donation.donation_utils import is_donations_disabled
@@ -1914,10 +1917,11 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         # Return tuple (embed, animation_file)
         return embed, animation_file
 
-    def _create_progress_bar(self, percentage: float, length: int = 20) -> str:
-        """Create a text progress bar like the Web UI."""
+    def _create_progress_bar(self, percentage: float, length: int = 30) -> str:
+        """Create a text progress bar with consistent character widths for monospace."""
         filled = int((percentage / 100) * length)
         empty = length - filled
+        # Use █ and ░ - these work best in monospace code blocks
         bar = "█" * filled + "░" * empty
         return bar
 
