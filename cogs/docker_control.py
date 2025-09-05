@@ -744,7 +744,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             logger.error(f"Error in _send_control_panel_and_statuses: {e}", exc_info=True)
 
     async def _send_all_server_statuses(self, channel: discord.TextChannel, allow_toggle: bool = True, force_collapse: bool = False):
-        """Sends status messages for all configured servers to a channel."""
+        """Sends overview embed and status messages for all configured servers to a channel."""
         try:
             # CRITICAL FIX: Always use the latest config
             config = get_cached_config()
@@ -757,12 +757,67 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 logger.warning(f"No servers configured to send status in channel {channel.name}")
                 return
 
-            logger.info(f"Sending all server statuses to channel {channel.name} ({channel.id})")
+            logger.info(f"Sending overview embed and all server statuses to channel {channel.name} ({channel.id})")
+            
+            # First, send the overview embed (like in send_initial_status for status channels)
+            try:
+                servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
+                
+                ordered_servers = []
+                seen_docker_names = set()
+                
+                # First add servers in the defined order
+                for docker_name in self.ordered_server_names:
+                    if docker_name in servers_by_name:
+                        ordered_servers.append(servers_by_name[docker_name])
+                        seen_docker_names.add(docker_name)
+                
+                # Add any servers that weren't in the ordered list
+                for server in servers:
+                    docker_name = server.get('docker_name')
+                    if docker_name and docker_name not in seen_docker_names:
+                        ordered_servers.append(server)
+                        seen_docker_names.add(docker_name)
+                        
+                # Set collapsed state (force_collapse overrides)
+                channel_id = channel.id
+                if force_collapse:
+                    self.mech_expanded_states[channel_id] = False
+                    self.mech_state_manager.set_expanded_state(channel_id, False)
+                
+                embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
+                
+                # Create MechView with expand/collapse buttons for mech status
+                from .control_ui import MechView
+                view = MechView(self, channel_id)
+                
+                # Send with animation and button if available
+                if animation_file:
+                    logger.info(f"✅ Sending overview message with animation and Mech buttons to {channel.name}")
+                    message = await channel.send(embed=embed, file=animation_file, view=view)
+                else:
+                    logger.warning(f"⚠️ Sending overview message WITHOUT animation to {channel.name}")
+                    message = await channel.send(embed=embed, view=view)
+                
+                # Track the overview message
+                if channel.id not in self.channel_server_message_ids:
+                    self.channel_server_message_ids[channel.id] = {}
+                self.channel_server_message_ids[channel.id]["overview"] = message.id
+                
+                # Initialize update time tracking
+                if channel.id not in self.last_message_update_time:
+                    self.last_message_update_time[channel.id] = {}
+                self.last_message_update_time[channel.id]["overview"] = datetime.now(timezone.utc)
+                
+                logger.info(f"Successfully sent overview embed to {channel.name}")
+                
+            except Exception as e:
+                logger.error(f"Error sending overview embed to {channel.name}: {e}", exc_info=True)
             
             success_count = 0
             failure_count = 0
             
-            # Send status for each server
+            # Then send status for each server
             for server in servers:
                 try:
                     result = await self.status_handlers.send_server_status(
@@ -785,7 +840,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     logger.error(f"Error processing server {server.get('name')}: {e}")
                     failure_count += 1
                     
-            logger.info(f"Finished sending statuses to {channel.name}: {success_count} success, {failure_count} failure.")
+            logger.info(f"Finished sending overview and statuses to {channel.name}: {success_count} success, {failure_count} failure.")
             
         except Exception as e:
             logger.error(f"Error in _send_all_server_statuses: {e}", exc_info=True)
@@ -1549,8 +1604,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         except Exception as e:
             logger.debug(f"Could not check info availability: {e}")
         
-        if has_any_info:
-            embed.description += f"\n{translate('Use **/help** for more information about available commands.')}"
+        # Help text removed - replaced with Help button in MechView
         
         # Check if donations are disabled by premium key
         from services.donation.donation_utils import is_donations_disabled
@@ -1845,8 +1899,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
         except Exception as e:
             logger.debug(f"Could not check info availability: {e}")
         
-        if has_any_info:
-            embed.description += f"\n{translate('Use **/help** for more information about available commands.')}"
+        # Help text removed - replaced with Help button in MechView
         
         # Check if donations are disabled by premium key
         from services.donation.donation_utils import is_donations_disabled

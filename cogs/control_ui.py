@@ -1128,7 +1128,10 @@ class MechView(View):
         # Check if donations are disabled
         donations_disabled = is_donations_disabled()
         
-        # Skip all mech buttons if donations are disabled
+        # Always add help button first (even if donations are disabled)
+        self.add_item(HelpButton(cog_instance, channel_id))
+        
+        # Skip mech buttons if donations are disabled
         if donations_disabled:
             return
         
@@ -1142,6 +1145,77 @@ class MechView(View):
         else:
             # Collapsed state: Add "Mech +" button
             self.add_item(MechExpandButton(cog_instance, channel_id))
+
+
+class HelpButton(Button):
+    """Button to show help information from /ss messages."""
+    
+    def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
+        self.cog = cog_instance
+        self.channel_id = channel_id
+        
+        super().__init__(
+            style=discord.ButtonStyle.secondary,
+            label=None,
+            emoji="❓",  # Question mark emoji for help
+            custom_id=f"help_button_{channel_id}",
+            row=0
+        )
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Show help information when clicked."""
+        try:
+            # Apply spam protection
+            from services.infrastructure.spam_protection_service import get_spam_protection_service
+            spam_service = get_spam_protection_service()
+            if spam_service.is_enabled():
+                cooldown = spam_service.get_button_cooldown("help")
+                # Use simple rate limiting for buttons
+                import time
+                current_time = time.time()
+                user_id = str(interaction.user.id)
+                last_click = getattr(self, f'_last_click_{user_id}', 0)
+                if current_time - last_click < cooldown:
+                    await interaction.response.send_message(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
+                    return
+                setattr(self, f'_last_click_{user_id}', current_time)
+            
+            # Call the help command implementation directly
+            from .translation_manager import _
+            
+            embed = discord.Embed(title=_("📚 DDC Help & Information"), color=discord.Color.blue())
+            
+            # Add tip first (most important for new users)
+            embed.add_field(name=f"💡 **{_('Tip')}**", value=f"{_('Use /info <servername> to get detailed information about containers with ℹ️ indicators.')}" + "\n\u200b", inline=False)
+            
+            # Status Channel Commands
+            embed.add_field(name=f"📊 **{_('Status Channel Commands')}**", value=f"`/serverstatus` or `/ss` - {_('Displays the status of all configured Docker containers.')}" + "\n\u200b", inline=False)
+            
+            # Control Channel Commands  
+            embed.add_field(name=f"⚙️ **{_('Control Channel Commands')}**", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n`/command <container> <action>` - {_('Controls a specific Docker container. Actions: start, stop, restart. Requires permissions.')}" + "\n\u200b", inline=False)
+            
+            # Add status indicators explanation
+            embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n🔄 {_('Container status loading')}" + "\n\u200b", inline=False)
+            
+            # Add info system explanation  
+            embed.add_field(name=f"**{_('Info System')}**", value=f"ℹ️ {_('Click for container details')}\n🔒 {_('Protected info (control channels only)')}\n🔓 {_('Public info available')}" + "\n\u200b", inline=False)
+            
+            # Add control buttons explanation (no spacing after last field)
+            embed.add_field(name=f"**{_('Control Buttons (Admin Channels)')}**", value=f"📝 {_('Edit container info text')}\n📋 {_('View container logs')}", inline=False)
+            
+            embed.set_footer(text="https://ddc.bot")
+            
+            # Send as ephemeral response
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            
+            logger.info(f"Help shown for user {interaction.user.name} in channel {self.channel_id}")
+            
+        except Exception as e:
+            logger.error(f"Error showing help: {e}", exc_info=True)
+            try:
+                await interaction.response.send_message("❌ Error showing help information.", ephemeral=True)
+            except:
+                pass
 
 
 class MechExpandButton(Button):
