@@ -799,14 +799,23 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     logger.warning(f"⚠️ Sending overview message WITHOUT animation to {channel.name}")
                     message = await channel.send(embed=embed, view=view)
                 
-                # Track the overview message
+                # Track ONLY the overview message for status channels
+                # Clear any existing server message tracking (status channels only have overview)
                 if channel.id not in self.channel_server_message_ids:
                     self.channel_server_message_ids[channel.id] = {}
+                else:
+                    # Clear all previous tracking except for overview
+                    self.channel_server_message_ids[channel.id].clear()
+                
                 self.channel_server_message_ids[channel.id]["overview"] = message.id
                 
-                # Initialize update time tracking
+                # Initialize update time tracking for overview only
                 if channel.id not in self.last_message_update_time:
                     self.last_message_update_time[channel.id] = {}
+                else:
+                    # Clear all previous time tracking except for overview
+                    self.last_message_update_time[channel.id].clear()
+                    
                 self.last_message_update_time[channel.id]["overview"] = datetime.now(timezone.utc)
                 
                 logger.info(f"✅ Successfully sent overview embed to status channel {channel.name}")
@@ -1279,22 +1288,21 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             return
         """Displays help information about available commands."""
         embed = discord.Embed(
-            title=_("DockerDiscordControl - Help"),
-            description=_("Commands are organized by channel type:") + "\n\u200b",
+            title=_("DDC Help & Information"),
             color=discord.Color.blue()
         )
         
-        # Info hint as first field with spacing
-        embed.add_field(name="**Tip**", value=_("Use /info <servername> to get detailed information about containers with ℹ️ indicators.") + "\n\u200b", inline=False)
+        # Tip as first field with spacing
+        embed.add_field(name=f"**{_('Tip')}**", value=f"{_('Use /info <servername> to get detailed information about containers with ℹ️ indicators.')}" + "\n\u200b", inline=False)
         
         # General Commands (work everywhere)
-        embed.add_field(name=f"🌐 **{_('General Commands')}**", value=f"`/help` - {_('Shows this help message.')}\n`/ping` - {_('Checks the bot latency.')}\n`/donate` - {_('Shows donation information to support the project.')}" + "\n\u200b", inline=False)
+        embed.add_field(name=f"**{_('General Commands')}**", value=f"`/help` - {_('Shows this help message.')}\n`/ping` - {_('Checks the bot latency.')}\n`/donate` - {_('Shows donation information to support the project.')}" + "\n\u200b", inline=False)
         
         # Status Channel Commands
-        embed.add_field(name=f"📊 **{_('Status Channel Commands')}**", value=f"`/serverstatus` or `/ss` - {_('Displays the status of all configured Docker containers.')}" + "\n\u200b", inline=False)
+        embed.add_field(name=f"**{_('Status Channel Commands')}**", value=f"`/serverstatus` or `/ss` - {_('Displays the status of all configured Docker containers.')}" + "\n\u200b", inline=False)
         
         # Control Channel Commands  
-        embed.add_field(name=f"⚙️ **{_('Control Channel Commands')}**", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n`/command <container> <action>` - {_('Controls a specific Docker container. Actions: start, stop, restart. Requires permissions.')}" + "\n\u200b", inline=False)
+        embed.add_field(name=f"**{_('Control Channel Commands')}**", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n`/command <container> <action>` - {_('Controls a specific Docker container. Actions: start, stop, restart. Requires permissions.')}" + "\n\u200b", inline=False)
         
         # Add status indicators explanation
         embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n🔄 {_('Container status loading')}" + "\n\u200b", inline=False)
