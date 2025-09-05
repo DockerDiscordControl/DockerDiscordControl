@@ -744,7 +744,7 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
             logger.error(f"Error in _send_control_panel_and_statuses: {e}", exc_info=True)
 
     async def _send_all_server_statuses(self, channel: discord.TextChannel, allow_toggle: bool = True, force_collapse: bool = False):
-        """Sends overview embed and status messages for all configured servers to a channel."""
+        """Sends only the overview embed to a status channel (no individual server messages)."""
         try:
             # CRITICAL FIX: Always use the latest config
             config = get_cached_config()
@@ -757,9 +757,9 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                 logger.warning(f"No servers configured to send status in channel {channel.name}")
                 return
 
-            logger.info(f"Sending overview embed and all server statuses to channel {channel.name} ({channel.id})")
+            logger.info(f"Sending overview embed to status channel {channel.name} ({channel.id})")
             
-            # First, send the overview embed (like in send_initial_status for status channels)
+            # Send ONLY the overview embed (status channels don't need individual server messages)
             try:
                 servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
                 
@@ -809,38 +809,13 @@ class DockerControlCog(commands.Cog, ScheduleCommandsMixin, StatusHandlersMixin,
                     self.last_message_update_time[channel.id] = {}
                 self.last_message_update_time[channel.id]["overview"] = datetime.now(timezone.utc)
                 
-                logger.info(f"Successfully sent overview embed to {channel.name}")
+                logger.info(f"✅ Successfully sent overview embed to status channel {channel.name}")
                 
             except Exception as e:
                 logger.error(f"Error sending overview embed to {channel.name}: {e}", exc_info=True)
             
-            success_count = 0
-            failure_count = 0
-            
-            # Then send status for each server
-            for server in servers:
-                try:
-                    result = await self.status_handlers.send_server_status(
-                        channel=channel,
-                        server_conf=server,
-                        current_config=config,
-                        allow_toggle=allow_toggle
-                    )
-                    
-                    if isinstance(result, Exception):
-                        logger.error(f"Error sending status for {server.get('name')}: {result}")
-                        failure_count += 1
-                    elif result:
-                        success_count += 1
-                        logger.info(f"Successfully sent status for {server.get('name')} to {channel.name}")
-                    else:
-                        failure_count += 1
-                        logger.warning(f"Failed to send status for {server.get('name')} to {channel.name}")
-                except Exception as e:
-                    logger.error(f"Error processing server {server.get('name')}: {e}")
-                    failure_count += 1
-                    
-            logger.info(f"Finished sending overview and statuses to {channel.name}: {success_count} success, {failure_count} failure.")
+            # NOTE: Individual server status messages removed for status channels
+            # Status channels only show the overview embed with all servers
             
         except Exception as e:
             logger.error(f"Error in _send_all_server_statuses: {e}", exc_info=True)

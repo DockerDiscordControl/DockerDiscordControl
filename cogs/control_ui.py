@@ -1128,23 +1128,21 @@ class MechView(View):
         # Check if donations are disabled
         donations_disabled = is_donations_disabled()
         
-        # Always add help button first (even if donations are disabled)
-        self.add_item(HelpButton(cog_instance, channel_id))
-        
         # Skip mech buttons if donations are disabled
-        if donations_disabled:
-            return
+        if not donations_disabled:
+            # Check current mech expansion state for this channel
+            is_expanded = cog_instance.mech_expanded_states.get(channel_id, False)
+            
+            if is_expanded:
+                # Expanded state: Add "Mech -" and "Power/Donate" buttons
+                self.add_item(MechCollapseButton(cog_instance, channel_id))
+                self.add_item(MechDonateButton(cog_instance, channel_id))
+            else:
+                # Collapsed state: Add "Mech +" button
+                self.add_item(MechExpandButton(cog_instance, channel_id))
         
-        # Check current mech expansion state for this channel
-        is_expanded = cog_instance.mech_expanded_states.get(channel_id, False)
-        
-        if is_expanded:
-            # Expanded state: Add "Mech -" and "Power/Donate" buttons
-            self.add_item(MechCollapseButton(cog_instance, channel_id))
-            self.add_item(MechDonateButton(cog_instance, channel_id))
-        else:
-            # Collapsed state: Add "Mech +" button
-            self.add_item(MechExpandButton(cog_instance, channel_id))
+        # Always add help button after mech buttons
+        self.add_item(HelpButton(cog_instance, channel_id))
 
 
 class HelpButton(Button):
@@ -1157,7 +1155,7 @@ class HelpButton(Button):
         super().__init__(
             style=discord.ButtonStyle.secondary,
             label=None,
-            emoji="❓",  # Question mark emoji for help
+            emoji="❔",  # Grey question mark emoji for help
             custom_id=f"help_button_{channel_id}",
             row=0
         )
