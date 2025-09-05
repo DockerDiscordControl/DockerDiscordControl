@@ -165,7 +165,7 @@ class TranslationManager:
                 "Documentation improvements": "Verbesserung der Dokumentation",
                 "This message is only shown every 2nd Sunday of the month": "Diese Nachricht wird nur jeden 2. Sonntag im Monat gepostet",
                 # New donation broadcast translations
-                "If DDC helps you, please consider supporting ongoing development. Donations help cover hosting, CI, maintenance, and feature work.": "Mit deiner Spende hilfst du nicht nur bei Hosting, CI, Wartung und Feature-Entwicklung – du lädst auch das Energie System auf und treibst den Community-Mech durch seine Evolutionsstufen.\nJede Spende = mehr Energie → der Mech wird schneller und entwickelt sich weiter.",
+                "If DDC helps you, please consider supporting ongoing development. Donations help cover hosting, CI, maintenance, and feature work.": "Mit deiner Spende hilfst du nicht nur bei Hosting, CI, Wartung und Feature-Entwicklung – du lädst auch das Energie System auf und hilfst dem Community-Mech neue Evolutionsstufen zu erreichen.\nJede Spende = mehr Energie → der Mech wird schneller und entwickelt sich weiter.",
                 "Choose your preferred method:": "Wähle deine bevorzugte Methode:",
                 "Click one of the buttons below to support DDC development": "Klicke auf eine der Schaltflächen unten, um die DDC-Entwicklung zu unterstützen. Klicke anschliessend auf **Teilen & Aufladen** um den Mech aufzuladen und optional deine Spende in den Kanälen zu teilen.",
                 "☕ Buy Me a Coffee": "☕ Buy me a coffee",
@@ -889,7 +889,7 @@ class TranslationManager:
                 "Documentation improvements": "Améliorations de la documentation",
                 "This message is only shown every 2nd Sunday of the month": "Ce message n'est affiché que chaque 2ème dimanche du mois",
                 # New donation broadcast translations  
-                "If DDC helps you, please consider supporting ongoing development. Donations help cover hosting, CI, maintenance, and feature work.": "Avec votre don, vous ne soutenez pas seulement l'hébergement, CI, la maintenance et le développement – vous rechargez aussi le système énergétique et faites évoluer le Mech communautaire à travers ses niveaux d'évolution.\nChaque don = plus d'énergie → le Mech devient plus rapide et évolue.",
+                "If DDC helps you, please consider supporting ongoing development. Donations help cover hosting, CI, maintenance, and feature work.": "Avec votre don, vous ne soutenez pas seulement l'hébergement, CI, la maintenance et le développement – vous rechargez aussi le système énergétique et aidez le Mech communautaire à atteindre de nouveaux niveaux d'évolution.\nChaque don = plus d'énergie → le Mech devient plus rapide et évolue.",
                 "Choose your preferred method:": "Choisissez votre méthode préférée :",
                 "Click one of the buttons below to support DDC development": "Cliquez sur l'un des boutons ci-dessous pour soutenir le développement de DDC. Cliquez ensuite sur **Partager & Recharger** pour recharger le Mech et optionnellement partager votre don dans les canaux.",
                 "☕ Buy Me a Coffee": "☕ Buy me a coffee",
@@ -1089,7 +1089,7 @@ class TranslationManager:
                 "Documentation improvements": "Documentation improvements",
                 "This message is only shown every 2nd Sunday of the month": "This message is only shown every 2nd Sunday of the month",
                 # New donation broadcast translations
-                "If DDC helps you, please consider supporting ongoing development. Donations help cover hosting, CI, maintenance, and feature work.": "With your donation, you're not just helping with hosting, CI, maintenance, and feature development – you're also charging the Energy System and driving the community Mech through its evolution stages.\nEvery donation = more Power → the Mech gets faster and evolves.",
+                "If DDC helps you, please consider supporting ongoing development. Donations help cover hosting, CI, maintenance, and feature work.": "With your donation, you're not just helping with hosting, CI, maintenance, and feature development – you're also charging the Energy System and helping the community Mech reach new evolution stages.\nEvery donation = more Power → the Mech gets faster and evolves.",
                 "Choose your preferred method:": "Choose your preferred method:",
                 "Click one of the buttons below to support DDC development": "Click one of the buttons below to support DDC development. Then click **Share & Charge** to charge up the Mech and optionally share your donation in the channels.",
                 "☕ Buy Me a Coffee": "☕ Buy me a coffee",
