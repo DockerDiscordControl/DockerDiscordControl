@@ -12,6 +12,7 @@ Provides read-only info display for channels with only /ss permission.
 """
 
 import discord
+from discord.ui import View, Button, Modal  # Add Modal import for YearlyDateModal
 import os
 from typing import Dict, Any, Optional, List
 from utils.logging_utils import get_module_logger
@@ -47,6 +48,9 @@ class ContainerInfoAdminView(discord.ui.View):
         
         # Add Protected Info Edit button (for editing protected info settings)
         self.add_item(ProtectedInfoEditButton(cog_instance, server_config, info_config))
+        
+        # Add Task Management button
+        self.add_item(TaskManagementButton(cog_instance, server_config))
         
         # Add Debug button
         self.add_item(DebugLogsButton(cog_instance, server_config))
@@ -1168,6 +1172,1334 @@ def create_enhanced_status_embed(
     
     return original_embed
 
+class TaskManagementButton(discord.ui.Button):
+    """Task Management button for container info admin view."""
+    
+    def __init__(self, cog_instance, server_config: Dict[str, Any]):
+        super().__init__(
+            style=discord.ButtonStyle.secondary,
+            emoji="⏰",
+            label=None,
+            custom_id=f"task_management_{server_config.get('docker_name')}"
+        )
+        self.cog = cog_instance
+        self.server_config = server_config
+        self.container_name = server_config.get('docker_name')
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle task management button click."""
+        try:
+            # Check spam protection first
+            from services.infrastructure.spam_protection_service import get_spam_protection_service
+            spam_service = get_spam_protection_service()
+            if spam_service.is_enabled():
+                cooldown = spam_service.get_button_cooldown("tasks")
+                import time
+                current_time = time.time()
+                user_id = str(interaction.user.id)
+                last_click = getattr(self, f'_last_click_{user_id}', 0)
+                if current_time - last_click < cooldown:
+                    await interaction.response.send_message(
+                        f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.",
+                        ephemeral=True
+                    )
+                    return
+                setattr(self, f'_last_click_{user_id}', current_time)
+            
+            # Show task list directly (can't send modal after defer)
+            await self._show_task_list(interaction)
+            
+        except Exception as e:
+            logger.error(f"Error in task management button: {e}", exc_info=True)
+            try:
+                await interaction.followup.send("❌ Error opening task management.", ephemeral=True)
+            except:
+                pass
+    
+    async def _show_task_list(self, interaction: discord.Interaction):
+        """Show task list for this container."""
+        try:
+            await interaction.response.defer(ephemeral=True)
+            
+            # Get all tasks for this container
+            from services.scheduling.scheduler import load_tasks, get_tasks_for_container
+            
+            tasks = get_tasks_for_container(self.container_name)
+            
+            if not tasks:
+                embed = discord.Embed(
+                    title=f"⏰ No Tasks for {self.container_name}",
+                    description="No scheduled tasks found for this container.",
+                    color=discord.Color.orange()
+                )
+                view = TaskManagementView(self.cog, self.container_name)
+                await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+                return
+            
+            # Create task list embed
+            embed = discord.Embed(
+                title=f"⏰ Scheduled Tasks for {self.container_name}",
+                color=discord.Color.blue()
+            )
+            
+            for i, task in enumerate(tasks[:10]):  # Limit to 10 tasks to avoid embed size limits
+                # Format last run
+                last_run_str = "Never"
+                if task.last_run_ts:
+                    from datetime import datetime
+                    last_run_dt = datetime.fromtimestamp(task.last_run_ts)
+                    last_run_str = last_run_dt.strftime("%Y-%m-%d %H:%M")
+                    if task.last_run_success is not None:
+                        status_icon = "✅" if task.last_run_success else "❌"
+                        last_run_str += f" {status_icon}"
+                
+                # Format next run
+                next_run_str = "Not scheduled"
+                if task.next_run_ts:
+                    from datetime import datetime
+                    next_run_dt = datetime.fromtimestamp(task.next_run_ts)
+                    next_run_str = next_run_dt.strftime("%Y-%m-%d %H:%M")
+                
+                # Active status
+                status_icon = "🟢" if task.is_active else "🔴"
+                
+                embed.add_field(
+                    name=f"{status_icon} {task.action.upper()} - {task.cycle}",
+                    value=f"**Last Run:** {last_run_str}\n**Next Run:** {next_run_str}\n**ID:** `{task.task_id[:8]}...`",
+                    inline=False
+                )
+            
+            if len(tasks) > 10:
+                embed.set_footer(text=f"Showing first 10 of {len(tasks)} tasks")
+            
+            # Add management buttons
+            view = TaskManagementView(self.cog, self.container_name)
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"Error showing task list: {e}", exc_info=True)
+            await interaction.followup.send("❌ Error loading task list.", ephemeral=True)
+
+
+class TaskListModal(discord.ui.Modal):
+    """Modal showing all scheduled tasks for a container with management options."""
+    
+    def __init__(self, cog_instance, container_name: str):
+        super().__init__(title=f"📋 Tasks: {container_name}")
+        self.cog = cog_instance
+        self.container_name = container_name
+        
+    async def on_submit(self, interaction: discord.Interaction):
+        """Handle modal submission."""
+        try:
+            await interaction.response.defer(ephemeral=True)
+            
+            # Get all tasks for this container
+            from services.scheduling.scheduler import load_tasks, get_tasks_for_container
+            
+            tasks = get_tasks_for_container(self.container_name)
+            
+            if not tasks:
+                embed = discord.Embed(
+                    title=f"⏰ No Tasks for {self.container_name}",
+                    description="No scheduled tasks found for this container.",
+                    color=discord.Color.orange()
+                )
+            else:
+                embed = discord.Embed(
+                    title=f"⏰ Scheduled Tasks: {self.container_name}",
+                    description=f"Found {len(tasks)} scheduled task(s):",
+                    color=discord.Color.blue()
+                )
+                
+                for task in tasks[:10]:  # Limit to 10 tasks to avoid embed limits
+                    status_emoji = "✅" if task.is_active else "❌"
+                    last_run = "Never" if not task.last_run_ts else f"<t:{int(task.last_run_ts)}:R>"
+                    next_run = "Not scheduled" if not task.next_run_ts else f"<t:{int(task.next_run_ts)}:R>"
+                    
+                    embed.add_field(
+                        name=f"{status_emoji} {task.cycle.title()} {task.action.title()}",
+                        value=f"**Last run:** {last_run}\n**Next run:** {next_run}\n**Active:** {'Yes' if task.is_active else 'No'}",
+                        inline=True
+                    )
+            
+            # Create view with management buttons
+            view = TaskManagementView(self.cog, self.container_name)
+            
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"Error showing task list: {e}", exc_info=True)
+            await interaction.followup.send("❌ Error loading tasks.", ephemeral=True)
+
+
+class TaskManagementView(discord.ui.View):
+    """View with buttons for task management (Add Task, Delete Tasks)."""
+    
+    def __init__(self, cog_instance, container_name: str):
+        super().__init__(timeout=300)  # 5 minute timeout
+        self.cog = cog_instance
+        self.container_name = container_name
+        
+        # Add Task button
+        self.add_item(AddTaskButton(cog_instance, container_name))
+        
+        # Delete Tasks button  
+        self.add_item(DeleteTasksButton(cog_instance, container_name))
+
+
+class AddTaskButton(discord.ui.Button):
+    """Button to add a new scheduled task."""
+    
+    def __init__(self, cog_instance, container_name: str):
+        super().__init__(
+            style=discord.ButtonStyle.green,
+            label="Add Task",
+            custom_id=f"add_task_{container_name}"
+        )
+        self.cog = cog_instance
+        self.container_name = container_name
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Show task creation with dropdowns (Modal doesn't work)."""
+        try:
+            logger.info(f"AddTaskButton clicked for container: {self.container_name}")
+            
+            # Create dropdown-based task creation
+            view = TaskCreationView(self.cog, self.container_name)
+            
+            embed = discord.Embed(
+                title=f"⏰ Create Task: {self.container_name}",
+                description="Use the dropdowns below to configure your task:",
+                color=discord.Color.green()
+            )
+            
+            embed.add_field(
+                name="📋 Instructions",
+                value="1. Select Cycle Type\n2. Select Action\n3. Select Time and day/date\n4. Click 'Create Task'",
+                inline=False
+            )
+            
+            await interaction.response.send_message(
+                embed=embed,
+                view=view,
+                ephemeral=True
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in add task button: {e}", exc_info=True)
+            await interaction.response.send_message("❌ Error showing task help.", ephemeral=True)
+
+
+class DeleteTasksButton(discord.ui.Button):
+    """Button to open task delete panel."""
+    
+    def __init__(self, cog_instance, container_name: str):
+        super().__init__(
+            style=discord.ButtonStyle.red,
+            label="Delete Tasks",
+            custom_id=f"delete_tasks_{container_name}"
+        )
+        self.cog = cog_instance
+        self.container_name = container_name
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Open task delete panel using existing /task_delete_panel functionality."""
+        try:
+            await interaction.response.defer(ephemeral=True)
+            
+            # Call the existing task delete panel functionality
+            # This will use the same logic as the /task_delete_panel command
+            from services.scheduling.scheduler import load_tasks, get_tasks_for_container
+            
+            tasks = get_tasks_for_container(self.container_name)
+            
+            if not tasks:
+                await interaction.followup.send(
+                    f"⏰ No tasks found for {self.container_name} to delete.",
+                    ephemeral=True
+                )
+                return
+            
+            # Create container-specific task delete view
+            view = ContainerTaskDeleteView(self.cog, tasks, self.container_name)
+            
+            embed = discord.Embed(
+                title=f"❌ Delete Tasks: {self.container_name}",
+                description=f"Click any button below to delete the corresponding task for **{self.container_name}**:",
+                color=discord.Color.red()
+            )
+            
+            # Add legend
+            embed.add_field(
+                name="Legend",
+                value="O = Once, D = Daily, W = Weekly, M = Monthly, Y = Yearly",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="Found Tasks",
+                value=f"{len(tasks)} active tasks for {self.container_name}",
+                inline=False
+            )
+            
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"Error in delete tasks button: {e}", exc_info=True)
+            await interaction.followup.send("❌ Error opening task delete panel.", ephemeral=True)
+
+
+class TaskCreationView(discord.ui.View):
+    """View for task creation using sequential dropdowns."""
+    
+    def __init__(self, cog_instance, container_name: str):
+        super().__init__(timeout=300)
+        self.cog = cog_instance
+        self.container_name = container_name
+        
+        # Task configuration state
+        self.selected_cycle = None
+        self.selected_action = None
+        self.selected_time = None
+        self.selected_day = None
+        self.selected_month = None
+        self.selected_year = None
+        
+        # Start with only cycle dropdown
+        self.add_item(CycleDropdown())
+        
+        # Add create button (initially disabled and hidden)
+        self.create_button = CreateTaskButton(self.cog, self.container_name)
+        self.create_button.disabled = True
+        self.create_button.row = 4  # Always on the last row
+        
+    def check_ready(self):
+        """Check if all required fields are selected and enable create button."""
+        if self.selected_cycle == 'daily':
+            ready = self.selected_action and self.selected_time
+        elif self.selected_cycle == 'weekly':
+            ready = self.selected_action and self.selected_day and self.selected_time
+        elif self.selected_cycle == 'monthly':
+            ready = self.selected_action and self.selected_day and self.selected_time
+        elif self.selected_cycle == 'yearly':
+            ready = self.selected_action and self.selected_day and self.selected_month and self.selected_time
+        elif self.selected_cycle == 'once':
+            ready = self.selected_action and self.selected_day and self.selected_month and self.selected_year and self.selected_time
+        else:
+            ready = False
+            
+        # Add or update create button
+        if ready:
+            if self.create_button not in self.children:
+                self.create_button.row = 4  # Ensure it's always on row 4
+                self.add_item(self.create_button)
+            self.create_button.disabled = False
+        else:
+            if self.create_button in self.children:
+                self.create_button.disabled = True
+                
+    def clear_dropdowns_after(self, keep_until_row: int):
+        """Remove all dropdowns after a certain row."""
+        items_to_remove = []
+        for item in self.children:
+            if hasattr(item, 'row') and item.row is not None and item.row > keep_until_row and item != self.create_button:
+                items_to_remove.append(item)
+        for item in items_to_remove:
+            self.remove_item(item)
+            
+    def get_next_available_row(self):
+        """Get the next available row for a dropdown."""
+        # Find the highest row number in use
+        max_row = -1
+        for item in self.children:
+            if item != self.create_button and not isinstance(item, discord.ui.Button):
+                if hasattr(item, 'row') and item.row is not None:
+                    max_row = max(max_row, item.row)
+        
+        # Return the next row (but max 3 for dropdowns, keeping 4 for button)
+        next_row = max_row + 1
+        if next_row > 3:
+            # If we're out of rows, we need to remove some dropdowns first
+            logger.warning(f"No more rows available! Max row in use: {max_row}")
+            return 3
+        return next_row
+        
+
+class CycleDropdown(discord.ui.Select):
+    """Dropdown for selecting task cycle."""
+    
+    def __init__(self):
+        options = [
+            discord.SelectOption(label="Daily", description="Run every day", emoji="📅", value="daily"),
+            discord.SelectOption(label="Weekly", description="Run weekly on specific day", emoji="📆", value="weekly"),
+            discord.SelectOption(label="Monthly", description="Run monthly on specific day", emoji="🗓️", value="monthly"),
+            discord.SelectOption(label="Yearly", description="Run yearly on specific date", emoji="📊", value="yearly"),
+            discord.SelectOption(label="Once", description="Run once at specific date", emoji="⚡", value="once")
+        ]
+        
+        super().__init__(placeholder="🔄 Choose cycle type...", options=options, row=0)
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle cycle selection and show action dropdown."""
+        self.view.selected_cycle = self.values[0]
+        
+        # Clear any existing dropdowns after this one
+        self.view.clear_dropdowns_after(0)
+        
+        # Reset selections
+        self.view.selected_action = None
+        self.view.selected_day = None
+        self.view.selected_month = None
+        self.view.selected_year = None
+        self.view.selected_time = None
+        
+        # Add action dropdown
+        action_dropdown = ActionDropdown()
+        action_dropdown.row = self.view.get_next_available_row()
+        self.view.add_item(action_dropdown)
+        
+        embed = discord.Embed(
+            title=f"⏰ Create Task: {self.view.container_name}",
+            description=f"✅ **Cycle:** {self.values[0].title()}\n\nNow choose the action...",
+            color=discord.Color.blue()
+        )
+        
+        await interaction.response.edit_message(embed=embed, view=self.view)
+
+
+class ActionDropdown(discord.ui.Select):
+    """Dropdown for selecting task action."""
+    
+    def __init__(self):
+        options = [
+            discord.SelectOption(label="Start", description="Start the container", emoji="▶️", value="start"),
+            discord.SelectOption(label="Stop", description="Stop the container", emoji="⏹️", value="stop"),
+            discord.SelectOption(label="Restart", description="Restart the container", emoji="🔄", value="restart")
+        ]
+        
+        super().__init__(placeholder="⚙️ Choose action...", options=options, row=1)
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle action selection and show next dropdown based on cycle."""
+        self.view.selected_action = self.values[0]
+        
+        # Clear any existing dropdowns after this one
+        self.view.clear_dropdowns_after(self.row if hasattr(self, 'row') else 1)
+        
+        # Reset subsequent selections
+        self.view.selected_day = None
+        self.view.selected_month = None
+        self.view.selected_year = None
+        self.view.selected_time = None
+        
+        # Add next dropdown based on cycle type
+        if self.view.selected_cycle == 'daily':
+            # Daily only needs time
+            time_dropdown = TimeDropdown()
+            time_dropdown.row = self.view.get_next_available_row()
+            self.view.add_item(time_dropdown)
+        elif self.view.selected_cycle == 'weekly':
+            # Weekly needs weekday first
+            weekday_dropdown = WeekdayDropdown()
+            weekday_dropdown.row = self.view.get_next_available_row()
+            self.view.add_item(weekday_dropdown)
+        elif self.view.selected_cycle == 'monthly':
+            # Monthly needs day of month first
+            day_dropdown = SimpleMonthdayDropdown()
+            day_dropdown.row = self.view.get_next_available_row()
+            self.view.add_item(day_dropdown)
+        elif self.view.selected_cycle == 'yearly':
+            # Yearly needs day first
+            day_dropdown = SimpleMonthdayDropdown()
+            day_dropdown.row = self.view.get_next_available_row()
+            self.view.add_item(day_dropdown)
+        elif self.view.selected_cycle == 'once':
+            # Once needs day first
+            day_dropdown = SimpleMonthdayDropdown()
+            day_dropdown.row = self.view.get_next_available_row()
+            self.view.add_item(day_dropdown)
+        
+        embed = discord.Embed(
+            title=f"⏰ Create Task: {self.view.container_name}",
+            description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.values[0].title()}\n\nContinue with the next selection...",
+            color=discord.Color.blue()
+        )
+        
+        await interaction.response.edit_message(embed=embed, view=self.view)
+
+
+class SimpleMonthdayDropdown(discord.ui.Select):
+    """Simple dropdown for selecting day of month (1-31 excluding some days)."""
+    
+    def __init__(self):
+        # Days to include (excluding 5,6,11,17,18,26,29)
+        days = [1,2,3,4,7,8,9,10,12,13,14,15,16,19,20,21,22,23,24,25,27,28,30,31]
+        options = []
+        for day in days:
+            options.append(discord.SelectOption(
+                label=f"{day:02d}",
+                value=str(day)
+            ))
+        
+        # Dynamic row assignment to avoid conflicts
+        super().__init__(placeholder="📅 Choose day...", options=options[:25])
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle day selection."""
+        self.view.selected_day = self.values[0]
+        
+        # Clear any existing dropdowns after this one
+        self.view.clear_dropdowns_after(self.row if hasattr(self, 'row') else 2)
+        
+        # Add next dropdown based on cycle
+        if self.view.selected_cycle == 'monthly':
+            # Monthly: after day comes time
+            # Remove day dropdown to make room (value already saved)
+            self.view.remove_item(self)
+            
+            time_dropdown = TimeDropdown()
+            time_dropdown.row = self.view.get_next_available_row()
+            self.view.add_item(time_dropdown)
+        elif self.view.selected_cycle == 'yearly':
+            # Yearly: after day comes month
+            month_dropdown = MonthDropdown()
+            month_dropdown.row = self.view.get_next_available_row()
+            self.view.add_item(month_dropdown)
+        elif self.view.selected_cycle == 'once':
+            # Once: after day comes month
+            month_dropdown = MonthDropdown()
+            month_dropdown.row = self.view.get_next_available_row()
+            self.view.add_item(month_dropdown)
+        
+        embed = discord.Embed(
+            title=f"⏰ Create Task: {self.view.container_name}",
+            description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.view.selected_action.title()}\n✅ **Day:** {self.values[0]}\n\nContinue...",
+            color=discord.Color.blue()
+        )
+        
+        await interaction.response.edit_message(embed=embed, view=self.view)
+
+
+class MonthDropdown(discord.ui.Select):
+    """Dropdown for selecting month."""
+    
+    def __init__(self):
+        months = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ]
+        
+        options = []
+        for i, month in enumerate(months, 1):
+            options.append(discord.SelectOption(
+                label=month,
+                value=str(i)
+            ))
+        
+        # Dynamic row assignment
+        super().__init__(placeholder="📅 Choose month...", options=options)
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle month selection."""
+        self.view.selected_month = self.values[0]
+        
+        # Clear any existing dropdowns after this one
+        self.view.clear_dropdowns_after(self.row if hasattr(self, 'row') else 3)
+        
+        # Add next dropdown based on cycle
+        if self.view.selected_cycle == 'yearly':
+            # Yearly: after month comes time
+            # Remove day and month dropdowns to make room (values already saved)
+            items_to_remove = []
+            for item in self.view.children:
+                if isinstance(item, (SimpleMonthdayDropdown, MonthDropdown)):
+                    items_to_remove.append(item)
+            for item in items_to_remove:
+                self.view.remove_item(item)
+            
+            # Now add time dropdown
+            time_dropdown = TimeDropdown()
+            time_dropdown.row = self.view.get_next_available_row()
+            self.view.add_item(time_dropdown)
+        elif self.view.selected_cycle == 'once':
+            # Once: after month comes year
+            # Remove day AND month dropdowns to make room (values already saved)
+            items_to_remove = []
+            for item in self.view.children:
+                if isinstance(item, (SimpleMonthdayDropdown, MonthDropdown)):
+                    items_to_remove.append(item)
+            for item in items_to_remove:
+                self.view.remove_item(item)
+            
+            year_dropdown = YearDropdown()
+            year_dropdown.row = self.view.get_next_available_row()
+            self.view.add_item(year_dropdown)
+        
+        embed = discord.Embed(
+            title=f"⏰ Create Task: {self.view.container_name}",
+            description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.view.selected_action.title()}\n✅ **Day:** {self.view.selected_day}\n✅ **Month:** {self.values[0]}\n\nContinue...",
+            color=discord.Color.blue()
+        )
+        
+        await interaction.response.edit_message(embed=embed, view=self.view)
+
+
+class YearDropdown(discord.ui.Select):
+    """Dropdown for selecting year."""
+    
+    def __init__(self):
+        from datetime import datetime
+        current_year = datetime.now().year
+        
+        options = []
+        for year in range(current_year, current_year + 11):  # Current year + 10 years
+            options.append(discord.SelectOption(
+                label=str(year),
+                value=str(year)
+            ))
+        
+        # Dynamic row assignment
+        super().__init__(placeholder="📅 Choose year...", options=options)
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle year selection."""
+        self.view.selected_year = self.values[0]
+        
+        # After year comes time (for once)
+        # Remove previous dropdowns to make room (values already saved)
+        items_to_remove = []
+        for item in self.view.children:
+            if isinstance(item, (SimpleMonthdayDropdown, MonthDropdown, YearDropdown)):
+                items_to_remove.append(item)
+        for item in items_to_remove:
+            self.view.remove_item(item)
+            
+        time_dropdown = TimeDropdown()
+        time_dropdown.row = self.view.get_next_available_row()
+        self.view.add_item(time_dropdown)
+        
+        embed = discord.Embed(
+            title=f"⏰ Create Task: {self.view.container_name}",
+            description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.view.selected_action.title()}\n✅ **Day:** {self.view.selected_day}\n✅ **Month:** {self.view.selected_month}\n✅ **Year:** {self.values[0]}\n\nNow choose the time...",
+            color=discord.Color.blue()
+        )
+        
+        await interaction.response.edit_message(embed=embed, view=self.view)
+
+
+class TimeDropdown(discord.ui.Select):
+    """Dropdown for selecting task time."""
+    
+    def __init__(self):
+        # Common times throughout the day
+        times = []
+        for hour in range(0, 24):  # Every hour
+            time_str = f"{hour:02d}:00"
+            label = f"{time_str}"
+            times.append(discord.SelectOption(label=label, value=time_str))
+        
+        # Dynamic row assignment
+        super().__init__(placeholder="⏰ Choose time...", options=times[:24])
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle time selection - final step."""
+        self.view.selected_time = self.values[0]
+        self.view.check_ready()
+        
+        # Build summary of selections
+        summary = [f"✅ **Cycle:** {self.view.selected_cycle.title()}"]
+        summary.append(f"✅ **Action:** {self.view.selected_action.title()}")
+        
+        if self.view.selected_cycle == 'weekly':
+            summary.append(f"✅ **Weekday:** {self.view.selected_day.title()}")
+        elif self.view.selected_cycle in ['monthly', 'yearly', 'once']:
+            summary.append(f"✅ **Day:** {self.view.selected_day}")
+        
+        if self.view.selected_cycle in ['yearly', 'once']:
+            # Get month name
+            months = ["January", "February", "March", "April", "May", "June",
+                     "July", "August", "September", "October", "November", "December"]
+            month_name = months[int(self.view.selected_month) - 1]
+            summary.append(f"✅ **Month:** {month_name}")
+        
+        if self.view.selected_cycle == 'once':
+            summary.append(f"✅ **Year:** {self.view.selected_year}")
+            
+        summary.append(f"✅ **Time:** {self.values[0]}")
+        
+        embed = discord.Embed(
+            title=f"⏰ Create Task: {self.view.container_name}",
+            description="\n".join(summary) + "\n\n**Task configuration complete!** Click 'Create Task' to save.",
+            color=discord.Color.green()
+        )
+        
+        await interaction.response.edit_message(embed=embed, view=self.view)
+
+
+class WeekdayDropdown(discord.ui.Select):
+    """Dropdown for selecting weekday."""
+    
+    def __init__(self):
+        options = [
+            discord.SelectOption(label="Monday", value="monday"),
+            discord.SelectOption(label="Tuesday", value="tuesday"),
+            discord.SelectOption(label="Wednesday", value="wednesday"),
+            discord.SelectOption(label="Thursday", value="thursday"),
+            discord.SelectOption(label="Friday", value="friday"),
+            discord.SelectOption(label="Saturday", value="saturday"),
+            discord.SelectOption(label="Sunday", value="sunday")
+        ]
+        
+        # Dynamic row assignment
+        super().__init__(placeholder="📅 Choose weekday...", options=options)
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle weekday selection."""
+        self.view.selected_day = self.values[0]
+        
+        # Clear any existing dropdowns after this one
+        self.view.clear_dropdowns_after(self.row if hasattr(self, 'row') else 2)
+        
+        # Add time dropdown (final step for weekly)
+        # Remove weekday dropdown to make room (value already saved)
+        self.view.remove_item(self)
+        
+        time_dropdown = TimeDropdown()
+        time_dropdown.row = self.view.get_next_available_row()
+        self.view.add_item(time_dropdown)
+        
+        embed = discord.Embed(
+            title=f"⏰ Create Task: {self.view.container_name}",
+            description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.view.selected_action.title()}\n✅ **Weekday:** {self.values[0].title()}\n\nNow choose the time...",
+            color=discord.Color.blue()
+        )
+        
+        await interaction.response.edit_message(embed=embed, view=self.view)
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle weekday selection."""
+        self.view.selected_day = self.values[0]
+        self.view.check_ready()
+        
+        embed = discord.Embed(
+            title=f"⏰ Create Task: {self.view.container_name}",
+            description=f"✅ All settings configured!\n\n**Cycle:** {self.view.selected_cycle.title()}\n**Action:** {self.view.selected_action.title()}\n**Time:** {self.view.selected_time}\n**Weekday:** {self.values[0].title()}",
+            color=discord.Color.green()
+        )
+        
+        await interaction.response.edit_message(embed=embed, view=self.view)
+
+
+class MonthdayDropdown(discord.ui.Select):
+    """Dropdown for selecting day of month."""
+    
+    def __init__(self):
+        options = []
+        for day in range(1, 32):  # 1-31
+            suffix = "st" if day in [1, 21, 31] else "nd" if day in [2, 22] else "rd" if day in [3, 23] else "th"
+            options.append(discord.SelectOption(label=f"{day}{suffix} of month", value=str(day)))
+        
+        super().__init__(placeholder="📅 Choose day of month...", options=options[:25], row=3)  # Max 25
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle monthday selection."""
+        self.view.selected_day = self.values[0]
+        self.view.check_ready()
+        
+        embed = discord.Embed(
+            title=f"⏰ Create Task: {self.view.container_name}",
+            description=f"✅ All settings configured!\n\n**Cycle:** {self.view.selected_cycle.title()}\n**Action:** {self.view.selected_action.title()}\n**Time:** {self.view.selected_time}\n**Day:** {self.values[0]}",
+            color=discord.Color.green()
+        )
+        
+        await interaction.response.edit_message(embed=embed, view=self.view)
+
+
+class YeardayDropdown(discord.ui.Select):
+    """Dropdown for selecting date input method for yearly tasks."""
+    
+    def __init__(self):
+        options = [
+            discord.SelectOption(
+                label="Manual Date Entry", 
+                description="Enter custom DD.MM date", 
+                emoji="✏️", 
+                value="manual"
+            ),
+            discord.SelectOption(
+                label="01.01 - New Year's Day", 
+                description="January 1st", 
+                emoji="🎊", 
+                value="01.01"
+            ),
+            discord.SelectOption(
+                label="14.02 - Valentine's Day", 
+                description="February 14th", 
+                emoji="💝", 
+                value="14.02"
+            ),
+            discord.SelectOption(
+                label="01.04 - April 1st", 
+                description="April Fools Day", 
+                emoji="🃏", 
+                value="01.04"
+            ),
+            discord.SelectOption(
+                label="01.05 - May Day", 
+                description="May 1st", 
+                emoji="🌸", 
+                value="01.05"
+            ),
+            discord.SelectOption(
+                label="31.10 - Halloween", 
+                description="October 31st", 
+                emoji="🎃", 
+                value="31.10"
+            ),
+            discord.SelectOption(
+                label="24.12 - Christmas Eve", 
+                description="December 24th", 
+                emoji="🎄", 
+                value="24.12"
+            ),
+            discord.SelectOption(
+                label="25.12 - Christmas Day", 
+                description="December 25th", 
+                emoji="🎁", 
+                value="25.12"
+            ),
+            discord.SelectOption(
+                label="31.12 - New Year's Eve", 
+                description="December 31st", 
+                emoji="🎆", 
+                value="31.12"
+            )
+        ]
+        
+        super().__init__(placeholder="📅 Choose yearly date or manual entry...", options=options[:25], row=3)
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle yearly date selection or show manual input."""
+        if self.values[0] == "manual":
+            # Since modals don't work, use a message with instructions
+            embed = discord.Embed(
+                title="📅 Manual Date Entry",
+                description="Please enter the date in **DD.MM** format",
+                color=discord.Color.blue()
+            )
+            
+            embed.add_field(
+                name="📝 Instructions",
+                value="Type your date below in this format:\n`25.12` for December 25th\n`01.01` for January 1st\n`15.06` for June 15th",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="⚠️ Important",
+                value="After typing your date, click the button below to confirm.",
+                inline=False
+            )
+            
+            # Create a view with a text select for manual date input
+            manual_view = ManualDateView(self.view)
+            
+            await interaction.response.send_message(
+                embed=embed,
+                view=manual_view,
+                ephemeral=True
+            )
+        else:
+            # Use predefined date
+            self.view.selected_day = self.values[0]
+            self.view.check_ready()
+            
+            embed = discord.Embed(
+                title=f"⏰ Create Task: {self.view.container_name}",
+                description=f"✅ All settings configured!\n\n**Cycle:** {self.view.selected_cycle.title()}\n**Action:** {self.view.selected_action.title()}\n**Time:** {self.view.selected_time}\n**Date:** {self.values[0]}",
+                color=discord.Color.green()
+            )
+            
+            await interaction.response.edit_message(embed=embed, view=self.view)
+
+
+class ManualDateView(discord.ui.View):
+    """View for manual date entry using dropdowns instead of modal."""
+    
+    def __init__(self, task_view):
+        super().__init__(timeout=300)
+        self.task_view = task_view
+        
+        # Add day dropdown (1-31)
+        self.add_item(DaySelectDropdown())
+        
+        # Add month dropdown (1-12)
+        self.add_item(MonthSelectDropdown())
+        
+        # Add confirm button
+        self.add_item(ConfirmDateButton())
+
+
+class DaySelectDropdown(discord.ui.Select):
+    """Dropdown for selecting day of month."""
+    
+    def __init__(self):
+        options = []
+        for day in range(1, 32):
+            options.append(discord.SelectOption(
+                label=f"{day:02d}",
+                value=str(day)
+            ))
+        
+        super().__init__(placeholder="📅 Select Day (1-31)...", options=options[:25], row=0)
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle day selection."""
+        self.view.selected_day_part = self.values[0].zfill(2)
+        
+        # Check if both parts are selected
+        if hasattr(self.view, 'selected_month_part'):
+            self.view.children[-1].disabled = False  # Enable confirm button
+        
+        await interaction.response.edit_message(view=self.view)
+
+
+class MonthSelectDropdown(discord.ui.Select):
+    """Dropdown for selecting month."""
+    
+    def __init__(self):
+        months = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ]
+        
+        options = []
+        for i, month in enumerate(months, 1):
+            options.append(discord.SelectOption(
+                label=f"{i:02d} - {month}",
+                value=str(i)
+            ))
+        
+        super().__init__(placeholder="📅 Select Month...", options=options, row=1)
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle month selection."""
+        self.view.selected_month_part = self.values[0].zfill(2)
+        
+        # Check if both parts are selected
+        if hasattr(self.view, 'selected_day_part'):
+            self.view.children[-1].disabled = False  # Enable confirm button
+        
+        await interaction.response.edit_message(view=self.view)
+
+
+class ConfirmDateButton(discord.ui.Button):
+    """Button to confirm the manual date entry."""
+    
+    def __init__(self):
+        super().__init__(
+            style=discord.ButtonStyle.primary,
+            label="Confirm Date",
+            emoji="✅",
+            disabled=True,
+            row=2
+        )
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Confirm the date and update task view."""
+        # Combine day and month
+        date_str = f"{self.view.selected_day_part}.{self.view.selected_month_part}"
+        
+        # Validate the date
+        try:
+            day = int(self.view.selected_day_part)
+            month = int(self.view.selected_month_part)
+            
+            import calendar
+            if day > calendar.monthrange(2024, month)[1]:
+                await interaction.response.send_message(
+                    f"❌ Invalid date: Day {day} doesn't exist in month {month}",
+                    ephemeral=True
+                )
+                return
+        except Exception as e:
+            await interaction.response.send_message(
+                f"❌ Invalid date: {str(e)}",
+                ephemeral=True
+            )
+            return
+        
+        # Update the task view
+        self.view.task_view.selected_day = date_str
+        self.view.task_view.check_ready()
+        
+        embed = discord.Embed(
+            title=f"⏰ Create Task: {self.view.task_view.container_name}",
+            description=f"✅ Date configured: **{date_str}**\n\n**Cycle:** {self.view.task_view.selected_cycle.title()}\n**Action:** {self.view.task_view.selected_action.title()}\n**Time:** {self.view.task_view.selected_time}\n**Date:** {date_str}",
+            color=discord.Color.green()
+        )
+        
+        await interaction.response.send_message(
+            embed=embed,
+            view=self.view.task_view,
+            ephemeral=True
+        )
+
+
+class YearlyDateModal(Modal):
+    """Modal for manual yearly date entry."""
+    
+    def __init__(self, task_view):
+        self.task_view = task_view
+        
+        # EXACT copy of working modal initialization pattern
+        title = "📅 Enter Yearly Date"
+        if len(title) > 45:  # Discord modal title limit
+            title = f"📅 Date"
+        
+        super().__init__(title=title, timeout=300)
+        
+        # EXACT copy of working InputText creation - Import at top like working modal
+        from discord import InputTextStyle
+        
+        # Use EXACT same pattern as working modal
+        self.date_input = discord.ui.InputText(
+            label="📅 Date (DD.MM format)",
+            style=InputTextStyle.short,
+            value="",  # Add explicit empty value like working modal
+            placeholder="25.12 or 01.01 or 15.06",
+            max_length=5,
+            required=True  # Remove min_length as working modal doesn't use it
+        )
+        self.add_item(self.date_input)
+    
+    async def on_submit(self, interaction: discord.Interaction):
+        """Process manual date entry."""
+        # CRITICAL DEBUG: Log that on_submit was called
+        logger.info(f"🚨 YEARLY MODAL: on_submit called! Value: '{self.date_input.value}'")
+        logger.info(f"🚨 YEARLY MODAL: Interaction user: {interaction.user}")
+        logger.info(f"🚨 YEARLY MODAL: Responded: {interaction.response.is_done()}")
+        
+        try:
+            date_str = self.date_input.value.strip()
+            
+            # Validate DD.MM format
+            if len(date_str) != 5 or date_str[2] != '.':
+                await interaction.response.send_message(
+                    "❌ Invalid format. Please use DD.MM format (e.g., 25.12)",
+                    ephemeral=True
+                )
+                return
+            
+            day_str, month_str = date_str.split('.')
+            
+            # Validate day and month
+            try:
+                day = int(day_str)
+                month = int(month_str)
+                
+                if not (1 <= day <= 31):
+                    raise ValueError("Day must be 1-31")
+                if not (1 <= month <= 12):
+                    raise ValueError("Month must be 1-12")
+                    
+                # Basic date validation
+                import calendar
+                if day > calendar.monthrange(2024, month)[1]:  # Use 2024 as reference year
+                    raise ValueError(f"Day {day} is invalid for month {month}")
+                    
+            except ValueError as e:
+                await interaction.response.send_message(
+                    f"❌ Invalid date: {str(e)}",
+                    ephemeral=True
+                )
+                return
+            
+            # Set the date and update view
+            self.task_view.selected_day = date_str
+            self.task_view.check_ready()
+            
+            embed = discord.Embed(
+                title=f"⏰ Create Task: {self.task_view.container_name}",
+                description=f"✅ All settings configured!\n\n**Cycle:** {self.task_view.selected_cycle.title()}\n**Action:** {self.task_view.selected_action.title()}\n**Time:** {self.task_view.selected_time}\n**Date:** {date_str} (Custom)",
+                color=discord.Color.green()
+            )
+            
+            await interaction.response.send_message(
+                embed=embed,
+                view=self.task_view,
+                ephemeral=True
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in yearly date modal: {e}", exc_info=True)
+            await interaction.response.send_message(
+                "❌ An error occurred. Please try again.",
+                ephemeral=True
+            )
+
+
+class DateDropdown(discord.ui.Select):
+    """Dropdown for selecting specific date for once tasks."""
+    
+    def __init__(self):
+        from datetime import datetime, timedelta
+        
+        # Generate dates for next few months
+        today = datetime.now()
+        options = []
+        
+        for days_ahead in range(1, 61):  # Next 60 days
+            date = today + timedelta(days=days_ahead)
+            date_str = date.strftime("%d.%m.%Y")
+            day_name = date.strftime("%A")
+            options.append(discord.SelectOption(
+                label=f"{date_str} ({day_name})",
+                value=date_str
+            ))
+            
+            if len(options) >= 25:  # Discord limit
+                break
+        
+        super().__init__(placeholder="📅 Choose specific date...", options=options, row=3)
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Handle specific date selection."""
+        self.view.selected_day = self.values[0]
+        self.view.check_ready()
+        
+        embed = discord.Embed(
+            title=f"⏰ Create Task: {self.view.container_name}",
+            description=f"✅ All settings configured!\n\n**Cycle:** {self.view.selected_cycle.title()}\n**Action:** {self.view.selected_action.title()}\n**Time:** {self.view.selected_time}\n**Date:** {self.values[0]}",
+            color=discord.Color.green()
+        )
+        
+        await interaction.response.edit_message(embed=embed, view=self.view)
+
+
+class CreateTaskButton(discord.ui.Button):
+    """Button to directly create the task."""
+    
+    def __init__(self, cog_instance, container_name: str):
+        super().__init__(
+            style=discord.ButtonStyle.primary,
+            label="Create Task",
+            emoji="✅"
+            # Row will be set dynamically when adding to view
+        )
+        self.cog = cog_instance
+        self.container_name = container_name
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Directly create task with selected parameters."""
+        # Validate all required fields
+        missing = []
+        if not self.view.selected_cycle:
+            missing.append("Cycle")
+        if not self.view.selected_action:
+            missing.append("Action") 
+        if not self.view.selected_time:
+            missing.append("Time")
+        if self.view.selected_cycle in ['weekly', 'monthly', 'yearly', 'once'] and not self.view.selected_day:
+            missing.append("Day/Date")
+            
+        if missing:
+            await interaction.response.send_message(f"❌ Please select: {', '.join(missing)}", ephemeral=True)
+            return
+        
+        try:
+            await interaction.response.defer(ephemeral=True)
+            
+            # Import required modules
+            from services.scheduling.scheduler import ScheduledTask, add_task, parse_time_string, parse_weekday_string
+            from services.scheduling.schedule_helpers import validate_task_before_creation
+            from services.infrastructure.action_logger import log_user_action
+            import uuid
+            import time
+            
+            # Parse time
+            hour, minute = parse_time_string(self.view.selected_time)
+            
+            # Parse day/date based on cycle type
+            day_val = None
+            weekday_val = None
+            month_val = None
+            year_val = None
+            
+            if self.view.selected_cycle == 'weekly':
+                weekday_val = parse_weekday_string(self.view.selected_day)
+            elif self.view.selected_cycle == 'monthly':
+                day_val = int(self.view.selected_day)
+            elif self.view.selected_cycle == 'yearly':
+                # We now have separate day and month fields
+                day_val = int(self.view.selected_day)
+                month_val = int(self.view.selected_month)
+            elif self.view.selected_cycle == 'once':
+                # We now have separate day, month and year fields
+                day_val = int(self.view.selected_day)
+                month_val = int(self.view.selected_month)
+                year_val = int(self.view.selected_year)
+            
+            # Create ScheduledTask
+            task = ScheduledTask(
+                task_id=str(uuid.uuid4()),
+                container_name=self.container_name,
+                action=self.view.selected_action,
+                cycle=self.view.selected_cycle,
+                hour=hour,
+                minute=minute,
+                day=day_val if self.view.selected_cycle != 'weekly' else None,
+                weekday=weekday_val,
+                month=month_val if self.view.selected_cycle in ['yearly', 'once'] else None,
+                year=year_val if self.view.selected_cycle == 'once' else None,
+                created_by=str(interaction.user),
+                created_at=time.time(),
+                timezone_str="Europe/Berlin"
+            )
+            
+            # Calculate next run time
+            task.calculate_next_run()
+            
+            # Validate and save
+            validate_task_before_creation(task)
+            
+            if add_task(task):
+                # Log the action
+                log_user_action(
+                    action="TASK_CREATE_BUTTON",
+                    target=self.container_name,
+                    user=str(interaction.user),
+                    source="Task Button",
+                    details=f"Action: {self.view.selected_action}, Cycle: {self.view.selected_cycle}, Time: {self.view.selected_time}"
+                )
+                
+                # Success embed
+                embed = discord.Embed(
+                    title="✅ Task Created Successfully!",
+                    description=f"Task has been created for **{self.container_name}**",
+                    color=discord.Color.green()
+                )
+                
+                embed.add_field(
+                    name="📋 Configuration",
+                    value=f"**Action:** {self.view.selected_action.title()}\n"
+                          f"**Cycle:** {self.view.selected_cycle.title()}\n"
+                          f"**Time:** {self.view.selected_time}\n" +
+                          (f"**Day/Date:** {self.view.selected_day}" if self.view.selected_day else ""),
+                    inline=False
+                )
+                
+                # Format next run time
+                if task.next_run_ts:
+                    from datetime import datetime
+                    import pytz
+                    tz = pytz.timezone("Europe/Berlin")
+                    next_run = datetime.fromtimestamp(task.next_run_ts, tz).strftime('%Y-%m-%d %H:%M %Z')
+                    embed.add_field(
+                        name="⏰ Next Run",
+                        value=f"`{next_run}`",
+                        inline=True
+                    )
+                
+                embed.add_field(
+                    name="🔍 Task ID",
+                    value=f"`{task.task_id}`",
+                    inline=True
+                )
+                
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                
+            else:
+                await interaction.followup.send(
+                    "❌ Failed to create task. Please check for time conflicts or try again.",
+                    ephemeral=True
+                )
+                
+        except Exception as e:
+            logger.error(f"Error creating task: {e}", exc_info=True)
+            error_msg = str(e)
+            if "collision" in error_msg.lower():
+                await interaction.followup.send(
+                    f"❌ **Time Conflict**: Another task is already scheduled within 10 minutes of this time for {self.container_name}.",
+                    ephemeral=True
+                )
+            elif "past" in error_msg.lower():
+                await interaction.followup.send(
+                    f"❌ **Invalid Time**: The scheduled time is in the past. Please select a future time.",
+                    ephemeral=True
+                )
+            else:
+                await interaction.followup.send(
+                    f"❌ **Error**: {error_msg[:200]}",
+                    ephemeral=True
+                )
+
+
+class AddTaskModal(discord.ui.Modal):
+    """TEST MODAL - Copied exactly from working EnhancedContainerInfoModal."""
+    
+    def __init__(self, cog_instance, container_name: str):
+        self.cog = cog_instance
+        self.container_name = container_name
+        logger.info(f"TEST: Modal __init__ called for container: {container_name}")
+        
+        # EXACT copy of working modal initialization
+        title = f"Test Modal: {container_name}"
+        if len(title) > 45:  # Discord modal title limit
+            title = f"Test: {container_name[:35]}..."
+        
+        super().__init__(title=title, timeout=300)
+        
+        # EXACT copy of working InputText field - Import InputTextStyle like working modal
+        from discord import InputTextStyle
+        
+        self.test_input = discord.ui.InputText(
+            label="Test Input (50 chars max)",
+            style=InputTextStyle.short,
+            value="",
+            max_length=50,
+            required=False,
+            placeholder="Type anything to test"
+        )
+        self.add_item(self.test_input)
+    
+    async def on_submit(self, interaction: discord.Interaction):
+        """TEST - Ultra-defensive version."""
+        logger.info(f"🚨 CRITICAL: on_submit called! This proves the modal works!")
+        logger.info(f"🚨 Input value: '{self.test_input.value}'")
+        logger.info(f"🚨 Interaction user: {interaction.user}")
+        logger.info(f"🚨 Interaction responded: {interaction.response.is_done()}")
+        
+        try:
+            # Test different response methods
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    f"✅ SUCCESS! Input: '{self.test_input.value}' from {interaction.user.mention}",
+                    ephemeral=True
+                )
+                logger.info("🚨 Response sent successfully!")
+            else:
+                logger.error("🚨 Interaction already responded!")
+                await interaction.followup.send(
+                    f"✅ SUCCESS (followup)! Input: '{self.test_input.value}'",
+                    ephemeral=True
+                )
+        except Exception as e:
+            logger.error(f"🚨 CRITICAL ERROR in on_submit: {e}", exc_info=True)
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(
+                        f"❌ Error occurred: {type(e).__name__}: {str(e)[:100]}",
+                        ephemeral=True
+                    )
+                else:
+                    await interaction.followup.send(
+                        f"❌ Error occurred: {type(e).__name__}: {str(e)[:100]}",
+                        ephemeral=True
+                    )
+            except:
+                logger.error("🚨 Failed to send error message too!")
+
 def should_show_info_in_status_channel(channel_id: int, config: Dict[str, Any]) -> bool:
     """
     Check if info integration should be shown in a status channel.
@@ -1188,3 +2520,158 @@ def should_show_info_in_status_channel(channel_id: int, config: Dict[str, Any]) 
     # This includes both control channels (as additional feature) and status-only channels
     # The StatusInfoView will be used only for status-only channels, control channels use ControlView
     return True
+
+
+class ContainerTaskDeleteView(discord.ui.View):
+    """View for deleting tasks specific to a container."""
+    
+    def __init__(self, cog_instance, tasks: list, container_name: str):
+        super().__init__(timeout=300)  # 5 minute timeout
+        self.cog = cog_instance
+        self.container_name = container_name
+        
+        # Add delete buttons for each task (max 25 due to Discord limits)
+        max_tasks = min(len(tasks), 25)
+        for i, task in enumerate(tasks[:max_tasks]):
+            task_id = task.task_id
+            
+            # Create detailed description for button
+            action = task.action.upper()
+            cycle_abbrev = {
+                'once': 'O',
+                'daily': 'D', 
+                'weekly': 'W',
+                'monthly': 'M',
+                'yearly': 'Y'
+            }.get(task.cycle, '?')
+            
+            # Get action emoji
+            action_emojis = {
+                'START': '▶️',
+                'STOP': '⏹️', 
+                'RESTART': '🔄'
+            }
+            action_emoji = action_emojis.get(action, '⚙️')
+            
+            # Build detailed time and date info
+            time_info = ""
+            if hasattr(task, 'next_run_ts') and task.next_run_ts:
+                from datetime import datetime
+                import pytz
+                tz = pytz.timezone("Europe/Berlin")
+                next_run = datetime.fromtimestamp(task.next_run_ts, tz)
+                
+                if task.cycle == 'once':
+                    # For once: show full date and time "O:13.08.27 14h"
+                    time_info = f":{next_run.strftime('%d.%m.%y %Hh')}"
+                elif task.cycle == 'daily':
+                    # For daily: show hour "D:17h"
+                    time_info = f":{next_run.strftime('%Hh')}"
+                elif task.cycle == 'weekly':
+                    # For weekly: show day and hour "W:Mo 17h"  
+                    weekday_abbrev = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'][next_run.weekday()]
+                    time_info = f":{weekday_abbrev} {next_run.strftime('%Hh')}"
+                elif task.cycle == 'monthly':
+                    # For monthly: show day and hour "M:15. 17h"
+                    time_info = f":{next_run.strftime('%d. %Hh')}"
+                elif task.cycle == 'yearly':
+                    # For yearly: show month.day and hour "Y:13.08 22h"
+                    time_info = f":{next_run.strftime('%d.%m %Hh')}"
+                else:
+                    # Fallback: just show time
+                    time_info = f":{next_run.strftime('%Hh')}"
+            elif hasattr(task, 'time_str') and task.time_str:
+                # Fallback to time_str if available
+                time_info = f":{task.time_str}"
+            
+            task_description = f"{cycle_abbrev}{time_info} {action_emoji}"
+            
+            # Limit description length for button
+            if len(task_description) > 35:
+                task_description = task_description[:32] + "..."
+            
+            row = i // 5  # 5 buttons per row
+            self.add_item(ContainerTaskDeleteButton(cog_instance, task_id, task_description, row))
+
+
+class ContainerTaskDeleteButton(discord.ui.Button):
+    """Button to delete a specific task."""
+    
+    def __init__(self, cog_instance, task_id: str, description: str, row: int):
+        super().__init__(
+            style=discord.ButtonStyle.red,
+            label=description,
+            custom_id=f"delete_task_{task_id}",
+            row=row
+        )
+        self.cog = cog_instance
+        self.task_id = task_id
+        self.description = description
+    
+    async def callback(self, interaction: discord.Interaction):
+        """Delete the task."""
+        try:
+            await interaction.response.defer(ephemeral=True)
+            
+            from services.scheduling.scheduler import delete_task, find_task_by_id
+            from services.infrastructure.action_logger import log_user_action
+            
+            # Find the task first to get info for logging
+            task = find_task_by_id(self.task_id)
+            if not task:
+                await interaction.followup.send(
+                    f"❌ Task not found (may have already been deleted).",
+                    ephemeral=True
+                )
+                return
+            
+            # Delete the task
+            success = delete_task(self.task_id)
+            
+            if success:
+                # Log the action
+                log_user_action(
+                    action="TASK_DELETE_BUTTON",
+                    target=task.container_name,
+                    user=str(interaction.user),
+                    source="Task Delete Button",
+                    details=f"Deleted task: {task.cycle} {task.action} for {task.container_name}"
+                )
+                
+                # Success response
+                embed = discord.Embed(
+                    title="✅ Task Deleted",
+                    description=f"Successfully deleted task: **{self.description}**",
+                    color=discord.Color.green()
+                )
+                
+                embed.add_field(
+                    name="Task Details",
+                    value=f"Container: {task.container_name}\nAction: {task.action.title()}\nCycle: {task.cycle.title()}",
+                    inline=False
+                )
+                
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                
+                # Remove this button from the view
+                self.view.remove_item(self)
+                
+                # Update the original message to remove the deleted task button
+                try:
+                    await interaction.edit_original_response(view=self.view)
+                except:
+                    # If editing fails, it's not critical
+                    pass
+                
+            else:
+                await interaction.followup.send(
+                    f"❌ Failed to delete task: **{self.description}**",
+                    ephemeral=True
+                )
+                
+        except Exception as e:
+            logger.error(f"Error deleting task {self.task_id}: {e}", exc_info=True)
+            await interaction.followup.send(
+                f"❌ Error occurred while deleting task.",
+                ephemeral=True
+            )
