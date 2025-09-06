@@ -1826,19 +1826,6 @@ class WeekdayDropdown(discord.ui.Select):
         )
         
         await interaction.response.edit_message(embed=embed, view=self.view)
-    
-    async def callback(self, interaction: discord.Interaction):
-        """Handle weekday selection."""
-        self.view.selected_day = self.values[0]
-        self.view.check_ready()
-        
-        embed = discord.Embed(
-            title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ All settings configured!\n\n**Cycle:** {self.view.selected_cycle.title()}\n**Action:** {self.view.selected_action.title()}\n**Time:** {self.view.selected_time}\n**Weekday:** {self.values[0].title()}",
-            color=discord.Color.green()
-        )
-        
-        await interaction.response.edit_message(embed=embed, view=self.view)
 
 
 class MonthdayDropdown(discord.ui.Select):
