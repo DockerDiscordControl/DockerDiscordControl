@@ -12,7 +12,7 @@ Provides read-only info display for channels with only /ss permission.
 """
 
 import discord
-from discord.ui import View, Button, Modal  # Add Modal import for YearlyDateModal
+from discord.ui import View, Button
 import os
 from typing import Dict, Any, Optional, List
 from utils.logging_utils import get_module_logger
@@ -1206,7 +1206,7 @@ class TaskManagementButton(discord.ui.Button):
                     return
                 setattr(self, f'_last_click_{user_id}', current_time)
             
-            # Show task list directly (can't send modal after defer)
+            # Show task list directly
             await self._show_task_list(interaction)
             
         except Exception as e:
@@ -1281,56 +1281,6 @@ class TaskManagementButton(discord.ui.Button):
             await interaction.followup.send("❌ Error loading task list.", ephemeral=True)
 
 
-class TaskListModal(discord.ui.Modal):
-    """Modal showing all scheduled tasks for a container with management options."""
-    
-    def __init__(self, cog_instance, container_name: str):
-        super().__init__(title=f"📋 Tasks: {container_name}")
-        self.cog = cog_instance
-        self.container_name = container_name
-        
-    async def on_submit(self, interaction: discord.Interaction):
-        """Handle modal submission."""
-        try:
-            await interaction.response.defer(ephemeral=True)
-            
-            # Get all tasks for this container
-            from services.scheduling.scheduler import load_tasks, get_tasks_for_container
-            
-            tasks = get_tasks_for_container(self.container_name)
-            
-            if not tasks:
-                embed = discord.Embed(
-                    title=f"⏰ No Tasks for {self.container_name}",
-                    description="No scheduled tasks found for this container.",
-                    color=discord.Color.orange()
-                )
-            else:
-                embed = discord.Embed(
-                    title=f"⏰ Scheduled Tasks: {self.container_name}",
-                    description=f"Found {len(tasks)} scheduled task(s):",
-                    color=discord.Color.blue()
-                )
-                
-                for task in tasks[:10]:  # Limit to 10 tasks to avoid embed limits
-                    status_emoji = "✅" if task.is_active else "❌"
-                    last_run = "Never" if not task.last_run_ts else f"<t:{int(task.last_run_ts)}:R>"
-                    next_run = "Not scheduled" if not task.next_run_ts else f"<t:{int(task.next_run_ts)}:R>"
-                    
-                    embed.add_field(
-                        name=f"{status_emoji} {task.cycle.title()} {task.action.title()}",
-                        value=f"**Last run:** {last_run}\n**Next run:** {next_run}\n**Active:** {'Yes' if task.is_active else 'No'}",
-                        inline=True
-                    )
-            
-            # Create view with management buttons
-            view = TaskManagementView(self.cog, self.container_name)
-            
-            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
-            
-        except Exception as e:
-            logger.error(f"Error showing task list: {e}", exc_info=True)
-            await interaction.followup.send("❌ Error loading tasks.", ephemeral=True)
 
 
 class TaskManagementView(discord.ui.View):
@@ -1361,7 +1311,7 @@ class AddTaskButton(discord.ui.Button):
         self.container_name = container_name
     
     async def callback(self, interaction: discord.Interaction):
-        """Show task creation with dropdowns (Modal doesn't work)."""
+        """Show task creation with dropdowns."""
         try:
             logger.info(f"AddTaskButton clicked for container: {self.container_name}")
             
@@ -1982,7 +1932,7 @@ class YeardayDropdown(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         """Handle yearly date selection or show manual input."""
         if self.values[0] == "manual":
-            # Since modals don't work, use a message with instructions
+            # Use a message with instructions
             embed = discord.Embed(
                 title="📅 Manual Date Entry",
                 description="Please enter the date in **DD.MM** format",
@@ -2146,97 +2096,6 @@ class ConfirmDateButton(discord.ui.Button):
         )
 
 
-class YearlyDateModal(Modal):
-    """Modal for manual yearly date entry."""
-    
-    def __init__(self, task_view):
-        self.task_view = task_view
-        
-        # EXACT copy of working modal initialization pattern
-        title = "📅 Enter Yearly Date"
-        if len(title) > 45:  # Discord modal title limit
-            title = f"📅 Date"
-        
-        super().__init__(title=title, timeout=300)
-        
-        # EXACT copy of working InputText creation - Import at top like working modal
-        from discord import InputTextStyle
-        
-        # Use EXACT same pattern as working modal
-        self.date_input = discord.ui.InputText(
-            label="📅 Date (DD.MM format)",
-            style=InputTextStyle.short,
-            value="",  # Add explicit empty value like working modal
-            placeholder="25.12 or 01.01 or 15.06",
-            max_length=5,
-            required=True  # Remove min_length as working modal doesn't use it
-        )
-        self.add_item(self.date_input)
-    
-    async def on_submit(self, interaction: discord.Interaction):
-        """Process manual date entry."""
-        # CRITICAL DEBUG: Log that on_submit was called
-        logger.info(f"🚨 YEARLY MODAL: on_submit called! Value: '{self.date_input.value}'")
-        logger.info(f"🚨 YEARLY MODAL: Interaction user: {interaction.user}")
-        logger.info(f"🚨 YEARLY MODAL: Responded: {interaction.response.is_done()}")
-        
-        try:
-            date_str = self.date_input.value.strip()
-            
-            # Validate DD.MM format
-            if len(date_str) != 5 or date_str[2] != '.':
-                await interaction.response.send_message(
-                    "❌ Invalid format. Please use DD.MM format (e.g., 25.12)",
-                    ephemeral=True
-                )
-                return
-            
-            day_str, month_str = date_str.split('.')
-            
-            # Validate day and month
-            try:
-                day = int(day_str)
-                month = int(month_str)
-                
-                if not (1 <= day <= 31):
-                    raise ValueError("Day must be 1-31")
-                if not (1 <= month <= 12):
-                    raise ValueError("Month must be 1-12")
-                    
-                # Basic date validation
-                import calendar
-                if day > calendar.monthrange(2024, month)[1]:  # Use 2024 as reference year
-                    raise ValueError(f"Day {day} is invalid for month {month}")
-                    
-            except ValueError as e:
-                await interaction.response.send_message(
-                    f"❌ Invalid date: {str(e)}",
-                    ephemeral=True
-                )
-                return
-            
-            # Set the date and update view
-            self.task_view.selected_day = date_str
-            self.task_view.check_ready()
-            
-            embed = discord.Embed(
-                title=f"⏰ Create Task: {self.task_view.container_name}",
-                description=f"✅ All settings configured!\n\n**Cycle:** {self.task_view.selected_cycle.title()}\n**Action:** {self.task_view.selected_action.title()}\n**Time:** {self.task_view.selected_time}\n**Date:** {date_str} (Custom)",
-                color=discord.Color.green()
-            )
-            
-            await interaction.response.send_message(
-                embed=embed,
-                view=self.task_view,
-                ephemeral=True
-            )
-            
-        except Exception as e:
-            logger.error(f"Error in yearly date modal: {e}", exc_info=True)
-            await interaction.response.send_message(
-                "❌ An error occurred. Please try again.",
-                ephemeral=True
-            )
 
 
 class DateDropdown(discord.ui.Select):
@@ -2435,70 +2294,6 @@ class CreateTaskButton(discord.ui.Button):
                 )
 
 
-class AddTaskModal(discord.ui.Modal):
-    """TEST MODAL - Copied exactly from working EnhancedContainerInfoModal."""
-    
-    def __init__(self, cog_instance, container_name: str):
-        self.cog = cog_instance
-        self.container_name = container_name
-        logger.info(f"TEST: Modal __init__ called for container: {container_name}")
-        
-        # EXACT copy of working modal initialization
-        title = f"Test Modal: {container_name}"
-        if len(title) > 45:  # Discord modal title limit
-            title = f"Test: {container_name[:35]}..."
-        
-        super().__init__(title=title, timeout=300)
-        
-        # EXACT copy of working InputText field - Import InputTextStyle like working modal
-        from discord import InputTextStyle
-        
-        self.test_input = discord.ui.InputText(
-            label="Test Input (50 chars max)",
-            style=InputTextStyle.short,
-            value="",
-            max_length=50,
-            required=False,
-            placeholder="Type anything to test"
-        )
-        self.add_item(self.test_input)
-    
-    async def on_submit(self, interaction: discord.Interaction):
-        """TEST - Ultra-defensive version."""
-        logger.info(f"🚨 CRITICAL: on_submit called! This proves the modal works!")
-        logger.info(f"🚨 Input value: '{self.test_input.value}'")
-        logger.info(f"🚨 Interaction user: {interaction.user}")
-        logger.info(f"🚨 Interaction responded: {interaction.response.is_done()}")
-        
-        try:
-            # Test different response methods
-            if not interaction.response.is_done():
-                await interaction.response.send_message(
-                    f"✅ SUCCESS! Input: '{self.test_input.value}' from {interaction.user.mention}",
-                    ephemeral=True
-                )
-                logger.info("🚨 Response sent successfully!")
-            else:
-                logger.error("🚨 Interaction already responded!")
-                await interaction.followup.send(
-                    f"✅ SUCCESS (followup)! Input: '{self.test_input.value}'",
-                    ephemeral=True
-                )
-        except Exception as e:
-            logger.error(f"🚨 CRITICAL ERROR in on_submit: {e}", exc_info=True)
-            try:
-                if not interaction.response.is_done():
-                    await interaction.response.send_message(
-                        f"❌ Error occurred: {type(e).__name__}: {str(e)[:100]}",
-                        ephemeral=True
-                    )
-                else:
-                    await interaction.followup.send(
-                        f"❌ Error occurred: {type(e).__name__}: {str(e)[:100]}",
-                        ephemeral=True
-                    )
-            except:
-                logger.error("🚨 Failed to send error message too!")
 
 def should_show_info_in_status_channel(channel_id: int, config: Dict[str, Any]) -> bool:
     """
