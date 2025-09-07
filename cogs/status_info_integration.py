@@ -1780,7 +1780,7 @@ class TimeDropdown(discord.ui.Select):
         
         embed = discord.Embed(
             title=f"⏰ {_('Create Task: {container}').format(container=self.view.container_name)}",
-            description="\n".join(summary) + f"\n\n**{_('Task configuration complete! Click \\'Create Task\\' to save.')}**",
+            description="\n".join(summary) + f"\n\n**{_('Task configuration complete! Click Create Task to save.')}**",
             color=discord.Color.green()
         )
         
