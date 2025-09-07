@@ -1375,21 +1375,21 @@ class DeleteTasksButton(discord.ui.Button):
             view = ContainerTaskDeleteView(self.cog, tasks, self.container_name)
             
             embed = discord.Embed(
-                title=f"❌ Delete Tasks: {self.container_name}",
-                description=f"Click any button below to delete the corresponding task for **{self.container_name}**:",
+                title=f"❌ {_('Delete Tasks: {container}').format(container=self.container_name)}",
+                description=f"{_('Click any button below to delete the corresponding task for **{container}**:').format(container=self.container_name)}",
                 color=discord.Color.red()
             )
             
             # Add legend
             embed.add_field(
-                name="Legend",
-                value="O = Once, D = Daily, W = Weekly, M = Monthly, Y = Yearly",
+                name=_("Legend"),
+                value=_("O = Once, D = Daily, W = Weekly, M = Monthly, Y = Yearly"),
                 inline=False
             )
             
             embed.add_field(
-                name="Found Tasks",
-                value=f"{len(tasks)} active tasks for {self.container_name}",
+                name=_("Found Tasks"),
+                value=f"{_('{count} active tasks for {container}').format(count=len(tasks), container=self.container_name)}",
                 inline=False
             )
             
@@ -1397,7 +1397,7 @@ class DeleteTasksButton(discord.ui.Button):
             
         except Exception as e:
             logger.error(f"Error in delete tasks button: {e}", exc_info=True)
-            await interaction.followup.send("❌ Error opening task delete panel.", ephemeral=True)
+            await interaction.followup.send(f"❌ {_('Error opening task delete panel.')}", ephemeral=True)
 
 
 class TaskCreationView(discord.ui.View):

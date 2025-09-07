@@ -591,6 +591,7 @@ class TranslationManager:
                 "Last Run": "Letzte Ausführung",
                 "ID": "ID",
                 "Showing first {count} of {total} tasks": "Zeige erste {count} von {total} Aufgaben",
+                "Error opening task delete panel.": "Fehler beim Öffnen des Task-Löschpanels.",
 
                 # Live Logs translations
                 "🔄 Refreshing logs...": "🔄 Logs werden aktualisiert...",
@@ -1007,6 +1008,7 @@ class TranslationManager:
                 "Last Run": "Dernière exécution",
                 "ID": "ID",
                 "Showing first {count} of {total} tasks": "Affichage des {count} premières tâches sur {total}",
+                "Error opening task delete panel.": "Erreur lors de l'ouverture du panneau de suppression des tâches.",
 
                 # Live Logs translations
                 "🔄 Refreshing logs...": "🔄 Actualisation des logs...",
@@ -1681,6 +1683,7 @@ class TranslationManager:
                 "Last Run": "Last Run",
                 "ID": "ID",
                 "Showing first {count} of {total} tasks": "Showing first {count} of {total} tasks",
+                "Error opening task delete panel.": "Error opening task delete panel.",
             }
             # Add other languages here if needed
         }
