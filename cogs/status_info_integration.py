@@ -2053,7 +2053,7 @@ class ConfirmDateButton(discord.ui.Button):
             month = int(self.view.selected_month_part)
             
             import calendar
-            if day > calendar.monthrange(2024, month)[1]:
+            if day > calendar.monthrange(2025, month)[1]:
                 await interaction.response.send_message(
                     f"❌ Invalid date: Day {day} doesn't exist in month {month}",
                     ephemeral=True

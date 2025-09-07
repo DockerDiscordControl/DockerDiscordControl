@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+# ============================================================================ #
+# DockerDiscordControl (DDC)                                                  #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                  #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
 """
 Module containing schedule command handlers for Discord slash commands.
 These are implemented as a mixin class to be used with the main DockerControlCog.
@@ -260,11 +266,11 @@ class ScheduleCommandsMixin:
             # Parse and validate year
             try:
                 year_int = int(year)
-                if year_int < 2024 or year_int > 2030:
-                    await ctx.respond(_("Year must be between 2024 and 2030."), ephemeral=True)
+                if year_int < 2025 or year_int > 2030:
+                    await ctx.respond(_("Year must be between 2025 and 2030."), ephemeral=True)
                     return
             except ValueError:
-                await ctx.respond(_("Invalid year format. Please use a 4-digit year (e.g., 2024)."), ephemeral=True)
+                await ctx.respond(_("Invalid year format. Please use a 4-digit year (e.g., 2025)."), ephemeral=True)
                 return
             
             # Parse and validate month

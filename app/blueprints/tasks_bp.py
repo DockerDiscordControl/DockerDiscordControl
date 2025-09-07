@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+# ============================================================================ #
+# DockerDiscordControl (DDC)                                                  #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                  #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
+
 from flask import Blueprint, request, jsonify, current_app
 import os # Keep for other os operations if present, otherwise remove.
 from datetime import datetime
