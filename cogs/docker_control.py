@@ -1443,12 +1443,21 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 return
                 
             # Try to defer immediately, but handle timeout gracefully
+            deferred = False
             try:
-                await ctx.response.defer(ephemeral=True)
-                deferred = True
+                if not ctx.response.is_done():
+                    await ctx.response.defer(ephemeral=True)
+                    deferred = True
+                    logger.debug(f"Successfully deferred /info command for {container_name}")
+                else:
+                    logger.debug(f"Interaction response already done for /info command, will use followup")
+                    deferred = True  # We'll use followup
             except discord.errors.NotFound:
                 # Interaction already timed out, but we can still try to respond
                 logger.debug(f"Interaction already timed out for /info command, attempting direct response")
+                deferred = False
+            except Exception as e:
+                logger.warning(f"Failed to defer /info command: {e}")
                 deferred = False
             
             # Check if this channel has 'info' permission
@@ -1526,28 +1535,26 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     from .status_info_integration import ProtectedInfoOnlyView
                     view = ProtectedInfoOnlyView(self, server_config, info_config)
             
-            # Send response based on whether we successfully deferred
+            # Send response - always use followup if deferred, otherwise respond
             try:
                 if deferred:
+                    logger.debug(f"Sending followup response for /info {container_name}")
                     if view:
                         await ctx.followup.send(embed=embed, view=view, ephemeral=True)
                     else:
                         await ctx.followup.send(embed=embed, ephemeral=True)
                 else:
+                    logger.debug(f"Sending direct response for /info {container_name}")
                     if view:
                         await ctx.respond(embed=embed, view=view, ephemeral=True)
                     else:
                         await ctx.respond(embed=embed, ephemeral=True)
+            except discord.errors.NotFound:
+                logger.warning(f"Interaction expired for /info {container_name}, cannot send response")
+                return
             except discord.errors.HTTPException as e:
-                if "already been acknowledged" in str(e):
-                    # Fallback: Try followup instead
-                    logger.warning(f"Interaction already acknowledged, trying followup for {container_name}")
-                    if view:
-                        await ctx.followup.send(embed=embed, view=view, ephemeral=True)
-                    else:
-                        await ctx.followup.send(embed=embed, ephemeral=True)
-                else:
-                    raise
+                logger.error(f"HTTP error sending /info response for {container_name}: {e}")
+                return
             
             logger.info(f"Info command executed for {container_name} by user {ctx.author.id} in channel {ctx.channel_id} (info: {has_info_permission}, control: {has_control}, deferred: {deferred})")
             return  # Important: Return here to prevent fall-through to error handling
