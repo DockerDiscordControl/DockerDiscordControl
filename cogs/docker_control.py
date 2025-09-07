@@ -1434,8 +1434,12 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     async def info_command(self, ctx: discord.ApplicationContext,
                            container_name: str = discord.Option(description=_("The Docker container name"), autocomplete=container_select)):
         """Shows container information with appropriate buttons based on channel permissions."""
-        # Log command invocation for debugging
-        logger.info(f"INFO COMMAND INVOKED: container={container_name}, user={ctx.author.id}, channel={ctx.channel_id}, interaction_id={ctx.interaction.id if hasattr(ctx, 'interaction') else 'unknown'}")
+        # Log command invocation for debugging with unique tracking
+        import time
+        import uuid
+        call_id = str(uuid.uuid4())[:8]
+        timestamp = time.time()
+        logger.info(f"INFO COMMAND INVOKED: call_id={call_id}, container={container_name}, user={ctx.author.id}, channel={ctx.channel_id}, interaction_id={ctx.interaction.id if hasattr(ctx, 'interaction') else 'unknown'}, timestamp={timestamp}")
         
         try:
             # Check spam protection first
@@ -1556,7 +1560,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 logger.error(f"HTTP error sending /info response for {container_name}: {e}")
                 return
             
-            logger.info(f"Info command executed for {container_name} by user {ctx.author.id} in channel {ctx.channel_id} (info: {has_info_permission}, control: {has_control}, deferred: {deferred})")
+            logger.info(f"INFO COMMAND COMPLETED: call_id={call_id}, container={container_name}, user={ctx.author.id}, channel={ctx.channel_id}, info={has_info_permission}, control={has_control}, deferred={deferred}, timestamp={time.time()}")
             return  # Important: Return here to prevent fall-through to error handling
             
         except Exception as e:
