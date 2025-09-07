@@ -521,21 +521,16 @@ class ScheduleCommandsMixin:
             return
                 
         embed = discord.Embed(
-            title=_("DockerDiscordControl - Scheduling Commands"),
-            description=_("Specialized commands are available for different scheduling cycles:"),
+            title=_("DockerDiscordControl - Task Scheduling"),
+            description=_("Task scheduling is now handled through UI buttons in container status messages:"),
             color=discord.Color.blue()
         )
-        embed.add_field(name="`/task_once`", value=_("Schedule a **one-time** task with year, month, day, and time."), inline=False)
-        embed.add_field(name="`/task_daily`", value=_("Schedule a **daily** task at the specified time."), inline=False)
-        embed.add_field(name="`/task_weekly`", value=_("Schedule a **weekly** task on the specified weekday and time."), inline=False)
-        embed.add_field(name="`/task_monthly`", value=_("Schedule a **monthly** task on the specified day and time."), inline=False)
-        embed.add_field(name="`/task_yearly`", value=_("Schedule a **yearly** task on the specified month, day, and time."), inline=False)
-        embed.add_field(name="`/task_info`", value=_("Shows information about all scheduled tasks."), inline=False)
-        embed.add_field(name="`/task_delete`", value=_("Delete a scheduled task by its task ID."), inline=False)
+        embed.add_field(name=_("⏰ Add Tasks"), value=_("Click the ⏰ button in any container status message to schedule tasks (once, daily, weekly, monthly, yearly)."), inline=False)
+        embed.add_field(name=_("❌ Manage Tasks"), value=_("Click the ❌ button to view and delete scheduled tasks for that container."), inline=False)
+        embed.add_field(name=_("Available Task Types"), value=_("**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI."), inline=False)
         
-        # Add note about limitations
-        embed.add_field(name=_("Note on Day Selection"), 
-                        value=_("Due to Discord's 25-option limit for autocomplete, only a strategic selection of days (1-5, 7, 9, 10, 12-15, 17, 18, 20-22, 24-28, 30, 31) is shown initially. You can still type any day number manually."), 
+        embed.add_field(name=_("How to Access"), 
+                        value=_("Use `/serverstatus` or `/ss` to see container status messages, then click the ⏰ or ❌ buttons to manage tasks."), 
                         inline=False)
         
         await ctx.respond(embed=embed)

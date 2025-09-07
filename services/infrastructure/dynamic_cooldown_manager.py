@@ -45,22 +45,10 @@ class DynamicCooldownManager:
             'ss': 'serverstatus',  # ss uses same cooldown as serverstatus
             'control': 'control',
             'info': 'info',
-            'info_edit': 'info_edit',
             'help': 'help',
             'ping': 'ping',
             # 'donate': 'donate',  # Disabled - using custom spam protection
             # 'donatebroadcast': 'donatebroadcast',  # Disabled - using custom spam protection
-            'task': 'task',          # Generic task command
-            'task_info': 'task_info',
-            'task_once': 'task_once',
-            'task_daily': 'task_daily',
-            'task_weekly': 'task_weekly',
-            'task_monthly': 'task_monthly',
-            'task_yearly': 'task_yearly',
-            'task_delete': 'task_delete',
-            'task_delete_panel': 'task_delete_panel',
-            'task_panel': 'task_panel',
-            'command': 'command',    # Container control command
             'ddc': 'ddc',           # Command group
             'language': 'language',
             'forceupdate': 'forceupdate',

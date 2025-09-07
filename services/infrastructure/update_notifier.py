@@ -109,7 +109,7 @@ class UpdateNotifier:
         embed.add_field(
             name="⚙️ Konfiguration",
             value="**Spam Protection:** Web UI → Konfiguration → 'Spam Protection Settings'\n"
-                  "**Container Info:** `/info_edit <container>` zum Bearbeiten",
+                  "**Container Info:** Info-Buttons in Status-Nachrichten verwenden",
             inline=False
         )
         

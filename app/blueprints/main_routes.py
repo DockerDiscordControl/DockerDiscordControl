@@ -686,7 +686,6 @@ def config_page():
 @auth.login_required
 def save_config_api():
     logger = current_app.logger
-    print("[CONFIG-DEBUG] save_config_api endpoint called")
     logger.info("save_config_api (blueprint) called...")
     result = {'success': False, 'message': 'An unexpected error occurred.'}
     
@@ -715,15 +714,13 @@ def save_config_api():
         form_data = request.form.to_dict(flat=False)
         
         # Debug: Check for donation key
-        print(f"[CONFIG-DEBUG] Form data keys: {list(form_data.keys())[:20]}...")
+        logger.debug(f"Form data keys count: {len(form_data.keys())}")
         if 'donation_disable_key' in form_data:
-            print(f"[CONFIG-DEBUG] Found donation_disable_key in form: {form_data['donation_disable_key']}")
+            logger.debug("Found donation_disable_key in form")
         else:
-            print("[CONFIG-DEBUG] NO donation_disable_key in form data!")
-            # Check for any keys with 'donation' in name
             donation_keys = [k for k in form_data.keys() if 'donation' in k.lower()]
             if donation_keys:
-                print(f"[CONFIG-DEBUG] Found these donation-related keys: {donation_keys}")
+                logger.debug(f"Found {len(donation_keys)} donation-related keys")
         
         # Convert all lists with only one element to normal values
         # This logic can be adjusted if you want to keep certain fields as lists
