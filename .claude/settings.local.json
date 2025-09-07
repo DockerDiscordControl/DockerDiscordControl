@@ -5,7 +5,10 @@
       "Read(/tmp/**)",
       "Read(/tmp/**)",
       "Read(/tmp/**)",
-      "Read(/tmp/**)"
+      "Read(/tmp/**)",
+      "Bash(sed:*)",
+      "WebSearch",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []
