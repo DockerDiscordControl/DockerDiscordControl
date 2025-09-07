@@ -1434,6 +1434,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     async def info_command(self, ctx: discord.ApplicationContext,
                            container_name: str = discord.Option(description=_("The Docker container name"), autocomplete=container_select)):
         """Shows container information with appropriate buttons based on channel permissions."""
+        # Log command invocation for debugging
+        logger.info(f"INFO COMMAND INVOKED: container={container_name}, user={ctx.author.id}, channel={ctx.channel_id}, interaction_id={ctx.interaction.id if hasattr(ctx, 'interaction') else 'unknown'}")
+        
         try:
             # Check spam protection first
             if not await self._check_spam_protection(ctx, "info"):
@@ -1475,7 +1478,25 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             info_service = get_container_info_service()
             info_result = info_service.get_container_info(container_name)
             
-            if not (info_result.success and info_result.data.enabled):
+            # More robust checking with better error handling
+            if not info_result.success:
+                logger.warning(f"Failed to load container info for {container_name}: {info_result.error if hasattr(info_result, 'error') else 'Unknown error'}")
+                if deferred:
+                    await ctx.followup.send(_("Could not load container information for '{container}'.").format(container=container_name), ephemeral=True)
+                else:
+                    await ctx.respond(_("Could not load container information for '{container}'.").format(container=container_name), ephemeral=True)
+                return
+            
+            if not info_result.data:
+                logger.warning(f"No container info data found for {container_name}")
+                if deferred:
+                    await ctx.followup.send(_("Container information is not configured for '{container}'.").format(container=container_name), ephemeral=True)
+                else:
+                    await ctx.respond(_("Container information is not configured for '{container}'.").format(container=container_name), ephemeral=True)
+                return
+                
+            if not info_result.data.enabled:
+                logger.info(f"Container info is disabled for {container_name}")
                 if deferred:
                     await ctx.followup.send(_("Container information is not enabled for '{container}'.").format(container=container_name), ephemeral=True)
                 else:
