@@ -1508,8 +1508,12 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     await ctx.respond(_("Container information is not configured for '{container}'.").format(container=container_name), ephemeral=True)
                 return
                 
-            if not info_result.data.enabled:
-                logger.info(f"Container info is disabled for {container_name}")
+            # Debug the enabled flag
+            enabled_value = info_result.data.enabled
+            logger.info(f"DEBUG INFO COMMAND: {call_id} - Container {container_name} enabled value: {enabled_value} (type: {type(enabled_value)})")
+            
+            if not enabled_value:
+                logger.info(f"Container info is disabled for {container_name} - call_id: {call_id}")
                 if deferred:
                     await ctx.followup.send(_("Container information is not enabled for '{container}'.").format(container=container_name), ephemeral=True)
                 else:
@@ -1539,9 +1543,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     from .status_info_integration import ProtectedInfoOnlyView
                     view = ProtectedInfoOnlyView(self, server_config, info_config)
             
-            # Send response - always use followup if deferred, otherwise respond
+            # Send response - check for race condition with autocomplete first
             try:
-                if deferred:
+                # Check if interaction has already been acknowledged (race condition with autocomplete)
+                if ctx.interaction.response.is_done():
+                    logger.warning(f"Interaction already acknowledged for /info {container_name} - call_id: {call_id}. Using followup instead.")
+                    if view:
+                        await ctx.followup.send(embed=embed, view=view, ephemeral=True)
+                    else:
+                        await ctx.followup.send(embed=embed, ephemeral=True)
+                elif deferred:
                     logger.debug(f"Sending followup response for /info {container_name}")
                     if view:
                         await ctx.followup.send(embed=embed, view=view, ephemeral=True)
