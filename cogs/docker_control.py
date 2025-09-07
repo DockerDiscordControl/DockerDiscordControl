@@ -45,7 +45,7 @@ from services.scheduling.scheduler import (
 
 # Import outsourced parts
 from .translation_manager import _, get_translations
-from .control_helpers import get_guild_id, _channel_has_permission, _get_pending_embed
+from .control_helpers import get_guild_id, container_select, _channel_has_permission, _get_pending_embed
 from .control_ui import ActionButton, ToggleButton, ControlView
 
 # Import the autocomplete handlers that have been moved to their own module
@@ -1266,7 +1266,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         embed.add_field(name=f"**{_('General Commands')}**", value=f"`/help` - {_('Shows this help message.')}\n`/ping` - {_('Checks the bot latency.')}\n`/donate` - {_('Shows donation information to support the project.')}" + "\n\u200b", inline=False)
         
         # Status Channel Commands
-        embed.add_field(name=f"**{_('Status Channel Commands')}**", value=f"`/serverstatus` or `/ss` - {_('Displays the status of all configured Docker containers.')}" + "\n\u200b", inline=False)
+        embed.add_field(name=f"**{_('Status Channel Commands')}**", value=f"`/serverstatus` or `/ss` - {_('Displays the status of all configured Docker containers.')}\n`/info <container>` - {_('Shows detailed container information.')}" + "\n\u200b", inline=False)
         
         # Control Channel Commands  
         embed.add_field(name=f"**{_('Control Channel Commands')}**", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n**Container Control:** {_('Click control buttons under container status panels to start, stop, or restart.')}\n**Task Management:** {_('Click ⏰ button under container control panels to add/delete scheduled tasks.')}" + "\n\u200b", inline=False)
@@ -1429,6 +1429,118 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # Only log unexpected errors, not Discord timing issues
             if "Unknown interaction" not in str(e):
                 logger.error(f"Unexpected error in donate interaction: {e}", exc_info=True)
+
+    @commands.slash_command(name="info", description=_("Show container information"), guild_ids=get_guild_id())
+    async def info_command(self, ctx: discord.ApplicationContext,
+                           container_name: str = discord.Option(description=_("The Docker container name"), autocomplete=container_select)):
+        """Shows container information with appropriate buttons based on channel permissions."""
+        try:
+            # Check spam protection first
+            if not await self._check_spam_protection(ctx, "info"):
+                return
+                
+            # Try to defer immediately, but handle timeout gracefully
+            try:
+                await ctx.response.defer(ephemeral=True)
+                deferred = True
+            except discord.errors.NotFound:
+                # Interaction already timed out, but we can still try to respond
+                logger.debug(f"Interaction already timed out for /info command, attempting direct response")
+                deferred = False
+            
+            # Check if this channel has 'info' permission
+            from .control_helpers import _channel_has_permission
+            config = self.config
+            has_info_permission = _channel_has_permission(ctx.channel_id, 'info', config) if config else False
+            
+            if not has_info_permission:
+                if deferred:
+                    await ctx.followup.send(_("You do not have permission to use the info command in this channel."), ephemeral=True)
+                else:
+                    await ctx.respond(_("You do not have permission to use the info command in this channel."), ephemeral=True)
+                return
+            
+            # Check if container exists in config
+            servers = config.get('servers', [])
+            server_config = next((s for s in servers if s.get('docker_name') == container_name), None)
+            if not server_config:
+                if deferred:
+                    await ctx.followup.send(_("Container '{container}' not found in configuration.").format(container=container_name), ephemeral=True)
+                else:
+                    await ctx.respond(_("Container '{container}' not found in configuration.").format(container=container_name), ephemeral=True)
+                return
+            
+            # Load container info to check if info is enabled
+            from services.infrastructure.container_info_service import get_container_info_service
+            info_service = get_container_info_service()
+            info_result = info_service.get_container_info(container_name)
+            
+            if not (info_result.success and info_result.data.enabled):
+                if deferred:
+                    await ctx.followup.send(_("Container information is not enabled for '{container}'.").format(container=container_name), ephemeral=True)
+                else:
+                    await ctx.respond(_("Container information is not enabled for '{container}'.").format(container=container_name), ephemeral=True)
+                return
+            
+            # Convert ContainerInfo to dict for compatibility
+            info_config = info_result.data.to_dict()
+            
+            # Check if this is a control channel
+            has_control = _channel_has_permission(ctx.channel_id, 'control', config) if config else False
+            
+            # Generate info embed using the same logic as StatusInfoButton
+            from .status_info_integration import StatusInfoButton
+            info_button = StatusInfoButton(self, server_config, info_config)
+            embed = await info_button._generate_info_embed(include_protected=has_control)
+            
+            # Create view with appropriate buttons based on channel type
+            view = None
+            if has_control:
+                # Control channel: Show admin buttons (Edit Info, Protected Info Edit, Debug)
+                from .status_info_integration import ContainerInfoAdminView
+                view = ContainerInfoAdminView(self, server_config, info_config)
+            else:
+                # Status channel: Show protected info button if enabled
+                if info_config.get('protected_enabled', False):
+                    from .status_info_integration import ProtectedInfoOnlyView
+                    view = ProtectedInfoOnlyView(self, server_config, info_config)
+            
+            # Send response based on whether we successfully deferred
+            try:
+                if deferred:
+                    if view:
+                        await ctx.followup.send(embed=embed, view=view, ephemeral=True)
+                    else:
+                        await ctx.followup.send(embed=embed, ephemeral=True)
+                else:
+                    if view:
+                        await ctx.respond(embed=embed, view=view, ephemeral=True)
+                    else:
+                        await ctx.respond(embed=embed, ephemeral=True)
+            except discord.errors.HTTPException as e:
+                if "already been acknowledged" in str(e):
+                    # Fallback: Try followup instead
+                    logger.warning(f"Interaction already acknowledged, trying followup for {container_name}")
+                    if view:
+                        await ctx.followup.send(embed=embed, view=view, ephemeral=True)
+                    else:
+                        await ctx.followup.send(embed=embed, ephemeral=True)
+                else:
+                    raise
+            
+            logger.info(f"Info command executed for {container_name} by user {ctx.author.id} in channel {ctx.channel_id} (info: {has_info_permission}, control: {has_control}, deferred: {deferred})")
+            return  # Important: Return here to prevent fall-through to error handling
+            
+        except Exception as e:
+            logger.error(f"Error in info command for {container_name}: {e}", exc_info=True)
+            # Try to send error message if possible
+            try:
+                if 'deferred' in locals() and deferred:
+                    await ctx.followup.send(_("An error occurred while retrieving container information."), ephemeral=True)
+                else:
+                    await ctx.respond(_("An error occurred while retrieving container information."), ephemeral=True)
+            except:
+                pass  # If we can't send error message, just log it
 
 
     # NOTE: Old _create_overview_embed method was removed
