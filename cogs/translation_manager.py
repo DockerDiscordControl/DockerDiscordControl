@@ -586,6 +586,11 @@ class TranslationManager:
                 "Another task is already scheduled within 10 minutes of this time for {container}": "Eine andere Aufgabe ist bereits innerhalb von 10 Minuten zu dieser Zeit für {container} geplant",
                 "Invalid Time": "Ungültige Zeit", 
                 "The scheduled time is in the past. Please select a future time.": "Die geplante Zeit liegt in der Vergangenheit. Bitte wählen Sie eine zukünftige Zeit.",
+                "Never": "Nie",
+                "Not scheduled": "Nicht geplant",
+                "Last Run": "Letzte Ausführung",
+                "ID": "ID",
+                "Showing first {count} of {total} tasks": "Zeige erste {count} von {total} Aufgaben",
 
                 # Live Logs translations
                 "🔄 Refreshing logs...": "🔄 Logs werden aktualisiert...",
@@ -997,6 +1002,11 @@ class TranslationManager:
                 "Another task is already scheduled within 10 minutes of this time for {container}": "Une autre tâche est déjà programmée dans les 10 minutes de cette heure pour {container}",
                 "Invalid Time": "Heure invalide", 
                 "The scheduled time is in the past. Please select a future time.": "L'heure programmée est dans le passé. Veuillez sélectionner une heure future.",
+                "Never": "Jamais",
+                "Not scheduled": "Non programmé",
+                "Last Run": "Dernière exécution",
+                "ID": "ID",
+                "Showing first {count} of {total} tasks": "Affichage des {count} premières tâches sur {total}",
 
                 # Live Logs translations
                 "🔄 Refreshing logs...": "🔄 Actualisation des logs...",
@@ -1666,6 +1676,11 @@ class TranslationManager:
                 "Another task is already scheduled within 10 minutes of this time for {container}": "Another task is already scheduled within 10 minutes of this time for {container}",
                 "Invalid Time": "Invalid Time", 
                 "The scheduled time is in the past. Please select a future time.": "The scheduled time is in the past. Please select a future time.",
+                "Never": "Never",
+                "Not scheduled": "Not scheduled",
+                "Last Run": "Last Run",
+                "ID": "ID",
+                "Showing first {count} of {total} tasks": "Showing first {count} of {total} tasks",
             }
             # Add other languages here if needed
         }

@@ -1238,13 +1238,13 @@ class TaskManagementButton(discord.ui.Button):
             
             # Create task list embed
             embed = discord.Embed(
-                title=f"⏰ Scheduled Tasks for {self.container_name}",
+                title=f"⏰ {_('Scheduled Tasks for {container}').format(container=self.container_name)}",
                 color=discord.Color.blue()
             )
             
             for i, task in enumerate(tasks[:10]):  # Limit to 10 tasks to avoid embed size limits
                 # Format last run
-                last_run_str = "Never"
+                last_run_str = _("Never")
                 if task.last_run_ts:
                     from datetime import datetime
                     last_run_dt = datetime.fromtimestamp(task.last_run_ts)
@@ -1254,7 +1254,7 @@ class TaskManagementButton(discord.ui.Button):
                         last_run_str += f" {status_icon}"
                 
                 # Format next run
-                next_run_str = "Not scheduled"
+                next_run_str = _("Not scheduled")
                 if task.next_run_ts:
                     from datetime import datetime
                     next_run_dt = datetime.fromtimestamp(task.next_run_ts)
@@ -1265,12 +1265,12 @@ class TaskManagementButton(discord.ui.Button):
                 
                 embed.add_field(
                     name=f"{status_icon} {task.action.upper()} - {task.cycle}",
-                    value=f"**Last Run:** {last_run_str}\n**Next Run:** {next_run_str}\n**ID:** `{task.task_id[:8]}...`",
+                    value=f"**{_('Last Run')}:** {last_run_str}\n**{_('Next Run')}:** {next_run_str}\n**{_('ID')}:** `{task.task_id}`",
                     inline=False
                 )
             
             if len(tasks) > 10:
-                embed.set_footer(text=f"Showing first 10 of {len(tasks)} tasks")
+                embed.set_footer(text=f"{_('Showing first {count} of {total} tasks').format(count=10, total=len(tasks))}")
             
             # Add management buttons
             view = TaskManagementView(self.cog, self.container_name)
