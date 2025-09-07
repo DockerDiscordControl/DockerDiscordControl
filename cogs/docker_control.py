@@ -45,7 +45,7 @@ from services.scheduling.scheduler import (
 
 # Import outsourced parts
 from .translation_manager import _, get_translations
-from .control_helpers import get_guild_id, container_select, _channel_has_permission, _get_pending_embed
+from .control_helpers import get_guild_id, _channel_has_permission, _get_pending_embed
 from .control_ui import ActionButton, ToggleButton, ControlView
 
 # Import the autocomplete handlers that have been moved to their own module

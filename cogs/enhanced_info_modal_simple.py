@@ -13,7 +13,7 @@ from utils.logging_utils import get_module_logger
 from services.infrastructure.container_info_service import get_container_info_service, ContainerInfo
 from services.infrastructure.action_logger import log_user_action
 from cogs.translation_manager import _
-# Channel-based security is already handled in command_handlers.py
+# Channel-based security is handled by the calling UI button
 
 logger = get_module_logger('enhanced_info_modal_simple')
 
@@ -100,7 +100,7 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
         logger.info(f"callback called for {self.container_name} by {interaction.user}")
         
         try:
-            # Channel-based permissions are already checked in command_handlers.py
+            # Channel-based permissions are already checked by the calling UI button
             # All users in channels with 'control' permission can edit container info
             logger.info(f"Starting modal submission processing...")
             # Store inputs temporarily

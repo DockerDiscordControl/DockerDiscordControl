@@ -54,8 +54,7 @@ from cogs.translation_manager import _
 # Import scheduler service
 from services.scheduling.scheduler_service import start_scheduler_service, stop_scheduler_service
 # Import the centralized action logger (ensures proper logger initialization)
-# Import cogs helper functions
-from cogs.control_helpers import container_select
+# Container autocomplete helpers no longer needed - using UI buttons
 # Import port diagnostics
 from app.utils.port_diagnostics import log_port_diagnostics
 
@@ -188,72 +187,7 @@ except (AttributeError, ImportError) as e:
 # Flag to prevent on_ready from executing code unnecessarily multiple times
 _initial_startup_done = False
 
-# Helper function for Autocomplete for the /command command
-async def action_select(ctx, current):
-    """ Returns a list of possible actions for a container for autocomplete.
-    This function handles both discord.py and PyCord autocomplete contexts.
-    Always returns a simple list of strings to avoid serialization issues.
-    """
-    config = get_cached_config()  # Performance optimization: use cache instead of load_config()
-    
-    # Extract the container name from the context
-    container_name = None
-    if hasattr(ctx, 'data') and isinstance(ctx.data, dict) and 'options' in ctx.data:
-        # discord.py style - Interaction object
-        options = ctx.data.get('options', [])
-        container_option = next((opt for opt in options if opt.get('name') == 'container_name'), None)
-        if container_option and container_option.get('value'):
-            container_name = container_option.get('value')
-    elif hasattr(ctx, 'options') and hasattr(ctx, 'focused'):
-        # PyCord style - AutocompleteContext with options/focused
-        try:
-            for key, value in ctx.options.items():
-                if key == 'container_name' and value:
-                    container_name = value
-                    break
-        except (AttributeError, TypeError):
-            # Skip malformed option entries
-            pass
-    
-    # Extract the search text (current) from the context
-    search_text = ""
-    if isinstance(current, str):
-        # discord.py style (for Interaction)
-        search_text = current
-    else:
-        # PyCord style (for AutocompleteContext)
-        try:
-            # Try to extract the value from the context
-            search_text = ctx.value or ""
-        except (AttributeError, TypeError):
-            # Fallback for other contexts
-            _import_logger.debug(f"Unknown autocomplete context type: {type(ctx)}, current type: {type(current)}")
-            search_text = ""
-    
-    # Determine the actions to display
-    if not container_name:
-        # If no container is selected, show default actions
-        actions = ["start", "stop", "restart"]
-    else:
-        # Container is selected, get allowed actions for this container
-        servers = config.get('servers', [])
-        server_conf = next((s for s in servers if s.get('docker_name') == container_name), None)
-        
-        if server_conf:
-            actions = server_conf.get('allowed_actions', ["start", "stop", "restart"])
-        else:
-            # Container not found, show default actions
-            actions = ["start", "stop", "restart"]
-    
-    # Filter based on input (if any)
-    if search_text:
-        # Safe string matching
-        search_text_lower = search_text.lower() if hasattr(search_text, 'lower') else str(search_text).lower()
-        actions = [action for action in actions if search_text_lower in action.lower()]
-    
-    # Return a simple list of strings - NOT dict or Choice objects
-    logger.debug(f"action_select: Returning {len(actions)} items as simple strings")
-    return actions[:25]
+# Autocomplete functions removed - commands now use UI buttons instead
 
 # Function to set up application commands with slash command choices and autocomplete
 def setup_app_commands():
@@ -263,9 +197,6 @@ def setup_app_commands():
         # All container control and info editing is now handled through Discord UI buttons
         # Deprecated slash commands have been removed in favor of the UI-based approach
         logger.info("Skipping deprecated slash command registration - using UI buttons instead")
-        
-        else:
-            logger.error("Could not set up application commands: Bot instance lacks expected attributes")
     
     except Exception as e:
         logger.error(f"Error setting up application commands: {e}", exc_info=True)
