@@ -57,7 +57,7 @@ from .control_ui import ActionButton, ToggleButton, ControlView
 from .status_handlers import StatusHandlersMixin
 
 # Import the command handlers mixin that contains Docker action command functionality 
-from .command_handlers import CommandHandlersMixin
+# Command handlers removed - using UI buttons for all container control
 
 # Import central logging function
 from services.infrastructure.action_logger import log_user_action
@@ -72,7 +72,7 @@ docker_status_cache_lock = threading.Lock()  # Thread safety for global status c
 # DonationView will be defined in this file
 
 
-class DockerControlCog(commands.Cog, StatusHandlersMixin, CommandHandlersMixin):
+class DockerControlCog(commands.Cog, StatusHandlersMixin):
     """Cog for DockerDiscordControl container management via Discord."""
 
     def __init__(self, bot: commands.Bot, config: dict):
@@ -1230,37 +1230,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, CommandHandlersMixin):
         # Directly call serverstatus (it has its own spam protection check)
         await self.serverstatus(ctx)
 
-    async def command(self, ctx: discord.ApplicationContext, 
-                     container_name: str, 
-                     action: str):
-        """
-        Slash command to control a Docker container.
-        
-        The implementation logic has been moved to the CommandHandlersMixin class 
-        in command_handlers.py. This command delegates to the _impl_command method there.
-        """
-        # Simply delegate to the implementation in CommandHandlersMixin
-        await self._impl_command(ctx, container_name, action)
-
-    async def info_edit(self, ctx: discord.ApplicationContext, 
-                       container_name: str):
-        """
-        Slash command to edit container information.
-        
-        The implementation logic has been moved to the CommandHandlersMixin class 
-        in command_handlers.py. This command delegates to the _impl_info_edit method there.
-        """
-        # Simply delegate to the implementation in CommandHandlersMixin
-        await self._impl_info_edit(ctx, container_name)
+    # Legacy command methods removed - all container control and info editing
+    # is now handled through Discord UI buttons for better user experience
     
-    @commands.slash_command(name="info_edit", description=_("Edit container information with enhanced modal"), guild_ids=get_guild_id())
-    async def info_edit_enhanced(self, ctx: discord.ApplicationContext, 
-                                container_name: str = discord.Option(description=_("Container name to edit info for"), autocomplete=container_select)):
-        """Enhanced slash command to edit container information using separate JSON files."""
-        # Check spam protection first
-        if not await self._check_spam_protection(ctx, "info_edit"):
-            return
-        await self._impl_info_edit_new(ctx, container_name)
+    # /info_edit command removed - info editing now handled through UI buttons
     
 
     # Decorator adjusted
@@ -1296,7 +1269,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, CommandHandlersMixin):
         embed.add_field(name=f"**{_('Status Channel Commands')}**", value=f"`/serverstatus` or `/ss` - {_('Displays the status of all configured Docker containers.')}" + "\n\u200b", inline=False)
         
         # Control Channel Commands  
-        embed.add_field(name=f"**{_('Control Channel Commands')}**", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n`/command <container> <action>` - {_('Controls a specific Docker container. Actions: start, stop, restart. Requires permissions.')}\n**Task Management:** {_('Click ⏰ button under container control panels to add/delete scheduled tasks.')}" + "\n\u200b", inline=False)
+        embed.add_field(name=f"**{_('Control Channel Commands')}**", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n**Container Control:** {_('Click control buttons under container status panels to start, stop, or restart.')}\n**Task Management:** {_('Click ⏰ button under container control panels to add/delete scheduled tasks.')}" + "\n\u200b", inline=False)
         
         # Add status indicators explanation
         embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n🔄 {_('Container status loading')}" + "\n\u200b", inline=False)
@@ -2557,117 +2530,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, CommandHandlersMixin):
     # Task management is now integrated into the status UI.
 
 
-    @commands.slash_command(name="info", description=_("Show container information"), guild_ids=get_guild_id())
-    async def info_command(self, ctx: discord.ApplicationContext,
-                           container_name: str = discord.Option(description=_("The Docker container name"), autocomplete=container_select)):
-        """Shows container information with appropriate buttons based on channel permissions."""
-        try:
-            # Check spam protection first
-            if not await self._check_spam_protection(ctx, "info"):
-                return
-                
-            # Try to defer immediately, but handle timeout gracefully
-            try:
-                await ctx.response.defer(ephemeral=True)
-                deferred = True
-            except discord.errors.NotFound:
-                # Interaction already timed out, but we can still try to respond
-                logger.debug(f"Interaction already timed out for /info command, attempting direct response")
-                deferred = False
-            
-            # Check if this channel has 'info' permission
-            from .control_helpers import _channel_has_permission
-            config = self.config
-            has_info_permission = _channel_has_permission(ctx.channel_id, 'info', config) if config else False
-            
-            if not has_info_permission:
-                if deferred:
-                    await ctx.followup.send(_("You do not have permission to use the info command in this channel."), ephemeral=True)
-                else:
-                    await ctx.respond(_("You do not have permission to use the info command in this channel."), ephemeral=True)
-                return
-            
-            # Check if container exists in config
-            servers = config.get('servers', [])
-            server_config = next((s for s in servers if s.get('docker_name') == container_name), None)
-            if not server_config:
-                if deferred:
-                    await ctx.followup.send(_("Container '{container}' not found in configuration.").format(container=container_name), ephemeral=True)
-                else:
-                    await ctx.respond(_("Container '{container}' not found in configuration.").format(container=container_name), ephemeral=True)
-                return
-            
-            # Load container info to check if info is enabled
-            from services.infrastructure.container_info_service import get_container_info_service
-            info_service = get_container_info_service()
-            info_result = info_service.get_container_info(container_name)
-            
-            if not (info_result.success and info_result.data.enabled):
-                if deferred:
-                    await ctx.followup.send(_("Container information is not enabled for '{container}'.").format(container=container_name), ephemeral=True)
-                else:
-                    await ctx.respond(_("Container information is not enabled for '{container}'.").format(container=container_name), ephemeral=True)
-                return
-            
-            # Convert ContainerInfo to dict for compatibility
-            info_config = info_result.data.to_dict()
-            
-            # Check if this is a control channel
-            has_control = _channel_has_permission(ctx.channel_id, 'control', config) if config else False
-            
-            # Generate info embed using the same logic as StatusInfoButton
-            from .status_info_integration import StatusInfoButton
-            info_button = StatusInfoButton(self, server_config, info_config)
-            embed = await info_button._generate_info_embed(include_protected=has_control)
-            
-            # Create view with appropriate buttons based on channel type
-            view = None
-            if has_control:
-                # Control channel: Show admin buttons (Edit Info, Protected Info Edit, Debug)
-                from .status_info_integration import ContainerInfoAdminView
-                view = ContainerInfoAdminView(self, server_config, info_config)
-            else:
-                # Status channel: Show protected info button if enabled
-                if info_config.get('protected_enabled', False):
-                    from .status_info_integration import ProtectedInfoOnlyView
-                    view = ProtectedInfoOnlyView(self, server_config, info_config)
-            
-            # Send response based on whether we successfully deferred
-            try:
-                if deferred:
-                    if view:
-                        await ctx.followup.send(embed=embed, view=view, ephemeral=True)
-                    else:
-                        await ctx.followup.send(embed=embed, ephemeral=True)
-                else:
-                    if view:
-                        await ctx.respond(embed=embed, view=view, ephemeral=True)
-                    else:
-                        await ctx.respond(embed=embed, ephemeral=True)
-            except discord.errors.HTTPException as e:
-                if "already been acknowledged" in str(e):
-                    # Fallback: Try followup instead
-                    logger.warning(f"Interaction already acknowledged, trying followup for {container_name}")
-                    if view:
-                        await ctx.followup.send(embed=embed, view=view, ephemeral=True)
-                    else:
-                        await ctx.followup.send(embed=embed, ephemeral=True)
-                else:
-                    raise
-            
-            logger.info(f"Info command executed for {container_name} by user {ctx.author.id} in channel {ctx.channel_id} (info: {has_info_permission}, control: {has_control}, deferred: {deferred})")
-            return  # Important: Return here to prevent fall-through to error handling
-            
-        except Exception as e:
-            logger.error(f"Error in info command for {container_name}: {e}", exc_info=True)
-            # Try to send error message if possible
-            try:
-                if 'deferred' in locals() and deferred:
-                    await ctx.followup.send(_("An error occurred while retrieving container information."), ephemeral=True)
-                else:
-                    await ctx.respond(_("An error occurred while retrieving container information."), ephemeral=True)
-            except:
-                pass  # If we can't send error message, just log it
+    # /info command removed - container information now accessed through UI buttons
 
 
     
