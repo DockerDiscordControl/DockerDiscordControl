@@ -70,8 +70,8 @@ def init_limiter(app):
         if request.path.startswith('/api/donation/status') or request.path.startswith('/health'):
             return None
             
-        # Only limit authentication requests
-        if 'Authorization' in request.headers:
+        # Only limit authentication requests (but allow setup page)
+        if 'Authorization' in request.headers and not request.path.startswith('/setup'):
             client_ip = request.remote_addr
             if auth_limiter.is_rate_limited(client_ip):
                 app.logger.warning(f"Rate limit exceeded for auth from IP: {client_ip}")
@@ -83,11 +83,20 @@ def verify_password(username, password):
     config = load_config()
     stored_user = config.get('web_ui_user', "admin") 
     stored_hash = config.get('web_ui_password_hash')
+    
     if stored_hash is None:
-        default_hash_for_check = generate_password_hash("admin", method="pbkdf2:sha256") 
-        logger.warning("web_ui_password_hash not found in config, using default hash for check.")
-        if username == stored_user and check_password_hash(default_hash_for_check, password):
-             return username
+        # FIRST TIME SETUP: Allow special setup password for initial configuration
+        if username == "admin" and password == "setup":
+            logger.info("FIRST TIME SETUP: Setup mode activated with temporary credentials")
+            # Set a flag that this is setup mode
+            from flask import session
+            session['setup_mode'] = True
+            return username
+        
+        # SECURITY FIX: Never fall back to default credentials for normal access
+        logger.error("SECURITY: No password hash configured - authentication disabled for safety")
+        logger.error("FIRST TIME SETUP: Use admin/setup to access setup page, then set your password")
+        return None  # Fail securely - no authentication possible without configured password
     elif username == stored_user and check_password_hash(stored_hash, password):
         return username 
     logger.warning(f"Failed login attempt for user: {username}")
@@ -95,4 +104,35 @@ def verify_password(username, password):
 
 @auth.error_handler
 def auth_error(status):
+    """Enhanced auth error handler with Unraid-friendly setup instructions."""
+    from services.config.config_service import load_config
+    
+    # Check if this is a first-time setup issue
+    try:
+        config = load_config()
+        if config.get('web_ui_password_hash') is None:
+            return jsonify({
+                "message": "🚀 First Time Setup Required - DockerDiscordControl",
+                "error": "No admin password configured yet",
+                "setup_options": {
+                    "easy_setup": {
+                        "description": "🎯 RECOMMENDED: Web-based setup",
+                        "action": "Visit /setup in your browser for easy configuration",
+                        "url": "/setup"
+                    },
+                    "temp_credentials": {
+                        "description": "🔑 Or use temporary credentials",
+                        "username": "admin",
+                        "password": "setup",
+                        "note": "Works only for first-time setup"
+                    },
+                    "advanced": {
+                        "description": "⚙️ Environment variable method",
+                        "method": "Set DDC_ADMIN_PASSWORD environment variable and restart"
+                    }
+                }
+            }), 401
+    except Exception:
+        pass  # Continue with normal auth error
+    
     return jsonify(message="Authentication Required"), status 

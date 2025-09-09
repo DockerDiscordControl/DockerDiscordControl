@@ -22,7 +22,6 @@ app_commands = get_app_commands()
 
 # Import utility functions
 from services.config.config_service import load_config
-from utils.config_cache import get_cached_config, get_cached_servers
 from utils.logging_utils import setup_logger
 from services.scheduling.scheduler import (
     VALID_CYCLES, VALID_ACTIONS, DAYS_OF_WEEK,
@@ -208,7 +207,7 @@ async def schedule_month_select(
     from .translation_manager import _
     
     # Get the current language from config
-    config = get_cached_config()  # Performance optimization: use cache instead of load_config()
+    config = load_config()  # Performance optimization: use cache instead of load_config()
     current_language = config.get('language', 'en')
     
     # English month names

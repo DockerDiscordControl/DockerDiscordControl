@@ -11,6 +11,7 @@ Handles token security, encryption status, and migration features.
 """
 
 from flask import Blueprint, request, jsonify, render_template
+from services.config.config_service import load_config
 from app.auth import auth
 import logging
 
@@ -145,9 +146,8 @@ def get_security_audit():
         
         # Additional security checks
         import os
-        from utils.config_cache import get_cached_config
-        
-        config = get_cached_config() or {}
+                
+        config = load_config() or {}
         
         audit_results = {
             'token_security': token_status,

@@ -4,12 +4,12 @@ Update Notification System - Shows new features after updates
 """
 
 import json
+from services.config.config_service import load_config
 import logging
 import discord
 from pathlib import Path
 from typing import Dict, Any, Optional
 from utils.logging_utils import get_module_logger
-from utils.config_cache import get_cached_config
 # Translation import moved to function level to avoid circular import
 
 logger = get_module_logger('update_notifier')
@@ -123,7 +123,7 @@ class UpdateNotifier:
             return False
             
         try:
-            config = get_cached_config()
+            config = load_config()
             control_channels = []
             
             # Find control channels - check both old and new config formats

@@ -177,14 +177,42 @@ docker run -d --name ddc \
 - **One-click install** with pre-configured paths
 - [📖 Detailed Unraid Setup](docs/UNRAID.md)
 
-#### Configuration
+#### First-Time Setup
 
-1. **Access Web UI**: `http://<your-server-ip>:8374`
-2. **Login**: Username `admin`, Password `admin` (change immediately!)
-3. **Configure**: Bot token, Guild ID, container permissions
-4. **Restart**: `docker compose restart` after initial setup
+**🚀 Easy Web Setup (Recommended)**
+
+1. **Access Web UI**: `http://<your-server-ip>:5001`
+2. **Setup Options**:
+   - **Method 1**: Visit `/setup` for guided web setup
+   - **Method 2**: Use temporary credentials: `admin` / `setup` 
+   - **Method 3**: Set `DDC_ADMIN_PASSWORD=your_password` before starting
+
+3. **Complete Setup**: Configure bot token, Guild ID, container permissions
+4. **Restart**: `docker compose restart` after initial configuration
+
+**Security Note**: No default passwords! System requires secure setup on first run.
+
+**Upgrade from v1.1.3D**: Automatic migration! Your existing `config.json` will be automatically split into modular files and backed up. No manual action required.
 
 ## Environment Variables
+
+### Security & Authentication
+
+**🔐 Password Setup Options:**
+
+```bash
+# Option 1: Set admin password before first start (Recommended)
+DDC_ADMIN_PASSWORD=your_secure_password_here
+
+# Option 2: Use temporary credentials for web setup
+# Visit http://your-server:5001 and login with: admin / setup
+# Then complete setup through the web interface
+
+# Flask security (auto-generated if not provided)
+FLASK_SECRET_KEY=your-64-character-random-secret-key
+```
+
+**Important**: DDC v2.0+ has no default passwords for security. Choose one of the setup methods above.
 
 ### Performance Optimization Variables (New in 2025)
 
@@ -344,16 +372,26 @@ docker pull dockerdiscordcontrol/dockerdiscordcontrol:latest
 
 **Docker Socket Access Required**: This application requires access to `/var/run/docker.sock` to control containers. Only run in trusted environments and ensure proper host security.
 
-**Default Credentials**: Change the default admin password immediately after first login!
+**First-Time Setup Required**: DDC v2.0+ has no default passwords. Use one of these secure setup methods:
+- **Web Setup**: Visit `/setup` and create your password  
+- **Temporary Access**: Login with `admin` / `setup`, then set real password
+- **Environment Variable**: Set `DDC_ADMIN_PASSWORD` before starting container
+
+**Password Security**: All passwords are hashed with PBKDF2-SHA256 (600,000 iterations) for maximum security.
 
 ## Quick Help
+
+**First-Time Setup Issues:**
+- **Can't Login**: Visit `/setup` or use `admin` / `setup` credentials
+- **"Authentication Required"**: No password configured - use setup methods above
+- **Password Reset**: Run `docker exec -it ddc python3 scripts/reset_password.py`
 
 **Common Issues:**
 - **Permission Errors**: Run `docker exec ddc /app/scripts/fix_permissions.sh`
 - **Configuration Not Saving**: Check file permissions in logs
 - **Bot Not Responding**: Verify token and Guild ID in Web UI
 
-**Need Help?** Check our [Troubleshooting Guide](../../wiki/Troubleshooting) or create an issue.
+**Need Help?** Check our [First-Time Setup Guide](FIRST_TIME_SETUP.md), [Troubleshooting Guide](../../wiki/Troubleshooting), or create an issue.
 
 ## Contributing
 

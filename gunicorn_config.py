@@ -89,7 +89,7 @@ def when_ready(server):
 # --- RAM-OPTIMIZED Gunicorn Server Configuration ---
 
 # Path to WSGI application
-wsgi_app = "app.web_ui:create_app()"
+wsgi_app = "wsgi:application"
 
 # Worker & Threading - HEAVILY OPTIMIZED FOR RAM
 # OPTIMIZED: No duplicate worker definition - using optimized_workers from above

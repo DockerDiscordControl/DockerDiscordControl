@@ -1,3 +1,14 @@
 {
-  "server_order": []
+  "server_order": [
+    "Icarus",
+    "Icarus2",
+    "ProjectZomboid",
+    "Satisfactory",
+    "V-Rising",
+    "Valheim",
+    "AdGuard-Home",
+    "dockerdiscordcontrol",
+    "duckdns",
+    "NginxProxyManager"
+  ]
 }

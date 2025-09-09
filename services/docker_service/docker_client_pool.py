@@ -217,8 +217,9 @@ class DockerClientPool:
                     # Quick ping to verify connection is alive
                     await asyncio.to_thread(client.ping)
                     return client
-                except:
+                except Exception as e:
                     # Connection is dead, remove and try creating new one
+                    logger.debug(f"Dead connection detected: {e}")
                     self._in_use.remove(client)
                     if len(self._in_use) < self._max_connections:
                         return await self._create_new_client_async()
@@ -240,7 +241,8 @@ class DockerClientPool:
                 try:
                     await asyncio.to_thread(client.ping)
                     return client
-                except:
+                except Exception as e:
+                    logger.debug(f"Dead connection in queue acquisition: {e}")
                     self._in_use.remove(client)
                     # Continue to try creating a new client
             
@@ -291,8 +293,8 @@ class DockerClientPool:
             try:
                 await asyncio.to_thread(client.ping)
                 alive_clients.append(client)
-            except:
-                pass  # Dead connection, discard
+            except Exception as e:
+                logger.debug(f"Discarding dead connection during cleanup: {e}")  # Dead connection, discard
         
         self._pool = alive_clients
         logger.debug(f"Cleaned up pool: {len(alive_clients)} alive connections")
@@ -313,8 +315,8 @@ class DockerClientPool:
             for client in self._pool + self._in_use:
                 try:
                     await asyncio.to_thread(client.close)
-                except:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Error closing client during pool shutdown: {e}")
             self._pool.clear()
             self._in_use.clear()
             

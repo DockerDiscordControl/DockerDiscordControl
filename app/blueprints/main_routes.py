@@ -249,8 +249,7 @@ def generate_bash_monitor_script(form_data):
 
     # Use existing bot token from configuration (no separate input)
     try:
-        from utils.config_cache import get_cached_config
-        cfg = get_cached_config() or {}
+        cfg = load_config() or {}
         token = (cfg.get('bot_token_decrypted_for_usage') or cfg.get('bot_token') or '')
     except Exception:
         token = ''
@@ -348,8 +347,7 @@ def generate_batch_monitor_script(form_data):
     current_time = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
 
     try:
-        from utils.config_cache import get_cached_config
-        cfg = get_cached_config() or {}
+        cfg = load_config() or {}
         token = (cfg.get('bot_token_decrypted_for_usage') or cfg.get('bot_token') or '')
     except Exception:
         token = ''
@@ -419,10 +417,7 @@ powershell -NoProfile -Command ^
 def config_page():
     logger = current_app.logger
     
-    # CRITICAL FIX: Use cached config instead of loading directly
-    # This ensures we see the same config that was just saved
-    from utils.config_cache import get_cached_config
-    config = get_cached_config()
+    config = load_config()
     
     # Force a fresh reload if requested
     force_refresh = request.args.get('force_refresh', 'false').lower() == 'true'
@@ -926,9 +921,7 @@ def save_config_api():
 # Use direct auth decorator
 @auth.login_required
 def discord_bot_setup():
-    # Use cached config for consistency
-    from utils.config_cache import get_cached_config
-    config = get_cached_config()
+    config = load_config()
     return render_template('discord_bot_setup.html', config=config)
 
 @main_bp.route('/download_monitor_script', methods=['POST'])
@@ -1048,8 +1041,7 @@ def refresh_containers():
         timestamp = docker_cache.get('global_timestamp', time.time())
         
         # Format timestamp with configured timezone
-        from utils.config_cache import get_cached_config
-        config = get_cached_config()
+        config = load_config()
         timezone_str = config.get('timezone', 'Europe/Berlin')
         
         try:
@@ -1369,7 +1361,7 @@ def get_donation_status():
         status = {
             'total_amount': total_amount,
             'current_Power': mech_state.Power,
-            'current_Power_raw': mech_service.get_Power_with_decimals(),  # Raw Power with decimals for UI
+            'current_Power_raw': mech_service.get_power_with_decimals(),  # Raw Power with decimals for UI
             'mech_level': mech_state.level,
             'mech_level_name': mech_state.level_name,
             'next_level_threshold': mech_state.next_level_threshold,
@@ -1397,7 +1389,7 @@ def get_donation_status():
 
 @main_bp.route('/api/donation/click', methods=['POST'])
 def record_donation_click():
-    """Record a donation button click (no auth required)."""
+    """Record a donation button click (auth required for security)."""
     try:
         data = request.get_json()
         if not data or 'type' not in data:
@@ -1457,7 +1449,7 @@ def record_donation_click():
 
 @main_bp.route('/api/donation/add-power', methods=['POST'])
 @auth.login_required
-def add_test_Power():
+def add_test_power():
     """Add or remove Power for testing (requires auth) - USING NEW MECH SERVICE."""
     try:
         data = request.get_json()
@@ -1498,7 +1490,7 @@ def add_test_Power():
 
 @main_bp.route('/api/donation/reset-power', methods=['POST'])
 @auth.login_required  
-def reset_Power():
+def reset_power():
     """Reset Power to 0 for testing (requires auth) - USING NEW MECH SERVICE."""
     try:
         # NEW SERVICE: Reset by clearing donation file
@@ -1709,7 +1701,7 @@ def mech_animation():
             from services.mech.mech_service import get_mech_service
             mech_service = get_mech_service()
             mech_state = mech_service.get_state()
-            current_Power = mech_service.get_Power_with_decimals()
+            current_Power = mech_service.get_power_with_decimals()
             total_donated = mech_state.total_donated
             
             # Create animation bytes synchronously - use total_donated for evolution
@@ -1955,4 +1947,90 @@ def delete_donation(index):
         return jsonify({
             'success': False,
             'error': str(e)
+        })
+
+# ========================================
+# FIRST-TIME SETUP ROUTES  
+# ========================================
+
+@main_bp.route('/setup', methods=['GET'])
+def setup_page():
+    """First-time setup page - only works if no password is configured."""
+    config = load_config()
+    
+    # Only allow setup if no password hash exists
+    if config.get('web_ui_password_hash') is not None:
+        flash('Setup is only available for first-time installation. System is already configured.', 'error')
+        return redirect(url_for('main_bp.index'))
+    
+    return render_template('setup.html')
+
+@main_bp.route('/setup', methods=['POST'])
+def setup_save():
+    """Save the initial setup configuration."""
+    config = load_config()
+    
+    # Security check: only allow if no password is set
+    if config.get('web_ui_password_hash') is not None:
+        return jsonify({
+            'success': False,
+            'error': 'Setup is not allowed when password is already configured'
+        })
+    
+    try:
+        from werkzeug.security import generate_password_hash
+        
+        # Get form data
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+        
+        # Validation
+        if not password or not confirm_password:
+            return jsonify({
+                'success': False,
+                'error': 'Both password fields are required'
+            })
+        
+        if password != confirm_password:
+            return jsonify({
+                'success': False,
+                'error': 'Passwords do not match'
+            })
+        
+        if len(password) < 6:
+            return jsonify({
+                'success': False,
+                'error': 'Password must be at least 6 characters long'
+            })
+        
+        # Create secure password hash
+        password_hash = generate_password_hash(password, method="pbkdf2:sha256:600000")
+        
+        # Update config
+        config['web_ui_password_hash'] = password_hash
+        config['web_ui_user'] = 'admin'
+        
+        # Save config
+        success = save_config(config)
+        
+        if success:
+            # Log the setup completion
+            current_app.logger.info("First-time setup completed successfully")
+            log_user_action("admin", "setup", "First-time password setup completed")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Setup completed! You can now login with username "admin" and your password.'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to save configuration'
+            })
+            
+    except Exception as e:
+        current_app.logger.error(f"Setup error: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Setup failed due to internal error'
         })

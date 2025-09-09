@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 """
+from services.config.config_service import load_config
 Smart integration of container info into status-only channels.
 Provides read-only info display for channels with only /ss permission.
 """
@@ -229,7 +230,6 @@ class EditInfoButton(discord.ui.Button):
                 )
             except:
                 pass
-
 
 class LiveLogView(discord.ui.View):
     """View for live-updating debug logs with refresh controls."""
@@ -867,9 +867,8 @@ class StatusInfoButton(discord.ui.Button):
             
             # Check if this is a control channel
             from .control_helpers import _channel_has_permission
-            from utils.config_cache import get_cached_config
-            
-            config = get_cached_config()
+                        
+            config = load_config()
             has_control = _channel_has_permission(interaction.channel_id, 'control', config) if config else False
             
             # Generate info embed (with protected info if in control channel)
@@ -1280,9 +1279,6 @@ class TaskManagementButton(discord.ui.Button):
             logger.error(f"Error showing task list: {e}", exc_info=True)
             await interaction.followup.send("❌ Error loading task list.", ephemeral=True)
 
-
-
-
 class TaskManagementView(discord.ui.View):
     """View with buttons for task management (Add Task, Delete Tasks)."""
     
@@ -1296,7 +1292,6 @@ class TaskManagementView(discord.ui.View):
         
         # Delete Tasks button  
         self.add_item(DeleteTasksButton(cog_instance, container_name))
-
 
 class AddTaskButton(discord.ui.Button):
     """Button to add a new scheduled task."""
@@ -1339,7 +1334,6 @@ class AddTaskButton(discord.ui.Button):
         except Exception as e:
             logger.error(f"Error in add task button: {e}", exc_info=True)
             await interaction.response.send_message(f"❌ {_('Error showing task help.')}", ephemeral=True)
-
 
 class DeleteTasksButton(discord.ui.Button):
     """Button to open task delete panel."""
@@ -1398,7 +1392,6 @@ class DeleteTasksButton(discord.ui.Button):
         except Exception as e:
             logger.error(f"Error in delete tasks button: {e}", exc_info=True)
             await interaction.followup.send(f"❌ {_('Error opening task delete panel.')}", ephemeral=True)
-
 
 class TaskCreationView(discord.ui.View):
     """View for task creation using sequential dropdowns."""
@@ -1517,7 +1510,6 @@ class CycleDropdown(discord.ui.Select):
         
         await interaction.response.edit_message(embed=embed, view=self.view)
 
-
 class ActionDropdown(discord.ui.Select):
     """Dropdown for selecting task action."""
     
@@ -1578,7 +1570,6 @@ class ActionDropdown(discord.ui.Select):
         
         await interaction.response.edit_message(embed=embed, view=self.view)
 
-
 class SimpleMonthdayDropdown(discord.ui.Select):
     """Simple dropdown for selecting day of month (1-31 excluding some days)."""
     
@@ -1629,7 +1620,6 @@ class SimpleMonthdayDropdown(discord.ui.Select):
         )
         
         await interaction.response.edit_message(embed=embed, view=self.view)
-
 
 class MonthDropdown(discord.ui.Select):
     """Dropdown for selecting month."""
@@ -1694,7 +1684,6 @@ class MonthDropdown(discord.ui.Select):
         
         await interaction.response.edit_message(embed=embed, view=self.view)
 
-
 class YearDropdown(discord.ui.Select):
     """Dropdown for selecting year."""
     
@@ -1736,7 +1725,6 @@ class YearDropdown(discord.ui.Select):
         )
         
         await interaction.response.edit_message(embed=embed, view=self.view)
-
 
 class TimeDropdown(discord.ui.Select):
     """Dropdown for selecting task time."""
@@ -1786,7 +1774,6 @@ class TimeDropdown(discord.ui.Select):
         
         await interaction.response.edit_message(embed=embed, view=self.view)
 
-
 class WeekdayDropdown(discord.ui.Select):
     """Dropdown for selecting weekday."""
     
@@ -1827,7 +1814,6 @@ class WeekdayDropdown(discord.ui.Select):
         
         await interaction.response.edit_message(embed=embed, view=self.view)
 
-
 class MonthdayDropdown(discord.ui.Select):
     """Dropdown for selecting day of month."""
     
@@ -1851,7 +1837,6 @@ class MonthdayDropdown(discord.ui.Select):
         )
         
         await interaction.response.edit_message(embed=embed, view=self.view)
-
 
 class YeardayDropdown(discord.ui.Select):
     """Dropdown for selecting date input method for yearly tasks."""
@@ -1959,7 +1944,6 @@ class YeardayDropdown(discord.ui.Select):
             
             await interaction.response.edit_message(embed=embed, view=self.view)
 
-
 class ManualDateView(discord.ui.View):
     """View for manual date entry using dropdowns instead of modal."""
     
@@ -1975,7 +1959,6 @@ class ManualDateView(discord.ui.View):
         
         # Add confirm button
         self.add_item(ConfirmDateButton())
-
 
 class DaySelectDropdown(discord.ui.Select):
     """Dropdown for selecting day of month."""
@@ -1999,7 +1982,6 @@ class DaySelectDropdown(discord.ui.Select):
             self.view.children[-1].disabled = False  # Enable confirm button
         
         await interaction.response.edit_message(view=self.view)
-
 
 class MonthSelectDropdown(discord.ui.Select):
     """Dropdown for selecting month."""
@@ -2028,7 +2010,6 @@ class MonthSelectDropdown(discord.ui.Select):
             self.view.children[-1].disabled = False  # Enable confirm button
         
         await interaction.response.edit_message(view=self.view)
-
 
 class ConfirmDateButton(discord.ui.Button):
     """Button to confirm the manual date entry."""
@@ -2082,9 +2063,6 @@ class ConfirmDateButton(discord.ui.Button):
             ephemeral=True
         )
 
-
-
-
 class DateDropdown(discord.ui.Select):
     """Dropdown for selecting specific date for once tasks."""
     
@@ -2121,7 +2099,6 @@ class DateDropdown(discord.ui.Select):
         )
         
         await interaction.response.edit_message(embed=embed, view=self.view)
-
 
 class CreateTaskButton(discord.ui.Button):
     """Button to directly create the task."""
@@ -2280,8 +2257,6 @@ class CreateTaskButton(discord.ui.Button):
                     ephemeral=True
                 )
 
-
-
 def should_show_info_in_status_channel(channel_id: int, config: Dict[str, Any]) -> bool:
     """
     Check if info integration should be shown in a status channel.
@@ -2302,7 +2277,6 @@ def should_show_info_in_status_channel(channel_id: int, config: Dict[str, Any]) 
     # This includes both control channels (as additional feature) and status-only channels
     # The StatusInfoView will be used only for status-only channels, control channels use ControlView
     return True
-
 
 class ContainerTaskDeleteView(discord.ui.View):
     """View for deleting tasks specific to a container."""
@@ -2374,7 +2348,6 @@ class ContainerTaskDeleteView(discord.ui.View):
             
             row = i // 5  # 5 buttons per row
             self.add_item(ContainerTaskDeleteButton(cog_instance, task_id, task_description, row))
-
 
 class ContainerTaskDeleteButton(discord.ui.Button):
     """Button to delete a specific task."""

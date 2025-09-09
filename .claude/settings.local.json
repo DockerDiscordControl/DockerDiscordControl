@@ -1,14 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(DDC_WEB_PORT=5001 python3:*)",
-      "Read(/tmp/**)",
-      "Read(/tmp/**)",
-      "Read(/tmp/**)",
-      "Read(/tmp/**)",
-      "Bash(sed:*)",
-      "WebSearch",
-      "Bash(git rm:*)"
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []

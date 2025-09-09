@@ -1,0 +1,24 @@
+# -*- coding: utf-8 -*-
+# ============================================================================ #
+# DockerDiscordControl (DDC) - Minimal Test Dependencies for Unraid           #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                  #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
+
+# Core Testing Framework
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.11.0
+
+# Basic Coverage
+pytest-cov>=4.1.0
+
+# Security Testing (SAST)
+bandit>=1.7.5
+
+# Mocking and Fixtures
+responses>=0.23.0
+
+# Performance Testing
+pytest-benchmark>=4.0.0

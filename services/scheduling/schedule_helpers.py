@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 """
+from services.config.config_service import load_config
 Utility functions for schedule commands to eliminate redundancy.
 Contains common validation, error handling, and task creation logic.
 """
@@ -19,7 +20,6 @@ from .scheduler import (
     ScheduledTask, add_task, check_task_time_collision,
     parse_time_string, validate_new_task_input
 )
-from utils.config_cache import get_cached_config
 from services.infrastructure.action_logger import log_user_action
 from cogs.translation_manager import _
 from utils.logging_utils import get_module_logger
@@ -86,7 +86,7 @@ def create_and_save_task(task: ScheduledTask, ctx: discord.ApplicationContext) -
         
         if add_task(task):
             # Get timezone for formatting
-            config = get_cached_config()
+            config = load_config()
             timezone_str = config.get('timezone', 'Europe/Berlin')
             
             # Format next run time
@@ -126,7 +126,7 @@ def check_schedule_permissions(ctx: discord.ApplicationContext, container_name: 
     Returns:
         Tuple of (has_permission, error_message, server_config)
     """
-    config = get_cached_config()
+    config = load_config()
     servers = config.get('servers', [])
     
     for server in servers:

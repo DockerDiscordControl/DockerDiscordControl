@@ -2,6 +2,7 @@
 """Control UI components for Discord interaction."""
 
 import asyncio
+from services.config.config_service import load_config
 import discord
 import logging
 import time
@@ -9,7 +10,6 @@ from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 from discord.ui import View, Button
 
-from utils.config_cache import get_cached_config
 from utils.time_utils import format_datetime_with_timezone
 from .control_helpers import _channel_has_permission, _get_pending_embed
 from utils.logging_utils import get_module_logger
@@ -229,8 +229,7 @@ class ActionButton(Button):
             except Exception as e:
                 logger.error(f"Spam protection error for button '{self.action}': {e}")
         
-        # CRITICAL FIX: Always load the latest config
-        config = get_cached_config()
+                config = load_config()
         if not config:
             await interaction.response.send_message(_("Error: Could not load configuration."), ephemeral=True)
             return
@@ -382,8 +381,7 @@ class ToggleButton(Button):
                 logger.error(f"[TOGGLE_BTN] Message or channel missing for '{self.display_name}'")
                 return
             
-            # CRITICAL FIX: Always load the latest config
-            current_config = get_cached_config()
+            current_config = load_config()
             if not current_config:
                 logger.error("[ULTRA_FAST_TOGGLE] Could not load configuration for toggle.")
                 # Show a generic error to the user
@@ -572,8 +570,7 @@ class ControlView(View):
             info_config = {}
 
         # Check if channel has info permission
-        from utils.config_cache import get_cached_config
-        config = get_cached_config()
+        config = load_config()
         channel_has_info_permission = self._channel_has_info_permission(channel_has_control_permission, config)
 
         # Add buttons based on state and permissions
@@ -657,9 +654,8 @@ class InfoButton(Button):
         try:
             await interaction.response.defer(ephemeral=True)
             
-            from utils.config_cache import get_cached_config
-            
-            config = get_cached_config()
+                        
+            config = load_config()
             channel_id = interaction.channel.id if interaction.channel else None
             
             # Check if channel has info permission
@@ -867,7 +863,6 @@ class InfoButton(Button):
         from .control_helpers import _channel_has_permission
         return _channel_has_permission(channel_id, 'control', config)
 
-
 # =============================================================================
 # TASK DELETE COMPONENTS (UNVERÄNDERT)
 # =============================================================================
@@ -914,7 +909,7 @@ class TaskDeleteButton(Button):
             
             from services.scheduling.scheduler import load_tasks, delete_task
             
-            config = get_cached_config()
+            config = load_config()
             if not _get_cached_channel_permission(interaction.channel.id, 'schedule', config):
                 await interaction.followup.send(_("You do not have permission to delete tasks in this channel."), ephemeral=True)
                 return
@@ -976,7 +971,6 @@ class TaskDeletePanelView(View):
             row = i // 5  # 5 buttons per row
             self.add_item(TaskDeleteButton(cog_instance, task_id, task_description, row))
 
-
 # =============================================================================
 # MECH STATUS VIEW AND BUTTONS FOR /SS COMMAND
 # =============================================================================
@@ -1007,7 +1001,6 @@ class MechView(View):
         
         # Always add help button after mech buttons
         self.add_item(HelpButton(cog_instance, channel_id))
-
 
 class HelpButton(Button):
     """Button to show help information from /ss messages."""
@@ -1079,7 +1072,6 @@ class HelpButton(Button):
             except:
                 pass
 
-
 class MechExpandButton(Button):
     """Button to expand mech status details in /ss messages."""
     
@@ -1142,7 +1134,7 @@ class MechExpandButton(Button):
     async def _create_expanded_ss_embed(self):
         """Create the expanded /ss embed with detailed mech information."""
         # Get the current config and servers for the embed header
-        config = get_cached_config()
+        config = load_config()
         if not config:
             # Fallback embed
             embed = discord.Embed(title="Server Overview", color=discord.Color.blue())
@@ -1171,7 +1163,6 @@ class MechExpandButton(Button):
         
         # Create the expanded embed with detailed mech information
         return await self.cog._create_overview_embed_expanded(ordered_servers, config)
-
 
 class MechCollapseButton(Button):
     """Button to collapse mech status details in /ss messages."""
@@ -1235,7 +1226,7 @@ class MechCollapseButton(Button):
     async def _create_collapsed_ss_embed(self):
         """Create the collapsed /ss embed with only mech animation."""
         # Get the current config and servers for the embed header
-        config = get_cached_config()
+        config = load_config()
         if not config:
             # Fallback embed
             embed = discord.Embed(title="Server Overview", color=discord.Color.blue())
@@ -1265,7 +1256,6 @@ class MechCollapseButton(Button):
         # Create the collapsed embed (only mech animation, no details)
         return await self.cog._create_overview_embed_collapsed(ordered_servers, config)
 
-
 class MechDonateButton(Button):
     """Button to trigger donation functionality from expanded mech view."""
     
@@ -1289,7 +1279,6 @@ class MechDonateButton(Button):
         except Exception as e:
             logger.error(f"Error in mech donate button: {e}", exc_info=True)
             await interaction.response.send_message("❌ Error processing donation. Please try `/donate` directly.", ephemeral=True)
-
 
 # DonationView has been moved back to docker_control.py where it belongs
     

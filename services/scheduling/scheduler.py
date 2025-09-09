@@ -779,8 +779,7 @@ class ScheduledTask:
         """Calculate next run for donation task - always 2nd Sunday at 13:37."""
         try:
             # Get configured timezone
-            from utils.config_cache import get_cached_config
-            config = get_cached_config()
+            config = load_config()
             timezone_str = config.get('timezone', 'Europe/Berlin')
             
             import pytz
@@ -861,8 +860,7 @@ def create_donation_system_task() -> ScheduledTask:
         
         # Get configured timezone or fall back to default
         try:
-            from utils.config_cache import get_cached_config
-            config = get_cached_config()
+            config = load_config()
             timezone_str = config.get('timezone', 'Europe/Berlin')
         except Exception:
             timezone_str = 'Europe/Berlin'

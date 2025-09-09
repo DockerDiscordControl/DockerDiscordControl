@@ -674,7 +674,6 @@ class TranslationManager:
                 "No servers configured to update.": "Aucun serveur configuré pour la mise à jour.",
                 "The server is currently offline.": "Le serveur est actuellement hors ligne.",
 
-
                 # Status texts
                 "Status could not be retrieved.": "Impossible de récupérer l'état.",
                 "On": "ON",
@@ -691,7 +690,6 @@ class TranslationManager:
                 "Last update": "Dernière mise à jour",
                 "collapse": "-",
                 "expand": "+",
-
 
                 # Force Update texts
                 "All status messages will be regenerated.": "Tous les messages d'état seront régénérés.",
@@ -1692,8 +1690,7 @@ class TranslationManager:
         """Returns the current language from the configuration"""
         # Try to get language from cached config first for better performance
         try:
-            from utils.config_cache import get_cached_config
-            config = get_cached_config()
+                        config = load_config()
         except ImportError:
             # Fallback to direct config loading if cache is not available
             config = load_config()

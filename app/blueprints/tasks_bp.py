@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 from flask import Blueprint, request, jsonify, current_app
+from services.config.config_service import load_config
 import os # Keep for other os operations if present, otherwise remove.
 from datetime import datetime
 import time
@@ -20,7 +21,6 @@ except ImportError:
 
 # Import the centralized task management functions
 from services.scheduling.scheduler import load_tasks, save_tasks, ScheduledTask, CYCLE_CRON, CYCLE_ONCE # CYCLE_CRON for validation
-from utils.config_cache import get_cached_config  # Import for configuration and timezone
 
 tasks_bp = Blueprint('tasks_bp', __name__, url_prefix='/tasks')
 
@@ -53,7 +53,7 @@ def add_task():
         
         if not timezone_str:
             # Fallback: Load timezone from configuration
-            config = get_cached_config()
+            config = load_config()
             timezone_str = config.get('timezone', 'Europe/Berlin')
         
         current_app.logger.debug(f"Using timezone: {timezone_str}")
@@ -197,7 +197,7 @@ def list_tasks():
     scheduled_tasks_objects = load_tasks() 
     
     # Load the configuration for timezone and other settings
-    config = get_cached_config()
+    config = load_config()
     timezone_str = config.get('timezone', 'Europe/Berlin')
     
     # Calculate additional status information for each task
@@ -317,7 +317,7 @@ def show_task_form():
     active_containers = get_active_containers()
     
     # Load configuration for timezone
-    config = get_cached_config()
+    config = load_config()
     timezone_str = config.get('timezone', 'Europe/Berlin')
     
     # Get the local timezone with abbreviation (e.g. CEST)
@@ -444,7 +444,7 @@ def edit_task_route(task_id):
     
     if request.method == 'GET':
         # Return task data for editing
-        config = get_cached_config()
+        config = load_config()
         timezone_str = config.get('timezone', 'Europe/Berlin')
         
         task_dict = task.to_dict()

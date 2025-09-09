@@ -260,7 +260,7 @@ class MechService:
             bars=bars,
         )
 
-    def get_Power_with_decimals(self) -> float:
+    def get_power_with_decimals(self) -> float:
         """Get raw Power value with decimal places for Web UI display"""
         data = self.store.load()
         donations = data["donations"]

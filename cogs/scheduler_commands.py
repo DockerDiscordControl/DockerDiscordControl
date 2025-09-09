@@ -23,7 +23,6 @@ import traceback
 from utils.logging_utils import setup_logger
 from utils.time_utils import format_datetime_with_timezone
 from services.config.config_service import load_config
-from utils.config_cache import get_cached_config  # Performance optimization
 from services.infrastructure.action_logger import log_user_action
 from services.scheduling.scheduler import (
     ScheduledTask, add_task, delete_task, update_task, load_tasks,
@@ -89,7 +88,7 @@ class ScheduleCommandsMixin:
     # --- Schedule Helper Methods ---
     async def _format_schedule_embed(self, tasks: List[ScheduledTask], title: str, description: str = "") -> discord.Embed:
         """Creates an embed with the list of scheduled tasks."""
-        config = get_cached_config()  # Performance optimization: use cache instead of load_config()
+        config = load_config()  # Performance optimization: use cache instead of load_config()
         timezone_str = config.get('timezone', 'Europe/Berlin')
         
         embed = discord.Embed(
@@ -159,7 +158,7 @@ class ScheduleCommandsMixin:
         """Common functionality for all schedule commands."""
         try:
             # Check permissions
-            config = get_cached_config()  # Performance optimization: use cache instead of load_config()
+            config = load_config()  # Performance optimization: use cache instead of load_config()
             timezone_str = config.get('timezone', 'Europe/Berlin')
             
             # Check if the user has schedule permissions
@@ -299,7 +298,7 @@ class ScheduleCommandsMixin:
                 return
             
             # Create the task
-            config = get_cached_config()
+            config = load_config()
             timezone_str = config.get('timezone', 'Europe/Berlin')
             
             task = ScheduledTask(
@@ -353,7 +352,7 @@ class ScheduleCommandsMixin:
                 return
             
             # Create the task
-            config = get_cached_config()
+            config = load_config()
             timezone_str = config.get('timezone', 'Europe/Berlin')
             
             task = ScheduledTask(
@@ -416,7 +415,7 @@ class ScheduleCommandsMixin:
                 return
             
             # Create the task
-            config = get_cached_config()
+            config = load_config()
             timezone_str = config.get('timezone', 'Europe/Berlin')
             
             task = ScheduledTask(
@@ -488,7 +487,7 @@ class ScheduleCommandsMixin:
                 return
             
             # Create the task
-            config = get_cached_config()
+            config = load_config()
             timezone_str = config.get('timezone', 'Europe/Berlin')
             
             task = ScheduledTask(
@@ -765,7 +764,7 @@ class ScheduleCommandsMixin:
                 return
             
             # Create the task
-            config = get_cached_config()
+            config = load_config()
             timezone_str = config.get('timezone', 'Europe/Berlin')
             
             task = ScheduledTask(

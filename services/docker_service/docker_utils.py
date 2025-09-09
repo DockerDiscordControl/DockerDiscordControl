@@ -23,10 +23,10 @@ except ImportError:
     USE_CONNECTION_POOL = False
     logger.warning("Docker Connection Pool not available, using legacy single client")
 
-# Legacy Docker client for fallback (will be phased out)
+# Fallback Docker client for environments without connection pooling
 _docker_client = None
 _client_last_used = 0
-_CLIENT_TIMEOUT = 300  # Erhöht von 60 auf 300 Sekunden (5 Minuten)
+_CLIENT_TIMEOUT = 300  # 5 minutes timeout for long-running operations
 _client_ping_cache = 0  # Cache for ping results
 _PING_CACHE_TTL = 120   # Ping cache for 2 minutes
 _docker_client_lock = threading.Lock()  # Thread safety for Docker client

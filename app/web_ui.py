@@ -328,6 +328,15 @@ def create_app(test_config=None):
                 config = load_config()
                 health_data["config_loaded"] = True
                 health_data["servers_configured"] = len(config.get('servers', []))
+                
+                # Check if first-time setup is needed
+                if config.get('web_ui_password_hash') is None:
+                    health_data["first_time_setup_needed"] = True
+                    health_data["setup_instructions"] = "Visit /setup for easy web setup, or set DDC_ADMIN_PASSWORD env var"
+                    health_data["setup_url"] = "/setup"
+                else:
+                    health_data["first_time_setup_needed"] = False
+                    
             except Exception:
                 health_data["config_loaded"] = False
                 health_data["servers_configured"] = 0

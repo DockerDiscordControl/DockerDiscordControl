@@ -18,6 +18,12 @@ log_bp = Blueprint('log_bp', __name__)
 def get_container_logs(container_name):
     logger = current_app.logger
     max_lines = 500  # Limit the number of log lines to return
+    
+    # Validate container name to prevent injection attacks
+    from utils.common_helpers import validate_container_name
+    if not validate_container_name(container_name):
+        logger.warning(f"Invalid container name requested: {container_name}")
+        return Response("Invalid container name", status=400, content_type="text/plain")
 
     try:
         # Initialize Docker client

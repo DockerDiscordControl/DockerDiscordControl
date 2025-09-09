@@ -25,7 +25,6 @@ DiscordOption = get_discord_option()
 
 # Import our utility functions
 from services.config.config_service import load_config, get_config_service
-from utils.config_cache import get_cached_config  # CRITICAL: Import the real function
 from services.docker_service.docker_utils import get_docker_info, get_docker_stats, docker_action
 
 from utils.time_utils import format_datetime_with_timezone
@@ -71,7 +70,6 @@ docker_status_cache_lock = threading.Lock()  # Thread safety for global status c
 
 # DonationView will be defined in this file
 
-
 class DockerControlCog(commands.Cog, StatusHandlersMixin):
     """Cog for DockerDiscordControl container management via Discord."""
 
@@ -90,7 +88,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 logger.info("Donations are disabled - removing donation commands")
                 # Remove donate and donatebroadcast commands after cog is initialized
                 self.donations_disabled = True
-        except:
+        except Exception as e:
+            logger.debug(f"Error checking donation status: {e}")
             self.donations_disabled = False
         
         # Initialize Mech State Manager for persistence
@@ -243,7 +242,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             heartbeat_enabled = False
             try:
                 # Prefer latest cached config (reflects Web UI changes)
-                latest_config = get_cached_config() or {}
+                latest_config = load_config() or {}
             except Exception:
                 latest_config = {}
 
@@ -294,8 +293,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     @tasks.loop(minutes=1, reconnect=True)
     async def periodic_message_edit_loop(self):
         """Periodically checks and edits messages in channels that require updates."""
-        # CRITICAL FIX: Always load the latest config to get recent changes
-        config = get_cached_config()
+        config = load_config()
         if not config:
             logger.error("Periodic Edit Loop: Could not load configuration. Skipping cycle.")
             return
@@ -681,7 +679,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     async def _send_control_panel_and_statuses(self, channel: discord.TextChannel) -> None:
         """Send control panel and all server statuses to a channel."""
         try:
-            current_config = get_cached_config()
+            current_config = load_config()
             if not current_config:
                 logger.error(f"Send Control Panel: Could not load configuration for channel {channel.id}.")
                 return
@@ -740,8 +738,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     async def _send_all_server_statuses(self, channel: discord.TextChannel, allow_toggle: bool = True, force_collapse: bool = False):
         """Sends only the overview embed to a status channel (no individual server messages)."""
         try:
-            # CRITICAL FIX: Always use the latest config
-            config = get_cached_config()
+            config = load_config()
             if not config:
                 logger.error(f"Send All Statuses: Could not load configuration for channel {channel.id}.")
                 return
@@ -868,8 +865,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             logger.info("Wait finished. Proceeding with initial status send")
             # --- End delay ---
 
-            # CRITICAL FIX: Always use the latest config
-            current_config = get_cached_config()
+            current_config = load_config()
             if not current_config:
                 logger.error("Could not load configuration for initial status send.")
                 return
@@ -930,7 +926,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                             await self._send_control_panel_and_statuses(channel)
                         else:  # mode == 'status'
                             # Create and send overview embed
-                            config = get_cached_config()
+                            config = load_config()
                             if not config:
                                 logger.error("Could not load config for overview embed")
                                 return
@@ -1139,8 +1135,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # Defer the response immediately to prevent timeout
             await ctx.defer()
 
-            # CRITICAL FIX: Always use the latest config
-            config = get_cached_config()
+            config = load_config()
             if not config:
                 await ctx.followup.send(_("Error: Could not load configuration."), ephemeral=True)
                 return
@@ -1585,7 +1580,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             except:
                 pass  # If we can't send error message, just log it
 
-
     # NOTE: Old _create_overview_embed method was removed
     # Use _create_overview_embed_expanded or _create_overview_embed_collapsed instead
 
@@ -1609,7 +1603,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
         # Build server status lines (same logic as original)
         now_utc = datetime.now(timezone.utc)
-        fresh_config = get_cached_config()
+        fresh_config = load_config()
         timezone_str = fresh_config.get('timezone') if fresh_config else config.get('timezone')
         
         current_time = format_datetime_with_timezone(now_utc, timezone_str, time_only=True)
@@ -1737,7 +1731,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 logger.info("DEBUG: new MechService created")
                 
                 # Get clean data from new service
-                current_Power = mech_service.get_Power_with_decimals()  # Use decimal version for accurate display
+                current_Power = mech_service.get_power_with_decimals()  # Use decimal version for accurate display
                 total_donations_received = mech_state.total_donated
                 logger.info(f"NEW SERVICE: Power=${current_Power:.2f}, total_donations=${total_donations_received}, level={mech_state.level} ({mech_state.level_name})")
                 
@@ -1904,7 +1898,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
         # Build server status lines (same logic as original)
         now_utc = datetime.now(timezone.utc)
-        fresh_config = get_cached_config()
+        fresh_config = load_config()
         timezone_str = fresh_config.get('timezone') if fresh_config else config.get('timezone')
         
         current_time = format_datetime_with_timezone(now_utc, timezone_str, time_only=True)
@@ -2029,7 +2023,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 
                 # Get current Power for animation
                 mech_state = mech_service.get_state()
-                current_Power = mech_service.get_Power_with_decimals()
+                current_Power = mech_service.get_power_with_decimals()
                 
                 # Create mech animation with fallback
                 try:
@@ -2183,7 +2177,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                             continue
                         
                         # Get fresh server data
-                        config = get_cached_config()
+                        config = load_config()
                         if not config:
                             continue
                             
@@ -2216,7 +2210,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                             from services.mech.mech_service import get_mech_service
                             mech_service = get_mech_service()
                             mech_state = mech_service.get_state()
-                            current_Power = mech_service.get_Power_with_decimals()
+                            current_Power = mech_service.get_power_with_decimals()
                             total_donations = mech_state.total_donated
                             
                             # Get current mech status to extract Glvl
@@ -2320,7 +2314,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         """
         try:
             # Load the heartbeat configuration from latest cache (fallback to initial config)
-            current_config = get_cached_config() or self.config or {}
+            current_config = load_config() or self.config or {}
 
             # First check legacy format with 'heartbeat_channel_id' at root level
             heartbeat_channel_id = current_config.get('heartbeat_channel_id')
@@ -2411,6 +2405,12 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     @tasks.loop(seconds=30)
     async def status_update_loop(self):
         """Periodically updates the cache with the latest container statuses."""
+        # Load configuration first
+        config = load_config()
+        if not config:
+            logger.error("Status Update Loop: Could not load configuration. Skipping cycle.")
+            return
+        
         # Get cache duration from environment
         cache_duration = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', '30'))
         
@@ -2427,12 +2427,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 logger.info(f"[STATUS_LOOP] Cache update interval changed to {cache_duration} seconds")
             except Exception as e:
                 logger.error(f"[STATUS_LOOP] Failed to change interval: {e}")
-        # CRITICAL FIX: Always load the latest config to prevent stale data
-        config = get_cached_config()
-        if not config:
-            logger.error("Status Update Loop: Could not load configuration. Skipping cycle.")
-            return
         
+        # Configuration already loaded and validated above
         servers = config.get('servers', [])
         if not servers:
             return # No servers to update
@@ -2476,8 +2472,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     @tasks.loop(seconds=30)
     async def inactivity_check_loop(self):
         """Checks for channel inactivity and regenerates messages if needed."""
-        # CRITICAL FIX: Always load the latest config
-        config = get_cached_config()
+        config = load_config()
         if not config:
             logger.error("Inactivity Check Loop: Could not load configuration. Skipping cycle.")
             return
@@ -2684,9 +2679,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     # - _impl_task_delete_panel_command (task deletion panel via command)
     # Task management is now integrated into the status UI.
 
-
     # /info command removed - container information now accessed through UI buttons
-
 
     
     # --- Cog Teardown ---
@@ -2852,7 +2845,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         except Exception as e:
             logger.warning(f"⚠️ Could not register persistent mech views: {e}")
 
-
 class DonationView(discord.ui.View):
     """View with donation buttons that track clicks."""
     
@@ -2937,7 +2929,6 @@ class DonationView(discord.ui.View):
             await interaction.response.send_modal(modal)
         except Exception as e:
             logger.error(f"Error in broadcast_clicked: {e}")
-
 
 class DonationBroadcastModal(discord.ui.Modal):
     """Modal for donation broadcast details."""
@@ -3097,8 +3088,7 @@ class DonationBroadcastModal(discord.ui.Modal):
             failed_count = 0
             
             if should_share_publicly:
-                from utils.config_cache import get_cached_config
-                config = get_cached_config()
+                config = load_config()
                 channels_config = config.get('channel_permissions', {})
                 
                 for channel_id_str, channel_info in channels_config.items():
@@ -3156,7 +3146,6 @@ class DonationBroadcastModal(discord.ui.Modal):
                 )
             except Exception as followup_error:
                 logger.error(f"Could not send error response: {followup_error}")
-
 
 # Setup function required for extension loading
 def setup(bot):

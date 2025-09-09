@@ -9,10 +9,10 @@
 import discord
 from typing import List, Dict, Any, Optional, Union
 from services.config.config_service import load_config
-from utils.config_cache import get_cached_config, get_cached_servers, get_cached_guild_id  # Performance optimization
 from .translation_manager import _ # Import the translation function
 from utils.time_utils import format_datetime_with_timezone, get_datetime_imports # Import time helper
 from utils.logging_utils import get_module_logger
+from utils.config_cache import get_cached_guild_id
 
 # Zentrale datetime-Imports
 datetime, timedelta, timezone, time = get_datetime_imports()
@@ -33,7 +33,6 @@ def get_guild_id() -> Union[List[int], None]:
     # None is returned, which means the command is global.
     logger.warning("No valid guild_id found in config. Commands will be registered globally.")
     return None
-
 
 # Updated function for Discord Autocomplete
 async def container_select(original_ctx, original_current):
@@ -96,7 +95,7 @@ async def container_select(original_ctx, original_current):
 def _channel_has_permission(channel_id: int, permission_key: str, config: dict = None) -> bool:
     """Checks if a channel has a specific permission."""
     if config is None:
-        config = get_cached_config()  # Performance optimization: use cache if no config provided
+        config = load_config()  # Performance optimization: use cache if no config provided
     
     channel_permissions = config.get('channel_permissions', {})
     channel_config = channel_permissions.get(str(channel_id))
@@ -112,7 +111,7 @@ def _channel_has_permission(channel_id: int, permission_key: str, config: dict =
 def _get_pending_embed(display_name: str) -> discord.Embed:
     """Generates a standardized embed for the pending status in the box design."""
     # --- Start: Adjusted box formatting for Pending --- #
-    config = get_cached_config()  # Performance optimization: use cache instead of load_config()
+    config = load_config()  # Performance optimization: use cache instead of load_config()
     language = config.get('language', 'de') # Needed for translation context
     status_text = _("Pending...") # Use translated text
     current_emoji = "⏳"
