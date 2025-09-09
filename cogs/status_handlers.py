@@ -54,15 +54,39 @@ class StatusHandlersMixin:
             self.container_performance_history = {}
             logger.debug("Initialized adaptive performance system")
         if not hasattr(self, 'performance_learning_config'):
-            self.performance_learning_config = {
-                'min_timeout': 5000,      # 5 seconds minimum
-                'max_timeout': 120000,    # 2 minutes maximum
-                'default_timeout': 30000, # 30 seconds default
-                'slow_threshold': 8000,   # 8+ seconds = slow container
-                'history_window': 20,     # Keep last 20 measurements
-                'retry_attempts': 3,      # Maximum retry attempts
-                'timeout_multiplier': 2.0 # Timeout = avg_time * multiplier
-            }
+            # Import here to avoid circular imports
+            try:
+                from services.docker_service.docker_utils import get_smart_timeout
+                
+                # Get Docker timeouts from Advanced Settings for alignment
+                max_docker_timeout = max(
+                    get_smart_timeout('stats') * 1000,  # Convert to milliseconds
+                    get_smart_timeout('info') * 1000
+                )
+                
+                self.performance_learning_config = {
+                    'min_timeout': 5000,      # 5 seconds minimum
+                    'max_timeout': max_docker_timeout,  # Match Docker config timeouts
+                    'default_timeout': min(30000, max_docker_timeout * 0.8), # 30s or 80% of max Docker timeout
+                    'slow_threshold': 8000,   # 8+ seconds = slow container
+                    'history_window': 20,     # Keep last 20 measurements
+                    'retry_attempts': 3,      # Maximum retry attempts
+                    'timeout_multiplier': 2.0 # Timeout = avg_time * multiplier
+                }
+                
+                logger.info(f"Adaptive performance system aligned with Docker timeouts: max={max_docker_timeout}ms")
+            except Exception as e:
+                # Fallback to more conservative values if import fails
+                logger.warning(f"Failed to align with Docker timeouts, using conservative defaults: {e}")
+                self.performance_learning_config = {
+                    'min_timeout': 5000,      # 5 seconds minimum
+                    'max_timeout': 45000,     # 45 seconds maximum (conservative)
+                    'default_timeout': 30000, # 30 seconds default
+                    'slow_threshold': 8000,   # 8+ seconds = slow container
+                    'history_window': 20,     # Keep last 20 measurements
+                    'retry_attempts': 3,      # Maximum retry attempts
+                    'timeout_multiplier': 2.0 # Timeout = avg_time * multiplier
+                }
             logger.debug("Initialized performance learning configuration")
     
     def _get_container_performance_profile(self, container_name: str) -> dict:
@@ -340,7 +364,7 @@ class StatusHandlersMixin:
             logger.debug(f"[INTELLIGENT_BULK_FETCH] Phase 1: Processing {len(fast_containers)} fast containers in parallel")
             
             # Use semaphore for controlled concurrency
-            MAX_CONCURRENT_FAST = min(5, len(fast_containers))  # Max 5 concurrent for fast containers
+            MAX_CONCURRENT_FAST = min(3, len(fast_containers))  # Max 3 concurrent to match Docker pool capacity
             semaphore = asyncio.Semaphore(MAX_CONCURRENT_FAST)
             
             async def fetch_fast_container(container_name):

@@ -86,8 +86,8 @@ MAX_CACHE_AGE = _get_advanced_setting('DDC_DOCKER_MAX_CACHE_AGE', 300)
 # Flag to enable background refresh
 ENABLE_BACKGROUND_REFRESH = _get_advanced_setting('DDC_ENABLE_BACKGROUND_REFRESH', True, bool)
 # Background refresh interval - MUST be frequent for 1-minute update intervals
-# Keep at 30 seconds to support minimum 1-minute Web UI update intervals
-BACKGROUND_REFRESH_INTERVAL = _get_advanced_setting('DDC_BACKGROUND_REFRESH_INTERVAL', 300)
+# Keep at 30 seconds to support minimum 1-minute Web UI update intervals and align with 45s cache TTL
+BACKGROUND_REFRESH_INTERVAL = _get_advanced_setting('DDC_BACKGROUND_REFRESH_INTERVAL', 30)
 # Background refresh limit - Maximum containers to refresh per cycle
 BACKGROUND_REFRESH_LIMIT = _get_advanced_setting('DDC_BACKGROUND_REFRESH_LIMIT', 50)
 # Background refresh timeout - Timeout for each refresh operation

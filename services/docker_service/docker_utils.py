@@ -14,21 +14,60 @@ import threading
 # Logger for Docker utils
 logger = setup_logger('ddc.docker_utils', level=logging.INFO)
 
-# Docker client pool for improved performance
+# Import the modern async connection pool
+try:
+    from .docker_client_pool import get_docker_pool
+    USE_CONNECTION_POOL = True
+    logger.info("Modern Async Docker Queue System enabled for optimal performance")
+except ImportError:
+    USE_CONNECTION_POOL = False
+    logger.warning("Docker Connection Pool not available, using legacy single client")
+
+# Legacy Docker client for fallback (will be phased out)
 _docker_client = None
 _client_last_used = 0
 _CLIENT_TIMEOUT = 300  # Erhöht von 60 auf 300 Sekunden (5 Minuten)
-_client_ping_cache = 0  # Cache für Ping-Ergebnisse
-_PING_CACHE_TTL = 120   # Ping-Cache für 2 Minuten
+_client_ping_cache = 0  # Cache for ping results
+_PING_CACHE_TTL = 120   # Ping cache for 2 minutes
 _docker_client_lock = threading.Lock()  # Thread safety for Docker client
 
 # PERFORMANCE OPTIMIZATION: Flexible container timeout configuration
-# Environment variables for timeout configuration (can be overridden)
-DEFAULT_FAST_STATS_TIMEOUT = float(os.environ.get('DDC_FAST_STATS_TIMEOUT', '1.5'))  # Reduced from 2.0s
-DEFAULT_SLOW_STATS_TIMEOUT = float(os.environ.get('DDC_SLOW_STATS_TIMEOUT', '30.0'))  # Updated to match Advanced Settings default
-DEFAULT_FAST_INFO_TIMEOUT = float(os.environ.get('DDC_FAST_INFO_TIMEOUT', '2.0'))
-DEFAULT_SLOW_INFO_TIMEOUT = float(os.environ.get('DDC_SLOW_INFO_TIMEOUT', '30.0'))  # Updated to match Advanced Settings default
-DEFAULT_CONTAINER_LIST_TIMEOUT = float(os.environ.get('DDC_CONTAINER_LIST_TIMEOUT', '15.0'))
+# Load from Advanced Settings first, then environment variables, then defaults
+def _load_timeout_from_config(config_key: str, env_key: str, default: str) -> float:
+    """Load timeout value from Advanced Settings config first, then env var, then default."""
+    try:
+        from services.config.config_service import load_config
+        config = load_config()
+        advanced_settings = config.get('advanced_settings', {})
+        if config_key in advanced_settings:
+            config_value = float(advanced_settings[config_key])
+            # TEMPORARY FIX: Override config values that are too small for current Docker daemon performance
+            if config_key == 'DDC_FAST_STATS_TIMEOUT' and config_value < 30:
+                logger.info(f"Overriding {config_key} from {config_value}s to 45s due to Docker daemon performance")
+                return 45.0
+            if config_key == 'DDC_FAST_INFO_TIMEOUT' and config_value < 30:
+                logger.info(f"Overriding {config_key} from {config_value}s to 45s due to Docker daemon performance") 
+                return 45.0
+            return config_value
+    except Exception:
+        pass  # Fall back to environment variable
+    
+    return float(os.environ.get(env_key, default))
+
+# Load timeout values with Advanced Settings integration
+DEFAULT_FAST_STATS_TIMEOUT = _load_timeout_from_config('DDC_FAST_STATS_TIMEOUT', 'DDC_FAST_STATS_TIMEOUT', '45.0')  # Increased from 10.0 due to slower Docker daemon
+DEFAULT_SLOW_STATS_TIMEOUT = _load_timeout_from_config('DDC_SLOW_STATS_TIMEOUT', 'DDC_SLOW_STATS_TIMEOUT', '60.0') 
+DEFAULT_FAST_INFO_TIMEOUT = _load_timeout_from_config('DDC_FAST_INFO_TIMEOUT', 'DDC_FAST_INFO_TIMEOUT', '45.0')  # Increased from 2.0 due to slower Docker daemon
+DEFAULT_SLOW_INFO_TIMEOUT = _load_timeout_from_config('DDC_SLOW_INFO_TIMEOUT', 'DDC_SLOW_INFO_TIMEOUT', '60.0')
+DEFAULT_CONTAINER_LIST_TIMEOUT = _load_timeout_from_config('DDC_CONTAINER_LIST_TIMEOUT', 'DDC_CONTAINER_LIST_TIMEOUT', '30.0')  # Increased from 15.0
+
+# Log the loaded timeout values for debugging
+logger.info(f"[TIMEOUT_CONFIG] Loaded timeout values:")
+logger.info(f"[TIMEOUT_CONFIG] - DDC_FAST_STATS_TIMEOUT: {DEFAULT_FAST_STATS_TIMEOUT}s")
+logger.info(f"[TIMEOUT_CONFIG] - DDC_SLOW_STATS_TIMEOUT: {DEFAULT_SLOW_STATS_TIMEOUT}s")
+logger.info(f"[TIMEOUT_CONFIG] - DDC_FAST_INFO_TIMEOUT: {DEFAULT_FAST_INFO_TIMEOUT}s")
+logger.info(f"[TIMEOUT_CONFIG] - DDC_SLOW_INFO_TIMEOUT: {DEFAULT_SLOW_INFO_TIMEOUT}s")
+logger.info(f"[TIMEOUT_CONFIG] - DDC_CONTAINER_LIST_TIMEOUT: {DEFAULT_CONTAINER_LIST_TIMEOUT}s")
 
 # Pattern-based timeout configuration (flexible and maintainable)
 CONTAINER_TYPE_PATTERNS = {
@@ -43,7 +82,7 @@ CONTAINER_TYPE_PATTERNS = {
             'project-cars', 'dirt-rally', 'f1-', 'gran-turismo', 'forza'
         ],
         'stats_timeout': DEFAULT_FAST_STATS_TIMEOUT,
-        'info_timeout': DEFAULT_SLOW_INFO_TIMEOUT
+        'info_timeout': DEFAULT_FAST_INFO_TIMEOUT  # Fixed: Game servers should also have fast info timeouts
     },
     'media_server': {
         'patterns': [
@@ -78,7 +117,7 @@ CONTAINER_TYPE_PATTERNS = {
 # Default timeout configuration
 DEFAULT_TIMEOUT_CONFIG = {
     'stats_timeout': DEFAULT_FAST_STATS_TIMEOUT,  # Use fast stats for default (1.5s)
-    'info_timeout': DEFAULT_SLOW_INFO_TIMEOUT    # Use slow info for default (30.0s)
+    'info_timeout': DEFAULT_FAST_INFO_TIMEOUT     # Use fast info for default (2.0s) - Fixed from 30.0s!
 }
 
 # Load custom timeout configuration from file
@@ -231,11 +270,121 @@ def get_container_type_info(container_name: str) -> dict:
         'config_source': 'default'
     }
 
+def get_smart_timeout(operation: str = 'default', container_name: str = None) -> float:
+    """
+    Get intelligent timeout based on Advanced Settings and container type.
+    
+    Args:
+        operation: Type of operation ('stats', 'info', 'list', 'action', 'default')
+        container_name: Container name for type-specific optimization
+    
+    Returns:
+        Timeout in seconds from Advanced Settings
+    """
+    # Container type-specific timeout optimization
+    if container_name:
+        container_type_info = get_container_type_info(container_name)
+        timeout_config = container_type_info.get('timeout_config', {})
+        
+        if operation == 'stats':
+            timeout_value = timeout_config.get('stats_timeout', DEFAULT_FAST_STATS_TIMEOUT)
+            logger.debug(f"[TIMEOUT_DEBUG] {container_name}: stats operation -> {timeout_value}s (type: {container_type_info.get('type', 'unknown')}, source: {container_type_info.get('config_source', 'unknown')})")
+            return timeout_value
+        elif operation == 'info':
+            timeout_value = timeout_config.get('info_timeout', DEFAULT_FAST_INFO_TIMEOUT)
+            logger.debug(f"[TIMEOUT_DEBUG] {container_name}: info operation -> {timeout_value}s (type: {container_type_info.get('type', 'unknown')}, source: {container_type_info.get('config_source', 'unknown')})")
+            return timeout_value
+    
+    # Global operation timeouts from Advanced Settings
+    if operation == 'stats':
+        logger.debug(f"[TIMEOUT_DEBUG] No container specified: stats operation -> {DEFAULT_FAST_STATS_TIMEOUT}s (global)")
+        return DEFAULT_FAST_STATS_TIMEOUT  # From DDC_FAST_STATS_TIMEOUT
+    elif operation == 'info':
+        logger.debug(f"[TIMEOUT_DEBUG] No container specified: info operation -> {DEFAULT_FAST_INFO_TIMEOUT}s (global)")
+        return DEFAULT_FAST_INFO_TIMEOUT   # From DDC_FAST_INFO_TIMEOUT
+    elif operation == 'list':
+        logger.debug(f"[TIMEOUT_DEBUG] No container specified: list operation -> {DEFAULT_CONTAINER_LIST_TIMEOUT}s (global)")
+        return DEFAULT_CONTAINER_LIST_TIMEOUT  # From DDC_CONTAINER_LIST_TIMEOUT
+    elif operation == 'action':
+        logger.debug(f"[TIMEOUT_DEBUG] No container specified: action operation -> {DEFAULT_FAST_INFO_TIMEOUT}s (global)")
+        return DEFAULT_FAST_INFO_TIMEOUT   # Actions are usually fast
+    else:
+        logger.debug(f"[TIMEOUT_DEBUG] No container specified: default operation -> {DEFAULT_FAST_STATS_TIMEOUT}s (global)")
+        return DEFAULT_FAST_STATS_TIMEOUT  # Default fallback
+
+
+def get_docker_client_async(timeout: float = None, operation: str = 'default', container_name: str = None):
+    """
+    Modern async Docker client with intelligent queue system and Advanced Settings integration.
+    
+    This is the OPTIMAL version that uses your configured Advanced Settings timeouts.
+    Returns an async context manager with queue integration.
+    
+    Usage:
+        async with get_docker_client_async(operation='stats', container_name='nginx') as client:
+            containers = await asyncio.to_thread(client.containers.list)
+    
+    Args:
+        timeout: Manual timeout override (if None, uses Advanced Settings)
+        operation: Operation type for smart timeout selection
+        container_name: Container name for type-specific optimization
+    
+    Features:
+        - Advanced Settings timeout integration (DDC_FAST_STATS_TIMEOUT, etc.)
+        - Container-type-specific timeout optimization  
+        - Intelligent queueing when pool is full
+        - Real-time performance statistics
+        - Automatic resource cleanup
+    """
+    # Use Advanced Settings smart timeout if not manually specified
+    if timeout is None:
+        timeout = get_smart_timeout(operation, container_name)
+    if USE_CONNECTION_POOL:
+        try:
+            pool = get_docker_pool()
+            return pool.get_client_async(timeout=timeout)
+        except Exception as e:
+            logger.warning(f"Connection pool failed, falling back: {e}")
+    
+    # Fallback to individual client creation
+    from contextlib import asynccontextmanager
+    
+    @asynccontextmanager
+    async def individual_client():
+        client = None
+        try:
+            client = await asyncio.to_thread(docker.from_env)
+            yield client
+        finally:
+            if client:
+                try:
+                    await asyncio.to_thread(client.close)
+                except:
+                    pass
+    
+    return individual_client
+
 def get_docker_client():
     """
     Get Docker client with immediate fallback and connection caching.
+    
+    NEW: Uses connection pool if available for better performance.
+    Falls back to legacy single client implementation.
+    
     Returns None if all methods fail.
     """
+    # NEW: Try connection pool first (optimal performance)
+    if USE_CONNECTION_POOL:
+        try:
+            # For backward compatibility, we need to return a direct client
+            # since existing code expects client.containers.list() etc.
+            pool = get_docker_pool()
+            client = pool._acquire_client()
+            return client
+        except Exception as e:
+            logger.warning(f"Connection pool failed, falling back to legacy client: {e}")
+    
+    # LEGACY: Single client implementation (kept for compatibility)
     global _docker_client, _client_last_used
     
     current_time = time.time()
@@ -281,17 +430,32 @@ def get_docker_client():
             _docker_client = None
             return None
 
-def release_docker_client():
-    """Closes the current Docker client if idle for too long."""
-    global _docker_client, _client_last_used
+def release_docker_client(client=None):
+    """
+    Releases a Docker client back to the pool or closes it.
     
-    if _docker_client is not None and (time.time() - _client_last_used > _CLIENT_TIMEOUT):
+    Args:
+        client: Specific client to release (for pool mode)
+                If None, releases the legacy global client
+    """
+    if USE_CONNECTION_POOL and client:
         try:
-            _docker_client.close()
-            logger.info("Released Docker client due to inactivity.")
-            _docker_client = None
+            pool = get_docker_pool()
+            pool._release_client(client)
+            logger.debug("Released Docker client back to connection pool")
         except Exception as e:
-            logger.debug(f"Error during client release: {e}")
+            logger.debug(f"Error releasing client to pool: {e}")
+    else:
+        # Legacy client release
+        global _docker_client, _client_last_used
+        
+        if _docker_client is not None and (time.time() - _client_last_used > _CLIENT_TIMEOUT):
+            try:
+                _docker_client.close()
+                logger.info("Released Docker client due to inactivity.")
+                _docker_client = None
+            except Exception as e:
+                logger.debug(f"Error during client release: {e}")
 
 class DockerError(Exception):
     """Custom exception class for Docker-related errors."""
@@ -300,7 +464,7 @@ class DockerError(Exception):
 async def get_docker_stats(docker_container_name: str) -> Tuple[Optional[str], Optional[str]]:
     """
     Gets CPU and memory usage for a Docker container using the SDK.
-    Now allows longer execution for accurate data collection.
+    Now uses Advanced Settings timeouts for optimal performance.
 
     Args:
         docker_container_name: Name of the Docker container
@@ -318,58 +482,75 @@ async def get_docker_stats(docker_container_name: str) -> Tuple[Optional[str], O
         return None, None
 
     try:
-        client = get_docker_client()
-        if not client:
-            logger.warning(f"get_docker_stats: Could not get Docker client for {docker_container_name}.")
-            return None, None
+        # 🔧 PERFORMANCE: Use Advanced Settings timeout (DDC_FAST_STATS_TIMEOUT) + container-specific optimization
+        operation_timeout = get_smart_timeout('stats', docker_container_name)
+        logger.debug(f"[get_docker_stats] {docker_container_name}: Starting with operation_timeout={operation_timeout}s")
         
-        start_time = time.time()
-        
-        try:
-            container = await asyncio.to_thread(client.containers.get, docker_container_name)
-            # Let Docker stats run naturally - no artificial timeout
-            # Cache update can take time, UI will use last known data
-            stats = await asyncio.to_thread(container.stats, stream=False)
+        overall_start = time.time()
+        async with get_docker_client_async(operation='stats', container_name=docker_container_name) as client:
+            pool_time = (time.time() - overall_start) * 1000
+            logger.debug(f"[get_docker_stats] {docker_container_name}: Got client from pool in {pool_time:.1f}ms")
             
-            elapsed_time = (time.time() - start_time) * 1000
-            if elapsed_time > 5000:  # Over 5 seconds - informational only
-                logger.info(f"Long stats call for {docker_container_name}: {elapsed_time:.1f}ms (but got real data)")
-            elif elapsed_time > 2000:  # Over 2 seconds
-                logger.debug(f"Slow stats call for {docker_container_name}: {elapsed_time:.1f}ms")
+            start_time = time.time()
             
-        except Exception as e:
-            logger.warning(f"Error getting stats for {docker_container_name}: {e}")
-            return None, None
+            try:
+                # Add operation-specific timeout to prevent hanging Docker API calls
+                get_start = time.time()
+                container = await asyncio.wait_for(
+                    asyncio.to_thread(client.containers.get, docker_container_name),
+                    timeout=operation_timeout
+                )
+                get_time = (time.time() - get_start) * 1000
+                logger.debug(f"[get_docker_stats] {docker_container_name}: container.get() took {get_time:.1f}ms")
+                
+                # Stats can be slower, use same timeout but track it
+                stats_start = time.time()
+                stats = await asyncio.wait_for(
+                    asyncio.to_thread(container.stats, stream=False),
+                    timeout=operation_timeout
+                )
+                stats_time = (time.time() - stats_start) * 1000
+                logger.debug(f"[get_docker_stats] {docker_container_name}: container.stats() took {stats_time:.1f}ms")
+                
+                elapsed_time = (time.time() - start_time) * 1000
+                if elapsed_time > 5000:  # Over 5 seconds - informational only
+                    logger.info(f"Long stats call for {docker_container_name}: {elapsed_time:.1f}ms (but got real data)")
+                elif elapsed_time > 2000:  # Over 2 seconds
+                    logger.debug(f"Slow stats call for {docker_container_name}: {elapsed_time:.1f}ms")
+                
+            except Exception as e:
+                logger.warning(f"Error getting stats for {docker_container_name}: {e}")
+                return None, None
 
-        cpu_usage = stats.get('cpu_stats', {}).get('cpu_usage', {}).get('total_usage', 0)
-        system_cpu_usage = stats.get('cpu_stats', {}).get('system_cpu_usage', 0)
-        previous_cpu = stats.get('precpu_stats', {}).get('cpu_usage', {}).get('total_usage', 0)
-        previous_system = stats.get('precpu_stats', {}).get('system_cpu_usage', 0)
-        
-        cpu_delta = cpu_usage - previous_cpu
-        system_delta = system_cpu_usage - previous_system
-        
-        cpu_percent = 'N/A'
-        if cpu_delta > 0 and system_delta > 0:
-            online_cpus = stats.get('cpu_stats', {}).get('online_cpus')
-            if online_cpus is None: # Fallback for older Docker API versions or if online_cpus is not present
-                percpu_usage = stats.get('cpu_stats', {}).get('cpu_usage', {}).get('percpu_usage', [1])
-                online_cpus = len(percpu_usage) if percpu_usage else 1
-            cpu_percent_raw = (cpu_delta / system_delta) * online_cpus * 100.0
-            cpu_percent = f"{cpu_percent_raw:.2f}"
-        elif stats.get('State', {}).get('Running', False):
-            logger.debug(f"Could not calculate CPU percentage for {docker_container_name}. Stats: {stats}")
+            cpu_usage = stats.get('cpu_stats', {}).get('cpu_usage', {}).get('total_usage', 0)
+            system_cpu_usage = stats.get('cpu_stats', {}).get('system_cpu_usage', 0)
+            previous_cpu = stats.get('precpu_stats', {}).get('cpu_usage', {}).get('total_usage', 0)
+            previous_system = stats.get('precpu_stats', {}).get('system_cpu_usage', 0)
+            
+            cpu_delta = cpu_usage - previous_cpu
+            system_delta = system_cpu_usage - previous_system
+            
+            cpu_percent = 'N/A'
+            if cpu_delta > 0 and system_delta > 0:
+                online_cpus = stats.get('cpu_stats', {}).get('online_cpus')
+                if online_cpus is None: # Fallback for older Docker API versions or if online_cpus is not present
+                    percpu_usage = stats.get('cpu_stats', {}).get('cpu_usage', {}).get('percpu_usage', [1])
+                    online_cpus = len(percpu_usage) if percpu_usage else 1
+                cpu_percent_raw = (cpu_delta / system_delta) * online_cpus * 100.0
+                cpu_percent = f"{cpu_percent_raw:.2f}"
+            elif stats.get('State', {}).get('Running', False):
+                logger.debug(f"Could not calculate CPU percentage for {docker_container_name}. Stats: {stats}")
 
-        memory_usage = stats.get('memory_stats', {}).get('usage', 0)
-        mem_usage_str = 'N/A'
-        if memory_usage > 0:
-             if memory_usage < 1024 * 1024:
-                 mem_usage_str = f"{memory_usage / 1024:.1f} KiB"
-             elif memory_usage < 1024 * 1024 * 1024:
-                 mem_usage_str = f"{memory_usage / (1024 * 1024):.1f} MiB"
-             else:
-                 mem_usage_str = f"{memory_usage / (1024 * 1024 * 1024):.1f} GiB"
-        return cpu_percent, mem_usage_str
+            memory_usage = stats.get('memory_stats', {}).get('usage', 0)
+            mem_usage_str = 'N/A'
+            if memory_usage > 0:
+                 if memory_usage < 1024 * 1024:
+                     mem_usage_str = f"{memory_usage / 1024:.1f} KiB"
+                 elif memory_usage < 1024 * 1024 * 1024:
+                     mem_usage_str = f"{memory_usage / (1024 * 1024):.1f} MiB"
+                 else:
+                     mem_usage_str = f"{memory_usage / (1024 * 1024 * 1024):.1f} GiB"
+            return cpu_percent, mem_usage_str
     except docker.errors.NotFound:
         logger.warning(f"Container '{docker_container_name}' not found during stats retrieval.")
         return None, None
@@ -389,12 +570,26 @@ async def get_docker_info(docker_container_name: str) -> Optional[Dict[str, Any]
         return None
         
     try:
-        client = get_docker_client()
-        if not client:
-            logger.warning(f"get_docker_info: Could not get Docker client for {docker_container_name}.")
-            return None
-        container = await asyncio.to_thread(client.containers.get, docker_container_name)
-        return container.attrs
+        # 🔧 PERFORMANCE: Use Advanced Settings timeout (DDC_FAST_INFO_TIMEOUT) + container-specific optimization
+        operation_timeout = get_smart_timeout('info', docker_container_name)
+        logger.debug(f"[get_docker_info] {docker_container_name}: Starting with operation_timeout={operation_timeout}s")
+        
+        start_time = time.time()
+        async with get_docker_client_async(operation='info', container_name=docker_container_name) as client:
+            pool_time = (time.time() - start_time) * 1000
+            logger.debug(f"[get_docker_info] {docker_container_name}: Got client from pool in {pool_time:.1f}ms")
+            
+            # Add operation-specific timeout to prevent hanging Docker API calls
+            api_start = time.time()
+            container = await asyncio.wait_for(
+                asyncio.to_thread(client.containers.get, docker_container_name),
+                timeout=operation_timeout
+            )
+            api_time = (time.time() - api_start) * 1000
+            total_time = (time.time() - start_time) * 1000
+            
+            logger.debug(f"[get_docker_info] {docker_container_name}: API call took {api_time:.1f}ms, total {total_time:.1f}ms")
+            return container.attrs
     except docker.errors.NotFound:
         logger.warning(f"Container '{docker_container_name}' not found.")
         return None
@@ -420,15 +615,13 @@ async def docker_action(docker_container_name: str, action: str) -> bool:
         logger.error(f"Docker action failed: Invalid container name format: {docker_container_name}")
         return False
     try:
-        client = get_docker_client()
-        if not client:
-            logger.warning(f"docker_action: Could not get Docker client for {docker_container_name}.")
-            return False
-        container = await asyncio.to_thread(client.containers.get, docker_container_name)
-        action_func = valid_actions[action]
-        await asyncio.to_thread(action_func, container)
-        logger.info(f"Docker action '{action}' on container '{docker_container_name}' successful via SDK")
-        return True
+        # 🔧 PERFORMANCE: Use Advanced Settings timeout (DDC_FAST_ACTION_TIMEOUT) + container-specific optimization
+        async with get_docker_client_async(operation='action', container_name=docker_container_name) as client:
+            container = await asyncio.to_thread(client.containers.get, docker_container_name)
+            action_func = valid_actions[action]
+            await asyncio.to_thread(action_func, container)
+            logger.info(f"Docker action '{action}' on container '{docker_container_name}' successful via SDK")
+            return True
     except docker.errors.NotFound:
         logger.warning(f"Container '{docker_container_name}' not found for action '{action}'.")
         return False
@@ -438,34 +631,44 @@ async def docker_action(docker_container_name: str, action: str) -> bool:
 
 _containers_cache = None
 _cache_timestamp = 0
-_CACHE_TTL = 10  # seconds
+
+# Load cache TTL from Advanced Settings to align with user configuration
+def _get_cache_ttl() -> int:
+    """Get cache TTL from Advanced Settings (DDC_DOCKER_CACHE_DURATION)."""
+    try:
+        from services.config.config_service import load_config
+        config = load_config()
+        advanced_settings = config.get('advanced_settings', {})
+        return int(advanced_settings.get('DDC_DOCKER_CACHE_DURATION', 30))
+    except Exception:
+        return 30  # Default fallback
+
+_CACHE_TTL = _get_cache_ttl()  # Load from Advanced Settings (typically 30s)
 _containers_cache_lock = threading.Lock()  # Thread safety for container cache
 
 async def list_docker_containers() -> List[Dict[str, Any]]:
     try:
-        client = get_docker_client()
-        if not client:
-            logger.warning("list_docker_containers: Could not get Docker client.")
-            return []
-        raw_containers = await asyncio.to_thread(client.containers.list, all=True)
-        containers = []
-        for container in raw_containers:
-            try:
-                 image_tags = container.image.tags
-                 image_name = image_tags[0] if image_tags else container.image.id[:12]
-                 containers.append({
-                     "id": container.short_id,
-                     "name": container.name,
-                     "status": container.status,
-                     "image": image_name
-                 })
-            except docker.errors.NotFound:
-                 logger.warning(f"Could not get full details for a listed container (possibly removed during listing): {container.id}")
-                 continue
-            except Exception as e_inner:
-                 logger.warning(f"Error processing container {container.id} in list: {e_inner}")
-                 continue
-        return sorted(containers, key=lambda x: x.get('name', '').lower())
+        # 🔧 PERFORMANCE: Use Advanced Settings timeout (DDC_FAST_LIST_TIMEOUT) for container listing
+        async with get_docker_client_async(operation='list') as client:
+            raw_containers = await asyncio.to_thread(client.containers.list, all=True)
+            containers = []
+            for container in raw_containers:
+                try:
+                     image_tags = container.image.tags
+                     image_name = image_tags[0] if image_tags else container.image.id[:12]
+                     containers.append({
+                         "id": container.short_id,
+                         "name": container.name,
+                         "status": container.status,
+                         "image": image_name
+                     })
+                except docker.errors.NotFound:
+                     logger.warning(f"Could not get full details for a listed container (possibly removed during listing): {container.id}")
+                     continue
+                except Exception as e_inner:
+                     logger.warning(f"Error processing container {container.id} in list: {e_inner}")
+                     continue
+            return sorted(containers, key=lambda x: x.get('name', '').lower())
     except Exception as e:
         logger.error(f"Unexpected error listing Docker containers: {e}", exc_info=True)
         return []
@@ -481,12 +684,10 @@ async def is_container_exists(docker_container_name: str) -> bool:
         return False
         
     try:
-        client = get_docker_client()
-        if not client:
-            logger.warning(f"is_container_exists: Could not get Docker client for {docker_container_name}.")
-            return False
-        await asyncio.to_thread(client.containers.get, docker_container_name)
-        return True
+        # 🔧 PERFORMANCE: Use Advanced Settings timeout (DDC_FAST_INFO_TIMEOUT) + container-specific optimization
+        async with get_docker_client_async(operation='info', container_name=docker_container_name) as client:
+            await asyncio.to_thread(client.containers.get, docker_container_name)
+            return True
     except docker.errors.NotFound:
         return False
     except Exception as e:
@@ -504,56 +705,53 @@ async def get_containers_data() -> List[Dict[str, Any]]:
             return _containers_cache.copy()  # Return copy to avoid modification
     
     try:
-        client = get_docker_client()
-        if not client:
-            logger.warning("get_containers_data: Could not get Docker client.")
-            return []
-        
-        containers_api_list = await asyncio.to_thread(client.api.containers, all=True, Lstat=True) # Use low-level API for more resilience
-        result = []
-        for c_data in containers_api_list:
-            try:
-                name = (c_data.get('Names') or ['N/A'])[0].lstrip('/') # Names can be a list
-                status = c_data.get('State', 'unknown').lower()
-                is_running = status == "running"
-                image_name = c_data.get('Image', 'N/A')
-                if '@sha256:' in image_name: # often image name is with digest
-                    image_name = image_name.split('@sha256:')[0]
-                
-                container_info = {
-                    "id": c_data.get('Id', 'N/A')[:12],
-                    "name": name,
-                    "status": status,
-                    "running": is_running,
-                    "image": image_name,
-                    "created": datetime.fromtimestamp(c_data.get('Created', 0), timezone.utc).isoformat() if c_data.get('Created') else "N/A",
-                }
-                if is_running:
-                    ports_info = c_data.get("Ports", {})
-                    container_info["ports"] = ports_info
-                    state_detail = c_data.get("State", {})
-                    if state_detail:
-                        container_info["started_at"] = state_detail.get("StartedAt", "")
-                        # Health status is not directly in low-level API list, would need inspect
-                        # container_info["health"] = "unknown" 
-                result.append(container_info)
-            except Exception as e_inner:
-                logger.warning(f"Error processing individual container data for {c_data.get('Id', 'unknown_id')}: {e_inner}")
-                result.append({
-                    "id": c_data.get('Id', 'unknown_id')[:12],
-                    "name": (c_data.get('Names') or ['error'])[0].lstrip('/'),
-                    "status": "error_processing",
-                    "running": False,
-                    "error": str(e_inner)
-                })
-        sorted_result = sorted(result, key=lambda x: x.get("name", "").lower())
-        
-        # Thread-safe cache update
-        with _containers_cache_lock:
-            _containers_cache = sorted_result
-            _cache_timestamp = current_time
+        # 🔧 PERFORMANCE: Use Advanced Settings timeout (DDC_FAST_LIST_TIMEOUT) for container data retrieval
+        async with get_docker_client_async(operation='list') as client:
+            containers_api_list = await asyncio.to_thread(client.api.containers, all=True, Lstat=True) # Use low-level API for more resilience
+            result = []
+            for c_data in containers_api_list:
+                try:
+                    name = (c_data.get('Names') or ['N/A'])[0].lstrip('/') # Names can be a list
+                    status = c_data.get('State', 'unknown').lower()
+                    is_running = status == "running"
+                    image_name = c_data.get('Image', 'N/A')
+                    if '@sha256:' in image_name: # often image name is with digest
+                        image_name = image_name.split('@sha256:')[0]
+                    
+                    container_info = {
+                        "id": c_data.get('Id', 'N/A')[:12],
+                        "name": name,
+                        "status": status,
+                        "running": is_running,
+                        "image": image_name,
+                        "created": datetime.fromtimestamp(c_data.get('Created', 0), timezone.utc).isoformat() if c_data.get('Created') else "N/A",
+                    }
+                    if is_running:
+                        ports_info = c_data.get("Ports", {})
+                        container_info["ports"] = ports_info
+                        state_detail = c_data.get("State", {})
+                        if state_detail:
+                            container_info["started_at"] = state_detail.get("StartedAt", "")
+                            # Health status is not directly in low-level API list, would need inspect
+                            # container_info["health"] = "unknown" 
+                    result.append(container_info)
+                except Exception as e_inner:
+                    logger.warning(f"Error processing individual container data for {c_data.get('Id', 'unknown_id')}: {e_inner}")
+                    result.append({
+                        "id": c_data.get('Id', 'unknown_id')[:12],
+                        "name": (c_data.get('Names') or ['error'])[0].lstrip('/'),
+                        "status": "error_processing",
+                        "running": False,
+                        "error": str(e_inner)
+                    })
+            sorted_result = sorted(result, key=lambda x: x.get("name", "").lower())
             
-        return sorted_result
+            # Thread-safe cache update
+            with _containers_cache_lock:
+                _containers_cache = sorted_result
+                _cache_timestamp = current_time
+                
+            return sorted_result
     except Exception as e:
         logger.error(f"Error in get_containers_data: {e}", exc_info=True)
         return []
@@ -739,7 +937,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
         logger.error(f"analyze_docker_stats_performance: Invalid container name format: {container_name}")
         return {}
     
-    logger.info(f"Analysiere Docker Stats Performance für Container '{container_name}'")
+    logger.info(f"Analyzing Docker stats performance for container '{container_name}'")
     
     results = {
         'container_name': container_name,
@@ -760,16 +958,13 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
     }
     
     try:
-        client = get_docker_client()
-        if not client:
-            logger.warning(f"Konnte Docker Client für Analyse nicht erhalten: {container_name}")
-            return results
+        # 🔧 PERFORMANCE: Use Advanced Settings timeout for performance analysis
+        async with get_docker_client_async(operation='stats', container_name=container_name) as client:
+            # Get container object once for analysis
+            container = await asyncio.to_thread(client.containers.get, container_name)
+            container_info = container.attrs
         
-        # Container-Objekt einmal holen für Analyse
-        container = await asyncio.to_thread(client.containers.get, container_name)
-        container_info = container.attrs
-        
-        # System-Informationen sammeln
+        # Collect system information
         results['system_info'] = {
             'container_state': container_info.get('State', {}).get('Status', 'unknown'),
             'container_created': container_info.get('Created', 'unknown'),
@@ -789,10 +984,10 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                 'storage_driver': host_info.get('StorageDriver', 'unknown')
             })
         except Exception as e:
-            logger.warning(f"Konnte Host-Info nicht abrufen: {e}")
+            logger.warning(f"Could not retrieve host info: {e}")
         
         for iteration in range(iterations):
-            logger.info(f"Performance-Analyse Iteration {iteration + 1}/{iterations} für '{container_name}'")
+            logger.info(f"Performance analysis iteration {iteration + 1}/{iterations} for '{container_name}'")
             
             # 1. Container-Objekt abrufen (sollte schnell sein, da gecacht)
             start_time = time.time()
@@ -802,7 +997,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                 get_container_time = (time.time() - start_time) * 1000
                 results['timing_breakdown']['get_container_times'].append(get_container_time)
             except Exception as e:
-                logger.error(f"Fehler beim Container-Abruf: {e}")
+                logger.error(f"Error retrieving container: {e}")
                 continue
             
             # 2. Stats-Call (hier wird es interessant)
@@ -815,7 +1010,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                 total_time = (time.time() - start_time) * 1000
                 results['timing_breakdown']['total_times'].append(total_time)
                 
-                # 3. Stats-Daten analysieren für Trends
+                # 3. Analyze stats data for trends
                 if stats:
                     # CPU-Metriken
                     cpu_stats = stats.get('cpu_stats', {})
@@ -872,14 +1067,14 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                             'stats_call_time_ms': stats_call_time
                         })
                 
-                # Log für langsame Calls
+                # Log for slow calls
                 if stats_call_time > 1000:
-                    logger.warning(f"LANGSAMER Stats-Call für '{container_name}': {stats_call_time:.1f}ms")
+                    logger.warning(f"SLOW stats call for '{container_name}': {stats_call_time:.1f}ms")
                 elif stats_call_time > 500:
-                    logger.info(f"Mittellangsamer Stats-Call für '{container_name}': {stats_call_time:.1f}ms")
+                    logger.info(f"Medium-slow stats call for '{container_name}': {stats_call_time:.1f}ms")
                 
             except Exception as e:
-                logger.error(f"Fehler beim Stats-Abruf (Iteration {iteration}): {e}")
+                logger.error(f"Error retrieving stats (iteration {iteration}): {e}")
                 continue
             
             # Kurze Pause zwischen Iterationen
@@ -933,12 +1128,12 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
             
             results['analysis']['recommendations'] = recommendations
         
-        logger.info(f"Performance-Analyse abgeschlossen für '{container_name}': "
+        logger.info(f"Performance analysis completed for '{container_name}': "
                    f"Durchschnitt {results['analysis'].get('avg_stats_time_ms', 0):.1f}ms, "
                    f"Kategorie: {results['analysis'].get('performance_category', 'unbekannt')}")
         
     except Exception as e:
-        logger.error(f"Fehler bei Performance-Analyse für '{container_name}': {e}", exc_info=True)
+        logger.error(f"Error in performance analysis for '{container_name}': {e}", exc_info=True)
         results['error'] = str(e)
     
     return results
@@ -977,65 +1172,63 @@ async def compare_container_performance(container_names: List[str] = None) -> st
         # Einfacher Performance-Test (3 Iterationen)
         times = []
         try:
-            client = get_docker_client()
-            if not client:
-                continue
+            # 🔧 PERFORMANCE: Use Advanced Settings timeout for performance comparison
+            async with get_docker_client_async(operation='stats', container_name=container_name) as client:
+                container = await asyncio.to_thread(client.containers.get, container_name)
                 
-            container = await asyncio.to_thread(client.containers.get, container_name)
-            
-            # 3 schnelle Tests
-            for i in range(3):
-                start_time = time.time()
-                try:
-                    stats = await asyncio.wait_for(
-                        asyncio.to_thread(container.stats, stream=False),
-                        timeout=10.0  # 10s max
-                    )
-                    elapsed = (time.time() - start_time) * 1000
-                    times.append(elapsed)
-                    
-                    # Kurze Pause
-                    if i < 2:
-                        await asyncio.sleep(0.2)
+                # 3 schnelle Tests
+                for i in range(3):
+                    start_time = time.time()
+                    try:
+                        stats = await asyncio.wait_for(
+                            asyncio.to_thread(container.stats, stream=False),
+                            timeout=10.0  # 10s max
+                        )
+                        elapsed = (time.time() - start_time) * 1000
+                        times.append(elapsed)
                         
-                except asyncio.TimeoutError:
-                    times.append(10000)  # 10s Timeout
-                except Exception as e:
-                    logger.warning(f"Fehler bei {container_name}: {e}")
-                    continue
-            
-            if times:
-                avg_time = sum(times) / len(times)
-                min_time = min(times)
-                max_time = max(times)
+                        # Kurze Pause
+                        if i < 2:
+                            await asyncio.sleep(0.2)
+                            
+                    except asyncio.TimeoutError:
+                        times.append(10000)  # 10s Timeout
+                    except Exception as e:
+                        logger.warning(f"Error with {container_name}: {e}")
+                        continue
                 
-                # Container-Typ ermitteln
-                container_type_info = get_container_type_info(container_name)
-                container_type = container_type_info.get('type', 'unknown')
-                matched_pattern = container_type_info.get('matched_pattern', 'none')
-                
-                # Performance-Kategorie
-                if avg_time > 2000:
-                    category = "🔴 SEHR LANGSAM"
-                elif avg_time > 1000:
-                    category = "🟡 LANGSAM"
-                elif avg_time > 500:
-                    category = "🟠 MITTEL"
-                else:
-                    category = "🟢 SCHNELL"
-                
-                results.append({
-                    'name': container_name,
-                    'avg_time': avg_time,
-                    'min_time': min_time,
-                    'max_time': max_time,
-                    'category': category,
-                    'type': container_type,
-                    'pattern': matched_pattern
-                })
+                if times:
+                    avg_time = sum(times) / len(times)
+                    min_time = min(times)
+                    max_time = max(times)
+                    
+                    # Container-Typ ermitteln
+                    container_type_info = get_container_type_info(container_name)
+                    container_type = container_type_info.get('type', 'unknown')
+                    matched_pattern = container_type_info.get('matched_pattern', 'none')
+                    
+                    # Performance-Kategorie
+                    if avg_time > 2000:
+                        category = "🔴 VERY SLOW"
+                    elif avg_time > 1000:
+                        category = "🟡 SLOW"
+                    elif avg_time > 500:
+                        category = "🟠 MITTEL"
+                    else:
+                        category = "🟢 FAST"
+                    
+                    results.append({
+                        'name': container_name,
+                        'avg_time': avg_time,
+                        'min_time': min_time,
+                        'max_time': max_time,
+                        'category': category,
+                        'type': container_type,
+                        'pattern': matched_pattern
+                    })
         
         except Exception as e:
-            logger.error(f"Fehler beim Test von {container_name}: {e}")
+            logger.error(f"Error testing {container_name}: {e}")
             results.append({
                 'name': container_name,
                 'avg_time': -1,
@@ -1065,7 +1258,7 @@ async def compare_container_performance(container_names: List[str] = None) -> st
         else:
             output_lines.extend([
                 f"**{i+1}. {result['name']}** {result['category']}",
-                f"   ❌ Fehler: {result.get('error', 'Unbekannt')}",
+                f"   ❌ Error: {result.get('error', 'Unknown')}",
                 ""
             ])
     
