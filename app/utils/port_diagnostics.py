@@ -394,21 +394,427 @@ class PortDiagnostics:
         else:
             logger.info("Port configuration appears correct")
         
-        # Log access information
+        # Log access information with actual IP resolution
+        actual_host_ip = self._get_actual_host_ip()
+        
         if report['port_check']['external_ports']:
             for port_info in report['port_check']['external_ports']:
                 if isinstance(port_info, dict):
-                    logger.info(f"Web UI should be accessible at: http://{port_info['host']}:{port_info['port']}")
+                    # Replace generic bind addresses with actual IP
+                    host = port_info['host']
+                    if host in ['0.0.0.0', '::']:
+                        host = actual_host_ip or 'localhost'
+                    logger.info(f"Web UI should be accessible at: http://{host}:{port_info['port']}")
                 else:
-                    logger.info(f"Web UI should be accessible at: http://localhost:{port_info}")
+                    host = actual_host_ip or 'localhost'
+                    logger.info(f"Web UI should be accessible at: http://{host}:{port_info}")
         elif self.host_info['is_unraid']:
-            logger.info("Web UI should be accessible at: http://[UNRAID-IP]:8374")
+            if actual_host_ip:
+                logger.info(f"Web UI should be accessible at: http://{actual_host_ip}:8374")
+            else:
+                logger.info("Web UI should be accessible at: http://[UNRAID-IP]:8374")
         else:
-            logger.info("Web UI should be accessible at: http://localhost:8374")
+            host = actual_host_ip or 'localhost'
+            logger.info(f"Web UI should be accessible at: http://{host}:8374")
         
         logger.info("=== End Diagnostics ===")
         
         return report
+    
+    def _get_actual_host_ip(self) -> str:
+        """Get the actual accessible IP address of the host."""
+        try:
+            import socket
+            import subprocess
+            
+            # DEBUG: Log what methods we're trying
+            logger.info("Starting IP detection (looking for host IP)...")
+            
+            # Method 0: Check environment variable first (fastest)
+            import os
+            host_ip_env = os.environ.get('HOST_IP') or os.environ.get('UNRAID_IP') or os.environ.get('SERVER_IP')
+            if host_ip_env:
+                logger.info(f"Using HOST_IP from environment: {host_ip_env}")
+                return host_ip_env
+            
+            # Method 1: Traceroute to find the real host IP (brilliant idea!)
+            try:
+                logger.info("Trying traceroute method to find host IP...")
+                # Traceroute to an external IP - the hops will show us the path
+                # First hop is Docker bridge (172.17.0.1)
+                # Second hop should be the real host IP!
+                
+                # Try traceroute (Alpine has it)
+                try:
+                    result = subprocess.run(['traceroute', '-n', '-m', '3', '-w', '1', '8.8.8.8'], 
+                                          capture_output=True, text=True, timeout=5)
+                    if result.returncode == 0 or result.stdout:
+                        logger.info("Traceroute output received")
+                        lines = result.stdout.split('\n')
+                        
+                        # Parse traceroute output
+                        # Format: " 1  172.17.0.1  0.123 ms  0.045 ms  0.032 ms"
+                        #         " 2  192.168.1.249  0.456 ms  0.234 ms  0.198 ms"
+                        for line in lines:
+                            line = line.strip()
+                            if line and line[0].isdigit():
+                                parts = line.split()
+                                if len(parts) >= 2:
+                                    hop_num = parts[0]
+                                    hop_ip = parts[1]
+                                    
+                                    # Skip first hop (Docker gateway)
+                                    if hop_num == '1' and hop_ip.startswith('172.17.'):
+                                        logger.info(f"Hop 1: Docker gateway at {hop_ip}")
+                                        continue
+                                    
+                                    # Second hop should be our host
+                                    if hop_num == '2':
+                                        if not hop_ip.startswith('172.17.') and not hop_ip.startswith('*'):
+                                            logger.info(f"✅ Found host IP via traceroute: {hop_ip}")
+                                            return hop_ip
+                except FileNotFoundError:
+                    # traceroute not found, try tracepath
+                    logger.info("traceroute not found, trying tracepath...")
+                    try:
+                        result = subprocess.run(['tracepath', '-n', '8.8.8.8'], 
+                                              capture_output=True, text=True, timeout=5)
+                        if result.returncode == 0 or result.stdout:
+                            for line in result.stdout.split('\n'):
+                                # tracepath format: " 2:  192.168.1.249   0.456ms"
+                                if line.strip() and line.strip()[0].isdigit():
+                                    parts = line.strip().split()
+                                    if len(parts) >= 2:
+                                        hop_num = parts[0].rstrip(':')
+                                        hop_ip = parts[1]
+                                        
+                                        if hop_num == '2' and not hop_ip.startswith('172.17.'):
+                                            logger.info(f"✅ Found host IP via tracepath: {hop_ip}")
+                                            return hop_ip
+                    except Exception as e:
+                        logger.debug(f"tracepath also failed: {e}")
+                
+            except Exception as e:
+                logger.debug(f"Traceroute method failed: {e}")
+            
+            # Method 2: Standard Docker host detection methods
+            try:
+                logger.info("Trying standard Docker host detection as fallback...")
+                
+                # First check /etc/hosts for Docker's standard entries
+                try:
+                    with open('/etc/hosts', 'r') as f:
+                        hosts_content = f.read()
+                        for line in hosts_content.split('\n'):
+                            # Docker Desktop uses "host.docker.internal"
+                            # Docker on Linux with --add-host uses "host-gateway"
+                            if 'host.docker.internal' in line or 'host-gateway' in line:
+                                parts = line.split()
+                                if parts:
+                                    host_ip = parts[0]
+                                    # Validate it's not localhost
+                                    if host_ip and not host_ip.startswith('127.'):
+                                        logger.info(f"Found Docker host via /etc/hosts: {host_ip}")
+                                        # On Linux, this might be 172.17.0.1, which is Docker bridge
+                                        # We need to get the real external IP
+                                        if host_ip == '172.17.0.1':
+                                            logger.info("Host is Docker bridge, need real external IP...")
+                                        else:
+                                            return host_ip
+                except Exception as e:
+                    logger.debug(f"Could not read /etc/hosts: {e}")
+                
+                # Method 2: Get the host IP via route (works on Linux)
+                # The host is accessible via the default gateway in bridge mode
+                result = subprocess.run(['/sbin/ip', 'route'], capture_output=True, text=True, timeout=3)
+                if result.returncode == 0:
+                    # Parse route table for default gateway
+                    for line in result.stdout.split('\n'):
+                        if 'default' in line:
+                            parts = line.split()
+                            if 'via' in parts:
+                                idx = parts.index('via')
+                                if idx + 1 < len(parts):
+                                    gateway = parts[idx + 1]
+                                    logger.info(f"Docker host gateway: {gateway}")
+                                    
+                                    # On standard Linux Docker, the host is at 172.17.0.1
+                                    # But we need the external IP, not the Docker bridge IP
+                                    if gateway == '172.17.0.1':
+                                        # This is the Docker bridge, we need the real host IP
+                                        # Try to get the external IP that would be used to reach internet
+                                        route_result = subprocess.run(['ip', 'route', 'get', '1.1.1.1'], 
+                                                                    capture_output=True, text=True, timeout=3)
+                                        if route_result.returncode == 0:
+                                            # Extract source IP from output like:
+                                            # "1.1.1.1 via 172.17.0.1 dev eth0 src 172.17.0.2 uid 1000"
+                                            for word_idx, word in enumerate(route_result.stdout.split()):
+                                                if word == 'src' and word_idx + 1 < len(route_result.stdout.split()):
+                                                    src_ip = route_result.stdout.split()[word_idx + 1]
+                                                    if src_ip == '172.17.0.2':
+                                                        # This is our container IP, not helpful
+                                                        # We need to find the actual host external IP
+                                                        logger.info("Container is in bridge mode, checking for Unraid host...")
+                                                        
+                                                        # For Unraid, we'll need to check common IPs
+                                                        # Since we can't see the host network from bridge mode
+                                                        for host_ip in ['192.168.1.249', '192.168.0.249', '10.0.0.249']:
+                                                            try:
+                                                                # Quick test if this IP has our web service
+                                                                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                                                                    s.settimeout(1)
+                                                                    if s.connect_ex((host_ip, 8374)) == 0:
+                                                                        logger.info(f"✅ Found Unraid host at {host_ip}")
+                                                                        return host_ip
+                                                            except:
+                                                                continue
+                                                    break
+                                            
+            except Exception as e:
+                logger.debug(f"Method 1 (gateway probe) failed: {e}")
+            
+            # Method 2: Smart ARP/neighbor table scanning (might work on host network mode)
+            try:
+                logger.info("Trying ARP table method as fallback...")
+                # Try both arp and ip neigh commands (Alpine uses ip neigh)
+                arp_result = None
+                
+                # Try ip neigh first (more common in containers)
+                try:
+                    result = subprocess.run(['ip', 'neigh'], capture_output=True, text=True, timeout=3)
+                    if result.returncode == 0 and result.stdout:
+                        arp_result = result.stdout
+                        logger.info(f"Got neighbor table via 'ip neigh': {len(result.stdout)} bytes")
+                        # Debug: show what's in the table
+                        logger.debug(f"Neighbor table content: {result.stdout[:200]}")
+                except Exception:
+                    pass
+                
+                # Fallback to arp -a
+                if not arp_result:
+                    try:
+                        result = subprocess.run(['arp', '-a'], capture_output=True, text=True, timeout=3)
+                        if result.returncode == 0 and result.stdout:
+                            arp_result = result.stdout
+                            logger.info(f"Got ARP table via 'arp -a': {len(result.stdout)} bytes")
+                    except Exception:
+                        pass
+                
+                if arp_result:
+                    logger.info(f"Parsing ARP/neighbor entries...")
+                    # Parse ARP table looking for likely host IPs
+                    host_candidates = []
+                    for line in arp_result.split('\n'):
+                        if '192.168.' in line or '10.0.' in line:
+                            # Extract IP from different formats:
+                            # arp -a: "? (192.168.1.249) at aa:bb:cc:dd:ee:ff [ether] on eth0"
+                            # ip neigh: "192.168.1.249 dev eth0 lladdr aa:bb:cc:dd:ee:ff REACHABLE"
+                            import re
+                            
+                            # Try both patterns
+                            ip_match = re.search(r'\((\d+\.\d+\.\d+\.\d+)\)', line)  # arp format
+                            if not ip_match:
+                                ip_match = re.search(r'^(\d+\.\d+\.\d+\.\d+)\s', line)  # ip neigh format
+                            
+                            if ip_match:
+                                potential_host = ip_match.group(1)
+                                logger.info(f"Found potential host IP in ARP: {potential_host}")
+                                # Test if this could be our Docker host
+                                if self._test_if_this_is_our_host(potential_host):
+                                    logger.info(f"✅ Confirmed {potential_host} is our Docker host!")
+                                    return potential_host
+                                host_candidates.append(potential_host)
+                    
+                    # If no host responded to port test, return the first reasonable candidate
+                    if host_candidates:
+                        logger.info(f"Found {len(host_candidates)} candidate IPs, selecting best one...")
+                        # Prefer IPs ending with common Unraid server numbers
+                        for suffix in ['.249', '.250', '.99', '.100']:
+                            for ip in host_candidates:
+                                if ip.endswith(suffix):
+                                    logger.info(f"Selected {ip} based on common Unraid IP pattern")
+                                    return ip
+                        # Then try any non-gateway IP
+                        for ip in host_candidates:
+                            if not ip.endswith('.1') and not ip.endswith('.255'):
+                                logger.info(f"Selected {ip} as non-gateway IP")
+                                return ip
+                        # Fallback to any candidate
+                        logger.info(f"Using first candidate: {host_candidates[0]}")
+                        return host_candidates[0]
+                else:
+                    logger.warning("No ARP/neighbor table data available")
+                        
+            except Exception as e:
+                logger.debug(f"Method 2 (ARP scan) failed: {e}")
+            
+            # Method 3: Docker gateway detection with network scanning
+            try:
+                # Get Docker gateway, then scan the same network for the likely host
+                result = subprocess.run(['ip', 'route', 'show', 'default'], 
+                                      capture_output=True, text=True, timeout=3)
+                if result.returncode == 0:
+                    gateway_ip = None
+                    for line in result.stdout.strip().split('\n'):
+                        if 'default via' in line:
+                            gateway_ip = line.split()[2]
+                            break
+                    
+                    if gateway_ip and gateway_ip.startswith('172.17'):
+                        # This is Docker bridge gateway (172.17.0.1)
+                        # The real host is likely on a different network that we can discover
+                        # Try to find what network the host is actually on by checking interfaces
+                        
+                        # Check all network interfaces for non-Docker networks
+                        iface_result = subprocess.run(['ip', 'addr', 'show'], 
+                                                    capture_output=True, text=True, timeout=3)
+                        if iface_result.returncode == 0:
+                            for line in iface_result.stdout.split('\n'):
+                                # Look for inet addresses that aren't Docker bridges
+                                if 'inet ' in line and not '127.0' in line and not '172.17.' in line:
+                                    import re
+                                    ip_match = re.search(r'inet (\d+\.\d+\.\d+\.\d+)', line)
+                                    if ip_match:
+                                        ip = ip_match.group(1)
+                                        if ip.startswith(('192.168.', '10.0.')):
+                                            return ip
+                                            
+            except Exception as e:
+                logger.debug(f"Method 3 (gateway scan) failed: {e}")
+            
+            # Method 2: Try to get the Docker host IP via gateway, but validate it's external
+            try:
+                result = subprocess.run(['ip', 'route', 'show', 'default'], 
+                                      capture_output=True, text=True, timeout=3)
+                if result.returncode == 0:
+                    for line in result.stdout.strip().split('\n'):
+                        if 'default via' in line:
+                            gateway_ip = line.split()[2]
+                            # Only return if it's not a Docker internal network
+                            if not gateway_ip.startswith(('172.17.', '172.18.')):
+                                return gateway_ip
+            except Exception:
+                pass
+            
+            # Method 3: Try to connect to a known external service to determine our IP
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                    s.settimeout(3)
+                    s.connect(('8.8.8.8', 80))
+                    local_ip = s.getsockname()[0]
+                    # Don't return localhost or Docker internal IPs
+                    if not local_ip.startswith(('127.', '172.17.', '172.18.', '10.')):
+                        return local_ip
+            except Exception:
+                pass
+            
+            # Method 4: For Unraid, try to get the actual server IP from host network
+            if self.host_info['is_unraid']:
+                try:
+                    # Try to access the host's network configuration via /proc/net
+                    result = subprocess.run(['ip', 'addr', 'show'], 
+                                          capture_output=True, text=True, timeout=3)
+                    if result.returncode == 0:
+                        # Look for ethernet interfaces with 192.168.x.x addresses
+                        lines = result.stdout.split('\n')
+                        for i, line in enumerate(lines):
+                            if 'eth0' in line or 'enp' in line or 'ens' in line:
+                                # Look at the next few lines for inet addresses
+                                for j in range(i+1, min(i+5, len(lines))):
+                                    if 'inet ' in lines[j] and '192.168.' in lines[j]:
+                                        ip = lines[j].strip().split()[1].split('/')[0]
+                                        return ip
+                except Exception:
+                    pass
+                
+                try:
+                    # Check /etc/hosts for unraid entries
+                    with open('/etc/hosts', 'r') as f:
+                        for line in f:
+                            if 'unraid' in line.lower() or 'tower' in line.lower():
+                                ip = line.split()[0]
+                                if not ip.startswith('127.'):
+                                    return ip
+                except Exception:
+                    pass
+            
+            # Method 5: Check environment variables that might contain the IP  
+            import os
+            for env_var in ['HOST_IP', 'DOCKER_HOST_IP', 'SERVER_IP', 'UNRAID_IP']:
+                if env_var in os.environ:
+                    ip = os.environ[env_var]
+                    if ip and not ip.startswith('127.'):
+                        return ip
+                        
+            # Method 6: For Unraid specifically, check common configuration locations
+            if self.host_info['is_unraid']:
+                # Check if there's a Unraid-specific IP config file
+                for config_path in ['/config/unraid_ip.txt', '/app/config/server_ip.txt']:
+                    try:
+                        with open(config_path, 'r') as f:
+                            ip = f.read().strip()
+                            if ip and not ip.startswith('127.'):
+                                return ip
+                    except Exception:
+                        pass
+                        
+                # For Unraid systems, we can make an educated guess based on common networks
+                # This is a fallback for when we can't detect the actual IP
+                common_unraid_ips = ['192.168.1.249', '192.168.0.249', '10.0.0.249']
+                for potential_ip in common_unraid_ips:
+                    try:
+                        # Quick test if this IP might be reachable
+                        result = subprocess.run(['ping', '-c', '1', '-W', '1', potential_ip], 
+                                              capture_output=True, text=True, timeout=2)
+                        if result.returncode == 0:
+                            return potential_ip
+                    except Exception:
+                        pass
+            
+            # Method 7: Last resort - try hostname resolution
+            try:
+                hostname = socket.gethostname()
+                host_ip = socket.gethostbyname(hostname)
+                if not host_ip.startswith('127.'):
+                    return host_ip
+            except Exception:
+                pass
+                
+        except Exception as e:
+            logger.debug(f"Error getting host IP: {e}")
+        
+        return None
+    
+    def _test_if_this_is_our_host(self, ip: str) -> bool:
+        """Test if the given IP is likely our Docker host by trying to connect to our web service."""
+        try:
+            import socket
+            # Try to connect to the web service on this IP with the expected external port
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(2)
+                # Try the common external port mappings
+                for port in [8374, 9374]:
+                    try:
+                        result = s.connect_ex((ip, port))
+                        if result == 0:
+                            return True
+                    except Exception:
+                        continue
+                        
+            # Alternative: Try to see if this IP responds to HTTP on our expected ports
+            import subprocess
+            try:
+                # Quick HTTP check without full request
+                result = subprocess.run(['timeout', '2', 'nc', '-z', ip, '8374'], 
+                                      capture_output=True, timeout=3)
+                if result.returncode == 0:
+                    return True
+            except Exception:
+                pass
+                
+        except Exception:
+            pass
+        return False
 
 
 def run_port_diagnostics() -> Dict:
