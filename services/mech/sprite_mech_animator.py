@@ -16,8 +16,8 @@ class SpriteMechAnimator:
     """Creates animations using the actual mech spritesheet"""
     
     def __init__(self):
-        self.width = 256   # Breite bleibt bei 256px
-        self.height = 137  # Höhe: 256 * (2/3) * (4/5) = 137px (1/3 + 1/5 kleiner)
+        self.width = 256   # Width stays at 256px
+        self.height = 137  # Height: 256 * (2/3) * (4/5) = 137px (1/3 + 1/5 smaller)
         self.frames = 6   # Match spritesheet frames
         self.max_file_size = 500_000  # 500KB limit
         

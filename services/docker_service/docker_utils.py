@@ -973,7 +973,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
             'driver': container_info.get('Driver', 'unknown')
         }
         
-        # Host-Informationen hinzufügen
+        # Add host information
         try:
             host_info = await asyncio.to_thread(client.info)
             results['system_info'].update({
@@ -1088,7 +1088,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
             max_stats_time = max(stats_times)
             min_stats_time = min(stats_times)
             
-            # Variabilität berechnen
+            # Calculate variability
             variance = sum((t - avg_stats_time) ** 2 for t in stats_times) / len(stats_times)
             std_deviation = variance ** 0.5
             
@@ -1097,7 +1097,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                 'max_stats_time_ms': max_stats_time,
                 'min_stats_time_ms': min_stats_time,
                 'std_deviation_ms': std_deviation,
-                'variability_high': std_deviation > (avg_stats_time * 0.3),  # >30% Variabilität
+                'variability_high': std_deviation > (avg_stats_time * 0.3),  # >30% variability
                 'consistently_slow': avg_stats_time > 1000,  # Durchschnitt >1s
                 'performance_category': 'langsam' if avg_stats_time > 1000 else 'mittel' if avg_stats_time > 500 else 'schnell'
             }
@@ -1262,7 +1262,7 @@ async def compare_container_performance(container_names: List[str] = None) -> st
                 ""
             ])
     
-    # Analyse hinzufügen
+    # Add analysis
     valid_results = [r for r in results if r.get('avg_time', -1) >= 0]
     if len(valid_results) >= 2:
         fastest = min(valid_results, key=lambda x: x['avg_time'])

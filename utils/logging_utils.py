@@ -403,14 +403,14 @@ def get_logger(name: str, level: Optional[int] = None) -> logging.Logger:
     Returns:
         Konfigurierter Logger
     """
-    # Verwende setup_logger für konsistente Konfiguration
+    # Use setup_logger for consistent configuration
     if level is None:
         # Bestimme Level basierend auf Debug-Modus
         level = logging.DEBUG if is_debug_mode_enabled() else logging.INFO
     
     return setup_logger(name, level=level)
 
-# Convenience-Funktionen für häufig verwendete Logger
+# Convenience functions for frequently used loggers
 def get_module_logger(module_name: str) -> logging.Logger:
     """Erstellt Logger für Module mit ddc. Prefix"""
     return get_logger(f'ddc.{module_name}')

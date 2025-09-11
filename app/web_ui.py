@@ -34,9 +34,9 @@ from datetime import datetime, timezone, timedelta
 from app.constants import COMMON_TIMEZONES # Import from new constants file
 import secrets
 
-# Frühes Monkey-Patching von Gevent für bessere Thread-Kompatibilität
+# Early Gevent monkey-patching for better thread compatibility
 try:
-    # Diese Zeile muss vor jedem anderen Thread-Import kommen
+    # This line must come before any other thread imports
     import gevent.monkey
     gevent.monkey.patch_all(thread=True, select=True, subprocess=True, socket=True)
     HAS_GEVENT = True
@@ -60,20 +60,20 @@ CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 
 # --- Application Factory --- 
 def create_app(test_config=None):
-    # Gevent-spezifische Einrichtung
+    # Gevent-specific setup
     if HAS_GEVENT:
         try:
-            # Stelle sicher, dass Gevent korrekt initialisiert ist
+            # Ensure Gevent is properly initialized
             import gevent.threading
             from gevent.threading import get_ident
             from gevent import get_hub, monkey
             
-            # Prüfe, ob wir im Haupt-Hub laufen
+            # Check if we're running in the main hub
             current_hub = get_hub()
             app_logger = logging.getLogger('app.web_ui')
             app_logger.info(f"Initializing app in Gevent environment, hub: {current_hub}")
             
-            # Stelle sicher, dass Gevent-Patching vollständig ist
+            # Ensure Gevent patching is complete
             if not monkey.is_module_patched('socket'):
                 app_logger.warning("Socket module not patched by Gevent, applying patch...")
                 monkey.patch_socket()
@@ -274,9 +274,9 @@ def create_app(test_config=None):
         except (ImportError, AttributeError) as e:
             app.logger.warning(f"Could not patch Gevent fork hooks: {e}")
         
-        # Starte Thread nur mit Verzögerung
+        # Start thread only with delay
         if os.environ.get('DDC_ENABLE_BACKGROUND_REFRESH', 'true').lower() != 'false':
-            # Starte den Refresh erst nach 2 Sekunden, um die App-Initialisierung zu priorisieren
+            # Start refresh only after 2 seconds to prioritize app initialization
             if HAS_GEVENT:
                 def delayed_start():
                     import gevent

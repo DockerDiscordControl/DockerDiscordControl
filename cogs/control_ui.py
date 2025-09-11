@@ -229,7 +229,7 @@ class ActionButton(Button):
             except Exception as e:
                 logger.error(f"Spam protection error for button '{self.action}': {e}")
         
-                config = load_config()
+        config = load_config()
         if not config:
             await interaction.response.send_message(_("Error: Could not load configuration."), ephemeral=True)
             return

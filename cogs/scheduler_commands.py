@@ -83,7 +83,7 @@ class ScheduleCommandsMixin:
                 return months_de[month_int - 1]
             else:
                 return months_en[month_int - 1]
-        return str(month_int)  # Fallback bei ungültigen Werten
+        return str(month_int)  # Fallback for invalid values
     
     # --- Schedule Helper Methods ---
     async def _format_schedule_embed(self, tasks: List[ScheduledTask], title: str, description: str = "") -> discord.Embed:

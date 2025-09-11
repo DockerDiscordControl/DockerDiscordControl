@@ -20,7 +20,7 @@ import pytz
 
 logger = setup_logger('ddc.time_utils')
 
-# Zentrale datetime-Imports für konsistente Verwendung im gesamten Projekt
+# Central datetime imports for consistent usage throughout the project
 def get_datetime_imports():
     """
     Zentrale Funktion für datetime-Imports.

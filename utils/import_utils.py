@@ -17,17 +17,17 @@ from utils.logging_utils import get_import_logger
 
 logger = get_import_logger()
 
-# Cache für bereits importierte Module
+# Cache for already imported modules
 _import_cache = {}
 
 def safe_import(module_name: str, fallback_value: Any = None, 
                 cache_key: Optional[str] = None) -> Tuple[Any, bool]:
     """
-    Sicherer Import mit Fallback-Wert und Caching.
+    Safe import with fallback value and caching.
     
     Args:
-        module_name: Name des zu importierenden Moduls
-        fallback_value: Wert bei fehlgeschlagenem Import
+        module_name: Name of the module to import
+        fallback_value: Value to use on failed import
         cache_key: Optional cache key (default: module_name)
         
     Returns:
@@ -35,13 +35,13 @@ def safe_import(module_name: str, fallback_value: Any = None,
     """
     cache_key = cache_key or module_name
     
-    # Prüfe Cache
+    # Check cache
     if cache_key in _import_cache:
         return _import_cache[cache_key]
     
     try:
         module = __import__(module_name)
-        # Für verschachtelte Module (z.B. 'package.submodule')
+        # For nested modules (e.g. 'package.submodule')
         for component in module_name.split('.')[1:]:
             module = getattr(module, component)
         
@@ -117,14 +117,14 @@ def import_docker() -> Tuple[Any, bool]:
 
 def get_performance_imports() -> dict:
     """
-    Sammelt alle Performance-relevanten Imports und gibt Status zurück.
+    Collects all performance-relevant imports and returns status.
     
     Returns:
-        Dict mit Import-Status für Performance-Module
+        Dict with import status for performance modules
     """
     imports = {}
     
-    # ujson für schnelleres JSON
+    # ujson for faster JSON
     json_module, ujson_available = import_ujson()
     imports['ujson'] = {
         'available': ujson_available,
@@ -132,7 +132,7 @@ def get_performance_imports() -> dict:
         'description': 'Faster JSON processing'
     }
     
-    # uvloop für bessere async Performance
+    # uvloop for better async performance
     uvloop_module, uvloop_available = import_uvloop()
     imports['uvloop'] = {
         'available': uvloop_available,
@@ -140,7 +140,7 @@ def get_performance_imports() -> dict:
         'description': 'Faster async event loop'
     }
     
-    # gevent für bessere Threading
+    # gevent for better threading
     gevent_module, gevent_available = import_gevent()
     imports['gevent'] = {
         'available': gevent_available,
