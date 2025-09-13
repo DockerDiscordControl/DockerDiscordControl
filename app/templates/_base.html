@@ -143,6 +143,18 @@ Licensed under the MIT License
         }
         .bmc-button img {
             border-radius: 5px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            pointer-events: none; /* Allow hover events to pass through to parent */
+        }
+        
+        /* Make Buy Me A Coffee button hover like PayPal button */
+        .bmc-button:hover img {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        
+        .bmc-button:active img {
+            transform: translateY(0px);
         }
     </style>
     {# Log Highlighting Styles #}
