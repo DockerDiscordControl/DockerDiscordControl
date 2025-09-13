@@ -3217,17 +3217,30 @@ def setup(bot):
                     logger.info(f"🔔 Processing donation notification: {donor_name} ${amount}")
                     
                     try:
-                        # Create broadcast message (same as /donate) - using direct text with identical format
+                        # Create broadcast message (same as /donate) using configured Discord bot language
+                        try:
+                            from cogs.translation_manager import get_translation
+                            _ = get_translation()
+                        except:
+                            # Fallback if translation fails
+                            def _(text):
+                                return text
+                        
                         if amount:
                             # Format amount exactly like /donate command: $X.XX
                             formatted_amount = f"${float(amount):.2f}"
-                            broadcast_text = f"**{donor_name}** donated **{formatted_amount}** to DDC – thank you so much ❤️"
+                            broadcast_text = _("{donor_name} donated {amount} to DDC – thank you so much ❤️").format(
+                                donor_name=f"**{donor_name}**",
+                                amount=f"**{formatted_amount}**"
+                            )
                         else:
-                            broadcast_text = f"**{donor_name}** supports DDC – thank you so much ❤️"
+                            broadcast_text = _("{donor_name} supports DDC – thank you so much ❤️").format(
+                                donor_name=f"**{donor_name}**"
+                            )
                         
                         # Create embed (same style as /donate)
                         embed = discord.Embed(
-                            title="💝 Donation received",
+                            title=_("💝 Donation received"),
                             description=broadcast_text,
                             color=0x00ff41
                         )
