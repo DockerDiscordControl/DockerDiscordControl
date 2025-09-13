@@ -3217,21 +3217,15 @@ def setup(bot):
                     logger.info(f"🔔 Processing donation notification: {donor_name} ${amount}")
                     
                     try:
-                        # Create broadcast message (same as /donate)
-                        from utils.language_utils import _
+                        # Create broadcast message (same as /donate) - using direct text
                         if amount:
-                            broadcast_text = _("{donor_name} donated {amount} to DDC – thank you so much ❤️").format(
-                                donor_name=f"**{donor_name}**",
-                                amount=f"**${amount}**"
-                            )
+                            broadcast_text = f"**{donor_name}** donated **${amount}** to DDC – thank you so much ❤️"
                         else:
-                            broadcast_text = _("{donor_name} supports DDC – thank you so much ❤️").format(
-                                donor_name=f"**{donor_name}**"
-                            )
+                            broadcast_text = f"**{donor_name}** supports DDC – thank you so much ❤️"
                         
                         # Create embed (same style as /donate)
                         embed = discord.Embed(
-                            title=_("💝 Donation received"),
+                            title="💝 Donation received",
                             description=broadcast_text,
                             color=0x00ff41
                         )
