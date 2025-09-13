@@ -9,6 +9,7 @@ from io import BytesIO
 import logging
 from pathlib import Path
 from utils.logging_utils import get_module_logger
+from .dynamic_image_handler import get_dynamic_image_handler
 
 logger = get_module_logger('sprite_mech_animator')
 
@@ -16,8 +17,8 @@ class SpriteMechAnimator:
     """Creates animations using the actual mech spritesheet"""
     
     def __init__(self):
-        self.width = 256   # Width stays at 256px
-        self.height = 137  # Height: 256 * (2/3) * (4/5) = 137px (1/3 + 1/5 smaller)
+        self.width = 256   # Default width (will be dynamic)
+        self.height = 137  # Default height (will be dynamic)
         self.frames = 6   # Match spritesheet frames
         self.max_file_size = 500_000  # 500KB limit
         
@@ -29,6 +30,9 @@ class SpriteMechAnimator:
         # PERFORMANCE: Global animation cache - shared between Web UI and Discord
         self.animation_cache = {}
         self.cache_max_size = 20  # Limit memory usage
+        
+        # Dynamic image handler for variable sizes
+        self.dynamic_handler = get_dynamic_image_handler()
         
         # Load default spritesheet
         self.load_default_spritesheet()
@@ -216,29 +220,19 @@ class SpriteMechAnimator:
     def load_default_spritesheet(self):
         """Load the default mech spritesheet as fallback"""
         try:
-            # Try loading encoded version first
-            from services.mech.mech_sprite_encoder import decode_sprite_from_file
+            # Load from encrypted mech_images.py
+            from services.mech.mech_images import get_mech_frames, get_available_levels
             
-            encoded_path = Path("app/static/mechs/default.mech")
-            if encoded_path.exists():
-                spritesheet = decode_sprite_from_file(str(encoded_path))
-                if spritesheet:
-                    self.spritesheet_cache[0] = spritesheet.convert("RGBA")
-                    logger.info("Loaded encoded default mech sprite")
+            available_levels = get_available_levels()
+            if available_levels and 1 in available_levels:
+                # Use level 1 as default
+                frames = get_mech_frames(1)
+                if frames:
+                    self.spritesheet_cache[0] = frames
+                    logger.info(f"Loaded {len(frames)} encrypted frames as default (Level 1)")
+                    return
             
-            # Fallback to regular PNG
-            if 0 not in self.spritesheet_cache:
-                sprite_path = Path("app/static/animatedmech.png")
-                if sprite_path.exists():
-                    self.spritesheet_cache[0] = Image.open(sprite_path).convert("RGBA")
-                    logger.info("Loaded default PNG mech sprite")
-            
-            # Set sprite dimensions from default
-            if 0 in self.spritesheet_cache:
-                sheet_width, sheet_height = self.spritesheet_cache[0].size
-                self.sprite_width = sheet_width // 3  # 3 columns
-                self.sprite_height = sheet_height // 2  # 2 rows
-                logger.info(f"Sprite dimensions: {self.sprite_width}x{self.sprite_height}")
+            logger.warning("No default mech sprites available in mech_images.py")
                 
         except Exception as e:
             logger.error(f"Error loading default spritesheet: {e}")
@@ -249,23 +243,18 @@ class SpriteMechAnimator:
             return self.spritesheet_cache[evolution_level]
         
         try:
-            from services.mech.mech_sprite_encoder import decode_sprite_from_file
+            # Load from encrypted mech_images.py
+            from services.mech.mech_images import get_mech_frames, get_level_info
             
-            # Try loading encoded version
-            encoded_path = Path(f"app/static/mechs/lvl_{evolution_level}.mech")
-            if encoded_path.exists():
-                spritesheet = decode_sprite_from_file(str(encoded_path))
-                if spritesheet:
-                    self.spritesheet_cache[evolution_level] = spritesheet.convert("RGBA")
-                    logger.info(f"Loaded encoded sprite for level {evolution_level}")
-                    return self.spritesheet_cache[evolution_level]
-            
-            # Try regular PNG as fallback
-            png_path = Path(f"app/static/mech_sprites/mech_level_{evolution_level}.png")
-            if png_path.exists():
-                self.spritesheet_cache[evolution_level] = Image.open(png_path).convert("RGBA")
-                logger.info(f"Loaded PNG sprite for level {evolution_level}")
-                return self.spritesheet_cache[evolution_level]
+            # Check if we have frames for this level
+            level_info = get_level_info(evolution_level)
+            if level_info.get("available", False):
+                frames = get_mech_frames(evolution_level)
+                if frames:
+                    # Store individual frames (new system doesn't use spritesheets)
+                    self.spritesheet_cache[evolution_level] = frames
+                    logger.info(f"Loaded {len(frames)} encrypted frames for level {evolution_level}")
+                    return frames
             
             # Use default if no specific sprite found
             logger.debug(f"No sprite for level {evolution_level}, using default")
@@ -290,6 +279,16 @@ class SpriteMechAnimator:
         if not spritesheet:
             return None
             
+        # NEW: Check if spritesheet is a list of frames (new encrypted system)
+        if isinstance(spritesheet, list):
+            # Individual frames system
+            if 0 <= frame_index < len(spritesheet):
+                return spritesheet[frame_index]
+            else:
+                logger.warning(f"Frame index {frame_index} out of range for {len(spritesheet)} frames")
+                return spritesheet[0] if spritesheet else None
+        
+        # LEGACY: spritesheet system
         # Calculate sprite dimensions for this specific spritesheet
         sheet_width, sheet_height = spritesheet.size
         sprite_width = sheet_width // 3  # 3 columns
@@ -484,49 +483,92 @@ class SpriteMechAnimator:
                     # Fall through to create new animation
             
             logger.info(f"Creating new sprite mech animation for evolution: {evolution_level}, speed: {speed_level}, Power: {total_donations}")
-            frames = []
             
-            for frame in range(self.frames):
-                # Create transparent background
-                img = Image.new('RGBA', (self.width, self.height), (0, 0, 0, 0))
+            # Check if dynamic sizing is enabled
+            use_dynamic_sizing = self.dynamic_handler.config.get("dynamic_sizing", {}).get("enabled", True)
+            
+            if use_dynamic_sizing:
+                # Collect all sprite frames first for analysis
+                sprite_frames = []
+                for frame_idx in range(self.frames):
+                    sprite = self.get_sprite_frame(frame_idx, evolution_level)
+                    if sprite:
+                        sprite_frames.append(sprite)
+                    else:
+                        # Create empty frame if sprite not found
+                        sprite_frames.append(Image.new('RGBA', (256, 256), (0, 0, 0, 0)))
                 
-                # Get sprite frame for current evolution level
-                sprite = self.get_sprite_frame(frame, evolution_level)
-                if sprite:
-                    # Get actual sprite dimensions (not the cached default dimensions)
-                    actual_sprite_width, actual_sprite_height = sprite.size
-                    
-                    # Scale sprite 
-                    base_scale = self._fixed_scale_171px(actual_sprite_height)
-                    base_width = int(actual_sprite_width * base_scale)
-                    base_height = int(actual_sprite_height * base_scale)
-                    
-                    # Dezenter Bump: max. +10 % bei Speed 100 (ease-out)
-                    x = max(0.0, min(1.0, speed_level / 100.0))
-                    e = 1 - (1 - x) ** 3
-                    speed_scale_factor = 1.0 + 0.10 * e
-                    new_width = int(base_width * speed_scale_factor)
-                    new_height = int(base_height * speed_scale_factor)
-                    
-                    sprite = sprite.resize((new_width, new_height), Image.NEAREST)  # Keep pixel art crisp
-                    
-                    # Center sprite on canvas
-                    x = (self.width - new_width) // 2
-                    y = (self.height - new_height) // 2
-                    
-                    # Add screen shake using profile system
+                # Use dynamic handler to prepare frames with appropriate sizing
+                frames = self.dynamic_handler.prepare_animation_frames(
+                    sprite_frames, 
+                    evolution_level,
+                    optimize=True
+                )
+                
+                # Apply speed effects on top of prepared frames
+                for i, frame in enumerate(frames):
+                    # Add speed-based effects if needed
                     prof = self._step_profile(int(speed_level))
                     if prof["jitter_px"] > 0:
+                        # Apply shake effect to the entire frame
                         jitter = int(prof["jitter_px"])
-                        x += (frame % (2*jitter+1)) - jitter
-                        y += ((frame*2) % (2*jitter+1)) - jitter
-                    
-                    # Nur der Mech - alle Effekte deaktiviert
-                    img.paste(sprite, (x, y), sprite)
-                    
-                    # No text overlay on animation anymore
+                        offset_x = (i % (2*jitter+1)) - jitter
+                        offset_y = ((i*2) % (2*jitter+1)) - jitter
+                        if offset_x != 0 or offset_y != 0:
+                            from PIL import ImageChops
+                            frames[i] = ImageChops.offset(frame, offset_x, offset_y)
                 
-                frames.append(img)
+                # Save detected sizes for future use
+                if sprite_frames and sprite_frames[0].size != (0, 0):
+                    self.dynamic_handler.save_size_info(
+                        evolution_level,
+                        sprite_frames[0].width,
+                        sprite_frames[0].height
+                    )
+            else:
+                # Fall back to original sizing logic
+                frames = []
+                for frame in range(self.frames):
+                    # Create transparent background
+                    img = Image.new('RGBA', (self.width, self.height), (0, 0, 0, 0))
+                    
+                    # Get sprite frame for current evolution level
+                    sprite = self.get_sprite_frame(frame, evolution_level)
+                    if sprite:
+                        # Get actual sprite dimensions (not the cached default dimensions)
+                        actual_sprite_width, actual_sprite_height = sprite.size
+                        
+                        # Scale sprite 
+                        base_scale = self._fixed_scale_171px(actual_sprite_height)
+                        base_width = int(actual_sprite_width * base_scale)
+                        base_height = int(actual_sprite_height * base_scale)
+                        
+                        # Dezenter Bump: max. +10 % bei Speed 100 (ease-out)
+                        x = max(0.0, min(1.0, speed_level / 100.0))
+                        e = 1 - (1 - x) ** 3
+                        speed_scale_factor = 1.0 + 0.10 * e
+                        new_width = int(base_width * speed_scale_factor)
+                        new_height = int(base_height * speed_scale_factor)
+                        
+                        sprite = sprite.resize((new_width, new_height), Image.NEAREST)  # Keep pixel art crisp
+                        
+                        # Center sprite on canvas
+                        x = (self.width - new_width) // 2
+                        y = (self.height - new_height) // 2
+                        
+                        # Add screen shake using profile system
+                        prof = self._step_profile(int(speed_level))
+                        if prof["jitter_px"] > 0:
+                            jitter = int(prof["jitter_px"])
+                            x += (frame % (2*jitter+1)) - jitter
+                            y += ((frame*2) % (2*jitter+1)) - jitter
+                        
+                        # Nur der Mech - alle Effekte deaktiviert
+                        img.paste(sprite, (x, y), sprite)
+                        
+                        # No text overlay on animation anymore
+                    
+                    frames.append(img)
             
             # Create WebP animation
             buffer = BytesIO()

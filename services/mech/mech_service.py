@@ -235,8 +235,90 @@ class MechService:
         })
         self.store.save(data)
         
-        # Return state with fresh calculations
-        return self.get_state(now_iso=ts.isoformat())
+        # Get state for Discord sharing
+        new_state = self.get_state(now_iso=ts.isoformat())
+        
+        # Send Discord notification if bot is provided
+        if bot:
+            try:
+                await self._send_donation_discord_message(bot, username, amount, new_state)
+            except Exception as e:
+                logger.error(f"Error sending Discord donation message: {e}")
+                # Don't fail the donation if Discord fails
+        
+        return new_state
+
+    async def _send_donation_discord_message(self, bot, username: str, amount: int, mech_state):
+        """Send Discord message for donation"""
+        try:
+            import discord
+            from .speed_levels import get_combined_mech_status
+            
+            # Clean username for display
+            display_name = username.replace("WebUI:", "").replace("Discord:", "").strip()
+            
+            # Find a suitable channel (general, announcements, donations, etc.)
+            target_channel = None
+            for guild in bot.guilds:
+                for channel in guild.text_channels:
+                    if channel.name.lower() in ['general', 'announcements', 'donations', 'mech', 'chat']:
+                        target_channel = channel
+                        break
+                if target_channel:
+                    break
+            
+            if not target_channel:
+                logger.warning("No suitable Discord channel found for donation notification")
+                return
+            
+            # Get mech status text
+            status_text = get_combined_mech_status(
+                mech_state.power, 
+                mech_state.total_donations, 
+                'en'
+            )
+            
+            # Create embed
+            embed = discord.Embed(
+                title="💰 New Donation Received!",
+                description=f"**{display_name}** donated **${amount}**",
+                color=0x00ff00,
+                timestamp=datetime.utcnow()
+            )
+            
+            embed.add_field(
+                name="🤖 Mech Status",
+                value=status_text,
+                inline=False
+            )
+            
+            embed.add_field(
+                name="📊 Power Level",
+                value=f"${mech_state.power:.2f}",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="🎯 Total Donations",
+                value=f"${mech_state.total_donations}",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="🚀 Evolution Level",
+                value=f"Level {mech_state.level} - {mech_state.level_name}",
+                inline=True
+            )
+            
+            source = "Web UI" if "WebUI:" in username else "Discord"
+            embed.set_footer(text=f"Donated via {source} • Thank you for your support!")
+            
+            await target_channel.send(embed=embed)
+            logger.info(f"Donation notification sent to Discord: #{target_channel.name}")
+            
+        except Exception as e:
+            logger.error(f"Error creating Discord donation message: {e}")
+            raise
 
     def get_state(self, now_iso: Optional[str] = None) -> MechState:
         """Compute the live state from persisted donations."""

@@ -55,11 +55,25 @@ def get_container_logs(container_name):
 @log_bp.route('/bot_logs')
 @auth.login_required
 def get_bot_logs():
-    """Get filtered logs showing only bot-related messages"""
+    """Get bot logs from /app/logs/bot.log file"""
     logger = current_app.logger
     max_lines = 500
     
     try:
+        import os
+        
+        # Try reading from bot.log file first
+        bot_log_path = '/app/logs/bot.log'
+        if os.path.exists(bot_log_path):
+            with open(bot_log_path, 'r', encoding='utf-8', errors='replace') as f:
+                lines = f.readlines()
+                # Get last max_lines
+                recent_lines = lines[-max_lines:] if len(lines) > max_lines else lines
+                logs_content = ''.join(recent_lines)
+                if logs_content.strip():
+                    return Response(logs_content, mimetype='text/plain')
+        
+        # Fallback: Get from container logs and filter for bot-specific messages
         client = docker.from_env()
         container = client.containers.get('dockerdiscordcontrol')
         
@@ -70,7 +84,7 @@ def get_bot_logs():
         # Filter for bot-specific logs (bot.py, cogs, discord.py)
         filtered_lines = []
         for line in logs_str.split('\n'):
-            if any(pattern in line.lower() for pattern in ['bot.py', 'cog', 'discord.py', 'discord bot', 'command', 'slash']):
+            if any(pattern in line.lower() for pattern in ['bot.py', 'cog', 'discord.py', 'discord bot', 'command', 'slash', 'cache', 'container', 'update']):
                 filtered_lines.append(line)
         
         # Limit to max_lines

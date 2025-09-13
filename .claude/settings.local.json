@@ -5,7 +5,12 @@
       "Bash(git commit:*)",
       "Bash(arp:*)",
       "Bash(ip neigh:*)",
-      "Bash(traceroute:*)"
+      "Bash(traceroute:*)",
+      "Bash(sudo touch:*)",
+      "Bash(sudo chmod:*)",
+      "Bash(sudo chown:*)",
+      "Bash(docker build:*)",
+      "Bash(/usr/local/bin/python3:*)"
     ],
     "deny": [],
     "ask": []

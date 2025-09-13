@@ -403,6 +403,8 @@ async def on_ready():
         else:
             logger.debug("Update notifier not available - skipping update notifications")
 
+        # Web UI donations now handled directly via mech_service.add_donation_with_bot()
+
         # Old donation message scheduling removed - now handled by MechService
 
         _initial_startup_done = True # Prevents re-execution

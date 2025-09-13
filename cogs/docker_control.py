@@ -3192,4 +3192,81 @@ def setup(bot):
     except Exception as e:
         logger.debug(f"Could not remove donation commands: {e}")
     
+    # Add simple donation notification task
+    @tasks.loop(seconds=30)
+    async def check_donation_notifications():
+        """Check for donation notifications from Web UI"""
+        try:
+            import json
+            import os
+            notification_file = "/app/config/donation_notification.json"
+            
+            logger.debug(f"Checking for donation notification file: {notification_file}")
+            
+            if os.path.exists(notification_file):
+                logger.info(f"Found donation notification file!")
+                with open(notification_file, 'r') as f:
+                    notification = json.load(f)
+                
+                logger.info(f"🔔 Notification data: {notification}")
+                
+                if notification.get('type') == 'donation':
+                    donor_name = notification.get('donor', 'Anonymous')
+                    amount = notification.get('amount', 0)
+                    
+                    logger.info(f"🔔 Processing donation notification: {donor_name} ${amount}")
+                    
+                    # Create broadcast message (same as /donate)
+                    from utils.language_utils import _
+                    if amount:
+                        broadcast_text = _("{donor_name} donated {amount} to DDC – thank you so much ❤️").format(
+                            donor_name=f"**{donor_name}**",
+                            amount=f"**${amount}**"
+                        )
+                    else:
+                        broadcast_text = _("{donor_name} supports DDC – thank you so much ❤️").format(
+                            donor_name=f"**{donor_name}**"
+                        )
+                    
+                    # Create embed (same style as /donate)
+                    embed = discord.Embed(
+                        title=_("💝 Donation received"),
+                        description=broadcast_text,
+                        color=0x00ff41
+                    )
+                    embed.set_footer(text="https://ddc.bot")
+                    
+                    # Send to configured channels
+                    sent_count = 0
+                    config = load_config()
+                    channels_config = config.get('channel_permissions', {})
+                    
+                    logger.info(f"🔔 Found {len(channels_config)} configured channels")
+                    
+                    for channel_id_str, channel_info in channels_config.items():
+                        try:
+                            channel = bot.get_channel(int(channel_id_str))
+                            donation_broadcasts = channel_info.get('donation_broadcasts', True)
+                            
+                            logger.info(f"🔔 Channel {channel_id_str}: found={channel is not None}, broadcasts={donation_broadcasts}")
+                            
+                            if channel and donation_broadcasts:
+                                await channel.send(embed=embed)
+                                sent_count += 1
+                                logger.info(f"🔔 Successfully sent to channel {channel.name} ({channel_id_str})")
+                        except Exception as channel_error:
+                            logger.error(f"🔔 Error sending to channel {channel_id_str}: {channel_error}")
+                    
+                    logger.info(f"Processed Web UI donation: {donor_name} ${amount} - sent to {sent_count} channels")
+                
+                # Delete file after processing
+                os.remove(notification_file)
+                
+        except Exception as e:
+            logger.debug(f"Error checking donation notifications: {e}")
+    
+    # Start the task and add to cog
+    check_donation_notifications.start()
+    cog.donation_notification_task = check_donation_notifications
+    
     bot.add_cog(cog)

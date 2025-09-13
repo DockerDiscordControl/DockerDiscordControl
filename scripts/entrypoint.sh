@@ -39,6 +39,6 @@ fi
 mkdir -p /app/config /app/logs /app/config/info /app/config/tasks
 echo "Directory permissions set"
 
-# Start supervisord
+# Start supervisord to manage both bot and web UI
 echo "Starting supervisord..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

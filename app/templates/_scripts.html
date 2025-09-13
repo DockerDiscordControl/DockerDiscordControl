@@ -2282,7 +2282,7 @@
                 (logsContainer.scrollTop + logsContainer.clientHeight >= logsContainer.scrollHeight - 10);
             
             try {
-                const response = await fetch(`/container_logs/${getCurrentContainerName()}`);
+                const response = await fetch(`/container_logs/${this.getCurrentContainerName()}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 
                 const newContent = await response.text();

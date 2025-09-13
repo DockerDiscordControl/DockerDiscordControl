@@ -365,6 +365,5 @@ if __name__ == '__main__':
     app = create_app()
     app.run(host='0.0.0.0', port=5000)
 else:
-    # For gunicorn WSGI, only create app when explicitly called
-    # This prevents double initialization
-    app = None 
+    # For gunicorn WSGI, create app for import
+    app = create_app() 

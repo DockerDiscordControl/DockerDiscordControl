@@ -549,6 +549,7 @@
             donationButtons.forEach(button => {
                 button.addEventListener('click', function(e) {
                     const donationType = this.getAttribute('data-donation-type');
+                    console.info('💰 [MATRIX] Donation button clicked:', donationType, 'from button:', this);
                     
                     // Record donation click to server
                     fetch('/api/donation/click', {
@@ -1275,6 +1276,10 @@
                 publish_to_discord: publishToDiscord,
                 source: 'web_ui_manual'
             };
+            
+            // Debug: Log what we're sending
+            console.log('🔍 DONATION DEBUG: Sending data:', donationData);
+            console.log('🔍 DONATION DEBUG: publish_to_discord =', publishToDiscord, '(type:', typeof publishToDiscord, ')');
             
             // Submit donation to server with timeout
             const controller = new AbortController();

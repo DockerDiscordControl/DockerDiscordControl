@@ -1548,6 +1548,10 @@ def submit_donation():
         publish_to_discord = data.get('publish_to_discord', True)
         source = data.get('source', 'web_ui_manual')
         
+        # Debug: Log the donation data received
+        current_app.logger.info(f"🔍 DONATION DEBUG: Received data: {data}")
+        current_app.logger.info(f"🔍 DONATION DEBUG: publish_to_discord = {publish_to_discord} (type: {type(publish_to_discord)})")
+        
         # Validate amount
         if not isinstance(amount, (int, float)) or amount <= 0:
             return jsonify({'success': False, 'error': 'Invalid donation amount'}), 400
@@ -1592,6 +1596,7 @@ def submit_donation():
         try:
             result_state = mech_service.add_donation(f"WebUI:{donor_name}", int(amount))
             result = {'success': True, 'mech_state': result_state}
+                
         except Exception as e:
             current_app.logger.error(f"Error adding donation: {e}")
             return jsonify({'success': False, 'error': 'Failed to process donation'}), 500
@@ -1606,23 +1611,44 @@ def submit_donation():
             details=f"Amount: ${amount}, Donor: {donor_name}, Discord: {publish_to_discord}, Source: {source}"
         )
         
-        # Discord publishing - donation already processed by MechService
+        # Discord publishing
         discord_success = False
+        current_app.logger.info(f"🔍 DISCORD DEBUG: About to check Discord publishing. publish_to_discord = {publish_to_discord}")
         if publish_to_discord:
             try:
-                # The Discord bot will automatically pick up new donations from MechService
-                # via the donation tracking system. We'll create a simple notification.
-                current_app.logger.info(f"Discord broadcast requested for donation: {donor_name} - ${amount}")
+                # Write simple notification file that bot can pick up
+                import os
+                import json
+                from datetime import datetime
+                
+                # Simple notification system
+                notification = {
+                    "type": "donation",
+                    "donor": donor_name,
+                    "amount": amount,
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+                # Write to a file the bot checks
+                notif_dir = "/app/config"
+                os.makedirs(notif_dir, exist_ok=True)
+                notification_file = f"{notif_dir}/donation_notification.json"
+                
+                with open(notification_file, "w") as f:
+                    json.dump(notification, f)
+                
+                current_app.logger.info(f"🔔 DISCORD NOTIFICATION FILE CREATED: {notification_file}")
+                current_app.logger.info(f"🔔 NOTIFICATION DATA: {notification}")
+                current_app.logger.info(f"🔔 DISCORD NOTIFICATION: {donor_name} donated ${amount}")
                 discord_success = True
-                
-                # Evolution detection from MechService
-                mech_state = result.get('mech_state')
-                if mech_state and hasattr(mech_state, 'level') and mech_state.level > 1:
-                    current_app.logger.info(f"Donation may have triggered evolution - current level: {mech_state.level}")
-                
-            except Exception as discord_error:
-                current_app.logger.warning(f"Could not process Discord notification: {discord_error}")
-                # Don't fail the entire request if Discord processing fails
+            except Exception as e:
+                current_app.logger.error(f"Discord notification failed: {e}")
+                discord_success = False
+        
+        # Evolution detection from MechService
+        mech_state = result.get('mech_state')
+        if mech_state and hasattr(mech_state, 'level') and mech_state.level > 1:
+            current_app.logger.info(f"Donation may have triggered evolution - current level: {mech_state.level}")
         
         # Get updated status from MechService
         mech_state = result.get('mech_state')
