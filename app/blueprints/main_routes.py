@@ -737,21 +737,10 @@ def save_config_api():
         
         # Check file permissions before attempting to save
         if success:
-            from utils.config_manager import get_config_manager
-            config_manager = get_config_manager()
-            # Permission check - warn but don't block on Unraid
-            try:
-                permission_results = config_manager.check_all_permissions()
-                permission_errors = []
-                for file_path, (has_permission, error_msg) in permission_results.items():
-                    if not has_permission:
-                        permission_errors.append(error_msg)
-                
-                if permission_errors:
-                    logger.warning(f"Permission warnings (common on Unraid): {permission_errors}")
-                    # Don't block save - Docker container may have different permissions
-            except Exception as perm_error:
-                logger.warning(f"Permission check failed (ignoring): {perm_error}")
+            # Permission checks removed - ConfigService handles permissions internally
+            # The modern ConfigService manages file permissions automatically
+            # and returns appropriate error messages if saves fail
+            pass
         
         # Check if critical settings that require cache invalidation have changed
         critical_settings_changed = False
@@ -1870,6 +1859,101 @@ def port_diagnostics():
             'success': False,
             'message': "Error running port diagnostics. Please check the logs for details."
         })
+
+@main_bp.route('/api/mech/difficulty', methods=['GET'])
+@auth.login_required
+def get_mech_difficulty():
+    """Get current mech evolution difficulty multiplier."""
+    try:
+        from services.mech.evolution_config_manager import get_evolution_config_manager
+        config_manager = get_evolution_config_manager()
+        
+        difficulty_multiplier = config_manager.get_difficulty_multiplier()
+        
+        # Get current mech state for level-aware preview
+        from services.mech.mech_service import get_mech_service
+        from services.mech.monthly_member_cache import get_monthly_member_cache
+        
+        mech_service = get_mech_service()
+        cache = get_monthly_member_cache()
+        current_state = mech_service.get_state()
+        current_level = current_state.level
+        next_level = current_level + 1 if current_level < 11 else 11
+        
+        # Calculate costs for next level (most relevant for user)
+        member_count = cache.get_member_count_for_level(next_level)
+        community_info = config_manager.get_community_size_info(member_count)
+        
+        next_level_cost, effective_multiplier = config_manager.calculate_dynamic_cost(
+            next_level, member_count, community_info["multiplier"]
+        )
+        
+        # Get level info
+        next_level_info = config_manager.get_evolution_level(next_level)
+        base_cost = next_level_info.base_cost if next_level_info else 0
+        
+        return jsonify({
+            'success': True,
+            'difficulty_multiplier': difficulty_multiplier,
+            'current_level': current_level,
+            'next_level': next_level,
+            'next_level_name': next_level_info.name if next_level_info else "MAX LEVEL",
+            'next_level_cost': next_level_cost,
+            'base_cost': base_cost,
+            'member_count': member_count,
+            'community_tier': community_info["tier_name"],
+            'total_multiplier': effective_multiplier,
+            'is_max_level': current_level >= 11
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting mech difficulty: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@main_bp.route('/api/mech/difficulty', methods=['POST'])
+@auth.login_required
+def set_mech_difficulty():
+    """Set mech evolution difficulty multiplier."""
+    try:
+        from services.mech.evolution_config_manager import get_evolution_config_manager
+        from services.infrastructure.action_logger import log_user_action
+        
+        config_manager = get_evolution_config_manager()
+        data = request.get_json()
+        
+        if not data or 'difficulty_multiplier' not in data:
+            return jsonify({'success': False, 'error': 'Missing difficulty_multiplier parameter'}), 400
+        
+        difficulty_multiplier = float(data['difficulty_multiplier'])
+        
+        # Validate range (Level 2 must stay between $5-$50)
+        if not (0.25 <= difficulty_multiplier <= 2.5):
+            return jsonify({'success': False, 'error': 'Difficulty multiplier must be between 0.25 and 2.5'}), 400
+        
+        # Save the new difficulty
+        success = config_manager.set_difficulty_multiplier(difficulty_multiplier)
+        
+        if success:
+            # Log the action
+            log_user_action(
+                action="SET_MECH_DIFFICULTY",
+                target=f"Multiplier: {difficulty_multiplier}x",
+                details=f"Changed mech evolution difficulty to {difficulty_multiplier}x"
+            )
+            
+            return jsonify({
+                'success': True,
+                'difficulty_multiplier': difficulty_multiplier,
+                'message': f'Difficulty set to {difficulty_multiplier}x'
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Failed to save difficulty setting'}), 500
+        
+    except ValueError:
+        return jsonify({'success': False, 'error': 'Invalid difficulty multiplier value'}), 400
+    except Exception as e:
+        current_app.logger.error(f"Error setting mech difficulty: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @main_bp.route('/api/donations/list')
 @auth.login_required

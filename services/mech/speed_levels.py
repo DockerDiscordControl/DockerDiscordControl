@@ -258,7 +258,7 @@ def get_combined_mech_status(Power_amount: float, total_donations_received: floa
     # Get language from config if not provided
     if language is None:
         try:
-            from utils.config_manager import get_config_manager
+            from services.config.config_service import get_config_service as get_config_manager
             config_manager = get_config_manager()
             config = config_manager.get_config()
             language = config.get('language', 'en').lower()

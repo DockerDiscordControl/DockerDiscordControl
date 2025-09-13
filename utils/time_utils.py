@@ -238,7 +238,7 @@ def _get_timezone_safe():
             
         # Second try: Use ConfigManager for centralized config access
         try:
-            from utils.config_manager import get_config_manager
+            from services.config.config_service import get_config_service as get_config_manager
             config = get_config_manager().get_config()
             if config.get('timezone_str'):
                 return config['timezone_str']

@@ -96,6 +96,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         from services.mech.mech_state_manager import get_mech_state_manager
         self.mech_state_manager = get_mech_state_manager()
         
+        # Member count updates moved to on-demand (during donations with level-ups)
+        
         # Load persisted states
         state_data = self.mech_state_manager.load_state()
         self.mech_expanded_states = {
@@ -237,6 +239,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 self._start_loop_safely(self.performance_cache_clear_loop, "Performance Cache Clear Loop")
             )
             self.bot.loop.create_task(self._track_task(cache_task))
+            
+            # Member count updates moved to on-demand (during level-ups only)
             
             # Start heartbeat loop if enabled (supports legacy and new config)
             heartbeat_enabled = False
@@ -2628,6 +2632,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     async def before_performance_cache_clear_loop(self):
         """Wait until the bot is ready before starting the loop."""
         await self.bot.wait_until_ready()
+    
+    # Member count updates moved to on-demand during level-ups only
 
     # --- Final Control Command ---
     @commands.slash_command(name="control", description=_("Displays the control panel in the control channel"), guild_ids=get_guild_id())
@@ -3045,11 +3051,29 @@ class DonationBroadcastModal(discord.ui.Modal):
                     # Record donation if amount > 0
                     if donation_amount_euros and donation_amount_euros > 0:
                         amount_dollars = int(donation_amount_euros)
-                        new_state = mech_service.add_donation(
-                            username=f"Discord:{interaction.user.name}",
-                            amount=amount_dollars
+                        
+                        # Quick feedback to user first  
+                        await interaction.followup.send(
+                            _("💰 Processing ${amount} donation...").format(amount=amount_dollars),
+                            ephemeral=True
                         )
-                        logger.info(f"Donation recorded: ${amount_dollars}")
+                        
+                        # Process donation (may take a few seconds for member count)
+                        try:
+                            new_state = await mech_service.add_donation_with_bot(
+                                username=f"Discord:{interaction.user.name}",
+                                amount=amount_dollars,
+                                bot=self.bot
+                            )
+                            logger.info(f"Donation recorded: ${amount_dollars}")
+                        except Exception as donation_error:
+                            logger.error(f"Error processing donation: {donation_error}")
+                            # Fallback to regular donation without bot
+                            new_state = mech_service.add_donation(
+                                username=f"Discord:{interaction.user.name}",
+                                amount=amount_dollars
+                            )
+                            logger.info(f"Fallback donation recorded: ${amount_dollars}")
                     else:
                         new_state = mech_service.get_state()
                     

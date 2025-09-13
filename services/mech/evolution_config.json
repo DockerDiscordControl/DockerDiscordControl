@@ -1,0 +1,151 @@
+{
+  "evolution_settings": {
+    "difficulty_multiplier": 1.0,
+    "power_decay_per_day": 1.0,
+    "min_evolution_cost": 5,
+    "max_evolution_cost_level_2": 50,
+    "recalculate_on_level_up": true,
+    "update_interval_minutes": 10
+  },
+  "base_evolution_costs": {
+    "1": {
+      "name": "SCRAP MECH",
+      "description": "Barely holding together with rust and spare parts",
+      "color": "#444444",
+      "cost": 0,
+      "power_max": 20
+    },
+    "2": {
+      "name": "REPAIRED MECH",
+      "description": "Basic repairs complete, systems barely functional",
+      "color": "#666666",
+      "cost": 20,
+      "power_max": 30
+    },
+    "3": {
+      "name": "STANDARD MECH",
+      "description": "Standard military-grade combat chassis",
+      "color": "#888888",
+      "cost": 50,
+      "power_max": 50
+    },
+    "4": {
+      "name": "ENHANCED MECH",
+      "description": "Reinforced armor plating and enhanced servos",
+      "color": "#0099cc",
+      "cost": 100,
+      "power_max": 100
+    },
+    "5": {
+      "name": "ADVANCED MECH",
+      "description": "Advanced targeting systems and weapon upgrades",
+      "color": "#00ccff",
+      "cost": 200,
+      "power_max": 200
+    },
+    "6": {
+      "name": "ELITE MECH",
+      "description": "Elite combat protocols and titanium armor",
+      "color": "#ffcc00",
+      "cost": 400,
+      "power_max": 400
+    },
+    "7": {
+      "name": "CYBER MECH",
+      "description": "Cybernetic neural interface and energy shields",
+      "color": "#ff6600",
+      "cost": 800,
+      "power_max": 800
+    },
+    "8": {
+      "name": "PLASMA MECH",
+      "description": "Plasma-powered core with quantum processors",
+      "color": "#cc00ff",
+      "cost": 1500,
+      "power_max": 1500
+    },
+    "9": {
+      "name": "QUANTUM MECH",
+      "description": "Quantum entanglement drive and phase shifting",
+      "color": "#00ffff",
+      "cost": 2500,
+      "power_max": 2500
+    },
+    "10": {
+      "name": "DIVINE MECH",
+      "description": "Transcendent technology beyond mortal comprehension",
+      "color": "#ffff00",
+      "cost": 4000,
+      "power_max": 4000
+    },
+    "11": {
+      "name": "OMEGA MECH",
+      "description": "Reality-bending omnipotent war machine of the gods",
+      "color": "#ff00ff",
+      "cost": 10000,
+      "power_max": 10000
+    }
+  },
+  "community_size_tiers": {
+    "EMPTY": {
+      "min_members": 0,
+      "max_members": 0,
+      "multiplier": 0.3,
+      "description": "No active members"
+    },
+    "TINY": {
+      "min_members": 1,
+      "max_members": 5,
+      "multiplier": 0.3,
+      "description": "Tiny community"
+    },
+    "SMALL": {
+      "min_members": 6,
+      "max_members": 10,
+      "multiplier": 0.5,
+      "description": "Small community"
+    },
+    "MEDIUM_SMALL": {
+      "min_members": 11,
+      "max_members": 25,
+      "multiplier": 0.75,
+      "description": "Medium-small community"
+    },
+    "MEDIUM": {
+      "min_members": 26,
+      "max_members": 50,
+      "multiplier": 1.0,
+      "description": "Medium community (baseline)"
+    },
+    "MEDIUM_LARGE": {
+      "min_members": 51,
+      "max_members": 100,
+      "multiplier": 1.25,
+      "description": "Medium-large community"
+    },
+    "LARGE": {
+      "min_members": 101,
+      "max_members": 200,
+      "multiplier": 1.5,
+      "description": "Large community"
+    },
+    "VERY_LARGE": {
+      "min_members": 201,
+      "max_members": 500,
+      "multiplier": 2.0,
+      "description": "Very large community"
+    },
+    "HUGE": {
+      "min_members": 501,
+      "max_members": 1000,
+      "multiplier": 2.5,
+      "description": "Huge community"
+    },
+    "MASSIVE": {
+      "min_members": 1001,
+      "max_members": 999999,
+      "multiplier": 3.0,
+      "description": "Massive community with logarithmic scaling"
+    }
+  }
+}

@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any
 import json
 import math
+import logging
+
+logger = logging.getLogger(__name__)
 
 # =============================================================
 #   DDC Mech Service (instance-wide)
@@ -133,6 +136,7 @@ class MechService:
     - Power increases by donation dollars.
     - On level-up, Power resets to 1 plus overshoot beyond the new level threshold.
     - Power decays continuously: 1 Power per 86400 seconds (second-accurate).
+    - Evolution costs are dynamic based on unique Discord members in status channels.
     - Bars:
         * Mech progress: 0..Δ (Δ = distance to next level)
         * Power bar: 0..(Δ + 1) (fresh level = 1); at MAX level 0..100
@@ -144,8 +148,43 @@ class MechService:
     def __init__(self, json_path: str | Path, tz: str = "Europe/Zurich") -> None:
         self.store = _Store(Path(json_path))
         self.tz = ZoneInfo(tz)
+        self.member_count_cache = None  # Cache for member count
+        self.dynamic_thresholds = None  # Cache for dynamic thresholds
 
     # -------- Public API --------
+    
+    def set_member_count(self, count: int) -> None:
+        """Update the member count for dynamic evolution costs."""
+        self.member_count_cache = count
+        self.dynamic_thresholds = None  # Clear threshold cache
+        logger.info(f"MechService: Member count updated to {count}")
+    
+    def get_dynamic_thresholds(self) -> Dict[int, int]:
+        """Get dynamic thresholds based on current member count."""
+        if self.dynamic_thresholds is not None:
+            return self.dynamic_thresholds
+            
+        from .monthly_member_cache import get_monthly_member_cache
+        from .dynamic_evolution import get_evolution_calculator
+        
+        cache = get_monthly_member_cache()
+        calculator = get_evolution_calculator()
+        
+        # Build dynamic threshold mapping with level-based member counts
+        thresholds = {}
+        for level in range(1, 12):
+            if level == 1:
+                thresholds[level] = 0
+            else:
+                # Use appropriate member count based on level protection rules
+                member_count = cache.get_member_count_for_level(level)
+                threshold, _, _ = calculator.calculate_evolution_cost(level, member_count)
+                thresholds[level] = threshold
+        
+        self.dynamic_thresholds = thresholds
+        cache_info = cache.get_cache_info()
+        logger.debug(f"Dynamic thresholds calculated using monthly cache from {cache_info.get('month_year', 'N/A')}")
+        return thresholds
 
     def add_donation(self, username: str, amount: int, ts_iso: Optional[str] = None) -> MechState:
         """Persist a donation and return the fresh state."""
@@ -162,6 +201,42 @@ class MechService:
         })
         self.store.save(data)
         return self.get_state(now_iso=ts.isoformat())
+    
+    async def add_donation_with_bot(self, username: str, amount: int, bot=None, ts_iso: Optional[str] = None) -> MechState:
+        """Persist a donation with optimized community count check and return the fresh state."""
+        if amount <= 0:
+            raise ValueError("amount must be a positive integer number of dollars")
+
+        # Check if monthly member cache needs updating (random monthly updates)
+        if bot:
+            try:
+                from .monthly_member_cache import get_monthly_member_cache
+                cache = get_monthly_member_cache()
+                
+                # Non-blocking cache update check
+                updated = await cache.update_member_count_if_needed(bot)
+                if updated:
+                    logger.info(f"Monthly member cache updated during donation from {username}")
+                    # Clear dynamic thresholds cache to force recalculation
+                    self.dynamic_thresholds = None
+                    
+            except Exception as e:
+                logger.error(f"Error checking monthly member cache: {e}")
+                # Continue with existing cache
+
+        # Fast path: Record donation immediately
+        ts = self._now() if ts_iso is None else self._parse_iso(ts_iso)
+        data = self.store.load()
+        data.setdefault("donations", [])
+        data["donations"].append({
+            "username": username,
+            "amount": int(amount),
+            "ts": ts.isoformat(),
+        })
+        self.store.save(data)
+        
+        # Return state with fresh calculations
+        return self.get_state(now_iso=ts.isoformat())
 
     def get_state(self, now_iso: Optional[str] = None) -> MechState:
         """Compute the live state from persisted donations."""
@@ -169,9 +244,24 @@ class MechService:
         donations = list(self.store.load().get("donations", []))
         donations.sort(key=lambda d: d["ts"])  # chronological
 
+        # Get dynamic thresholds based on current member count
+        dynamic_thresholds = self.get_dynamic_thresholds()
+        
+        # Build dynamic MechLevel objects
+        dynamic_levels = []
+        for i, static_level in enumerate(MECH_LEVELS):
+            if static_level.level in dynamic_thresholds:
+                dynamic_levels.append(MechLevel(
+                    level=static_level.level,
+                    name=static_level.name,
+                    threshold=dynamic_thresholds[static_level.level]
+                ))
+            else:
+                dynamic_levels.append(static_level)
+
         total: int = 0
         Power: float = 0.0  # internal float to support fractional decay
-        lvl: MechLevel = MECH_LEVELS[0]
+        lvl: MechLevel = dynamic_levels[0]
         last_ts: Optional[datetime] = None
         last_evolution_ts: Optional[datetime] = None
 
@@ -186,15 +276,42 @@ class MechService:
             Power += amount
 
             # Handle (possibly multi-step) level-ups in one donation
+            # Recalculate dynamic thresholds at each level-up check
             while True:
-                nxt = _next_level(lvl)
+                # Recalculate thresholds for current community size
+                current_dynamic_thresholds = self.get_dynamic_thresholds()
+                
+                # Rebuild dynamic levels with current thresholds
+                current_dynamic_levels = []
+                for i, static_level in enumerate(MECH_LEVELS):
+                    if static_level.level in current_dynamic_thresholds:
+                        current_dynamic_levels.append(MechLevel(
+                            level=static_level.level,
+                            name=static_level.name,
+                            threshold=current_dynamic_thresholds[static_level.level]
+                        ))
+                    else:
+                        current_dynamic_levels.append(static_level)
+                
+                # Get next level from recalculated dynamic levels
+                try:
+                    nxt = current_dynamic_levels[lvl.level] if lvl.level < len(current_dynamic_levels) else None
+                except IndexError:
+                    nxt = None
                 if not nxt:
                     break
                 if total >= nxt.threshold:
+                    old_level = lvl.level
                     lvl = nxt
                     # fresh level starts with 1 + overshoot beyond this level's threshold
                     Power = 1.0 + max(0, total - lvl.threshold)
                     last_evolution_ts = ts  # Track when evolution occurred
+                    
+                    # Log the level-up with dynamic cost information
+                    logger.info(
+                        f"Mech evolved from Level {old_level} to Level {lvl.level} "
+                        f"(threshold: ${lvl.threshold}, total donations: ${total})"
+                    )
                     continue
                 break
 
@@ -209,8 +326,14 @@ class MechService:
                 Power = max(0.0, Power - self._decay_amount(last_ts, now))
 
         # Compose bars & glvl
-        nxt = _next_level(lvl)
-        delta = _stage_delta(lvl)  # may be None at MAX
+        # Get next level from dynamic levels
+        try:
+            nxt = dynamic_levels[lvl.level] if lvl.level < len(dynamic_levels) else None
+        except IndexError:
+            nxt = None
+        
+        # Calculate delta using dynamic thresholds
+        delta = None if not nxt else (nxt.threshold - lvl.threshold)
         progress_current = 0 if delta is None else max(0, total - lvl.threshold)
         progress_max = 0 if delta is None else delta
 
@@ -265,9 +388,24 @@ class MechService:
         data = self.store.load()
         donations = data["donations"]
         
+        # Get dynamic thresholds
+        dynamic_thresholds = self.get_dynamic_thresholds()
+        
+        # Build dynamic MechLevel objects
+        dynamic_levels = []
+        for i, static_level in enumerate(MECH_LEVELS):
+            if static_level.level in dynamic_thresholds:
+                dynamic_levels.append(MechLevel(
+                    level=static_level.level,
+                    name=static_level.name,
+                    threshold=dynamic_thresholds[static_level.level]
+                ))
+            else:
+                dynamic_levels.append(static_level)
+        
         total = 0.0
         Power = 0.0
-        lvl = MECH_LEVELS[0]  # Start at level 1
+        lvl = dynamic_levels[0]  # Start at level 1
         now = self._now()
         last_ts = None
         last_evolution_ts = None
@@ -284,9 +422,27 @@ class MechService:
             total += amount
             Power += amount
 
-            # Handle level-ups
+            # Handle level-ups using dynamic levels with real-time recalculation
             while True:
-                nxt = _next_level(lvl)
+                # Recalculate thresholds for current community size at each level-up
+                current_dynamic_thresholds = self.get_dynamic_thresholds()
+                
+                # Rebuild dynamic levels with current thresholds
+                current_dynamic_levels = []
+                for i, static_level in enumerate(MECH_LEVELS):
+                    if static_level.level in current_dynamic_thresholds:
+                        current_dynamic_levels.append(MechLevel(
+                            level=static_level.level,
+                            name=static_level.name,
+                            threshold=current_dynamic_thresholds[static_level.level]
+                        ))
+                    else:
+                        current_dynamic_levels.append(static_level)
+                
+                try:
+                    nxt = current_dynamic_levels[lvl.level] if lvl.level < len(current_dynamic_levels) else None
+                except IndexError:
+                    nxt = None
                 if not nxt:
                     break
                 if total >= nxt.threshold:

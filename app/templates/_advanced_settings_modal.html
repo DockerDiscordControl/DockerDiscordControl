@@ -229,6 +229,46 @@
                                 <div class="form-text mt-2">Purchase a key to completely remove all donation elements</div>
                             </div>
                         </div>
+                        
+                        <!-- Mech Evolution Difficulty (only show if donations are enabled) -->
+                        {% if not donations_disabled %}
+                        <div class="row g-3 mt-3">
+                            <div class="col-12">
+                                <hr class="text-secondary">
+                                <h6 class="text-light mb-3">
+                                    <i class="bi bi-gear-wide-connected"></i> Mech Evolution Difficulty
+                                </h6>
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label">Evolution Cost Multiplier <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Adjusts the difficulty of mech evolution costs. Lower values make evolution cheaper, higher values make it more expensive. Level 2 cost ranges from $5 (0.25x) to $50 (2.5x)."></i></label>
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="text-muted">Easy</span>
+                                    <input type="range" class="form-range flex-grow-1" id="mech_difficulty_multiplier" name="mech_difficulty_multiplier" 
+                                           min="0.25" max="2.5" step="0.05" value="1.0" 
+                                           oninput="updateDifficultyDisplay()" onchange="updateDifficultyDisplay()">
+                                    <span class="text-muted">Hard</span>
+                                </div>
+                                <div class="form-text">
+                                    <strong>Current:</strong> <span id="difficultyValue">1.0x</span> - 
+                                    <span id="levelCostPreview">Next evolution costs: $20</span>
+                                    <span class="text-muted ms-2" id="levelCostDetails">(Base: $20, Community: Medium)</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex flex-column gap-2">
+                                    <button type="button" class="btn btn-outline-info btn-sm" onclick="setDifficulty(0.5)">
+                                        <i class="bi bi-speedometer"></i> Easy (0.5x)
+                                    </button>
+                                    <button type="button" class="btn btn-outline-warning btn-sm" onclick="setDifficulty(1.0)">
+                                        <i class="bi bi-speedometer2"></i> Normal (1.0x)
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="setDifficulty(2.0)">
+                                        <i class="bi bi-speedometer-fill"></i> Hard (2.0x)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -287,7 +327,7 @@ function saveAdvancedSettings() {
     
     if (mainForm && advancedModal) {
         // Get all input fields from the advanced settings modal
-        const advancedInputs = advancedModal.querySelectorAll('input[name^="env_"], input[name="donation_disable_key"]');
+        const advancedInputs = advancedModal.querySelectorAll('input[name^="env_"], input[name="donation_disable_key"], input[name="mech_difficulty_multiplier"]');
         
         console.log(`Found ${advancedInputs.length} advanced inputs to copy`);
         
@@ -320,6 +360,12 @@ function saveAdvancedSettings() {
             
             console.log(`Copied ${input.name} = ${mainInput.value} to main form`);
         });
+    }
+    
+    // Save mech difficulty setting via API
+    const difficultySlider = document.getElementById('mech_difficulty_multiplier');
+    if (difficultySlider) {
+        saveMechDifficulty(parseFloat(difficultySlider.value));
     }
     
     // Trigger unsaved changes warning to show that settings have changed
@@ -480,5 +526,140 @@ document.addEventListener('DOMContentLoaded', function() {
     if (keyInput) {
         keyInput.addEventListener('input', updateKeyStatus);
     }
+    
+    // Initialize difficulty slider
+    loadDifficultyMultiplier();
 });
+
+// ======= Mech Evolution Difficulty Functions =======
+
+function updateDifficultyDisplay() {
+    const slider = document.getElementById('mech_difficulty_multiplier');
+    const difficultyValue = document.getElementById('difficultyValue');
+    const levelCostPreview = document.getElementById('levelCostPreview');
+    const levelCostDetails = document.getElementById('levelCostDetails');
+    
+    if (slider && difficultyValue) {
+        const multiplier = parseFloat(slider.value);
+        difficultyValue.textContent = multiplier.toFixed(2) + 'x';
+        
+        // Update slider thumb color based on difficulty
+        if (multiplier < 0.75) {
+            slider.style.accentColor = '#28a745'; // Green for easy
+        } else if (multiplier <= 1.25) {
+            slider.style.accentColor = '#ffc107'; // Yellow for normal
+        } else {
+            slider.style.accentColor = '#dc3545'; // Red for hard
+        }
+        
+        // Update level cost preview with current multiplier
+        if (window.baseMechData) {
+            const newCost = Math.round(window.baseMechData.base_cost * multiplier * (window.baseMechData.total_multiplier / window.baseMechData.difficulty_multiplier));
+            
+            if (window.baseMechData.is_max_level) {
+                levelCostPreview.textContent = `MAX LEVEL REACHED`;
+                levelCostDetails.textContent = `(All evolutions completed)`;
+            } else {
+                levelCostPreview.textContent = `${window.baseMechData.next_level_name} costs: $${newCost}`;
+                levelCostDetails.textContent = `(Base: $${window.baseMechData.base_cost}, Community: ${window.baseMechData.community_tier})`;
+            }
+        }
+    }
+}
+
+function setDifficulty(value) {
+    const slider = document.getElementById('mech_difficulty_multiplier');
+    if (slider) {
+        slider.value = value;
+        updateDifficultyDisplay();
+    }
+}
+
+async function loadDifficultyMultiplier() {
+    try {
+        const response = await fetch('/api/mech/difficulty');
+        if (response.ok) {
+            const data = await response.json();
+            const slider = document.getElementById('mech_difficulty_multiplier');
+            const levelCostPreview = document.getElementById('levelCostPreview');
+            const levelCostDetails = document.getElementById('levelCostDetails');
+            
+            if (slider && data.difficulty_multiplier !== undefined) {
+                slider.value = data.difficulty_multiplier;
+                
+                // Store base data for calculations
+                window.baseMechData = {
+                    current_level: data.current_level || 1,
+                    next_level: data.next_level || 2,
+                    next_level_name: data.next_level_name || 'REPAIRED MECH',
+                    next_level_cost: data.next_level_cost || 20,
+                    base_cost: data.base_cost || 20,
+                    member_count: data.member_count || 50,
+                    community_tier: data.community_tier || 'MEDIUM',
+                    total_multiplier: data.total_multiplier || 1.0,
+                    difficulty_multiplier: data.difficulty_multiplier || 1.0,
+                    is_max_level: data.is_max_level || false
+                };
+                
+                // Initial display update
+                if (data.is_max_level) {
+                    levelCostPreview.textContent = 'MAX LEVEL REACHED';
+                    levelCostDetails.textContent = '(All evolutions completed)';
+                } else {
+                    levelCostPreview.textContent = `${data.next_level_name} costs: $${data.next_level_cost}`;
+                    levelCostDetails.textContent = `(Base: $${data.base_cost}, Community: ${data.community_tier})`;
+                }
+                
+                updateDifficultyDisplay();
+            }
+        }
+    } catch (error) {
+        console.log('Could not load difficulty multiplier:', error);
+        // Use default values
+        updateDifficultyDisplay();
+    }
+}
+
+async function saveMechDifficulty(difficultyMultiplier) {
+    try {
+        const response = await fetch('/api/mech/difficulty', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                difficulty_multiplier: difficultyMultiplier
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+                console.log('Mech difficulty saved successfully:', data.message);
+                
+                // Show success feedback
+                showNotification('Mech difficulty updated: ' + data.message, 'success');
+            } else {
+                console.error('Failed to save mech difficulty:', data.error);
+                showNotification('Failed to save difficulty: ' + data.error, 'error');
+            }
+        } else {
+            console.error('HTTP error saving mech difficulty:', response.status);
+            showNotification('Failed to save difficulty settings', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving mech difficulty:', error);
+        showNotification('Error saving difficulty settings', 'error');
+    }
+}
+
+function showNotification(message, type = 'info') {
+    // Simple notification function - could be enhanced with toasts
+    const alertClass = type === 'success' ? 'alert-success' : 
+                      type === 'error' ? 'alert-danger' : 'alert-info';
+    
+    // You could implement proper toast notifications here
+    console.log(`[${type.toUpperCase()}] ${message}`);
+}
+
 </script>
