@@ -3217,9 +3217,11 @@ def setup(bot):
                     logger.info(f"🔔 Processing donation notification: {donor_name} ${amount}")
                     
                     try:
-                        # Create broadcast message (same as /donate) - using direct text
+                        # Create broadcast message (same as /donate) - using direct text with identical format
                         if amount:
-                            broadcast_text = f"**{donor_name}** donated **${amount}** to DDC – thank you so much ❤️"
+                            # Format amount exactly like /donate command: $X.XX
+                            formatted_amount = f"${float(amount):.2f}"
+                            broadcast_text = f"**{donor_name}** donated **{formatted_amount}** to DDC – thank you so much ❤️"
                         else:
                             broadcast_text = f"**{donor_name}** supports DDC – thank you so much ❤️"
                         
