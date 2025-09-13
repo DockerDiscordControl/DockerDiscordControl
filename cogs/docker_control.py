@@ -3216,48 +3216,61 @@ def setup(bot):
                     
                     logger.info(f"🔔 Processing donation notification: {donor_name} ${amount}")
                     
-                    # Create broadcast message (same as /donate)
-                    from utils.language_utils import _
-                    if amount:
-                        broadcast_text = _("{donor_name} donated {amount} to DDC – thank you so much ❤️").format(
-                            donor_name=f"**{donor_name}**",
-                            amount=f"**${amount}**"
+                    try:
+                        # Create broadcast message (same as /donate)
+                        from utils.language_utils import _
+                        if amount:
+                            broadcast_text = _("{donor_name} donated {amount} to DDC – thank you so much ❤️").format(
+                                donor_name=f"**{donor_name}**",
+                                amount=f"**${amount}**"
+                            )
+                        else:
+                            broadcast_text = _("{donor_name} supports DDC – thank you so much ❤️").format(
+                                donor_name=f"**{donor_name}**"
+                            )
+                        
+                        # Create embed (same style as /donate)
+                        embed = discord.Embed(
+                            title=_("💝 Donation received"),
+                            description=broadcast_text,
+                            color=0x00ff41
                         )
-                    else:
-                        broadcast_text = _("{donor_name} supports DDC – thank you so much ❤️").format(
-                            donor_name=f"**{donor_name}**"
-                        )
-                    
-                    # Create embed (same style as /donate)
-                    embed = discord.Embed(
-                        title=_("💝 Donation received"),
-                        description=broadcast_text,
-                        color=0x00ff41
-                    )
-                    embed.set_footer(text="https://ddc.bot")
-                    
-                    # Send to configured channels
-                    sent_count = 0
-                    config = load_config()
-                    channels_config = config.get('channel_permissions', {})
-                    
-                    logger.info(f"🔔 Found {len(channels_config)} configured channels")
-                    
-                    for channel_id_str, channel_info in channels_config.items():
-                        try:
-                            channel = bot.get_channel(int(channel_id_str))
-                            donation_broadcasts = channel_info.get('donation_broadcasts', True)
+                        embed.set_footer(text="https://ddc.bot")
+                        
+                        logger.info(f"🔔 Created donation embed for {donor_name} ${amount}")
+                        
+                        # Send to ALL channels in the server (like /donate command)
+                        sent_count = 0
+                        
+                        # Get all channels from the first guild
+                        logger.info(f"🔔 Bot guilds count: {len(bot.guilds) if bot.guilds else 0}")
+                        
+                        if bot.guilds:
+                            guild = bot.guilds[0]  # Use first/main guild
+                            logger.info(f"🔔 Sending donation notification to all channels in guild: {guild.name} (ID: {guild.id})")
+                            logger.info(f"🔔 Guild has {len(guild.text_channels)} text channels")
                             
-                            logger.info(f"🔔 Channel {channel_id_str}: found={channel is not None}, broadcasts={donation_broadcasts}")
-                            
-                            if channel and donation_broadcasts:
-                                await channel.send(embed=embed)
-                                sent_count += 1
-                                logger.info(f"🔔 Successfully sent to channel {channel.name} ({channel_id_str})")
-                        except Exception as channel_error:
-                            logger.error(f"🔔 Error sending to channel {channel_id_str}: {channel_error}")
-                    
-                    logger.info(f"Processed Web UI donation: {donor_name} ${amount} - sent to {sent_count} channels")
+                            for channel in guild.text_channels:
+                                try:
+                                    # Check if bot has permission to send messages
+                                    permissions = channel.permissions_for(guild.me)
+                                    logger.debug(f"🔔 Channel {channel.name}: send_messages={permissions.send_messages}, embed_links={permissions.embed_links}")
+                                    
+                                    if permissions.send_messages and permissions.embed_links:
+                                        await channel.send(embed=embed)
+                                        sent_count += 1
+                                        logger.info(f"🔔 Successfully sent to channel {channel.name} ({channel.id})")
+                                    else:
+                                        logger.debug(f"🔔 No permissions for channel {channel.name} ({channel.id})")
+                                except Exception as channel_error:
+                                    logger.error(f"🔔 Error sending to channel {channel.name}: {channel_error}")
+                        else:
+                            logger.error("🔔 No guilds found - bot not connected to any servers")
+                        
+                        logger.info(f"🔔 Processed Web UI donation: {donor_name} ${amount} - sent to {sent_count} channels")
+                        
+                    except Exception as embed_error:
+                        logger.error(f"🔔 Error creating/sending donation embed: {embed_error}", exc_info=True)
                 
                 # Delete file after processing
                 os.remove(notification_file)
