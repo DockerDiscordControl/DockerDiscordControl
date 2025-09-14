@@ -1538,43 +1538,12 @@ def consume_Power():
 @auth.login_required
 def add_test_power():
     """Add test Power for development/testing purposes."""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'success': False, 'error': 'No data provided'}), 400
-        
-        amount = data.get('amount', 0)
-        test_type = data.get('type', 'test')
-        user = data.get('user', 'Test Button')
-        
-        # Get mech service and add donation
-        from services.mech.mech_service import get_mech_service
-        mech_service = get_mech_service()
-        
-        # Add the test donation (positive or negative)
-        if amount > 0:
-            mech_service.add_donation(amount, donor_name=user)
-            current_app.logger.info(f"Test Power added: ${amount} from {user}")
-        elif amount < 0:
-            # For negative amounts, add a negative donation (for testing only)
-            # This simulates power reduction
-            mech_service.add_donation(amount, donor_name=f"{user} (Power Reduction)")
-            current_app.logger.info(f"Test Power reduced by ${abs(amount)} from {user}")
-        
-        # Get updated state
-        new_state = mech_service.get_state()
-        
-        return jsonify({
-            'success': True,
-            'new_Power': new_state.Power,
-            'level': new_state.level,
-            'level_name': new_state.level_name,
-            'message': f'Test Power {"added" if amount > 0 else "removed"}: ${abs(amount)}'
-        })
-        
-    except Exception as e:
-        current_app.logger.error(f"Error adding test Power: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    # TEMPORARILY DISABLED - causing web-ui crashes
+    # TODO: Fix mech_service import/integration
+    return jsonify({
+        'success': False, 
+        'error': 'Test donation endpoint temporarily disabled for debugging'
+    }), 503
 
 @main_bp.route('/api/donation/submit', methods=['POST'])
 @auth.login_required
