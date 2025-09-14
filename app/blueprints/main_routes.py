@@ -1452,16 +1452,13 @@ def add_test_power():
         
         if amount != 0:
             # Add donation (positive or negative)
+            # MechService.add_donation can handle negative amounts for testing
+            result_state = mech_service.add_donation(f"WebUI:{user}", int(amount))
+            
             if amount > 0:
-                result_state = mech_service.add_donation(f"WebUI:{user}", int(amount))
                 current_app.logger.info(f"NEW SERVICE: Added ${amount} Power, new total: ${result_state.Power}")
             else:
-                # For negative amounts, we need to handle differently since add_donation only accepts positive
-                # Get current state and calculate what the new total should be
-                current_state = mech_service.get_state()
-                # This is a limitation - new service doesn't easily support negative donations
-                # For now, return error for negative amounts
-                return jsonify({'success': False, 'error': 'Negative Power amounts not supported in new service yet'}), 400
+                current_app.logger.info(f"NEW SERVICE: Reduced Power by ${abs(amount)}, new total: ${result_state.Power}")
                 
             return jsonify({
                 'success': True, 
@@ -1534,16 +1531,8 @@ def consume_Power():
         current_app.logger.error(f"Error consuming Power: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@main_bp.route('/api/donation/add-Power', methods=['POST'])
-@auth.login_required
-def add_test_power():
-    """Add test Power for development/testing purposes."""
-    # TEMPORARILY DISABLED - causing web-ui crashes
-    # TODO: Fix mech_service import/integration
-    return jsonify({
-        'success': False, 
-        'error': 'Test donation endpoint temporarily disabled for debugging'
-    }), 503
+# Route removed - duplicate function name was causing crashes
+# The actual endpoint is at /api/donation/add-power (lowercase)
 
 @main_bp.route('/api/donation/submit', methods=['POST'])
 @auth.login_required
@@ -1559,9 +1548,6 @@ def submit_donation():
         publish_to_discord = data.get('publish_to_discord', True)
         source = data.get('source', 'web_ui_manual')
         
-        # Debug: Log the donation data received
-        current_app.logger.info(f"🔍 DONATION DEBUG: Received data: {data}")
-        current_app.logger.info(f"🔍 DONATION DEBUG: publish_to_discord = {publish_to_discord} (type: {type(publish_to_discord)})")
         
         # Validate amount
         if not isinstance(amount, (int, float)) or amount <= 0:
@@ -1624,7 +1610,6 @@ def submit_donation():
         
         # Discord publishing
         discord_success = False
-        current_app.logger.info(f"🔍 DISCORD DEBUG: About to check Discord publishing. publish_to_discord = {publish_to_discord}")
         if publish_to_discord:
             try:
                 # Write simple notification file that bot can pick up
