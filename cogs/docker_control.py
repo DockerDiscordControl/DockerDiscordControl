@@ -1863,11 +1863,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Set the mech animation as embed image
                 # Always set the same filename so Discord can reuse it on edits
                 if animation_file:
-                    animation_file.filename = "mech_animation.webp"  # Standardize filename
-                    embed.set_image(url="attachment://mech_animation.webp")
+                    animation_file.filename = "mech_animation.gif"  # Standardize filename
+                    embed.set_image(url="attachment://mech_animation.gif")
                 else:
                     # For refreshes without animation file, reference the existing one
-                    embed.set_image(url="attachment://mech_animation.webp")
+                    embed.set_image(url="attachment://mech_animation.gif")
                     
             except Exception as e:
                 logger.error(f"Could not load expanded mech status for /ss: {e}", exc_info=True)
@@ -2055,11 +2055,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Set the mech animation as embed image
                 # Always set the same filename so Discord can reuse it on edits
                 if animation_file:
-                    animation_file.filename = "mech_animation.webp"  # Standardize filename
-                    embed.set_image(url="attachment://mech_animation.webp")
+                    animation_file.filename = "mech_animation.gif"  # Standardize filename
+                    embed.set_image(url="attachment://mech_animation.gif")
                 else:
                     # For refreshes without animation file, reference the existing one
-                    embed.set_image(url="attachment://mech_animation.webp")
+                    embed.set_image(url="attachment://mech_animation.gif")
                 
             except Exception as e:
                 logger.error(f"Could not load collapsed mech status for /ss: {e}", exc_info=True)

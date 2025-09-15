@@ -306,24 +306,32 @@ class SpriteMechAnimator:
         return spritesheet.crop((left, top, right, bottom))
     
     def create_donation_animation_sync(self, donor_name: str, amount: str, total_donations: float) -> bytes:
-        """Create animated WebP synchronously for Web UI use"""
+        """Create animated GIF synchronously for Web UI use"""
         try:
             # Same logic as async version but returns bytes directly
             from services.mech.mech_evolutions import get_evolution_level
+            from services.mech.mech_service import get_mech_service
+            
             evolution_level = get_evolution_level(total_donations)
             
             if evolution_level < 1:
                 evolution_level = 1
             elif evolution_level > 11:
                 evolution_level = 11
-                
-            speed_level = self.calculate_speed_level(total_donations)
+            
+            # Get current Power for speed calculation
+            mech_service = get_mech_service()
+            mech_state = mech_service.get_state()
+            current_power = float(mech_state.Power)
+            
+            speed_level = self.calculate_speed_level(total_donations, current_power)
             if speed_level < 0:
                 speed_level = 0
             elif speed_level > 101:
                 speed_level = 101
-                
-            if total_donations <= 0:
+
+            # Show dead mech if no power OR no total donations
+            if current_power <= 0 or total_donations <= 0:
                 return self.create_dead_mech_animation_sync(donor_name)
             
             # Same caching logic
@@ -380,21 +388,20 @@ class SpriteMechAnimator:
                 
                 frames.append(img)
             
-            # Create WebP animation
+            # Create GIF animation
             buffer = BytesIO()
             
             duration = self.speed_to_frame_duration_ms(speed_level)
             
             frames[0].save(
-                buffer, 
-                format='WebP',
+                buffer,
+                format='GIF',
                 save_all=True,
                 append_images=frames[1:],
-                duration=duration,
+                duration=duration,  # GIF properly supports duration per frame
                 loop=0,
-                quality=85,
-                method=6,
-                lossless=False
+                disposal=2,  # Clear frame before drawing next
+                optimize=False  # Keep it fast
             )
             
             buffer.seek(0)
@@ -421,7 +428,7 @@ class SpriteMechAnimator:
             return self.create_static_fallback_sync(donor_name, amount, speed_level)
 
     async def create_donation_animation(self, donor_name: str, amount: str, total_donations: float) -> discord.File:
-        """Create animated WebP using real mech sprites with global caching"""
+        """Create animated GIF using real mech sprites with global caching"""
         try:
             # EDGE CASE: Safely get evolution level with boundaries
             try:
@@ -438,9 +445,15 @@ class SpriteMechAnimator:
                 logger.error(f"Error getting evolution level: {evo_error}")
                 evolution_level = 1  # Safe fallback
             
+            # Get current Power for speed calculation
+            from services.mech.mech_service import get_mech_service
+            mech_service = get_mech_service()
+            mech_state = mech_service.get_state()
+            current_power = float(mech_state.Power)
+            
             # EDGE CASE: Safely calculate speed level
             try:
-                speed_level = self.calculate_speed_level(total_donations)
+                speed_level = self.calculate_speed_level(total_donations, current_power)
                 if speed_level < 0:
                     speed_level = 0
                 elif speed_level > 101:
@@ -450,8 +463,9 @@ class SpriteMechAnimator:
                 speed_level = 1  # Safe fallback
             
             # EDGE CASE: Handle zero/negative Power BEFORE caching
-            if total_donations <= 0:
-                logger.info(f"Zero Power detected, creating dead mech animation")
+            # Show dead mech if no power OR no total donations
+            if current_power <= 0 or total_donations <= 0:
+                logger.info(f"Zero Power detected (power={current_power}, total={total_donations}), creating dead mech animation")
                 return await self.create_dead_mech_animation(donor_name)
             
             # PERFORMANCE: Create cache key with quantization for better cache hit rate
@@ -469,7 +483,7 @@ class SpriteMechAnimator:
                     if cached_data and len(cached_data) > 0:
                         return discord.File(
                             BytesIO(cached_data), 
-                            filename=f"mech_animation_{total_donations:.0f}.webp"
+                            filename=f"mech_animation_{total_donations:.0f}.gif"
                         )
                     else:
                         logger.warning(f"Invalid cached data for {cache_key}, removing from cache")
@@ -570,22 +584,21 @@ class SpriteMechAnimator:
                     
                     frames.append(img)
             
-            # Create WebP animation
+            # Create GIF animation
             buffer = BytesIO()
             
             # Calculate duration using easing curve
             duration = self.speed_to_frame_duration_ms(speed_level)
             
             frames[0].save(
-                buffer, 
-                format='WebP',
+                buffer,
+                format='GIF',
                 save_all=True,
                 append_images=frames[1:],
-                duration=duration,
+                duration=duration,  # GIF properly supports duration per frame
                 loop=0,
-                quality=85,  # Higher quality for pixel art
-                method=6,    # Best compression
-                lossless=False
+                disposal=2,  # Clear frame before drawing next
+                optimize=False  # Keep it fast
             )
             
             buffer.seek(0)
@@ -595,14 +608,14 @@ class SpriteMechAnimator:
                 logger.warning(f"Animation too large ({file_size} bytes), reducing quality")
                 return self._create_smaller_animation(frames, speed_level)
             
-            logger.info(f"Sprite WebP animation created: {file_size} bytes")
+            logger.info(f"Sprite GIF animation created: {file_size} bytes")
             
             # PERFORMANCE: Cache the animation bytes for reuse
             buffer.seek(0)
             animation_bytes = buffer.getvalue()
             
             # EDGE CASE: Validate animation bytes before caching
-            if not animation_bytes or len(animation_bytes) < 100:  # Minimum viable WebP size
+            if not animation_bytes or len(animation_bytes) < 100:  # Minimum viable GIF size
                 logger.error(f"Invalid animation created, size: {len(animation_bytes) if animation_bytes else 0}")
                 return self.create_static_fallback(donor_name, amount, speed_level)
             
@@ -629,7 +642,7 @@ class SpriteMechAnimator:
                 logger.error(f"Error caching animation: {cache_err}")
             
             buffer.seek(0)
-            return discord.File(buffer, filename="sprite_mech_donation.webp")
+            return discord.File(buffer, filename="sprite_mech_donation.gif")
             
         except Exception as e:
             logger.error(f"Error creating sprite animation: {e}")
@@ -684,13 +697,13 @@ class SpriteMechAnimator:
             draw.text((10, 10), "NO POWER", fill=(80, 80, 80, 255))
             draw.text((10, self.height - 25), "$0", fill=(60, 60, 60, 255))
             
-            # Create static WebP
+            # Create static GIF
             buffer = BytesIO()
-            img.save(buffer, format='WebP', quality=90)
+            img.save(buffer, format='GIF')
             buffer.seek(0)
             
             logger.info("Created dead mech animation (no Power)")
-            return discord.File(buffer, filename="dead_mech.webp")
+            return discord.File(buffer, filename="dead_mech.gif")
             
         except Exception as e:
             logger.error(f"Error creating dead mech animation: {e}")
@@ -849,10 +862,17 @@ class SpriteMechAnimator:
     
     # --- CLEAN UTILITY METHODS ---
 
-    def calculate_speed_level(self, total_donations: float) -> float:
+    def calculate_speed_level(self, total_donations: float, current_power: float = None) -> float:
         """
-        Continuous speed 0..100 (101 = OMEGA) without reset on level-up.
-        Each evolution level has its own speed range that connects seamlessly.
+        Power-based speed calculation with stretching for high levels.
+        Speed now resets with Power on evolution and scales based on level difficulty.
+        
+        Args:
+            total_donations: Total cumulative donations (for level determination)
+            current_power: Current Power value (for speed within level). If None, uses old behavior.
+        
+        Returns:
+            Speed level 0..101 where 101 is OMEGA speed
         """
         if total_donations <= 0:
             return 0.0
@@ -860,34 +880,43 @@ class SpriteMechAnimator:
         from services.mech.mech_evolutions import get_evolution_level, EVOLUTION_THRESHOLDS
 
         lvl = max(1, min(11, get_evolution_level(total_donations)))
-
-        # Speed range per level (seamless: max(L) == min(L+1))
-        base_min = 6.0
-        base_max = 100.0
-        step = (base_max - base_min) / 10.0  # 10 levels -> 10 equal segments
-
-        def range_for_level(L: int) -> tuple:
-            if L >= 11:
-                return (100.0, 101.0)  # OMEGA window
-            lo = base_min + (L - 1) * step
-            hi = base_min + L * step
-            return (lo, hi)
-
-        # Current level thresholds
-        cur_th = EVOLUTION_THRESHOLDS[lvl]
-        nxt_th = EVOLUTION_THRESHOLDS.get(lvl + 1, cur_th * 2)
-
-        # Progress within level (0..1), smoothed
-        span = max(1.0, float(nxt_th - cur_th))
-        p = self._smoothstep((total_donations - cur_th) / span)
-
-        lo, hi = range_for_level(lvl)
-
-        # OMEGA: Full >= Level-11-Threshold -> 101
-        if lvl == 11 and total_donations >= cur_th:
-            return 101.0
-
-        return lo + (hi - lo) * p
+        
+        # If no Power provided, fall back to old calculation for compatibility
+        if current_power is None:
+            # Legacy behavior - use total_donations
+            cur_th = EVOLUTION_THRESHOLDS[lvl]
+            nxt_th = EVOLUTION_THRESHOLDS.get(lvl + 1, cur_th * 2)
+            span = max(1.0, float(nxt_th - cur_th))
+            progress = (total_donations - cur_th) / span
+        else:
+            # NEW: Simple Power = Speed with stretching
+            # 1 Power = 1 Speed Level (base)
+            # Stretching factor makes it harder at high levels
+            
+            # Stretching factor: higher levels need more Power per speed unit
+            # Level 1-3: 1x (1 Power = 1 Speed)
+            # Level 4-6: 1.5x (1.5 Power = 1 Speed)
+            # Level 7-9: 2x (2 Power = 1 Speed)
+            # Level 10-11: 3x (3 Power = 1 Speed)
+            if lvl <= 3:
+                stretch_factor = 1.0
+            elif lvl <= 6:
+                stretch_factor = 1.5
+            elif lvl <= 9:
+                stretch_factor = 2.0
+            else:
+                stretch_factor = 3.0
+            
+            # Direct calculation: Power / stretch = Speed
+            # 30 Power at Level 2 (stretch 1.0) = 30 Speed
+            # 30 Power at Level 8 (stretch 2.0) = 15 Speed
+            base_speed = current_power / stretch_factor
+            
+            # Cap at 100, special case for OMEGA
+            if lvl == 11 and base_speed >= 100:
+                return 101.0
+            
+            return min(100.0, max(0.0, base_speed))
 
     def speed_to_frame_duration_ms(self, speed: float) -> int:
         """
@@ -912,19 +941,18 @@ class SpriteMechAnimator:
         duration = self.speed_to_frame_duration_ms(speed_level)
         
         frames[0].save(
-            buffer, 
-            format='WebP',
+            buffer,
+            format='GIF',
             save_all=True,
             append_images=frames[1:],
-            duration=duration,
+            duration=duration,  # GIF properly supports duration per frame
             loop=0,
-            quality=60,  # Lower quality
-            method=4,
-            lossless=False
+            disposal=2,  # Clear frame before drawing next
+            optimize=False  # Keep it fast
         )
         
         buffer.seek(0)
-        return discord.File(buffer, filename="sprite_mech_small.webp")
+        return discord.File(buffer, filename="sprite_mech_small.gif")
     
     def _create_smaller_animation_sync(self, frames, speed_level) -> bytes:
         """Create smaller animation if original is too large (sync version)"""
@@ -932,15 +960,14 @@ class SpriteMechAnimator:
         duration = self.speed_to_frame_duration_ms(speed_level)
         
         frames[0].save(
-            buffer, 
-            format='WebP',
+            buffer,
+            format='GIF',
             save_all=True,
             append_images=frames[1:],
-            duration=duration,
+            duration=duration,  # GIF properly supports duration per frame
             loop=0,
-            quality=60,
-            method=4,
-            lossless=False
+            disposal=2,  # Clear frame before drawing next
+            optimize=False  # Keep it fast
         )
         
         buffer.seek(0)
@@ -988,7 +1015,7 @@ class SpriteMechAnimator:
             draw.text((10, self.height - 25), "$0", fill=(60, 60, 60, 255))
             
             buffer = BytesIO()
-            img.save(buffer, format='WebP', quality=90)
+            img.save(buffer, format='GIF')
             buffer.seek(0)
             
             logger.info("Created dead mech animation (no Power)")
@@ -1015,7 +1042,7 @@ class SpriteMechAnimator:
                 img.paste(sprite, (x, y), sprite)
             
             buffer = BytesIO()
-            img.save(buffer, format='WebP', quality=90)
+            img.save(buffer, format='GIF')
             buffer.seek(0)
             
             return buffer.getvalue()
@@ -1025,7 +1052,7 @@ class SpriteMechAnimator:
             # Ultra fallback
             buffer = BytesIO()
             fallback_img = Image.new('RGBA', (100, 50), (47, 49, 54, 255))
-            fallback_img.save(buffer, format='WebP')
+            fallback_img.save(buffer, format='GIF')
             buffer.seek(0)
             return buffer.getvalue()
     
@@ -1051,19 +1078,19 @@ class SpriteMechAnimator:
                 # No text overlay on animation anymore
             
             buffer = BytesIO()
-            img.save(buffer, format='WebP', quality=90)
+            img.save(buffer, format='GIF')
             buffer.seek(0)
             
-            return discord.File(buffer, filename="sprite_mech_static.webp")
+            return discord.File(buffer, filename="sprite_mech_static.gif")
             
         except Exception as e:
             logger.error(f"Error creating static fallback: {e}")
             # Ultra fallback
             buffer = BytesIO()
             fallback_img = Image.new('RGBA', (100, 50), (47, 49, 54, 255))
-            fallback_img.save(buffer, format='WebP')
+            fallback_img.save(buffer, format='GIF')
             buffer.seek(0)
-            return discord.File(buffer, filename="mech_error.webp")
+            return discord.File(buffer, filename="mech_error.gif")
 
 # Singleton instance
 _sprite_animator = None
