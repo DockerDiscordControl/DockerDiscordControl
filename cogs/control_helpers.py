@@ -12,7 +12,7 @@ from services.config.config_service import load_config
 from .translation_manager import _ # Import the translation function
 from utils.time_utils import format_datetime_with_timezone, get_datetime_imports # Import time helper
 from utils.logging_utils import get_module_logger
-from utils.config_cache import get_cached_guild_id
+from utils.config_cache import get_cached_guild_id, get_cached_servers
 
 # Zentrale datetime-Imports
 datetime, timedelta, timezone, time = get_datetime_imports()
