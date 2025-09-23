@@ -70,10 +70,10 @@ class DynamicImageHandler:
             "mech_image_settings": {
                 "auto_detect_size": True,
                 "preserve_aspect_ratio": True,
-                "max_animation_width": 256,  # 50% of 512px
-                "max_animation_height": 256,  # 50% of 512px
-                "min_animation_width": 64,   # 50% of 128px
-                "min_animation_height": 64   # 50% of 128px
+                "max_animation_width": 512,  # Original resolution restored
+                "max_animation_height": 512,  # Original resolution restored
+                "min_animation_width": 128,  # Original resolution restored
+                "min_animation_height": 128  # Original resolution restored
             },
             "dynamic_sizing": {
                 "enabled": True,
@@ -280,23 +280,23 @@ class DynamicImageHandler:
         level_config = self.config.get("mech_sizes_by_level", {}).get(str(level), {})
         settings = self.config.get("mech_image_settings", {})
         
-        # Determine canvas size based on level (50% of original sizes)
-        base_width = settings.get("max_animation_width", 256)  # Default is now 256 (50% of 512)
-        base_height = settings.get("max_animation_height", 256)  # Default is now 256 (50% of 512)
+        # Determine canvas size based on level (ORIGINAL RESOLUTION RESTORED)
+        base_width = settings.get("max_animation_width", 512)  # Original resolution
+        base_height = settings.get("max_animation_height", 512)  # Original resolution
 
         # Apply level-specific scaling
         scale_factor = level_config.get("scale_factor", 1.0)
 
-        # Canvas size can grow with higher levels (but still 50% smaller than before)
+        # Canvas size can grow with higher levels (ORIGINAL SIZES RESTORED)
         if level >= 7:  # Larger mechs get bigger canvases
-            canvas_width = min(int(base_width * 1.2), 320)  # 50% of 640
-            canvas_height = min(int(base_height * 1.2), 320)  # 50% of 640
+            canvas_width = min(int(base_width * 1.2), 640)  # Original 640px
+            canvas_height = min(int(base_height * 1.2), 640)  # Original 640px
         elif level >= 5:
             canvas_width = base_width
             canvas_height = base_height
         else:  # Smaller mechs can use smaller canvases
-            canvas_width = max(int(base_width * 0.8), settings.get("min_animation_width", 64))  # 50% of 128
-            canvas_height = max(int(base_height * 0.8), settings.get("min_animation_height", 64))  # 50% of 128
+            canvas_width = max(int(base_width * 0.8), settings.get("min_animation_width", 128))  # Original 128px
+            canvas_height = max(int(base_height * 0.8), settings.get("min_animation_height", 128))  # Original 128px
         
         # Create transparent canvas
         canvas = Image.new('RGBA', (canvas_width, canvas_height), (0, 0, 0, 0))
