@@ -76,7 +76,7 @@ class DynamicImageHandler:
                 "min_animation_height": 64   # 50% smaller total image size
             },
             "dynamic_sizing": {
-                "enabled": True,
+                "enabled": False,  # Deaktiviert: Canvas soll NICHT an Mech-Größe angepasst werden
                 "auto_center": True,
                 "maintain_ground_contact": True
             }
