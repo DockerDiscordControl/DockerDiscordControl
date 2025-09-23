@@ -2225,10 +2225,18 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         except Exception as e:
                             logger.debug(f"Could not get current Glvl: {e}")
                         
-                        # Check if Glvl changed significantly (>= 1 level difference)
+                        # Check if Glvl changed significantly (>= 1 level difference) or power reached 0
                         glvl_changed = False
+                        power_depleted = False
+
                         if current_glvl is not None:
                             last_glvl = self.last_glvl_per_channel.get(channel_id, 0)
+
+                            # Special check: if power reached exactly 0, always force update
+                            if current_Power <= 0 and last_glvl > 0:
+                                power_depleted = True
+                                from .translation_manager import _
+                                logger.info(_("Mech power depleted - forcing animation update to show offline state"))
                             if abs(current_glvl - last_glvl) >= 1:
                                 glvl_changed = True
                                 from .translation_manager import _
@@ -2240,17 +2248,20 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                                 self.last_glvl_per_channel[channel_id] = current_glvl
                                 self.mech_state_manager.set_last_glvl(channel_id, current_glvl)
                         
-                        # Override force_recreate if significant Glvl change detected
-                        if glvl_changed and not force_recreate:
+                        # Override force_recreate if significant Glvl change or power depletion detected
+                        if (glvl_changed or power_depleted) and not force_recreate:
                             # Check rate limit before allowing force_recreate
                             if self.mech_state_manager.should_force_recreate(channel_id):
                                 force_recreate = True
                                 self.mech_state_manager.mark_force_recreate(channel_id)
                                 from .translation_manager import _
-                                upgrade_text = _("Upgrading to force_recreate=True due to significant Glvl change")
+                                if power_depleted:
+                                    upgrade_text = _("Upgrading to force_recreate=True due to power depletion (offline mech)")
+                                else:
+                                    upgrade_text = _("Upgrading to force_recreate=True due to significant Glvl change")
                                 logger.info(f"{upgrade_text}")
                             else:
-                                logger.debug(f"Rate limited force_recreate for channel {channel_id} (Glvl change)")
+                                logger.debug(f"Rate limited force_recreate for channel {channel_id} (Glvl change or power depletion)")
                                 force_recreate = False
                         
                         # Create updated embed based on expansion state
@@ -2563,8 +2574,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         logger.info(f"Last message in channel {channel.name} is NOT from our bot. Will regenerate")
                         
                         # Determine the mode: control or status
-                        has_control_permission = _channel_has_permission(channel_id, 'control', self.config)
-                        has_status_permission = _channel_has_permission(channel_id, 'serverstatus', self.config)
+                        has_control_permission = _channel_has_permission(channel_id, 'control', config)
+                        has_status_permission = _channel_has_permission(channel_id, 'serverstatus', config)
                         
                         logger.debug(f"Channel permissions - control: {has_control_permission}, status: {has_status_permission}")
                         
@@ -2576,9 +2587,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                             continue
                         
                         logger.debug(f"Will regenerate with mode: {regeneration_mode}")
-                        
+
                         # Attempt channel regeneration
-                        await self._regenerate_channel(channel, regeneration_mode, self.config)
+                        await self._regenerate_channel(channel, regeneration_mode, config)
                         
                         # Reset activity timer
                         self.last_channel_activity[channel_id] = now_utc
@@ -2723,6 +2734,103 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     def get_status_cache(self) -> Dict[str, Any]:
         """Returns the current status cache."""
         return self.status_cache.copy()
+
+    async def _update_all_overview_messages_after_donation(self):
+        """Force update all overview messages after a donation to show new mech animation."""
+        logger.info("Updating all overview messages after donation...")
+
+        try:
+            # Iterate through all channels with overview messages
+            updated_count = 0
+            for channel_id, messages in self.channel_server_message_ids.items():
+                if 'overview' in messages:
+                    message_id = messages['overview']
+                    try:
+                        # Force recreation of the message with new animation
+                        channel = self.bot.get_channel(channel_id)
+                        if not channel:
+                            continue
+
+                        # Fetch the message
+                        try:
+                            message = await channel.fetch_message(message_id)
+                        except discord.NotFound:
+                            logger.warning(f"Overview message {message_id} not found in channel {channel_id}")
+                            continue
+
+                        # Get fresh server data
+                        config = load_config()
+                        if not config:
+                            continue
+
+                        servers = config.get('servers', [])
+                        ordered_servers = []
+                        seen_docker_names = set()
+
+                        # Apply server ordering
+                        from services.docker_service.server_order import load_server_order
+                        server_order = load_server_order()
+
+                        for server_name in server_order:
+                            for server in servers:
+                                docker_name = server.get('docker_name')
+                                if server.get('name') == server_name and docker_name and docker_name not in seen_docker_names:
+                                    ordered_servers.append(server)
+                                    seen_docker_names.add(docker_name)
+
+                        # Add remaining servers
+                        for server in servers:
+                            docker_name = server.get('docker_name')
+                            if docker_name and docker_name not in seen_docker_names:
+                                ordered_servers.append(server)
+                                seen_docker_names.add(docker_name)
+
+                        # Create updated embed based on expansion state (with new mech animation)
+                        is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
+                        if is_mech_expanded:
+                            embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config)
+                        else:
+                            embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
+
+                        # Delete and recreate message with new animation
+                        await message.delete()
+
+                        # Create new view
+                        from .control_ui import MechView
+                        view = MechView(self, channel_id)
+
+                        # Send new message with fresh animation
+                        if animation_file:
+                            new_message = await channel.send(embed=embed, file=animation_file, view=view)
+                        else:
+                            new_message = await channel.send(embed=embed, view=view)
+
+                        # Update message tracking
+                        self.channel_server_message_ids[channel_id]['overview'] = new_message.id
+
+                        # Update last_glvl_per_channel to prevent duplicate updates
+                        try:
+                            from services.mech.mech_service import get_mech_service
+                            from services.mech.speed_levels import get_combined_mech_status
+                            mech_service = get_mech_service()
+                            current_Power = mech_service.get_power_with_decimals()
+                            mech_state = mech_service.get_state()
+                            mech_status = get_combined_mech_status(current_Power, mech_state.total_donated, 'en')
+                            current_glvl = mech_status.get('speed', {}).get('level', 0)
+                            self.last_glvl_per_channel[channel_id] = current_glvl
+                            self.mech_state_manager.set_last_glvl(channel_id, current_glvl)
+                        except:
+                            pass
+
+                        updated_count += 1
+                        logger.info(f"Updated overview message in channel {channel_id} after donation")
+                    except Exception as e:
+                        logger.error(f"Failed to update overview in channel {channel_id}: {e}")
+
+            logger.info(f"Successfully updated {updated_count} overview messages after donation")
+
+        except Exception as e:
+            logger.error(f"Error updating overview messages after donation: {e}")
 
     async def _update_overview_message(self, channel_id: int, message_id: int) -> bool:
         """
@@ -3080,10 +3188,21 @@ class DonationBroadcastModal(discord.ui.Modal):
                     # Check if evolution occurred
                     evolution_occurred = new_state.level > old_state.level
                     new_evolution_level = new_state.level
-                    
+
                     if evolution_occurred:
                         logger.info(f"EVOLUTION! Level {old_evolution_level} → {new_evolution_level}")
-                        
+
+                    # Force update of mech animation in status channels when power changes
+                    old_power = old_state.Power
+                    new_power = new_state.Power
+                    if new_power != old_power:
+                        logger.info(f"Power changed from {old_power} to {new_power} - updating mech animations")
+                        # Trigger immediate update of all overview messages
+                        # Get the cog instance from the bot
+                        cog = interaction.client.get_cog('DockerControlCog')
+                        if cog:
+                            asyncio.create_task(cog._update_all_overview_messages_after_donation())
+
                 except Exception as e:
                     logger.error(f"Error processing donation: {e}")
                     evolution_occurred = False

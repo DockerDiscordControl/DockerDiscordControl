@@ -1,16 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node:*)",
-      "Bash(git commit:*)",
-      "Bash(arp:*)",
-      "Bash(ip neigh:*)",
-      "Bash(traceroute:*)",
-      "Bash(sudo touch:*)",
-      "Bash(sudo chmod:*)",
-      "Bash(sudo chown:*)",
-      "Bash(docker build:*)",
-      "Bash(/usr/local/bin/python3:*)"
+      "Bash(DDC_WEB_PORT=5001 python3:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(docker ps:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []
