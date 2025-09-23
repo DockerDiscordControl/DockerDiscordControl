@@ -70,10 +70,10 @@ class DynamicImageHandler:
             "mech_image_settings": {
                 "auto_detect_size": True,
                 "preserve_aspect_ratio": True,
-                "max_animation_width": 512,
-                "max_animation_height": 512,
-                "min_animation_width": 128,
-                "min_animation_height": 128
+                "max_animation_width": 256,  # 50% of 512px
+                "max_animation_height": 256,  # 50% of 512px
+                "min_animation_width": 64,   # 50% of 128px
+                "min_animation_height": 64   # 50% of 128px
             },
             "dynamic_sizing": {
                 "enabled": True,
@@ -280,23 +280,23 @@ class DynamicImageHandler:
         level_config = self.config.get("mech_sizes_by_level", {}).get(str(level), {})
         settings = self.config.get("mech_image_settings", {})
         
-        # Determine canvas size based on level
-        base_width = settings.get("max_animation_width", 512)
-        base_height = settings.get("max_animation_height", 512)
-        
+        # Determine canvas size based on level (50% of original sizes)
+        base_width = settings.get("max_animation_width", 256)  # Default is now 256 (50% of 512)
+        base_height = settings.get("max_animation_height", 256)  # Default is now 256 (50% of 512)
+
         # Apply level-specific scaling
         scale_factor = level_config.get("scale_factor", 1.0)
-        
-        # Canvas size can grow with higher levels
+
+        # Canvas size can grow with higher levels (but still 50% smaller than before)
         if level >= 7:  # Larger mechs get bigger canvases
-            canvas_width = min(int(base_width * 1.2), 640)
-            canvas_height = min(int(base_height * 1.2), 640)
+            canvas_width = min(int(base_width * 1.2), 320)  # 50% of 640
+            canvas_height = min(int(base_height * 1.2), 320)  # 50% of 640
         elif level >= 5:
             canvas_width = base_width
             canvas_height = base_height
         else:  # Smaller mechs can use smaller canvases
-            canvas_width = max(int(base_width * 0.8), settings.get("min_animation_width", 128))
-            canvas_height = max(int(base_height * 0.8), settings.get("min_animation_height", 128))
+            canvas_width = max(int(base_width * 0.8), settings.get("min_animation_width", 64))  # 50% of 128
+            canvas_height = max(int(base_height * 0.8), settings.get("min_animation_height", 64))  # 50% of 128
         
         # Create transparent canvas
         canvas = Image.new('RGBA', (canvas_width, canvas_height), (0, 0, 0, 0))
@@ -528,16 +528,16 @@ class DynamicImageHandler:
             # Minimales Padding um den Mech
             min_padding = self.config.get("dynamic_sizing", {}).get("smart_cropping", {}).get("min_padding", 5)
             
-            # Berechne gewünschte Mech-Größe basierend auf Level
-            # Levels 1-4: kleinere Canvas
-            # Levels 5-8: mittlere Canvas  
-            # Levels 9-11: große Canvas
+            # Berechne gewünschte Mech-Größe basierend auf Level (50% der ursprünglichen Größe)
+            # Levels 1-4: kleinere Canvas (vorher 200px, jetzt 100px)
+            # Levels 5-8: mittlere Canvas (vorher 300px, jetzt 150px)
+            # Levels 9-11: große Canvas (vorher 400px, jetzt 200px)
             if level <= 4:
-                target_mech_height = 200  # Kleinere Mechs
+                target_mech_height = 100  # Kleinere Mechs (50% von 200px)
             elif level <= 8:
-                target_mech_height = 300  # Mittlere Mechs
+                target_mech_height = 150  # Mittlere Mechs (50% von 300px)
             else:
-                target_mech_height = 400  # Große Mechs
+                target_mech_height = 200  # Große Mechs (50% von 400px)
                 
             # Skaliere basierend auf der geschätzten Nachrichtenbreite
             # Nachrichtenbreite für deutsche Version: ~320px
