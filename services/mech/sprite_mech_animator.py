@@ -17,8 +17,8 @@ class SpriteMechAnimator:
     """Creates animations using the actual mech spritesheet"""
     
     def __init__(self):
-        self.width = 256   # Default width (will be dynamic)
-        self.height = 137  # Default height (will be dynamic)
+        self.width = 128   # 50% smaller total image (256 -> 128)
+        self.height = 68   # 50% smaller total image (137 -> 68)
         self.frames = 6   # Match spritesheet frames
         self.max_file_size = 500_000  # 500KB limit
         
@@ -211,10 +211,9 @@ class SpriteMechAnimator:
     
     
     def _fixed_scale_171px(self, sprite_h: int) -> float:
-        """Feste Skalierung: Mech auf 50% der vorherigen Größe (85px Höhe statt 171px)"""
-        # Vorher: 128px * 1.33 = 171px
-        # Neu: 171px * 0.5 = 85.5px (halb so groß, aber gleiche Auflösung)
-        target_h = int(128 * 1.33 * 0.5)  # 85px = 50% der vorherigen 171px
+        """Feste Skalierung: Mech um 1/3 größer - 171px Höhe (ORIGINAL QUALITÄT)"""
+        # Ziel: Mech hat 128px * 1.33 = ~171px Höhe (URSPRÜNGLICHE QUALITÄT)
+        target_h = int(128 * 1.33)  # 171px = 1/3 größer als 128px
         scale = target_h / max(1, sprite_h)
         return scale
         
@@ -659,7 +658,7 @@ class SpriteMechAnimator:
             
             # Get actual sprite dimensions and scale (50% of original size)
             actual_sprite_width, actual_sprite_height = sprite.size
-            base_scale = 0.85 * 0.5  # 50% of the original 0.85 scale
+            base_scale = 0.85  # Original scale beibehalten für Qualität
             base_width = int(actual_sprite_width * base_scale)
             base_height = int(actual_sprite_height * base_scale)
             sprite = sprite.resize((base_width, base_height), Image.NEAREST)
@@ -983,7 +982,7 @@ class SpriteMechAnimator:
             
             # Get actual sprite dimensions and scale (50% of original size)
             actual_sprite_width, actual_sprite_height = sprite.size
-            base_scale = 0.85 * 0.5  # 50% of the original 0.85 scale
+            base_scale = 0.85  # Original scale beibehalten für Qualität
             base_width = int(actual_sprite_width * base_scale)
             base_height = int(actual_sprite_height * base_scale)
             sprite = sprite.resize((base_width, base_height), Image.NEAREST)

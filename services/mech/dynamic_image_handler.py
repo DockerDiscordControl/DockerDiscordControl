@@ -70,10 +70,10 @@ class DynamicImageHandler:
             "mech_image_settings": {
                 "auto_detect_size": True,
                 "preserve_aspect_ratio": True,
-                "max_animation_width": 512,  # Original resolution restored
-                "max_animation_height": 512,  # Original resolution restored
-                "min_animation_width": 128,  # Original resolution restored
-                "min_animation_height": 128  # Original resolution restored
+                "max_animation_width": 256,  # 50% smaller total image size
+                "max_animation_height": 256,  # 50% smaller total image size
+                "min_animation_width": 64,   # 50% smaller total image size
+                "min_animation_height": 64   # 50% smaller total image size
             },
             "dynamic_sizing": {
                 "enabled": True,
@@ -280,23 +280,23 @@ class DynamicImageHandler:
         level_config = self.config.get("mech_sizes_by_level", {}).get(str(level), {})
         settings = self.config.get("mech_image_settings", {})
         
-        # Determine canvas size based on level (ORIGINAL RESOLUTION RESTORED)
-        base_width = settings.get("max_animation_width", 512)  # Original resolution
-        base_height = settings.get("max_animation_height", 512)  # Original resolution
+        # Determine canvas size based on level (50% SMALLER TOTAL IMAGE)
+        base_width = settings.get("max_animation_width", 256)  # 50% smaller total image
+        base_height = settings.get("max_animation_height", 256)  # 50% smaller total image
 
         # Apply level-specific scaling
         scale_factor = level_config.get("scale_factor", 1.0)
 
-        # Canvas size can grow with higher levels (ORIGINAL SIZES RESTORED)
+        # Canvas size can grow with higher levels (50% SMALLER TOTAL IMAGE)
         if level >= 7:  # Larger mechs get bigger canvases
-            canvas_width = min(int(base_width * 1.2), 640)  # Original 640px
-            canvas_height = min(int(base_height * 1.2), 640)  # Original 640px
+            canvas_width = min(int(base_width * 1.2), 320)  # 50% of 640px
+            canvas_height = min(int(base_height * 1.2), 320)  # 50% of 640px
         elif level >= 5:
             canvas_width = base_width
             canvas_height = base_height
         else:  # Smaller mechs can use smaller canvases
-            canvas_width = max(int(base_width * 0.8), settings.get("min_animation_width", 128))  # Original 128px
-            canvas_height = max(int(base_height * 0.8), settings.get("min_animation_height", 128))  # Original 128px
+            canvas_width = max(int(base_width * 0.8), settings.get("min_animation_width", 64))  # 50% of 128px
+            canvas_height = max(int(base_width * 0.8), settings.get("min_animation_height", 64))  # 50% of 128px
         
         # Create transparent canvas
         canvas = Image.new('RGBA', (canvas_width, canvas_height), (0, 0, 0, 0))
@@ -528,16 +528,17 @@ class DynamicImageHandler:
             # Minimales Padding um den Mech
             min_padding = self.config.get("dynamic_sizing", {}).get("smart_cropping", {}).get("min_padding", 5)
             
-            # Berechne gewünschte Mech-Größe basierend auf Level (50% der ursprünglichen Größe)
-            # Levels 1-4: kleinere Canvas (vorher 200px, jetzt 100px)
-            # Levels 5-8: mittlere Canvas (vorher 300px, jetzt 150px)
-            # Levels 9-11: große Canvas (vorher 400px, jetzt 200px)
+            # Berechne gewünschte Mech-Größe basierend auf Level (ORIGINAL QUALITÄT BEIBEHALTEN)
+            # Mech behält ursprüngliche Qualität, aber wird auf kleinerem Canvas gerendert
+            # Levels 1-4: kleinere Canvas aber volle Mech-Qualität
+            # Levels 5-8: mittlere Canvas aber volle Mech-Qualität
+            # Levels 9-11: große Canvas aber volle Mech-Qualität
             if level <= 4:
-                target_mech_height = 100  # Kleinere Mechs (50% von 200px)
+                target_mech_height = 200  # Original Mech-Qualität beibehalten
             elif level <= 8:
-                target_mech_height = 150  # Mittlere Mechs (50% von 300px)
+                target_mech_height = 300  # Original Mech-Qualität beibehalten
             else:
-                target_mech_height = 200  # Große Mechs (50% von 400px)
+                target_mech_height = 400  # Original Mech-Qualität beibehalten
                 
             # Skaliere basierend auf der geschätzten Nachrichtenbreite
             # Nachrichtenbreite für deutsche Version: ~320px
