@@ -5,7 +5,8 @@
       "Bash(git add:*)",
       "Bash(git push:*)",
       "Bash(docker ps:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
