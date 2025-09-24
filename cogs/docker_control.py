@@ -789,10 +789,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Send with animation and button if available
                 if animation_file:
                     logger.info(f"✅ Sending overview message with animation and Mech buttons to {channel.name}")
-                    message = await channel.send(embed=embed, file=animation_file, view=view)
+                    message = await self._send_message_with_files(channel, embed, animation_file, view)
                 else:
                     logger.warning(f"⚠️ Sending overview message WITHOUT animation to {channel.name}")
-                    message = await channel.send(embed=embed, view=view)
+                    message = await self._send_message_with_files(channel, embed, None, view)
                 
                 # Track ONLY the overview message for status channels
                 # Clear any existing server message tracking (status channels only have overview)
@@ -967,10 +967,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                             # Send with animation and button if available
                             if animation_file:
                                 logger.info(f"✅ Sending initial message with animation and Mechonate button to {channel.name}")
-                                message = await channel.send(embed=embed, file=animation_file, view=view)
+                                message = await self._send_message_with_files(channel, embed, animation_file, view)
                             else:
                                 logger.warning(f"⚠️ Sending initial message WITHOUT animation to {channel.name}")
-                                message = await channel.send(embed=embed, view=view)
+                                message = await self._send_message_with_files(channel, embed, None, view)
                             
                             # Track the overview message
                             if channel.id not in self.channel_server_message_ids:
@@ -1795,8 +1795,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     from services.mech.mech_service import get_mech_service as get_data_service
                     data_service = get_data_service()
                     total_donated = data_service.get_state().total_donated
-                    animation_file = await mech_service.create_donation_animation_async(
-                        'Current', f'{current_Power}$', total_donated
+                    animation_file = await mech_service.create_collapsed_status_animation_async(
+                        current_Power, total_donated
                     )
                 except Exception as e:
                     logger.warning(f"Animation service failed (graceful degradation): {e}")
@@ -1859,11 +1859,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Glvl info is now included in speed description, no need for separate line
                 
                 embed.add_field(name=translate("Donation Engine"), value=mech_status, inline=False)
-                
-                # Set the mech animation as embed image
-                # Always set the same filename so Discord can reuse it on edits
+
+                # For expanded view, use mech animation
                 if animation_file:
-                    animation_file.filename = "mech_animation.gif"  # Standardize filename
+                    animation_file.filename = "mech_animation.gif"
                     embed.set_image(url="attachment://mech_animation.gif")
                 else:
                     # For refreshes without animation file, reference the existing one
@@ -1873,13 +1872,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 logger.error(f"Could not load expanded mech status for /ss: {e}", exc_info=True)
         else:
             # Donations disabled - no mech components
-            animation_file = None
+            animation_files = None
             logger.info("Donations disabled - skipping mech status for /ss")
-        
+
         # Add website URL as footer for better spacing
         embed.set_footer(text="https://ddc.bot")
-        
-        # Return tuple (embed, animation_file)
+
+        # Return tuple (embed, animation_file) - single file for expanded view
         return embed, animation_file
 
     async def _create_overview_embed_collapsed(self, ordered_servers, config):
@@ -2037,8 +2036,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     from services.mech.mech_service import get_mech_service as get_data_service
                     data_service = get_data_service()
                     total_donated = data_service.get_state().total_donated
-                    animation_file = await mech_service.create_donation_animation_async(
-                        'Current', f'{current_Power}$', total_donated
+                    animation_file = await mech_service.create_collapsed_status_animation_async(
+                        current_Power, total_donated
                     )
                 except Exception as e:
                     logger.warning(f"Animation service failed (graceful degradation): {e}")
@@ -2048,14 +2047,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         embed.set_footer(text="🎬 Animation service temporarily unavailable")
                     else:
                         embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
-                
+
                 # For collapsed view, only add a simple field name (no detailed info)
                 embed.add_field(name=translate("Donation Engine"), value="*" + translate("Click + to view Mech details") + "*", inline=False)
                 
-                # Set the mech animation as embed image
-                # Always set the same filename so Discord can reuse it on edits
+                # For collapsed view, use mech animation
                 if animation_file:
-                    animation_file.filename = "mech_animation.gif"  # Standardize filename
+                    animation_file.filename = "mech_animation.gif"
                     embed.set_image(url="attachment://mech_animation.gif")
                 else:
                     # For refreshes without animation file, reference the existing one
@@ -2065,13 +2063,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 logger.error(f"Could not load collapsed mech status for /ss: {e}", exc_info=True)
         else:
             # Donations disabled - no mech components
-            animation_file = None
+            animation_files = None
             logger.info("Donations disabled - skipping collapsed mech status for /ss")
-        
+
         # Add website URL as footer for better spacing
         embed.set_footer(text="https://ddc.bot")
-        
-        # Return tuple (embed, animation_file)
+
+        # Return tuple (embed, animation_file) - single file for collapsed view
         return embed, animation_file
 
     def _create_progress_bar(self, percentage: float, length: int = 30) -> str:
@@ -2081,6 +2079,21 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         # Use █ and ░ - these work best in monospace code blocks
         bar = "█" * filled + "░" * empty
         return bar
+
+    async def _send_message_with_files(self, target, embed, file, view=None):
+        """Helper to send messages with either single file or no files."""
+        if file:
+            # Single file
+            if view:
+                return await target.send(embed=embed, file=file, view=view)
+            else:
+                return await target.send(embed=embed, file=file)
+        else:
+            # No files
+            if view:
+                return await target.send(embed=embed, view=view)
+            else:
+                return await target.send(embed=embed)
 
     async def _handle_donate_interaction(self, interaction):
         """Handle Mechonate button interaction - shows donation options."""
@@ -2284,9 +2297,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                             
                             # Send new message with fresh animation
                             if animation_file:
-                                new_message = await channel.send(embed=embed, file=animation_file, view=view)
+                                new_message = await self._send_message_with_files(channel, embed, animation_file, view)
                             else:
-                                new_message = await channel.send(embed=embed, view=view)
+                                new_message = await self._send_message_with_files(channel, embed, None, view)
                                 
                             # Update message tracking
                             self.channel_server_message_ids[channel_id]['overview'] = new_message.id
@@ -2801,9 +2814,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                         # Send new message with fresh animation
                         if animation_file:
-                            new_message = await channel.send(embed=embed, file=animation_file, view=view)
+                            new_message = await self._send_message_with_files(channel, embed, animation_file, view)
                         else:
-                            new_message = await channel.send(embed=embed, view=view)
+                            new_message = await self._send_message_with_files(channel, embed, None, view)
 
                         # Update message tracking
                         self.channel_server_message_ids[channel_id]['overview'] = new_message.id
@@ -3137,6 +3150,7 @@ class DonationBroadcastModal(discord.ui.Modal):
             
             # Process donation through mech service
             donation_amount_euros = None
+            processing_msg = None  # Initialize for later deletion
             evolution_occurred = False
             old_evolution_level = None
             new_evolution_level = None
@@ -3160,10 +3174,10 @@ class DonationBroadcastModal(discord.ui.Modal):
                     if donation_amount_euros and donation_amount_euros > 0:
                         amount_dollars = int(donation_amount_euros)
                         
-                        # Quick feedback to user first  
-                        await interaction.followup.send(
+                        # Quick feedback to user first (store message to delete later)
+                        processing_msg = await interaction.followup.send(
                             _("💰 Processing ${amount} donation...").format(amount=amount_dollars),
-                            ephemeral=True
+                            ephemeral=False  # Make it visible so we can delete it
                         )
                         
                         # Process donation (may take a few seconds for member count)
@@ -3273,15 +3287,24 @@ class DonationBroadcastModal(discord.ui.Modal):
             
             # Use followup for final response
             await interaction.followup.send(response_text, ephemeral=True)
-            
-            # Clean up processing message
-            try:
-                await interaction.delete_original_response()
-            except:
-                pass  # Ignore if already deleted or expired
-            
+
+            # Clean up processing message if donation was processed
+            if processing_msg:
+                try:
+                    await processing_msg.delete()
+                except:
+                    pass  # Ignore if already deleted or expired
+
         except Exception as e:
             logger.error(f"Error in donation broadcast modal: {e}")
+
+            # Clean up processing message even if error occurred
+            if processing_msg:
+                try:
+                    await processing_msg.delete()
+                except:
+                    pass
+
             try:
                 await interaction.followup.send(
                     _("❌ Error sending donation broadcast. Please try again later."),

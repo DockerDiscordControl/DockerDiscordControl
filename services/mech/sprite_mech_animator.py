@@ -7,6 +7,7 @@ from PIL import Image, ImageDraw, ImageFont
 import discord
 from io import BytesIO
 import logging
+import time
 from pathlib import Path
 from utils.logging_utils import get_module_logger
 from .dynamic_image_handler import get_dynamic_image_handler
@@ -17,9 +18,9 @@ class SpriteMechAnimator:
     """Creates animations using the actual mech spritesheet"""
     
     def __init__(self):
-        self.width = 128   # 50% smaller total image (256 -> 128)
-        self.height = 68   # 50% smaller total image (137 -> 68)
-        self.frames = 6   # Match spritesheet frames
+        self.width = 256   # Original mech size (no supersampling)
+        self.height = 137  # Original mech size (no supersampling)
+        self.frames = 24  # Smooth 24-frame animation
         self.max_file_size = 500_000  # 500KB limit
         
         # Cache for loaded spritesheets by level
@@ -201,22 +202,124 @@ class SpriteMechAnimator:
         return bg
 
     def speed_to_frame_duration_ms(self, speed: int) -> int:
-        if speed <= 0:   
-            return 400  # Halbiert von 800
-        if speed >= 101: 
-            return 25   # Bleibt bei 25 (schon sehr schnell)
+        # With 24 frames instead of 6, we need 4x faster frame duration for same speed
+        if speed <= 0:
+            return 100  # 400/4 = 100ms per frame (24 frames total)
+        if speed >= 101:
+            return 6    # 25/4 = ~6ms per frame (very fast)
         x = self._speed_norm(speed)
         eased = self._ease_out(x)
-        return int(round(375 - 350 * eased))  # Halbiert: 375ms → 25ms
+        # Original was 375ms → 25ms, now 94ms → 6ms (divided by 4)
+        return int(round((375 - 350 * eased) / 4))
     
     
     def _fixed_scale_171px(self, sprite_h: int) -> float:
-        """Feste Skalierung: Mech 50% kleiner aber hohe Rendering-Qualität"""
-        # Ziel: Mech hat 85px Höhe (50% von 171px) aber wird hochwertig gerendert
-        target_h = int(128 * 1.33 * 0.5)  # 85px = 50% von 171px
+        """Fixed scaling: Mech at original size"""
+        # Mech rendered at 171px (original size, no supersampling)
+        target_h = int(128 * 1.33)  # 171px = original target size
         scale = target_h / max(1, sprite_h)
         return scale
-        
+
+    def _should_show_power_consumption_overlay(self, frame_index: int, speed_level: float) -> bool:
+        """
+        Determine if power consumption overlay should be shown.
+        Cycle: 1s fade-in, 1s visible, 1s fade-out, 3s pause = 6s total
+
+        Args:
+            frame_index: Current frame index
+            speed_level: Current speed level
+
+        Returns:
+            bool: True if overlay should be shown (with any alpha > 0)
+        """
+        # Total cycle: 6 seconds (1+1+1+3)
+        cycle_total_ms = 6000
+        current_time_ms = int(time.time() * 1000)
+        cycle_position = current_time_ms % cycle_total_ms
+
+        # Phase timing:
+        # 0-1000ms: fade-in
+        # 1000-2000ms: fully visible
+        # 2000-3000ms: fade-out
+        # 3000-6000ms: hidden
+
+        # Show during first 3 seconds of 6-second cycle (fade-in + visible + fade-out)
+        return cycle_position < 3000
+
+    def _add_power_consumption_overlay(self, img: Image.Image, frame_index: int = 0, speed_level: float = 1.0) -> Image.Image:
+        """
+        Add power consumption overlay with speed-independent fade-in/fade-out effect.
+        Shows the power drain rate in red with smooth transitions.
+
+        Args:
+            img: PIL Image to add overlay to
+            frame_index: Current frame index
+            speed_level: Current speed level for calculating frame duration
+
+        Returns:
+            Image with overlay applied
+        """
+        # Calculate power consumption per second: ((1/24)/60)/20 = power lost per second
+        power_consumption_per_second = ((1/24)/60)/20
+        consumption_text = f"-{power_consumption_per_second:.4f}"
+
+        # Fixed position: top left
+        text_x = 10
+        text_y = 10
+
+        # Calculate real time position in animation based on frame duration
+        frame_duration_ms = self.speed_to_frame_duration_ms(speed_level)
+        current_time_in_animation = frame_index * frame_duration_ms
+
+        # 6-second cycle: 1s fade-in, 1s visible, 1s fade-out, 3s hidden
+        cycle_total_ms = 6000
+        cycle_position = current_time_in_animation % cycle_total_ms
+
+        fade_factor = 0.0
+
+        if cycle_position < 1000:
+            # Fade-in: 0-1000ms
+            fade_factor = cycle_position / 1000.0
+        elif cycle_position < 2000:
+            # Fully visible: 1000-2000ms
+            fade_factor = 1.0
+        elif cycle_position < 3000:
+            # Fade-out: 2000-3000ms
+            fade_factor = 1.0 - ((cycle_position - 2000) / 1000.0)
+        # else: hidden: 3000-6000ms, fade_factor = 0.0
+
+        # Apply fade effect based on timing
+        if fade_factor > 0:
+            # Calculate alpha based on fade_factor (0.0 to 1.0)
+            alpha = int(255 * fade_factor)
+
+            # Create text color with fade (red with alpha)
+            text_color = (255, 0, 0, alpha)
+
+            # Draw text with fade effect
+            draw = ImageDraw.Draw(img)
+            draw.text((text_x, text_y), consumption_text, fill=text_color)
+
+        return img
+
+    # === STATUS VIEW SPECIFIC METHODS ===
+
+    def create_expanded_status_animation_sync(self, donor_name: str, amount: str, total_donations: float) -> bytes:
+        """Create animation with power consumption overlay for expanded /ss status view"""
+        return self.create_donation_animation_sync(donor_name, amount, total_donations, show_overlay=True)
+
+    def create_collapsed_status_animation_sync(self, donor_name: str, amount: str, total_donations: float) -> bytes:
+        """Create animation without overlay for collapsed /ss status view"""
+        return self.create_donation_animation_sync(donor_name, amount, total_donations, show_overlay=False)
+
+    async def create_expanded_status_animation(self, donor_name: str, amount: str, total_donations: float) -> discord.File:
+        """Create animation with power consumption overlay for expanded /ss status view"""
+        return await self.create_donation_animation(donor_name, amount, total_donations, show_overlay=True)
+
+    async def create_collapsed_status_animation(self, donor_name: str, amount: str, total_donations: float) -> discord.File:
+        """Create animation without overlay for collapsed /ss status view"""
+        return await self.create_donation_animation(donor_name, amount, total_donations, show_overlay=False)
+
     def load_default_spritesheet(self):
         """Load the default mech spritesheet as fallback"""
         try:
@@ -305,7 +408,7 @@ class SpriteMechAnimator:
         
         return spritesheet.crop((left, top, right, bottom))
     
-    def create_donation_animation_sync(self, donor_name: str, amount: str, total_donations: float) -> bytes:
+    def create_donation_animation_sync(self, donor_name: str, amount: str, total_donations: float, show_overlay: bool = True) -> bytes:
         """Create animated GIF synchronously for Web UI use"""
         try:
             # Same logic as async version but returns bytes directly
@@ -338,8 +441,9 @@ class SpriteMechAnimator:
             # Create quantized cache key for better hit rate
             speed_q = round(speed_level, 1)  
             Power_q = round(total_donations, 2)
-            cache_key = f"Power_{Power_q:.2f}_evo_{evolution_level}_speed_{speed_q:.1f}"
-            
+            overlay_suffix = "_with_overlay" if show_overlay else "_no_overlay"
+            cache_key = f"Power_{Power_q:.2f}_evo_{evolution_level}_speed_{speed_q:.1f}{overlay_suffix}"
+
             if cache_key in self.animation_cache:
                 cached_data = self.animation_cache[cache_key]
                 if cached_data and len(cached_data) > 0:
@@ -347,13 +451,15 @@ class SpriteMechAnimator:
                 else:
                     del self.animation_cache[cache_key]
             
-            # Create frames (same logic as async version)
+            # Create frames at original size (no supersampling)
             frames = []
-            
+
             for frame in range(self.frames):
                 img = Image.new('RGBA', (self.width, self.height), (0, 0, 0, 0))  # Transparent background
-                
-                sprite = self.get_sprite_frame(frame, evolution_level)
+
+                # Map 24 animation frames to 6 sprite frames (4 animation frames per sprite)
+                sprite_frame = (frame // 4) % 6
+                sprite = self.get_sprite_frame(sprite_frame, evolution_level)
                 if sprite:
                     # Get actual sprite dimensions
                     actual_sprite_width, actual_sprite_height = sprite.size
@@ -385,30 +491,41 @@ class SpriteMechAnimator:
                     
                     # Nur der Mech - alle Effekte deaktiviert
                     img.paste(sprite, (x, y), sprite)
-                
+
+                # Add power consumption overlay if overlay is enabled (bypass timing for now)
+                if show_overlay:
+                    img = self._add_power_consumption_overlay(img, frame, speed_level)
+
                 frames.append(img)
             
-            # Create GIF animation
+            # Use frames at original size (no scaling needed)
+            final_frames = frames
+
+            # Create WebP animation
             buffer = BytesIO()
-            
+
             duration = self.speed_to_frame_duration_ms(speed_level)
-            
-            frames[0].save(
+
+            # BACK TO GIF: WebP animation doesn't work in Discord despite support claims
+            # Create GIF animation with high quality and 50% size via supersampling
+
+            final_frames[0].save(
                 buffer,
                 format='GIF',
                 save_all=True,
-                append_images=frames[1:],
-                duration=duration,  # GIF properly supports duration per frame
+                append_images=final_frames[1:],
+                duration=duration,
                 loop=0,
-                disposal=2,  # Clear frame before drawing next
-                optimize=False  # Keep it fast
+                optimize=True,
+                disposal=2
             )
             
             buffer.seek(0)
             file_size = buffer.getbuffer().nbytes
             
             if file_size > self.max_file_size:
-                return self._create_smaller_animation_sync(frames, speed_level)
+                # Fallback: Create animation without overlay to reduce file size
+                return self._create_animation_without_overlay_sync(frames, speed_level, evolution_level, total_donations)
             
             animation_bytes = buffer.getvalue()
             
@@ -427,7 +544,7 @@ class SpriteMechAnimator:
             logger.error(f"Error creating sync sprite animation: {e}")
             return self.create_static_fallback_sync(donor_name, amount, speed_level)
 
-    async def create_donation_animation(self, donor_name: str, amount: str, total_donations: float) -> discord.File:
+    async def create_donation_animation(self, donor_name: str, amount: str, total_donations: float, show_overlay: bool = True) -> discord.File:
         """Create animated GIF using real mech sprites with global caching"""
         try:
             # EDGE CASE: Safely get evolution level with boundaries
@@ -471,19 +588,21 @@ class SpriteMechAnimator:
             # PERFORMANCE: Create cache key with quantization for better cache hit rate
             speed_q = round(speed_level, 1)
             Power_q = round(total_donations, 2)
-            cache_key = f"Power_{Power_q:.2f}_evo_{evolution_level}_speed_{speed_q:.1f}"
-            
+            overlay_suffix = "_with_overlay" if show_overlay else "_no_overlay"
+            cache_key = f"Power_{Power_q:.2f}_evo_{evolution_level}_speed_{speed_q:.1f}{overlay_suffix}"
+
             # Check if we already have this animation cached
             if cache_key in self.animation_cache:
                 cached_data = self.animation_cache[cache_key]
                 logger.debug(f"Using cached animation for {cache_key}")
-                
+
                 # EDGE CASE: Safely create Discord.File from cached bytes
                 try:
                     if cached_data and len(cached_data) > 0:
+                        filename_suffix = "_overlay" if show_overlay else "_clean"
                         return discord.File(
-                            BytesIO(cached_data), 
-                            filename=f"mech_animation_{total_donations:.0f}.gif"
+                            BytesIO(cached_data),
+                            filename=f"mech_animation_{total_donations:.0f}{filename_suffix}.gif"
                         )
                     else:
                         logger.warning(f"Invalid cached data for {cache_key}, removing from cache")
@@ -531,6 +650,10 @@ class SpriteMechAnimator:
                         if offset_x != 0 or offset_y != 0:
                             from PIL import ImageChops
                             frames[i] = ImageChops.offset(frame, offset_x, offset_y)
+
+                    # Add power consumption overlay if enabled
+                    if show_overlay:
+                        frames[i] = self._add_power_consumption_overlay(frames[i], i, speed_level)
                 
                 # Save detected sizes for future use
                 if sprite_frames and sprite_frames[0].size != (0, 0):
@@ -540,14 +663,17 @@ class SpriteMechAnimator:
                         sprite_frames[0].height
                     )
             else:
-                # Fall back to original sizing logic
+                # Fall back to original sizing logic (no supersampling)
                 frames = []
+
                 for frame in range(self.frames):
-                    # Create transparent background
+                    # Create transparent background at original size
                     img = Image.new('RGBA', (self.width, self.height), (0, 0, 0, 0))
-                    
+
+                    # Map 24 animation frames to 6 sprite frames (4 animation frames per sprite)
+                    sprite_frame = (frame // 4) % 6
                     # Get sprite frame for current evolution level
-                    sprite = self.get_sprite_frame(frame, evolution_level)
+                    sprite = self.get_sprite_frame(sprite_frame, evolution_level)
                     if sprite:
                         # Get actual sprite dimensions (not the cached default dimensions)
                         actual_sprite_width, actual_sprite_height = sprite.size
@@ -581,32 +707,42 @@ class SpriteMechAnimator:
                         img.paste(sprite, (x, y), sprite)
                         
                         # No text overlay on animation anymore
-                    
+
+                    # Add power consumption overlay if overlay is enabled (bypass timing for now)
+                    if show_overlay:
+                        img = self._add_power_consumption_overlay(img, frame, speed_level)
+
                     frames.append(img)
             
-            # Create GIF animation
+            # Use frames at original size (no scaling needed)
+            final_frames = frames
+
+            # Create WebP animation
             buffer = BytesIO()
-            
+
             # Calculate duration using easing curve
             duration = self.speed_to_frame_duration_ms(speed_level)
-            
-            frames[0].save(
+
+            # BACK TO GIF: WebP animation doesn't work in Discord despite support claims
+            # Create GIF animation with high quality and 50% size via supersampling
+
+            final_frames[0].save(
                 buffer,
                 format='GIF',
                 save_all=True,
-                append_images=frames[1:],
-                duration=duration,  # GIF properly supports duration per frame
+                append_images=final_frames[1:],
+                duration=duration,
                 loop=0,
-                disposal=2,  # Clear frame before drawing next
-                optimize=False  # Keep it fast
+                optimize=True,
+                disposal=2
             )
             
             buffer.seek(0)
             file_size = buffer.getbuffer().nbytes
             
             if file_size > self.max_file_size:
-                logger.warning(f"Animation too large ({file_size} bytes), reducing quality")
-                return self._create_smaller_animation(frames, speed_level)
+                logger.warning(f"Animation too large ({file_size} bytes), creating fallback without overlay")
+                return await self._create_animation_without_overlay_async(frames, speed_level, evolution_level, total_donations)
             
             logger.info(f"Sprite GIF animation created: {file_size} bytes")
             
@@ -642,7 +778,10 @@ class SpriteMechAnimator:
                 logger.error(f"Error caching animation: {cache_err}")
             
             buffer.seek(0)
-            return discord.File(buffer, filename="sprite_mech_donation.gif")
+            # Use fixed filename for status animations (will be overridden by discord_control.py)
+            import time
+            timestamp = int(time.time())
+            return discord.File(buffer, filename=f"mech_animation_{timestamp}.gif")
             
         except Exception as e:
             logger.error(f"Error creating sprite animation: {e}")
@@ -656,9 +795,10 @@ class SpriteMechAnimator:
             if not sprite:
                 return self.create_static_fallback(donor_name, "0€", 0)
             
-            # Get actual sprite dimensions and scale (50% of original size)
+            # Get actual sprite dimensions and scale to same size as normal mech
             actual_sprite_width, actual_sprite_height = sprite.size
-            base_scale = 0.85 * 0.5  # 50% kleiner für toten Mech
+            # Use the same scaling as normal mech: _fixed_scale_171px
+            base_scale = self._fixed_scale_171px(actual_sprite_height)  # Same as normal: ~170px
             base_width = int(actual_sprite_width * base_scale)
             base_height = int(actual_sprite_height * base_scale)
             sprite = sprite.resize((base_width, base_height), Image.NEAREST)
@@ -697,11 +837,14 @@ class SpriteMechAnimator:
             draw.text((10, 10), "NO POWER", fill=(80, 80, 80, 255))
             draw.text((10, self.height - 25), "$0", fill=(60, 60, 60, 255))
             
-            # Create static GIF
+            # Use original size (no supersampling scaling needed)
+            final_img = img
+
+            # Create static WebP at 50% size with supersampling quality
             buffer = BytesIO()
-            img.save(buffer, format='GIF')
+            final_img.save(buffer, format='GIF', optimize=True)
             buffer.seek(0)
-            
+
             logger.info("Created dead mech animation (no Power)")
             return discord.File(buffer, filename="dead_mech.gif")
             
@@ -920,20 +1063,85 @@ class SpriteMechAnimator:
 
     def speed_to_frame_duration_ms(self, speed: float) -> int:
         """
-        Map 0..100 (101) to 375..25 ms with ease-out curve (HALBIERT).
+        Map 0..100 (101) to 94..6 ms with ease-out curve (24 frames = 4x faster).
         Low speed feels 'heavy', high speed very responsive.
         """
         if speed <= 0:
-            return 400  # Halbiert von 800
+            return 100  # 400/4 = 100ms per frame (24 frames total)
         if speed >= 101:
-            return 25   # OMEGA (bleibt gleich)
+            return 6    # 25/4 = ~6ms per frame (very fast)
 
         x = min(1.0, max(0.0, speed / 100.0))
         # Ease-out (cubic): small increments early very noticeable,
         # later dollars saturate smoothly
         eased = 1 - (1 - x) ** 3
-        return int(round(375 - 350 * eased))  # Halbiert: 375ms → 25ms
+        return int(round((375 - 350 * eased) / 4))  # 24 frames: divided by 4
     
+    async def _create_animation_without_overlay_async(self, original_frames, speed_level, evolution_level, total_donations):
+        """Create animation without power consumption overlay to reduce file size (async version)"""
+        from services.mech.mech_evolutions import get_evolution_level
+        from services.mech.mech_service import get_mech_service
+
+        # Recreate frames without overlay
+        frames = []
+        for frame in range(self.frames):
+            img = Image.new('RGBA', (self.width, self.height), (0, 0, 0, 0))  # Transparent background
+
+            # Map 24 animation frames to 6 sprite frames (4 animation frames per sprite)
+            sprite_frame = (frame // 4) % 6
+            sprite = self.get_sprite_frame(sprite_frame, evolution_level)
+            if sprite:
+                # Get actual sprite dimensions
+                actual_sprite_width, actual_sprite_height = sprite.size
+
+                # Scale sprite
+                base_scale = self._fixed_scale_171px(actual_sprite_height)
+                base_width = int(actual_sprite_width * base_scale)
+                base_height = int(actual_sprite_height * base_scale)
+
+                # Dezenter Bump: max. +10 % bei Speed 100 (ease-out)
+                x = max(0.0, min(1.0, speed_level / 100.0))
+                e = 1 - (1 - x) ** 3
+                speed_scale_factor = 1.0 + 0.10 * e
+                new_width = int(base_width * speed_scale_factor)
+                new_height = int(base_height * speed_scale_factor)
+
+                sprite = sprite.resize((new_width, new_height), Image.NEAREST)
+
+                # Center sprite on canvas
+                x = (self.width - new_width) // 2
+                y = (self.height - new_height) // 2
+
+                # Add screen shake using profile system
+                prof = self._step_profile(int(speed_level))
+                if prof["jitter_px"] > 0:
+                    jitter = int(prof["jitter_px"])
+                    x += (frame % (2*jitter+1)) - jitter
+                    y += ((frame*2) % (2*jitter+1)) - jitter
+
+                # Nur der Mech - KEIN OVERLAY (das ist der Fallback)
+                img.paste(sprite, (x, y), sprite)
+
+            frames.append(img)
+
+        # Create GIF without overlay
+        buffer = BytesIO()
+        duration = self.speed_to_frame_duration_ms(speed_level)
+
+        frames[0].save(
+            buffer,
+            format='GIF',
+            save_all=True,
+            append_images=frames[1:],
+            duration=duration,
+            loop=0,
+            optimize=True,
+            disposal=2
+        )
+
+        buffer.seek(0)
+        return discord.File(buffer, filename=f"mech_animation_no_overlay_{total_donations:.0f}.gif")
+
     def _create_smaller_animation(self, frames, speed_level):
         """Create smaller animation if original is too large"""
         # Reduce quality and try again
@@ -954,11 +1162,76 @@ class SpriteMechAnimator:
         buffer.seek(0)
         return discord.File(buffer, filename="sprite_mech_small.gif")
     
+    def _create_animation_without_overlay_sync(self, original_frames, speed_level, evolution_level, total_donations) -> bytes:
+        """Create animation without power consumption overlay to reduce file size"""
+        from services.mech.mech_evolutions import get_evolution_level
+        from services.mech.mech_service import get_mech_service
+
+        # Recreate frames without overlay
+        frames = []
+        for frame in range(self.frames):
+            img = Image.new('RGBA', (self.width, self.height), (0, 0, 0, 0))  # Transparent background
+
+            # Map 24 animation frames to 6 sprite frames (4 animation frames per sprite)
+            sprite_frame = (frame // 4) % 6
+            sprite = self.get_sprite_frame(sprite_frame, evolution_level)
+            if sprite:
+                # Get actual sprite dimensions
+                actual_sprite_width, actual_sprite_height = sprite.size
+
+                # Scale sprite
+                base_scale = self._fixed_scale_171px(actual_sprite_height)
+                base_width = int(actual_sprite_width * base_scale)
+                base_height = int(actual_sprite_height * base_scale)
+
+                # Dezenter Bump: max. +10 % bei Speed 100 (ease-out)
+                x = max(0.0, min(1.0, speed_level / 100.0))
+                e = 1 - (1 - x) ** 3
+                speed_scale_factor = 1.0 + 0.10 * e
+                new_width = int(base_width * speed_scale_factor)
+                new_height = int(base_height * speed_scale_factor)
+
+                sprite = sprite.resize((new_width, new_height), Image.NEAREST)
+
+                # Center sprite on canvas
+                x = (self.width - new_width) // 2
+                y = (self.height - new_height) // 2
+
+                # Add screen shake using profile system
+                prof = self._step_profile(int(speed_level))
+                if prof["jitter_px"] > 0:
+                    jitter = int(prof["jitter_px"])
+                    x += (frame % (2*jitter+1)) - jitter
+                    y += ((frame*2) % (2*jitter+1)) - jitter
+
+                # Nur der Mech - KEIN OVERLAY (das ist der Fallback)
+                img.paste(sprite, (x, y), sprite)
+
+            frames.append(img)
+
+        # Create GIF without overlay
+        buffer = BytesIO()
+        duration = self.speed_to_frame_duration_ms(speed_level)
+
+        frames[0].save(
+            buffer,
+            format='GIF',
+            save_all=True,
+            append_images=frames[1:],
+            duration=duration,
+            loop=0,
+            optimize=True,
+            disposal=2
+        )
+
+        buffer.seek(0)
+        return buffer.getvalue()
+
     def _create_smaller_animation_sync(self, frames, speed_level) -> bytes:
         """Create smaller animation if original is too large (sync version)"""
         buffer = BytesIO()
         duration = self.speed_to_frame_duration_ms(speed_level)
-        
+
         frames[0].save(
             buffer,
             format='GIF',
@@ -969,7 +1242,7 @@ class SpriteMechAnimator:
             disposal=2,  # Clear frame before drawing next
             optimize=False  # Keep it fast
         )
-        
+
         buffer.seek(0)
         return buffer.getvalue()
     
@@ -980,9 +1253,10 @@ class SpriteMechAnimator:
             if not sprite:
                 return self.create_static_fallback_sync(donor_name, "0€", 0)
             
-            # Get actual sprite dimensions and scale (50% of original size)
+            # Get actual sprite dimensions and scale to same size as normal mech
             actual_sprite_width, actual_sprite_height = sprite.size
-            base_scale = 0.85 * 0.5  # 50% kleiner für toten Mech
+            # Use the same scaling as normal mech: _fixed_scale_171px
+            base_scale = self._fixed_scale_171px(actual_sprite_height)  # Same as normal: ~170px
             base_width = int(actual_sprite_width * base_scale)
             base_height = int(actual_sprite_height * base_scale)
             sprite = sprite.resize((base_width, base_height), Image.NEAREST)
@@ -1013,11 +1287,17 @@ class SpriteMechAnimator:
             draw = ImageDraw.Draw(img)
             draw.text((10, 10), "NO POWER", fill=(80, 80, 80, 255))
             draw.text((10, self.height - 25), "$0", fill=(60, 60, 60, 255))
-            
+
+            # SUPERSAMPLING: Scale down from 2x to final size for dead mech (sync version)
+            target_width = self.width // 2   # 512 -> 256
+            target_height = self.height // 2  # 274 -> 137
+            final_img = img.resize((target_width, target_height), Image.LANCZOS)
+
+            # Create static WebP at 50% size with supersampling quality
             buffer = BytesIO()
-            img.save(buffer, format='GIF')
+            final_img.save(buffer, format='GIF', optimize=True)
             buffer.seek(0)
-            
+
             logger.info("Created dead mech animation (no Power)")
             return buffer.getvalue()
             
