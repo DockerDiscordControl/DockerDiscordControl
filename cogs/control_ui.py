@@ -24,14 +24,14 @@ logger = get_module_logger('control_ui')
 # =============================================================================
 
 # Global caches for performance optimization
-_timestamp_format_cache = {}      # Cache für formatierte Timestamps
-_permission_cache = {}            # Cache für Channel-Permissions
-_view_cache = {}                 # Cache für View-Objekte
-_translation_cache = {}          # Cache für Übersetzungen pro Sprache
-_box_element_cache = {}          # Cache für Box-Header/Footer pro Container
-_container_static_data = {}      # Cache für statische Container-Daten
+_timestamp_format_cache = {}      # Cache for formatted timestamps
+_permission_cache = {}            # Cache for channel permissions
+_view_cache = {}                 # Cache for view objects
+_translation_cache = {}          # Cache for translations per language
+_box_element_cache = {}          # Cache for box header/footer per container
+_container_static_data = {}      # Cache for static container data
 _embed_pool = []                 # Pool für wiederverwendbare Embed-Objekte
-_view_template_cache = {}        # Cache für View-Templates pro Container-State
+_view_template_cache = {}        # Cache for view templates per container state
 
 # Description Templates für ultra-schnelle String-Generierung
 _description_templates = {
@@ -71,7 +71,7 @@ def _get_cached_formatted_timestamp(dt: datetime, timezone_str: Optional[str] = 
 # =============================================================================
 
 def _get_cached_translations(lang: str) -> dict:
-    """Cache für Übersetzungen pro Sprache - 99% schneller."""
+    """Cache for translations per language - 99% faster."""
     if lang not in _translation_cache:
         _translation_cache[lang] = {
             'online_text': _("**Online**"),
@@ -95,7 +95,7 @@ def _get_cached_translations(lang: str) -> dict:
 # =============================================================================
 
 def _get_cached_box_elements(display_name: str, box_width: int = 28) -> dict:
-    """Cache für Box-Header/Footer pro Container - 98% schneller."""
+    """Cache for box header/footer per container - 98% faster."""
     cache_key = f"{display_name}_{box_width}"
     if cache_key not in _box_element_cache:
         header_text = f"── {display_name} "
@@ -1112,14 +1112,13 @@ class MechExpandButton(Button):
             # Persist state
             self.cog.mech_state_manager.set_expanded_state(self.channel_id, True)
             
-            # Regenerate the /ss embed with expanded mech information
-            embed, _ = await self._create_expanded_ss_embed()  # Ignore animation_file
-            
+            # Create expanded embed
+            embed, _ = await self._create_expanded_ss_embed()
+
             # Create new view for expanded state
             view = MechView(self.cog, self.channel_id)
-            
-            # Update the message (NOTE: Cannot add/change files when editing)
-            # Keep the original animation by not changing the image URL
+
+            # Edit the message in place
             await interaction.edit_original_response(embed=embed, view=view)
                 
             logger.info(f"Mech status expanded for channel {self.channel_id} by {interaction.user.name}")
@@ -1204,14 +1203,13 @@ class MechCollapseButton(Button):
             # Persist state
             self.cog.mech_state_manager.set_expanded_state(self.channel_id, False)
             
-            # Regenerate the /ss embed with collapsed mech information
-            embed, _ = await self._create_collapsed_ss_embed()  # Ignore animation_file
-            
+            # Create collapsed embed
+            embed, _ = await self._create_collapsed_ss_embed()
+
             # Create new view for collapsed state
             view = MechView(self.cog, self.channel_id)
-            
-            # Update the message (NOTE: Cannot add/change files when editing)
-            # Keep the original animation by not changing the image URL
+
+            # Edit the message in place
             await interaction.edit_original_response(embed=embed, view=view)
                 
             logger.info(f"Mech status collapsed for channel {self.channel_id} by {interaction.user.name}")

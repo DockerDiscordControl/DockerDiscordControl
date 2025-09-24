@@ -804,7 +804,7 @@ class StatusHandlersMixin:
             display_name_from_status, running, cpu, ram, uptime, details_allowed = status_result # 'running' is updated here
             status_color = 0x00b300 if running else 0xe74c3c
             
-            # PERFORMANCE OPTIMIZATION: Verwende gecachte Übersetzungen
+            # PERFORMANCE OPTIMIZATION: Use cached translations
             cached_translations = self._get_cached_translations(lang)
             online_text = cached_translations['online_text']
             offline_text = cached_translations['offline_text']
@@ -814,13 +814,13 @@ class StatusHandlersMixin:
             # Check if we should always collapse
             is_expanded = self.expanded_states.get(display_name, False) and not force_collapse
 
-            # PERFORMANCE OPTIMIZATION: Verwende gecachte Übersetzungen
+            # PERFORMANCE OPTIMIZATION: Use cached translations
             cpu_text = cached_translations['cpu_text']
             ram_text = cached_translations['ram_text']
             uptime_text = cached_translations['uptime_text']
             detail_denied_text = cached_translations['detail_denied_text']
             
-            # PERFORMANCE OPTIMIZATION: Verwende gecachte Box-Elemente
+            # PERFORMANCE OPTIMIZATION: Use cached box elements
             BOX_WIDTH = 28
             cached_box = self._get_cached_box_elements(display_name, BOX_WIDTH)
             header_line = cached_box['header_line']

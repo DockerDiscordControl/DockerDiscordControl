@@ -14,14 +14,14 @@ from utils.time_utils import format_datetime_with_timezone, get_datetime_imports
 from utils.logging_utils import get_module_logger
 from utils.config_cache import get_cached_guild_id, get_cached_servers
 
-# Zentrale datetime-Imports
+# Central datetime imports
 datetime, timedelta, timezone, time = get_datetime_imports()
 
 # Import app_commands using central utility
 from utils.app_commands_helper import get_app_commands
 app_commands = get_app_commands()
 
-# Logger mit zentraler Utility
+# Logger with central utility
 logger = get_module_logger('control_helpers')
 
 def get_guild_id() -> Union[List[int], None]:
