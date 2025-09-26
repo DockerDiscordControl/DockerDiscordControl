@@ -1727,19 +1727,19 @@ def mech_animation():
             if project_root not in sys.path:
                 sys.path.insert(0, project_root)
                 
-            # Use sprite animator directly for Web UI (avoids event loop conflicts)
-            from services.mech.sprite_mech_animator import get_sprite_animator
-            sprite_animator = get_sprite_animator()
-            
+            # Use new unified mech animation service (replaces old sync/async system)
+            from services.mech.mech_animation_service import get_mech_animation_service
+            animation_service = get_mech_animation_service()
+
             # Get both current Power and total donated for proper animation
             from services.mech.mech_service import get_mech_service
             mech_service = get_mech_service()
             mech_state = mech_service.get_state()
             current_Power = mech_service.get_power_with_decimals()
             total_donated = mech_state.total_donated
-            
-            # Create animation bytes synchronously - use total_donated for evolution
-            animation_bytes = sprite_animator.create_donation_animation_sync(
+
+            # Create animation bytes synchronously using new unified service
+            animation_bytes = animation_service.create_donation_animation_sync(
                 "Current", f'{current_Power}$', total_donated
             )
             
@@ -1794,20 +1794,20 @@ def test_mech_animation():
         
         current_app.logger.info(f"Generating mech animation for {donor_name}, donations: {total_donations}")
         
-        # Use sprite animator directly for Web UI (avoids event loop conflicts)
-        from services.mech.sprite_mech_animator import get_sprite_animator
-        sprite_animator = get_sprite_animator()
-        
+        # Use new unified mech animation service (replaces old sync/async system)
+        from services.mech.mech_animation_service import get_mech_animation_service
+        animation_service = get_mech_animation_service()
+
         # Get mech state for proper evolution level calculation
         from services.mech.mech_service import get_mech_service
         mech_service = get_mech_service()
         mech_state = mech_service.get_state()
-        
+
         # Use total_donated for evolution level (not affected by Power decay)
         total_donated_for_evolution = mech_state.total_donated
-        
-        # Create animation bytes synchronously
-        animation_bytes = sprite_animator.create_donation_animation_sync(
+
+        # Create animation bytes synchronously using new unified service
+        animation_bytes = animation_service.create_donation_animation_sync(
             donor_name, amount, total_donated_for_evolution
         )
         

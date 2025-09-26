@@ -1,0 +1,82 @@
+{
+  "level_1": {
+    "level": 1,
+    "resolution": [
+      64,
+      64
+    ],
+    "frames": 8,
+    "file": "mech_1.enc",
+    "size_bytes": 12452
+  },
+  "level_2": {
+    "level": 2,
+    "resolution": [
+      64,
+      64
+    ],
+    "frames": 8,
+    "file": "mech_2.enc",
+    "size_bytes": 14244
+  },
+  "level_4": {
+    "level": 4,
+    "resolution": [
+      64,
+      64
+    ],
+    "frames": 8,
+    "file": "mech_4.enc",
+    "size_bytes": 23244
+  },
+  "level_5": {
+    "level": 5,
+    "resolution": [
+      128,
+      128
+    ],
+    "frames": 8,
+    "file": "mech_5.enc",
+    "size_bytes": 38392
+  },
+  "level_6": {
+    "level": 6,
+    "resolution": [
+      128,
+      128
+    ],
+    "frames": 8,
+    "file": "mech_6.enc",
+    "size_bytes": 26788
+  },
+  "level_8": {
+    "level": 8,
+    "resolution": [
+      128,
+      128
+    ],
+    "frames": 8,
+    "file": "mech_8.enc",
+    "size_bytes": 33764
+  },
+  "level_9": {
+    "level": 9,
+    "resolution": [
+      128,
+      128
+    ],
+    "frames": 8,
+    "file": "mech_9.enc",
+    "size_bytes": 54860
+  },
+  "level_10": {
+    "level": 10,
+    "resolution": [
+      128,
+      128
+    ],
+    "frames": 8,
+    "file": "mech_10.enc",
+    "size_bytes": 51320
+  }
+}
