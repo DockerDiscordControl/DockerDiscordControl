@@ -1862,11 +1862,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                 # For expanded view, use mech animation
                 if animation_file:
-                    animation_file.filename = "mech_animation.gif"
-                    embed.set_image(url="attachment://mech_animation.gif")
+                    # KEEP ORIGINAL EXTENSION for WebP embedding support
+                    original_ext = animation_file.filename.split('.')[-1]
+                    animation_file.filename = f"mech_animation.{original_ext}"
+                    embed.set_image(url=f"attachment://mech_animation.{original_ext}")
+                    logger.debug(f"Set expanded animation with extension: {original_ext}")
                 else:
-                    # For refreshes without animation file, reference the existing one
-                    embed.set_image(url="attachment://mech_animation.gif")
+                    # For refreshes without animation file, reference existing with correct extension
+                    embed.set_image(url="attachment://mech_animation.webp")  # Assume WebP for new system
                     
             except Exception as e:
                 logger.error(f"Could not load expanded mech status for /ss: {e}", exc_info=True)
@@ -2053,11 +2056,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 
                 # For collapsed view, use mech animation
                 if animation_file:
-                    animation_file.filename = "mech_animation.gif"
-                    embed.set_image(url="attachment://mech_animation.gif")
+                    # KEEP ORIGINAL EXTENSION for WebP embedding support
+                    original_ext = animation_file.filename.split('.')[-1]
+                    animation_file.filename = f"mech_animation.{original_ext}"
+                    embed.set_image(url=f"attachment://mech_animation.{original_ext}")
+                    logger.debug(f"Set animation with extension: {original_ext}")
                 else:
-                    # For refreshes without animation file, reference the existing one
-                    embed.set_image(url="attachment://mech_animation.gif")
+                    # For refreshes without animation file, reference existing with correct extension
+                    embed.set_image(url="attachment://mech_animation.webp")  # Assume WebP for new system
                 
             except Exception as e:
                 logger.error(f"Could not load collapsed mech status for /ss: {e}", exc_info=True)
@@ -2083,7 +2089,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     async def _send_message_with_files(self, target, embed, file, view=None):
         """Helper to send messages with either single file or no files."""
         if file:
-            # Single file
+            # WEBP EMBEDDING SUCCESS: Use combined method (embed + file in same message)
+            # The fix was preserving .webp extension instead of forcing .gif
+            logger.debug(f"Sending combined message with WebP animation: {file.filename}")
+
+            # Combined method (single message with embed + file)
             if view:
                 return await target.send(embed=embed, file=file, view=view)
             else:

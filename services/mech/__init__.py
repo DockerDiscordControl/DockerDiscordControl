@@ -11,7 +11,7 @@ from .mech_state_manager import MechStateManager
 
 __all__ = [
     'get_mech_service',
-    'MechService', 
+    'MechService',
     'get_mech_animation_service',
     'MechAnimationService',
     'EVOLUTION_THRESHOLDS',

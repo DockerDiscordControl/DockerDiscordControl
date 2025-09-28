@@ -55,6 +55,9 @@ COPY --chown=ddc:ddc app/ app/
 COPY --chown=ddc:ddc utils/ utils/
 COPY --chown=ddc:ddc cogs/ cogs/
 COPY --chown=ddc:ddc services/ services/
+COPY --chown=ddc:ddc encrypted_assets/ encrypted_assets/
+COPY --chown=ddc:ddc assets/ assets/
+COPY --chown=ddc:ddc cached_animations/ cached_animations/
 COPY --chown=ddc:ddc gunicorn_config.py .
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY --chown=ddc:ddc scripts/entrypoint.sh /app/entrypoint.sh
