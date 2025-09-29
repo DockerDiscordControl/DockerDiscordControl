@@ -1,6 +1,7 @@
 {
   "evolution_settings": {
     "difficulty_multiplier": 1.0,
+    "manual_difficulty_override": false,
     "power_decay_per_day": 1.0,
     "min_evolution_cost": 5,
     "max_evolution_cost_level_2": 50,

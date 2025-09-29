@@ -112,39 +112,59 @@ class PngToWebpService:
 
         except Exception as e:
             logger.error(f"Error creating sync animation: {e}")
-            # Simple fallback
-            img = Image.new('RGBA', (270, 171), (47, 49, 54, 255))
+            # Simple fallback - use smart canvas size if possible
+            try:
+                from services.mech.mech_evolutions import get_evolution_level
+                evolution_level = max(1, min(11, get_evolution_level(total_donations)))
+                canvas_size = self.cache_service.get_expected_canvas_size(evolution_level)
+            except:
+                canvas_size = (270, 135)  # Ultimate fallback
+            img = Image.new('RGBA', canvas_size, (47, 49, 54, 255))
             buffer = BytesIO()
-            img.save(buffer, format='WebP', quality=90)
+            img.save(
+                buffer,
+                format='WebP',
+                lossless=True,  # Use lossless for fallback too
+                quality=100,
+                method=0,
+                exact=True
+            )
             buffer.seek(0)
             return buffer.getvalue()
 
     def _calculate_speed_level_from_power(self, current_power: float, evolution_level: int) -> float:
-        """Calculate speed level from current power and evolution level"""
+        """Calculate speed level from current power using evolution-specific max power"""
         if current_power <= 0:
             return 0
 
-        stretch_factors = {
-            1: 1.0, 2: 1.0, 3: 1.0,    # Levels 1-3: 1x
-            4: 1.5, 5: 1.5, 6: 1.5,    # Levels 4-6: 1.5x
-            7: 2.0, 8: 2.0, 9: 2.0,    # Levels 7-9: 2x
-            10: 3.0, 11: 3.0           # Levels 10-11: 3x
-        }
+        try:
+            # Use the new speed system that considers evolution-specific max power
+            from services.mech.speed_levels import get_combined_mech_status
 
-        stretch = stretch_factors.get(evolution_level, 1.0)
-        speed = current_power / stretch
+            # Get speed status using the corrected system
+            speed_status = get_combined_mech_status(current_power)
+            speed_level = speed_status['speed']['level']
 
-        # OMEGA speed at level 11 with high power
-        if evolution_level == 11 and speed >= 100:
-            return 101
+            logger.debug(f"Calculated speed level {speed_level} for power ${current_power} at evolution {evolution_level}")
+            return float(speed_level)
 
-        return min(100, max(0, speed))
+        except Exception as e:
+            logger.error(f"Error calculating speed level: {e}")
+            # Fallback to simple calculation
+            return min(100, current_power)
 
     def _create_fallback_animation(self) -> discord.File:
         """Create simple fallback animation"""
-        img = Image.new('RGBA', (270, 171), (47, 49, 54, 255))
+        img = Image.new('RGBA', (270, 100), (47, 49, 54, 255))  # Smaller fallback
         buffer = BytesIO()
-        img.save(buffer, format='WebP', quality=90)
+        img.save(
+            buffer,
+            format='WebP',
+            lossless=True,  # Use lossless for Discord fallback too
+            quality=100,
+            method=0,
+            exact=True
+        )
         buffer.seek(0)
         return discord.File(buffer, filename="error_animation.webp")
 

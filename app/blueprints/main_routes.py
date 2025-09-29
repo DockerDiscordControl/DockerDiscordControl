@@ -1914,7 +1914,8 @@ def get_mech_difficulty():
         config_manager = get_evolution_config_manager()
         
         difficulty_multiplier = config_manager.get_difficulty_multiplier()
-        
+        manual_override_active = config_manager.is_manual_difficulty_override_active()
+
         # Get current mech state for level-aware preview
         from services.mech.mech_service import get_mech_service
         from services.mech.monthly_member_cache import get_monthly_member_cache
@@ -1940,6 +1941,7 @@ def get_mech_difficulty():
         return jsonify({
             'success': True,
             'difficulty_multiplier': difficulty_multiplier,
+            'manual_override_active': manual_override_active,
             'current_level': current_level,
             'next_level': next_level,
             'next_level_name': next_level_info.name if next_level_info else "MAX LEVEL",
@@ -1998,6 +2000,39 @@ def set_mech_difficulty():
         return jsonify({'success': False, 'error': 'Invalid difficulty multiplier value'}), 400
     except Exception as e:
         current_app.logger.error(f"Error setting mech difficulty: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@main_bp.route('/api/mech/difficulty/reset', methods=['POST'])
+@auth.login_required
+def reset_mech_difficulty():
+    """Reset mech evolution difficulty to automatic mode."""
+    try:
+        from services.mech.evolution_config_manager import get_evolution_config_manager
+        from services.infrastructure.action_logger import log_user_action
+
+        config_manager = get_evolution_config_manager()
+
+        success = config_manager.reset_to_automatic_difficulty()
+
+        if success:
+            # Log the action
+            log_user_action(
+                action="RESET_MECH_DIFFICULTY",
+                target="Automatic Mode",
+                details="Reset mech evolution difficulty to automatic mode (1.0x)"
+            )
+
+            return jsonify({
+                'success': True,
+                'difficulty_multiplier': 1.0,
+                'manual_override_active': False,
+                'message': 'Difficulty reset to automatic mode'
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Failed to reset difficulty setting'}), 500
+
+    except Exception as e:
+        current_app.logger.error(f"Error resetting mech difficulty: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @main_bp.route('/api/donations/list')

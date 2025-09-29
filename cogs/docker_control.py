@@ -1359,7 +1359,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             
             # Send with or without view (use followup since we deferred)
             try:
-                view = DonationView(mech_service_available)
+                view = DonationView(mech_service_available, bot=self.bot)
                 message = await ctx.followup.send(embed=embed, view=view)
                 # Update view with message reference and start auto-delete timer
                 view.message = message
@@ -1415,7 +1415,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             
             # Send with or without view
             try:
-                view = DonationView(mech_service_available)
+                view = DonationView(mech_service_available, bot=self.bot)
                 # Note: Ephemeral messages don't need auto-delete as they're private
                 await interaction.followup.send(embed=embed, view=view, ephemeral=True)
             except:
@@ -2156,7 +2156,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             
             # Create view with donation buttons
             try:
-                view = DonationView(mech_service_available)
+                view = DonationView(mech_service_available, bot=self.bot)
                 # Note: Ephemeral messages don't need auto-delete as they're private
                 await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
                 logger.info(f"Mechonate button used by user {interaction.user.name} ({interaction.user.id})")
@@ -2984,12 +2984,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
 class DonationView(discord.ui.View):
     """View with donation buttons that track clicks."""
-    
-    def __init__(self, donation_manager_available: bool, message=None):
+
+    def __init__(self, donation_manager_available: bool, message=None, bot=None):
         super().__init__(timeout=890)  # 14.8 minutes (just under Discord's 15-minute limit)
         self.donation_manager_available = donation_manager_available
         self.message = message  # Store reference to the message for auto-delete
         self.auto_delete_task = None
+        self.bot = bot  # Store bot instance for modal access
         logger.info(f"DonationView initialized with donation_manager_available: {donation_manager_available}, timeout: 890s")
         
         # Import translation function
@@ -3062,18 +3063,19 @@ class DonationView(discord.ui.View):
         """Handle Broadcast Donation button click."""
         try:
             # Show modal for donation details
-            modal = DonationBroadcastModal(self.donation_manager_available, interaction.user.name)
+            modal = DonationBroadcastModal(self.donation_manager_available, interaction.user.name, self.bot)
             await interaction.response.send_modal(modal)
         except Exception as e:
             logger.error(f"Error in broadcast_clicked: {e}")
 
 class DonationBroadcastModal(discord.ui.Modal):
     """Modal for donation broadcast details."""
-    
-    def __init__(self, donation_manager_available: bool, default_name: str):
+
+    def __init__(self, donation_manager_available: bool, default_name: str, bot=None):
         from .translation_manager import _
         super().__init__(title=_("📢 Broadcast Your Donation"))
         self.donation_manager_available = donation_manager_available
+        self.bot = bot  # Store bot instance for mech service access
         
         # Name field (pre-filled with Discord username)
         self.name_input = discord.ui.InputText(
@@ -3192,12 +3194,20 @@ class DonationBroadcastModal(discord.ui.Modal):
                         
                         # Process donation (may take a few seconds for member count)
                         try:
-                            new_state = await mech_service.add_donation_with_bot(
-                                username=f"Discord:{interaction.user.name}",
-                                amount=amount_dollars,
-                                bot=self.bot
-                            )
-                            logger.info(f"Donation recorded: ${amount_dollars}")
+                            if self.bot:
+                                new_state = await mech_service.add_donation_with_bot(
+                                    username=f"Discord:{interaction.user.name}",
+                                    amount=amount_dollars,
+                                    bot=self.bot
+                                )
+                                logger.info(f"Donation recorded: ${amount_dollars}")
+                            else:
+                                # Fallback if no bot instance available
+                                new_state = mech_service.add_donation(
+                                    username=f"Discord:{interaction.user.name}",
+                                    amount=amount_dollars
+                                )
+                                logger.info(f"Donation recorded (no bot instance): ${amount_dollars}")
                         except Exception as donation_error:
                             logger.error(f"Error processing donation: {donation_error}")
                             # Fallback to regular donation without bot

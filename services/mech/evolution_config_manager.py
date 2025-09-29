@@ -127,12 +127,34 @@ class EvolutionConfigManager:
         # Clamp multiplier to ensure Level 2 stays between $5-$50
         # Base cost for Level 2 is $20, so multiplier range is 0.25-2.5
         multiplier = max(0.25, min(2.5, multiplier))
-        
+
         config = self._load_config()
-        config.setdefault("evolution_settings", {})["difficulty_multiplier"] = multiplier
-        
+        evolution_settings = config.setdefault("evolution_settings", {})
+        evolution_settings["difficulty_multiplier"] = multiplier
+        evolution_settings["manual_difficulty_override"] = True  # Mark as manually set
+
         return self.save_config(config)
-    
+
+    def is_manual_difficulty_override_active(self) -> bool:
+        """Check if manual difficulty override is active."""
+        config = self._load_config()
+        return config.get("evolution_settings", {}).get("manual_difficulty_override", False)
+
+    def clear_manual_difficulty_override(self) -> bool:
+        """Clear manual difficulty override flag (allows automatic adjustments)."""
+        config = self._load_config()
+        evolution_settings = config.setdefault("evolution_settings", {})
+        evolution_settings["manual_difficulty_override"] = False
+        return self.save_config(config)
+
+    def reset_to_automatic_difficulty(self) -> bool:
+        """Reset difficulty to automatic mode (clears override and sets to 1.0)."""
+        config = self._load_config()
+        evolution_settings = config.setdefault("evolution_settings", {})
+        evolution_settings["difficulty_multiplier"] = 1.0
+        evolution_settings["manual_difficulty_override"] = False
+        return self.save_config(config)
+
     def get_evolution_level(self, level: int) -> Optional[EvolutionLevel]:
         """Get evolution level configuration."""
         config = self._load_config()

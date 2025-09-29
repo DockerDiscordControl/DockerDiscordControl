@@ -45,6 +45,57 @@ class AnimationCacheService:
         logger.info(f"Assets dir: {self.assets_dir}")
         logger.info(f"Cache dir: {self.cache_dir}")
 
+    def get_expected_canvas_size(self, evolution_level: int) -> Tuple[int, int]:
+        """Get expected canvas size for an evolution level using smart cropping"""
+        try:
+            # Quick analysis to determine canvas size
+            mech_folder = self._get_actual_mech_folder(evolution_level)
+
+            import re
+            pattern = re.compile(rf"{evolution_level}_(\d{{4}})\.png")
+            png_files = [f for f in sorted(mech_folder.glob("*.png")) if pattern.match(f.name)]
+
+            if not png_files:
+                return (270, 100)  # Fallback
+
+            # Analyze first few frames to estimate size
+            min_x, min_y = float('inf'), float('inf')
+            max_x, max_y = 0, 0
+
+            for png_path in png_files[:3]:  # Sample first 3 frames
+                with Image.open(png_path) as img:
+                    frame = img.convert('RGBA')
+                    bbox = frame.getbbox()
+                    if bbox:
+                        x1, y1, x2, y2 = bbox
+                        min_x = min(min_x, x1)
+                        min_y = min(min_y, y1)
+                        max_x = max(max_x, x2)
+                        max_y = max(max_y, y2)
+
+            if min_x == float('inf'):
+                return (270, 100)  # Fallback
+
+            crop_width = max_x - min_x
+            crop_height = max_y - min_y
+
+            # Use same content-based scaling logic as main processing
+            content_area = crop_width * crop_height
+            mech1_baseline_area = 1638
+            area_ratio = content_area / mech1_baseline_area
+            size_ratio = area_ratio ** 0.5
+            max_mech_size = int(100 * size_ratio)
+            max_mech_size = max(80, min(250, max_mech_size))
+            scale_factor = min(max_mech_size / crop_width, max_mech_size / crop_height)
+            mech_height = int(crop_height * scale_factor)
+
+            # Canvas: 270px wide, height = mech height
+            return (270, mech_height)
+
+        except Exception as e:
+            logger.warning(f"Could not determine canvas size for evolution {evolution_level}: {e}")
+            return (270, 100)  # Fallback
+
     def get_cached_animation_path(self, evolution_level: int) -> Path:
         """Get path for cached animation file (unified for Discord and Web UI)"""
         # Check if the specific mech folder exists
@@ -64,7 +115,7 @@ class AnimationCacheService:
                 raise FileNotFoundError(f"No Mech folders found in {self.assets_dir}")
         return mech_folder
 
-    def _load_and_process_frames(self, evolution_level: int, target_size: Tuple[int, int] = (270, 171)) -> List[Image.Image]:
+    def _load_and_process_frames(self, evolution_level: int, target_size: Tuple[int, int] = (270, 135)) -> List[Image.Image]:
         """Load PNG frames and process them with proper aspect ratio"""
         # Use the same folder detection logic as cache path
         mech_folder = self._get_actual_mech_folder(evolution_level)
@@ -88,49 +139,97 @@ class AnimationCacheService:
         # Sort by frame number (extract from filename)
         png_files.sort(key=lambda x: int(pattern.match(x.name).group(1)))
 
-        # Process frames
-        frames = []
-        target_width, target_height = target_size
+        # SMART CROPPING: First pass - analyze all frames to find minimal bounding box
+        all_frames = []
+        min_x, min_y = float('inf'), float('inf')
+        max_x, max_y = 0, 0
 
+        logger.debug(f"Smart cropping: Analyzing {len(png_files)} frames for evolution {evolution_level}")
+
+        # Load all frames and find the minimal bounding box across entire animation
         for png_path in png_files:
             with Image.open(png_path) as img:
-                frame = img.convert('RGBA')
-                original_width, original_height = frame.size
-
-                # Calculate scaling to preserve aspect ratio
-                original_ratio = original_width / original_height
-                target_ratio = target_width / target_height
-
-                if original_ratio > target_ratio:
-                    # Original is wider - scale by height
-                    scaled_height = target_height
-                    scaled_width = int(original_width * (target_height / original_height))
+                # Ensure we preserve original color depth and avoid any conversion loss
+                if img.mode != 'RGBA':
+                    frame = img.convert('RGBA')
                 else:
-                    # Original is taller or same - scale by width
-                    scaled_width = target_width
-                    scaled_height = int(original_height * (target_width / original_width))
+                    frame = img.copy()  # Direct copy if already RGBA to avoid conversion
+                all_frames.append(frame)
 
-                # Scale mech preserving aspect ratio
-                scaled_frame = frame.resize((scaled_width, scaled_height), Image.NEAREST)
+                # Find bounding box of non-transparent pixels
+                bbox = frame.getbbox()
+                if bbox:
+                    x1, y1, x2, y2 = bbox
+                    min_x = min(min_x, x1)
+                    min_y = min(min_y, y1)
+                    max_x = max(max_x, x2)
+                    max_y = max(max_y, y2)
 
-                # Create transparent canvas
-                canvas = Image.new('RGBA', target_size, (0, 0, 0, 0))
+        # Calculate unified crop dimensions for entire animation
+        if min_x == float('inf'):
+            # Fallback if no content found
+            crop_width, crop_height = 64, 64
+            logger.warning(f"No content found in frames, using fallback size")
+        else:
+            crop_width = max_x - min_x
+            crop_height = max_y - min_y
+            logger.debug(f"Smart crop found: {crop_width}x{crop_height} (from {min_x},{min_y} to {max_x},{max_y})")
 
-                # Calculate centering position
-                x_offset = (target_width - scaled_width) // 2
-                y_offset = (target_height - scaled_height) // 2
+        # Content-based proportional scaling using actual mech content area
+        base_mech_size = 100  # Mech1 baseline = 100px
 
-                # Paste scaled mech onto center of canvas
-                canvas.paste(scaled_frame, (x_offset, y_offset), scaled_frame)
-                frames.append(canvas)
+        # Calculate content area ratio (area scales quadratically, so we use square root for linear scaling)
+        content_area = crop_width * crop_height
+        mech1_baseline_area = 1638  # Mech1 actual content area from analysis
+
+        # Use square root for proportional scaling (area → linear dimension)
+        area_ratio = content_area / mech1_baseline_area
+        size_ratio = area_ratio ** 0.5  # Square root for linear scaling
+
+        # Apply scaling with reasonable limits
+        max_mech_size = int(base_mech_size * size_ratio)
+
+        # Set reasonable bounds: min 80px, max 250px
+        max_mech_size = max(80, min(250, max_mech_size))
+
+        logger.debug(f"Content-based scaling: area {content_area} vs baseline {mech1_baseline_area}, ratio {area_ratio:.2f}, size ratio {size_ratio:.2f}, final {max_mech_size}px")
+
+        # Calculate scale factor to fit mech within proportional size while preserving aspect ratio
+        scale_factor = min(max_mech_size / crop_width, max_mech_size / crop_height)
+        mech_width = int(crop_width * scale_factor)
+        mech_height = int(crop_height * scale_factor)
+
+        # Canvas: 270px wide for Discord centering, height = mech height (no wasted space)
+        canvas_width = 270
+        canvas_height = mech_height
+
+        logger.debug(f"Mech size: {mech_width}x{mech_height}, Canvas: {canvas_width}x{canvas_height}")
+
+        # Process all frames with unified cropping and reasonable scaling
+        frames = []
+        for frame in all_frames:
+            # Apply unified crop to this frame
+            if min_x != float('inf'):
+                cropped = frame.crop((min_x, min_y, max_x, max_y))
+            else:
+                cropped = frame
+
+            # Scale mech to reasonable size - NEAREST for crystal sharp pixel art
+            scaled_mech = cropped.resize((mech_width, mech_height), Image.NEAREST)
+
+            # Create canvas and center mech horizontally
+            canvas = Image.new('RGBA', (canvas_width, canvas_height), (0, 0, 0, 0))
+            x_offset = (canvas_width - mech_width) // 2
+            y_offset = 0  # No vertical offset needed since canvas height = mech height
+
+            canvas.paste(scaled_mech, (x_offset, y_offset), scaled_mech)
+            frames.append(canvas)
 
         logger.debug(f"Processed {len(frames)} frames for evolution {evolution_level}")
         return frames
 
     def _create_unified_webp(self, frames: List[Image.Image], base_duration: int = 40) -> bytes:
-        """Create unified WebP animation - RAW MINIMAL VERSION (works in Discord manually)"""
-        # ABSOLUTE MINIMUM parameters - just what's required for WebP animation
-        # No quality, no method, no lossless - let PIL use defaults
+        """Create CRYSTAL SHARP WebP animation with ZERO color loss"""
         buffer = BytesIO()
         frames[0].save(
             buffer,
@@ -138,7 +237,12 @@ class AnimationCacheService:
             save_all=True,
             append_images=frames[1:],
             duration=base_duration,
-            loop=0
+            loop=0,
+            lossless=True,        # LOSSLESS = crystal sharp, zero color loss!
+            quality=100,          # Maximum quality (for lossless this controls compression effort)
+            method=0,             # FASTEST compression - with only 8 frames, speed matters more than size
+            exact=True,           # Preserve exact colors
+            minimize_size=False   # Don't sacrifice quality for size
         )
 
         buffer.seek(0)
@@ -265,7 +369,7 @@ class AnimationCacheService:
             logger.error(f"Failed to parse cached animation: {e}")
             return animation_data  # Return original if parsing fails
 
-        # Re-encode with new duration (RAW MINIMAL parameters)
+        # Re-encode with new duration and CRYSTAL SHARP quality
         buffer = BytesIO()
         try:
             frames[0].save(
@@ -274,7 +378,12 @@ class AnimationCacheService:
                 save_all=True,
                 append_images=frames[1:],
                 duration=new_duration,
-                loop=0
+                loop=0,
+                lossless=True,        # LOSSLESS = crystal sharp, zero color loss!
+                quality=100,          # Maximum quality (compression effort for lossless)
+                method=0,             # FASTEST compression - with only 8 frames, speed matters more than size
+                exact=True,           # Preserve exact colors
+                minimize_size=False   # Don't sacrifice quality for size
             )
 
             buffer.seek(0)

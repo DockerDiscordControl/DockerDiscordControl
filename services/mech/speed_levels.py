@@ -130,65 +130,59 @@ SPEED_DESCRIPTIONS = {
 def get_speed_info(donation_amount: float) -> tuple:
     """
     Get speed description and color based on donation amount.
-    Now uses mech evolution level for proper scaling.
-    
+    Uses evolution-specific max power for proper scaling.
+
     Args:
-        donation_amount: Amount in dollars
-        
+        donation_amount: Amount in dollars (current power)
+
     Returns:
         Tuple of (description, color_hex)
     """
     if donation_amount <= 0:
         return SPEED_DESCRIPTIONS[0]
-    
+
     # Import here to avoid circular imports
-    from services.mech.mech_evolutions import get_evolution_level, EVOLUTION_THRESHOLDS
-    
-    # Get current mech evolution level
-    mech_level = get_evolution_level(donation_amount)
-    
-    # SPECIAL CASE: Level 11 (OMEGA MECH) can reach Glvl 101!
-    if mech_level == 11:
-        # Level 11 has no next level, so we calculate based on a theoretical max
-        theoretical_max = 20000  # Double the requirement
-        current_threshold = EVOLUTION_THRESHOLDS[11]  # 10000
-        Power_in_level = donation_amount - current_threshold
-        max_Power_for_level = theoretical_max - current_threshold  # 10000
-        
-        if Power_in_level >= max_Power_for_level:
-            # TRANSCENDENT MODE!
-            return SPEED_DESCRIPTIONS[101]
-        elif Power_in_level == 0:
-            level = 1
+    from services.mech.mech_service import get_mech_service
+    from services.mech.evolution_config_manager import get_evolution_config_manager
+
+    try:
+        # Get current mech state to determine evolution level
+        mech_service = get_mech_service()
+        config_manager = get_evolution_config_manager()
+        current_state = mech_service.get_state()
+        current_level = current_state.level
+
+        # Get evolution-specific max power
+        evolution_level_info = config_manager.get_evolution_level(current_level)
+        if not evolution_level_info:
+            # Fallback for unknown levels
+            return SPEED_DESCRIPTIONS[1]
+
+        max_power_for_level = evolution_level_info.power_max
+
+        # Calculate speed level based on power ratio within current evolution level
+        power_ratio = min(1.0, donation_amount / max_power_for_level)
+
+        # SPECIAL CASE: Level 11 (OMEGA MECH) can reach speed level 101!
+        if current_level == 11 and power_ratio >= 1.0:
+            # Check if we're at transcendent level (double the requirement)
+            transcendent_threshold = max_power_for_level * 2  # 20000 for level 11
+            if donation_amount >= transcendent_threshold:
+                return SPEED_DESCRIPTIONS[101]  # REALITY-BENDING OMNISPEED!
+
+        # Normal speed calculation: 0-100 based on power ratio
+        if power_ratio <= 0:
+            level = 0
         else:
-            level = int((Power_in_level / max_Power_for_level) * 100)
-            level = min(max(1, level), 100)
-    # For levels 1-4: Direct 1:1 mapping (1$ = 1 Glvl)
-    elif mech_level <= 4:
-        # Cap at 100 for these levels
-        level = min(int(donation_amount), 100)
-    else:
-        # For levels 5-10: Dynamic distribution across 100 levels
-        # Calculate the Power range for current level
-        current_threshold = EVOLUTION_THRESHOLDS[mech_level]
-        next_threshold = EVOLUTION_THRESHOLDS.get(mech_level + 1, current_threshold * 2)
-        
-        # Calculate Power within current level range
-        Power_in_level = donation_amount - current_threshold
-        max_Power_for_level = next_threshold - current_threshold
-        
-        # Calculate Glvl as percentage of max Power for this level
-        if max_Power_for_level > 0:
-            # If at exact threshold, start at 1
-            if Power_in_level == 0:
-                level = 1
-            else:
-                level = int((Power_in_level / max_Power_for_level) * 100)
-                level = min(max(1, level), 100)  # Ensure between 1-100
-        else:
-            level = 100  # Max level reached
-    
-    return SPEED_DESCRIPTIONS.get(level, SPEED_DESCRIPTIONS[0])
+            # Scale from 1-100 based on power ratio (never 0 if we have any power)
+            level = max(1, min(100, int(power_ratio * 100)))
+
+        return SPEED_DESCRIPTIONS.get(level, SPEED_DESCRIPTIONS[0])
+
+    except Exception as e:
+        # Fallback to safe values
+        print(f"Error in get_speed_info: {e}")
+        return SPEED_DESCRIPTIONS[1]
 
 def get_speed_emoji(level: int) -> str:
     """
@@ -269,46 +263,47 @@ def get_combined_mech_status(Power_amount: float, total_donations_received: floa
     
     # Get speed info based on POWER amount
     speed_description, speed_color = get_speed_info(Power_amount)
-    
-    # Calculate speed level with new logic
-    from services.mech.mech_evolutions import get_evolution_level, EVOLUTION_THRESHOLDS
-    mech_level = get_evolution_level(Power_amount)
-    
-    if Power_amount <= 0:
-        speed_level = 0
-    elif mech_level == 11:
-        # SPECIAL CASE: Level 11 can reach Glvl 101!
-        theoretical_max = 20000
-        current_threshold = EVOLUTION_THRESHOLDS[11]
-        Power_in_level = Power_amount - current_threshold
-        max_Power_for_level = theoretical_max - current_threshold
-        
-        if Power_in_level >= max_Power_for_level:
-            speed_level = 101  # TRANSCENDENT!
-        elif Power_in_level == 0:
-            speed_level = 1
-        else:
-            speed_level = int((Power_in_level / max_Power_for_level) * 100)
-            speed_level = min(max(1, speed_level), 100)
-    elif mech_level <= 4:
-        # For levels 1-4: Direct 1:1 mapping
-        speed_level = min(int(Power_amount), 100)
-    else:
-        # For levels 5-10: Dynamic distribution
-        current_threshold = EVOLUTION_THRESHOLDS[mech_level]
-        next_threshold = EVOLUTION_THRESHOLDS.get(mech_level + 1, current_threshold * 2)
-        Power_in_level = Power_amount - current_threshold
-        max_Power_for_level = next_threshold - current_threshold
-        
-        if max_Power_for_level > 0:
-            # If at exact threshold, start at 1
-            if Power_in_level == 0:
-                speed_level = 1
+
+    # Calculate speed level with new evolution-specific logic
+    try:
+        from services.mech.mech_service import get_mech_service
+        from services.mech.evolution_config_manager import get_evolution_config_manager
+
+        # Get current mech state to determine evolution level
+        mech_service = get_mech_service()
+        config_manager = get_evolution_config_manager()
+        current_state = mech_service.get_state()
+        current_level = current_state.level
+
+        # Get evolution-specific max power
+        evolution_level_info = config_manager.get_evolution_level(current_level)
+        if evolution_level_info:
+            max_power_for_level = evolution_level_info.power_max
+
+            # Calculate speed level based on power ratio within current evolution level
+            power_ratio = min(1.0, Power_amount / max_power_for_level)
+
+            # SPECIAL CASE: Level 11 (OMEGA MECH) can reach speed level 101!
+            if current_level == 11 and power_ratio >= 1.0:
+                # Check if we're at transcendent level (double the requirement)
+                transcendent_threshold = max_power_for_level * 2  # 20000 for level 11
+                if Power_amount >= transcendent_threshold:
+                    speed_level = 101  # TRANSCENDENT!
+                else:
+                    speed_level = 100
+            elif Power_amount <= 0:
+                speed_level = 0
             else:
-                speed_level = int((Power_in_level / max_Power_for_level) * 100)
-                speed_level = min(max(1, speed_level), 100)
+                # Scale from 1-100 based on power ratio (never 0 if we have any power)
+                speed_level = max(1, min(100, int(power_ratio * 100)))
         else:
-            speed_level = 100
+            # Fallback for unknown levels
+            speed_level = min(int(Power_amount), 100)
+
+    except Exception as e:
+        # Fallback to simple calculation
+        print(f"Error calculating speed level: {e}")
+        speed_level = min(int(Power_amount), 100)
     
     # Get translated speed description
     translated_speed_description = get_translated_speed_description(speed_level, language)
