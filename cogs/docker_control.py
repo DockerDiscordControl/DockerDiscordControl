@@ -1866,7 +1866,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 mech_status = f"{evolution_name} ({level_text} {evolution['level']})\n"
                 speed_text = translate("Speed")
                 mech_status += f"{speed_text}: {speed['description']}\n\n"
-                mech_status += f"⚡ ${current_Power:.2f}\n`{Power_bar}` {Power_percentage:.1f}%\n"
+
+                # Special handling for Level 11 - corrupted power bar
+                if evolution['level'] == 11:
+                    # Corrupted power bar (same characters as next evolution bar, different positions)
+                    # Original pattern: `░#░░░░#░░#░░░#░░░░#░░` (5x░, 5x#)
+                    corrupted_power_bar = "░#░░░░#░░#░░░#░░░░#░░"  # 21 characters: 16x░, 5x#
+                    corrupted_power_percentage = f"#{Power_percentage:.1f}%&"
+                    mech_status += f"⚡ ${current_Power:.2f}\n`{corrupted_power_bar}` {corrupted_power_percentage}\n"
+                else:
+                    mech_status += f"⚡ ${current_Power:.2f}\n`{Power_bar}` {Power_percentage:.1f}%\n"
 
                 # Get level-specific decay rate
                 from services.mech.evolution_config_manager import get_evolution_config_manager
@@ -1879,14 +1888,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     mech_status += f"{Power_consumption_text}: ⚡ {translate('No decay')}\n\n"
                 else:
                     mech_status += f"{Power_consumption_text}: 🔻 {decay_per_day}/d\n\n"
-                
+
                 if evolution.get('next_name'):
                     next_evolution_name = translate(evolution['next_name'])
 
                     # Special handling for corrupted Level 11 data
                     if "ERR#R" in next_evolution_name or "DATA_C0RR*PTED" in next_evolution_name:
-                        # Create corrupted progress bar (26 chars - 4 less than normal bar)
-                        corrupted_bar = "░#░*░░░#*░░#░░*░#░*░░░#*░░"  # Exactly 26 characters
+                        # Create corrupted progress bar with same chars as power bar but different positions
+                        # Power bar:  ░#░░░░#░░#░░░#░░░░#░░ (16x░, 5x#)
+                        # Next bar:   ░░#░░#░░░░#░#░░░░#░░░ (16x░, 5x#) - different arrangement
+                        corrupted_bar = "░░#░░#░░░░#░#░░░░#░░░"  # Exactly 21 characters
                         # Corrupt the percentage display but keep the real number
                         corrupted_percentage = f"#{next_percentage:.1f}%&"
                         mech_status += f"⚠️ {next_evolution_name}\n`{corrupted_bar}` {corrupted_percentage}"
