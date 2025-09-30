@@ -1427,8 +1427,8 @@ class MechHistoryButton(Button):
                             title = f"🔥 **Level {level}: OMEGA MECH**"
                             description = encrypted_name
                         else:
-                            title = f"✅ **Level {level}: {evolution_info.name}**"
-                            description = f"*{evolution_info.description}*"
+                            title = f"✅ **Level {level}: {_(evolution_info.name)}**"
+                            description = f"*{_(evolution_info.description)}*"
 
                         embed = discord.Embed(
                             title=title,
@@ -1443,7 +1443,7 @@ class MechHistoryButton(Button):
                     except Exception as e:
                         logger.error(f"Error creating animation for level {level}: {e}")
                         embed = discord.Embed(
-                            title=f"❌ **Level {level}: {evolution_info.name}**",
+                            title=f"❌ **Level {level}: {_(evolution_info.name)}**",
                             description="*Animation could not be loaded*",
                             color=0xff0000
                         )
@@ -1466,8 +1466,8 @@ class MechHistoryButton(Button):
                         needed_text = f"**{_('Ready to unlock!')}**"
 
                     embed = discord.Embed(
-                        title=f"**Level {level}: {evolution_info.name}**",
-                        description=f"*Next Evolution: {evolution_info.description}*\n{needed_text}",
+                        title=f"**Level {level}: {_(evolution_info.name)}**",
+                        description=f"*{_('Next Evolution')}: {_(evolution_info.description)}*\n{needed_text}",
                         color=0x444444
                     )
 
@@ -1793,8 +1793,8 @@ class MechDisplayButton(Button):
                         animation_bytes = f.read()
 
                 embed = discord.Embed(
-                    title=f"✅ Level {self.level}: {evolution_info.name}",
-                    description=f"*{evolution_info.description}*",
+                    title=f"✅ Level {self.level}: {_(evolution_info.name)}",
+                    description=f"*{_(evolution_info.description)}*",
                     color=int(evolution_info.color.replace('#', ''), 16)
                 )
 
@@ -1821,8 +1821,8 @@ class MechDisplayButton(Button):
                     needed_text = f"**{_('Ready to unlock!')}**"
 
                 embed = discord.Embed(
-                    title=f"🔒 Level {self.level}: {evolution_info.name}",
-                    description=f"*Next Evolution: {evolution_info.description}*\n{needed_text}",
+                    title=f"🔒 Level {self.level}: {_(evolution_info.name)}",
+                    description=f"*{_('Next Evolution')}: {_(evolution_info.description)}*\n{needed_text}",
                     color=0x444444
                 )
 
