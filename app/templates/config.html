@@ -1073,23 +1073,32 @@
                 }
                 
                 // Update evolution text
-                if (nextEvolutionName && data.mech_level_name) {
-                    // Get next evolution name based on current level
-                    const evolutionNames = [
-                        "SCRAP MECH", "REPAIRED MECH", "STANDARD MECH", "ENHANCED MECH",
-                        "ADVANCED MECH", "ELITE MECH", "CYBER MECH", "PLASMA MECH",
-                        "QUANTUM MECH", "DIVINE MECH"
-                    ];
+                if (nextEvolutionName && nextEvolutionAmount) {
                     const currentLevel = data.mech_level || 1;
-                    if (currentLevel < evolutionNames.length) {
-                        nextEvolutionName.textContent = evolutionNames[currentLevel]; // Next level name
+
+                    // Check if we're at MAX LEVEL (Level 11)
+                    if (currentLevel >= 11) {
+                        nextEvolutionName.textContent = "MAX EVOLUTION REACHED";
+                        nextEvolutionAmount.textContent = "🌟 OMEGA MECH ACHIEVED";
+                    } else {
+                        // Get next evolution name based on current level
+                        const evolutionNames = [
+                            "SCRAP MECH", "REPAIRED MECH", "STANDARD MECH", "ENHANCED MECH",
+                            "ADVANCED MECH", "ELITE MECH", "CYBER MECH", "PLASMA MECH",
+                            "QUANTUM MECH", "DIVINE MECH", "OMEGA MECH"
+                        ];
+
+                        if (currentLevel < evolutionNames.length) {
+                            nextEvolutionName.textContent = evolutionNames[currentLevel]; // Next level name
+                        }
+
+                        // Update amount needed
+                        if (data.next_level_threshold) {
+                            const currentTotal = data.total_amount || 0;
+                            const needed = Math.max(0, data.next_level_threshold - currentTotal);
+                            nextEvolutionAmount.textContent = `$${needed.toFixed(0)} needed`;
+                        }
                     }
-                }
-                
-                if (nextEvolutionAmount && data.next_level_threshold) {
-                    const currentTotal = data.total_amount || 0;
-                    const needed = Math.max(0, data.next_level_threshold - currentTotal);
-                    nextEvolutionAmount.textContent = `$${needed.toFixed(0)} needed`;
                 }
             }
         }
