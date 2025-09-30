@@ -633,6 +633,7 @@ class TranslationManager:
                 "Elevated above the battlefield, carried and revered by lesser frames. Wreathed in fire and cloaked in command systems, it has become both warlord and deity of steel.": "Erhoben über das Schlachtfeld, getragen und verehrt von geringeren Rahmen. Umhüllt von Feuer und gehüllt in Befehlssysteme, ist es sowohl Kriegsfürst als auch Gottheit aus Stahl geworden.",
                 "The final transcendence. No longer merely a machine, it radiates with cosmic energy, haloed in starlight. A godlike protector forged from centuries of steel and sacrifice.": "Die finale Transzendenz. Nicht länger nur eine Maschine, strahlt es mit kosmischer Energie, umkränzt von Sternenlicht. Ein gottgleicher Beschützer, geschmiedet aus Jahrhunderten von Stahl und Opfer.",
                 "Reality-bending omnipotent war machine of the gods": "Realitätsverbiegende omnipotente Kriegsmaschine der Götter",
+                "The final scream of a burning universe, forged into indestructible form. Its steps tear the fabric of existence, its pulse synchronizes with the heartbeat of dead gods. Finality in metal form.": "Der letzte Schrei eines brennenden Universums, gegossen in unzerstörbare Form. Seine Schritte zerreißen die Fabric der Existenz, sein Puls synchronisiert sich mit dem Herzschlag toter Götter. Endgültigkeit in Metallform.",
             },
 
             # French
@@ -1595,6 +1596,7 @@ class TranslationManager:
                 "Elevated above the battlefield, carried and revered by lesser frames. Wreathed in fire and cloaked in command systems, it has become both warlord and deity of steel.": "Élevé au-dessus du champ de bataille, porté et vénéré par des châssis inférieurs. Drapé de feu et enveloppé de systèmes de commandement, il est devenu à la fois seigneur de guerre et divinité d'acier.",
                 "The final transcendence. No longer merely a machine, it radiates with cosmic energy, haloed in starlight. A godlike protector forged from centuries of steel and sacrifice.": "La transcendance ultime. Plus qu'une simple machine, il rayonne d'énergie cosmique, auréolé de lumière stellaire. Un protecteur divin forgé de siècles d'acier et de sacrifice.",
                 "Reality-bending omnipotent war machine of the gods": "Machine de guerre omnipotente des dieux, pliant la réalité",
+                "The final scream of a burning universe, forged into indestructible form. Its steps tear the fabric of existence, its pulse synchronizes with the heartbeat of dead gods. Finality in metal form.": "Le cri final d'un univers en flammes, forgé en forme indestructible. Ses pas déchirent le tissu de l'existence, son pouls se synchronise avec les battements de cœur des dieux morts. La finalité sous forme métallique.",
 
                 # Mech System translations (English)
                 "Mech-onate": "Mech-onate",
