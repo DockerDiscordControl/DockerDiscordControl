@@ -1012,6 +1012,7 @@
             const evolutionProgress = document.getElementById('evolutionProgress');
             const nextEvolutionName = document.getElementById('nextEvolutionName');
             const nextEvolutionAmount = document.getElementById('nextEvolutionAmount');
+            const speedStatusOverlay = document.getElementById('speedStatusOverlay');
             
             // Update POWER Bar using server's bar calculations
             if (powerLevel && data.bars) {
@@ -1068,6 +1069,26 @@
                             nextEvolutionAmount.textContent = `$${needed.toFixed(0)} needed`;
                         }
                     }
+                }
+            }
+
+            // Update Speed Status based on mech level and power
+            if (speedStatusOverlay && data) {
+                const currentLevel = data.mech_level || 1;
+                const currentPower = data.current_Power_raw || data.current_Power || 0;
+
+                // For Level 11 (OMEGA MECH), show special status
+                if (currentLevel >= 11) {
+                    speedStatusOverlay.textContent = "REALITY BENDING";
+                    speedStatusOverlay.style.color = "#ff00ff";
+                    speedStatusOverlay.style.textShadow = "0 0 10px #ff00ff";
+                } else {
+                    // Use simplified speed calculation for display
+                    const glvl = Math.floor(currentPower);
+                    const speedInfo = getSpeedDescription(glvl);
+                    speedStatusOverlay.textContent = speedInfo.text;
+                    speedStatusOverlay.style.color = speedInfo.color;
+                    speedStatusOverlay.style.textShadow = "none";
                 }
             }
         }
