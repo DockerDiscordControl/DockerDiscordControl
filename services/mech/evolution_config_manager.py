@@ -29,6 +29,7 @@ class EvolutionLevel:
     color: str
     base_cost: int
     power_max: int
+    decay_per_day: float = 1.0  # Default decay rate
 
 class EvolutionConfigManager:
     """Manages evolution configuration from JSON file."""
@@ -75,17 +76,17 @@ class EvolutionConfigManager:
                 "update_interval_minutes": 10
             },
             "base_evolution_costs": {
-                "1": {"name": "SCRAP MECH", "cost": 0, "power_max": 20, "color": "#444444"},
-                "2": {"name": "REPAIRED MECH", "cost": 20, "power_max": 30, "color": "#666666"},
-                "3": {"name": "STANDARD MECH", "cost": 50, "power_max": 50, "color": "#888888"},
-                "4": {"name": "ENHANCED MECH", "cost": 100, "power_max": 100, "color": "#0099cc"},
-                "5": {"name": "ADVANCED MECH", "cost": 200, "power_max": 200, "color": "#00ccff"},
-                "6": {"name": "ELITE MECH", "cost": 400, "power_max": 400, "color": "#ffcc00"},
-                "7": {"name": "CYBER MECH", "cost": 800, "power_max": 800, "color": "#ff6600"},
-                "8": {"name": "PLASMA MECH", "cost": 1500, "power_max": 1500, "color": "#cc00ff"},
-                "9": {"name": "QUANTUM MECH", "cost": 2500, "power_max": 2500, "color": "#00ffff"},
-                "10": {"name": "DIVINE MECH", "cost": 4000, "power_max": 4000, "color": "#ffff00"},
-                "11": {"name": "OMEGA MECH", "cost": 10000, "power_max": 10000, "color": "#ff00ff"}
+                "1": {"name": "SCRAP MECH", "cost": 0, "power_max": 20, "color": "#444444", "decay_per_day": 1.0},
+                "2": {"name": "REPAIRED MECH", "cost": 20, "power_max": 30, "color": "#666666", "decay_per_day": 1.0},
+                "3": {"name": "STANDARD MECH", "cost": 50, "power_max": 50, "color": "#888888", "decay_per_day": 1.0},
+                "4": {"name": "ENHANCED MECH", "cost": 100, "power_max": 100, "color": "#0099cc", "decay_per_day": 4.0},
+                "5": {"name": "ADVANCED MECH", "cost": 200, "power_max": 200, "color": "#00ccff", "decay_per_day": 1.0},
+                "6": {"name": "ELITE MECH", "cost": 400, "power_max": 400, "color": "#ffcc00", "decay_per_day": 3.0},
+                "7": {"name": "CYBER MECH", "cost": 800, "power_max": 800, "color": "#ff6600", "decay_per_day": 2.0},
+                "8": {"name": "PLASMA MECH", "cost": 1500, "power_max": 1500, "color": "#cc00ff", "decay_per_day": 1.5},
+                "9": {"name": "QUANTUM MECH", "cost": 2500, "power_max": 2500, "color": "#00ffff", "decay_per_day": 5.0},
+                "10": {"name": "DIVINE MECH", "cost": 4000, "power_max": 4000, "color": "#ffff00", "decay_per_day": 4.0},
+                "11": {"name": "OMEGA MECH", "cost": 10000, "power_max": 10000, "color": "#ff00ff", "decay_per_day": 0.0}
             },
             "community_size_tiers": {
                 "MEDIUM": {"min_members": 26, "max_members": 50, "multiplier": 1.0}
@@ -169,7 +170,8 @@ class EvolutionConfigManager:
             description=level_data.get("description", ""),
             color=level_data.get("color", "#888888"),
             base_cost=level_data.get("cost", 0),
-            power_max=level_data.get("power_max", 100)
+            power_max=level_data.get("power_max", 100),
+            decay_per_day=level_data.get("decay_per_day", 1.0)
         )
     
     def get_all_evolution_levels(self) -> Dict[int, EvolutionLevel]:
@@ -186,7 +188,8 @@ class EvolutionConfigManager:
                     description=level_data.get("description", ""),
                     color=level_data.get("color", "#888888"),
                     base_cost=level_data.get("cost", 0),
-                    power_max=level_data.get("power_max", 100)
+                    power_max=level_data.get("power_max", 100),
+                    decay_per_day=level_data.get("decay_per_day", 1.0)
                 )
             except ValueError:
                 logger.warning(f"Invalid level number in config: {level_str}")

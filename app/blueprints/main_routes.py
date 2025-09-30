@@ -1346,6 +1346,12 @@ def get_donation_status():
         level = min(int(total_amount / 10), 101) if total_amount > 0 else 0
         emoji = get_speed_emoji(level)
         
+        # Get level-specific decay rate
+        from services.mech.evolution_config_manager import get_evolution_config_manager
+        config_mgr = get_evolution_config_manager()
+        evolution_info = config_mgr.get_evolution_level(mech_state.level)
+        decay_per_day = evolution_info.decay_per_day if evolution_info else 1.0
+
         # Create status object compatible with Web UI
         status = {
             'total_amount': total_amount,
@@ -1356,6 +1362,7 @@ def get_donation_status():
             'next_level_threshold': mech_state.next_level_threshold,
             'glvl': mech_state.glvl,
             'glvl_max': mech_state.glvl_max,
+            'decay_per_day': decay_per_day,  # Level-specific decay rate
             'bars': {
                 'mech_progress_current': mech_state.bars.mech_progress_current,
                 'mech_progress_max': mech_state.bars.mech_progress_max,

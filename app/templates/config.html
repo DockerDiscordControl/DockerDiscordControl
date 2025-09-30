@@ -892,7 +892,7 @@
         
         // Configuration
         const POWER_CONFIG = {
-            DECAY_RATE: 1 / 86400,           // 1 Power per day (in seconds)
+            DECAY_RATE: 1 / 86400,           // Default: 1 Power per day (in seconds) - updated dynamically
             UPDATE_PRECISION: 0.01,          // Update display on 0.01 changes
             CLIENT_CHECK_INTERVAL: 10000,    // Check every 10 seconds
             SERVER_SYNC_INTERVAL: 60000,     // Sync with server every 60 seconds
@@ -993,7 +993,13 @@
             try {
                 const response = await fetch('/api/donation/status');
                 const data = await response.json();
-                
+
+                // Update decay rate from server (level-specific)
+                if (data.decay_per_day !== undefined) {
+                    POWER_CONFIG.DECAY_RATE = data.decay_per_day / 86400;  // Convert per-day to per-second
+                    console.log(`[POWER v3.0] Decay rate updated: ${data.decay_per_day}/day (${POWER_CONFIG.DECAY_RATE.toFixed(8)}/s)`);
+                }
+
                 const serverPower = data.current_Power_raw || data.current_Power || 0;
                 const expectedPower = PowerState.serverPower - ((Date.now() - PowerState.serverTime) / 1000 * POWER_CONFIG.DECAY_RATE);
                 const difference = Math.abs(serverPower - expectedPower);

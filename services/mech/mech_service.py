@@ -583,10 +583,32 @@ class MechService:
         dt = datetime.fromisoformat(s)
         return dt if dt.tzinfo else dt.replace(tzinfo=self.tz)
 
-    def _decay_amount(self, a: datetime, b: datetime) -> float:
-        """Power consumption between a→b, always rolling (second-accurate)."""
+    def _decay_amount(self, a: datetime, b: datetime, level: int = None) -> float:
+        """Power consumption between a→b, level-specific decay rate (second-accurate).
+
+        Args:
+            a: Start time
+            b: End time
+            level: Mech level (if None, uses current level)
+
+        Returns:
+            Power decay amount based on level-specific decay_per_day
+        """
         sec = (b.astimezone(self.tz) - a.astimezone(self.tz)).total_seconds()
-        return max(0.0, sec / 86400.0)
+
+        # Get level-specific decay rate
+        if level is None:
+            level = self._calc_level(self._calc_donations())
+
+        from services.mech.evolution_config_manager import get_evolution_config_manager
+        config_mgr = get_evolution_config_manager()
+        evolution = config_mgr.get_evolution_level(level)
+
+        # Default to 1.0 if evolution not found
+        decay_per_day = evolution.decay_per_day if evolution else 1.0
+
+        # Calculate decay: (seconds / seconds_per_day) * decay_rate
+        return max(0.0, (sec / 86400.0) * decay_per_day)
 
 
 # ---------------------------

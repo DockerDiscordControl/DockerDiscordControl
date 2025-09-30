@@ -1867,8 +1867,18 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 speed_text = translate("Speed")
                 mech_status += f"{speed_text}: {speed['description']}\n\n"
                 mech_status += f"⚡ ${current_Power:.2f}\n`{Power_bar}` {Power_percentage:.1f}%\n"
+
+                # Get level-specific decay rate
+                from services.mech.evolution_config_manager import get_evolution_config_manager
+                config_mgr = get_evolution_config_manager()
+                evolution_info = config_mgr.get_evolution_level(mech_state.level)
+                decay_per_day = evolution_info.decay_per_day if evolution_info else 1.0
+
                 Power_consumption_text = translate("Power Consumption")
-                mech_status += f"{Power_consumption_text}: 🔻 0.04/h\n\n"  # Using red down arrow for negative indication
+                if decay_per_day == 0:
+                    mech_status += f"{Power_consumption_text}: ⚡ {translate('No decay')}\n\n"
+                else:
+                    mech_status += f"{Power_consumption_text}: 🔻 {decay_per_day}/d\n\n"
                 
                 if evolution.get('next_name'):
                     next_evolution_name = translate(evolution['next_name'])
