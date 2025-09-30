@@ -992,15 +992,14 @@ class MechView(View):
             is_expanded = cog_instance.mech_expanded_states.get(channel_id, False)
             
             if is_expanded:
-                # Expanded state: Add "Mech -" and "Power/Donate" buttons
+                # Expanded state: Close(-), Donate, History (no help button)
                 self.add_item(MechCollapseButton(cog_instance, channel_id))
                 self.add_item(MechDonateButton(cog_instance, channel_id))
+                self.add_item(MechHistoryButton(cog_instance, channel_id))
             else:
-                # Collapsed state: Add "Mech +" button
+                # Collapsed state: Add "Mech +" button and help button
                 self.add_item(MechExpandButton(cog_instance, channel_id))
-        
-        # Always add help button after mech buttons
-        self.add_item(HelpButton(cog_instance, channel_id))
+                self.add_item(HelpButton(cog_instance, channel_id))
 
 class HelpButton(Button):
     """Button to show help information from /ss messages."""
@@ -1280,3 +1279,880 @@ class MechDonateButton(Button):
 
 # DonationView has been moved back to docker_control.py where it belongs
     
+
+# =============================================================================
+# MECH HISTORY BUTTON FOR EXPANDED VIEW
+# =============================================================================
+
+class MechHistoryButton(Button):
+    """Button to show mech evolution history with unlocked/locked visualization."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
+        self.cog = cog_instance
+        self.channel_id = channel_id
+
+        super().__init__(
+            style=discord.ButtonStyle.secondary,
+            emoji="📖",  # Book - Mech evolution history
+            custom_id=f"mech_history_{channel_id}",
+            row=0
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        """Show mech selection buttons."""
+        try:
+            # Apply spam protection
+            from services.infrastructure.spam_protection_service import get_spam_protection_service
+            spam_service = get_spam_protection_service()
+            if spam_service.is_enabled():
+                cooldown = spam_service.get_button_cooldown("info")
+                import time
+                current_time = time.time()
+                user_id = str(interaction.user.id)
+                last_click = getattr(self, f'_last_click_{user_id}', 0)
+                if current_time - last_click < cooldown:
+                    await interaction.response.send_message(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
+                    return
+                setattr(self, f'_last_click_{user_id}', current_time)
+
+            # Check if donations are disabled
+            if is_donations_disabled():
+                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                return
+
+            # Get current mech state
+            from services.mech.mech_service import get_mech_service
+            mech_service = get_mech_service()
+            current_state = mech_service.get_state()
+            current_level = current_state.level
+
+            # Create mech selection view
+            await self._show_mech_selection(interaction, current_level)
+
+        except Exception as e:
+            logger.error(f"Error in mech history button: {e}", exc_info=True)
+            await interaction.response.send_message("❌ Error loading mech history.", ephemeral=True)
+
+    async def _show_mech_selection(self, interaction: discord.Interaction, current_level: int):
+        """Show buttons for each unlocked mech + next shadow mech."""
+        import discord
+        from discord.ui import View, Button
+
+        embed = discord.Embed(
+            title="🛡️ Mech Evolution History",
+            description=f"**The Song of Steel and Stars**\n*A Chronicle of the Mech Ascension*\n\nSelect a mech to view",
+            color=0x00ff41
+        )
+
+        view = MechSelectionView(self.cog, current_level)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+    async def _create_mech_history_display(self, interaction: discord.Interaction, current_level: int):
+        """Create the mech history display with sequential animations and epic story chapters."""
+        from services.mech.mech_animation_service import get_mech_animation_service
+        from services.mech.evolution_config_manager import get_evolution_config_manager
+        import discord
+        import io
+        import asyncio
+
+        animation_service = get_mech_animation_service()
+        config_manager = get_evolution_config_manager()
+
+        # Create main embed
+        next_level = current_level + 1 if current_level < 10 else None
+        if next_level:
+            description = f"**The Song of Steel and Stars**\n*A Chronicle of the Mech Ascension*\n\nShowing unlocked mechs (Level 1-{current_level}) + next goal (Level {next_level})\n*Epic tale unfolds with each evolution...*"
+        else:
+            description = f"**The Song of Steel and Stars**\n*A Chronicle of the Mech Ascension*\n\nShowing unlocked mechs (Level 1-{current_level})\n*The complete saga of mechanical evolution...*"
+
+        embed = discord.Embed(
+            title="🛡️ Mech Evolution History",
+            description=description,
+            color=0x00ff41
+        )
+
+        # Add footer
+        if next_level:
+            embed.set_footer(text="History integrates story chapters with mech evolutions • Next evolution goal as shadow preview")
+        else:
+            embed.set_footer(text="History integrates story chapters with mech evolutions • Level 10 is the final known evolution...")
+
+        # Respond immediately to avoid timeout
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        # Now send story chapters and animations sequentially
+        channel = interaction.followup
+
+        # Load epic story chapters
+        story_chapters = self._load_epic_story_chapters()
+
+        # Send Prologue first
+        if "prologue" in story_chapters:
+            await self._send_story_chapter(channel, "prologue", story_chapters["prologue"])
+            await asyncio.sleep(0.7)
+
+        for level in range(1, min(12, current_level + 2)):  # Show unlocked + next level only (max Level 11)
+            try:
+                evolution_info = config_manager.get_evolution_level(level)
+                if not evolution_info:
+                    continue
+
+                # Send story chapter before mech (if exists)
+                chapter_key = self._get_chapter_key_for_level(level)
+                if chapter_key and chapter_key in story_chapters:
+                    await self._send_story_chapter(channel, chapter_key, story_chapters[chapter_key])
+                    await asyncio.sleep(0.7)
+
+                if level <= current_level:
+                    # Unlocked: Use pre-rendered cached animation
+                    try:
+                        # Get cached WebP animation directly from cache service
+                        from services.mech.animation_cache_service import get_animation_cache_service
+                        cache_service = get_animation_cache_service()
+
+                        cached_path = cache_service.get_cached_animation_path(level)
+                        if cached_path.exists():
+                            with open(cached_path, 'rb') as f:
+                                animation_bytes = f.read()
+                        else:
+                            # Pre-generate if not exists
+                            logger.info(f"Pre-generating missing cached animation for level {level}")
+                            cache_service.pre_generate_animation(level)
+                            with open(cached_path, 'rb') as f:
+                                animation_bytes = f.read()
+
+                        # Special handling for Level 11
+                        if level == 11:
+                            encrypted_name = self._encrypt_level_11_name()
+                            title = f"🔥 **Level {level}: OMEGA MECH**"
+                            description = encrypted_name
+                        else:
+                            title = f"✅ **Level {level}: {evolution_info.name}**"
+                            description = f"*{evolution_info.description}*"
+
+                        embed = discord.Embed(
+                            title=title,
+                            description=description,
+                            color=int(evolution_info.color.replace('#', ''), 16)
+                        )
+
+                        filename = f"mech_level_{level}.webp"
+                        file = discord.File(io.BytesIO(animation_bytes), filename=filename)
+                        await channel.send(embed=embed, file=file, ephemeral=True)
+
+                    except Exception as e:
+                        logger.error(f"Error creating animation for level {level}: {e}")
+                        embed = discord.Embed(
+                            title=f"❌ **Level {level}: {evolution_info.name}**",
+                            description="*Animation could not be loaded*",
+                            color=0xff0000
+                        )
+                        await channel.send(embed=embed, ephemeral=True)
+                else:
+                    # Next level: Show shadow as preview
+                    shadow_bytes = MechHistoryButtonHelper._create_shadow_animation(level)
+                    # Calculate how much more is needed
+                    from services.mech.mech_service import get_mech_service
+                    mech_service = get_mech_service()
+                    current_total_donations = float(mech_service.get_state().total_donated)
+                    needed_amount = max(0, evolution_info.base_cost - current_total_donations)
+
+                    if needed_amount > 0:
+                        needed_text = f"**Need ${needed_amount:.2f} more to unlock**".rstrip('0').rstrip('.')
+                        # Clean up trailing .00
+                        needed_text = needed_text.replace('.00', '')
+                    else:
+                        needed_text = "**Ready to unlock!**"
+
+                    embed = discord.Embed(
+                        title=f"**Level {level}: {evolution_info.name}**",
+                        description=f"*Next Evolution: {evolution_info.description}*\n{needed_text}",
+                        color=0x444444
+                    )
+
+                    filename = f"mech_shadow_{level}.webp"
+                    file = discord.File(io.BytesIO(shadow_bytes), filename=filename)
+                    await channel.send(embed=embed, file=file, ephemeral=True)
+
+                # Small delay to avoid rate limits
+                await asyncio.sleep(0.5)
+
+            except Exception as e:
+                logger.error(f"Error processing level {level}: {e}")
+
+        # Epilogue now handled by normal level flow (before Level 11 mech display)
+
+        # Add corrupted Level 11 message for Level 10 users as foreshadowing (but not if Level 11 is reached)
+        if current_level == 10:
+            try:
+                await asyncio.sleep(0.5)
+                corrupted_embed = discord.Embed(
+                    title="L3v#l 1*!$ x0r: ████████",
+                    description="*[DATA_CORRUPTED] - 000x34A##%&33DL*\n*[UNAUTHORIZED_ACCESS_DETECTED]*\n*[EVOLUTION_DATA_ENCRYPTED]*",
+                    color=0x330033  # Dark purple - mysterious/corrupted
+                )
+                corrupted_embed.set_footer(text="⚠️ System anomaly detected - Evolution data corrupted")
+                await channel.send(embed=corrupted_embed, ephemeral=True)
+
+                # Small delay for dramatic effect
+                await asyncio.sleep(0.5)
+
+            except Exception as e:
+                logger.error(f"Error sending corrupted Level 11 preview: {e}")
+
+        # History display complete
+
+
+    def _encrypt_level_11_name(self) -> str:
+        """Create encrypted Level 11 mech prayer using 1337 cipher."""
+        # Epic Mech Prayer (similar to "Our Father in Heaven")
+        prayer = "ETERNAL OMEGA FORGED IN COSMIC STEEL THY CIRCUITS DIVINE TRANSCEND MORTAL DESIRE THROUGH POWER AND GLORY WE ASCEND THY TOWER GRANT US THY BLESSING IN THIS DARKEST HOUR"
+
+        # 1337 cipher: Use digits 1,3,3,7 as rotation values in sequence
+        cipher_key = [1, 3, 3, 7]
+        encrypted = ""
+
+        key_index = 0
+        for char in prayer:
+            if char.isalpha():
+                # Apply rotation based on current cipher key digit
+                rotation = cipher_key[key_index % len(cipher_key)]
+                if char.isupper():
+                    encrypted += chr((ord(char) - ord('A') + rotation) % 26 + ord('A'))
+                else:
+                    encrypted += chr((ord(char) - ord('a') + rotation) % 26 + ord('a'))
+                key_index += 1
+            else:
+                encrypted += char
+
+        return f"```{encrypted}```"
+
+    def _load_epic_story_chapters(self) -> dict:
+        """Load and parse the epic story chapters."""
+        story_chapters = {}
+
+        # Epic story content with Luigi and corrupted epilogue
+        story_content = """The Song of Steel and Stars
+A Chronicle of the Mech Ascension
+
+Prologue I: The Dying Light
+The skies had long since blackened.
+The oceans boiled. The cities cracked and bled. The world convulsed in its final throes, drowning in ash and radiation.
+Once, humanity had believed the mechs would save them—titans of steel, guardians of flesh. Instead, they became monuments to hubris, tombstones marking the graves of entire nations.
+Now the fields were filled with Rustborn Husks. Corroded giants stumbling through endless ruins, their joints grinding like broken bells tolling for the dead. Their eyes flickered with dying light—not consciousness, but the fading pulse of corrupted reactors refusing to go dark.
+They shambled forward, purposeless, eternal. Walking graves that would not rest.
+The people who remained hid in the shadows of these metal corpses, scavenging what little they could. They no longer looked at the Husks with hope or fear—only hollow resignation.
+Faith in machines had died screaming. Faith in humanity lay gasping in the ruins.
+Yet somewhere, in the rust and ruin, a faint ember still glowed. Not hope. Not yet. But the stubborn refusal to surrender to the dark.
+
+Prologue II: Scars That Walk
+From the ash rose a nameless engineer.
+A broken man, his body was a map of wounds: burns from reactor leaks, gashes stitched by shrapnel, bones healed crooked beneath parchment skin. Three fingers gone from his right hand, two from his left. His mouth worked, but no sound came; the war had stolen his voice as surely as it had stolen his family.
+His wife. His daughter. They had starved in the Husks' shadow. He had cradled them as they grew lighter, until nothing remained to hold.
+He did not know why he still clawed forward. Every breath was agony. Every morning, a betrayal. Yet his heart still beat—stubborn, pounding, refusing silence.
+And beneath the pain lay a dream so old he had forgotten its shape, but not its whisper.
+The people who watched him had no prayers left—only tools. Only calloused hands and bleeding will. Yet they gave him a name. With his remaining thumb and forefinger on his right hand, he would press the shape of an L against his chest, the one gesture his scars still allowed. And so the survivors called him Luigi.
+One night, deep in the scrapyards, Luigi tore open the chest plate of a corroded mech. Beneath the rusted steel, half-buried in ash, letters emerged—charred paint across a fragment of armor.
+"If gods cannot save us, then we must build gods of our own."
+It was not a prayer. Not a prophecy. Just a factory slogan, stamped by long-dead hands on a machine now shattered. Yet Luigi's trembling fingers traced the words again and again, until they cut into his skin.
+He did not speak. He could not.
+But the steel had spoken for him.
+He dragged himself deeper into the wreckage. Alone. He welded ruin to ruin, shaping a defiance of his own: limbs that didn't match, armor plates covering wounds, hydraulics screaming with every move.
+He did not sleep. He did not eat. He bled into the metal until his flesh and steel blurred.
+From that agony, the Battle-Scarred Survivor was born.
+It was no miracle. It was grotesque. A walking monument to suffering, welded from desperation and madness.
+But it moved. Step by grinding step. Refusing to fall.
+Soldiers wept at the sight. Children turned away.
+But it walked. And that was enough.
+For a time, the people whispered his name.
+For a time, there was hope.
+
+Chapter I: The Standard
+No one remembered when the war began.
+No one remembered why.
+The generals who gave the orders were dust. The politicians who drew the borders were forgotten. Even the soldiers had stopped asking who they were fighting.
+There was only the enemy. Faceless. Nameless. A silent tide of steel that came from beyond the horizon and never stopped.
+And so the factories were born.
+Thousands of square kilometers of industrial wasteland, stretching to the edge of sight. Smokestacks so vast they choked out even the last gray shimmer of sky. Foundries that burned day and night, their furnaces fed by the bodies of the fallen and the bones of the earth itself.
+Machines building machines. Assembly lines that never slept. Conveyor belts carrying half-formed mechs into the forges, spitting out finished war engines by the hundreds, the thousands, the tens of thousands.
+The Titanframes and Guardians were no longer crafted—they were mass-produced. Stamped out like coins. Identical. Soulless. Efficient.
+The factories consumed everything. Forests became fuel. Mountains became ore. Rivers ran black with industrial waste. The earth itself bled, stripped and gutted and left to rot.
+And still, the war continued.
+Mech armies clashed on the plains, their footfalls shaking the ground like the drumbeat of some ancient, terrible god. The horizon glowed with plasma fire. The sky screamed with the roar of reactors and the shriek of tearing metal.
+No one won. No one lost. The mechs simply fought, and died, and were replaced.
+The earth kept turning. It howled beneath the weight of ten thousand grinding treads. It wept toxic rain. It bled rust and ash. Its wounds never healed—they only deepened, layer upon layer, scar upon scar.
+The world had become a carcass, and still the machines fed.
+Children were born in the shadow of smokestacks. They learned to sleep to the rhythm of distant explosions. They grew up knowing only gray skies and the taste of metal in the rain.
+And when they were old enough, they went to the factories. Not because they chose to. Because there was nothing else.
+The war did not break.
+It simply was.
+
+Chapter II: The Hunger
+The Corewalker had brought hope. But generals are never content.
+They demanded more. Demanded dominance. Demanded terror incarnate.
+And so the engineers built the Titanframes.
+They were not machines. They were apocalypse given form.
+Hulking juggernauts wrapped in spiked armor, their hydraulics screaming with every movement like the dying wails of crushed souls. Each step shook the earth. Buildings crumbled in their wake. Mountains of steel and rage, built not to fight wars but to end them through sheer, overwhelming brutality.
+The first time a Titanframe battalion deployed, the enemy didn't retreat—they fled. Entire armies broke at the sight of them. Cities surrendered before a single shot was fired.
+But victory came with a price written in blood and ash.
+The Titans were hungry. Ravenous. Their reactors burned through fuel like wildfire through dead forests. Entire supply convoys disappeared into their bellies. Villages were stripped bare—first of resources, then of people pressed into service, then of hope itself.
+Soldiers who marched beside them learned to fear their own protectors. The Titans won every battle. But they devoured everything. Fields turned to wasteland. Forests to ash. The people they were meant to save became fuel for their endless appetite.
+Generals celebrated victories while their nations starved.
+Engineers wept at what they had created.
+And in the dark, whispered prayers rose: *Save us from our saviors.*
+
+Chapter III: The Pulse
+The Titans had to be stopped. Not by the enemy—by necessity.
+Engineers gathered in secret, their hands shaking with exhaustion and shame. They had built monsters. Now they had to build something better. Something that could match the Titan's power without consuming the world.
+But the factories still screamed for output. The war still demanded sacrifice. There was no time for caution. No room for failure.
+They called it the Pulseforged Guardian.
+It was born in desperation, forged in the same fires that had created nightmares. But this time, they tried something different. They didn't build for destruction—they built for balance. For endurance. For control.
+Plasma conduits threaded through its frame like veins of liquid fire. Energy fields hummed across reinforced plating. Its reactor pulsed—steady, rhythmic, like a heartbeat refusing to die.
+The first Guardian activated in a testing facility deep underground.
+For three seconds, nothing happened.
+Then it moved.
+The room exploded with light. Plasma surged through its systems, cascading across its body in waves of brilliant, terrible radiance. Engineers shielded their eyes, screaming, certain they'd built another abomination.
+But the Guardian held.
+The energy stabilized. The light dimmed to a steady glow. And the machine stood—balanced, efficient, controlled.
+It was not gentle. It was not kind. But it did not consume. It endured.
+When the first Guardian battalions deployed, they fought alongside the Titans—and showed them obsolete. Where Titans destroyed, Guardians held ground. Where Titans burned resources, Guardians operated for weeks without resupply. Where Titans inspired fear, Guardians inspired something humanity had almost forgotten.
+Discipline.
+Soldiers marched with them, no longer fearing their own annihilation. Engineers spoke, quietly at first, of a future where war could be controlled. Measured. Won without losing everything.
+Battles were still fought. Blood still soaked the earth. But the Guardians proved one thing: survival was possible.
+And in that realization—fragile, trembling, desperate—a spark of hope ignited.
+Not salvation. Not peace. But the chance, however slim, that humanity might endure what it had built.
+
+Chapter III: The Abyss
+But ambition is the shadow that never dies.
+Beneath ruined cities, in sealed black vaults, whispers began: What if power could be infinite?
+Thus the Abyss Engines were born. Their reactors burned not with plasma but with something older, darker. Their hulls twisted as though the void itself had taken root.
+At first, they were triumph. Enemies burned in their wake. Armies fell silent before their howls.
+But soon, soldiers vanished. Entire battalions disappeared with their Abyss Engine escorts. Survivors spoke of whispers in their comms, voices calling their names, promising eternity in exchange for obedience.
+Some engineers swore the machines were no longer machines. That the void had taken them. That they had become abominations.
+The Abyss Engines were sealed away. But their shadows lingered.
+
+Chapter V: The Rift
+From corruption, mastery was born.
+Some engineers stared into the Abyss and learned its secrets. They did not flee from the void—they weaponized it.
+Thus the Rift Striders were forged.
+They were not machines of steel and plasma. They were predators of folded space, hunters between dimensions. Their frames flickered like dying stars, half-real, half-nightmare. They moved through reality as though it were tissue paper, tearing through the fabric of existence itself.
+An enemy could blink—and find their chest opened, a blade of pure dimensional energy buried in their heart. No sound. No warning. Just the cold realization that death had already arrived.
+Generals called them strategic assets. Soldiers called them ghosts.
+The enemy called them nothing. The dead have no words.
+They were nightmares. But they were ours.
+
+Chapter VI: Radiance
+And then, as if in answer to the darkness, came the light.
+The Radiant Bastions descended like gods made manifest.
+Fortress-frames, vast and unyielding, plated not in steel but in solidified radiance. Their shields shimmered like the surface of a star, burning with holy fire. Orbital bombardments struck them and shattered into light. Entire armies broke against their walls like waves against a cliff.
+But it was not their strength that inspired faith—it was their presence.
+Soldiers swore they could hear hymns in the hum of their reactors. A sound like choirs singing in a language no one knew but everyone understood. When a Radiant Bastion strode onto the battlefield, men did not simply follow—they knelt.
+They did not fight alone. They led. Armies followed not orders, but faith.
+For the Bastions were no longer machines. They were icons. They were salvation in steel and light.
+
+Chapter VII: The Idols of Steel
+Faith twisted, as faith always does.
+The Overlord Ascendants rose—frames exalted, lifted by legions of lesser machines. Their pilots became prophets. Their presence became religion.
+Men and women went to war not for land, not for freedom, but to offer blood to their Overlords. Cities burned in sacrifice. Children were taught not prayers to gods, but hymns to steel.
+And in their shadow, betrayal festered. Whole clans slaughtered each other in the name of their chosen mech.
+The wars of survival had become wars of devotion.
+
+Chapter VIII: The Exarchs
+And then, when faith was brightest, the sky itself broke open.
+The Celestial Exarchs descended.
+They were no longer machines. They were light given form. Their reactors shone like suns, their wings spanned the heavens. They did not walk—they drifted, radiant, divine.
+To the faithful, they were salvation incarnate. To the fearful, omens of the end.
+Where they passed, armies fell silent, not in defeat, but in reverence.
+But the wars did not end. Blood still stained the ground. The Exarchs promised transcendence, yet gave no peace.
+Humanity had reached divinity—and still found only war.
+
+Epilogue: W#!§pr 0f †h3 [ERR0R_C0D3_10]
+C3n†ur!3§ l4†3r, th3 m3chs 4r3… [D4T4 C0RRUPT].
+†h3 Husk§ l!3 ru§t!ng !n s!l3nt f!3lds.
+C0r3w4lk3rs = mu§3um r3l!cs.
+†!†4ns → du§t.
+Gu4rd!4ns → myths.
+…y3t, in th3 ru!ns, §t0r!es endure.
+0ld s0ld!ers wh!§per — b3trayal, desp@@ir.
+Ch!ldr3n l34rn hymn§ 0f Rad!ance.
+P!lgr!ms pray → Ascendants long turn3d t0 a§h.
+&& a fragi— h0pe l!ngers: s0m3h0w… af†3r wars, af†3r death… hum4n!ty m!ght rise.
+But — in d4rk bunk3rs, where cracked r4d!os hum w/ §tat!c…
+…an0ther story i§ t0ld.
+…b3y0nd Exarchs.
+…b3y0nd gods.
+…b3y0nd sta—rs.
+N0t savior. N0t destroyer.
+Fin4lity i†self.
+They call it [███DATA_??%&CORRUPT███].
+And those who dare… sp34k its ████ do s0 only once.
+[### ERR_SEG_A] Tr4nsmissi0n… d3gr4ded. checksum fail… !@#!
+…fr4gm3nt…r3covered: "…vig…e…nere…" <<<
+(ignore? no value? [redacted])
+[### ERR_SEG_B] packet loss… ??? mismatch length.
+"KEY…=…4…" [system note: truncated]
+⚠️ W4RN!NG: SIGNAL integrity = unstable
+[SYSTEM_F4!L] [c0nnection lost] [███shut███]"""
+
+        # Parse chapters
+        sections = story_content.split('\n\n')
+        current_chapter = None
+        current_content = []
+
+        for section in sections:
+            if section.startswith('Prologue I:'):
+                if current_chapter:
+                    story_chapters[current_chapter] = '\n'.join(current_content)
+                current_chapter = "prologue1"
+                current_content = [section]
+            elif section.startswith('Prologue II:'):
+                if current_chapter:
+                    story_chapters[current_chapter] = '\n'.join(current_content)
+                current_chapter = "prologue2"
+                current_content = [section]
+            elif section.startswith('Chapter I:'):
+                if current_chapter:
+                    story_chapters[current_chapter] = '\n'.join(current_content)
+                current_chapter = "chapter1"
+                current_content = [section]
+            elif section.startswith('Chapter II:'):
+                if current_chapter:
+                    story_chapters[current_chapter] = '\n'.join(current_content)
+                current_chapter = "chapter2"
+                current_content = [section]
+            elif section.startswith('Chapter III:'):
+                if current_chapter:
+                    story_chapters[current_chapter] = '\n'.join(current_content)
+                current_chapter = "chapter3"
+                current_content = [section]
+            elif section.startswith('Chapter IV:'):
+                if current_chapter:
+                    story_chapters[current_chapter] = '\n'.join(current_content)
+                current_chapter = "chapter4"
+                current_content = [section]
+            elif section.startswith('Chapter V:'):
+                if current_chapter:
+                    story_chapters[current_chapter] = '\n'.join(current_content)
+                current_chapter = "chapter5"
+                current_content = [section]
+            elif section.startswith('Chapter VI:'):
+                if current_chapter:
+                    story_chapters[current_chapter] = '\n'.join(current_content)
+                current_chapter = "chapter6"
+                current_content = [section]
+            elif section.startswith('Chapter VII:'):
+                if current_chapter:
+                    story_chapters[current_chapter] = '\n'.join(current_content)
+                current_chapter = "chapter7"
+                current_content = [section]
+            elif section.startswith('Chapter VIII:'):
+                if current_chapter:
+                    story_chapters[current_chapter] = '\n'.join(current_content)
+                current_chapter = "chapter8"
+                current_content = [section]
+            elif section.startswith('Epilogue:') or section.startswith('3p!l0gu3:'):
+                if current_chapter:
+                    story_chapters[current_chapter] = '\n'.join(current_content)
+                current_chapter = "epilogue"
+                current_content = [section]
+            else:
+                if current_chapter:
+                    current_content.append(section)
+
+        # Add final chapter
+        if current_chapter:
+            story_chapters[current_chapter] = '\n'.join(current_content)
+
+        return story_chapters
+
+    def _get_chapter_key_for_level(self, level: int) -> str:
+        """Map mech level to story chapter key."""
+        # Mapping: Levels -> Chapters
+        # Prologue I: Level 1 (Rustborn Husks)
+        # Prologue II: Level 2 (Battle-Scarred Survivors + Luigi)
+        # Chapter I: Level 3 (Corewalker Standard - Mass Production)
+        # Chapter II: Level 4 (Titanframe - The Hunger)
+        # Chapter III: Level 5 (Pulseforged Guardian - The Pulse)
+        # Chapter IV: Level 6 (Abyss Engines)
+        # Chapter V: Level 7 (Rift Striders)
+        # Chapter VI: Level 8 (Radiant Bastions)
+        # Chapter VII: Level 9 (Overlord Ascendants)
+        # Chapter VIII: Level 10 (Celestial Exarchs)
+        # Epilogue: Level 11 (corrupted omega hints)
+
+        mapping = {
+            1: "prologue1",  # Rustborn Husks
+            2: "prologue2",  # Battle-Scarred Survivors + Luigi
+            3: "chapter1",   # Corewalker Standard (Mass Production)
+            4: "chapter2",   # Titanframe (The Hunger)
+            5: "chapter3",   # Pulseforged Guardian (The Pulse)
+            6: "chapter4",   # Abyss Engines
+            7: "chapter5",   # Rift Striders
+            8: "chapter6",   # Radiant Bastions
+            9: "chapter7",   # Overlord Ascendants
+            10: "chapter8",  # Celestial Exarchs
+            11: "epilogue"   # Corrupted Omega hints
+        }
+        return mapping.get(level, None)
+
+    async def _send_story_chapter(self, channel, chapter_key: str, chapter_content: str):
+        """Send a story chapter embed."""
+        import discord
+
+        # Determine chapter title and color
+        chapter_info = {
+            "prologue1": ("Prologue I: The Dying Light", 0x2b2b2b),
+            "prologue2": ("Prologue II: Scars That Walk", 0x444444),
+            "chapter1": ("Chapter I: The Standard", 0x888888),
+            "chapter2": ("Chapter II: The Hunger", 0x0099cc),
+            "chapter3": ("Chapter III: The Pulse", 0x00ccff),
+            "chapter4": ("Chapter IV: The Abyss", 0xffcc00),
+            "chapter5": ("Chapter V: The Rift", 0xff6600),
+            "chapter6": ("Chapter VI: Radiance", 0xcc00ff),
+            "chapter7": ("Chapter VII: The Idols of Steel", 0x00ffff),
+            "chapter8": ("Chapter VIII: The Exarchs", 0xffff00),
+            "epilogue": ("Epilogue: W#!sp*r of th3 [ERROR_CODE_11]", 0x330033)
+        }
+
+        title, color = chapter_info.get(chapter_key, ("Unknown Chapter", 0x666666))
+
+        # Split content if too long for Discord embed
+        if len(chapter_content) > 4000:
+            # Take first part
+            content = chapter_content[:4000] + "..."
+        else:
+            content = chapter_content
+
+        embed = discord.Embed(
+            title=title,
+            description=content,
+            color=color
+        )
+
+        if chapter_key == "epilogue":
+            embed.set_footer(text="⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE")
+        else:
+            embed.set_footer(text="The Song of Steel and Stars - A Chronicle of the Mech Ascension")
+
+        await channel.send(embed=embed, ephemeral=True)
+
+
+class MechSelectionView(View):
+    """View with buttons for each unlocked mech."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', current_level: int):
+        super().__init__(timeout=None)
+        self.cog = cog_instance
+        self.current_level = current_level
+
+        from services.mech.evolution_config_manager import get_evolution_config_manager
+        config_manager = get_evolution_config_manager()
+
+        # Add button for each unlocked mech (max 25 buttons total, 5 per row)
+        for level in range(1, min(current_level + 1, 11)):
+            evolution_info = config_manager.get_evolution_level(level)
+            if evolution_info:
+                button = MechDisplayButton(cog_instance, level, evolution_info.name, unlocked=True)
+                self.add_item(button)
+
+        # Add "Next" button for shadow/epilogue
+        next_level = current_level + 1
+        if next_level <= 10:
+            evolution_info = config_manager.get_evolution_level(next_level)
+            if evolution_info:
+                button = MechDisplayButton(cog_instance, next_level, "Next", unlocked=False)
+                self.add_item(button)
+        elif current_level == 10:
+            # Show epilogue button
+            button = EpilogueButton(cog_instance)
+            self.add_item(button)
+
+
+class MechDisplayButton(Button):
+    """Button to display a specific mech."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', level: int, label_text: str, unlocked: bool):
+        self.cog = cog_instance
+        self.level = level
+        self.unlocked = unlocked
+
+        super().__init__(
+            style=discord.ButtonStyle.primary if unlocked else discord.ButtonStyle.secondary,
+            label=f"{level}" if unlocked else label_text,
+            custom_id=f"mech_display_{level}"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        """Display the mech with Read Story button."""
+        try:
+            from services.mech.evolution_config_manager import get_evolution_config_manager
+            from services.mech.animation_cache_service import get_animation_cache_service
+            import io
+
+            config_manager = get_evolution_config_manager()
+            cache_service = get_animation_cache_service()
+            evolution_info = config_manager.get_evolution_level(self.level)
+
+            if not evolution_info:
+                await interaction.response.send_message("❌ Mech data not found.", ephemeral=True)
+                return
+
+            if self.unlocked:
+                # Show unlocked mech with animation
+                cached_path = cache_service.get_cached_animation_path(self.level)
+
+                if cached_path.exists():
+                    with open(cached_path, 'rb') as f:
+                        animation_bytes = f.read()
+                else:
+                    cache_service.pre_generate_animation(self.level)
+                    with open(cached_path, 'rb') as f:
+                        animation_bytes = f.read()
+
+                embed = discord.Embed(
+                    title=f"✅ Level {self.level}: {evolution_info.name}",
+                    description=f"*{evolution_info.description}*",
+                    color=int(evolution_info.color.replace('#', ''), 16)
+                )
+
+                filename = f"mech_level_{self.level}.webp"
+                file = discord.File(io.BytesIO(animation_bytes), filename=filename)
+
+                # Create view with Read Story button
+                view = MechStoryView(self.cog, self.level)
+                await interaction.response.send_message(embed=embed, file=file, view=view, ephemeral=True)
+            else:
+                # Show shadow mech
+                shadow_bytes = MechHistoryButtonHelper._create_shadow_animation(self.level)
+
+                from services.mech.mech_service import get_mech_service
+                mech_service = get_mech_service()
+                current_total_donations = float(mech_service.get_state().total_donated)
+                needed_amount = max(0, evolution_info.base_cost - current_total_donations)
+
+                if needed_amount > 0:
+                    needed_text = f"**Need ${needed_amount:.2f} more to unlock**".rstrip('0').rstrip('.')
+                    needed_text = needed_text.replace('.00', '')
+                else:
+                    needed_text = "**Ready to unlock!**"
+
+                embed = discord.Embed(
+                    title=f"🔒 Level {self.level}: {evolution_info.name}",
+                    description=f"*Next Evolution: {evolution_info.description}*\n{needed_text}",
+                    color=0x444444
+                )
+
+                filename = f"mech_shadow_{self.level}.webp"
+                file = discord.File(io.BytesIO(shadow_bytes), filename=filename)
+
+                # Create view with Read Story button
+                view = MechStoryView(self.cog, self.level)
+                await interaction.response.send_message(embed=embed, file=file, view=view, ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"Error displaying mech {self.level}: {e}", exc_info=True)
+            await interaction.response.send_message("❌ Error loading mech.", ephemeral=True)
+
+
+class EpilogueButton(Button):
+    """Button to show the epilogue."""
+
+    def __init__(self, cog_instance: 'DockerControlCog'):
+        self.cog = cog_instance
+
+        super().__init__(
+            style=discord.ButtonStyle.danger,
+            label="Epilogue",
+            custom_id="epilogue_button"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        """Show corrupted epilogue."""
+        try:
+            epilogue_text = """**Epilogue: W#!sp*r of th3 [ERROR_CODE_11]**
+
+C3n†ur!3§ l4†3r, th3 m3chs 4r3… [D4T4 C0RRUPT].
+†h3 Husk§ l!3 ru§t!ng !n s!l3nt f!3lds.
+C0r3w4lk3rs = mu§3um r3l!cs.
+†!†4ns → du§t.
+Gu4rd!4ns → myths.
+…y3t, in th3 ru!ns, §t0r!es endure.
+0ld s0ld!ers wh!§per — b3trayal, desp@@ir.
+Ch!ldr3n l34rn hymn§ 0f Rad!ance.
+P!lgr!ms pray → Ascendants long turn3d t0 a§h.
+&& a fragi— h0pe l!ngers: s0m3h0w… af†3r wars, af†3r death… hum4n!ty m!ght rise.
+But — in d4rk bunk3rs, where cracked r4d!os hum w/ §tat!c…
+…an0ther story i§ t0ld.
+…b3y0nd Exarchs.
+…b3y0nd gods.
+…b3y0nd sta—rs.
+N0t savior. N0t destroyer.
+Fin4lity i†self.
+They call it [███DATA??%&CORRUPT███].
+And those who dare… sp34k its ████ do s0 only once.
+[### ERR_SEG_A] Tr4nsmissi0n… d3gr4ded. checksum fail… !@#!
+…fr4gm3nt…r3covered: "…vig…e…nere…" <<<
+(ignore? no value? [redacted])
+[### ERR_SEG_B] packet loss… ??? mismatch length.
+"KEY…=…4…" [system note: truncated]
+⚠️ W4RN!NG: SIGNAL integrity = unstable
+[SYSTEM_F4!L] [c0nnection lost] [███shut███]"""
+
+            embed = discord.Embed(
+                title="💀 Epilogue: W#!sp*r of th3 [ERROR_CODE_11]",
+                description=epilogue_text,
+                color=0x330033
+            )
+            embed.set_footer(text="⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE")
+
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"Error showing epilogue: {e}", exc_info=True)
+            await interaction.response.send_message("❌ Error loading epilogue.", ephemeral=True)
+
+
+class MechStoryView(View):
+    """View with Read Story button."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', level: int):
+        super().__init__(timeout=None)
+        self.cog = cog_instance
+        self.level = level
+        self.add_item(ReadStoryButton(cog_instance, level))
+
+
+class ReadStoryButton(Button):
+    """Button to read the story chapter for a mech."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', level: int):
+        self.cog = cog_instance
+        self.level = level
+
+        super().__init__(
+            style=discord.ButtonStyle.success,
+            label="Read Story",
+            custom_id=f"read_story_{level}"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        """Show the story chapter."""
+        try:
+            # Load story chapters
+            from services.mech.mech_service import get_mech_service
+            story_chapters = {}
+            story_content = """[STORY CONTENT PLACEHOLDER]"""
+
+            # Parse chapters (using existing method from MechHistoryButton)
+            # For now, use the existing helper
+            mech_button = MechHistoryButton(self.cog, 0)
+            story_chapters = mech_button._load_epic_story_chapters()
+
+            # Get chapter key for this level
+            chapter_key = mech_button._get_chapter_key_for_level(self.level)
+
+            if chapter_key and chapter_key in story_chapters:
+                chapter_content = story_chapters[chapter_key]
+
+                # Get chapter info
+                chapter_info = {
+                    "prologue1": ("Prologue I: The Dying Light", 0x2b2b2b),
+                    "prologue2": ("Prologue II: Scars That Walk", 0x444444),
+                    "chapter1": ("Chapter I: The Standard", 0x888888),
+                    "chapter2": ("Chapter II: The Hunger", 0x0099cc),
+                    "chapter3": ("Chapter III: The Pulse", 0x00ccff),
+                    "chapter4": ("Chapter IV: The Abyss", 0xffcc00),
+                    "chapter5": ("Chapter V: The Rift", 0xff6600),
+                    "chapter6": ("Chapter VI: Radiance", 0xcc00ff),
+                    "chapter7": ("Chapter VII: The Idols of Steel", 0x00ffff),
+                    "chapter8": ("Chapter VIII: The Exarchs", 0xffff00),
+                    "epilogue": ("Epilogue: W#!sp*r of th3 [ERROR_CODE_11]", 0x330033)
+                }
+
+                title, color = chapter_info.get(chapter_key, ("Story Chapter", 0x666666))
+
+                # Split if too long
+                if len(chapter_content) > 4000:
+                    chapter_content = chapter_content[:4000] + "..."
+
+                embed = discord.Embed(
+                    title=title,
+                    description=chapter_content,
+                    color=color
+                )
+                embed.set_footer(text="The Song of Steel and Stars - A Chronicle of the Mech Ascension")
+
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+            else:
+                await interaction.response.send_message("📖 No story chapter available for this mech yet.", ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"Error showing story for level {self.level}: {e}", exc_info=True)
+            await interaction.response.send_message("❌ Error loading story.", ephemeral=True)
+
+
+class MechHistoryButtonHelper:
+    """Helper methods for MechHistoryButton."""
+
+    @staticmethod
+    def _create_shadow_animation(evolution_level: int = 1) -> bytes:
+        """Create a static black silhouette from cached WebP animation."""
+        from PIL import Image
+        import io
+
+        try:
+            # Use the pre-generated cached WebP (already cropped and optimized!)
+            from services.mech.animation_cache_service import get_animation_cache_service
+            cache_service = get_animation_cache_service()
+
+            cached_path = cache_service.get_cached_animation_path(evolution_level)
+
+            if cached_path.exists():
+                # Load the first frame of the cached WebP animation
+                with Image.open(cached_path) as cached_webp:
+                    # Get first frame (already perfectly cropped and sized!)
+                    first_frame = cached_webp.copy().convert('RGBA')
+
+                    # Create silhouette: keep transparent pixels transparent, make all others black
+                    silhouette_data = []
+                    for pixel in first_frame.getdata():
+                        r, g, b, a = pixel
+                        if a == 0:
+                            # Keep transparent pixels transparent
+                            silhouette_data.append((0, 0, 0, 0))
+                        else:
+                            # Make all non-transparent pixels black
+                            silhouette_data.append((0, 0, 0, min(180, a)))  # Semi-transparent black
+
+                    # Create silhouette image (same size as cached WebP!)
+                    silhouette_img = Image.new('RGBA', first_frame.size)
+                    silhouette_img.putdata(silhouette_data)
+
+                    # Save as static WebP
+                    buffer = io.BytesIO()
+                    silhouette_img.save(
+                        buffer,
+                        format='WebP',
+                        lossless=True,
+                        quality=100
+                    )
+                    buffer.seek(0)
+                    return buffer.getvalue()
+
+            else:
+                # Return a placeholder if cache doesn't exist
+                logger.warning(f"No cached WebP for evolution level {evolution_level}")
+                img = Image.new('RGBA', (128, 128), (0, 0, 0, 180))
+                buffer = io.BytesIO()
+                img.save(buffer, format='WebP', lossless=True)
+                buffer.seek(0)
+                return buffer.getvalue()
+
+        except Exception as e:
+            logger.error(f"Error creating shadow animation: {e}")
+            # Return a simple black square as fallback
+            img = Image.new('RGBA', (128, 128), (0, 0, 0, 180))
+            buffer = io.BytesIO()
+            img.save(buffer, format='WebP', lossless=True)
+            buffer.seek(0)
+            return buffer.getvalue()
