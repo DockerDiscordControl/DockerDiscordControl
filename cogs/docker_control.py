@@ -120,7 +120,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         cache_duration = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', '30'))
         self.cache_ttl_seconds = int(cache_duration * 2.5)
         self.pending_actions: Dict[str, Dict[str, Any]] = {}
-        
+        self.pending_actions_lock = asyncio.Lock()  # Protect concurrent access
+
         # Docker query cooldown tracking
         self.last_docker_query = {}  # Track last query time per container
         self.docker_query_cooldown = int(os.environ.get('DDC_DOCKER_QUERY_COOLDOWN', '2'))
@@ -1743,11 +1744,15 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 from services.mech.mech_service import MECH_LEVELS
                 next_name = None
                 if mech_state.next_level_threshold is not None:
-                    # Find next level name from MECH_LEVELS
-                    for level_info in MECH_LEVELS:
-                        if level_info.threshold == mech_state.next_level_threshold:
-                            next_name = level_info.name
-                            break
+                    # For Level 10+, use corrupted name from service instead of MECH_LEVELS
+                    if mech_state.level >= 10:
+                        next_name = "ERR#R: [DATA_C0RR*PTED]"
+                    else:
+                        # Find next level name from MECH_LEVELS for normal levels
+                        for level_info in MECH_LEVELS:
+                            if level_info.threshold == mech_state.next_level_threshold:
+                                next_name = level_info.name
+                                break
                 
                 evolution = {
                     'name': mech_state.level_name,
@@ -1851,7 +1856,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 
                 if evolution.get('next_name'):
                     next_evolution_name = translate(evolution['next_name'])
-                    mech_status += f"⬆️ {next_evolution_name}\n`{next_bar}` {next_percentage:.1f}%"
+
+                    # Special handling for corrupted Level 11 data
+                    if "ERR#R" in next_evolution_name or "DATA_C0RR*PTED" in next_evolution_name:
+                        # Create corrupted progress bar (26 chars - 4 less than normal bar)
+                        corrupted_bar = "░#░*░░░#*░░#░░*░#░*░░░#*░░"  # Exactly 26 characters
+                        # Corrupt the percentage display but keep the real number
+                        corrupted_percentage = f"#{next_percentage:.1f}%&"
+                        mech_status += f"⚠️ {next_evolution_name}\n`{corrupted_bar}` {corrupted_percentage}"
+                    else:
+                        mech_status += f"⬆️ {next_evolution_name}\n`{next_bar}` {next_percentage:.1f}%"
                 else:
                     max_evolution_text = translate("MAX EVOLUTION REACHED!")
                     mech_status += f"🌟 {max_evolution_text}"

@@ -254,13 +254,15 @@ class ActionButton(Button):
             return
 
         logger.info(f"[ACTION_BTN] {self.action.upper()} action for '{self.display_name}' triggered by {user.name}")
-        
-        self.cog.pending_actions[self.display_name] = {
-            'action': self.action,
-            'timestamp': datetime.now(timezone.utc),
-            'user': str(user)
-        }
-        
+
+        # Thread-safe access to pending_actions
+        async with self.cog.pending_actions_lock:
+            self.cog.pending_actions[self.display_name] = {
+                'action': self.action,
+                'timestamp': datetime.now(timezone.utc),
+                'user': str(user)
+            }
+
         try:
             pending_embed = _get_pending_embed(self.display_name)
             await interaction.edit_original_response(embed=pending_embed, view=None)
@@ -278,9 +280,11 @@ class ActionButton(Button):
                     from services.docker_service.docker_utils import docker_action
                     success = await docker_action(self.docker_name, self.action)
                     logger.info(f"[ACTION_BTN] Docker {self.action} for '{self.display_name}' completed: success={success}")
-                    
-                    if self.display_name in self.cog.pending_actions:
-                        del self.cog.pending_actions[self.display_name]
+
+                    # Thread-safe removal from pending_actions
+                    async with self.cog.pending_actions_lock:
+                        if self.display_name in self.cog.pending_actions:
+                            del self.cog.pending_actions[self.display_name]
                     
                     server_config_for_update = next((s for s in config.get('servers', []) if s.get('name') == self.display_name), None)
                     if server_config_for_update:
@@ -310,15 +314,21 @@ class ActionButton(Button):
                         
                 except Exception as e:
                     logger.error(f"[ACTION_BTN] Error in background Docker {self.action}: {e}")
-                    if self.display_name in self.cog.pending_actions:
-                        del self.cog.pending_actions[self.display_name]
-            
-            asyncio.create_task(run_docker_action())
+                    # Thread-safe removal from pending_actions
+                    async with self.cog.pending_actions_lock:
+                        if self.display_name in self.cog.pending_actions:
+                            del self.cog.pending_actions[self.display_name]
+
+            # Create task and handle exceptions properly
+            task = asyncio.create_task(run_docker_action())
+            task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
             
         except Exception as e:
             logger.error(f"[ACTION_BTN] Error handling {self.action} for '{self.display_name}': {e}")
-            if self.display_name in self.cog.pending_actions:
-                del self.cog.pending_actions[self.display_name]
+            # Thread-safe removal from pending_actions
+            async with self.cog.pending_actions_lock:
+                if self.display_name in self.cog.pending_actions:
+                    del self.cog.pending_actions[self.display_name]
 
 # =============================================================================
 # ULTRA-OPTIMIZED TOGGLE BUTTON CLASS WITH ALL 6 OPTIMIZATIONS
@@ -393,8 +403,11 @@ class ToggleButton(Button):
                 await interaction.response.send_message(_("Error: Could not load configuration to process this action."), ephemeral=True)
                 return
             
-            # Check if container is in pending status
-            if self.display_name in self.cog.pending_actions:
+            # Check if container is in pending status (thread-safe)
+            async with self.cog.pending_actions_lock:
+                is_pending = self.display_name in self.cog.pending_actions
+
+            if is_pending:
                 logger.debug(f"[TOGGLE_BTN] '{self.display_name}' is in pending status, show pending embed")
                 pending_embed = _get_pending_embed(self.display_name)
                 if pending_embed:
@@ -556,8 +569,11 @@ class ControlView(View):
         docker_name = server_config.get('docker_name')
         display_name = server_config.get('name', docker_name)
 
-        # Check for pending status
-        if display_name in self.cog.pending_actions:
+        # Check for pending status (thread-safe)
+        async with self.cog.pending_actions_lock:
+            is_pending = display_name in self.cog.pending_actions
+
+        if is_pending:
             logger.debug(f"[ControlView] Server '{display_name}' is pending. No buttons will be added.")
             return
 

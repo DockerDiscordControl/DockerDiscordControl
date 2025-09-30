@@ -87,16 +87,25 @@ class _Store:
         return data
 
     def save(self, data: Dict[str, Any]) -> None:
+        tmp = None
         try:
             # Try atomic write with temp file
             tmp = self.path.with_suffix(self.path.suffix + ".tmp")
             with tmp.open("w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             tmp.replace(self.path)
+            tmp = None  # Successfully replaced, no cleanup needed
         except PermissionError:
             # Fallback: direct write (less safe but works with restricted permissions)
             with self.path.open("w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
+        finally:
+            # Clean up temp file if it still exists
+            if tmp and tmp.exists():
+                try:
+                    tmp.unlink()
+                except Exception:
+                    pass  # Best effort cleanup
 
 
 # ---------------------------
@@ -188,8 +197,14 @@ class MechService:
 
     def add_donation(self, username: str, amount: int, ts_iso: Optional[str] = None) -> MechState:
         """Persist a donation and return the fresh state."""
+        if not isinstance(amount, int):
+            raise TypeError("amount must be an integer")
         if amount <= 0:
             raise ValueError("amount must be a positive integer number of dollars")
+        if amount > 1000000:
+            raise ValueError("amount exceeds maximum allowed value (1,000,000)")
+        if not username or len(username) > 100:
+            raise ValueError("username must be between 1 and 100 characters")
 
         ts = self._now() if ts_iso is None else self._parse_iso(ts_iso)
         data = self.store.load()
