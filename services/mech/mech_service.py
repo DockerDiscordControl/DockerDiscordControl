@@ -8,6 +8,7 @@ from typing import List, Optional, Dict, Any
 import json
 import math
 import logging
+import threading
 
 logger = logging.getLogger(__name__)
 
@@ -159,6 +160,7 @@ class MechService:
         self.tz = ZoneInfo(tz)
         self.member_count_cache = None  # Cache for member count
         self.dynamic_thresholds = None  # Cache for dynamic thresholds
+        self._store_lock = threading.Lock()  # Protect load-modify-save operations
 
     # -------- Public API --------
     
@@ -207,14 +209,18 @@ class MechService:
             raise ValueError("username must be between 1 and 100 characters")
 
         ts = self._now() if ts_iso is None else self._parse_iso(ts_iso)
-        data = self.store.load()
-        data.setdefault("donations", [])
-        data["donations"].append({
-            "username": username,
-            "amount": int(amount),
-            "ts": ts.isoformat(),
-        })
-        self.store.save(data)
+
+        # Thread-safe load-modify-save
+        with self._store_lock:
+            data = self.store.load()
+            data.setdefault("donations", [])
+            data["donations"].append({
+                "username": username,
+                "amount": int(amount),
+                "ts": ts.isoformat(),
+            })
+            self.store.save(data)
+
         return self.get_state(now_iso=ts.isoformat())
     
     async def add_donation_with_bot(self, username: str, amount: int, bot=None, ts_iso: Optional[str] = None) -> MechState:
@@ -239,16 +245,17 @@ class MechService:
                 logger.error(f"Error checking monthly member cache: {e}")
                 # Continue with existing cache
 
-        # Fast path: Record donation immediately
+        # Fast path: Record donation immediately (thread-safe)
         ts = self._now() if ts_iso is None else self._parse_iso(ts_iso)
-        data = self.store.load()
-        data.setdefault("donations", [])
-        data["donations"].append({
-            "username": username,
-            "amount": int(amount),
-            "ts": ts.isoformat(),
-        })
-        self.store.save(data)
+        with self._store_lock:
+            data = self.store.load()
+            data.setdefault("donations", [])
+            data["donations"].append({
+                "username": username,
+                "amount": int(amount),
+                "ts": ts.isoformat(),
+            })
+            self.store.save(data)
         
         # Get state for Discord sharing
         new_state = self.get_state(now_iso=ts.isoformat())

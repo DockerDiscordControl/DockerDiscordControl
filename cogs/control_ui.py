@@ -265,7 +265,11 @@ class ActionButton(Button):
 
         try:
             pending_embed = _get_pending_embed(self.display_name)
-            await interaction.edit_original_response(embed=pending_embed, view=None)
+            try:
+                await interaction.edit_original_response(embed=pending_embed, view=None)
+            except (discord.NotFound, discord.HTTPException) as e:
+                logger.warning(f"[ACTION_BTN] Interaction expired/invalid for {self.display_name}: {e}")
+                return
             
             log_user_action(
                 action=f"DOCKER_{self.action.upper()}", 
@@ -306,9 +310,12 @@ class ActionButton(Button):
                                 force_collapse=False,
                                 show_cache_age=False
                             )
-                            
+
                             if embed:
-                                await interaction.edit_original_response(embed=embed, view=view)
+                                try:
+                                    await interaction.edit_original_response(embed=embed, view=view)
+                                except (discord.NotFound, discord.HTTPException) as e:
+                                    logger.warning(f"[ACTION_BTN] Interaction expired during update for {self.display_name}: {e}")
                     except Exception as e:
                         logger.error(f"[ACTION_BTN] Error updating message after {self.action}: {e}")
                         
@@ -1150,8 +1157,12 @@ class MechExpandButton(Button):
             view = MechView(self.cog, self.channel_id)
 
             # Edit the message in place
-            await interaction.edit_original_response(embed=embed, view=view)
-                
+            try:
+                await interaction.edit_original_response(embed=embed, view=view)
+            except (discord.NotFound, discord.HTTPException) as e:
+                logger.warning(f"Interaction expired while expanding mech for channel {self.channel_id}: {e}")
+                return
+
             logger.info(f"Mech status expanded for channel {self.channel_id} by {interaction.user.name}")
             
         except Exception as e:
@@ -1247,8 +1258,12 @@ class MechCollapseButton(Button):
             view = MechView(self.cog, self.channel_id)
 
             # Edit the message in place
-            await interaction.edit_original_response(embed=embed, view=view)
-                
+            try:
+                await interaction.edit_original_response(embed=embed, view=view)
+            except (discord.NotFound, discord.HTTPException) as e:
+                logger.warning(f"Interaction expired while collapsing mech for channel {self.channel_id}: {e}")
+                return
+
             logger.info(f"Mech status collapsed for channel {self.channel_id} by {interaction.user.name}")
             
         except Exception as e:
