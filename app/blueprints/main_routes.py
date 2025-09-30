@@ -1948,7 +1948,7 @@ def get_mech_difficulty():
         return jsonify({
             'success': True,
             'difficulty_multiplier': difficulty_multiplier,
-            'manual_override_active': manual_override_active,
+            'manual_override': manual_override_active,  # Use consistent naming for frontend
             'current_level': current_level,
             'next_level': next_level,
             'next_level_name': next_level_info.name if next_level_info else "MAX LEVEL",
@@ -1979,26 +1979,41 @@ def set_mech_difficulty():
             return jsonify({'success': False, 'error': 'Missing difficulty_multiplier parameter'}), 400
         
         difficulty_multiplier = float(data['difficulty_multiplier'])
-        
+        manual_override = bool(data.get('manual_override', False))
+
         # Validate range (Level 2 must stay between $5-$50)
         if not (0.25 <= difficulty_multiplier <= 2.5):
             return jsonify({'success': False, 'error': 'Difficulty multiplier must be between 0.25 and 2.5'}), 400
-        
-        # Save the new difficulty
-        success = config_manager.set_difficulty_multiplier(difficulty_multiplier)
+
+        # Save the new difficulty and manual override status
+        if manual_override:
+            success = config_manager.set_difficulty_multiplier(difficulty_multiplier)
+        else:
+            # If manual override is disabled, reset to automatic mode
+            success = config_manager.reset_to_automatic_difficulty()
         
         if success:
             # Log the action
-            log_user_action(
-                action="SET_MECH_DIFFICULTY",
-                target=f"Multiplier: {difficulty_multiplier}x",
-                details=f"Changed mech evolution difficulty to {difficulty_multiplier}x"
-            )
-            
+            if manual_override:
+                log_user_action(
+                    action="SET_MECH_DIFFICULTY",
+                    target=f"Multiplier: {difficulty_multiplier}x (Manual Override)",
+                    details=f"Changed mech evolution difficulty to {difficulty_multiplier}x with manual override enabled"
+                )
+                message = f'Manual difficulty set to {difficulty_multiplier}x'
+            else:
+                log_user_action(
+                    action="RESET_MECH_DIFFICULTY",
+                    target="Automatic Mode",
+                    details="Disabled manual override - returned to automatic difficulty adjustment"
+                )
+                message = 'Returned to automatic difficulty adjustment'
+
             return jsonify({
                 'success': True,
-                'difficulty_multiplier': difficulty_multiplier,
-                'message': f'Difficulty set to {difficulty_multiplier}x'
+                'difficulty_multiplier': config_manager.get_difficulty_multiplier(),
+                'manual_override_active': config_manager.is_manual_difficulty_override_active(),
+                'message': message
             })
         else:
             return jsonify({'success': False, 'error': 'Failed to save difficulty setting'}), 500

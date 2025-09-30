@@ -239,6 +239,19 @@
                                     <i class="bi bi-gear-wide-connected"></i> Mech Evolution Difficulty
                                 </h6>
                             </div>
+                            <div class="col-12">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="mech_manual_difficulty_override" name="mech_manual_difficulty_override" value="true">
+                                    <label class="form-check-label" for="mech_manual_difficulty_override">
+                                        <i class="bi bi-sliders"></i> Manual Difficulty Override
+                                        <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Enable to manually control difficulty. When disabled, the system automatically adjusts difficulty based on community size. When enabled, your manual settings override the automatic system."></i>
+                                    </label>
+                                </div>
+                                <div class="form-text mb-3">
+                                    <strong>OFF:</strong> <span class="text-success">Automatic difficulty adjustment based on community size</span><br>
+                                    <strong>ON:</strong> <span class="text-warning">Manual control overrides automatic system</span>
+                                </div>
+                            </div>
                             <div class="col-md-8">
                                 <label class="form-label">Evolution Cost Multiplier <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Adjusts the difficulty of mech evolution costs. Lower values make evolution cheaper, higher values make it more expensive. Level 2 cost ranges from $5 (0.25x) to $50 (2.5x)."></i></label>
                                 <div class="d-flex align-items-center gap-3">
@@ -538,11 +551,11 @@ function updateDifficultyDisplay() {
     const difficultyValue = document.getElementById('difficultyValue');
     const levelCostPreview = document.getElementById('levelCostPreview');
     const levelCostDetails = document.getElementById('levelCostDetails');
-    
+
     if (slider && difficultyValue) {
         const multiplier = parseFloat(slider.value);
         difficultyValue.textContent = multiplier.toFixed(2) + 'x';
-        
+
         // Update slider thumb color based on difficulty
         if (multiplier < 0.75) {
             slider.style.accentColor = '#28a745'; // Green for easy
@@ -551,11 +564,11 @@ function updateDifficultyDisplay() {
         } else {
             slider.style.accentColor = '#dc3545'; // Red for hard
         }
-        
+
         // Update level cost preview with current multiplier
         if (window.baseMechData) {
             const newCost = Math.round(window.baseMechData.base_cost * multiplier * (window.baseMechData.total_multiplier / window.baseMechData.difficulty_multiplier));
-            
+
             if (window.baseMechData.is_max_level) {
                 levelCostPreview.textContent = `MAX LEVEL REACHED`;
                 levelCostDetails.textContent = `(All evolutions completed)`;
@@ -565,6 +578,9 @@ function updateDifficultyDisplay() {
             }
         }
     }
+
+    // Auto-enable manual override when slider is used
+    enableManualOverride();
 }
 
 function setDifficulty(value) {
@@ -572,6 +588,8 @@ function setDifficulty(value) {
     if (slider) {
         slider.value = value;
         updateDifficultyDisplay();
+        // Auto-enable manual override when buttons are used
+        enableManualOverride();
     }
 }
 
@@ -586,7 +604,13 @@ async function loadDifficultyMultiplier() {
             
             if (slider && data.difficulty_multiplier !== undefined) {
                 slider.value = data.difficulty_multiplier;
-                
+
+                // Load manual override toggle status
+                const manualOverrideToggle = document.getElementById('mech_manual_difficulty_override');
+                if (manualOverrideToggle && data.manual_override !== undefined) {
+                    manualOverrideToggle.checked = data.manual_override;
+                }
+
                 // Store base data for calculations
                 window.baseMechData = {
                     current_level: data.current_level || 1,
@@ -598,7 +622,8 @@ async function loadDifficultyMultiplier() {
                     community_tier: data.community_tier || 'MEDIUM',
                     total_multiplier: data.total_multiplier || 1.0,
                     difficulty_multiplier: data.difficulty_multiplier || 1.0,
-                    is_max_level: data.is_max_level || false
+                    is_max_level: data.is_max_level || false,
+                    manual_override: data.manual_override || false
                 };
                 
                 // Initial display update
@@ -622,13 +647,18 @@ async function loadDifficultyMultiplier() {
 
 async function saveMechDifficulty(difficultyMultiplier) {
     try {
+        // Get manual override toggle status
+        const manualOverrideToggle = document.getElementById('mech_manual_difficulty_override');
+        const manualOverride = manualOverrideToggle ? manualOverrideToggle.checked : false;
+
         const response = await fetch('/api/mech/difficulty', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                difficulty_multiplier: difficultyMultiplier
+                difficulty_multiplier: difficultyMultiplier,
+                manual_override: manualOverride
             })
         });
         
@@ -655,11 +685,21 @@ async function saveMechDifficulty(difficultyMultiplier) {
 
 function showNotification(message, type = 'info') {
     // Simple notification function - could be enhanced with toasts
-    const alertClass = type === 'success' ? 'alert-success' : 
+    const alertClass = type === 'success' ? 'alert-success' :
                       type === 'error' ? 'alert-danger' : 'alert-info';
-    
+
     // You could implement proper toast notifications here
     console.log(`[${type.toUpperCase()}] ${message}`);
+}
+
+// ======= Manual Difficulty Override Functions =======
+
+function enableManualOverride() {
+    const manualOverrideToggle = document.getElementById('mech_manual_difficulty_override');
+    if (manualOverrideToggle && !manualOverrideToggle.checked) {
+        manualOverrideToggle.checked = true;
+        console.log('Manual difficulty override automatically enabled');
+    }
 }
 
 </script>
