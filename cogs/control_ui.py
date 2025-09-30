@@ -236,9 +236,14 @@ class ActionButton(Button):
             
         user = interaction.user
         await interaction.response.defer()
-        
+
+        # Check if channel exists
+        if not interaction.channel:
+            await interaction.followup.send(_("Error: Could not determine channel."), ephemeral=True)
+            return
+
         channel_has_control = _get_cached_channel_permission(interaction.channel.id, 'control', config)
-        
+
         if not channel_has_control:
             await interaction.followup.send(_("This action is not allowed in this channel."), ephemeral=True)
             return
@@ -906,9 +911,14 @@ class TaskDeleteButton(Button):
         
         try:
             await interaction.response.defer(ephemeral=True)
-            
+
+            # Check if channel exists
+            if not interaction.channel:
+                await interaction.followup.send(_("Error: Could not determine channel."), ephemeral=True)
+                return
+
             from services.scheduling.scheduler import load_tasks, delete_task
-            
+
             config = load_config()
             if not _get_cached_channel_permission(interaction.channel.id, 'schedule', config):
                 await interaction.followup.send(_("You do not have permission to delete tasks in this channel."), ephemeral=True)
@@ -1068,7 +1078,8 @@ class HelpButton(Button):
             logger.error(f"Error showing help: {e}", exc_info=True)
             try:
                 await interaction.response.send_message("❌ Error showing help information.", ephemeral=True)
-            except:
+            except Exception:
+                # Interaction may have already been responded to or expired
                 pass
 
 class MechExpandButton(Button):
@@ -1131,7 +1142,8 @@ class MechExpandButton(Button):
             logger.error(f"Error expanding mech status: {e}", exc_info=True)
             try:
                 await interaction.followup.send("❌ Error expanding mech status.", ephemeral=True)
-            except:
+            except Exception:
+                # Interaction may have already expired
                 pass
     
     async def _create_expanded_ss_embed(self):
@@ -1227,7 +1239,8 @@ class MechCollapseButton(Button):
             logger.error(f"Error collapsing mech status: {e}", exc_info=True)
             try:
                 await interaction.followup.send("❌ Error collapsing mech status.", ephemeral=True)
-            except:
+            except Exception:
+                # Interaction may have already expired
                 pass
     
     async def _create_collapsed_ss_embed(self):
@@ -1571,7 +1584,8 @@ class MechHistoryButton(Button):
                     fallback_file = os.path.join(os.path.dirname(__file__), '..', 'services', 'mech', 'mech_story.txt')
                     with open(fallback_file, 'r', encoding='utf-8') as f:
                         story_content = f.read()
-                except:
+                except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
+                    logger.error(f"Failed to load English fallback story: {e}")
                     story_content = "Error: Story content could not be loaded."
             else:
                 story_content = "Error: Story content could not be loaded."

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import List, Optional, Dict, Any
@@ -283,7 +283,7 @@ class MechService:
                 title="💰 New Donation Received!",
                 description=f"**{display_name}** donated **${amount}**",
                 color=0x00ff00,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
             
             embed.add_field(
@@ -409,8 +409,17 @@ class MechService:
 
         # Compose bars & glvl
         # Get next level from dynamic levels
+        # For Level 10+: Show corrupted/hacked Level 11 data as easter egg
         try:
-            nxt = dynamic_levels[lvl.level] if lvl.level < len(dynamic_levels) else None
+            if lvl.level >= 10:
+                # Create corrupted OMEGA MECH entry for Level 10 users
+                from types import SimpleNamespace
+                nxt = SimpleNamespace()
+                nxt.level = 11
+                nxt.name = "ERR#R: [DATA_C0RR*PTED]"
+                nxt.threshold = 10000  # Real threshold for percentage calculation
+            else:
+                nxt = dynamic_levels[lvl.level] if lvl.level < len(dynamic_levels) else None
         except IndexError:
             nxt = None
         
