@@ -1705,6 +1705,12 @@ class MechHistoryButton(Button):
                     story_chapters[current_chapter] = '\n'.join(current_content)
                 current_chapter = "chapter8"
                 current_content = [section]
+            # Chapter IX (EN/DE/FR)
+            elif section.startswith('Chapter IX:') or section.startswith('Kapitel IX:') or section.startswith('Chapitre IX'):
+                if current_chapter:
+                    story_chapters[current_chapter] = '\n'.join(current_content)
+                current_chapter = "chapter9"
+                current_content = [section]
             # Epilogue (EN/DE/FR + corrupted variant)
             elif section.startswith('Epilogue:') or section.startswith('Epilog:') or section.startswith('Épilogue:') or section.startswith('3p!l0gu3:'):
                 if current_chapter:
@@ -1734,7 +1740,8 @@ class MechHistoryButton(Button):
         # Chapter VI: Level 8 (Radiant Bastions)
         # Chapter VII: Level 9 (Overlord Ascendants)
         # Chapter VIII: Level 10 (Celestial Exarchs)
-        # Epilogue: Level 11 (corrupted omega hints)
+        # Chapter IX: Level 11 (Omega Mech - The Prayer)
+        # Epilogue: Corrupted future hints
 
         mapping = {
             1: "prologue1",  # Rustborn Husks
@@ -1747,7 +1754,7 @@ class MechHistoryButton(Button):
             8: "chapter6",   # Radiant Bastions
             9: "chapter7",   # Overlord Ascendants
             10: "chapter8",  # Celestial Exarchs
-            11: "epilogue"   # Corrupted Omega hints
+            11: "chapter9",  # Omega Mech (The Prayer)
         }
         return mapping.get(level, None)
 
@@ -1767,6 +1774,7 @@ class MechHistoryButton(Button):
             "chapter6": ("Chapter VI: Radiance", 0xcc00ff),
             "chapter7": ("Chapter VII: The Idols of Steel", 0x00ffff),
             "chapter8": ("Chapter VIII: The Exarchs", 0xffff00),
+            "chapter9": ("Chapter IX: The Prayer of the Omega", 0xff00ff),
             "epilogue": ("Epilogue: W#!sp*r of th3 [ERROR_CODE_11]", 0x330033)
         }
 
@@ -1804,23 +1812,23 @@ class MechSelectionView(View):
         from services.mech.evolution_config_manager import get_evolution_config_manager
         config_manager = get_evolution_config_manager()
 
-        # Add button for each unlocked mech (Level 1-10 only, NO Level 11)
-        for level in range(1, min(current_level + 1, 11)):  # 11 to include up to Level 10
+        # Add button for each unlocked mech (Level 1-11)
+        for level in range(1, min(current_level + 1, 12)):  # 12 to include up to Level 11
             evolution_info = config_manager.get_evolution_level(level)
             if evolution_info:
                 button = MechDisplayButton(cog_instance, level, evolution_info.name, unlocked=True)
                 self.add_item(button)
 
-        # Add "Next" button for shadow preview (only for levels < 10)
+        # Add "Next" button for shadow preview (only for levels < 11)
         next_level = current_level + 1
-        if next_level <= 10:
+        if next_level <= 11:
             evolution_info = config_manager.get_evolution_level(next_level)
             if evolution_info:
                 button = MechDisplayButton(cog_instance, next_level, "Next", unlocked=False)
                 self.add_item(button)
 
-        # Always show Epilogue button at Level 10+ (no Level 11 preview)
-        if current_level >= 10:
+        # Show Epilogue button at Level 11 (max level)
+        if current_level >= 11:
             button = EpilogueButton(cog_instance)
             self.add_item(button)
 
@@ -2039,6 +2047,7 @@ class ReadStoryButton(Button):
                     "chapter6": ("Chapter VI: Radiance", 0xcc00ff),
                     "chapter7": ("Chapter VII: The Idols of Steel", 0x00ffff),
                     "chapter8": ("Chapter VIII: The Exarchs", 0xffff00),
+                    "chapter9": ("Chapter IX: The Prayer of the Omega", 0xff00ff),
                     "epilogue": ("Epilogue: W#!sp*r of th3 [ERROR_CODE_11]", 0x330033)
                 }
 

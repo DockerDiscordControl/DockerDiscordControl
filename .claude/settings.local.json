@@ -1,12 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(DDC_WEB_PORT=5001 python3:*)",
-      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\n🔧 Update multi-language story parsing + content refinements\n\nParser Updates:\n- Support for German chapter headers (Prolog, Kapitel, Epilog)\n- Support for French chapter headers (Prologue, Chapitre, Épilogue)\n- All three languages now properly detected and parsed\n\nStory Content Refinements (DE/FR):\n- Minor text improvements for natural flow\n- Fixed terminology consistency\n- Better dramatic phrasing in key passages\n- Maintained semantic meaning across all versions\n\nCompatibility:\n- All story files remain structurally compatible\n- Chapter mapping works across EN/DE/FR\n- No breaking changes to existing functionality\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(docker ps:*)",
-      "Bash(python3:*)",
-      "Bash(git commit:*)"
+      "Bash(git reset:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []
