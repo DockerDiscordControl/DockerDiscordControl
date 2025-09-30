@@ -372,7 +372,7 @@ class MechService:
         for d in donations:
             ts = self._parse_iso(d["ts"])
             if last_ts is not None:
-                Power = max(0.0, Power - self._decay_amount(last_ts, ts))
+                Power = max(0.0, Power - self._decay_amount(last_ts, ts, lvl.level))
             last_ts = ts
 
             amount = int(d["amount"])
@@ -427,7 +427,7 @@ class MechService:
                 pass
             else:
                 # Normal decay from last donation
-                Power = max(0.0, Power - self._decay_amount(last_ts, now))
+                Power = max(0.0, Power - self._decay_amount(last_ts, now, lvl.level))
 
         # Compose bars & glvl
         # Get next level from dynamic levels
@@ -528,7 +528,7 @@ class MechService:
             
             # Apply decay from last donation to current donation
             if last_ts is not None:
-                Power = max(0.0, Power - self._decay_amount(last_ts, ts))
+                Power = max(0.0, Power - self._decay_amount(last_ts, ts, lvl.level))
             last_ts = ts
 
             amount = int(d["amount"])
@@ -570,7 +570,7 @@ class MechService:
             if last_evolution_ts == last_ts:
                 pass  # No decay if evolution just occurred
             else:
-                Power = max(0.0, Power - self._decay_amount(last_ts, now))
+                Power = max(0.0, Power - self._decay_amount(last_ts, now, lvl.level))
 
         return Power  # Return raw float with decimals
 
@@ -583,13 +583,13 @@ class MechService:
         dt = datetime.fromisoformat(s)
         return dt if dt.tzinfo else dt.replace(tzinfo=self.tz)
 
-    def _decay_amount(self, a: datetime, b: datetime, level: int = None) -> float:
+    def _decay_amount(self, a: datetime, b: datetime, level: int = 1) -> float:
         """Power consumption between a→b, level-specific decay rate (second-accurate).
 
         Args:
             a: Start time
             b: End time
-            level: Mech level (if None, uses current level)
+            level: Mech level (default: 1)
 
         Returns:
             Power decay amount based on level-specific decay_per_day
@@ -597,9 +597,6 @@ class MechService:
         sec = (b.astimezone(self.tz) - a.astimezone(self.tz)).total_seconds()
 
         # Get level-specific decay rate
-        if level is None:
-            level = self._calc_level(self._calc_donations())
-
         from services.mech.evolution_config_manager import get_evolution_config_manager
         config_mgr = get_evolution_config_manager()
         evolution = config_mgr.get_evolution_level(level)
