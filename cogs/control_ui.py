@@ -4,6 +4,7 @@
 import asyncio
 from services.config.config_service import load_config
 import discord
+import io
 import logging
 import time
 from datetime import datetime, timezone
@@ -1897,13 +1898,17 @@ And those who dare… sp34k its ████ do s0 only once.
 
 
 class MechStoryView(View):
-    """View with Read Story button."""
+    """View with Read Story button and optional Next Mech Preview button."""
 
     def __init__(self, cog_instance: 'DockerControlCog', level: int):
         super().__init__(timeout=None)
         self.cog = cog_instance
         self.level = level
         self.add_item(ReadStoryButton(cog_instance, level))
+
+        # Add foreshadowing button if there's a next level (not level 10)
+        if level < 10:
+            self.add_item(NextMechPreviewButton(cog_instance, level))
 
 
 class ReadStoryButton(Button):
@@ -1973,6 +1978,55 @@ class ReadStoryButton(Button):
         except Exception as e:
             logger.error(f"Error showing story for level {self.level}: {e}", exc_info=True)
             await interaction.response.send_message(_("❌ Error loading story."), ephemeral=True)
+
+
+class NextMechPreviewButton(Button):
+    """Button to show a shadowy preview of the next mech level."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', current_level: int):
+        self.cog = cog_instance
+        self.current_level = current_level
+        self.next_level = current_level + 1
+
+        super().__init__(
+            style=discord.ButtonStyle.secondary,
+            label=_("🔮 Glimpse the Future"),
+            custom_id=f"preview_next_mech_{current_level}"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        """Show a shadowy preview of the next mech level."""
+        try:
+            from services.mech.mech_service import get_mech_service
+            mech_service = get_mech_service()
+
+            # Get evolution info for next level
+            evolution_info = mech_service.get_evolution_info(self.next_level)
+            if not evolution_info:
+                await interaction.response.send_message(_("❓ The future is unclear..."), ephemeral=True)
+                return
+
+            # Create shadow animation for next level
+            shadow_bytes = MechHistoryButtonHelper._create_shadow_animation(self.next_level)
+
+            # Create embed with mysterious teaser
+            embed = discord.Embed(
+                title=_("🔮 A Vision of What's to Come..."),
+                description=f"*{_('Whispers speak of')} **{_(evolution_info.name)}***\n\n{_('A shadowy form emerges from the void, hinting at power yet to be unlocked...')}",
+                color=0x1a1a1a  # Dark gray/black
+            )
+
+            # Add the shadow image
+            file_obj = discord.File(fp=io.BytesIO(shadow_bytes), filename=f"mech_{self.next_level}_shadow.webp")
+            embed.set_image(url=f"attachment://mech_{self.next_level}_shadow.webp")
+
+            embed.set_footer(text=_("🌟 Continue evolving to reveal its true form"))
+
+            await interaction.response.send_message(embed=embed, file=file_obj, ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"Error showing next mech preview for level {self.current_level}: {e}", exc_info=True)
+            await interaction.response.send_message(_("❌ The vision fades..."), ephemeral=True)
 
 
 class MechHistoryButtonHelper:
