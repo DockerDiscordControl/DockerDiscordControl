@@ -569,9 +569,9 @@ class ControlView(View):
         docker_name = server_config.get('docker_name')
         display_name = server_config.get('name', docker_name)
 
-        # Check for pending status (thread-safe)
-        async with self.cog.pending_actions_lock:
-            is_pending = display_name in self.cog.pending_actions
+        # Check for pending status (simple read in __init__, race acceptable here)
+        # Lock not used because __init__ is synchronous and only reads
+        is_pending = display_name in self.cog.pending_actions
 
         if is_pending:
             logger.debug(f"[ControlView] Server '{display_name}' is pending. No buttons will be added.")
