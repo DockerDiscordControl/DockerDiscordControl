@@ -1566,63 +1566,74 @@ class MechHistoryButton(Button):
             else:
                 story_content = "Error: Story content could not be loaded."
 
-        # Parse chapters
+        # Parse chapters - support EN/DE/FR
         sections = story_content.split('\n\n')
         current_chapter = None
         current_content = []
 
         for section in sections:
-            if section.startswith('Prologue I:'):
+            # Prologue I (EN/DE/FR)
+            if section.startswith('Prologue I:') or section.startswith('Prolog I:'):
                 if current_chapter:
                     story_chapters[current_chapter] = '\n'.join(current_content)
                 current_chapter = "prologue1"
                 current_content = [section]
-            elif section.startswith('Prologue II:'):
+            # Prologue II (EN/DE/FR)
+            elif section.startswith('Prologue II:') or section.startswith('Prolog II:'):
                 if current_chapter:
                     story_chapters[current_chapter] = '\n'.join(current_content)
                 current_chapter = "prologue2"
                 current_content = [section]
-            elif section.startswith('Chapter I:'):
+            # Chapter I (EN/DE/FR)
+            elif section.startswith('Chapter I:') or section.startswith('Kapitel I:') or section.startswith('Chapitre I'):
                 if current_chapter:
                     story_chapters[current_chapter] = '\n'.join(current_content)
                 current_chapter = "chapter1"
                 current_content = [section]
-            elif section.startswith('Chapter II:'):
+            # Chapter II (EN/DE/FR)
+            elif section.startswith('Chapter II:') or section.startswith('Kapitel II:') or section.startswith('Chapitre II'):
                 if current_chapter:
                     story_chapters[current_chapter] = '\n'.join(current_content)
                 current_chapter = "chapter2"
                 current_content = [section]
-            elif section.startswith('Chapter III:'):
+            # Chapter III (EN/DE/FR)
+            elif section.startswith('Chapter III:') or section.startswith('Kapitel III:') or section.startswith('Chapitre III'):
                 if current_chapter:
                     story_chapters[current_chapter] = '\n'.join(current_content)
                 current_chapter = "chapter3"
                 current_content = [section]
-            elif section.startswith('Chapter IV:'):
+            # Chapter IV (EN/DE/FR)
+            elif section.startswith('Chapter IV:') or section.startswith('Kapitel IV:') or section.startswith('Chapitre IV'):
                 if current_chapter:
                     story_chapters[current_chapter] = '\n'.join(current_content)
                 current_chapter = "chapter4"
                 current_content = [section]
-            elif section.startswith('Chapter V:'):
+            # Chapter V (EN/DE/FR)
+            elif section.startswith('Chapter V:') or section.startswith('Kapitel V:') or section.startswith('Chapitre V'):
                 if current_chapter:
                     story_chapters[current_chapter] = '\n'.join(current_content)
                 current_chapter = "chapter5"
                 current_content = [section]
-            elif section.startswith('Chapter VI:'):
+            # Chapter VI (EN/DE/FR)
+            elif section.startswith('Chapter VI:') or section.startswith('Kapitel VI:') or section.startswith('Chapitre VI'):
                 if current_chapter:
                     story_chapters[current_chapter] = '\n'.join(current_content)
                 current_chapter = "chapter6"
                 current_content = [section]
-            elif section.startswith('Chapter VII:'):
+            # Chapter VII (EN/DE/FR)
+            elif section.startswith('Chapter VII:') or section.startswith('Kapitel VII:') or section.startswith('Chapitre VII'):
                 if current_chapter:
                     story_chapters[current_chapter] = '\n'.join(current_content)
                 current_chapter = "chapter7"
                 current_content = [section]
-            elif section.startswith('Chapter VIII:'):
+            # Chapter VIII (EN/DE/FR)
+            elif section.startswith('Chapter VIII:') or section.startswith('Kapitel VIII:') or section.startswith('Chapitre VIII'):
                 if current_chapter:
                     story_chapters[current_chapter] = '\n'.join(current_content)
                 current_chapter = "chapter8"
                 current_content = [section]
-            elif section.startswith('Epilogue:') or section.startswith('3p!l0gu3:'):
+            # Epilogue (EN/DE/FR + corrupted variant)
+            elif section.startswith('Epilogue:') or section.startswith('Epilog:') or section.startswith('Épilogue:') or section.startswith('3p!l0gu3:'):
                 if current_chapter:
                     story_chapters[current_chapter] = '\n'.join(current_content)
                 current_chapter = "epilogue"
