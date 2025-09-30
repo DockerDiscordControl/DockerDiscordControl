@@ -2,6 +2,7 @@
 """Control UI components for Discord interaction."""
 
 import asyncio
+from collections import OrderedDict
 from services.config.config_service import load_config
 import discord
 import logging
@@ -27,8 +28,8 @@ logger = get_module_logger('control_ui')
 _timestamp_format_cache = {}      # Cache for formatted timestamps
 _permission_cache = {}            # Cache for channel permissions
 _view_cache = {}                 # Cache for view objects
-_translation_cache = {}          # Cache for translations per language
-_box_element_cache = {}          # Cache for box header/footer per container
+_translation_cache = OrderedDict()  # Cache for translations (LRU via OrderedDict)
+_box_element_cache = OrderedDict()  # Cache for box elements (LRU via OrderedDict)
 _container_static_data = {}      # Cache for static container data
 _embed_pool = []                 # Pool für wiederverwendbare Embed-Objekte
 _view_template_cache = {}        # Cache for view templates per container state
@@ -75,19 +76,21 @@ def _get_cached_translations(lang: str) -> dict:
     if lang not in _translation_cache:
         _translation_cache[lang] = {
             'online_text': _("**Online**"),
-            'offline_text': _("**Offline**"), 
+            'offline_text': _("**Offline**"),
             'cpu_text': _("CPU"),
             'ram_text': _("RAM"),
             'uptime_text': _("Uptime"),
             'detail_denied_text': _("Detailed status not allowed."),
             'last_update_text': _("Last update")
         }
-        
-        # Prevent cache from growing too large (keep last 10 languages)
+
+        # LRU eviction: remove oldest entry if cache too large
         if len(_translation_cache) > 10:
-            oldest_key = next(iter(_translation_cache))
-            del _translation_cache[oldest_key]
-            
+            _translation_cache.popitem(last=False)  # Remove oldest (FIFO)
+    else:
+        # Move to end for LRU (most recently used)
+        _translation_cache.move_to_end(lang)
+
     return _translation_cache[lang]
 
 # =============================================================================
@@ -103,18 +106,22 @@ def _get_cached_box_elements(display_name: str, box_width: int = 28) -> dict:
         if len(header_text) > max_name_len:
             header_text = header_text[:max_name_len-1] + "… "
         padding_width = max(1, box_width - 1 - len(header_text))
-        
+
         _box_element_cache[cache_key] = {
             'header_line': f"┌{header_text}{'─' * padding_width}",
             'footer_line': f"└{'─' * (box_width - 1)}"
         }
-        
-        # Prevent cache from growing too large (keep last 50 entries)
+
+        # LRU eviction: remove oldest entries if cache too large
         if len(_box_element_cache) > 50:
-            keys_to_remove = list(_box_element_cache.keys())[:10]
-            for key in keys_to_remove:
-                del _box_element_cache[key]
-                
+            # Remove 10 oldest entries at once (batch cleanup)
+            for _ in range(10):
+                if len(_box_element_cache) > 50:
+                    _box_element_cache.popitem(last=False)
+    else:
+        # Move to end for LRU
+        _box_element_cache.move_to_end(cache_key)
+
     return _box_element_cache[cache_key]
 
 # =============================================================================
@@ -168,6 +175,17 @@ def _get_recycled_embed(description: str, color: int) -> discord.Embed:
 def _return_embed_to_pool(embed: discord.Embed):
     """Embed nach Nutzung zum Pool zurückgeben."""
     if len(_embed_pool) < 10:  # Max 10 Embeds im Pool
+        # Clean all embed attributes to prevent memory leaks
+        embed.clear_fields()
+        embed.title = None
+        embed.description = None
+        embed.url = None
+        embed.color = None
+        embed.timestamp = None
+        embed.remove_author()
+        embed.remove_footer()
+        embed.remove_image()
+        embed.remove_thumbnail()
         _embed_pool.append(embed)
 
 # =============================================================================

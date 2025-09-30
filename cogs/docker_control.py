@@ -319,7 +319,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         # Get default permissions from config
         default_perms = {}
 
-        for channel_id in list(self.channel_server_message_ids.keys()):
+        # Create snapshot to avoid TOCTOU issues with concurrent dict modifications
+        channel_ids_snapshot = list(self.channel_server_message_ids.keys())
+
+        for channel_id in channel_ids_snapshot:
+            # Re-check existence after snapshot (dict may have changed)
             if channel_id not in self.channel_server_message_ids or not self.channel_server_message_ids[channel_id]:
                 logger.debug(f"Direct Cog Periodic Edit Loop: Skipping channel {channel_id}, no server messages tracked or channel entry removed.")
                 continue
@@ -340,7 +344,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 self.last_message_update_time[channel_id] = {}
                 logger.info(f"Direct Cog Periodic Edit Loop: Initialized last_message_update_time for channel {channel_id}.")
 
-            for display_name in list(server_messages_in_channel.keys()):
+            # Create snapshot to avoid TOCTOU issues
+            display_names_snapshot = list(server_messages_in_channel.keys())
+
+            for display_name in display_names_snapshot:
+                # Re-check existence after snapshot
                 if display_name not in server_messages_in_channel:
                     logger.debug(f"Direct Cog Periodic Edit Loop: Server '{display_name}' no longer tracked in channel {channel_id}. Skipping.")
                     continue
