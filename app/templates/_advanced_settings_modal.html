@@ -322,6 +322,8 @@ document.addEventListener('DOMContentLoaded', function() {
         advancedModal.addEventListener('shown.bs.modal', function() {
             updateCacheTTL();
             updateKeyStatus();
+            // Load current difficulty and manual override status
+            loadDifficultyMultiplier();
             // Re-initialize tooltips in case they weren't ready before
             const modalTooltips = this.querySelectorAll('[data-bs-toggle="tooltip"]');
             [...modalTooltips].forEach(tooltip => {
@@ -340,7 +342,7 @@ function saveAdvancedSettings() {
     
     if (mainForm && advancedModal) {
         // Get all input fields from the advanced settings modal
-        const advancedInputs = advancedModal.querySelectorAll('input[name^="env_"], input[name="donation_disable_key"], input[name="mech_difficulty_multiplier"]');
+        const advancedInputs = advancedModal.querySelectorAll('input[name^="env_"], input[name="donation_disable_key"], input[name="mech_difficulty_multiplier"], input[name="mech_manual_difficulty_override"]');
         
         console.log(`Found ${advancedInputs.length} advanced inputs to copy`);
         
@@ -698,7 +700,16 @@ function enableManualOverride() {
     const manualOverrideToggle = document.getElementById('mech_manual_difficulty_override');
     if (manualOverrideToggle && !manualOverrideToggle.checked) {
         manualOverrideToggle.checked = true;
-        console.log('Manual difficulty override automatically enabled');
+        console.log('Manual difficulty override automatically enabled due to user interaction');
+
+        // Visual feedback
+        const label = manualOverrideToggle.closest('.form-check').querySelector('.form-check-label');
+        if (label) {
+            label.style.color = '#ffc107';
+            setTimeout(() => {
+                label.style.color = '';
+            }, 1000);
+        }
     }
 }
 
