@@ -80,9 +80,9 @@
       "power_max": 4000
     },
     "11": {
-      "name": "??? [CLASSIFIED]",
-      "description": "Beyond divinity. Beyond comprehension. A whisper in the void. Those who glimpse its form speak only in fragments: 'It does not fight... it unmakes.' Reality bends. Time fractures. The very fabric of existence trembles at its presence. This is not salvation. This is finality.",
-      "color": "#000000",
+      "name": "OMEGA MECH",
+      "description": "Reality-bending omnipotent war machine of the gods",
+      "color": "#ff00ff",
       "cost": 10000,
       "power_max": 10000
     }

@@ -1804,22 +1804,23 @@ class MechSelectionView(View):
         from services.mech.evolution_config_manager import get_evolution_config_manager
         config_manager = get_evolution_config_manager()
 
-        # Add button for each unlocked mech (Level 1-11, max 25 buttons total)
-        for level in range(1, min(current_level + 1, 12)):  # 12 to include Level 11
+        # Add button for each unlocked mech (Level 1-10 only, NO Level 11)
+        for level in range(1, min(current_level + 1, 11)):  # 11 to include up to Level 10
             evolution_info = config_manager.get_evolution_level(level)
             if evolution_info:
                 button = MechDisplayButton(cog_instance, level, evolution_info.name, unlocked=True)
                 self.add_item(button)
 
-        # Add "Next" button for shadow/epilogue
+        # Add "Next" button for shadow preview (only for levels < 10)
         next_level = current_level + 1
         if next_level <= 10:
             evolution_info = config_manager.get_evolution_level(next_level)
             if evolution_info:
                 button = MechDisplayButton(cog_instance, next_level, "Next", unlocked=False)
                 self.add_item(button)
-        elif current_level >= 10:
-            # Show epilogue button permanently at Level 10+
+
+        # Always show Epilogue button at Level 10+ (no Level 11 preview)
+        if current_level >= 10:
             button = EpilogueButton(cog_instance)
             self.add_item(button)
 
