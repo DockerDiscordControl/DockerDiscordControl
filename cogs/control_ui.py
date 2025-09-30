@@ -1804,8 +1804,8 @@ class MechSelectionView(View):
         from services.mech.evolution_config_manager import get_evolution_config_manager
         config_manager = get_evolution_config_manager()
 
-        # Add button for each unlocked mech (max 25 buttons total, 5 per row)
-        for level in range(1, min(current_level + 1, 11)):
+        # Add button for each unlocked mech (Level 1-11, max 25 buttons total)
+        for level in range(1, min(current_level + 1, 12)):  # 12 to include Level 11
             evolution_info = config_manager.get_evolution_level(level)
             if evolution_info:
                 button = MechDisplayButton(cog_instance, level, evolution_info.name, unlocked=True)
@@ -1818,8 +1818,8 @@ class MechSelectionView(View):
             if evolution_info:
                 button = MechDisplayButton(cog_instance, next_level, "Next", unlocked=False)
                 self.add_item(button)
-        elif current_level == 10:
-            # Show epilogue button
+        elif current_level >= 10:
+            # Show epilogue button permanently at Level 10+
             button = EpilogueButton(cog_instance)
             self.add_item(button)
 
@@ -2112,18 +2112,71 @@ class MechHistoryButtonHelper:
                     return buffer.getvalue()
 
             else:
-                # Return a placeholder if cache doesn't exist
-                logger.warning(f"No cached WebP for evolution level {evolution_level}")
-                img = Image.new('RGBA', (128, 128), (0, 0, 0, 180))
+                # Return a better placeholder if cache doesn't exist
+                logger.warning(f"No cached WebP for evolution level {evolution_level}, creating placeholder shadow")
+                # Create a larger, more visible shadow placeholder (512x512)
+                img = Image.new('RGBA', (512, 512), (0, 0, 0, 0))
+
+                # Draw a dark silhouette shape in the center
+                from PIL import ImageDraw
+                draw = ImageDraw.Draw(img)
+
+                # Draw a mech-like silhouette shape (centered hexagon/diamond)
+                center_x, center_y = 256, 256
+                size = 200
+
+                # Create a simple mech silhouette (diamond/hexagon shape)
+                points = [
+                    (center_x, center_y - size),           # Top
+                    (center_x + size//2, center_y - size//3),  # Upper right
+                    (center_x + size//2, center_y + size//3),  # Lower right
+                    (center_x, center_y + size),           # Bottom
+                    (center_x - size//2, center_y + size//3),  # Lower left
+                    (center_x - size//2, center_y - size//3),  # Upper left
+                ]
+
+                draw.polygon(points, fill=(0, 0, 0, 160))  # Semi-transparent black
+
+                # Add "?" in center to indicate unknown
+                from PIL import ImageFont
+                try:
+                    font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 120)
+                except:
+                    font = ImageFont.load_default()
+
+                text = "?"
+                # Get text bounding box for centering
+                bbox = draw.textbbox((0, 0), text, font=font)
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+                text_x = center_x - text_width // 2
+                text_y = center_y - text_height // 2 - 20
+
+                draw.text((text_x, text_y), text, fill=(80, 80, 80, 200), font=font)
+
                 buffer = io.BytesIO()
-                img.save(buffer, format='WebP', lossless=True)
+                img.save(buffer, format='WebP', lossless=True, quality=100)
                 buffer.seek(0)
                 return buffer.getvalue()
 
         except Exception as e:
-            logger.error(f"Error creating shadow animation: {e}")
-            # Return a simple black square as fallback
-            img = Image.new('RGBA', (128, 128), (0, 0, 0, 180))
+            logger.error(f"Error creating shadow animation: {e}", exc_info=True)
+            # Return a better fallback placeholder
+            from PIL import Image, ImageDraw, ImageFont
+            img = Image.new('RGBA', (512, 512), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+
+            # Simple dark circle as fallback
+            draw.ellipse([106, 106, 406, 406], fill=(0, 0, 0, 140))
+
+            # Add "?" text
+            try:
+                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 100)
+            except:
+                font = ImageFont.load_default()
+
+            draw.text((220, 180), "?", fill=(80, 80, 80, 200), font=font)
+
             buffer = io.BytesIO()
             img.save(buffer, format='WebP', lossless=True)
             buffer.seek(0)
