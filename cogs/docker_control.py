@@ -1898,8 +1898,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         # Power bar:  ░#░░░░#░░#░░░#░░░░#░░ (16x░, 5x#)
                         # Next bar:   ░░#░░#░░░░#░#░░░░#░░░ (16x░, 5x#) - different arrangement
                         corrupted_bar = "░░#░░#░░░░#░#░░░░#░░░"  # Exactly 21 characters
-                        # Corrupt the percentage display but keep the real number
-                        corrupted_percentage = f"#{next_percentage:.1f}%&"
+                        # For Level 11, force 100% display (max evolution reached)
+                        corrupted_percentage = "#100.0%&"
                         mech_status += f"⚠️ {next_evolution_name}\n`{corrupted_bar}` {corrupted_percentage}"
                     else:
                         mech_status += f"⬆️ {next_evolution_name}\n`{next_bar}` {next_percentage:.1f}%"
