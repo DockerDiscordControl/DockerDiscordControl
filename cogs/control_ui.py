@@ -228,7 +228,7 @@ class ActionButton(Button):
         
         super().__init__(style=style, label=label, custom_id=custom_id, row=row, emoji=emoji)
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Callback for Start, Stop, Restart actions."""
         # Check button-specific spam protection
         from services.infrastructure.spam_protection_service import get_spam_protection_service
@@ -386,7 +386,7 @@ class ToggleButton(Button):
             self._channel_permissions_cache[channel_id] = _get_cached_channel_permission(channel_id, 'control', current_config)
         return self._channel_permissions_cache[channel_id]
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """ULTRA-OPTIMIZED toggle function mit allen 6 Performance-Optimierungen."""
         # Check spam protection for toggle action
         from services.infrastructure.spam_protection_service import get_spam_protection_service
@@ -679,7 +679,7 @@ class InfoButton(Button):
             row=row
         )
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Display container info with admin buttons in control channels."""
         # Check spam protection for info button
         from services.infrastructure.spam_protection_service import get_spam_protection_service
@@ -928,7 +928,7 @@ class TaskDeleteButton(Button):
             row=row
         )
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Deletes the scheduled task."""
         # Check spam protection for task delete
         from services.infrastructure.spam_protection_service import get_spam_protection_service
@@ -1067,7 +1067,7 @@ class HelpButton(Button):
             row=0
         )
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Show help information when clicked."""
         try:
             # Apply spam protection
@@ -1138,7 +1138,7 @@ class MechExpandButton(Button):
             row=0
         )
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Expand mech status to show detailed information."""
         try:
             # Check if donations are disabled
@@ -1239,7 +1239,7 @@ class MechCollapseButton(Button):
             row=0
         )
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Collapse mech status to show only animation."""
         try:
             # Check if donations are disabled
@@ -1339,7 +1339,7 @@ class MechDonateButton(Button):
             row=0
         )
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Trigger the donate functionality."""
         try:
             # Call the existing donate interaction handler
@@ -1370,7 +1370,7 @@ class MechHistoryButton(Button):
             row=0
         )
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Show mech selection buttons."""
         try:
             # Apply spam protection
@@ -1838,7 +1838,7 @@ class MechDisplayButton(Button):
             custom_id=f"mech_display_{level}"
         )
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Display the mech with Read Story button."""
         try:
             # Check if donations are disabled
@@ -1928,7 +1928,7 @@ class EpilogueButton(Button):
             custom_id="epilogue_button"
         )
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Show corrupted epilogue."""
         try:
             # Check if donations are disabled
@@ -2002,7 +2002,7 @@ class ReadStoryButton(Button):
             custom_id=f"read_story_{level}"
         )
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Show the story chapter."""
         try:
             # Check if donations are disabled

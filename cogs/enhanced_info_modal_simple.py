@@ -101,7 +101,7 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
         )
         self.add_item(self.checkbox_show_ip)
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle modal submission."""
         logger.info(f"callback called for {self.container_name} by {interaction.user}")
         
@@ -326,7 +326,7 @@ class ProtectedInfoModal(discord.ui.Modal):
         )
         self.add_item(self.protected_password)
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle protected info modal submission."""
         logger.info(f"Protected info callback called for {self.container_name} by {interaction.user}")
         
@@ -466,7 +466,7 @@ class PasswordValidationModal(discord.ui.Modal):
         )
         self.add_item(self.password_input)
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle password validation."""
         logger.info(f"Password validation attempt for {self.container_name} by {interaction.user}")
         

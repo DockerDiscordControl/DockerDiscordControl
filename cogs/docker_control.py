@@ -3131,7 +3131,7 @@ class DonationBroadcastModal(discord.ui.Modal):
         )
         self.add_item(self.share_input)
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle modal submission."""
         logger.info(f"=== DONATION MODAL CALLBACK STARTED ===")
         logger.info(f"User: {interaction.user.name}, Raw inputs: name={self.name_input.value}, amount={self.amount_input.value}")

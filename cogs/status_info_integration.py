@@ -110,7 +110,7 @@ class ProtectedInfoEditButton(discord.ui.Button):
         self.info_config = info_config
         self.container_name = server_config.get('docker_name')
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle protected info edit button click."""
         # Check button cooldown first  
         from services.infrastructure.spam_protection_service import get_spam_protection_service
@@ -178,7 +178,7 @@ class EditInfoButton(discord.ui.Button):
         self.info_config = info_config
         self.container_name = server_config.get('docker_name')
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle edit info button click."""
         # Check button cooldown first  
         from services.infrastructure.spam_protection_service import get_spam_protection_service
@@ -652,7 +652,7 @@ class DebugLogsButton(discord.ui.Button):
         self.server_config = server_config
         self.container_name = server_config.get('docker_name')
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle debug logs button click with live-updating response."""
         # Check button cooldown first  
         from services.infrastructure.spam_protection_service import get_spam_protection_service
@@ -860,7 +860,7 @@ class StatusInfoButton(discord.ui.Button):
         self.info_config = info_config
         self.container_name = server_config.get('docker_name')
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle info button click - show ephemeral info embed."""
         try:
             await interaction.response.defer(ephemeral=True)
@@ -1046,7 +1046,7 @@ class ProtectedInfoButton(discord.ui.Button):
         self.info_config = info_config
         self.container_name = server_config.get('docker_name')
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle protected info button click - open password validation modal."""
         # Check button cooldown first  
         from services.infrastructure.spam_protection_service import get_spam_protection_service
@@ -1185,7 +1185,7 @@ class TaskManagementButton(discord.ui.Button):
         self.server_config = server_config
         self.container_name = server_config.get('docker_name')
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle task management button click."""
         try:
             # Check spam protection first
@@ -1305,7 +1305,7 @@ class AddTaskButton(discord.ui.Button):
         self.cog = cog_instance
         self.container_name = container_name
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Show task creation with dropdowns."""
         try:
             logger.info(f"AddTaskButton clicked for container: {self.container_name}")
@@ -1347,7 +1347,7 @@ class DeleteTasksButton(discord.ui.Button):
         self.cog = cog_instance
         self.container_name = container_name
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Open task delete panel using existing /task_delete_panel functionality."""
         try:
             await interaction.response.defer(ephemeral=True)
@@ -1483,7 +1483,7 @@ class CycleDropdown(discord.ui.Select):
         
         super().__init__(placeholder=_("Choose cycle type..."), options=options, row=0)
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle cycle selection and show action dropdown."""
         self.view.selected_cycle = self.values[0]
         
@@ -1522,7 +1522,7 @@ class ActionDropdown(discord.ui.Select):
         
         super().__init__(placeholder=_("Choose action..."), options=options, row=1)
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle action selection and show next dropdown based on cycle."""
         self.view.selected_action = self.values[0]
         
@@ -1586,7 +1586,7 @@ class SimpleMonthdayDropdown(discord.ui.Select):
         # Dynamic row assignment to avoid conflicts
         super().__init__(placeholder=_("Choose day..."), options=options[:25])
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle day selection."""
         self.view.selected_day = self.values[0]
         
@@ -1640,7 +1640,7 @@ class MonthDropdown(discord.ui.Select):
         # Dynamic row assignment
         super().__init__(placeholder=_("Choose month..."), options=options)
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle month selection."""
         self.view.selected_month = self.values[0]
         
@@ -1701,7 +1701,7 @@ class YearDropdown(discord.ui.Select):
         # Dynamic row assignment
         super().__init__(placeholder=_("Choose year..."), options=options)
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle year selection."""
         self.view.selected_year = self.values[0]
         
@@ -1740,7 +1740,7 @@ class TimeDropdown(discord.ui.Select):
         # Dynamic row assignment
         super().__init__(placeholder=_("Choose time..."), options=times[:24])
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle time selection - final step."""
         self.view.selected_time = self.values[0]
         self.view.check_ready()
@@ -1791,7 +1791,7 @@ class WeekdayDropdown(discord.ui.Select):
         # Dynamic row assignment
         super().__init__(placeholder=_("Choose weekday..."), options=options)
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle weekday selection."""
         self.view.selected_day = self.values[0]
         
@@ -1825,7 +1825,7 @@ class MonthdayDropdown(discord.ui.Select):
         
         super().__init__(placeholder="📅 Choose day of month...", options=options[:25], row=3)  # Max 25
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle monthday selection."""
         self.view.selected_day = self.values[0]
         self.view.check_ready()
@@ -1901,7 +1901,7 @@ class YeardayDropdown(discord.ui.Select):
         
         super().__init__(placeholder="📅 Choose yearly date or manual entry...", options=options[:25], row=3)
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle yearly date selection or show manual input."""
         if self.values[0] == "manual":
             # Use a message with instructions
@@ -1973,7 +1973,7 @@ class DaySelectDropdown(discord.ui.Select):
         
         super().__init__(placeholder="📅 Select Day (1-31)...", options=options[:25], row=0)
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle day selection."""
         self.view.selected_day_part = self.values[0].zfill(2)
         
@@ -2001,7 +2001,7 @@ class MonthSelectDropdown(discord.ui.Select):
         
         super().__init__(placeholder="📅 Select Month...", options=options, row=1)
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle month selection."""
         self.view.selected_month_part = self.values[0].zfill(2)
         
@@ -2023,7 +2023,7 @@ class ConfirmDateButton(discord.ui.Button):
             row=2
         )
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Confirm the date and update task view."""
         # Combine day and month
         date_str = f"{self.view.selected_day_part}.{self.view.selected_month_part}"
@@ -2087,7 +2087,7 @@ class DateDropdown(discord.ui.Select):
         
         super().__init__(placeholder="📅 Choose specific date...", options=options, row=3)
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Handle specific date selection."""
         self.view.selected_day = self.values[0]
         self.view.check_ready()
@@ -2113,7 +2113,7 @@ class CreateTaskButton(discord.ui.Button):
         self.cog = cog_instance
         self.container_name = container_name
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Directly create task with selected parameters."""
         # Validate all required fields
         missing = []
@@ -2363,7 +2363,7 @@ class ContainerTaskDeleteButton(discord.ui.Button):
         self.task_id = task_id
         self.description = description
     
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         """Delete the task."""
         try:
             await interaction.response.defer(ephemeral=True)
