@@ -34,17 +34,17 @@ class MechLevel:
 
 
 MECH_LEVELS: List[MechLevel] = [
-    MechLevel(1,  "SCRAP MECH",    0),
-    MechLevel(2,  "REPAIRED MECH", 20),
-    MechLevel(3,  "STANDARD MECH", 50),
-    MechLevel(4,  "ENHANCED MECH", 100),
-    MechLevel(5,  "ADVANCED MECH", 200),
-    MechLevel(6,  "ELITE MECH",    400),
-    MechLevel(7,  "CYBER MECH",    800),
-    MechLevel(8,  "PLASMA MECH",   1500),
-    MechLevel(9,  "QUANTUM MECH",  2500),
-    MechLevel(10, "DIVINE MECH",   4000),
-    MechLevel(11, "OMEGA MECH",    10000),
+    MechLevel(1,  "The Rustborn Husk",       0),
+    MechLevel(2,  "The Battle-Scarred Survivor", 20),
+    MechLevel(3,  "The Corewalker Standard", 50),
+    MechLevel(4,  "The Titanframe",          100),
+    MechLevel(5,  "The Pulseforged Guardian", 200),
+    MechLevel(6,  "The Abyss Engine",        400),
+    MechLevel(7,  "The Rift Strider",        800),
+    MechLevel(8,  "The Radiant Bastion",     1500),
+    MechLevel(9,  "The Overlord Ascendant",  2500),
+    MechLevel(10, "The Celestial Exarch",    4000),
+    MechLevel(11, "OMEGA MECH",              10000),
 ]
 
 
