@@ -100,12 +100,20 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         
         # Load persisted states
         state_data = self.mech_state_manager.load_state()
-        self.mech_expanded_states = {
-            int(k): v for k, v in state_data.get("mech_expanded_states", {}).items()
-        }
-        self.last_glvl_per_channel = {
-            int(k): v for k, v in state_data.get("last_glvl_per_channel", {}).items()
-        }
+        # Safe int conversion with error handling
+        self.mech_expanded_states = {}
+        for k, v in state_data.get("mech_expanded_states", {}).items():
+            try:
+                self.mech_expanded_states[int(k)] = v
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid channel ID in mech_expanded_states: {k}")
+
+        self.last_glvl_per_channel = {}
+        for k, v in state_data.get("last_glvl_per_channel", {}).items():
+            try:
+                self.last_glvl_per_channel[int(k)] = v
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid channel ID in last_glvl_per_channel: {k}")
         logger.info(f"Loaded persisted Mech states: {len(self.mech_expanded_states)} expanded, {len(self.last_glvl_per_channel)} Glvl tracked")
         
         self.expanded_states = {}  # For container expand/collapse
@@ -2400,7 +2408,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     
             # Get the heartbeat method and interval
             method = heartbeat_config.get('method', 'channel')
-            interval_minutes = int(heartbeat_config.get('interval', 60))
+            try:
+                interval_minutes = int(heartbeat_config.get('interval', 60))
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid heartbeat interval, using default 60 minutes")
+                interval_minutes = 60
     
             # Dynamically change interval if needed
             if self.heartbeat_send_loop.minutes != interval_minutes:
@@ -3257,7 +3269,8 @@ class DonationBroadcastModal(discord.ui.Modal):
                         # Get the cog instance from the bot
                         cog = interaction.client.get_cog('DockerControlCog')
                         if cog:
-                            asyncio.create_task(cog._update_all_overview_messages_after_donation())
+                            task = asyncio.create_task(cog._update_all_overview_messages_after_donation())
+                            task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
 
                 except Exception as e:
                     logger.error(f"Error processing donation: {e}")
