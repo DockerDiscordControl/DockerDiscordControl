@@ -1089,6 +1089,11 @@ class MechExpandButton(Button):
     async def callback(self, interaction: discord.Interaction):
         """Expand mech status to show detailed information."""
         try:
+            # Check if donations are disabled
+            if is_donations_disabled():
+                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                return
+
             # Apply spam protection
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
@@ -1103,7 +1108,7 @@ class MechExpandButton(Button):
                     await interaction.response.send_message(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
                     return
                 setattr(self, f'_last_click_{user_id}', current_time)
-            
+
             await interaction.response.defer()
             
             # Update expansion state
@@ -1180,6 +1185,11 @@ class MechCollapseButton(Button):
     async def callback(self, interaction: discord.Interaction):
         """Collapse mech status to show only animation."""
         try:
+            # Check if donations are disabled
+            if is_donations_disabled():
+                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                return
+
             # Apply spam protection
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
@@ -1194,7 +1204,7 @@ class MechCollapseButton(Button):
                     await interaction.response.send_message(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
                     return
                 setattr(self, f'_last_click_{user_id}', current_time)
-            
+
             await interaction.response.defer()
             
             # Update expansion state
@@ -1768,6 +1778,11 @@ class MechDisplayButton(Button):
     async def callback(self, interaction: discord.Interaction):
         """Display the mech with Read Story button."""
         try:
+            # Check if donations are disabled
+            if is_donations_disabled():
+                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                return
+
             from services.mech.evolution_config_manager import get_evolution_config_manager
             from services.mech.animation_cache_service import get_animation_cache_service
             import io
@@ -1853,6 +1868,11 @@ class EpilogueButton(Button):
     async def callback(self, interaction: discord.Interaction):
         """Show corrupted epilogue."""
         try:
+            # Check if donations are disabled
+            if is_donations_disabled():
+                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                return
+
             epilogue_text = """**Epilogue: W#!sp*r of th3 [ERROR_CODE_11]**
 
 C3n†ur!3§ l4†3r, th3 m3chs 4r3… [D4T4 C0RRUPT].
@@ -1922,6 +1942,11 @@ class ReadStoryButton(Button):
     async def callback(self, interaction: discord.Interaction):
         """Show the story chapter."""
         try:
+            # Check if donations are disabled
+            if is_donations_disabled():
+                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                return
+
             # Load story chapters
             from services.mech.mech_service import get_mech_service
             story_chapters = {}
