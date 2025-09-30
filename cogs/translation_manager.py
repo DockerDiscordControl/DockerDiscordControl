@@ -601,6 +601,24 @@ class TranslationManager:
 
                 # Error messages
                 "Error during execution: {error}": "Fehler bei der Ausführung: {error}",
+
+                # Mech History translations
+                "🛡️ Mech Evolution History": "🛡️ Mech-Evolutionsgeschichte",
+                "The Song of Steel and Stars": "Das Lied von Stahl und Sternen",
+                "A Chronicle of the Mech Ascension": "Eine Chronik des Mech-Aufstiegs",
+                "Select a mech to view": "Wählen Sie einen Mech zur Ansicht",
+                "Read Story": "Geschichte lesen",
+                "Epilogue": "Epilog",
+                "Next Evolution": "Nächste Evolution",
+                "Need $": "Benötigt $",
+                "more to unlock": "mehr zum Freischalten",
+                "Ready to unlock!": "Bereit zum Freischalten!",
+                "Error loading mech history.": "Fehler beim Laden der Mech-Geschichte.",
+                "Error loading mech.": "Fehler beim Laden des Mechs.",
+                "Error loading story.": "Fehler beim Laden der Geschichte.",
+                "Error loading epilogue.": "Fehler beim Laden des Epilogs.",
+                "No story chapter available for this mech yet.": "Noch kein Geschichtskapitel für diesen Mech verfügbar.",
+                "Mech data not found.": "Mech-Daten nicht gefunden.",
             },
 
             # French
@@ -1530,8 +1548,26 @@ class TranslationManager:
                 "❤️ Heartbeat signal at {timestamp}": "❤️ Heartbeat signal at {timestamp}",
 
                 # Error messages
-                "Error during execution: {error}": "Error during execution: {error}",
-                
+                "Error during execution: {error}": "Erreur lors de l'exécution : {error}",
+
+                # Mech History translations
+                "🛡️ Mech Evolution History": "🛡️ Histoire de l'Évolution des Mechs",
+                "The Song of Steel and Stars": "Le Chant d'Acier et d'Étoiles",
+                "A Chronicle of the Mech Ascension": "Une Chronique de l'Ascension des Mechs",
+                "Select a mech to view": "Sélectionnez un mech à afficher",
+                "Read Story": "Lire l'Histoire",
+                "Epilogue": "Épilogue",
+                "Next Evolution": "Prochaine Évolution",
+                "Need $": "Nécessite $",
+                "more to unlock": "de plus pour débloquer",
+                "Ready to unlock!": "Prêt à débloquer !",
+                "Error loading mech history.": "Erreur lors du chargement de l'histoire des mechs.",
+                "Error loading mech.": "Erreur lors du chargement du mech.",
+                "Error loading story.": "Erreur lors du chargement de l'histoire.",
+                "Error loading epilogue.": "Erreur lors du chargement de l'épilogue.",
+                "No story chapter available for this mech yet.": "Aucun chapitre d'histoire disponible pour ce mech pour le moment.",
+                "Mech data not found.": "Données du mech introuvables.",
+
                 # Mech System translations (English)
                 "Mech-onate": "Mech-onate",
                 "Donation Engine": "Chargenate",

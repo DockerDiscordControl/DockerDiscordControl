@@ -1331,7 +1331,7 @@ class MechHistoryButton(Button):
 
         except Exception as e:
             logger.error(f"Error in mech history button: {e}", exc_info=True)
-            await interaction.response.send_message("❌ Error loading mech history.", ephemeral=True)
+            await interaction.response.send_message(_("❌ Error loading mech history."), ephemeral=True)
 
     async def _show_mech_selection(self, interaction: discord.Interaction, current_level: int):
         """Show buttons for each unlocked mech + next shadow mech."""
@@ -1339,8 +1339,8 @@ class MechHistoryButton(Button):
         from discord.ui import View, Button
 
         embed = discord.Embed(
-            title="🛡️ Mech Evolution History",
-            description=f"**The Song of Steel and Stars**\n*A Chronicle of the Mech Ascension*\n\nSelect a mech to view",
+            title=_("🛡️ Mech Evolution History"),
+            description=f"**{_('The Song of Steel and Stars')}**\n*{_('A Chronicle of the Mech Ascension')}*\n\n{_('Select a mech to view')}",
             color=0x00ff41
         )
 
@@ -1361,12 +1361,12 @@ class MechHistoryButton(Button):
         # Create main embed
         next_level = current_level + 1 if current_level < 10 else None
         if next_level:
-            description = f"**The Song of Steel and Stars**\n*A Chronicle of the Mech Ascension*\n\nShowing unlocked mechs (Level 1-{current_level}) + next goal (Level {next_level})\n*Epic tale unfolds with each evolution...*"
+            description = f"**{_('The Song of Steel and Stars')}**\n*{_('A Chronicle of the Mech Ascension')}*\n\nShowing unlocked mechs (Level 1-{current_level}) + next goal (Level {next_level})\n*Epic tale unfolds with each evolution...*"
         else:
-            description = f"**The Song of Steel and Stars**\n*A Chronicle of the Mech Ascension*\n\nShowing unlocked mechs (Level 1-{current_level})\n*The complete saga of mechanical evolution...*"
+            description = f"**{_('The Song of Steel and Stars')}**\n*{_('A Chronicle of the Mech Ascension')}*\n\nShowing unlocked mechs (Level 1-{current_level})\n*The complete saga of mechanical evolution...*"
 
         embed = discord.Embed(
-            title="🛡️ Mech Evolution History",
+            title=_("🛡️ Mech Evolution History"),
             description=description,
             color=0x00ff41
         )
@@ -1458,11 +1458,12 @@ class MechHistoryButton(Button):
                     needed_amount = max(0, evolution_info.base_cost - current_total_donations)
 
                     if needed_amount > 0:
-                        needed_text = f"**Need ${needed_amount:.2f} more to unlock**".rstrip('0').rstrip('.')
+                        formatted_amount = f"{needed_amount:.2f}".rstrip('0').rstrip('.')
                         # Clean up trailing .00
-                        needed_text = needed_text.replace('.00', '')
+                        formatted_amount = formatted_amount.replace('.00', '')
+                        needed_text = f"**{_('Need $')}{formatted_amount} {_('more to unlock')}**"
                     else:
-                        needed_text = "**Ready to unlock!**"
+                        needed_text = f"**{_('Ready to unlock!')}**"
 
                     embed = discord.Embed(
                         title=f"**Level {level}: {evolution_info.name}**",
@@ -1528,19 +1529,42 @@ class MechHistoryButton(Button):
         return f"```{encrypted}```"
 
     def _load_epic_story_chapters(self) -> dict:
-        """Load and parse the epic story chapters from external file."""
+        """Load and parse the epic story chapters from external file based on language."""
         story_chapters = {}
 
-        # Load story from external file
+        # Load story from external file based on current language
         import os
-        story_file = os.path.join(os.path.dirname(__file__), '..', 'services', 'mech', 'mech_story.txt')
+        from cogs.translation_manager import translation_manager
+
+        # Get current language (en, de, fr)
+        current_lang = translation_manager.get_current_language()
+
+        # Map language to story file
+        lang_file_map = {
+            'en': 'mech_story.txt',
+            'de': 'mech_story_de.txt',
+            'fr': 'mech_story_fr.txt'
+        }
+
+        # Default to English if language not found
+        story_filename = lang_file_map.get(current_lang, 'mech_story.txt')
+        story_file = os.path.join(os.path.dirname(__file__), '..', 'services', 'mech', story_filename)
+
         try:
             with open(story_file, 'r', encoding='utf-8') as f:
                 story_content = f.read()
         except Exception as e:
             logger.error(f"Failed to load mech story from {story_file}: {e}")
-            # Fallback: empty story if file loading fails
-            story_content = "Error: Story content could not be loaded."
+            # Fallback to English
+            if current_lang != 'en':
+                try:
+                    fallback_file = os.path.join(os.path.dirname(__file__), '..', 'services', 'mech', 'mech_story.txt')
+                    with open(fallback_file, 'r', encoding='utf-8') as f:
+                        story_content = f.read()
+                except:
+                    story_content = "Error: Story content could not be loaded."
+            else:
+                story_content = "Error: Story content could not be loaded."
 
         # Parse chapters
         sections = story_content.split('\n\n')
@@ -1742,7 +1766,7 @@ class MechDisplayButton(Button):
             evolution_info = config_manager.get_evolution_level(self.level)
 
             if not evolution_info:
-                await interaction.response.send_message("❌ Mech data not found.", ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech data not found."), ephemeral=True)
                 return
 
             if self.unlocked:
@@ -1779,10 +1803,11 @@ class MechDisplayButton(Button):
                 needed_amount = max(0, evolution_info.base_cost - current_total_donations)
 
                 if needed_amount > 0:
-                    needed_text = f"**Need ${needed_amount:.2f} more to unlock**".rstrip('0').rstrip('.')
-                    needed_text = needed_text.replace('.00', '')
+                    formatted_amount = f"{needed_amount:.2f}".rstrip('0').rstrip('.')
+                    formatted_amount = formatted_amount.replace('.00', '')
+                    needed_text = f"**{_('Need $')}{formatted_amount} {_('more to unlock')}**"
                 else:
-                    needed_text = "**Ready to unlock!**"
+                    needed_text = f"**{_('Ready to unlock!')}**"
 
                 embed = discord.Embed(
                     title=f"🔒 Level {self.level}: {evolution_info.name}",
@@ -1799,7 +1824,7 @@ class MechDisplayButton(Button):
 
         except Exception as e:
             logger.error(f"Error displaying mech {self.level}: {e}", exc_info=True)
-            await interaction.response.send_message("❌ Error loading mech.", ephemeral=True)
+            await interaction.response.send_message(_("❌ Error loading mech."), ephemeral=True)
 
 
 class EpilogueButton(Button):
@@ -1810,7 +1835,7 @@ class EpilogueButton(Button):
 
         super().__init__(
             style=discord.ButtonStyle.danger,
-            label="Epilogue",
+            label=_("Epilogue"),
             custom_id="epilogue_button"
         )
 
@@ -1857,7 +1882,7 @@ And those who dare… sp34k its ████ do s0 only once.
 
         except Exception as e:
             logger.error(f"Error showing epilogue: {e}", exc_info=True)
-            await interaction.response.send_message("❌ Error loading epilogue.", ephemeral=True)
+            await interaction.response.send_message(_("❌ Error loading epilogue."), ephemeral=True)
 
 
 class MechStoryView(View):
@@ -1879,7 +1904,7 @@ class ReadStoryButton(Button):
 
         super().__init__(
             style=discord.ButtonStyle.success,
-            label="Read Story",
+            label=_("Read Story"),
             custom_id=f"read_story_{level}"
         )
 
@@ -1932,11 +1957,11 @@ class ReadStoryButton(Button):
 
                 await interaction.response.send_message(embed=embed, ephemeral=True)
             else:
-                await interaction.response.send_message("📖 No story chapter available for this mech yet.", ephemeral=True)
+                await interaction.response.send_message(_("📖 No story chapter available for this mech yet."), ephemeral=True)
 
         except Exception as e:
             logger.error(f"Error showing story for level {self.level}: {e}", exc_info=True)
-            await interaction.response.send_message("❌ Error loading story.", ephemeral=True)
+            await interaction.response.send_message(_("❌ Error loading story."), ephemeral=True)
 
 
 class MechHistoryButtonHelper:
