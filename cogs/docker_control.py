@@ -3260,13 +3260,19 @@ class DonationBroadcastModal(discord.ui.Modal):
                     if evolution_occurred:
                         logger.info(f"EVOLUTION! Level {old_evolution_level} → {new_evolution_level}")
 
-                    # Force update of mech animation in status channels when power changes
+                    # Force update of mech animation when level OR power changes
                     old_power = old_state.Power
                     new_power = new_state.Power
-                    if new_power != old_power:
-                        logger.info(f"Power changed from {old_power} to {new_power} - updating mech animations")
+                    level_changed = new_state.level != old_state.level
+                    power_changed = new_power != old_power
+
+                    if level_changed or power_changed:
+                        if level_changed:
+                            logger.info(f"Level changed from {old_state.level} to {new_state.level} - updating mech animations")
+                        if power_changed:
+                            logger.info(f"Power changed from {old_power} to {new_power} - updating mech animations")
+
                         # Trigger immediate update of all overview messages
-                        # Get the cog instance from the bot
                         cog = interaction.client.get_cog('DockerControlCog')
                         if cog:
                             task = asyncio.create_task(cog._update_all_overview_messages_after_donation())
