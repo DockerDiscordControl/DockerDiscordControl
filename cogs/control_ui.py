@@ -4,7 +4,6 @@
 import asyncio
 from services.config.config_service import load_config
 import discord
-import io
 import logging
 import time
 from datetime import datetime, timezone
