@@ -375,6 +375,7 @@ class TranslationManager:
                 "Power": "Energie",
                 "Power Consumption": "Energieverbrauch",
                 "No decay": "Kein Verbrauch",
+                "per_day_suffix": "/t",  # German: täglich
                 "Glvl": "Glvl",
                 "Power/Donate": "Mit Spende aufladen",
                 "Evolution level up - updating mech animation": "Evolution Level-Up - Mech Animation wird aktualisiert",
@@ -1181,6 +1182,7 @@ class TranslationManager:
                 "Power": "Énergie",
                 "Power Consumption": "Consommation d'énergie",
                 "No decay": "Aucune consommation",
+                "per_day_suffix": "/j",  # French: jour (day)
                 "Glvl": "Glvl",
                 "Power/Donate": "Donner pour recharger",
                 "Evolution level up - updating mech animation": "Montée de niveau d'évolution - mise à jour de l'animation du mech",
@@ -1609,6 +1611,7 @@ class TranslationManager:
                 "Power": "Power",
                 "Power Consumption": "Power Consumption",
                 "No decay": "No decay",
+                "per_day_suffix": "/d",  # English: day
                 "Glvl": "Glvl",
                 "Power/Donate": "Donate to Charge",
                 "Evolution level up - updating mech animation": "Evolution level up - updating mech animation",

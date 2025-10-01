@@ -1887,7 +1887,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 if decay_per_day == 0:
                     mech_status += f"{Power_consumption_text}: ⚡ {translate('No decay')}\n\n"
                 else:
-                    mech_status += f"{Power_consumption_text}: 🔻 {decay_per_day}/d\n\n"
+                    per_day_suffix = translate("per_day_suffix")
+                    mech_status += f"{Power_consumption_text}: 🔻 {decay_per_day}{per_day_suffix}\n\n"
 
                 if evolution.get('next_name'):
                     next_evolution_name = translate(evolution['next_name'])
