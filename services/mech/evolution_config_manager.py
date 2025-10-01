@@ -156,6 +156,42 @@ class EvolutionConfigManager:
         evolution_settings["manual_difficulty_override"] = False
         return self.save_config(config)
 
+    def update_difficulty_settings(self, difficulty_multiplier: float, manual_override: bool) -> Tuple[bool, str]:
+        """
+        Service method to handle difficulty setting with business logic.
+
+        Args:
+            difficulty_multiplier: The desired difficulty multiplier (0.25-2.5)
+            manual_override: Whether to enable manual override mode
+
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        try:
+            # Validate difficulty multiplier range (business rule)
+            if not (0.25 <= difficulty_multiplier <= 2.5):
+                return False, f"Difficulty multiplier must be between 0.25 and 2.5, got {difficulty_multiplier}"
+
+            # Business logic: Apply settings based on manual override preference
+            if manual_override:
+                # Enable manual mode with specified difficulty
+                success = self.set_difficulty_multiplier(difficulty_multiplier)
+                if success:
+                    return True, f"Manual difficulty set to {difficulty_multiplier}x"
+                else:
+                    return False, "Failed to save manual difficulty setting"
+            else:
+                # Disable manual mode and reset to automatic
+                success = self.reset_to_automatic_difficulty()
+                if success:
+                    return True, "Returned to automatic difficulty adjustment"
+                else:
+                    return False, "Failed to reset to automatic difficulty"
+
+        except Exception as e:
+            logger.error(f"Error updating difficulty settings: {e}")
+            return False, f"Internal error: {str(e)}"
+
     def get_evolution_level(self, level: int) -> Optional[EvolutionLevel]:
         """Get evolution level configuration."""
         config = self._load_config()

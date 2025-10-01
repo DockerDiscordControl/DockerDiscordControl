@@ -1981,33 +1981,23 @@ def set_mech_difficulty():
         difficulty_multiplier = float(data['difficulty_multiplier'])
         manual_override = bool(data.get('manual_override', False))
 
-        # Validate range (Level 2 must stay between $5-$50)
-        if not (0.25 <= difficulty_multiplier <= 2.5):
-            return jsonify({'success': False, 'error': 'Difficulty multiplier must be between 0.25 and 2.5'}), 400
+        # Use service method to handle business logic
+        success, message = config_manager.update_difficulty_settings(difficulty_multiplier, manual_override)
 
-        # Save the new difficulty and manual override status
-        if manual_override:
-            success = config_manager.set_difficulty_multiplier(difficulty_multiplier)
-        else:
-            # If manual override is disabled, reset to automatic mode
-            success = config_manager.reset_to_automatic_difficulty()
-        
         if success:
-            # Log the action
+            # Log the action based on the mode
             if manual_override:
                 log_user_action(
                     action="SET_MECH_DIFFICULTY",
                     target=f"Multiplier: {difficulty_multiplier}x (Manual Override)",
                     details=f"Changed mech evolution difficulty to {difficulty_multiplier}x with manual override enabled"
                 )
-                message = f'Manual difficulty set to {difficulty_multiplier}x'
             else:
                 log_user_action(
                     action="RESET_MECH_DIFFICULTY",
                     target="Automatic Mode",
                     details="Disabled manual override - returned to automatic difficulty adjustment"
                 )
-                message = 'Returned to automatic difficulty adjustment'
 
             return jsonify({
                 'success': True,
@@ -2016,7 +2006,7 @@ def set_mech_difficulty():
                 'message': message
             })
         else:
-            return jsonify({'success': False, 'error': 'Failed to save difficulty setting'}), 500
+            return jsonify({'success': False, 'error': message}), 400
         
     except ValueError:
         return jsonify({'success': False, 'error': 'Invalid difficulty multiplier value'}), 400
