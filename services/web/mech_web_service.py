@@ -268,8 +268,7 @@ class MechWebService:
             animation_bytes = animation_service.create_donation_animation_sync(
                 donor_name=donor_name,
                 amount=amount,
-                total_donated=total_donated or total_donations,
-                current_Power=current_power or total_donations
+                total_donations=total_donated or total_donations
             )
 
             return animation_bytes
