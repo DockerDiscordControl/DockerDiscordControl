@@ -622,6 +622,14 @@ async function loadDifficultyMultiplier() {
                 const manualOverrideToggle = document.getElementById('mech_manual_difficulty_override_standalone');
                 if (manualOverrideToggle && data.manual_override !== undefined) {
                     manualOverrideToggle.checked = data.manual_override;
+
+                    // Set initial disabled state based on manual override status
+                    const manualOverride = data.manual_override;
+                    slider.disabled = !manualOverride;
+
+                    // Also disable/enable difficulty buttons
+                    const buttons = document.querySelectorAll('button[onclick*="setDifficulty"]');
+                    buttons.forEach(btn => btn.disabled = !manualOverride);
                 }
 
                 // Store base data for calculations
@@ -712,9 +720,31 @@ async function saveMechOverrideToggle() {
         const manualOverrideToggle = document.getElementById('mech_manual_difficulty_override_standalone');
         const manualOverride = manualOverrideToggle ? manualOverrideToggle.checked : false;
 
-        // Get current difficulty value
+        // UX: Reset slider to normal (1.0x) when manual override is disabled
         const difficultySlider = document.getElementById('mech_difficulty_multiplier');
-        const difficultyMultiplier = difficultySlider ? parseFloat(difficultySlider.value) : 1.0;
+        let difficultyMultiplier;
+
+        if (!manualOverride) {
+            // Manual override OFF → Reset to normal (automatic mode)
+            difficultyMultiplier = 1.0;
+            if (difficultySlider) {
+                difficultySlider.value = 1.0;
+                difficultySlider.disabled = true; // Disable slider when override is OFF
+                updateDifficultyDisplay(); // Update UI to show 1.0x
+            }
+            // Disable difficulty buttons too
+            const buttons = document.querySelectorAll('button[onclick*="setDifficulty"]');
+            buttons.forEach(btn => btn.disabled = true);
+        } else {
+            // Manual override ON → Use current slider value
+            difficultyMultiplier = difficultySlider ? parseFloat(difficultySlider.value) : 1.0;
+            if (difficultySlider) {
+                difficultySlider.disabled = false; // Enable slider when override is ON
+            }
+            // Enable difficulty buttons too
+            const buttons = document.querySelectorAll('button[onclick*="setDifficulty"]');
+            buttons.forEach(btn => btn.disabled = false);
+        }
 
         console.log(`Saving manual override toggle: ${manualOverride} with difficulty: ${difficultyMultiplier}`);
 
