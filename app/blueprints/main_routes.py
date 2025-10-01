@@ -878,11 +878,16 @@ def save_config_api():
             # Handle mech-specific settings separately
             mech_settings_updated = False
             try:
-                # Check if mech difficulty settings are in the form data
-                mech_difficulty_multiplier = cleaned_form_data.get('mech_difficulty_multiplier')
-                mech_manual_override = cleaned_form_data.get('mech_manual_difficulty_override')
+                # Check if this is an advanced settings submission (contains mech-related fields)
+                # We need to handle this even if checkbox is unchecked (None), because
+                # unchecked checkboxes don't send any value in HTML forms
+                has_mech_difficulty = 'mech_difficulty_multiplier' in cleaned_form_data
+                has_mech_fields = any(key.startswith('mech_') for key in cleaned_form_data.keys())
 
-                if mech_difficulty_multiplier is not None or mech_manual_override is not None:
+                if has_mech_difficulty or has_mech_fields:
+                    # Get the values (checkbox will be None when unchecked)
+                    mech_difficulty_multiplier = cleaned_form_data.get('mech_difficulty_multiplier')
+                    mech_manual_override = cleaned_form_data.get('mech_manual_difficulty_override')
                     from services.mech.evolution_config_manager import get_evolution_config_manager
                     config_manager = get_evolution_config_manager()
 
