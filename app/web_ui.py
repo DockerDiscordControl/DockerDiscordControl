@@ -19,14 +19,14 @@ from services.config.config_service import load_config, save_config
 # Import auth from .auth
 from .auth import auth, init_limiter
 from app.utils.web_helpers import (
-    setup_action_logger, 
-    log_user_action, 
+    setup_action_logger,
     get_docker_containers_live,
     set_initial_password_from_env,
     ACTION_LOG_FILE,
     start_background_refresh,
     stop_background_refresh
 )
+from services.infrastructure.action_logger import log_user_action
 from app.utils.port_diagnostics import log_port_diagnostics
 # Import shared data class for active containers
 from app.utils.shared_data import load_active_containers_from_config
