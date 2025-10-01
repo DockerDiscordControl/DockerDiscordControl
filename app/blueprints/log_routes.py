@@ -6,242 +6,221 @@
 # Licensed under the MIT License                                               #
 # ============================================================================ #
 from flask import Blueprint, Response, current_app, request, jsonify
-import docker
-import logging
-import re
-from app.auth import auth 
+from app.auth import auth
 
 log_bp = Blueprint('log_bp', __name__)
 
 @log_bp.route('/container_logs/<container_name>')
 @auth.login_required
 def get_container_logs(container_name):
-    logger = current_app.logger
-    max_lines = 500  # Limit the number of log lines to return
-    
-    # Validate container name to prevent injection attacks
-    from utils.common_helpers import validate_container_name
-    if not validate_container_name(container_name):
-        logger.warning(f"Invalid container name requested: {container_name}")
-        return Response("Invalid container name", status=400, content_type="text/plain")
-
+    """Get container logs using ContainerLogService."""
     try:
-        # Initialize Docker client
-        # Use the recommended way to get a client that respects environment variables
-        client = docker.from_env()
+        # Use ContainerLogService for business logic
+        from services.web.container_log_service import get_container_log_service, ContainerLogRequest
 
-        # Get the container object
-        container = client.containers.get(container_name)
+        service = get_container_log_service()
+        request_obj = ContainerLogRequest(
+            container_name=container_name,
+            max_lines=500
+        )
 
-        # Fetch the logs
-        logs = container.logs(tail=max_lines, stdout=True, stderr=True)
+        # Get logs through service
+        result = service.get_container_logs(request_obj)
 
-        # The logs are returned as bytes, decode them to a string
-        logs_str = logs.decode('utf-8', errors='replace')
+        if result.success:
+            return Response(result.content, mimetype='text/plain')
+        else:
+            current_app.logger.warning(f"Container log request failed: {result.error}")
+            return Response(result.error, status=result.status_code, mimetype='text/plain')
 
-        return Response(logs_str, mimetype='text/plain')
-
-    except docker.errors.NotFound:
-        logger.warning(f"Log request for non-existent container: {container_name}")
-        return Response(f"Error: Container '{container_name}' not found.", status=404, mimetype='text/plain')
-    except docker.errors.APIError as e:
-        logger.error(f"Docker API error when fetching logs for {container_name}: {e}")
-        # Return a generic error to the user to avoid exposing internal details
-        return Response("Error: Could not retrieve logs due to a Docker API error.", status=500, mimetype='text/plain')
     except Exception as e:
-        logger.error(f"An unexpected error occurred when fetching logs for {container_name}: {e}", exc_info=True)
+        current_app.logger.error(f"Error in get_container_logs route: {e}", exc_info=True)
         return Response("An unexpected error occurred.", status=500, mimetype='text/plain')
 
 @log_bp.route('/bot_logs')
 @auth.login_required
 def get_bot_logs():
-    """Get bot logs from /app/logs/bot.log file"""
-    logger = current_app.logger
-    max_lines = 500
-    
+    """Get bot logs using ContainerLogService."""
     try:
-        import os
-        
-        # Try reading from bot.log file first
-        bot_log_path = '/app/logs/bot.log'
-        if os.path.exists(bot_log_path):
-            with open(bot_log_path, 'r', encoding='utf-8', errors='replace') as f:
-                lines = f.readlines()
-                # Get last max_lines
-                recent_lines = lines[-max_lines:] if len(lines) > max_lines else lines
-                logs_content = ''.join(recent_lines)
-                if logs_content.strip():
-                    return Response(logs_content, mimetype='text/plain')
-        
-        # Fallback: Get from container logs and filter for bot-specific messages
-        client = docker.from_env()
-        container = client.containers.get('dockerdiscordcontrol')
-        
-        # Get more logs to ensure we have enough after filtering
-        logs = container.logs(tail=max_lines*2, stdout=True, stderr=True)
-        logs_str = logs.decode('utf-8', errors='replace')
-        
-        # Filter for bot-specific logs (bot.py, cogs, discord.py)
-        filtered_lines = []
-        for line in logs_str.split('\n'):
-            if any(pattern in line.lower() for pattern in ['bot.py', 'cog', 'discord.py', 'discord bot', 'command', 'slash', 'cache', 'container', 'update']):
-                filtered_lines.append(line)
-        
-        # Limit to max_lines
-        filtered_logs = '\n'.join(filtered_lines[-max_lines:]) if filtered_lines else "No bot logs found"
-        
-        return Response(filtered_logs, mimetype='text/plain')
-        
+        # Use ContainerLogService for business logic
+        from services.web.container_log_service import get_container_log_service, FilteredLogRequest, LogType
+
+        service = get_container_log_service()
+        request_obj = FilteredLogRequest(
+            log_type=LogType.BOT,
+            max_lines=500
+        )
+
+        # Get logs through service
+        result = service.get_filtered_logs(request_obj)
+
+        if result.success:
+            return Response(result.content, mimetype='text/plain')
+        else:
+            current_app.logger.error(f"Bot log request failed: {result.error}")
+            return Response(result.error, status=result.status_code, mimetype='text/plain')
+
     except Exception as e:
-        logger.error(f"Error fetching bot logs: {e}", exc_info=True)
+        current_app.logger.error(f"Error in get_bot_logs route: {e}", exc_info=True)
         return Response("Error fetching bot logs", status=500, mimetype='text/plain')
 
 @log_bp.route('/discord_logs')
 @auth.login_required
 def get_discord_logs():
-    """Get filtered logs showing only Discord-related messages"""
-    logger = current_app.logger
-    max_lines = 500
-    
+    """Get Discord logs using ContainerLogService."""
     try:
-        client = docker.from_env()
-        container = client.containers.get('dockerdiscordcontrol')
-        
-        logs = container.logs(tail=max_lines*2, stdout=True, stderr=True)
-        logs_str = logs.decode('utf-8', errors='replace')
-        
-        # Filter for Discord-specific logs
-        filtered_lines = []
-        for line in logs_str.split('\n'):
-            if any(pattern in line.lower() for pattern in ['discord', 'guild', 'channel', 'member', 'message', 'voice', 'websocket']):
-                filtered_lines.append(line)
-        
-        filtered_logs = '\n'.join(filtered_lines[-max_lines:]) if filtered_lines else "No Discord logs found"
-        
-        return Response(filtered_logs, mimetype='text/plain')
-        
+        # Use ContainerLogService for business logic
+        from services.web.container_log_service import get_container_log_service, FilteredLogRequest, LogType
+
+        service = get_container_log_service()
+        request_obj = FilteredLogRequest(
+            log_type=LogType.DISCORD,
+            max_lines=500
+        )
+
+        # Get logs through service
+        result = service.get_filtered_logs(request_obj)
+
+        if result.success:
+            return Response(result.content, mimetype='text/plain')
+        else:
+            current_app.logger.error(f"Discord log request failed: {result.error}")
+            return Response(result.error, status=result.status_code, mimetype='text/plain')
+
     except Exception as e:
-        logger.error(f"Error fetching Discord logs: {e}", exc_info=True)
+        current_app.logger.error(f"Error in get_discord_logs route: {e}", exc_info=True)
         return Response("Error fetching Discord logs", status=500, mimetype='text/plain')
 
 @log_bp.route('/webui_logs')
 @auth.login_required
 def get_webui_logs():
-    """Get filtered logs showing only Web UI related messages"""
-    logger = current_app.logger
-    max_lines = 500
-    
+    """Get Web UI logs using ContainerLogService."""
     try:
-        client = docker.from_env()
-        container = client.containers.get('dockerdiscordcontrol')
-        
-        logs = container.logs(tail=max_lines*2, stdout=True, stderr=True)
-        logs_str = logs.decode('utf-8', errors='replace')
-        
-        # Filter for Web UI specific logs (Flask, Gunicorn, HTTP requests)
-        filtered_lines = []
-        for line in logs_str.split('\n'):
-            if any(pattern in line for pattern in ['flask', 'Flask', 'gunicorn', 'Gunicorn', 'GET /', 'POST /', 'HTTP', '127.0.0.1', '0.0.0.0:5000', 'werkzeug', 'jinja2']):
-                filtered_lines.append(line)
-        
-        filtered_logs = '\n'.join(filtered_lines[-max_lines:]) if filtered_lines else "No Web UI logs found"
-        
-        return Response(filtered_logs, mimetype='text/plain')
-        
+        # Use ContainerLogService for business logic
+        from services.web.container_log_service import get_container_log_service, FilteredLogRequest, LogType
+
+        service = get_container_log_service()
+        request_obj = FilteredLogRequest(
+            log_type=LogType.WEBUI,
+            max_lines=500
+        )
+
+        # Get logs through service
+        result = service.get_filtered_logs(request_obj)
+
+        if result.success:
+            return Response(result.content, mimetype='text/plain')
+        else:
+            current_app.logger.error(f"Web UI log request failed: {result.error}")
+            return Response(result.error, status=result.status_code, mimetype='text/plain')
+
     except Exception as e:
-        logger.error(f"Error fetching Web UI logs: {e}", exc_info=True)
+        current_app.logger.error(f"Error in get_webui_logs route: {e}", exc_info=True)
         return Response("Error fetching Web UI logs", status=500, mimetype='text/plain')
 
 @log_bp.route('/application_logs')
 @auth.login_required
 def get_application_logs():
-    """Get filtered logs showing only application-level messages"""
-    logger = current_app.logger
-    max_lines = 500
-    
+    """Get application logs using ContainerLogService."""
     try:
-        client = docker.from_env()
-        container = client.containers.get('dockerdiscordcontrol')
-        
-        logs = container.logs(tail=max_lines*2, stdout=True, stderr=True)
-        logs_str = logs.decode('utf-8', errors='replace')
-        
-        # Filter for application-level logs (ERROR, WARNING, INFO, DEBUG, startup messages)
-        filtered_lines = []
-        for line in logs_str.split('\n'):
-            if any(pattern in line for pattern in ['ERROR', 'WARNING', 'INFO', 'DEBUG', 'Starting', 'Stopping', 'Initializing', 'Config', 'Database', 'Scheduler']):
-                filtered_lines.append(line)
-        
-        filtered_logs = '\n'.join(filtered_lines[-max_lines:]) if filtered_lines else "No application logs found"
-        
-        return Response(filtered_logs, mimetype='text/plain')
-        
+        # Use ContainerLogService for business logic
+        from services.web.container_log_service import get_container_log_service, FilteredLogRequest, LogType
+
+        service = get_container_log_service()
+        request_obj = FilteredLogRequest(
+            log_type=LogType.APPLICATION,
+            max_lines=500
+        )
+
+        # Get logs through service
+        result = service.get_filtered_logs(request_obj)
+
+        if result.success:
+            return Response(result.content, mimetype='text/plain')
+        else:
+            current_app.logger.error(f"Application log request failed: {result.error}")
+            return Response(result.error, status=result.status_code, mimetype='text/plain')
+
     except Exception as e:
-        logger.error(f"Error fetching application logs: {e}", exc_info=True)
+        current_app.logger.error(f"Error in get_application_logs route: {e}", exc_info=True)
         return Response("Error fetching application logs", status=500, mimetype='text/plain')
 
 @log_bp.route('/action_logs')
 @auth.login_required
 def get_action_logs():
-    """Get user action logs from JSON storage"""
-    logger = current_app.logger
-    
+    """Get action logs using ContainerLogService."""
     try:
-        # Import here to avoid circular imports
-        from services.infrastructure.action_logger import get_action_logs_text
-        
-        action_log_content = get_action_logs_text(limit=500)
-        
-        if action_log_content:
-            return Response(action_log_content, mimetype='text/plain')
+        # Use ContainerLogService for business logic
+        from services.web.container_log_service import get_container_log_service, ActionLogRequest
+
+        service = get_container_log_service()
+        request_obj = ActionLogRequest(
+            format_type="text",
+            limit=500
+        )
+
+        # Get logs through service
+        result = service.get_action_logs(request_obj)
+
+        if result.success:
+            return Response(result.content, mimetype='text/plain')
         else:
-            return Response("No action logs available", mimetype='text/plain')
-            
+            current_app.logger.error(f"Action log request failed: {result.error}")
+            return Response(result.error, status=result.status_code, mimetype='text/plain')
+
     except Exception as e:
-        logger.error(f"Error fetching action logs: {e}", exc_info=True)
+        current_app.logger.error(f"Error in get_action_logs route: {e}", exc_info=True)
         return Response("Error fetching action logs", status=500, mimetype='text/plain')
 
 @log_bp.route('/action_logs_json')
 @auth.login_required
 def get_action_logs_json():
-    """Get user action logs as JSON"""
-    logger = current_app.logger
-    
+    """Get action logs as JSON using ContainerLogService."""
     try:
-        # Import here to avoid circular imports
-        from services.infrastructure.action_logger import get_action_logs_json
-        
-        action_logs = get_action_logs_json(limit=500)
-        
-        return jsonify({
-            'success': True,
-            'logs': action_logs,
-            'count': len(action_logs)
-        })
-            
+        # Use ContainerLogService for business logic
+        from services.web.container_log_service import get_container_log_service, ActionLogRequest
+
+        service = get_container_log_service()
+        request_obj = ActionLogRequest(
+            format_type="json",
+            limit=500
+        )
+
+        # Get logs through service
+        result = service.get_action_logs(request_obj)
+
+        if result.success:
+            return jsonify(result.data)
+        else:
+            current_app.logger.error(f"Action log JSON request failed: {result.error}")
+            return jsonify({'success': False, 'error': result.error}), result.status_code
+
     except Exception as e:
-        logger.error(f"Error fetching action logs JSON: {e}", exc_info=True)
+        current_app.logger.error(f"Error in get_action_logs_json route: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @log_bp.route('/clear_logs', methods=['POST'])
 @auth.login_required
 def clear_logs():
-    """Clear logs (Note: Docker container logs cannot be cleared, this is for future file-based logs)"""
-    logger = current_app.logger
-    
+    """Clear logs using ContainerLogService."""
     try:
-        # For now, we can't actually clear Docker container logs
-        # This endpoint is prepared for when we implement file-based logging
-        log_type = request.json.get('log_type', 'container')
-        
-        logger.info(f"Clear logs request for type: {log_type}")
-        
-        # Return success but note that Docker logs persist
-        return jsonify({
-            'success': True,
-            'message': f'{log_type.capitalize()} logs cleared (Note: Docker container logs persist until container restart)'
-        })
-        
+        # Use ContainerLogService for business logic
+        from services.web.container_log_service import get_container_log_service, ClearLogRequest
+
+        log_type = request.json.get('log_type', 'container') if request.json else 'container'
+
+        service = get_container_log_service()
+        request_obj = ClearLogRequest(log_type=log_type)
+
+        # Clear logs through service
+        result = service.clear_logs(request_obj)
+
+        if result.success:
+            return jsonify(result.data)
+        else:
+            current_app.logger.error(f"Clear logs request failed: {result.error}")
+            return jsonify({'success': False, 'message': result.error}), result.status_code
+
     except Exception as e:
-        logger.error(f"Error clearing logs: {e}", exc_info=True)
+        current_app.logger.error(f"Error in clear_logs route: {e}", exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500 
