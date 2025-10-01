@@ -264,7 +264,7 @@
                                     <span class="text-muted">Easy</span>
                                     <input type="range" class="form-range flex-grow-1" id="mech_difficulty_multiplier" name="mech_difficulty_multiplier" 
                                            min="0.25" max="2.5" step="0.05" value="1.0" 
-                                           oninput="updateDifficultyDisplay()" onchange="updateDifficultyDisplay()">
+                                           oninput="onSliderChange()" onchange="onSliderChange()">
                                     <span class="text-muted">Hard</span>
                                 </div>
                                 <div class="form-text">
@@ -554,6 +554,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ======= Mech Evolution Difficulty Functions =======
 
+function onSliderChange() {
+    // This is called by user interaction with the slider
+    updateDifficultyDisplay();
+    enableManualOverride();
+}
+
 function updateDifficultyDisplay() {
     const slider = document.getElementById('mech_difficulty_multiplier');
     const difficultyValue = document.getElementById('difficultyValue');
@@ -587,8 +593,7 @@ function updateDifficultyDisplay() {
         }
     }
 
-    // Auto-enable manual override when slider is used
-    enableManualOverride();
+    // Note: Manual override auto-enabling is now handled in onSliderChange() for user interactions
 }
 
 function setDifficulty(value) {
@@ -596,7 +601,7 @@ function setDifficulty(value) {
     if (slider) {
         slider.value = value;
         updateDifficultyDisplay();
-        // Auto-enable manual override when buttons are used
+        // Auto-enable manual override when buttons are used (user interaction)
         enableManualOverride();
     }
 }
