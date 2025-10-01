@@ -1,0 +1,201 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# ============================================================================ #
+# DockerDiscordControl (DDC) - Donation Status Service                        #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                       #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
+
+"""
+Donation Status Service - Handles comprehensive donation status queries with mech integration
+"""
+
+import logging
+from typing import Dict, Any, Optional
+from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class DonationStatusRequest:
+    """Represents a donation status request."""
+    pass
+
+
+@dataclass
+class DonationStatusResult:
+    """Represents the result of donation status operation."""
+    success: bool
+    status_data: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+
+
+class DonationStatusService:
+    """Service for handling comprehensive donation status queries."""
+
+    def __init__(self):
+        self.logger = logger
+
+    def get_donation_status(self, request: DonationStatusRequest) -> DonationStatusResult:
+        """
+        Get current donation status with speed information using MechService.
+
+        Args:
+            request: DonationStatusRequest (currently no specific data needed)
+
+        Returns:
+            DonationStatusResult with comprehensive status data
+        """
+        try:
+            # Step 1: Initialize mech service
+            mech_service = self._initialize_mech_service()
+            if not mech_service:
+                return DonationStatusResult(
+                    success=False,
+                    error="Failed to initialize mech service"
+                )
+
+            # Step 2: Get mech state
+            mech_state = mech_service.get_state()
+
+            # Step 3: Calculate speed information
+            speed_info = self._calculate_speed_information(mech_state.total_donated)
+
+            # Step 4: Get evolution information
+            evolution_info = self._get_evolution_information(mech_state.level)
+
+            # Step 5: Build comprehensive status object
+            status_data = self._build_status_data(mech_state, mech_service, speed_info, evolution_info)
+
+            return DonationStatusResult(
+                success=True,
+                status_data=status_data
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error getting donation status: {e}", exc_info=True)
+            return DonationStatusResult(
+                success=False,
+                error=f"Error getting donation status: {str(e)}"
+            )
+
+    def _initialize_mech_service(self):
+        """Initialize the mech service."""
+        try:
+            from services.mech.mech_service import get_mech_service
+            return get_mech_service()
+        except Exception as e:
+            self.logger.error(f"Failed to initialize mech service: {e}")
+            return None
+
+    def _calculate_speed_information(self, total_amount: float) -> Dict[str, Any]:
+        """Calculate speed level and related information."""
+        try:
+            from services.mech.speed_levels import get_speed_info, get_speed_emoji
+
+            # Calculate speed information
+            description, color = get_speed_info(total_amount)
+            level = min(int(total_amount / 10), 101) if total_amount > 0 else 0
+            emoji = get_speed_emoji(level)
+
+            return {
+                'level': level,
+                'description': description,
+                'emoji': emoji,
+                'color': color,
+                'formatted_status': f"{emoji} {description}"
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error calculating speed information: {e}")
+            # Return fallback speed info
+            return {
+                'level': 0,
+                'description': 'Offline',
+                'emoji': '⚫',
+                'color': '#666666',
+                'formatted_status': '⚫ Offline'
+            }
+
+    def _get_evolution_information(self, mech_level: int) -> Dict[str, Any]:
+        """Get evolution-specific information like decay rate."""
+        try:
+            from services.mech.evolution_config_manager import get_evolution_config_manager
+
+            config_mgr = get_evolution_config_manager()
+            evolution_info = config_mgr.get_evolution_level(mech_level)
+
+            return {
+                'decay_per_day': evolution_info.decay_per_day if evolution_info else 1.0
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error getting evolution information: {e}")
+            # Return fallback evolution info
+            return {
+                'decay_per_day': 1.0
+            }
+
+    def _build_status_data(self, mech_state, mech_service, speed_info: Dict[str, Any], evolution_info: Dict[str, Any]) -> Dict[str, Any]:
+        """Build the comprehensive status data object."""
+        try:
+            # Get raw power with decimals for UI precision
+            raw_power = mech_service.get_power_with_decimals()
+
+            # Build status object compatible with Web UI
+            status_data = {
+                'total_amount': mech_state.total_donated,
+                'current_Power': mech_state.Power,
+                'current_Power_raw': raw_power,  # Raw Power with decimals for UI
+                'mech_level': mech_state.level,
+                'mech_level_name': mech_state.level_name,
+                'next_level_threshold': mech_state.next_level_threshold,
+                'glvl': mech_state.glvl,
+                'glvl_max': mech_state.glvl_max,
+                'decay_per_day': evolution_info['decay_per_day'],  # Level-specific decay rate
+                'bars': {
+                    'mech_progress_current': mech_state.bars.mech_progress_current,
+                    'mech_progress_max': mech_state.bars.mech_progress_max,
+                    'Power_current': mech_state.bars.Power_current,
+                    'Power_max_for_level': mech_state.bars.Power_max_for_level,
+                },
+                'speed': speed_info
+            }
+
+            return status_data
+
+        except Exception as e:
+            self.logger.error(f"Error building status data: {e}")
+            # Return minimal fallback status
+            return {
+                'total_amount': 0,
+                'current_Power': 0,
+                'current_Power_raw': 0,
+                'mech_level': 1,
+                'mech_level_name': 'Unknown',
+                'next_level_threshold': 0,
+                'glvl': 0,
+                'glvl_max': 0,
+                'decay_per_day': 1.0,
+                'bars': {
+                    'mech_progress_current': 0,
+                    'mech_progress_max': 0,
+                    'Power_current': 0,
+                    'Power_max_for_level': 0,
+                },
+                'speed': speed_info
+            }
+
+
+# Singleton instance
+_donation_status_service = None
+
+
+def get_donation_status_service() -> DonationStatusService:
+    """Get the singleton DonationStatusService instance."""
+    global _donation_status_service
+    if _donation_status_service is None:
+        _donation_status_service = DonationStatusService()
+    return _donation_status_service

@@ -65,268 +65,40 @@ main_bp = Blueprint('main_bp', __name__)
 
 @main_bp.route('/', methods=['GET'])
 # Use direct auth decorator
-@auth.login_required 
+@auth.login_required
 def config_page():
     logger = current_app.logger
-    
-    config = load_config()
-    
-    # Force a fresh reload if requested
-    force_refresh = request.args.get('force_refresh', 'false').lower() == 'true'
-    if force_refresh:
-        logger.info("Force refresh requested - reloading configuration from files")
-        from utils.config_cache import init_config_cache
-        fresh_config = load_config()
-        init_config_cache(fresh_config)
-        config = fresh_config
-    
-    now = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S") # datetime is now imported
-    live_containers_list, cache_error = get_docker_containers_live(logger)
-    
-    # If Docker is not available, create synthetic container list from config
-    if not live_containers_list and config.get('servers'):
-        live_containers_list = []
-        for server in config.get('servers', []):
-            synthetic_container = {
-                'id': server.get('docker_name', 'unknown'),
-                'name': server.get('docker_name'),  # Use docker_name as container.name
-                'status': 'unknown',
-                'state': 'unknown',
-                'image': 'unknown',
-                'running': False
-            }
-            live_containers_list.append(synthetic_container)
-        logger.info(f"Created synthetic container list with {len(live_containers_list)} containers from config")
-    
-    configured_servers = {}
-    for server in config.get('servers', []):
-        # Use docker_name as key for consistency
-        docker_name = server.get('docker_name')
-        if docker_name:
-            configured_servers[docker_name] = server
-            # Also add with 'name' as key for template compatibility
-            display_name = server.get('name', docker_name)
-            if display_name and display_name != docker_name:
-                configured_servers[display_name] = server
-            
-    # NEW: Load active containers from the shared data class
-    # Update active containers from configuration
-    load_active_containers_from_config()
-    active_container_names = get_active_containers()
-    
-    # Debug output
-    logger.debug(f"Selected servers in config: {config.get('selected_servers', [])}")
-    logger.debug(f"Active container names for task form: {active_container_names}")
 
-    # Get and validate timezone
-    timezone_str = config.get('timezone', 'Europe/Berlin')
     try:
-        # Validate timezone using zoneinfo first
-        from zoneinfo import ZoneInfo
-        ZoneInfo(timezone_str)
+        # Use ConfigurationPageService to handle business logic
+        from services.web.configuration_page_service import get_configuration_page_service, ConfigurationPageRequest
+
+        # Check for force refresh parameter
+        force_refresh = request.args.get('force_refresh', 'false').lower() == 'true'
+
+        # Create service request
+        page_request = ConfigurationPageRequest(force_refresh=force_refresh)
+
+        # Process page data through service
+        page_service = get_configuration_page_service()
+        result = page_service.prepare_page_data(page_request)
+
+        if result.success:
+            # Render template with service-prepared data
+            return render_template('config.html', **result.template_data)
+        else:
+            logger.error(f"Failed to prepare configuration page data: {result.error}")
+            # Fallback: render with minimal data
+            return render_template('config.html',
+                                 config={},
+                                 error_message="Failed to load configuration data. Please check the logs.")
+
     except Exception as e:
-        try:
-            # Fallback to pytz
-            import pytz
-            pytz.timezone(timezone_str)
-        except Exception as e2:
-            logger.error(f"Invalid timezone {timezone_str}: {e2}")
-            timezone_str = 'Europe/Berlin'
-    
-    # Format cache timestamp for display using configured timezone
-    last_cache_update = docker_cache.get('timestamp')
-    formatted_timestamp = "Never"
-    if last_cache_update:
-        try:
-            # Convert timestamp to configured timezone
-            tz = pytz.timezone(timezone_str)
-            dt = datetime.fromtimestamp(last_cache_update, tz=tz)
-            formatted_timestamp = dt.strftime('%Y-%m-%d %H:%M:%S %Z')
-        except Exception as e:
-            logger.error(f"Error formatting timestamp with timezone: {e}")
-            # Fallback to system timezone
-            formatted_timestamp = datetime.fromtimestamp(last_cache_update).strftime('%Y-%m-%d %H:%M:%S')
-    
-    # Try to get the timestamp from the global_timestamp field, which is used in the newer code
-    if formatted_timestamp == "Never" and docker_cache.get('global_timestamp'):
-        try:
-            # Convert timestamp to configured timezone
-            import pytz  # Local import to avoid scope issues
-            tz = pytz.timezone(timezone_str)
-            dt = datetime.fromtimestamp(docker_cache['global_timestamp'], tz=tz)
-            formatted_timestamp = dt.strftime('%Y-%m-%d %H:%M:%S %Z')
-            logger.debug(f"Using global_timestamp for container list update time: {formatted_timestamp}")
-        except Exception as e:
-            logger.error(f"Error formatting global_timestamp: {e}")
-            # Fallback to system timezone
-            formatted_timestamp = datetime.fromtimestamp(docker_cache['global_timestamp']).strftime('%Y-%m-%d %H:%M:%S')
-    
-    # Load schedules for display on the main page
-    tasks_list = load_tasks()
-    
-    # Sort by next execution time
-    tasks_list.sort(key=lambda t: t.next_run_ts if t.next_run_ts else float('inf'))
-    
-    # Prepare data for the template
-    formatted_tasks = []
-    for task in tasks_list:
-        # Format timestamps
-        next_run = None
-        if task.next_run_ts:
-            next_run_dt = datetime.utcfromtimestamp(task.next_run_ts)
-            if timezone_str:
-                import pytz  # Ensure pytz is available in this scope
-                tz = pytz.timezone(timezone_str)
-                next_run_dt = next_run_dt.replace(tzinfo=pytz.UTC).astimezone(tz)
-            next_run = next_run_dt.strftime("%Y-%m-%d %H:%M %Z")
-        
-        last_run = None
-        if task.last_run_ts:
-            last_run_dt = datetime.utcfromtimestamp(task.last_run_ts)
-            if timezone_str:
-                import pytz  # Ensure pytz is available in this scope
-                tz = pytz.timezone(timezone_str)
-                last_run_dt = last_run_dt.replace(tzinfo=pytz.UTC).astimezone(tz)
-            last_run = last_run_dt.strftime("%Y-%m-%d %H:%M %Z")
-            
-        # Cycle information
-        cycle_info = task.cycle
-        if task.cycle == "weekly" and task.weekday_val is not None:
-            day_name = DAYS_OF_WEEK[task.weekday_val] if 0 <= task.weekday_val < len(DAYS_OF_WEEK) else f"Day {task.weekday_val}"
-            cycle_info = f"Weekly ({day_name})"
-        elif task.cycle == "monthly" and task.day_val is not None:
-            cycle_info = f"Monthly (Day {task.day_val})"
-        elif task.cycle == "yearly" and task.month_val is not None and task.day_val is not None:
-            month_display = task.month_val
-            if isinstance(month_display, int) and 1 <= month_display <= 12:
-                month_names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-                month_display = month_names[month_display - 1]
-            cycle_info = f"Yearly ({month_display} {task.day_val})"
-        elif task.cycle == "daily":
-            cycle_info = "Daily"
-        elif task.cycle == "once":
-            cycle_info = "Once"
-        
-        # Find container display name
-        display_name = task.container_name
-        for server in config.get('servers', []):
-            if server.get('docker_name') == task.container_name:
-                display_name = server.get('name', task.container_name)
-                break
-        
-        # Add last run result
-        last_run_result = "Not run yet"
-        if task.last_run_success is not None:
-            if task.last_run_success:
-                last_run_result = "Success"
-            else:
-                last_run_result = f"Failed: {task.last_run_error or 'Unknown error'}"
-        
-        formatted_tasks.append({
-            'id': task.task_id,
-            'container_name': task.container_name,
-            'display_name': display_name,
-            'action': task.action,
-            'cycle': task.cycle,
-            'cycle_info': cycle_info,
-            'next_run': next_run,
-            'last_run': last_run,
-            'created_by': task.created_by or "Unknown",
-            'is_active': task.next_run_ts is not None,
-            'last_run_result': last_run_result,
-            'last_run_success': task.last_run_success
-        })
-    
-    # Load container info from separate JSON files
-    # Use live containers if available, otherwise fall back to configured servers
-    if live_containers_list:
-        container_names = [container.get("name", "Unknown") for container in live_containers_list]
-    else:
-        # Fallback: Use configured server names when Docker is not available
-        container_names = [server.get("docker_name", server.get("name", "Unknown")) for server in config.get('servers', [])]
-    
-    container_info_data = load_container_info_for_web(container_names)
-    
-    # ADVANCED SETTINGS: Load from config (preferred) or environment variables as fallback
-    # These are the DDC_* settings used for performance tuning
-    import os
-    
-    # Get advanced settings from config first, then fallback to environment variables
-    advanced_settings = config.get('advanced_settings', {})
-    
-    def get_setting_value(key, default=''):
-        """Get setting value from config first, then environment, then default."""
-        # First try config
-        if key in advanced_settings:
-            return str(advanced_settings[key])
-        # Then try environment variable
-        env_value = os.getenv(key, default)
-        return env_value if env_value else default
-    
-    env_vars = {
-        'DDC_DOCKER_CACHE_DURATION': get_setting_value('DDC_DOCKER_CACHE_DURATION', '30'),
-        'DDC_DOCKER_QUERY_COOLDOWN': get_setting_value('DDC_DOCKER_QUERY_COOLDOWN', '2'),
-        'DDC_DOCKER_MAX_CACHE_AGE': get_setting_value('DDC_DOCKER_MAX_CACHE_AGE', '300'),
-        'DDC_ENABLE_BACKGROUND_REFRESH': get_setting_value('DDC_ENABLE_BACKGROUND_REFRESH', 'true'),
-        'DDC_BACKGROUND_REFRESH_INTERVAL': get_setting_value('DDC_BACKGROUND_REFRESH_INTERVAL', '30'),
-        'DDC_BACKGROUND_REFRESH_LIMIT': get_setting_value('DDC_BACKGROUND_REFRESH_LIMIT', '50'),
-        'DDC_BACKGROUND_REFRESH_TIMEOUT': get_setting_value('DDC_BACKGROUND_REFRESH_TIMEOUT', '30'),
-        'DDC_MAX_CONTAINERS_DISPLAY': get_setting_value('DDC_MAX_CONTAINERS_DISPLAY', '100'),
-        'DDC_SCHEDULER_CHECK_INTERVAL': get_setting_value('DDC_SCHEDULER_CHECK_INTERVAL', '120'),
-        'DDC_MAX_CONCURRENT_TASKS': get_setting_value('DDC_MAX_CONCURRENT_TASKS', '3'),
-        'DDC_TASK_BATCH_SIZE': get_setting_value('DDC_TASK_BATCH_SIZE', '5'),
-        'DDC_LIVE_LOGS_REFRESH_INTERVAL': get_setting_value('DDC_LIVE_LOGS_REFRESH_INTERVAL', '5'),
-        'DDC_LIVE_LOGS_MAX_REFRESHES': get_setting_value('DDC_LIVE_LOGS_MAX_REFRESHES', '12'),
-        'DDC_LIVE_LOGS_TAIL_LINES': get_setting_value('DDC_LIVE_LOGS_TAIL_LINES', '50'),
-        'DDC_LIVE_LOGS_TIMEOUT': get_setting_value('DDC_LIVE_LOGS_TIMEOUT', '120'),
-        'DDC_LIVE_LOGS_ENABLED': get_setting_value('DDC_LIVE_LOGS_ENABLED', 'true'),
-        'DDC_LIVE_LOGS_AUTO_START': get_setting_value('DDC_LIVE_LOGS_AUTO_START', 'false'),
-        'DDC_FAST_STATS_TIMEOUT': get_setting_value('DDC_FAST_STATS_TIMEOUT', '10'),
-        'DDC_SLOW_STATS_TIMEOUT': get_setting_value('DDC_SLOW_STATS_TIMEOUT', '30'),
-        'DDC_CONTAINER_LIST_TIMEOUT': get_setting_value('DDC_CONTAINER_LIST_TIMEOUT', '15')
-    }
-    
-    # Add env vars to config for template access
-    config_with_env = config.copy()
-    config_with_env['env'] = env_vars
-    
-    # Check if donations are disabled by key and load current donation key
-    from services.donation.donation_utils import is_donations_disabled
-    from services.donation.donation_config import get_donation_disable_key
-    donations_disabled = is_donations_disabled()
-    current_donation_key = get_donation_disable_key() or ''
-    
-    # Add donation key to config for template access
-    config_with_env['donation_disable_key'] = current_donation_key
-    
-    # Get DEFAULT_CONFIG from ConfigService for template compatibility
-    from services.config.config_service import get_config_service
-    config_service = get_config_service()
-    DEFAULT_CONFIG = {
-        'default_channel_permissions': config_service._get_default_channels_config()['default_channel_permissions']
-    }
-    
-    return render_template('config.html', 
-                           config=config_with_env,
-                           DEFAULT_CONFIG=DEFAULT_CONFIG,
-                           donations_disabled=donations_disabled,
-                           common_timezones=COMMON_TIMEZONES, # Use imported COMMON_TIMEZONES
-                           current_timezone=config.get('selected_timezone', 'UTC'),
-                           all_containers=live_containers_list,  # Renamed from 'containers' to 'all_containers'
-                           configured_servers=configured_servers,  # Added
-                           active_container_names=active_container_names, # NEW Added
-                           container_info_data=container_info_data,  # Container info from JSON files
-                           cache_error=cache_error,
-                           docker_cache=docker_cache,  # Pass the entire docker_cache for direct access in template
-                           last_cache_update=last_cache_update,
-                           formatted_timestamp=formatted_timestamp,
-                           auto_refresh_interval=config.get('auto_refresh_interval', 30),
-                           version_tag=now, 
-                           show_clear_logs_button=config.get('show_clear_logs_button', True),
-                           show_download_logs_button=config.get('show_download_logs_button', True),
-                           # Removed DEFAULT_CONFIG - not needed anymore
-                           tasks=formatted_tasks # Add schedule data
-                          )
+        logger.error(f"Error in config_page route: {e}", exc_info=True)
+        # Fallback: render with minimal data
+        return render_template('config.html',
+                             config={},
+                             error_message="An error occurred while loading the configuration page.")
 
 @main_bp.route('/save_config_api', methods=['POST'])
 # Use direct auth decorator
@@ -503,54 +275,34 @@ def download_monitor_script():
         return redirect(url_for('.config_page'))
 
 @main_bp.route('/refresh_containers', methods=['POST'])
-# Use direct auth decorator
 @auth.login_required
 def refresh_containers():
-    """Endpoint to force refresh of Docker container list"""
-    logger = current_app.logger
-    
+    """Endpoint to force refresh of Docker container list - USING CONTAINER REFRESH SERVICE."""
     try:
-        # Get Docker containers with force_refresh=True
-        from app.utils.web_helpers import get_docker_containers_live, docker_cache
-        
-        logger.info("Manual refresh of Docker container list requested")
-        containers, error = get_docker_containers_live(logger, force_refresh=True)
-        
-        if error:
-            logger.warning(f"Error during manual container refresh: {error}")
+        # Use new ContainerRefreshService for all business logic
+        from services.web.container_refresh_service import get_container_refresh_service, ContainerRefreshRequest
+
+        service = get_container_refresh_service()
+        request_obj = ContainerRefreshRequest()
+
+        # Perform refresh through service
+        result = service.refresh_containers(request_obj)
+
+        if result.success:
+            return jsonify({
+                'success': True,
+                'container_count': result.container_count,
+                'timestamp': result.timestamp,
+                'formatted_time': result.formatted_time
+            })
+        else:
             return jsonify({
                 'success': False,
-                'message': "Error refreshing containers. Please check the logs for details."
+                'message': result.error or "Container refresh failed"
             })
-        
-        # Log the success
-        log_user_action("REFRESH", "Docker Container List", source="Web UI")
-        
-        # Get the timestamp for the response
-        timestamp = docker_cache.get('global_timestamp', time.time())
-        
-        # Format timestamp with configured timezone
-        config = load_config()
-        timezone_str = config.get('timezone', 'Europe/Berlin')
-        
-        try:
-            tz = pytz.timezone(timezone_str)
-            dt = datetime.fromtimestamp(timestamp, tz=tz)
-            formatted_time = dt.strftime('%Y-%m-%d %H:%M:%S %Z')
-        except Exception as e:
-            logger.error(f"Error formatting timestamp with timezone: {e}")
-            # Fallback to system timezone
-            formatted_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-        
-        return jsonify({
-            'success': True,
-            'container_count': len(containers),
-            'timestamp': timestamp,
-            'formatted_time': formatted_time
-        })
-        
+
     except Exception as e:
-        logger.error(f"Unexpected error refreshing containers: {e}", exc_info=True)
+        current_app.logger.error(f"Error in refresh_containers route: {e}", exc_info=True)
         return jsonify({
             'success': False,
             'message': "Unexpected error refreshing containers. Please check the logs for details."
@@ -757,112 +509,61 @@ def save_spam_protection():
 
 @main_bp.route('/api/donation/status', methods=['GET'])
 def get_donation_status():
-    """Get current donation status with speed information - USING NEW MECH SERVICE."""
+    """Get current donation status with speed information - USING DONATION STATUS SERVICE."""
     try:
-        # Use new MechService
-        from services.mech.mech_service import get_mech_service
-        from services.mech.speed_levels import get_speed_info, get_speed_emoji
-        
-        mech_service = get_mech_service()
-        mech_state = mech_service.get_state()
-        
-        # Convert MechState to status format for compatibility
-        total_amount = mech_state.total_donated
-        description, color = get_speed_info(total_amount)
-        level = min(int(total_amount / 10), 101) if total_amount > 0 else 0
-        emoji = get_speed_emoji(level)
-        
-        # Get level-specific decay rate
-        from services.mech.evolution_config_manager import get_evolution_config_manager
-        config_mgr = get_evolution_config_manager()
-        evolution_info = config_mgr.get_evolution_level(mech_state.level)
-        decay_per_day = evolution_info.decay_per_day if evolution_info else 1.0
+        # Use new DonationStatusService for all business logic
+        from services.web.donation_status_service import get_donation_status_service, DonationStatusRequest
 
-        # Create status object compatible with Web UI
-        status = {
-            'total_amount': total_amount,
-            'current_Power': mech_state.Power,
-            'current_Power_raw': mech_service.get_power_with_decimals(),  # Raw Power with decimals for UI
-            'mech_level': mech_state.level,
-            'mech_level_name': mech_state.level_name,
-            'next_level_threshold': mech_state.next_level_threshold,
-            'glvl': mech_state.glvl,
-            'glvl_max': mech_state.glvl_max,
-            'decay_per_day': decay_per_day,  # Level-specific decay rate
-            'bars': {
-                'mech_progress_current': mech_state.bars.mech_progress_current,
-                'mech_progress_max': mech_state.bars.mech_progress_max,
-                'Power_current': mech_state.bars.Power_current,
-                'Power_max_for_level': mech_state.bars.Power_max_for_level,
-            },
-            'speed': {
-                'level': level,
-                'description': description,
-                'emoji': emoji,
-                'color': color,
-                'formatted_status': f"{emoji} {description}"
-            }
-        }
-        
-        return jsonify(status)
+        service = get_donation_status_service()
+        request_obj = DonationStatusRequest()
+
+        # Get status through service
+        result = service.get_donation_status(request_obj)
+
+        if result.success:
+            return jsonify(result.status_data)
+        else:
+            current_app.logger.error(f"Failed to get donation status: {result.error}")
+            return jsonify({'error': result.error or 'Failed to get donation status'}), 500
+
     except Exception as e:
-        current_app.logger.error(f"Error getting donation status with new MechService: {e}")
-        return jsonify({'error': 'Failed to load donation status'}), 500
+        current_app.logger.error(f"Error in get_donation_status route: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
 
 @main_bp.route('/api/donation/click', methods=['POST'])
 def record_donation_click():
-    """Record a donation button click (auth required for security)."""
+    """Record a donation button click - USING DONATION TRACKING SERVICE."""
     try:
         data = request.get_json()
         if not data or 'type' not in data:
             return jsonify({'success': False, 'error': 'Missing donation type'}), 400
-        
-        donation_type = data.get('type')
-        if donation_type not in ['coffee', 'paypal']:
-            return jsonify({'success': False, 'error': 'Invalid donation type'}), 400
-        
-        # Get user info - try username first, fallback to IP
-        user_identifier = "Anonymous User"
-        try:
-            # Try to get authenticated username
-            authenticated_user = auth.current_user()
-            if authenticated_user:
-                user_identifier = f"Web User: {authenticated_user}"
-            else:
-                # Fallback to IP address
-                ip_address = request.remote_addr
-                if request.headers.get('X-Forwarded-For'):
-                    ip_address = request.headers.get('X-Forwarded-For').split(',')[0].strip()
-                user_identifier = f"IP: {ip_address}"
-        except:
-            # Final fallback to IP
-            ip_address = request.remote_addr
-            if request.headers.get('X-Forwarded-For'):
-                ip_address = request.headers.get('X-Forwarded-For').split(',')[0].strip()
-            user_identifier = f"IP: {ip_address}"
-        
-        # Get current timestamp for Matrix Thank You animation
-        from datetime import datetime, timezone
-        current_timestamp = datetime.now(timezone.utc).isoformat()
-        
-        # Log the action
-        log_user_action(
-            action="DONATION_CLICK",
-            target=f"Donation Button ({donation_type})",
-            source="Web UI",
-            details=f"Donation button clicked by: {user_identifier}"
+
+        # Use new DonationTrackingService for all business logic
+        from services.web.donation_tracking_service import get_donation_tracking_service, DonationClickRequest
+
+        service = get_donation_tracking_service()
+        request_obj = DonationClickRequest(
+            donation_type=data.get('type'),
+            request_object=request
         )
-        
-        current_app.logger.info(f"💰 [MATRIX-SERVER] Donation button ({donation_type}) clicked by {user_identifier} - timestamp: {current_timestamp}")
-        
-        return jsonify({
-            'success': True,
-            'timestamp': current_timestamp,
-            'message': 'Donation button click recorded for Matrix Thank You animation'
-        })
-        
+
+        # Track donation click through service
+        result = service.record_donation_click(request_obj)
+
+        if result.success:
+            return jsonify({
+                'success': True,
+                'timestamp': result.timestamp,
+                'message': result.message
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result.error
+            }), 400
+
     except Exception as e:
-        current_app.logger.error(f"Error recording donation click: {e}")
+        current_app.logger.error(f"Error in record_donation_click route: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # Donation history functionality removed - not used by Web UI
