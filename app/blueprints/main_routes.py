@@ -11,21 +11,16 @@ from flask import (
     jsonify, session, current_app, send_file, Response
 )
 from datetime import datetime, timezone, timedelta # Added datetime for config_page
-from functools import wraps
 import os
 import io
 import time
 import json
-import pytz
 
 # Import auth from app.auth
 from app.auth import auth 
 from services.config.config_service import load_config, save_config
-# Removed DEFAULT_CONFIG import - not needed anymore
-
 from app.utils.container_info_web_handler import save_container_info_from_web, load_container_info_for_web
 from app.utils.web_helpers import (
-    log_user_action, 
     get_docker_containers_live,
     docker_cache
 )
@@ -40,28 +35,9 @@ from services.scheduling.scheduler import (
 )
 from services.infrastructure.action_logger import log_user_action
 from services.infrastructure.spam_protection_service import get_spam_protection_service
-# Removed: from utils.donation_manager import get_donation_manager  # No longer used - replaced by MechService
-
-# Define COMMON_TIMEZONES here if it's only used by routes in this blueprint
-# Or import it if it's defined centrally and used by multiple blueprints
-# For now, let's assume it might be needed, if not, it can be removed.
-# from app.web_ui import COMMON_TIMEZONES # This would create a circular import if web_ui imports this blueprint.
-# Instead, COMMON_TIMEZONES should be passed to template from web_ui.py or defined in a config/constants file.
-# For simplicity in this step, I will copy it here. Ideally, it should be refactored to a central place.
-# Remove COMMON_TIMEZONES_BP definition
-# COMMON_TIMEZONES_BP = [
-#     "Europe/Berlin", ..., "Australia/Sydney"
-# ]
 
 main_bp = Blueprint('main_bp', __name__)
 
-# Heartbeat Monitor Script Generator Functions
-# Monitor script generation functions have been moved to MonitorScriptService
-# See services/web/monitor_script_service.py
-
-# Legacy monitor script functions have been removed
-# All script generation is now handled by MonitorScriptService
-# See services/web/monitor_script_service.py
 
 @main_bp.route('/', methods=['GET'])
 # Use direct auth decorator
@@ -544,9 +520,6 @@ def record_donation_click():
         current_app.logger.error(f"Error in record_donation_click route: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# Donation history functionality removed - not used by Web UI
-# New MechService stores donations in JSON format but doesn't provide history API
-# If needed in future, can be implemented by reading mech_donations.json directly
 
 @main_bp.route('/api/donation/add-power', methods=['POST'])
 @auth.login_required
@@ -666,8 +639,6 @@ def consume_Power():
         current_app.logger.error(f"Error consuming Power: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# Route removed - duplicate function name was causing crashes
-# The actual endpoint is at /api/donation/add-power (lowercase)
 
 @main_bp.route('/api/donation/submit', methods=['POST'])
 @auth.login_required

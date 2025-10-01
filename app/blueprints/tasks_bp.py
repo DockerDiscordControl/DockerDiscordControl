@@ -10,7 +10,6 @@ from flask import Blueprint, request, jsonify, current_app, render_template
 
 tasks_bp = Blueprint('tasks_bp', __name__, url_prefix='/tasks')
 
-# _get_tasks_file_path, the old load_tasks and save_tasks are removed, since they are now in utils.scheduler
 
 @tasks_bp.route('/add', methods=['POST'])
 def add_task():
@@ -112,9 +111,6 @@ def show_task_form():
                              timezone_name='CEST',
                              error_message="Error loading form data")
 
-# Route for displaying the form removed
-
-# More routes could be added here (list, delete, update)
 
 @tasks_bp.route('/update_status', methods=['POST'])
 def update_task_status():

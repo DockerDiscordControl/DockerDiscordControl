@@ -10,8 +10,7 @@ Security Routes for DockerDiscordControl
 Handles token security, encryption status, and migration features.
 """
 
-from flask import Blueprint, request, jsonify, render_template
-from services.config.config_service import load_config
+from flask import Blueprint, request, jsonify
 from app.auth import auth
 import logging
 

@@ -143,41 +143,6 @@ def setup_action_logger(app_instance):
         app_instance.logger.error(f"Unexpected error checking action logger: {e}")
         return logging.getLogger('user_actions')  # Fallback
 
-def log_user_action(action: str, target: str, source: str = "Web UI", details: str = ""):
-    """Log user actions for audit purposes in the Web UI.
-    
-    This is a wrapper around the central log_user_action function that maintains
-    the original parameter style for backward compatibility with Web UI code.
-    """
-    try:
-        # Import here to avoid circular imports
-        from services.infrastructure.action_logger import log_user_action as central_log_user_action
-        
-        # Get the current user if available
-        user = "System"
-        if flask.has_request_context() and hasattr(flask.g, "user"):
-            user = getattr(flask.g, "user", "Unknown Web User")
-        
-        # Call the central function with our parameters
-        central_log_user_action(
-            action=action,
-            target=target,
-            user=user,
-            source=source,
-            details=details
-        )
-    except Exception as e:
-        app_logger = logging.getLogger('ddc.app')
-        app_logger.error(f"Error in log_user_action: {e}")
-        # Try to log directly as fallback
-        try:
-            user_action_logger = logging.getLogger('user_actions')
-            if user_action_logger:
-                user_logger_msg = f"{action}|{target}|Web UI|{source}|{details}"
-                user_action_logger.info(user_logger_msg)
-        except (OSError, IOError, AttributeError) as e:
-            # Ignore logging errors but be specific about which ones
-            pass
 
 def hash_container_data(container_data):
     """Creates a simple hash of container data to detect changes"""
@@ -534,28 +499,6 @@ def stop_background_refresh(logger):
     except Exception as e:
         logger.error(f"Error during thread cleanup: {e}")
 
-def set_container_priority(container_name, is_priority=True):
-    """Sets the priority for a container"""
-    with cache_lock:
-        if is_priority:
-            docker_cache['priority_containers'].add(container_name)
-        elif container_name in docker_cache['priority_containers']:
-            docker_cache['priority_containers'].remove(container_name)
-
-def invalidate_container_cache(container_name=None):
-    """Invalidates the cache for one or all containers"""
-    with cache_lock:
-        if container_name:
-            # Remove timestamp for specific container
-            if container_name in docker_cache['container_timestamps']:
-                del docker_cache['container_timestamps'][container_name]
-            if container_name in docker_cache['container_hashes']:
-                del docker_cache['container_hashes'][container_name]
-        else:
-            # Invalidate the entire cache
-            docker_cache['global_timestamp'] = None
-            docker_cache['container_timestamps'] = {}
-            docker_cache['container_hashes'] = {}
 
 def set_initial_password_from_env():
     # This function is called at module level, so current_app might not be available.
