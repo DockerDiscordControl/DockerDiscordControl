@@ -1601,162 +1601,18 @@ class MechHistoryButton(Button):
         return f"```{encrypted}```"
 
     def _load_epic_story_chapters(self) -> dict:
-        """Load and parse the epic story chapters from external file based on language."""
-        story_chapters = {}
+        """Load and parse the epic story chapters using MechStoryService."""
+        from services.mech.mech_story_service import get_mech_story_service
 
-        # Load story from external file based on current language
-        import os
-        from cogs.translation_manager import translation_manager
-
-        # Get current language (en, de, fr)
-        current_lang = translation_manager.get_current_language()
-
-        # Map language to story file
-        lang_file_map = {
-            'en': 'mech_story.txt',
-            'de': 'mech_story_de.txt',
-            'fr': 'mech_story_fr.txt'
-        }
-
-        # Default to English if language not found
-        story_filename = lang_file_map.get(current_lang, 'mech_story.txt')
-        story_file = os.path.join(os.path.dirname(__file__), '..', 'services', 'mech', story_filename)
-
-        try:
-            with open(story_file, 'r', encoding='utf-8') as f:
-                story_content = f.read()
-        except Exception as e:
-            logger.error(f"Failed to load mech story from {story_file}: {e}")
-            # Fallback to English
-            if current_lang != 'en':
-                try:
-                    fallback_file = os.path.join(os.path.dirname(__file__), '..', 'services', 'mech', 'mech_story.txt')
-                    with open(fallback_file, 'r', encoding='utf-8') as f:
-                        story_content = f.read()
-                except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
-                    logger.error(f"Failed to load English fallback story: {e}")
-                    story_content = "Error: Story content could not be loaded."
-            else:
-                story_content = "Error: Story content could not be loaded."
-
-        # Parse chapters - support EN/DE/FR
-        sections = story_content.split('\n\n')
-        current_chapter = None
-        current_content = []
-
-        for section in sections:
-            # Prologue I (EN/DE/FR)
-            if section.startswith('Prologue I:') or section.startswith('Prolog I:'):
-                if current_chapter:
-                    story_chapters[current_chapter] = '\n'.join(current_content)
-                current_chapter = "prologue1"
-                current_content = [section]
-            # Prologue II (EN/DE/FR)
-            elif section.startswith('Prologue II:') or section.startswith('Prolog II:'):
-                if current_chapter:
-                    story_chapters[current_chapter] = '\n'.join(current_content)
-                current_chapter = "prologue2"
-                current_content = [section]
-            # Chapter I (EN/DE/FR)
-            elif section.startswith('Chapter I:') or section.startswith('Kapitel I:') or section.startswith('Chapitre I'):
-                if current_chapter:
-                    story_chapters[current_chapter] = '\n'.join(current_content)
-                current_chapter = "chapter1"
-                current_content = [section]
-            # Chapter II (EN/DE/FR)
-            elif section.startswith('Chapter II:') or section.startswith('Kapitel II:') or section.startswith('Chapitre II'):
-                if current_chapter:
-                    story_chapters[current_chapter] = '\n'.join(current_content)
-                current_chapter = "chapter2"
-                current_content = [section]
-            # Chapter III (EN/DE/FR)
-            elif section.startswith('Chapter III:') or section.startswith('Kapitel III:') or section.startswith('Chapitre III'):
-                if current_chapter:
-                    story_chapters[current_chapter] = '\n'.join(current_content)
-                current_chapter = "chapter3"
-                current_content = [section]
-            # Chapter IV (EN/DE/FR)
-            elif section.startswith('Chapter IV:') or section.startswith('Kapitel IV:') or section.startswith('Chapitre IV'):
-                if current_chapter:
-                    story_chapters[current_chapter] = '\n'.join(current_content)
-                current_chapter = "chapter4"
-                current_content = [section]
-            # Chapter V (EN/DE/FR)
-            elif section.startswith('Chapter V:') or section.startswith('Kapitel V:') or section.startswith('Chapitre V'):
-                if current_chapter:
-                    story_chapters[current_chapter] = '\n'.join(current_content)
-                current_chapter = "chapter5"
-                current_content = [section]
-            # Chapter VI (EN/DE/FR)
-            elif section.startswith('Chapter VI:') or section.startswith('Kapitel VI:') or section.startswith('Chapitre VI'):
-                if current_chapter:
-                    story_chapters[current_chapter] = '\n'.join(current_content)
-                current_chapter = "chapter6"
-                current_content = [section]
-            # Chapter VII (EN/DE/FR)
-            elif section.startswith('Chapter VII:') or section.startswith('Kapitel VII:') or section.startswith('Chapitre VII'):
-                if current_chapter:
-                    story_chapters[current_chapter] = '\n'.join(current_content)
-                current_chapter = "chapter7"
-                current_content = [section]
-            # Chapter VIII (EN/DE/FR)
-            elif section.startswith('Chapter VIII:') or section.startswith('Kapitel VIII:') or section.startswith('Chapitre VIII'):
-                if current_chapter:
-                    story_chapters[current_chapter] = '\n'.join(current_content)
-                current_chapter = "chapter8"
-                current_content = [section]
-            # Chapter IX (EN/DE/FR)
-            elif section.startswith('Chapter IX:') or section.startswith('Kapitel IX:') or section.startswith('Chapitre IX'):
-                if current_chapter:
-                    story_chapters[current_chapter] = '\n'.join(current_content)
-                current_chapter = "chapter9"
-                current_content = [section]
-            # Epilogue (EN/DE/FR + corrupted variant)
-            elif section.startswith('Epilogue:') or section.startswith('Epilog:') or section.startswith('Épilogue:') or section.startswith('3p!l0gu3:'):
-                if current_chapter:
-                    story_chapters[current_chapter] = '\n'.join(current_content)
-                current_chapter = "epilogue"
-                current_content = [section]
-            else:
-                if current_chapter:
-                    current_content.append(section)
-
-        # Add final chapter
-        if current_chapter:
-            story_chapters[current_chapter] = '\n'.join(current_content)
-
-        return story_chapters
+        story_service = get_mech_story_service()
+        return story_service.get_all_chapters()
 
     def _get_chapter_key_for_level(self, level: int) -> str:
-        """Map mech level to story chapter key."""
-        # Mapping: Levels -> Chapters
-        # Prologue I: Level 1 (Rustborn Husks)
-        # Prologue II: Level 2 (Battle-Scarred Survivors + Luigi)
-        # Chapter I: Level 3 (Corewalker Standard - Mass Production)
-        # Chapter II: Level 4 (Titanframe - The Hunger)
-        # Chapter III: Level 5 (Pulseforged Guardian - The Pulse)
-        # Chapter IV: Level 6 (Abyss Engines)
-        # Chapter V: Level 7 (Rift Striders)
-        # Chapter VI: Level 8 (Radiant Bastions)
-        # Chapter VII: Level 9 (Overlord Ascendants)
-        # Chapter VIII: Level 10 (Celestial Exarchs)
-        # Chapter IX: Level 11 (Omega Mech - The Prayer)
-        # Epilogue: Corrupted future hints
+        """Map mech level to story chapter key using MechStoryService."""
+        from services.mech.mech_story_service import get_mech_story_service
 
-        mapping = {
-            1: "prologue1",  # Rustborn Husks
-            2: "prologue2",  # Battle-Scarred Survivors + Luigi
-            3: "chapter1",   # Corewalker Standard (Mass Production)
-            4: "chapter2",   # Titanframe (The Hunger)
-            5: "chapter3",   # Pulseforged Guardian (The Pulse)
-            6: "chapter4",   # Abyss Engines
-            7: "chapter5",   # Rift Striders
-            8: "chapter6",   # Radiant Bastions
-            9: "chapter7",   # Overlord Ascendants
-            10: "chapter8",  # Celestial Exarchs
-            11: "chapter9",  # Omega Mech (The Prayer)
-        }
-        return mapping.get(level, None)
+        story_service = get_mech_story_service()
+        return story_service.get_chapter_key_for_level(level)
 
     async def _send_story_chapter(self, channel, chapter_key: str, chapter_content: str):
         """Send a story chapter embed."""
