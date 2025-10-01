@@ -311,125 +311,103 @@ def refresh_containers():
 @main_bp.route('/enable_temp_debug', methods=['POST'])
 @auth.login_required
 def enable_temp_debug():
-    """
-    API endpoint to enable temporary debug mode.
-    This will enable debug logging for a specified duration without modifying the config file.
-    """
-    logger = current_app.logger
-    
+    """Enable temporary debug mode using DiagnosticsService."""
     try:
-        # Get duration from request, default to 10 minutes
+        # Get duration from request
         duration_minutes = request.form.get('duration', 10)
-        try:
-            duration_minutes = int(duration_minutes)
-        except (ValueError, TypeError):
-            duration_minutes = 10
-            
-        # Enforce reasonable limits
-        if duration_minutes < 1:
-            duration_minutes = 1
-        elif duration_minutes > 60:
-            duration_minutes = 60
-        
-        # Enable temporary debug mode
-        from utils.logging_utils import enable_temporary_debug
-        success, expiry = enable_temporary_debug(duration_minutes)
-        
-        if success:
-            # Format expiry time for display
-            expiry_formatted = datetime.fromtimestamp(expiry).strftime('%Y-%m-%d %H:%M:%S')
-            logger.info(f"Temporary debug mode enabled for {duration_minutes} minutes (until {expiry_formatted})")
-            log_user_action("ENABLE", "Temporary Debug Mode", source="Web UI")
-            
+
+        # Use DiagnosticsService for business logic
+        from services.web.diagnostics_service import get_diagnostics_service, DebugModeRequest
+
+        service = get_diagnostics_service()
+        request_obj = DebugModeRequest(duration_minutes=duration_minutes)
+
+        # Enable debug mode through service
+        result = service.enable_temp_debug(request_obj)
+
+        if result.success:
             return jsonify({
                 'success': True,
-                'message': f"Temporary debug mode enabled for {duration_minutes} minutes",
-                'expiry': expiry,
-                'expiry_formatted': expiry_formatted,
-                'duration_minutes': duration_minutes
+                **result.data
             })
         else:
             return jsonify({
                 'success': False,
-                'message': "Failed to enable temporary debug mode"
-            })
-            
+                'message': result.error
+            }), result.status_code
+
     except Exception as e:
-        logger.error(f"Error enabling temporary debug mode: {e}", exc_info=True)
+        current_app.logger.error(f"Error in enable_temp_debug route: {e}", exc_info=True)
         return jsonify({
             'success': False,
             'message': "Error enabling temporary debug mode. Please check the logs for details."
-        })
+        }), 500
 
 @main_bp.route('/disable_temp_debug', methods=['POST'])
 @auth.login_required
 def disable_temp_debug():
-    """
-    API endpoint to disable temporary debug mode immediately.
-    """
-    logger = current_app.logger
-    
+    """Disable temporary debug mode using DiagnosticsService."""
     try:
-        # Disable temporary debug mode
-        from utils.logging_utils import disable_temporary_debug
-        success = disable_temporary_debug()
-        
-        if success:
-            logger.info("Temporary debug mode disabled manually")
-            log_user_action("DISABLE", "Temporary Debug Mode", source="Web UI")
-            
+        # Use DiagnosticsService for business logic
+        from services.web.diagnostics_service import get_diagnostics_service, DebugModeRequest
+
+        service = get_diagnostics_service()
+        request_obj = DebugModeRequest()
+
+        # Disable debug mode through service
+        result = service.disable_temp_debug(request_obj)
+
+        if result.success:
             return jsonify({
                 'success': True,
-                'message': "Temporary debug mode disabled"
+                **result.data
             })
         else:
             return jsonify({
                 'success': False,
-                'message': "Failed to disable temporary debug mode"
-            })
-            
+                'message': result.error
+            }), result.status_code
+
     except Exception as e:
-        logger.error(f"Error disabling temporary debug mode: {e}", exc_info=True)
+        current_app.logger.error(f"Error in disable_temp_debug route: {e}", exc_info=True)
         return jsonify({
             'success': False,
             'message': "Error disabling temporary debug mode. Please check the logs for details."
-        })
+        }), 500
 
 @main_bp.route('/temp_debug_status', methods=['GET'])
 @auth.login_required
 def temp_debug_status():
-    """
-    API endpoint to get the current status of temporary debug mode.
-    """
+    """Get temporary debug status using DiagnosticsService."""
     try:
-        # Get current status
-        from utils.logging_utils import get_temporary_debug_status
-        is_enabled, expiry, remaining_seconds = get_temporary_debug_status()
-        
-        # Format expiry time
-        expiry_formatted = datetime.fromtimestamp(expiry).strftime('%Y-%m-%d %H:%M:%S') if expiry > 0 else ""
-        
-        # Format remaining time
-        remaining_minutes = int(remaining_seconds / 60)
-        remaining_seconds_mod = int(remaining_seconds % 60)
-        remaining_formatted = f"{remaining_minutes}m {remaining_seconds_mod}s" if is_enabled else ""
-        
-        return jsonify({
-            'success': True,
-            'is_enabled': is_enabled,
-            'expiry': expiry,
-            'expiry_formatted': expiry_formatted,
-            'remaining_seconds': remaining_seconds,
-            'remaining_formatted': remaining_formatted
-        })
-            
+        # Use DiagnosticsService for business logic
+        from services.web.diagnostics_service import get_diagnostics_service, DebugStatusRequest
+
+        service = get_diagnostics_service()
+        request_obj = DebugStatusRequest()
+
+        # Get debug status through service
+        result = service.get_debug_status(request_obj)
+
+        if result.success:
+            return jsonify({
+                'success': True,
+                **result.data
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': result.error,
+                **result.data
+            }), result.status_code
+
     except Exception as e:
-        current_app.logger.error(f"Error getting temporary debug status: {e}", exc_info=True)
+        current_app.logger.error(f"Error in temp_debug_status route: {e}", exc_info=True)
         return jsonify({
             'success': False,
             'message': "Error getting temporary debug status. Please check the logs for details.",
             'is_enabled': False
-        })
+        }), 500
 
 @main_bp.route('/performance_stats', methods=['GET'])
 @auth.login_required
@@ -730,140 +708,76 @@ def submit_donation():
 
 @main_bp.route('/mech_animation')
 def mech_animation():
-    """Live mech animation endpoint based on current Power level - simplified version."""
+    """Live mech animation endpoint using MechWebService."""
     try:
-        # Get current donation status with multiple fallbacks
-        total_donations = 0
-        
-        try:
-            import sys
-            import os
-            # Add project root to Python path for service imports
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            if project_root not in sys.path:
-                sys.path.insert(0, project_root)
-            
-            from services.mech.mech_service import get_mech_service
-            mech_service = get_mech_service()
-            mech_state = mech_service.get_state()
-            total_donations = mech_state.total_donated
-            current_app.logger.debug(f"Got total donations from mech service: {total_donations}")
-        except Exception as e:
-            current_app.logger.error(f"Error getting donation status: {e}")
-            total_donations = 20.0  # Fallback default
-        
-        current_app.logger.debug(f"Live mech animation request, Power: {total_donations}")
-        
-        # Use centralized mech animation service with proper Web UI wrapper
-        try:
-            import sys
-            import os
-            # Add project root to Python path for service imports
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            if project_root not in sys.path:
-                sys.path.insert(0, project_root)
-                
-            # Use new unified mech animation service (replaces old sync/async system)
-            from services.mech.mech_animation_service import get_mech_animation_service
-            animation_service = get_mech_animation_service()
+        # Use MechWebService for business logic
+        from services.web.mech_web_service import get_mech_web_service, MechAnimationRequest
 
-            # Get both current Power and total donated for proper animation
-            from services.mech.mech_service import get_mech_service
-            mech_service = get_mech_service()
-            mech_state = mech_service.get_state()
-            current_Power = mech_service.get_power_with_decimals()
-            total_donated = mech_state.total_donated
+        service = get_mech_web_service()
+        request_obj = MechAnimationRequest()
 
-            # Create animation bytes synchronously using new unified service
-            animation_bytes = animation_service.create_donation_animation_sync(
-                "Current", f'{current_Power}$', total_donated
-            )
-            
-            # Return as Flask Response
+        # Get animation through service
+        result = service.get_live_animation(request_obj)
+
+        if result.success and result.animation_bytes:
             return Response(
-                animation_bytes,
-                mimetype='image/webp',
-                headers={'Cache-Control': 'max-age=300'}
+                result.animation_bytes,
+                mimetype=result.content_type,
+                headers=result.cache_headers or {}
             )
-            
-        except Exception as e:
-            current_app.logger.error(f"Error creating mech animation: {e}", exc_info=True)
-            
-            # Ultimate fallback - create a simple static image
-            try:
-                from PIL import Image, ImageDraw
-                img = Image.new('RGBA', (341, 512), (47, 49, 54, 255))
-                draw = ImageDraw.Draw(img)
-                draw.text((10, 10), f"Power: ${total_donations:.2f}", fill=(255, 255, 255, 255))
-                draw.text((10, 30), "Mech Offline", fill=(255, 0, 0, 255))
-                
-                buffer = BytesIO()
-                img.save(buffer, format='WebP', quality=90)
-                buffer.seek(0)
-                
-                return Response(
-                    buffer.getvalue(),
-                    mimetype='image/webp',
-                    headers={'Cache-Control': 'no-cache, no-store, must-revalidate'}
-                )
-            except:
-                # Final fallback - return error
-                return Response(
-                    b'Error: Animation generation failed',
-                    mimetype='text/plain',
-                    status=500
-                )
-        
+        else:
+            # Return error response based on result
+            return Response(
+                result.animation_bytes or b'Animation generation failed',
+                mimetype=result.content_type,
+                status=result.status_code
+            )
+
     except Exception as e:
-        current_app.logger.error(f"Error in live mech animation endpoint: {e}", exc_info=True)
+        current_app.logger.error(f"Error in mech_animation route: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 @main_bp.route('/api/test-mech-animation', methods=['POST'])
-@auth.login_required 
+@auth.login_required
 def test_mech_animation():
-    """Test endpoint for generating mech animations using centralized service."""
+    """Test endpoint for generating mech animations using MechWebService."""
     try:
         data = request.get_json()
         donor_name = data.get('donor_name', 'Test User')
         amount = data.get('amount', '10$')
         total_donations = data.get('total_donations', 0)
-        
-        current_app.logger.info(f"Generating mech animation for {donor_name}, donations: {total_donations}")
-        
-        # Use new unified mech animation service (replaces old sync/async system)
-        from services.mech.mech_animation_service import get_mech_animation_service
-        animation_service = get_mech_animation_service()
 
-        # Get mech state for proper evolution level calculation
-        from services.mech.mech_service import get_mech_service
-        mech_service = get_mech_service()
-        mech_state = mech_service.get_state()
+        current_app.logger.info(f"Generating test mech animation for {donor_name}, donations: {total_donations}")
 
-        # Use total_donated for evolution level (not affected by Power decay)
-        total_donated_for_evolution = mech_state.total_donated
+        # Use MechWebService for business logic
+        from services.web.mech_web_service import get_mech_web_service, MechTestAnimationRequest
 
-        # Create animation bytes synchronously using new unified service
-        animation_bytes = animation_service.create_donation_animation_sync(
-            donor_name, amount, total_donated_for_evolution
+        service = get_mech_web_service()
+        request_obj = MechTestAnimationRequest(
+            donor_name=donor_name,
+            amount=amount,
+            total_donations=total_donations
         )
-        
-        # Return as Flask Response
-        return Response(
-            animation_bytes,
-            mimetype='image/webp',
-            headers={'Cache-Control': 'max-age=60'}
-        )
-        
-    except ImportError:
-        # Fallback - create simple error response
-        return Response(
-            b'Error: Service not available',
-                mimetype='text/plain',
-                status=500
+
+        # Get test animation through service
+        result = service.get_test_animation(request_obj)
+
+        if result.success and result.animation_bytes:
+            return Response(
+                result.animation_bytes,
+                mimetype=result.content_type,
+                headers={'Cache-Control': 'max-age=60'}
             )
-        
+        else:
+            # Return error response based on result
+            return Response(
+                result.animation_bytes or b'Error: Service not available',
+                mimetype=result.content_type,
+                status=result.status_code
+            )
+
     except Exception as e:
-        current_app.logger.error(f"Error in test mech animation endpoint: {e}", exc_info=True)
+        current_app.logger.error(f"Error in test_mech_animation route: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 @main_bp.route('/api/simulate-donation-broadcast', methods=['POST'])
@@ -883,197 +797,144 @@ def simulate_donation_broadcast():
 @main_bp.route('/api/mech-speed-config', methods=['POST'])
 @auth.login_required
 def get_mech_speed_config():
-    """Get speed configuration using new 101-level system."""
+    """Get speed configuration using MechWebService."""
     try:
-        from services.mech.speed_levels import get_speed_info, get_speed_emoji
-        
         data = request.get_json()
         total_donations = data.get('total_donations', 0)
-        
-        # Use new speed system
-        description, color = get_speed_info(total_donations)
-        level = min(int(total_donations / 10), 101) if total_donations > 0 else 0
-        emoji = get_speed_emoji(level)
-        
-        config = {
-            'speed_level': level,
-            'description': description,
-            'emoji': emoji,
-            'color': color,
-            'total_donations': total_donations
-        }
-        
-        # Log the action
-        log_user_action(
-            action="GET_MECH_SPEED_CONFIG",
-            target=f"Level {level} - {description}",
-            source="Web UI"
-        )
-        
-        return jsonify(config)
-        
+
+        # Use MechWebService for business logic
+        from services.web.mech_web_service import get_mech_web_service, MechSpeedConfigRequest
+
+        service = get_mech_web_service()
+        request_obj = MechSpeedConfigRequest(total_donations=total_donations)
+
+        # Get speed config through service
+        result = service.get_speed_config(request_obj)
+
+        if result.success:
+            return jsonify(result.data)
+        else:
+            current_app.logger.error(f"Speed config request failed: {result.error}")
+            return jsonify({'error': result.error}), result.status_code
+
     except Exception as e:
-        current_app.logger.error(f"Error getting mech speed config: {e}")
+        current_app.logger.error(f"Error in get_mech_speed_config route: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 @main_bp.route('/port_diagnostics', methods=['GET'])
 @auth.login_required
 def port_diagnostics():
-    """
-    API endpoint to get port diagnostics information.
-    Helps users troubleshoot Web UI connection issues.
-    """
-    logger = current_app.logger
-    
+    """Get port diagnostics using DiagnosticsService."""
     try:
-        logger.info("Running port diagnostics on demand...")
-        diagnostics_report = run_port_diagnostics()
-        
-        return jsonify({
-            'success': True,
-            'diagnostics': diagnostics_report
-        })
-        
+        # Use DiagnosticsService for business logic
+        from services.web.diagnostics_service import get_diagnostics_service, PortDiagnosticsRequest
+
+        service = get_diagnostics_service()
+        request_obj = PortDiagnosticsRequest()
+
+        # Run diagnostics through service
+        result = service.run_port_diagnostics(request_obj)
+
+        if result.success:
+            return jsonify({
+                'success': True,
+                **result.data
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': result.error
+            }), result.status_code
+
     except Exception as e:
-        logger.error(f"Error running port diagnostics: {e}", exc_info=True)
+        current_app.logger.error(f"Error in port_diagnostics route: {e}", exc_info=True)
         return jsonify({
             'success': False,
             'message': "Error running port diagnostics. Please check the logs for details."
-        })
+        }), 500
 
 @main_bp.route('/api/mech/difficulty', methods=['GET'])
 @auth.login_required
 def get_mech_difficulty():
-    """Get current mech evolution difficulty multiplier."""
+    """Get current mech evolution difficulty multiplier using MechWebService."""
     try:
-        from services.mech.evolution_config_manager import get_evolution_config_manager
-        config_manager = get_evolution_config_manager()
-        
-        difficulty_multiplier = config_manager.get_difficulty_multiplier()
-        manual_override_active = config_manager.is_manual_difficulty_override_active()
+        # Use MechWebService for business logic
+        from services.web.mech_web_service import get_mech_web_service, MechDifficultyRequest
 
-        # Get current mech state for level-aware preview
-        from services.mech.mech_service import get_mech_service
-        from services.mech.monthly_member_cache import get_monthly_member_cache
-        
-        mech_service = get_mech_service()
-        cache = get_monthly_member_cache()
-        current_state = mech_service.get_state()
-        current_level = current_state.level
-        next_level = current_level + 1 if current_level < 11 else 11
-        
-        # Calculate costs for next level (most relevant for user)
-        member_count = cache.get_member_count_for_level(next_level)
-        community_info = config_manager.get_community_size_info(member_count)
-        
-        next_level_cost, effective_multiplier = config_manager.calculate_dynamic_cost(
-            next_level, member_count, community_info["multiplier"]
-        )
-        
-        # Get level info
-        next_level_info = config_manager.get_evolution_level(next_level)
-        base_cost = next_level_info.base_cost if next_level_info else 0
-        
-        return jsonify({
-            'success': True,
-            'difficulty_multiplier': difficulty_multiplier,
-            'manual_override': manual_override_active,  # Use consistent naming for frontend
-            'current_level': current_level,
-            'next_level': next_level,
-            'next_level_name': next_level_info.name if next_level_info else "MAX LEVEL",
-            'next_level_cost': next_level_cost,
-            'base_cost': base_cost,
-            'member_count': member_count,
-            'community_tier': community_info["tier_name"],
-            'total_multiplier': effective_multiplier,
-            'is_max_level': current_level >= 11
-        })
-        
+        service = get_mech_web_service()
+        request_obj = MechDifficultyRequest(operation='get')
+
+        # Get difficulty through service
+        result = service.manage_difficulty(request_obj)
+
+        if result.success:
+            return jsonify(result.data)
+        else:
+            current_app.logger.error(f"Difficulty get request failed: {result.error}")
+            return jsonify({'success': False, 'error': result.error}), result.status_code
+
     except Exception as e:
-        current_app.logger.error(f"Error getting mech difficulty: {e}")
+        current_app.logger.error(f"Error in get_mech_difficulty route: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @main_bp.route('/api/mech/difficulty', methods=['POST'])
 @auth.login_required
 def set_mech_difficulty():
-    """Set mech evolution difficulty multiplier."""
+    """Set mech evolution difficulty multiplier using MechWebService."""
     try:
-        from services.mech.evolution_config_manager import get_evolution_config_manager
-        from services.infrastructure.action_logger import log_user_action
-        
-        config_manager = get_evolution_config_manager()
         data = request.get_json()
-        
+
         if not data or 'difficulty_multiplier' not in data:
             return jsonify({'success': False, 'error': 'Missing difficulty_multiplier parameter'}), 400
-        
+
         difficulty_multiplier = float(data['difficulty_multiplier'])
-        manual_override = bool(data.get('manual_override', False))
 
-        # Use service method to handle business logic
-        success, message = config_manager.update_difficulty_settings(difficulty_multiplier, manual_override)
+        # Use MechWebService for business logic
+        from services.web.mech_web_service import get_mech_web_service, MechDifficultyRequest
 
-        if success:
-            # Log the action based on the mode
-            if manual_override:
-                log_user_action(
-                    action="SET_MECH_DIFFICULTY",
-                    target=f"Multiplier: {difficulty_multiplier}x (Manual Override)",
-                    details=f"Changed mech evolution difficulty to {difficulty_multiplier}x with manual override enabled"
-                )
-            else:
-                log_user_action(
-                    action="RESET_MECH_DIFFICULTY",
-                    target="Automatic Mode",
-                    details="Disabled manual override - returned to automatic difficulty adjustment"
-                )
+        service = get_mech_web_service()
+        request_obj = MechDifficultyRequest(
+            operation='set',
+            multiplier=difficulty_multiplier
+        )
 
-            return jsonify({
-                'success': True,
-                'difficulty_multiplier': config_manager.get_difficulty_multiplier(),
-                'manual_override_active': config_manager.is_manual_difficulty_override_active(),
-                'message': message
-            })
+        # Set difficulty through service
+        result = service.manage_difficulty(request_obj)
+
+        if result.success:
+            return jsonify(result.data)
         else:
-            return jsonify({'success': False, 'error': message}), 400
-        
+            current_app.logger.error(f"Difficulty set request failed: {result.error}")
+            return jsonify({'success': False, 'error': result.error}), result.status_code
+
     except ValueError:
         return jsonify({'success': False, 'error': 'Invalid difficulty multiplier value'}), 400
     except Exception as e:
-        current_app.logger.error(f"Error setting mech difficulty: {e}")
+        current_app.logger.error(f"Error in set_mech_difficulty route: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @main_bp.route('/api/mech/difficulty/reset', methods=['POST'])
 @auth.login_required
 def reset_mech_difficulty():
-    """Reset mech evolution difficulty to automatic mode."""
+    """Reset mech evolution difficulty to automatic mode using MechWebService."""
     try:
-        from services.mech.evolution_config_manager import get_evolution_config_manager
-        from services.infrastructure.action_logger import log_user_action
+        # Use MechWebService for business logic
+        from services.web.mech_web_service import get_mech_web_service, MechDifficultyRequest
 
-        config_manager = get_evolution_config_manager()
+        service = get_mech_web_service()
+        request_obj = MechDifficultyRequest(operation='reset')
 
-        success = config_manager.reset_to_automatic_difficulty()
+        # Reset difficulty through service
+        result = service.manage_difficulty(request_obj)
 
-        if success:
-            # Log the action
-            log_user_action(
-                action="RESET_MECH_DIFFICULTY",
-                target="Automatic Mode",
-                details="Reset mech evolution difficulty to automatic mode (1.0x)"
-            )
-
-            return jsonify({
-                'success': True,
-                'difficulty_multiplier': 1.0,
-                'manual_override_active': False,
-                'message': 'Difficulty reset to automatic mode'
-            })
+        if result.success:
+            return jsonify(result.data)
         else:
-            return jsonify({'success': False, 'error': 'Failed to reset difficulty setting'}), 500
+            current_app.logger.error(f"Difficulty reset request failed: {result.error}")
+            return jsonify({'success': False, 'error': result.error}), result.status_code
 
     except Exception as e:
-        current_app.logger.error(f"Error resetting mech difficulty: {e}")
+        current_app.logger.error(f"Error in reset_mech_difficulty route: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @main_bp.route('/api/donations/list')
