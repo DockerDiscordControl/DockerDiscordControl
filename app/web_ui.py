@@ -363,7 +363,9 @@ set_initial_password_from_env()
 # Only create app instance if running directly (not via gunicorn WSGI)
 if __name__ == '__main__':
     app = create_app()
-    app.run(host='0.0.0.0', port=5000)
+    # Use DDC_WEB_PORT environment variable or default to 5000
+    port = int(os.environ.get('DDC_WEB_PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
 else:
     # For gunicorn WSGI, create app for import
     app = create_app() 
