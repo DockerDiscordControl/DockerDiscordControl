@@ -875,64 +875,15 @@ def save_config_api():
             logger.info(f"Configuration saved successfully via API: {message}")
             log_user_action("SAVE", "Configuration", source="Web UI Blueprint")
             
-            # Handle mech-specific settings separately
-            mech_settings_updated = False
-            try:
-                # Check if this is an advanced settings submission (contains mech-related fields)
-                # We need to handle this even if checkbox is unchecked (None), because
-                # unchecked checkboxes don't send any value in HTML forms
-                has_mech_difficulty = 'mech_difficulty_multiplier' in cleaned_form_data
-                has_mech_fields = any(key.startswith('mech_') for key in cleaned_form_data.keys())
-
-                if has_mech_difficulty or has_mech_fields:
-                    # Get the values (checkbox will be None when unchecked)
-                    mech_difficulty_multiplier = cleaned_form_data.get('mech_difficulty_multiplier')
-                    mech_manual_override = cleaned_form_data.get('mech_manual_difficulty_override')
-                    from services.mech.evolution_config_manager import get_evolution_config_manager
-                    config_manager = get_evolution_config_manager()
-
-                    # Convert string values to appropriate types
-                    if mech_difficulty_multiplier is not None:
-                        try:
-                            difficulty_multiplier = float(mech_difficulty_multiplier)
-                        except (ValueError, TypeError):
-                            difficulty_multiplier = 1.0
-                    else:
-                        difficulty_multiplier = config_manager.get_difficulty_multiplier()
-
-                    # Handle checkbox value (can be 'true', '1', 'on', or None/empty)
-                    manual_override = mech_manual_override in ['true', '1', 'on', True]
-
-                    logger.info(f"Updating mech settings - Difficulty: {difficulty_multiplier}, Manual Override: {manual_override}")
-
-                    # Save mech settings using the dedicated config manager
-                    if manual_override:
-                        mech_success = config_manager.set_difficulty_multiplier(difficulty_multiplier)
-                    else:
-                        mech_success = config_manager.reset_to_automatic_difficulty()
-
-                    if mech_success:
-                        mech_settings_updated = True
-                        logger.info("Mech difficulty settings updated successfully via config form")
-                    else:
-                        logger.warning("Failed to update mech difficulty settings via config form")
-
-            except Exception as e:
-                logger.error(f"Error updating mech settings from config form: {e}")
-
             # Add note about cache invalidation if critical settings changed
             if critical_settings_changed:
                 message += " Critical settings changed - caches have been invalidated. Changes should take effect immediately."
-
-            if mech_settings_updated:
-                message += " Mech difficulty settings updated."
 
             result = {
                 'success': True,
                 'message': message or 'Configuration saved successfully.',
                 'config_files': saved_files if config_split_enabled else [],
-                'critical_settings_changed': critical_settings_changed,
-                'mech_settings_updated': mech_settings_updated
+                'critical_settings_changed': critical_settings_changed
             }
             flash(result['message'], 'success')
         else:

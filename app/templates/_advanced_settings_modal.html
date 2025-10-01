@@ -239,17 +239,23 @@
                                     <i class="bi bi-gear-wide-connected"></i> Mech Evolution Difficulty
                                 </h6>
                             </div>
-                            <div class="col-12">
-                                <div class="form-check form-switch mb-3">
-                                    <input class="form-check-input" type="checkbox" id="mech_manual_difficulty_override" name="mech_manual_difficulty_override" value="true">
-                                    <label class="form-check-label" for="mech_manual_difficulty_override">
-                                        <i class="bi bi-sliders"></i> Manual Difficulty Override
-                                        <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Enable to manually control difficulty. When disabled, the system automatically adjusts difficulty based on community size. When enabled, your manual settings override the automatic system."></i>
-                                    </label>
-                                </div>
-                                <div class="form-text mb-3">
-                                    <strong>OFF:</strong> <span class="text-success">Automatic difficulty adjustment based on community size</span><br>
-                                    <strong>ON:</strong> <span class="text-warning">Manual control overrides automatic system</span>
+                            <!-- Manual Difficulty Override - Separate API handling -->
+                            <div class="col-12 mb-3">
+                                <div class="card bg-dark border-warning">
+                                    <div class="card-body p-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="mech_manual_difficulty_override_standalone" onchange="saveMechOverrideToggle()">
+                                            <label class="form-check-label" for="mech_manual_difficulty_override_standalone">
+                                                <i class="bi bi-sliders"></i> Manual Difficulty Override
+                                                <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Enable to manually control difficulty. When disabled, the system automatically adjusts difficulty based on community size. When enabled, your manual settings override the automatic system. Changes are saved immediately."></i>
+                                            </label>
+                                        </div>
+                                        <div class="form-text mt-2">
+                                            <strong>OFF:</strong> <span class="text-success">Automatic difficulty adjustment based on community size</span><br>
+                                            <strong>ON:</strong> <span class="text-warning">Manual control overrides automatic system</span>
+                                            <br><small class="text-info"><i class="bi bi-lightning"></i> Changes are saved immediately via dedicated API</small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-8">
@@ -342,7 +348,7 @@ function saveAdvancedSettings() {
     
     if (mainForm && advancedModal) {
         // Get all input fields from the advanced settings modal
-        const advancedInputs = advancedModal.querySelectorAll('input[name^="env_"], input[name="donation_disable_key"], input[name="mech_difficulty_multiplier"], input[name="mech_manual_difficulty_override"]');
+        const advancedInputs = advancedModal.querySelectorAll('input[name^="env_"], input[name="donation_disable_key"], input[name="mech_difficulty_multiplier"]');
         
         console.log(`Found ${advancedInputs.length} advanced inputs to copy`);
         
@@ -607,8 +613,8 @@ async function loadDifficultyMultiplier() {
             if (slider && data.difficulty_multiplier !== undefined) {
                 slider.value = data.difficulty_multiplier;
 
-                // Load manual override toggle status
-                const manualOverrideToggle = document.getElementById('mech_manual_difficulty_override');
+                // Load manual override toggle status for standalone toggle
+                const manualOverrideToggle = document.getElementById('mech_manual_difficulty_override_standalone');
                 if (manualOverrideToggle && data.manual_override !== undefined) {
                     manualOverrideToggle.checked = data.manual_override;
                 }
@@ -649,8 +655,8 @@ async function loadDifficultyMultiplier() {
 
 async function saveMechDifficulty(difficultyMultiplier) {
     try {
-        // Get manual override toggle status
-        const manualOverrideToggle = document.getElementById('mech_manual_difficulty_override');
+        // Get manual override toggle status from standalone toggle
+        const manualOverrideToggle = document.getElementById('mech_manual_difficulty_override_standalone');
         const manualOverride = manualOverrideToggle ? manualOverrideToggle.checked : false;
 
         const response = await fetch('/api/mech/difficulty', {
@@ -696,11 +702,61 @@ function showNotification(message, type = 'info') {
 
 // ======= Manual Difficulty Override Functions =======
 
+async function saveMechOverrideToggle() {
+    try {
+        const manualOverrideToggle = document.getElementById('mech_manual_difficulty_override_standalone');
+        const manualOverride = manualOverrideToggle ? manualOverrideToggle.checked : false;
+
+        // Get current difficulty value
+        const difficultySlider = document.getElementById('mech_difficulty_multiplier');
+        const difficultyMultiplier = difficultySlider ? parseFloat(difficultySlider.value) : 1.0;
+
+        console.log(`Saving manual override toggle: ${manualOverride} with difficulty: ${difficultyMultiplier}`);
+
+        const response = await fetch('/api/mech/difficulty', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                difficulty_multiplier: difficultyMultiplier,
+                manual_override: manualOverride
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+                console.log('Manual override toggle saved successfully:', data.message);
+
+                // Show brief visual feedback
+                const label = manualOverrideToggle?.closest('.form-check')?.querySelector('.form-check-label');
+                if (label) {
+                    const originalColor = label.style.color;
+                    label.style.color = '#28a745'; // Green for success
+                    setTimeout(() => {
+                        label.style.color = originalColor;
+                    }, 500);
+                }
+            } else {
+                console.error('Failed to save manual override:', data.error);
+            }
+        } else {
+            console.error('HTTP error saving manual override:', response.status);
+        }
+    } catch (error) {
+        console.error('Error saving manual override toggle:', error);
+    }
+}
+
 function enableManualOverride() {
-    const manualOverrideToggle = document.getElementById('mech_manual_difficulty_override');
+    const manualOverrideToggle = document.getElementById('mech_manual_difficulty_override_standalone');
     if (manualOverrideToggle && !manualOverrideToggle.checked) {
         manualOverrideToggle.checked = true;
         console.log('Manual difficulty override automatically enabled due to user interaction');
+
+        // Save immediately via dedicated API
+        saveMechOverrideToggle();
 
         // Visual feedback
         const label = manualOverrideToggle.closest('.form-check').querySelector('.form-check-label');
