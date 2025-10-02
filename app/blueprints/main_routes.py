@@ -1071,3 +1071,73 @@ def setup_save():
             'success': False,
             'error': 'Setup failed due to internal error'
         })
+
+# ========================================
+# MECH MUSIC API ROUTES (for Discord integration)
+# ========================================
+
+@main_bp.route('/api/mech/music/<int:level>')
+def stream_mech_music(level):
+    """Stream mech music for a specific level using MechMusicService."""
+    try:
+        # Use MechMusicService for business logic
+        from services.web.mech_music_service import get_mech_music_service, MechMusicRequest
+
+        service = get_mech_music_service()
+        request_obj = MechMusicRequest(level=level)
+
+        # Get music file through service
+        result = service.get_mech_music(request_obj)
+
+        if result.success:
+            current_app.logger.info(f"Streaming mech music for level {level}: {result.title}")
+            return send_file(
+                result.file_path,
+                mimetype='audio/mpeg',
+                as_attachment=False,
+                download_name=f"mech_{level}_{result.title}.mp3"
+            )
+        else:
+            current_app.logger.warning(f"Mech music not found for level {level}: {result.error}")
+            return jsonify({
+                'success': False,
+                'error': result.error or f'Music not found for Mech Level {level}'
+            }), result.status_code
+
+    except Exception as e:
+        current_app.logger.error(f"Error in stream_mech_music route: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Error streaming mech music'
+        }), 500
+
+@main_bp.route('/api/mech/music/info')
+def get_mech_music_info():
+    """Get information about all available mech music tracks using MechMusicService."""
+    try:
+        # Use MechMusicService for business logic
+        from services.web.mech_music_service import get_mech_music_service, MechMusicInfoRequest
+
+        service = get_mech_music_service()
+        request_obj = MechMusicInfoRequest()
+
+        # Get all music info through service
+        result = service.get_all_music_info(request_obj)
+
+        if result.success:
+            return jsonify({
+                'success': True,
+                **result.data
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result.error
+            }), result.status_code
+
+    except Exception as e:
+        current_app.logger.error(f"Error in get_mech_music_info route: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Error getting mech music information'
+        }), 500

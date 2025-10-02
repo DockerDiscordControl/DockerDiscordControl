@@ -1,7 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find:*)"
+      "Bash(DDC_WEB_PORT=5001 python3 -c \"\nimport sys\nsys.path.insert(0, ''/Volumes/appdata/dockerdiscordcontrol'')\nfrom services.web.mech_music_service import get_mech_music_service, MechMusicRequest\nservice = get_mech_music_service()\nservice.music_cache = {}  # Clear cache\nrequest_obj = MechMusicRequest(level=3)\nresult = service.get_mech_music(request_obj)\nif result.success:\n    import os\n    filename = os.path.basename(result.file_path)\n    print(f''✅ Level 3 updated: \"\"{result.title}\"\" -> File: {filename}'')\nelse:\n    print(f''❌ Error: {result.error}'')\n\")"
     ],
     "deny": [],
     "ask": []

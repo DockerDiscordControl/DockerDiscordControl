@@ -1845,13 +1845,14 @@ And those who dare… sp34k its ████ do s0 only once.
 
 
 class MechStoryView(View):
-    """View with Read Story button."""
+    """View with Read Story and Play Song buttons."""
 
     def __init__(self, cog_instance: 'DockerControlCog', level: int):
         super().__init__(timeout=None)
         self.cog = cog_instance
         self.level = level
         self.add_item(ReadStoryButton(cog_instance, level))
+        self.add_item(PlaySongButton(cog_instance, level))
 
 
 class ReadStoryButton(Button):
@@ -1927,6 +1928,56 @@ class ReadStoryButton(Button):
         except Exception as e:
             logger.error(f"Error showing story for level {self.level}: {e}", exc_info=True)
             await interaction.response.send_message(_("❌ Error loading story."), ephemeral=True)
+
+
+class PlaySongButton(Button):
+    """Button to play the music for a mech level as Discord attachment."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', level: int):
+        self.cog = cog_instance
+        self.level = level
+
+        super().__init__(
+            style=discord.ButtonStyle.primary,
+            label=_("Play Song"),
+            emoji="🎵",
+            custom_id=f"play_song_{level}"
+        )
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Send the MP3 file as Discord attachment for direct playback."""
+        try:
+            # Check if donations are disabled
+            if is_donations_disabled():
+                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                return
+
+            # Import and use MechMusicService to get music file
+            from services.web.mech_music_service import get_mech_music_service, MechMusicRequest
+
+            service = get_mech_music_service()
+            request_obj = MechMusicRequest(level=self.level)
+
+            # Get music file path through service
+            result = service.get_mech_music(request_obj)
+
+            if result.success:
+                import discord
+                import os
+
+                # Send only the MP3 file - no description needed
+                music_file = discord.File(result.file_path, filename=f"{result.title}.mp3")
+                await interaction.response.send_message(file=music_file, ephemeral=True)
+            else:
+                await interaction.response.send_message(
+                    f"❌ No music available for Mech Level {self.level}\n"
+                    f"Error: {result.error}",
+                    ephemeral=True
+                )
+
+        except Exception as e:
+            logger.error(f"Error playing song for level {self.level}: {e}", exc_info=True)
+            await interaction.response.send_message(_("❌ Error loading music."), ephemeral=True)
 
 
 class MechHistoryButtonHelper:
