@@ -1884,9 +1884,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                 # Special handling for Level 11 - corrupted power bar
                 if evolution['level'] == 11:
-                    # Corrupted power bar (same characters as next evolution bar, different positions)
-                    # Original pattern: `░#░░░░#░░#░░░#░░░░#░░` (5x░, 5x#)
-                    corrupted_power_bar = "░#░░░░#░░#░░░#░░░░#░░"  # 21 characters: 16x░, 5x#
+                    # Heavily corrupted power bar with distorted characters (different from evolution bar)
+                    # Old bar:     ░#░░░░#░░#░░░#░░░░#░░ (21 chars)
+                    # New bar:     Different pattern with &%!@ and 23 characters total
+                    corrupted_power_bar = "!#%░&░#@░!░░#%#&░░@░#%░!"  # 23 characters, different from evolution bar
                     corrupted_power_percentage = f"#{Power_percentage:.1f}%&"
                     mech_status += f"⚡ ${current_Power:.2f}\n`{corrupted_power_bar}` {corrupted_power_percentage}\n"
                 else:
@@ -1910,10 +1911,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                     # Special handling for Level 10 → Level 11 progression (ALWAYS show corrupted bar)
                     if mech_state.level == 10 or "ERR#R" in next_evolution_name or "DATA_C0RR*PTED" in next_evolution_name:
-                        # Create corrupted progress bar with same chars as power bar but different positions
-                        # Power bar:  ░#░░░░#░░#░░░#░░░░#░░ (16x░, 5x#)
-                        # Next bar:   ░░#░░#░░░░#░#░░░░#░░░ (16x░, 5x#) - different arrangement
-                        corrupted_bar = "░░#░░#░░░░#░#░░░░#░░░"  # Exactly 21 characters
+                        # Create heavily corrupted progress bar with distorted characters
+                        # Old bar:    ░░#░░#░░░░#░#░░░░#░░░ (21 chars)
+                        # New bar:    More corrupted with &%!@ and 23 characters total
+                        corrupted_bar = "░%#!░&░#░@░░#!#%░░&░#░!░"  # 23 characters with distorted symbols
 
                         # For Level 10 → 11: Show REAL progression with corrupted display
                         if mech_state.level == 10:
