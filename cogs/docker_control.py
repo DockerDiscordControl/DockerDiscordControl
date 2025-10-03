@@ -845,10 +845,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         """Deletes all bot messages and posts a fresh control panel and status messages."""
         if not config:
             logger.error(f"Regenerate Channel: Could not load configuration. Aborting.")
-            return
-            
+            raise ValueError("Configuration not available for channel regeneration")
+
+        if mode not in ['control', 'status']:
+            logger.error(f"Invalid regeneration mode '{mode}' for channel {channel.name}. Must be 'control' or 'status'.")
+            raise ValueError(f"Invalid regeneration mode: {mode}")
+
         logger.info(f"Regenerating channel {channel.name} ({channel.id}) in mode '{mode}'")
-        
+
         # --- Delete old messages ---
         try:
             logger.info(f"Deleting old bot messages in {channel.name}...")
@@ -857,15 +861,22 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             logger.info(f"Finished deleting messages in {channel.name}.")
         except Exception as e_delete:
             logger.error(f"Error deleting messages in {channel.name}: {e_delete}")
-            # Continue even if deletion fails
-        
+            # Continue even if deletion fails - regeneration might still work
+
         # --- Send new messages based on mode ---
-        if mode == 'control':
-            await self._send_control_panel_and_statuses(channel)
-        elif mode == 'status':
-            await self._send_all_server_statuses(channel, allow_toggle=False, force_collapse=True)
-            
-        logger.info(f"Regeneration for channel {channel.name} completed.")
+        try:
+            if mode == 'control':
+                logger.debug(f"Sending control panel and statuses to {channel.name}")
+                await self._send_control_panel_and_statuses(channel)
+            elif mode == 'status':
+                logger.debug(f"Sending status-only messages to {channel.name}")
+                await self._send_all_server_statuses(channel, allow_toggle=False, force_collapse=True)
+
+            logger.info(f"✅ Regeneration for channel {channel.name} completed successfully.")
+
+        except Exception as e_send:
+            logger.error(f"❌ Error sending new messages to {channel.name} in mode '{mode}': {e_send}", exc_info=True)
+            raise RuntimeError(f"Failed to send new messages during regeneration: {e_send}") from e_send
 
     async def send_initial_status(self):
         """Sends the initial status messages after a short delay."""
@@ -2667,12 +2678,22 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         
                         logger.debug(f"Will regenerate with mode: {regeneration_mode}")
 
-                        # Attempt channel regeneration
-                        await self._regenerate_channel(channel, regeneration_mode, config)
-                        
-                        # Reset activity timer
-                        self.last_channel_activity[channel_id] = now_utc
-                        logger.info(f"Channel {channel.name} ({channel_id}) regenerated due to inactivity. Mode: {regeneration_mode}")
+                        # Attempt channel regeneration with improved error handling
+                        try:
+                            logger.info(f"Starting inactivity regeneration for {channel.name} ({channel_id}) in mode '{regeneration_mode}'")
+                            await self._regenerate_channel(channel, regeneration_mode, config)
+
+                            # Reset activity timer only on successful regeneration
+                            self.last_channel_activity[channel_id] = now_utc
+                            logger.info(f"✅ Channel {channel.name} ({channel_id}) successfully regenerated due to inactivity. Mode: {regeneration_mode}")
+
+                        except Exception as regen_error:
+                            logger.error(f"❌ Failed to regenerate channel {channel.name} ({channel_id}) due to inactivity: {regen_error}", exc_info=True)
+                            # Don't reset activity timer on failure - try again next cycle
+                            # But prevent infinite retries by adding a small delay
+                            error_delay = timedelta(minutes=2)
+                            self.last_channel_activity[channel_id] = now_utc - inactivity_threshold + error_delay
+                            logger.warning(f"Delaying next regeneration attempt for {channel.name} by {error_delay}")
                         
                     except discord.NotFound:
                         logger.warning(f"Channel {channel_id} not found. Removing from activity tracking")
@@ -2732,7 +2753,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         # Check spam protection first
         if not await self._check_spam_protection(ctx, "control"):
             return
-            
+
         if not ctx.channel or not isinstance(ctx.channel, discord.TextChannel):
             await ctx.respond(_("This command can only be used in server channels."), ephemeral=True)
             return
@@ -2741,6 +2762,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             await ctx.respond(_("You do not have permission to use this command in this channel, or control panels are disabled here."), ephemeral=True)
             return
 
+        # Permission check passed - now safe to defer with public response
         await ctx.defer(ephemeral=False)
         logger.info(f"Control panel regeneration requested by {ctx.author} in {ctx.channel.name}")
 
@@ -3009,30 +3031,59 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     def _register_persistent_mech_views(self):
         """Register persistent views for mech buttons to work after bot restart."""
         try:
-            from .control_ui import MechExpandButton, MechCollapseButton, MechDonateButton
+            from .control_ui import (MechExpandButton, MechCollapseButton, MechDonateButton,
+                                   MechDisplayButton, ReadStoryButton, PlaySongButton, EpilogueButton,
+                                   MechHistoryButton)
             import discord
-            
+
             # Create persistent views for mech buttons
             # These views will persist across bot restarts
             class PersistentMechExpandView(discord.ui.View):
                 def __init__(self, cog_instance):
                     super().__init__(timeout=None)
                     self.add_item(MechExpandButton(cog_instance, 0))  # Pass cog_instance correctly
-            
+
             class PersistentMechCollapseView(discord.ui.View):
                 def __init__(self, cog_instance):
                     super().__init__(timeout=None)
                     self.add_item(MechCollapseButton(cog_instance, 0))  # Pass cog_instance correctly
-            
+
             class PersistentMechDonateView(discord.ui.View):
                 def __init__(self, cog_instance):
                     super().__init__(timeout=None)
                     self.add_item(MechDonateButton(cog_instance, 0))  # Pass cog_instance correctly
-            
+
+            class PersistentMechHistoryView(discord.ui.View):
+                def __init__(self, cog_instance):
+                    super().__init__(timeout=None)
+                    self.add_item(MechHistoryButton(cog_instance, 0))  # Pass cog_instance correctly
+
+            # Create persistent views for mech selection buttons (levels 1-11)
+            class PersistentMechSelectionView(discord.ui.View):
+                def __init__(self, cog_instance):
+                    super().__init__(timeout=None)
+                    # Add buttons for all possible mech levels (1-11)
+                    for level in range(1, 12):
+                        self.add_item(MechDisplayButton(cog_instance, level, f"{level}", True))
+                    # Add epilogue button
+                    self.add_item(EpilogueButton(cog_instance))
+
+            # Create persistent views for story buttons (levels 1-11)
+            class PersistentMechStoryView(discord.ui.View):
+                def __init__(self, cog_instance):
+                    super().__init__(timeout=None)
+                    # Add story and music buttons for all possible levels (1-11)
+                    for level in range(1, 12):
+                        self.add_item(ReadStoryButton(cog_instance, level))
+                        self.add_item(PlaySongButton(cog_instance, level))
+
             # Register persistent views with proper cog instance
             self.bot.add_view(PersistentMechExpandView(self))
             self.bot.add_view(PersistentMechCollapseView(self))
             self.bot.add_view(PersistentMechDonateView(self))
+            self.bot.add_view(PersistentMechHistoryView(self))
+            self.bot.add_view(PersistentMechSelectionView(self))
+            self.bot.add_view(PersistentMechStoryView(self))
             
             logger.info("✅ Registered persistent mech views for button persistence")
         except Exception as e:
