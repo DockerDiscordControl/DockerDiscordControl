@@ -1904,15 +1904,24 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 if evolution.get('next_name'):
                     next_evolution_name = translate(evolution['next_name'])
 
-                    # Special handling for corrupted Level 11 data
-                    if "ERR#R" in next_evolution_name or "DATA_C0RR*PTED" in next_evolution_name:
+                    # Special handling for Level 10 → Level 11 progression (ALWAYS show corrupted bar)
+                    if mech_state.level == 10 or "ERR#R" in next_evolution_name or "DATA_C0RR*PTED" in next_evolution_name:
                         # Create corrupted progress bar with same chars as power bar but different positions
                         # Power bar:  ░#░░░░#░░#░░░#░░░░#░░ (16x░, 5x#)
                         # Next bar:   ░░#░░#░░░░#░#░░░░#░░░ (16x░, 5x#) - different arrangement
                         corrupted_bar = "░░#░░#░░░░#░#░░░░#░░░"  # Exactly 21 characters
-                        # For Level 11, force 100% display (max evolution reached)
-                        corrupted_percentage = "#100.0%&"
-                        mech_status += f"⚠️ {next_evolution_name}\n`{corrupted_bar}` {corrupted_percentage}"
+
+                        # For Level 10 → 11: Show REAL progression with corrupted display
+                        if mech_state.level == 10:
+                            # Use actual percentage to Level 11, but display corrupted
+                            corrupted_percentage = f"#{next_percentage:.1f}%&"
+                            next_evolution_prefix = "ERR#R: [DATA_C0RR*PTED]"
+                        else:
+                            # For Level 11 itself: force 100% display (max evolution reached)
+                            corrupted_percentage = "#100.0%&"
+                            next_evolution_prefix = "⚠️"
+
+                        mech_status += f"{next_evolution_prefix}\n`{corrupted_bar}` {corrupted_percentage}"
                     else:
                         mech_status += f"⬆️ {next_evolution_name}\n`{next_bar}` {next_percentage:.1f}%"
                 else:
