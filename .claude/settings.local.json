@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(DDC_WEB_PORT=5001 python3 -c \"\nimport sys\nsys.path.insert(0, ''/Volumes/appdata/dockerdiscordcontrol'')\nfrom services.web.mech_music_service import get_mech_music_service, MechMusicRequest\nservice = get_mech_music_service()\nservice.music_cache = {}  # Clear cache\nrequest_obj = MechMusicRequest(level=3)\nresult = service.get_mech_music(request_obj)\nif result.success:\n    import os\n    filename = os.path.basename(result.file_path)\n    print(f''✅ Level 3 updated: \"\"{result.title}\"\" -> File: {filename}'')\nelse:\n    print(f''❌ Error: {result.error}'')\n\")"
+      "Bash(for:*)",
+      "Bash(do mv \"$file\" \"$file/wallk/walk\")",
+      "Bash(done)",
+      "Bash(DDC_WEB_PORT=5001 python3 -c \"\nimport sys\nsys.path.insert(0, ''/Volumes/appdata/dockerdiscordcontrol'')\nfrom services.mech.animation_cache_service import get_animation_cache_service\n\n# Regenerate Mech3 animation with corrected filenames\ncache_service = get_animation_cache_service()\ncache_service.pre_generate_animation(3)\nprint(''✅ Mech3 animation regenerated with corrected walk filenames!'')\n\")"
     ],
     "deny": [],
     "ask": []

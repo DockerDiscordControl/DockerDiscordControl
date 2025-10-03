@@ -44,6 +44,7 @@ class AnimationCacheService:
         logger.info(f"Animation Cache Service initialized")
         logger.info(f"Assets dir: {self.assets_dir}")
         logger.info(f"Cache dir: {self.cache_dir}")
+        logger.info(f"Base animation speed: 8 FPS (125ms per frame)")
 
     def get_expected_canvas_size(self, evolution_level: int) -> Tuple[int, int]:
         """Get expected canvas size for an evolution level using smart cropping"""
@@ -52,7 +53,7 @@ class AnimationCacheService:
             mech_folder = self._get_actual_mech_folder(evolution_level)
 
             import re
-            pattern = re.compile(rf"{evolution_level}_(\d{{4}})\.png")
+            pattern = re.compile(rf"{evolution_level}_walk_(\d{{4}})\.png")
             png_files = [f for f in sorted(mech_folder.glob("*.png")) if pattern.match(f.name)]
 
             if not png_files:
@@ -122,12 +123,12 @@ class AnimationCacheService:
         if mech_folder.name != f"Mech{evolution_level}":
             logger.warning(f"Mech{evolution_level} not found, using {mech_folder.name}")
 
-        # Find PNG files with unified pattern (all mechs now use LEVEL_XXXX.png)
+        # Find PNG files with new walk animation pattern
         import re
         png_files = []
 
-        # Unified pattern: 1_0000.png, 2_0000.png, 3_0000.png, etc.
-        pattern = re.compile(rf"{evolution_level}_(\d{{4}})\.png")
+        # New pattern: 1_walk_0000.png, 2_walk_0000.png, 3_walk_0000.png, etc.
+        pattern = re.compile(rf"{evolution_level}_walk_(\d{{4}})\.png")
 
         for file in sorted(mech_folder.glob("*.png")):
             if pattern.match(file.name):
@@ -228,8 +229,8 @@ class AnimationCacheService:
         logger.debug(f"Processed {len(frames)} frames for evolution {evolution_level}")
         return frames
 
-    def _create_unified_webp(self, frames: List[Image.Image], base_duration: int = 40) -> bytes:
-        """Create CRYSTAL SHARP WebP animation with ZERO color loss"""
+    def _create_unified_webp(self, frames: List[Image.Image], base_duration: int = 125) -> bytes:
+        """Create CRYSTAL SHARP WebP animation with ZERO color loss at 8 FPS (125ms per frame)"""
         buffer = BytesIO()
         frames[0].save(
             buffer,
@@ -295,6 +296,12 @@ class AnimationCacheService:
 
         logger.info(f"Pre-generation complete for {len(evolution_levels)} evolution levels")
 
+    def clear_cache(self):
+        """Clear all cached animations to force regeneration with new PNG files"""
+        logger.info("Clearing animation cache to use new high-resolution PNG files...")
+        self.cleanup_old_animations(keep_hours=0)  # Remove all cached files
+        logger.info("✅ Animation cache cleared - new walk animations will be generated")
+
     def cleanup_old_animations(self, keep_hours: int = 24):
         """Remove cached animations older than specified hours"""
         if keep_hours == 0:
@@ -340,13 +347,14 @@ class AnimationCacheService:
         with open(cache_path, 'rb') as f:
             animation_data = f.read()
 
-        # Calculate speed adjustment
-        base_duration = 40  # 100% speed baseline
-        speed_factor = speed_level / 50.0 if speed_level > 0 else 0.1
-        new_duration = max(10, int(base_duration / speed_factor))
+        # Calculate speed adjustment - 8 FPS base (125ms) with 80%-120% range
+        base_duration = 125  # Match cached animation: 8 FPS = 125ms per frame
+        speed_factor = 0.8 + (speed_level / 100.0) * 0.4  # 80% to 120% range
+        speed_factor = max(0.8, min(1.2, speed_factor))  # Clamp to safe range
+        new_duration = max(50, int(base_duration / speed_factor))  # Min 50ms for readability
 
         # If speed is exactly 100% (speed_level = 50), return cached version as-is
-        if abs(speed_level - 50.0) < 0.1:
+        if abs(speed_level - 50.0) < 5.0:
             logger.debug(f"Using cached animation at 100% speed for evolution {evolution_level}")
             return animation_data
 

@@ -46,10 +46,12 @@ class PngToWebpService:
                 logger.info(f"Cache miss - generating animation for evolution {evolution_level}")
                 self.cache_service.pre_generate_animation(evolution_level)
 
-            # Speed adjustment logic
-            base_duration = 40
-            speed_factor = speed_level / 50.0 if speed_level > 0 else 0.1
-            target_duration = max(10, int(base_duration / speed_factor))
+            # Speed adjustment logic - 8 FPS base (125ms) is 100% speed
+            # Map speed_level (0-100) to 80%-120% speed range for smooth animations
+            base_duration = 125  # 8 FPS = 1000ms / 8 = 125ms per frame
+            speed_factor = 0.8 + (speed_level / 100.0) * 0.4  # 80% to 120% range
+            speed_factor = max(0.8, min(1.2, speed_factor))  # Clamp to safe range
+            target_duration = max(50, int(base_duration / speed_factor))  # Min 50ms for readability
 
             # Use direct file for normal speed, adjust for others
             if abs(speed_level - 50.0) < 5.0:
