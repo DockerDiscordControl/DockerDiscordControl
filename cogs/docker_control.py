@@ -1884,10 +1884,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                 # Special handling for Level 11 - corrupted power bar
                 if evolution['level'] == 11:
-                    # Heavily corrupted power bar with distorted characters (different from evolution bar)
-                    # Old bar:     ░#░░░░#░░#░░░#░░░░#░░ (21 chars)
-                    # New bar:     Different pattern with &%!@ and 23 characters total
-                    corrupted_power_bar = "!#%░&░#@░!░░#%#&░░@░#%░!"  # 23 characters, different from evolution bar
+                    # Heavily corrupted power bar - same characters as evolution bar, different distribution
+                    # Power bar: 23 chars with ░(10), #(5), %(2), !(2), &(2), @(2) - same count, different pattern
+                    corrupted_power_bar = "@#&░!░%#░░#!░%░&░#@░░#%"  # 23 characters: fuel/power bar
                     corrupted_power_percentage = f"#{Power_percentage:.1f}%&"
                     mech_status += f"⚡ ${current_Power:.2f}\n`{corrupted_power_bar}` {corrupted_power_percentage}\n"
                 else:
@@ -1912,9 +1911,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     # Special handling for Level 10 → Level 11 progression (ALWAYS show corrupted bar)
                     if mech_state.level == 10 or "ERR#R" in next_evolution_name or "DATA_C0RR*PTED" in next_evolution_name:
                         # Create heavily corrupted progress bar with distorted characters
-                        # Old bar:    ░░#░░#░░░░#░#░░░░#░░░ (21 chars)
-                        # New bar:    More corrupted with &%!@ and 23 characters total
-                        corrupted_bar = "░%#!░&░#░@░░#!#%░░&░#░!░"  # 23 characters with distorted symbols
+                        # Evolution bar: 23 chars with ░(10), #(5), %(2), !(2), &(2), @(2)
+                        corrupted_bar = "░%#!░&░#░@░░#!#%░░&░#@░"  # 23 characters: evolution progression
 
                         # For Level 10 → 11: Show REAL progression with corrupted display
                         if mech_state.level == 10:
