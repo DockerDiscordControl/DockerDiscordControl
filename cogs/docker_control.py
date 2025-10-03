@@ -1771,23 +1771,27 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 from services.mech.mech_service import MECH_LEVELS
                 next_name = None
                 if mech_state.next_level_threshold is not None:
-                    # For Level 10+, use corrupted name from service instead of MECH_LEVELS
-                    if mech_state.level >= 10:
+                    # For Level 10 ONLY: use corrupted name (Level 11 should have no next_name)
+                    if mech_state.level == 10:
                         next_name = "ERR#R: [DATA_C0RR*PTED]"
-                    else:
-                        # Find next level name from MECH_LEVELS for normal levels
+                    elif mech_state.level < 10:
+                        # Find next level name from MECH_LEVELS for normal levels (1-9)
                         for level_info in MECH_LEVELS:
                             if level_info.threshold == mech_state.next_level_threshold:
                                 next_name = level_info.name
                                 break
+                    # Level 11: next_name stays None -> "MAX EVOLUTION REACHED!"
                 
                 evolution = {
                     'name': mech_state.level_name,
                     'level': mech_state.level,
                     'current_threshold': 0,  # Will be calculated from level if needed
                     'next_threshold': mech_state.next_level_threshold,
-                    'next_name': next_name  # This was missing!
                 }
+
+                # Only add next_name if it exists (Level 11 has no next evolution)
+                if next_name is not None:
+                    evolution['next_name'] = next_name
                 
                 # Speed info from glvl - get full speed description with translations
                 try:
