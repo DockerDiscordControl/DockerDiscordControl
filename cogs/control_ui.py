@@ -1675,16 +1675,17 @@ class MechSelectionView(View):
                 button = MechDisplayButton(cog_instance, level, evolution_info.name, unlocked=True)
                 self.add_item(button)
 
-        # Add "Next" button for shadow preview (only for levels < 11)
+        # Add "Next" button for shadow preview (only for levels < 10)
+        # Level 10+ gets Epilogue instead of Next button
         next_level = current_level + 1
-        if next_level <= 11:
+        if next_level <= 11 and current_level < 10:
             evolution_info = config_manager.get_evolution_level(next_level)
             if evolution_info:
                 button = MechDisplayButton(cog_instance, next_level, "Next", unlocked=False)
                 self.add_item(button)
 
-        # Show Epilogue button at Level 11 (max level)
-        if current_level >= 11:
+        # Show Epilogue button starting at Level 10 (final stages)
+        if current_level >= 10:
             button = EpilogueButton(cog_instance)
             self.add_item(button)
 
@@ -1939,7 +1940,7 @@ class PlaySongButton(Button):
 
         super().__init__(
             style=discord.ButtonStyle.primary,
-            label=_("Play Song"),
+            label=None,
             emoji="🎵",
             custom_id=f"play_song_{level}"
         )
