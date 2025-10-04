@@ -586,6 +586,8 @@ class MechService:
     def _decay_amount(self, a: datetime, b: datetime, level: int = 1) -> float:
         """Power consumption between a→b, level-specific decay rate (second-accurate).
 
+        This method now delegates to MechDecayService for consistent decay calculations.
+
         Args:
             a: Start time
             b: End time
@@ -594,18 +596,24 @@ class MechService:
         Returns:
             Power decay amount based on level-specific decay_per_day
         """
-        sec = (b.astimezone(self.tz) - a.astimezone(self.tz)).total_seconds()
+        from services.mech.mech_decay_service import get_mech_decay_service, DecayCalculationRequest
 
-        # Get level-specific decay rate
-        from services.mech.evolution_config_manager import get_evolution_config_manager
-        config_mgr = get_evolution_config_manager()
-        evolution = config_mgr.get_evolution_level(level)
+        decay_service = get_mech_decay_service()
+        request = DecayCalculationRequest(
+            start_time=a,
+            end_time=b,
+            mech_level=level
+        )
 
-        # Default to 1.0 if evolution not found
-        decay_per_day = evolution.decay_per_day if evolution else 1.0
+        result = decay_service.calculate_decay_amount(request)
 
-        # Calculate decay: (seconds / seconds_per_day) * decay_rate
-        return max(0.0, (sec / 86400.0) * decay_per_day)
+        if result.success and result.decay_amount is not None:
+            return result.decay_amount
+        else:
+            # Fallback to legacy calculation if service fails
+            self.logger.warning(f"MechDecayService failed, using fallback: {result.error}")
+            sec = (b.astimezone(self.tz) - a.astimezone(self.tz)).total_seconds()
+            return max(0.0, (sec / 86400.0) * 1.0)  # Default 1.0 decay rate
 
 
 # ---------------------------
