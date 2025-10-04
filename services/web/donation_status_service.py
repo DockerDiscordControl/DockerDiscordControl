@@ -120,16 +120,27 @@ class DonationStatusService:
             }
 
     def _get_evolution_information(self, mech_level: int) -> Dict[str, Any]:
-        """Get evolution-specific information like decay rate."""
+        """Get evolution-specific information like decay rate using MechDecayService."""
         try:
-            from services.mech.evolution_config_manager import get_evolution_config_manager
+            from services.mech.mech_decay_service import get_mech_decay_service, DecayInfoRequest
 
-            config_mgr = get_evolution_config_manager()
-            evolution_info = config_mgr.get_evolution_level(mech_level)
+            decay_service = get_mech_decay_service()
+            request = DecayInfoRequest(mech_level=mech_level)
+            result = decay_service.get_decay_info_for_level(request)
 
-            return {
-                'decay_per_day': evolution_info.decay_per_day if evolution_info else 1.0
-            }
+            if result.success and result.decay_info:
+                return {
+                    'decay_per_day': result.decay_info['decay_per_day']
+                }
+            else:
+                self.logger.warning(f"MechDecayService failed for level {mech_level}: {result.error}")
+                # Fallback to direct config access
+                from services.mech.evolution_config_manager import get_evolution_config_manager
+                config_mgr = get_evolution_config_manager()
+                evolution_info = config_mgr.get_evolution_level(mech_level)
+                return {
+                    'decay_per_day': evolution_info.decay_per_day if evolution_info else 1.0
+                }
 
         except Exception as e:
             self.logger.error(f"Error getting evolution information: {e}")
