@@ -29,88 +29,32 @@ class PngToWebpService:
         logger.info("PNG to WebP Service initialized with cached animation system")
 
     async def create_donation_animation(self, donor_name: str, amount: str, total_donations: float, show_overlay: bool = True) -> discord.File:
-        """Create Discord-compatible animation file (async)"""
+        """Create Discord-compatible animation file (async) - Thin wrapper over animation cache service"""
         try:
             from services.mech.mech_evolutions import get_evolution_level
-            from services.mech.mech_service import get_mech_service
 
             evolution_level = max(1, min(11, get_evolution_level(total_donations)))
 
-            mech_service = get_mech_service()
-            current_power = float(mech_service.get_state().Power)
-            speed_level = self._calculate_speed_level_from_power(current_power, evolution_level)
+            # Delegate all business logic to animation cache service
+            webp_bytes = self.cache_service.get_current_mech_animation(evolution_level)
 
-            cache_path = self.cache_service.get_cached_animation_path(evolution_level)
-
-            if not cache_path.exists():
-                logger.info(f"Cache miss - generating animation for evolution {evolution_level}")
-                self.cache_service.pre_generate_animation(evolution_level)
-
-            # Speed adjustment logic - 8 FPS base (125ms) is 100% speed
-            # Map speed_level (0-100) to 80%-120% speed range for smooth animations
-            base_duration = 125  # 8 FPS = 1000ms / 8 = 125ms per frame
-            speed_factor = 0.8 + (speed_level / 100.0) * 0.4  # 80% to 120% range
-            speed_factor = max(0.8, min(1.2, speed_factor))  # Clamp to safe range
-            target_duration = max(50, int(base_duration / speed_factor))  # Min 50ms for readability
-
-            # Use direct file for normal speed, adjust for others
-            if abs(speed_level - 50.0) < 5.0:
-                logger.debug(f"Using direct cached WebP (speed ~50): {cache_path}")
-                return discord.File(str(cache_path), filename=f"mech_animation_{int(time.time())}.webp", spoiler=False)
-
-            # Speed adjustment via re-encoding
-            logger.debug(f"Adjusting WebP speed: {speed_level} → {target_duration}ms/frame")
-
-            webp_frames = []
-            with Image.open(cache_path) as webp_img:
-                frame_count = 0
-                try:
-                    while True:
-                        frame = webp_img.copy()
-                        webp_frames.append(frame)
-                        frame_count += 1
-                        webp_img.seek(frame_count)
-                except EOFError:
-                    pass
-
-            buffer = BytesIO()
-            if webp_frames:
-                webp_frames[0].save(
-                    buffer,
-                    format='WebP',
-                    save_all=True,
-                    append_images=webp_frames[1:],
-                    duration=target_duration,
-                    loop=0
-                )
-                buffer.seek(0)
-                return discord.File(buffer, filename=f"mech_animation_{int(time.time())}.webp", spoiler=False)
-
-            # Fallback
-            return discord.File(str(cache_path), filename=f"mech_animation_{int(time.time())}.webp", spoiler=False)
+            # Interface adaptation: bytes -> Discord.File
+            buffer = BytesIO(webp_bytes)
+            return discord.File(buffer, filename=f"mech_animation_{int(time.time())}.webp", spoiler=False)
 
         except Exception as e:
             logger.error(f"Error creating donation animation: {e}")
             return self._create_fallback_animation()
 
     def create_donation_animation_sync(self, donor_name: str, amount: str, total_donations: float) -> bytes:
-        """Create animation bytes for Web UI (sync)"""
+        """Create animation bytes for Web UI (sync) - Thin wrapper over animation cache service"""
         try:
             from services.mech.mech_evolutions import get_evolution_level
-            from services.mech.mech_service import get_mech_service
 
             evolution_level = max(1, min(11, get_evolution_level(total_donations)))
 
-            mech_service = get_mech_service()
-            current_power = float(mech_service.get_state().Power)
-            speed_level = self._calculate_speed_level_from_power(current_power, evolution_level)
-
-            # Use cached animation system for WebUI too
-            webp_bytes = self.cache_service.get_animation_with_speed(
-                evolution_level=evolution_level,
-                speed_level=speed_level
-            )
-            return webp_bytes
+            # Delegate all business logic to animation cache service
+            return self.cache_service.get_current_mech_animation(evolution_level)
 
         except Exception as e:
             logger.error(f"Error creating sync animation: {e}")
@@ -126,34 +70,16 @@ class PngToWebpService:
             img.save(
                 buffer,
                 format='WebP',
-                lossless=True,  # Use lossless for fallback too
-                quality=100,
-                method=0,
-                exact=True
+                lossless=True,        # LOSSLESS = absolute zero color loss!
+                quality=100,          # Maximum quality setting
+                method=6,             # SLOWEST compression = BEST quality (method 6 = maximum effort)
+                exact=True,           # Preserve exact pixel colors
+                minimize_size=False,  # Never sacrifice quality for size
+                allow_mixed=False     # Force pure lossless, no mixed mode
             )
             buffer.seek(0)
             return buffer.getvalue()
 
-    def _calculate_speed_level_from_power(self, current_power: float, evolution_level: int) -> float:
-        """Calculate speed level from current power using evolution-specific max power"""
-        if current_power <= 0:
-            return 0
-
-        try:
-            # Use the new speed system that considers evolution-specific max power
-            from services.mech.speed_levels import get_combined_mech_status
-
-            # Get speed status using the corrected system
-            speed_status = get_combined_mech_status(current_power)
-            speed_level = speed_status['speed']['level']
-
-            logger.debug(f"Calculated speed level {speed_level} for power ${current_power} at evolution {evolution_level}")
-            return float(speed_level)
-
-        except Exception as e:
-            logger.error(f"Error calculating speed level: {e}")
-            # Fallback to simple calculation
-            return min(100, current_power)
 
     def _create_fallback_animation(self) -> discord.File:
         """Create simple fallback animation"""
@@ -162,29 +88,31 @@ class PngToWebpService:
         img.save(
             buffer,
             format='WebP',
-            lossless=True,  # Use lossless for Discord fallback too
-            quality=100,
-            method=0,
-            exact=True
+            lossless=True,        # LOSSLESS = absolute zero color loss!
+            quality=100,          # Maximum quality setting
+            method=6,             # SLOWEST compression = BEST quality (method 6 = maximum effort)
+            exact=True,           # Preserve exact pixel colors
+            minimize_size=False,  # Never sacrifice quality for size
+            allow_mixed=False     # Force pure lossless, no mixed mode
         )
         buffer.seek(0)
         return discord.File(buffer, filename="error_animation.webp")
 
-    # Status view compatibility methods
+    # Status view compatibility methods - Thin wrappers over unified animation system
     async def create_expanded_status_animation_async(self, power_level: float, total_donations: float):
-        """Create animation for expanded /ss status view"""
+        """Create animation for expanded /ss status view - Delegates to unified system"""
         return await self.create_donation_animation("Status", "0.00", total_donations, show_overlay=True)
 
     async def create_collapsed_status_animation_async(self, power_level: float, total_donations: float):
-        """Create animation for collapsed /ss status view"""
+        """Create animation for collapsed /ss status view - Delegates to unified system"""
         return await self.create_donation_animation("Status", "0.00", total_donations, show_overlay=False)
 
     def create_expanded_status_animation_sync(self, power_level: float, total_donations: float) -> bytes:
-        """Create animation for expanded /ss status view (sync)"""
+        """Create animation for expanded /ss status view (sync) - Delegates to unified system"""
         return self.create_donation_animation_sync("Status", "0.00", total_donations)
 
     def create_collapsed_status_animation_sync(self, power_level: float, total_donations: float) -> bytes:
-        """Create animation for collapsed /ss status view (sync)"""
+        """Create animation for collapsed /ss status view (sync) - Delegates to unified system"""
         return self.create_donation_animation_sync("Status", "0.00", total_donations)
 
 # Singleton instance
