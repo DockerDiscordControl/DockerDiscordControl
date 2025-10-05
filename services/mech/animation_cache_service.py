@@ -4,6 +4,7 @@ Animation Cache Service - Pre-generates and caches mech animations
 """
 
 import os
+import re
 import time
 import logging
 from pathlib import Path
@@ -40,6 +41,9 @@ class AnimationCacheService:
 
         # Create cache directory
         self.cache_dir.mkdir(exist_ok=True)
+
+        # Cache for walk scale factors to ensure rest mechs use identical scaling
+        self._walk_scale_factors = {}
 
         logger.info(f"Animation Cache Service initialized")
         logger.info(f"Assets dir: {self.assets_dir}")
@@ -87,6 +91,75 @@ class AnimationCacheService:
             filename = f"mech_{actual_level}_100speed.webp"
 
         return self.cache_dir / filename
+
+    def _get_walk_scale_factor(self, evolution_level: int) -> float:
+        """
+        Get the exact scale factor used for walk animations.
+        This ensures rest animations use identical scaling for visual consistency.
+        """
+        if evolution_level in self._walk_scale_factors:
+            return self._walk_scale_factors[evolution_level]
+
+        try:
+            # Load walk animation frames to calculate actual scale factor
+            mech_folder = self._get_actual_mech_folder(evolution_level)
+            pattern = re.compile(rf'{evolution_level}_walk_(\d{{4}})\.png')
+            png_files = [f for f in sorted(mech_folder.glob('*.png')) if pattern.match(f.name)]
+
+            if not png_files:
+                logger.warning(f"No walk PNG files found for level {evolution_level}, using fallback scale factor")
+                self._walk_scale_factors[evolution_level] = 1.0
+                return 1.0
+
+            # Analyze frames to determine cropping bounds (same logic as _process_frames)
+            min_x, min_y, max_x, max_y = float('inf'), float('inf'), 0, 0
+
+            for png_file in png_files[:3]:  # Sample first 3 frames for efficiency
+                with Image.open(png_file) as frame:
+                    # Apply pre-cropping if needed (same logic as _process_frames)
+                    if evolution_level == 4:
+                        frame_height = frame.size[1]
+                        frame = frame.crop((0, 45, frame.size[0], frame_height - 13))
+                    elif evolution_level == 5:
+                        frame_height = frame.size[1]
+                        frame = frame.crop((0, 22, frame.size[0], frame_height - 14))
+                    elif evolution_level == 6:
+                        frame_height = frame.size[1]
+                        frame = frame.crop((0, 48, frame.size[0], frame_height - 12))
+
+                    bbox = frame.getbbox()
+                    if bbox:
+                        min_x = min(min_x, bbox[0])
+                        min_y = min(min_y, bbox[1])
+                        max_x = max(max_x, bbox[2])
+                        max_y = max(max_y, bbox[3])
+
+            if min_x == float('inf'):
+                logger.warning(f"No content found in walk frames for level {evolution_level}")
+                self._walk_scale_factors[evolution_level] = 1.0
+                return 1.0
+
+            # Calculate crop dimensions
+            crop_width = max_x - min_x
+            crop_height = max_y - min_y
+
+            # Get walk canvas size and calculate scale factor (same logic as _process_frames)
+            canvas_width, canvas_height = self.get_expected_canvas_size(evolution_level, "walk")
+            max_mech_height = int(canvas_height * 0.90)
+            max_mech_width = int(canvas_width * 0.90)
+
+            scale_factor = min(max_mech_width / crop_width, max_mech_height / crop_height)
+
+            # Cache the result
+            self._walk_scale_factors[evolution_level] = scale_factor
+            logger.debug(f"Calculated walk scale factor for level {evolution_level}: {scale_factor:.3f}")
+
+            return scale_factor
+
+        except Exception as e:
+            logger.error(f"Error calculating walk scale factor for level {evolution_level}: {e}")
+            self._walk_scale_factors[evolution_level] = 1.0
+            return 1.0
 
     def _get_actual_mech_folder(self, evolution_level: int) -> Path:
         """Get the actual mech folder that will be used (with fallback logic)"""
@@ -208,12 +281,19 @@ class AnimationCacheService:
             logger.debug(f"Smart crop found: {crop_width}x{crop_height} (from {min_x},{min_y} to {max_x},{max_y})")
 
         # Scale to fit within fixed canvas height while preserving aspect ratio
-        # Leave some margin (90% of canvas height) for better visual appearance
-        max_mech_height = int(canvas_height * 0.90)
-        max_mech_width = int(canvas_width * 0.90)  # Also limit width to prevent too wide mechs
+        # For REST animations: Use identical scale factor as WALK animations for visual consistency
+        if animation_type == "rest":
+            # Get the exact scale factor used for walk animations
+            scale_factor = self._get_walk_scale_factor(evolution_level)
+            logger.debug(f"Using walk scale factor {scale_factor:.3f} for rest animation consistency")
+        else:
+            # WALK animations: Calculate scale factor normally
+            # Leave some margin (90% of canvas height) for better visual appearance
+            max_mech_height = int(canvas_height * 0.90)
+            max_mech_width = int(canvas_width * 0.90)  # Also limit width to prevent too wide mechs
 
-        # Calculate scale factor to fit within both width and height constraints
-        scale_factor = min(max_mech_width / crop_width, max_mech_height / crop_height)
+            # Calculate scale factor to fit within both width and height constraints
+            scale_factor = min(max_mech_width / crop_width, max_mech_height / crop_height)
 
         mech_width = int(crop_width * scale_factor)
         mech_height = int(crop_height * scale_factor)
