@@ -299,7 +299,17 @@ class AnimationCacheService:
         mech_width = int(crop_width * scale_factor)
         mech_height = int(crop_height * scale_factor)
 
-        logger.debug(f"Fixed canvas scaling: canvas {canvas_width}x{canvas_height}, mech {mech_width}x{mech_height}, scale {scale_factor:.3f}")
+        # For REST animations: Adjust canvas height to fit actual mech size (auto-cropping)
+        if animation_type == "rest":
+            # Calculate optimal canvas height based on actual mech size + padding
+            padding_vertical = 20  # Small padding top/bottom
+            optimal_canvas_height = mech_height + (padding_vertical * 2)
+
+            # Update canvas height to minimize transparent areas
+            canvas_height = optimal_canvas_height
+            logger.debug(f"REST auto-crop: Adjusted canvas height from fixed to optimal: {optimal_canvas_height}px")
+
+        logger.debug(f"Canvas scaling: canvas {canvas_width}x{canvas_height}, mech {mech_width}x{mech_height}, scale {scale_factor:.3f}")
 
         # Process all frames with unified cropping and fixed canvas scaling
         frames = []
