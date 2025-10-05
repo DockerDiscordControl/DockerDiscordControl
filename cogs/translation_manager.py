@@ -377,7 +377,7 @@ class TranslationManager:
                 "No decay": "Kein Verbrauch",
                 "per_day_suffix": "/t",  # German: täglich
                 "Glvl": "Glvl",
-                "Power/Donate": "Mit Spende aufladen",
+                "Power/Donate": "Spenden / Aufladen",
                 "Evolution level up - updating mech animation": "Evolution Level-Up - Mech Animation wird aktualisiert",
                 "Donation received - updating status": "Spende erhalten - Status wird aktualisiert",
                 "Donation recorded - updating Power status": "Spende erfasst - Energie-Status wird aktualisiert",
@@ -1184,7 +1184,7 @@ class TranslationManager:
                 "No decay": "Aucune consommation",
                 "per_day_suffix": "/j",  # French: jour (day)
                 "Glvl": "Glvl",
-                "Power/Donate": "Donner pour recharger",
+                "Power/Donate": "Don / Recharge",
                 "Evolution level up - updating mech animation": "Montée de niveau d'évolution - mise à jour de l'animation du mech",
                 "Donation received - updating status": "Don reçu - mise à jour du statut",
                 "Donation recorded - updating Power status": "Don enregistré - mise à jour du statut d'énergie",
@@ -1613,7 +1613,7 @@ class TranslationManager:
                 "No decay": "No decay",
                 "per_day_suffix": "/d",  # English: day
                 "Glvl": "Glvl",
-                "Power/Donate": "Donate to Charge",
+                "Power/Donate": "Donate / Charge",
                 "Evolution level up - updating mech animation": "Evolution level up - updating mech animation",
                 "Donation received - updating status": "Donation received - updating status",
                 "Donation recorded - updating Power status": "Donation recorded - updating Power status",
