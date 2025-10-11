@@ -653,6 +653,69 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     async def _start_periodic_message_edit_loop_safely(self):
         await self._start_loop_safely(self.periodic_message_edit_loop, "Periodic Message Edit Loop (Direct Cog)")
 
+    async def _clean_sweep_bot_messages(self, channel, reason: str):
+        """Clean sweep: Delete all bot messages in channel to prevent corruption."""
+        try:
+            logger.info(f"🧹 CLEAN SWEEP: Starting bot message cleanup in channel {channel.id} (reason: {reason})")
+
+            # Fetch recent messages (100 should be enough for status channels)
+            messages_to_delete = []
+            async for message in channel.history(limit=100):
+                # Only delete bot's own messages
+                if message.author == self.bot.user:
+                    messages_to_delete.append(message)
+
+            if not messages_to_delete:
+                logger.info(f"🧹 CLEAN SWEEP: No bot messages found to delete in channel {channel.id}")
+                return
+
+            logger.info(f"🧹 CLEAN SWEEP: Found {len(messages_to_delete)} bot messages to delete in channel {channel.id}")
+
+            # Use bulk delete for efficiency (Discord allows bulk delete for messages < 14 days old)
+            try:
+                # Filter messages that are eligible for bulk delete (< 14 days)
+                from datetime import timedelta
+                two_weeks_ago = datetime.now(timezone.utc) - timedelta(days=14)
+                bulk_eligible = [msg for msg in messages_to_delete if msg.created_at > two_weeks_ago]
+                old_messages = [msg for msg in messages_to_delete if msg.created_at <= two_weeks_ago]
+
+                # Bulk delete recent messages
+                if bulk_eligible:
+                    if len(bulk_eligible) == 1:
+                        await bulk_eligible[0].delete()
+                        logger.info(f"🧹 CLEAN SWEEP: Deleted 1 recent bot message")
+                    else:
+                        await channel.delete_messages(bulk_eligible)
+                        logger.info(f"🧹 CLEAN SWEEP: Bulk deleted {len(bulk_eligible)} recent bot messages")
+
+                # Delete old messages individually (bulk delete doesn't work for messages > 14 days)
+                for message in old_messages:
+                    try:
+                        await message.delete()
+                    except (discord.NotFound, discord.Forbidden):
+                        pass  # Message already deleted or no permission
+
+                if old_messages:
+                    logger.info(f"🧹 CLEAN SWEEP: Individually deleted {len(old_messages)} old bot messages")
+
+                logger.info(f"✅ CLEAN SWEEP SUCCESS: Cleaned {len(messages_to_delete)} bot messages from channel {channel.id}")
+
+            except discord.Forbidden:
+                logger.warning(f"⚠️ CLEAN SWEEP: Missing 'Manage Messages' permission in channel {channel.id}")
+            except Exception as bulk_error:
+                logger.warning(f"⚠️ CLEAN SWEEP: Bulk delete failed, trying individual deletion: {bulk_error}")
+                # Fallback: delete individually
+                for message in messages_to_delete:
+                    try:
+                        await message.delete()
+                    except (discord.NotFound, discord.Forbidden):
+                        pass  # Message already deleted or no permission
+                logger.info(f"✅ CLEAN SWEEP FALLBACK: Individually cleaned {len(messages_to_delete)} bot messages")
+
+        except Exception as e:
+            logger.error(f"❌ CLEAN SWEEP FAILED for channel {channel.id}: {e}", exc_info=True)
+            # Don't raise - clean sweep failure shouldn't stop recovery
+
     async def send_initial_status_after_delay_and_ready(self, delay_seconds: int):
         """Waits for bot readiness, then delays, then sends initial status."""
         try:
@@ -2908,6 +2971,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                                 from .control_ui import MechView
                                 view = MechView(self, channel_id)
 
+                                # CLEAN SWEEP: Delete all old bot messages before creating new one
+                                await self._clean_sweep_bot_messages(channel, "recovery from missing message")
+
                                 # Send new overview message as recovery
                                 if animation_file:
                                     if hasattr(animation_file, 'fp') and animation_file.fp:
@@ -3107,6 +3173,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Create MechView with expand/collapse buttons
                 from .control_ui import MechView
                 view = MechView(self, channel_id)
+
+                # CLEAN SWEEP: Delete all old bot messages before creating new one
+                await self._clean_sweep_bot_messages(channel, "recovery from deleted message")
 
                 # Send new overview message as recovery
                 if animation_file:
