@@ -23,7 +23,7 @@ Service-First Architecture:
 
 import discord
 from datetime import datetime, timezone, timedelta
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Callable
 from utils.logging_utils import get_module_logger
 
 logger = get_module_logger('channel_cleanup_service')
@@ -39,7 +39,10 @@ class ChannelCleanupRequest:
         message_limit: int = 100,
         max_age_days: int = 30,
         bot_only: bool = True,
-        target_author: Optional[discord.User] = None
+        target_author: Optional[discord.User] = None,
+        custom_filter: Optional[Callable[[discord.Message], bool]] = None,
+        use_purge: bool = False,
+        purge_timeout: float = 30.0
     ):
         self.channel = channel
         self.reason = reason
@@ -47,6 +50,9 @@ class ChannelCleanupRequest:
         self.max_age_days = max_age_days
         self.bot_only = bot_only
         self.target_author = target_author
+        self.custom_filter = custom_filter  # Custom message filter function
+        self.use_purge = use_purge  # Use Discord's purge API for efficiency
+        self.purge_timeout = purge_timeout  # Timeout for purge operations
 
 
 class ChannelCleanupResult:
@@ -59,9 +65,13 @@ class ChannelCleanupResult:
         self.messages_deleted: int = 0
         self.bulk_deleted: int = 0
         self.individually_deleted: int = 0
+        self.purge_deleted: int = 0  # Messages deleted via Discord purge API
         self.permission_errors: int = 0
         self.not_found_errors: int = 0
+        self.timeout_errors: int = 0  # Purge timeout errors
+        self.messages_preserved: int = 0  # Messages excluded by custom filter
         self.execution_time_ms: float = 0.0
+        self.method_used: str = "unknown"  # Track which deletion method was used
 
 
 class ChannelCleanupService:
@@ -107,6 +117,64 @@ class ChannelCleanupService:
 
         return await self.cleanup_channel(request)
 
+    async def delete_bot_messages_preserve_live_logs(
+        self,
+        channel: discord.TextChannel,
+        reason: str,
+        message_limit: int = 200
+    ) -> ChannelCleanupResult:
+        """
+        Delete bot messages while preserving Live Log messages.
+
+        This method replicates the complex Live Log preservation logic
+        from the original delete_bot_messages method.
+
+        Args:
+            channel: Discord text channel to clean
+            reason: Reason for cleanup (for logging)
+            message_limit: Maximum messages to scan (default: 200)
+
+        Returns:
+            ChannelCleanupResult with detailed operation statistics
+        """
+
+        def is_bot_but_not_live_logs(message: discord.Message) -> bool:
+            """Filter function that excludes Live Log messages."""
+            if message.author != self.bot.user:
+                return False
+
+            # Check if this is a Live Log message by looking for specific indicators
+            if message.embeds:
+                for embed in message.embeds:
+                    # Check for Live Log indicators in title
+                    if embed.title and any(keyword in embed.title for keyword in [
+                        "Live Logs", "Live Debug Logs", "Debug Logs", "🔍 Live", "🔍 Debug", "🔄 Debug"
+                    ]):
+                        logger.debug(f"Preserving Live Log message {message.id} with title: {embed.title}")
+                        return False
+
+                    # Check for Live Log indicators in footer
+                    if embed.footer and embed.footer.text and any(keyword in embed.footer.text for keyword in [
+                        "Auto-refreshing", "manually refreshed", "Auto-refresh", "live updates"
+                    ]):
+                        logger.debug(f"Preserving Live Log message {message.id} with footer: {embed.footer.text}")
+                        return False
+
+            return True
+
+        request = ChannelCleanupRequest(
+            channel=channel,
+            reason=reason,
+            message_limit=message_limit,
+            bot_only=True,
+            target_author=self.bot.user,
+            custom_filter=is_bot_but_not_live_logs,
+            use_purge=True,  # Use purge for efficiency like original method
+            purge_timeout=30.0
+        )
+
+        return await self.cleanup_channel(request)
+
     async def cleanup_channel(self, request: ChannelCleanupRequest) -> ChannelCleanupResult:
         """
         Perform comprehensive channel cleanup based on request parameters.
@@ -135,15 +203,26 @@ class ChannelCleanupService:
             logger.info(f"🧹 CLEANUP: Found {result.messages_found} messages to delete in channel {request.channel.id}")
 
             # Step 2: Perform deletions
-            await self._delete_messages(request, messages_to_delete, result)
+            if request.use_purge and request.custom_filter:
+                # Use Discord purge API with custom filter for efficiency
+                await self._purge_with_filter(request, result)
+            else:
+                # Use traditional bulk/individual deletion method
+                await self._delete_messages(request, messages_to_delete, result)
 
             # Step 3: Calculate results
-            result.messages_deleted = result.bulk_deleted + result.individually_deleted
+            result.messages_deleted = result.bulk_deleted + result.individually_deleted + result.purge_deleted
             result.success = True
 
-            logger.info(f"✅ CLEANUP SUCCESS: Channel {request.channel.id} - "
-                       f"Deleted {result.messages_deleted}/{result.messages_found} messages "
-                       f"(Bulk: {result.bulk_deleted}, Individual: {result.individually_deleted})")
+            # Choose appropriate logging based on method used
+            if result.purge_deleted > 0:
+                logger.info(f"✅ CLEANUP SUCCESS: Channel {request.channel.id} - "
+                           f"Deleted {result.messages_deleted} messages via {result.method_used} "
+                           f"(Preserved: {result.messages_preserved})")
+            else:
+                logger.info(f"✅ CLEANUP SUCCESS: Channel {request.channel.id} - "
+                           f"Deleted {result.messages_deleted}/{result.messages_found} messages "
+                           f"(Bulk: {result.bulk_deleted}, Individual: {result.individually_deleted})")
 
         except Exception as e:
             result.error = str(e)
@@ -178,6 +257,12 @@ class ChannelCleanupService:
             elif not request.bot_only and not request.target_author:
                 # Include all messages if no specific filtering
                 pass
+
+            # Apply custom filter if provided
+            if request.custom_filter:
+                if not request.custom_filter(message):
+                    result.messages_preserved += 1
+                    continue
 
             messages_to_delete.append(message)
 
@@ -259,6 +344,62 @@ class ChannelCleanupService:
 
         result.individually_deleted += deleted_count
         logger.info(f"🧹 CLEANUP: Individually deleted {deleted_count}/{len(messages)} messages")
+
+    async def _purge_with_filter(
+        self,
+        request: ChannelCleanupRequest,
+        result: ChannelCleanupResult
+    ) -> None:
+        """Perform purge deletion with custom filter and timeout handling."""
+        import asyncio
+
+        try:
+            # Use Discord's purge API with custom filter
+            deleted = await asyncio.wait_for(
+                request.channel.purge(limit=request.message_limit, check=request.custom_filter),
+                timeout=request.purge_timeout
+            )
+            result.purge_deleted = len(deleted)
+            result.method_used = "Discord purge API"
+            logger.info(f"🧹 CLEANUP: Purge deleted {result.purge_deleted} messages successfully")
+
+        except asyncio.TimeoutError:
+            result.timeout_errors += 1
+            result.method_used = "purge timeout -> fallback"
+            logger.warning(f"⚠️ CLEANUP: Purge timeout after {request.purge_timeout}s, using fallback method")
+
+            # Fallback: manual deletion with limit for safety
+            deleted_count = 0
+            messages_checked = 0
+
+            async for message in request.channel.history(limit=min(request.message_limit, 50)):
+                messages_checked += 1
+
+                if request.custom_filter and request.custom_filter(message):
+                    try:
+                        await message.delete()
+                        deleted_count += 1
+                        await asyncio.sleep(0.1)  # Rate limiting
+                    except (discord.NotFound, discord.Forbidden):
+                        pass
+                elif not request.custom_filter:
+                    result.messages_preserved += 1
+
+                if messages_checked >= 50:  # Hard safety limit
+                    break
+
+            result.individually_deleted = deleted_count
+            logger.info(f"🧹 CLEANUP: Fallback deleted {deleted_count}/{messages_checked} messages")
+
+        except discord.Forbidden:
+            result.permission_errors += 1
+            result.method_used = "purge forbidden -> no action"
+            logger.warning(f"⚠️ CLEANUP: Missing 'Manage Messages' permission for purge in channel {request.channel.id}")
+
+        except Exception as e:
+            result.method_used = f"purge error -> {str(e)[:50]}"
+            logger.warning(f"⚠️ CLEANUP: Purge failed with error: {e}")
+            raise  # Re-raise to be handled by main cleanup method
 
 
 # Singleton instance

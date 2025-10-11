@@ -1064,73 +1064,28 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     # _update_single_server_message_by_name WAS REMOVED
 
     async def delete_bot_messages(self, channel: discord.TextChannel, limit: int = 200):
-        """Deletes all bot messages in a channel up to the specified limit, excluding Live Log messages."""
+        """Delete bot messages while preserving Live Log messages using ChannelCleanupService."""
         if not isinstance(channel, discord.TextChannel):
             logger.error(f"Attempted to delete messages in non-text channel: {channel}")
             return
-        logger.info(f"Deleting up to {limit} bot messages in channel {channel.name} ({channel.id})")
+
         try:
-            # Define a check function that excludes Live Log messages
-            def is_me_and_not_live_logs(m):
-                if m.author != self.bot.user:
-                    return False
-                
-                # Check if this is a Live Log message by looking for specific indicators
-                if m.embeds:
-                    for embed in m.embeds:
-                        # Check for Live Log indicators in title
-                        if embed.title and any(keyword in embed.title for keyword in [
-                            "Live Logs", "Live Debug Logs", "Debug Logs", "🔍 Live", "🔍 Debug", "🔄 Debug"
-                        ]):
-                            logger.debug(f"Preserving Live Log message {m.id} with title: {embed.title}")
-                            return False
-                        
-                        # Check for Live Log indicators in footer
-                        if embed.footer and embed.footer.text and any(keyword in embed.footer.text for keyword in [
-                            "Auto-refreshing", "manually refreshed", "Auto-refresh", "live updates"
-                        ]):
-                            logger.debug(f"Preserving Live Log message {m.id} with footer: {embed.footer.text}")
-                            return False
-                
-                return True
+            result = await self.cleanup_service.delete_bot_messages_preserve_live_logs(
+                channel=channel,
+                reason="initial status cleanup",
+                message_limit=limit
+            )
 
-            # Use channel.purge instead of manual iteration to prevent hanging
-            try:
-                deleted = await asyncio.wait_for(
-                    channel.purge(limit=limit, check=is_me_and_not_live_logs),
-                    timeout=30.0  # 30 second timeout
-                )
-                deleted_count = len(deleted)
-                logger.info(f"Successfully deleted {deleted_count} bot messages in {channel.name} (excluding Live Logs)")
-            except asyncio.TimeoutError:
-                logger.error(f"Timeout deleting messages in {channel.name} - using fallback method")
-                # Fallback: manual deletion with timeout
-                deleted_count = 0
-                messages_to_check = 0
-                async for message in channel.history(limit=min(limit, 50)):  # Limit to 50 for safety
-                    messages_to_check += 1
-                    if is_me_and_not_live_logs(message):
-                        try:
-                            await message.delete()
-                            deleted_count += 1
-                            await asyncio.sleep(0.1)
-                        except Exception as e:
-                            logger.error(f"Error deleting message {message.id}: {e}")
-                    if messages_to_check >= 50:  # Hard limit to prevent infinite loops
-                        break
+            if result.success:
+                logger.info(f"✅ CLEANUP SUCCESS: Deleted {result.messages_deleted} bot messages in {channel.name} "
+                           f"via {result.method_used} (Preserved: {result.messages_preserved} Live Logs) "
+                           f"in {result.execution_time_ms:.1f}ms")
+            else:
+                logger.warning(f"⚠️ CLEANUP PARTIAL: Deleted {result.messages_deleted} messages in {channel.name} "
+                              f"(error: {result.error})")
 
-            # Alternative: channel.purge (can be faster, but less control/logging)
-            # try:
-            #     deleted = await channel.purge(limit=limit, check=is_me)
-            #     logger.info(f"Deleted {len(deleted)} bot messages in {channel.name} ({channel.id}) using purge.")
-            # except discord.Forbidden:
-            #     logger.error(f"Missing permissions to purge messages in {channel.name}.")
-            # except discord.HTTPException as e:
-            #     logger.error(f"HTTP error during purge in {channel.name}: {e}")
-
-            logger.info(f"Finished deleting bot messages in {channel.name}. Deleted {deleted_count} messages (Live Log messages preserved).")
         except Exception as e:
-            logger.error(f"An error occurred during message deletion in {channel.name}: {e}", exc_info=True)
+            logger.error(f"❌ CLEANUP FAILED for channel {channel.name}: {e}", exc_info=True)
 
     # --- Slash Commands ---
     async def _check_spam_protection(self, ctx: discord.ApplicationContext, command_name: str) -> bool:
