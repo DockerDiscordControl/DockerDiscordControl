@@ -23,6 +23,9 @@ from utils.app_commands_helper import get_app_commands, get_discord_option
 app_commands = get_app_commands()
 DiscordOption = get_discord_option()
 
+# Discord services
+from services.discord.channel_cleanup_service import get_channel_cleanup_service
+
 # Import our utility functions
 from services.config.config_service import load_config, get_config_service
 from services.docker_service.docker_utils import get_docker_info, get_docker_stats, docker_action
@@ -129,6 +132,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         self.cache_ttl_seconds = int(cache_duration * 2.5)
         self.pending_actions: Dict[str, Dict[str, Any]] = {}
         self.pending_actions_lock = asyncio.Lock()  # Protect concurrent access
+
+        # Initialize services
+        self.cleanup_service = get_channel_cleanup_service(bot)
 
         # Docker query cooldown tracking
         self.last_docker_query = {}  # Track last query time per container
@@ -654,63 +660,20 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         await self._start_loop_safely(self.periodic_message_edit_loop, "Periodic Message Edit Loop (Direct Cog)")
 
     async def _clean_sweep_bot_messages(self, channel, reason: str):
-        """Clean sweep: Delete all bot messages in channel to prevent corruption."""
+        """Clean sweep: Delete all bot messages in channel using ChannelCleanupService."""
         try:
-            logger.info(f"🧹 CLEAN SWEEP: Starting bot message cleanup in channel {channel.id} (reason: {reason})")
+            result = await self.cleanup_service.clean_sweep_bot_messages(
+                channel=channel,
+                reason=reason,
+                message_limit=100
+            )
 
-            # Fetch recent messages (100 should be enough for status channels)
-            messages_to_delete = []
-            async for message in channel.history(limit=100):
-                # Only delete bot's own messages
-                if message.author == self.bot.user:
-                    messages_to_delete.append(message)
-
-            if not messages_to_delete:
-                logger.info(f"🧹 CLEAN SWEEP: No bot messages found to delete in channel {channel.id}")
-                return
-
-            logger.info(f"🧹 CLEAN SWEEP: Found {len(messages_to_delete)} bot messages to delete in channel {channel.id}")
-
-            # Use bulk delete for efficiency (Discord allows bulk delete for messages < 14 days old)
-            try:
-                # Filter messages that are eligible for bulk delete (< 14 days)
-                from datetime import timedelta
-                two_weeks_ago = datetime.now(timezone.utc) - timedelta(days=14)
-                bulk_eligible = [msg for msg in messages_to_delete if msg.created_at > two_weeks_ago]
-                old_messages = [msg for msg in messages_to_delete if msg.created_at <= two_weeks_ago]
-
-                # Bulk delete recent messages
-                if bulk_eligible:
-                    if len(bulk_eligible) == 1:
-                        await bulk_eligible[0].delete()
-                        logger.info(f"🧹 CLEAN SWEEP: Deleted 1 recent bot message")
-                    else:
-                        await channel.delete_messages(bulk_eligible)
-                        logger.info(f"🧹 CLEAN SWEEP: Bulk deleted {len(bulk_eligible)} recent bot messages")
-
-                # Delete old messages individually (bulk delete doesn't work for messages > 14 days)
-                for message in old_messages:
-                    try:
-                        await message.delete()
-                    except (discord.NotFound, discord.Forbidden):
-                        pass  # Message already deleted or no permission
-
-                if old_messages:
-                    logger.info(f"🧹 CLEAN SWEEP: Individually deleted {len(old_messages)} old bot messages")
-
-                logger.info(f"✅ CLEAN SWEEP SUCCESS: Cleaned {len(messages_to_delete)} bot messages from channel {channel.id}")
-
-            except discord.Forbidden:
-                logger.warning(f"⚠️ CLEAN SWEEP: Missing 'Manage Messages' permission in channel {channel.id}")
-            except Exception as bulk_error:
-                logger.warning(f"⚠️ CLEAN SWEEP: Bulk delete failed, trying individual deletion: {bulk_error}")
-                # Fallback: delete individually
-                for message in messages_to_delete:
-                    try:
-                        await message.delete()
-                    except (discord.NotFound, discord.Forbidden):
-                        pass  # Message already deleted or no permission
-                logger.info(f"✅ CLEAN SWEEP FALLBACK: Individually cleaned {len(messages_to_delete)} bot messages")
+            if result.success:
+                logger.info(f"✅ CLEAN SWEEP SUCCESS: Cleaned {result.messages_deleted}/{result.messages_found} "
+                           f"bot messages from channel {channel.id} in {result.execution_time_ms:.1f}ms")
+            else:
+                logger.warning(f"⚠️ CLEAN SWEEP PARTIAL: Cleaned {result.messages_deleted}/{result.messages_found} "
+                              f"messages from channel {channel.id} (error: {result.error})")
 
         except Exception as e:
             logger.error(f"❌ CLEAN SWEEP FAILED for channel {channel.id}: {e}", exc_info=True)
