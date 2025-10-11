@@ -199,6 +199,7 @@ class TranslationManager:
                 "Your donation has been recorded and helps Power the Donation Engine.": "Deine Spende wurde erfasst und hilft dabei, das Energy System aufzuladen.",
                 "❌ Error sending donation broadcast. Please try again later.": "❌ Fehler beim Senden der Spendenankündigung. Bitte später erneut versuchen.",
                 "Thank you for your support!": "Vielen Dank für deine Unterstützung!",
+                "Error generating server status overview.": "Fehler beim Erstellen der Server-Status-Übersicht.",
                 
                 "DockerDiscordControl": "DockerDiscordSteuerung",
                 "This command is not allowed in this channel.": "Dieser Befehl ist in diesem Kanal nicht erlaubt.",
@@ -1169,6 +1170,7 @@ class TranslationManager:
                 "Your donation has been recorded and helps Power the Donation Engine.": "Votre don a été enregistré et aide à recharger le système énergétique.",
                 "❌ Error sending donation broadcast. Please try again later.": "❌ Erreur lors de l'envoi de l'annonce de don. Veuillez réessayer plus tard.",
                 "Thank you for your support!": "Merci pour votre soutien !",
+                "Error generating server status overview.": "Erreur lors de la génération du résumé d'état du serveur.",
                 
                 
                 # Mech System translations (French)
@@ -1371,6 +1373,7 @@ class TranslationManager:
                 "Your donation has been recorded and helps Power the Donation Engine.": "Your donation has been recorded and helps charge our Energy System.",
                 "❌ Error sending donation broadcast. Please try again later.": "❌ Error sending donation broadcast. Please try again later.",
                 "Thank you for your support!": "Thank you for your support!",
+                "Error generating server status overview.": "Error generating server status overview.",
                 "DockerDiscordControl": "DockerDiscordControl",
                 "This command is not allowed in this channel.": "This command is not allowed in this channel.",
                 "Force update initiated. All status messages will be regenerated.": "Force update initiated. All status messages will be regenerated.",

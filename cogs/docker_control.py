@@ -1225,7 +1225,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     message = await ctx.followup.send(embed=embed, view=view)
                 except Exception as fallback_error:
                     logger.error(f"Critical: Could not send embed at all: {fallback_error}")
-                    await ctx.followup.send("Error generating server status overview.", ephemeral=True)
+                    await ctx.followup.send(_("Error generating server status overview."), ephemeral=True)
                     return
             
             # Update tracking information
@@ -2868,8 +2868,71 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         try:
                             message = await channel.fetch_message(message_id)
                         except discord.NotFound:
-                            logger.warning(f"Overview message {message_id} not found in channel {channel_id}")
-                            continue
+                            logger.warning(f"Overview message {message_id} not found in channel {channel_id}. REGENERATING new overview message for recovery.")
+
+                            # RECOVERY: Generate new overview message to replace the missing one
+                            try:
+                                # Get fresh server data for regeneration
+                                config = load_config()
+                                if not config:
+                                    continue
+
+                                servers = config.get('servers', [])
+                                ordered_servers = []
+                                seen_docker_names = set()
+
+                                # Apply server ordering
+                                from services.docker_service.server_order import load_server_order
+                                ordered_server_names = load_server_order()
+
+                                # Build ordered servers list (same logic as serverstatus command)
+                                servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
+                                for docker_name in ordered_server_names:
+                                    if docker_name in servers_by_name:
+                                        ordered_servers.append(servers_by_name[docker_name])
+                                        seen_docker_names.add(docker_name)
+                                for server in servers:
+                                    docker_name = server.get('docker_name')
+                                    if docker_name and docker_name not in seen_docker_names:
+                                        ordered_servers.append(server)
+                                        seen_docker_names.add(docker_name)
+
+                                # Determine mech expansion state and create appropriate embed
+                                is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
+                                if is_mech_expanded:
+                                    embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config)
+                                else:
+                                    embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
+
+                                # Create MechView with expand/collapse buttons
+                                from .control_ui import MechView
+                                view = MechView(self, channel_id)
+
+                                # Send new overview message as recovery
+                                if animation_file:
+                                    if hasattr(animation_file, 'fp') and animation_file.fp:
+                                        new_message = await channel.send(embed=embed, file=animation_file, view=view)
+                                    else:
+                                        new_message = await channel.send(embed=embed, view=view)
+                                else:
+                                    new_message = await channel.send(embed=embed, view=view)
+
+                                # Update tracking with new message ID
+                                self.channel_server_message_ids[channel_id]['overview'] = new_message.id
+                                now_utc = datetime.now(timezone.utc)
+                                if channel_id not in self.last_message_update_time:
+                                    self.last_message_update_time[channel_id] = {}
+                                self.last_message_update_time[channel_id]['overview'] = now_utc
+
+                                logger.info(f"✅ RECOVERY SUCCESS: Generated new overview message {new_message.id} to replace missing {message_id} in channel {channel_id}")
+                                continue
+
+                            except Exception as recovery_error:
+                                logger.error(f"❌ RECOVERY FAILED: Could not regenerate overview message for channel {channel_id}: {recovery_error}")
+                                # Remove from tracking since we can't recover
+                                if channel_id in self.channel_server_message_ids and 'overview' in self.channel_server_message_ids[channel_id]:
+                                    del self.channel_server_message_ids[channel_id]['overview']
+                                continue
 
                         # Get fresh server data
                         config = load_config()
@@ -3025,16 +3088,53 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             return True
             
         except discord.errors.NotFound:
-            # Message was deleted, log it but don't try to update
-            logger.warning(f"Overview message {message_id} in channel {channel_id} not found (likely deleted). Skipping update.")
-            
-            # Remove from tracking if we have a tracking system
+            # Message was deleted - RECOVERY: Recreate it automatically
+            logger.warning(f"Overview message {message_id} in channel {channel_id} not found (likely deleted). ATTEMPTING AUTOMATIC RECOVERY.")
+
+            # Remove from old tracking system
             if hasattr(self, 'overview_message_ids') and channel_id in self.overview_message_ids:
                 del self.overview_message_ids[channel_id]
-            
-            # Note: We don't automatically recreate the message here as it should be done
-            # through the proper command or periodic check
-            return False
+
+            # CRITICAL FIX: Automatically recreate the message to prevent corruption
+            try:
+                # Generate new overview message as recovery
+                is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
+                if is_mech_expanded:
+                    embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config)
+                else:
+                    embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
+
+                # Create MechView with expand/collapse buttons
+                from .control_ui import MechView
+                view = MechView(self, channel_id)
+
+                # Send new overview message as recovery
+                if animation_file:
+                    if hasattr(animation_file, 'fp') and animation_file.fp:
+                        new_message = await channel.send(embed=embed, file=animation_file, view=view)
+                    else:
+                        new_message = await channel.send(embed=embed, view=view)
+                else:
+                    new_message = await channel.send(embed=embed, view=view)
+
+                # Update tracking with new message ID
+                if channel_id in self.channel_server_message_ids:
+                    self.channel_server_message_ids[channel_id]['overview'] = new_message.id
+
+                now_utc = datetime.now(timezone.utc)
+                if channel_id not in self.last_message_update_time:
+                    self.last_message_update_time[channel_id] = {}
+                self.last_message_update_time[channel_id]['overview'] = now_utc
+
+                logger.info(f"✅ RECOVERY SUCCESS: Auto-recreated overview message {new_message.id} to replace deleted {message_id} in channel {channel_id}")
+                return True  # Recovery successful
+
+            except Exception as recovery_error:
+                logger.error(f"❌ RECOVERY FAILED: Could not auto-recreate overview message for channel {channel_id}: {recovery_error}")
+                # Remove from tracking since we can't recover
+                if channel_id in self.channel_server_message_ids and 'overview' in self.channel_server_message_ids[channel_id]:
+                    del self.channel_server_message_ids[channel_id]['overview']
+                return False
             
         except Exception as e:
             logger.error(f"Error updating overview message in channel {channel_id}: {e}", exc_info=True)
