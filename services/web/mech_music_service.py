@@ -115,16 +115,16 @@ class MechMusicService:
 
     def get_mech_music_url(self, request: MechMusicRequest) -> MechMusicResult:
         """
-        Get the GitHub raw URL for a specific mech level's music.
+        Get the YouTube URL for a specific mech level's music.
 
-        This method provides public URLs that work from anywhere without
-        requiring file uploads, dramatically improving performance.
+        This method provides YouTube URLs for monetization - supporting
+        the creator's revenue while providing excellent user experience.
 
         Args:
             request: MechMusicRequest with mech level
 
         Returns:
-            MechMusicResult with public GitHub URL and metadata
+            MechMusicResult with YouTube URL and metadata
         """
         try:
             if not self._validate_level(request.level):
@@ -134,51 +134,86 @@ class MechMusicService:
                     status_code=400
                 )
 
-            # Level to filename mapping
-            level_to_filename = {
-                1: "End of a Mech.mp3",
-                2: "Through Rust and Fire.mp3",
-                3: "March of the Corewalker.mp3",
-                4: "The Hunger of Titanframes.mp3",
-                5: "The Pulseforged Guardian.mp3",
-                6: "The Abyss Engine.mp3",
-                7: "The Rift Strider.mp3",
-                8: "Radiance Unbroken.mp3",
-                9: "Idols of Steel.mp3",
-                10: "Celestial Exarchs.mp3",
-                11: "Eternal Omega.mp3"
+            # Level to YouTube URL mapping - supports creator monetization! 💰
+            level_to_youtube = {
+                1: {
+                    "title": "End of a Mech",
+                    "url": "https://youtu.be/rC4CinmbUp8?si=sNnL5c24wFAyUQ0T"
+                },
+                2: {
+                    "title": "Through Rust and Fire",
+                    "url": "https://youtu.be/76YnStvCG3I?si=gZAXj3DJojc8BKt8"
+                },
+                3: {
+                    "title": "March of the Corewalker",
+                    "url": "https://youtu.be/tyQ6xnOwXAE?si=hqT_JWkM484xxw7A"
+                },
+                4: {
+                    "title": "The Hunger of Titanframes",
+                    "url": "https://youtu.be/nNsRBtR7S5c?si=r9M-7WEGX3TbZMz_"
+                },
+                5: {
+                    "title": "The Pulseforged Guardian",
+                    "url": "https://youtu.be/GhlwegdJ2zU?si=pTukOUALzHjQR4-W"
+                },
+                6: {
+                    "title": "The Abyss Engine",
+                    "url": "https://youtu.be/nxw_eblYgc0?si=B9h18OkJuot8mgO6"
+                },
+                7: {
+                    "title": "The Rift Strider",
+                    "url": "https://youtu.be/EdLVwn26ur8?si=66HZOpodwdCgCzxS"
+                },
+                8: {
+                    "title": "Radiance Unbroken",
+                    "url": "https://youtu.be/FQx6M6MgHsM?si=hylbOTSENYM4NEfJ"
+                },
+                9: {
+                    "title": "Idols of Steel",
+                    "url": "https://youtu.be/6kmmMLLC_oM?si=JwxOApont49INzEZ"
+                },
+                10: {
+                    "title": "Celestial Exarchs",
+                    "url": "https://youtu.be/fKkmrxYeSX4?si=QBqD2fV17eaqoF9_"
+                },
+                11: {
+                    "title": "Eternal Omega",
+                    "url": "https://youtu.be/X9ssK4rHydU?si=m7LyI1HbDI-eEYHh"
+                }
             }
 
-            if request.level not in level_to_filename:
+            if request.level not in level_to_youtube:
                 return MechMusicResult(
                     success=False,
-                    error=f"No music available for Mech Level {request.level}",
+                    error=f"No YouTube music available for Mech Level {request.level}",
                     status_code=404
                 )
 
-            filename = level_to_filename[request.level]
-            title = filename.replace(".mp3", "")
+            track_info = level_to_youtube[request.level]
+            youtube_url = track_info["url"]
+            title = track_info["title"]
 
-            # URL-encode filename for GitHub raw URL
-            import urllib.parse
-            encoded_filename = urllib.parse.quote(filename)
+            # Check if this is a placeholder URL
+            if "placeholder" in youtube_url:
+                return MechMusicResult(
+                    success=False,
+                    error=f"YouTube URL not yet configured for {title}",
+                    status_code=404
+                )
 
-            # GitHub raw URL (using v2.0 branch)
-            github_url = f"https://raw.githubusercontent.com/DockerDiscordControl/DockerDiscordControl/v2.0/assets/mech_music/{encoded_filename}"
-
-            self.logger.info(f"Generated GitHub music URL for level {request.level}: {title}")
+            self.logger.info(f"Generated YouTube music URL for level {request.level}: {title} -> {youtube_url}")
 
             return MechMusicResult(
                 success=True,
-                url=github_url,
+                url=youtube_url,
                 title=title
             )
 
         except Exception as e:
-            self.logger.error(f"Error generating music URL for level {request.level}: {e}", exc_info=True)
+            self.logger.error(f"Error generating YouTube music URL for level {request.level}: {e}", exc_info=True)
             return MechMusicResult(
                 success=False,
-                error="Error generating music URL",
+                error="Error generating YouTube music URL",
                 status_code=500
             )
 

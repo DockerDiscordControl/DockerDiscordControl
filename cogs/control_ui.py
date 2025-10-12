@@ -1965,23 +1965,23 @@ class PlaySongButton(Button):
             if result.success:
                 import discord
 
-                # Create embed with direct GitHub link for streaming
+                # Create embed with YouTube link for monetized streaming
                 embed = discord.Embed(
                     title=f"🎵 {result.title}",
                     description=f"Epic soundtrack for Mech Level {self.level}",
-                    color=0x1f8b4c
+                    color=0xFF0000  # YouTube red
                 )
                 embed.add_field(
-                    name="🎧 Stream Music",
-                    value=f"[**▶️ Play Now**]({result.url})",
+                    name="🎬 Watch on YouTube",
+                    value=f"[**▶️ Play & Support Creator**]({result.url})",
                     inline=False
                 )
                 embed.add_field(
-                    name="💡 Tip",
-                    value="Click the link above for instant playback!",
+                    name="💰 Support",
+                    value="Your view helps support the creator!",
                     inline=False
                 )
-                embed.set_footer(text="🚀 Powered by GitHub CDN • Zero upload delays")
+                embed.set_footer(text="🎬 YouTube • Supporting creator monetization")
 
                 await interaction.response.send_message(embed=embed, ephemeral=True)
             else:
