@@ -1745,8 +1745,8 @@ class MechDisplayButton(Button):
                 filename = f"mech_level_{self.level}.webp"
                 file = discord.File(io.BytesIO(animation_bytes), filename=filename)
 
-                # Create view with Read Story button
-                view = MechStoryView(self.cog, self.level)
+                # Create view with Read Story and Music buttons (unlocked mech)
+                view = MechStoryView(self.cog, self.level, unlocked=True)
                 await interaction.response.send_message(embed=embed, file=file, view=view, ephemeral=True)
             else:
                 # Show shadow mech
@@ -1773,8 +1773,8 @@ class MechDisplayButton(Button):
                 filename = f"mech_shadow_{self.level}.webp"
                 file = discord.File(io.BytesIO(shadow_bytes), filename=filename)
 
-                # Create view with Read Story button
-                view = MechStoryView(self.cog, self.level)
+                # Create view WITHOUT buttons (preview mech - not unlocked)
+                view = MechStoryView(self.cog, self.level, unlocked=False)
                 await interaction.response.send_message(embed=embed, file=file, view=view, ephemeral=True)
 
         except Exception as e:
@@ -1846,14 +1846,18 @@ And those who dare… sp34k its ████ do s0 only once.
 
 
 class MechStoryView(View):
-    """View with Read Story and Play Song buttons."""
+    """View with Read Story and Play Song buttons - only for unlocked mechs."""
 
-    def __init__(self, cog_instance: 'DockerControlCog', level: int):
+    def __init__(self, cog_instance: 'DockerControlCog', level: int, unlocked: bool = True):
         super().__init__(timeout=None)
         self.cog = cog_instance
         self.level = level
-        self.add_item(ReadStoryButton(cog_instance, level))
-        self.add_item(PlaySongButton(cog_instance, level))
+        self.unlocked = unlocked
+
+        # Only add buttons for unlocked mechs
+        if unlocked:
+            self.add_item(ReadStoryButton(cog_instance, level))
+            self.add_item(PlaySongButton(cog_instance, level))
 
 
 class ReadStoryButton(Button):
@@ -1963,27 +1967,11 @@ class PlaySongButton(Button):
             result = service.get_mech_music_url(request_obj)
 
             if result.success:
-                import discord
+                # Send YouTube URL directly for native Discord video embed
+                # This triggers Discord's automatic YouTube preview with play button!
+                message_text = f"🎵 **{result.title}** (Mech Level {self.level})\n\n{result.url}"
 
-                # Create embed with YouTube link for monetized streaming
-                embed = discord.Embed(
-                    title=f"🎵 {result.title}",
-                    description=f"Epic soundtrack for Mech Level {self.level}",
-                    color=0xFF0000  # YouTube red
-                )
-                embed.add_field(
-                    name="🎬 Watch on YouTube",
-                    value=f"[**▶️ Play & Support Creator**]({result.url})",
-                    inline=False
-                )
-                embed.add_field(
-                    name="💰 Support",
-                    value="Your view helps support the creator!",
-                    inline=False
-                )
-                embed.set_footer(text="🎬 YouTube • Supporting creator monetization")
-
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(message_text, ephemeral=True)
             else:
                 await interaction.response.send_message(
                     f"❌ No music available for Mech Level {self.level}\n"
