@@ -1869,9 +1869,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     # Power bar: 23 chars with ░(10), #(5), %(2), !(2), &(2), @(2) - same count, different pattern
                     corrupted_power_bar = "@#&░!░%#░░#!░%░&░#@░░#%"  # 23 characters: fuel/power bar
                     corrupted_power_percentage = f"#{Power_percentage:.1f}%&"
-                    mech_status += f"⚡ ${current_Power:.2f}\n`{corrupted_power_bar}` {corrupted_power_percentage}\n"
+                    mech_status += f"⚡{current_Power:.2f}\n`{corrupted_power_bar}` {corrupted_power_percentage}\n"
                 else:
-                    mech_status += f"⚡ ${current_Power:.2f}\n`{Power_bar}` {Power_percentage:.1f}%\n"
+                    mech_status += f"⚡{current_Power:.2f}\n`{Power_bar}` {Power_percentage:.1f}%\n"
 
                 # Get level-specific decay rate
                 from services.mech.evolution_config_manager import get_evolution_config_manager
