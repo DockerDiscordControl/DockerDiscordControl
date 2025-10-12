@@ -1963,7 +1963,7 @@ class PlaySongButton(Button):
             service = get_mech_music_service()
             request_obj = MechMusicRequest(level=self.level)
 
-            # Get GitHub raw URL through service (no file uploads!)
+            # Get YouTube URL through service (no file uploads!)
             result = service.get_mech_music_url(request_obj)
 
             if result.success:

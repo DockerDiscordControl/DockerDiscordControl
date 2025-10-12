@@ -14,7 +14,6 @@ Each mech level has its own epic soundtrack composed specifically for that evolu
 
 import os
 import logging
-import glob
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 
@@ -38,7 +37,7 @@ class MechMusicResult:
     """Represents the result of mech music operations."""
     success: bool
     file_path: Optional[str] = None
-    url: Optional[str] = None  # GitHub raw URL for streaming
+    url: Optional[str] = None  # YouTube URL for monetized streaming
     title: Optional[str] = None
     data: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
