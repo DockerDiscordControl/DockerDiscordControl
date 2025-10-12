@@ -1946,29 +1946,44 @@ class PlaySongButton(Button):
         )
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Send the MP3 file as Discord attachment for direct playback."""
+        """Send direct music link for instant streaming (no file upload required)."""
         try:
             # Check if donations are disabled
             if is_donations_disabled():
                 await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
                 return
 
-            # Import and use MechMusicService to get music file
+            # Import and use MechMusicService to get GitHub URL
             from services.web.mech_music_service import get_mech_music_service, MechMusicRequest
 
             service = get_mech_music_service()
             request_obj = MechMusicRequest(level=self.level)
 
-            # Get music file path through service
-            result = service.get_mech_music(request_obj)
+            # Get GitHub raw URL through service (no file uploads!)
+            result = service.get_mech_music_url(request_obj)
 
             if result.success:
                 import discord
-                import os
 
-                # Send only the MP3 file - no description needed
-                music_file = discord.File(result.file_path, filename=f"{result.title}.mp3")
-                await interaction.response.send_message(file=music_file, ephemeral=True)
+                # Create embed with direct GitHub link for streaming
+                embed = discord.Embed(
+                    title=f"🎵 {result.title}",
+                    description=f"Epic soundtrack for Mech Level {self.level}",
+                    color=0x1f8b4c
+                )
+                embed.add_field(
+                    name="🎧 Stream Music",
+                    value=f"[**▶️ Play Now**]({result.url})",
+                    inline=False
+                )
+                embed.add_field(
+                    name="💡 Tip",
+                    value="Click the link above for instant playback!",
+                    inline=False
+                )
+                embed.set_footer(text="🚀 Powered by GitHub CDN • Zero upload delays")
+
+                await interaction.response.send_message(embed=embed, ephemeral=True)
             else:
                 await interaction.response.send_message(
                     f"❌ No music available for Mech Level {self.level}\n"
@@ -1977,7 +1992,7 @@ class PlaySongButton(Button):
                 )
 
         except Exception as e:
-            logger.error(f"Error playing song for level {self.level}: {e}", exc_info=True)
+            logger.error(f"Error generating music URL for level {self.level}: {e}", exc_info=True)
             await interaction.response.send_message(_("❌ Error loading music."), ephemeral=True)
 
 

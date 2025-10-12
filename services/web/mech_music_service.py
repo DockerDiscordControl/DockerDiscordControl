@@ -38,6 +38,7 @@ class MechMusicResult:
     """Represents the result of mech music operations."""
     success: bool
     file_path: Optional[str] = None
+    url: Optional[str] = None  # GitHub raw URL for streaming
     title: Optional[str] = None
     data: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
@@ -109,6 +110,75 @@ class MechMusicService:
             return MechMusicResult(
                 success=False,
                 error="Error accessing mech music",
+                status_code=500
+            )
+
+    def get_mech_music_url(self, request: MechMusicRequest) -> MechMusicResult:
+        """
+        Get the GitHub raw URL for a specific mech level's music.
+
+        This method provides public URLs that work from anywhere without
+        requiring file uploads, dramatically improving performance.
+
+        Args:
+            request: MechMusicRequest with mech level
+
+        Returns:
+            MechMusicResult with public GitHub URL and metadata
+        """
+        try:
+            if not self._validate_level(request.level):
+                return MechMusicResult(
+                    success=False,
+                    error=f"Invalid mech level: {request.level}. Must be 1-11.",
+                    status_code=400
+                )
+
+            # Level to filename mapping
+            level_to_filename = {
+                1: "End of a Mech.mp3",
+                2: "Through Rust and Fire.mp3",
+                3: "March of the Corewalker.mp3",
+                4: "The Hunger of Titanframes.mp3",
+                5: "The Pulseforged Guardian.mp3",
+                6: "The Abyss Engine.mp3",
+                7: "The Rift Strider.mp3",
+                8: "Radiance Unbroken.mp3",
+                9: "Idols of Steel.mp3",
+                10: "Celestial Exarchs.mp3",
+                11: "Eternal Omega.mp3"
+            }
+
+            if request.level not in level_to_filename:
+                return MechMusicResult(
+                    success=False,
+                    error=f"No music available for Mech Level {request.level}",
+                    status_code=404
+                )
+
+            filename = level_to_filename[request.level]
+            title = filename.replace(".mp3", "")
+
+            # URL-encode filename for GitHub raw URL
+            import urllib.parse
+            encoded_filename = urllib.parse.quote(filename)
+
+            # GitHub raw URL (using v2.0 branch)
+            github_url = f"https://raw.githubusercontent.com/DockerDiscordControl/DockerDiscordControl/v2.0/assets/mech_music/{encoded_filename}"
+
+            self.logger.info(f"Generated GitHub music URL for level {request.level}: {title}")
+
+            return MechMusicResult(
+                success=True,
+                url=github_url,
+                title=title
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error generating music URL for level {request.level}: {e}", exc_info=True)
+            return MechMusicResult(
+                success=False,
+                error="Error generating music URL",
                 status_code=500
             )
 
