@@ -70,7 +70,7 @@ class AnimationCacheService:
                 # Special height configuration for rest animations
                 rest_heights = {
                     1: 160,  # Mech 1 REST: custom 160px height
-                    2: 200, 3: 200,          # Mech 2-3: double height (200px)
+                    2: 160, 3: 160,          # Mech 2-3: same as Level 1 (160px max)
                     4: 300, 5: 300,          # Mech 4-5: double height (300px)
                     6: 340,                  # Mech 6: double height (340px)
                     7: 300, 8: 300,          # Mech 7-8: double height (300px)
