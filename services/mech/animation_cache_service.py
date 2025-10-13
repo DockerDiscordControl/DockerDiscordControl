@@ -68,14 +68,18 @@ class AnimationCacheService:
             # Level 11 never goes offline, so no rest animation
             if evolution_level <= 10:
                 # Special height configuration for rest animations
+                # Rule: REST height = WALK height + 60px for all levels
                 rest_heights = {
-                    1: 160,  # Mech 1 REST: custom 160px height
-                    2: 160, 3: 160,          # Mech 2-3: same as Level 1 (160px max)
-                    4: 300, 5: 300,          # Mech 4-5: double height (300px)
-                    6: 340,                  # Mech 6: double height (340px)
-                    7: 300, 8: 300,          # Mech 7-8: double height (300px)
-                    9: 460,                  # Mech 9: double height (460px)
-                    10: 500                  # Mech 10: double height (500px)
+                    1: 160,   # Walk 100px + 60px = 160px
+                    2: 160,   # Walk 100px + 60px = 160px
+                    3: 160,   # Walk 100px + 60px = 160px
+                    4: 210,   # Walk 150px + 60px = 210px
+                    5: 210,   # Walk 150px + 60px = 210px
+                    6: 230,   # Walk 170px + 60px = 230px
+                    7: 210,   # Walk 150px + 60px = 210px
+                    8: 210,   # Walk 150px + 60px = 210px
+                    9: 290,   # Walk 230px + 60px = 290px
+                    10: 310   # Walk 250px + 60px = 310px
                 }
                 canvas_height = rest_heights.get(evolution_level, 200)  # Fallback to 200
             else:
