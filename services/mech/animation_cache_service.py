@@ -64,11 +64,20 @@ class AnimationCacheService:
         }
 
         if animation_type == "rest":
-            # Rest animations (offline mechs) are DOUBLE height for levels 1-10
+            # Rest animations (offline mechs) with custom heights for levels 1-10
             # Level 11 never goes offline, so no rest animation
             if evolution_level <= 10:
-                base_height = walk_heights.get(evolution_level, 100)
-                canvas_height = base_height * 2  # Double height for offline mechs
+                # Special height configuration for rest animations
+                rest_heights = {
+                    1: 160,  # Mech 1 REST: custom 160px height
+                    2: 200, 3: 200,          # Mech 2-3: double height (200px)
+                    4: 300, 5: 300,          # Mech 4-5: double height (300px)
+                    6: 340,                  # Mech 6: double height (340px)
+                    7: 300, 8: 300,          # Mech 7-8: double height (300px)
+                    9: 460,                  # Mech 9: double height (460px)
+                    10: 500                  # Mech 10: double height (500px)
+                }
+                canvas_height = rest_heights.get(evolution_level, 200)  # Fallback to 200
             else:
                 # Level 11 has no rest animation, fallback to walk height
                 canvas_height = walk_heights.get(evolution_level, 270)
@@ -299,15 +308,17 @@ class AnimationCacheService:
         mech_width = int(crop_width * scale_factor)
         mech_height = int(crop_height * scale_factor)
 
-        # For REST animations: Adjust canvas height to fit actual mech size (auto-cropping)
+        # For REST animations: Auto-crop with maximum height limit
         if animation_type == "rest":
-            # Calculate optimal canvas height based on actual mech size + padding
-            padding_vertical = 20  # Small padding top/bottom
+            # Calculate optimal canvas height based on actual mech size (no padding)
+            padding_vertical = 0  # No padding - tight crop
             optimal_canvas_height = mech_height + (padding_vertical * 2)
 
-            # Update canvas height to minimize transparent areas
-            canvas_height = optimal_canvas_height
-            logger.debug(f"REST auto-crop: Adjusted canvas height from fixed to optimal: {optimal_canvas_height}px")
+            # Use configured height as MAXIMUM limit, but allow smaller if mech is small
+            max_configured_height = canvas_height  # This is our 160px limit
+            canvas_height = min(optimal_canvas_height, max_configured_height)
+
+            logger.debug(f"REST smart crop: mech {mech_height}px + padding = {optimal_canvas_height}px, limited to {max_configured_height}px → final: {canvas_height}px")
 
         logger.debug(f"Canvas scaling: canvas {canvas_width}x{canvas_height}, mech {mech_width}x{mech_height}, scale {scale_factor:.3f}")
 
