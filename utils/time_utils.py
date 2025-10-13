@@ -23,23 +23,23 @@ logger = setup_logger('ddc.time_utils')
 # Central datetime imports for consistent usage throughout the project
 def get_datetime_imports():
     """
-    Zentrale Funktion für datetime-Imports.
-    Eliminiert redundante 'from datetime import datetime' Statements.
-    
+    Central function for datetime imports.
+    Eliminates redundant 'from datetime import datetime' statements.
+
     Returns:
-        Tuple mit (datetime, timedelta, timezone, time)
+        Tuple with (datetime, timedelta, timezone, time)
     """
     return datetime, timedelta, timezone, time
 
 def get_current_time(tz_name: Optional[str] = None) -> datetime:
     """
-    Gibt die aktuelle Zeit in der angegebenen Zeitzone zurück.
-    
+    Returns the current time in the specified timezone.
+
     Args:
-        tz_name: Name der Zeitzone (z.B. 'Europe/Berlin'), None für UTC
-        
+        tz_name: Name of the timezone (e.g. 'Europe/Berlin'), None for UTC
+
     Returns:
-        Aktuelle Zeit als timezone-aware datetime
+        Current time as timezone-aware datetime
     """
     if tz_name:
         try:
@@ -51,17 +51,17 @@ def get_current_time(tz_name: Optional[str] = None) -> datetime:
     return datetime.now(timezone.utc)
 
 def get_utc_timestamp() -> float:
-    """Gibt den aktuellen UTC-Timestamp zurück"""
+    """Returns the current UTC timestamp"""
     return time.time()
 
 def timestamp_to_datetime(timestamp: float, tz_name: Optional[str] = None) -> datetime:
     """
-    Konvertiert einen Timestamp zu einem datetime-Objekt.
-    
+    Converts a timestamp to a datetime object.
+
     Args:
-        timestamp: Unix-Timestamp
-        tz_name: Ziel-Zeitzone (None für UTC)
-        
+        timestamp: Unix timestamp
+        tz_name: Target timezone (None for UTC)
+
     Returns:
         Timezone-aware datetime object
     """
@@ -78,15 +78,15 @@ def timestamp_to_datetime(timestamp: float, tz_name: Optional[str] = None) -> da
 
 def datetime_to_timestamp(dt: datetime) -> float:
     """
-    Konvertiert ein datetime-Objekt zu einem Timestamp.
-    
+    Converts a datetime object to a timestamp.
+
     Args:
-        dt: datetime object (timezone-aware oder naive)
-        
+        dt: datetime object (timezone-aware or naive)
+
     Returns:
         Unix timestamp
     """
-    # Wenn naive datetime, als UTC interpretieren
+    # If naive datetime, interpret as UTC
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     
@@ -94,13 +94,13 @@ def datetime_to_timestamp(dt: datetime) -> float:
 
 def format_duration(seconds: float) -> str:
     """
-    Formatiert eine Dauer in Sekunden zu einem lesbaren String.
-    
+    Formats a duration in seconds to a readable string.
+
     Args:
-        seconds: Dauer in Sekunden
-        
+        seconds: Duration in seconds
+
     Returns:
-        Formatierte Dauer (z.B. "2h 30m 15s")
+        Formatted duration (e.g. "2h 30m 15s")
     """
     if seconds < 60:
         return f"{seconds:.1f}s"
@@ -124,15 +124,15 @@ def format_duration(seconds: float) -> str:
 
 def is_same_day(dt1: datetime, dt2: datetime, tz_name: Optional[str] = None) -> bool:
     """
-    Prüft, ob zwei datetime-Objekte am selben Tag liegen.
-    
+    Checks if two datetime objects are on the same day.
+
     Args:
-        dt1: Erstes datetime
-        dt2: Zweites datetime
-        tz_name: Zeitzone für Vergleich (None für UTC)
-        
+        dt1: First datetime
+        dt2: Second datetime
+        tz_name: Timezone for comparison (None for UTC)
+
     Returns:
-        True wenn beide am selben Tag liegen
+        True if both are on the same day
     """
     if tz_name:
         try:
@@ -146,13 +146,13 @@ def is_same_day(dt1: datetime, dt2: datetime, tz_name: Optional[str] = None) -> 
 
 def get_timezone_offset(tz_name: str) -> str:
     """
-    Gibt den Zeitzone-Offset als String zurück.
-    
+    Returns the timezone offset as a string.
+
     Args:
-        tz_name: Name der Zeitzone
-        
+        tz_name: Name of the timezone
+
     Returns:
-        Offset-String (z.B. "+01:00")
+        Offset string (e.g. "+01:00")
     """
     try:
         tz = pytz.timezone(tz_name)
@@ -180,10 +180,10 @@ def format_datetime_with_timezone(dt, timezone_name=None, time_only=False):
                 dt = datetime.fromtimestamp(float(dt))
             else:
                 logger.error(f"Invalid datetime value (not a number or datetime): {dt}")
-                return "Zeit nicht verfügbar (Fehler)"
+                return "Time not available (error)"
         except (TypeError, ValueError) as e:
             logger.error(f"Invalid datetime value: {dt} - {e}")
-            return "Zeit nicht verfügbar (Fehler)"
+            return "Time not available (error)"
 
     # Ensure dt is timezone-aware
     if dt.tzinfo is None:
@@ -225,7 +225,7 @@ def format_datetime_with_timezone(dt, timezone_name=None, time_only=False):
                 return utc_time.strftime("%d.%m.%Y %H:%M:%S UTC")
             except Exception as e4:
                 logger.error(f"UTC fallback failed: {e4}")
-                return dt.strftime("%d.%m.%Y %H:%M:%S") + " (Zeitzone unbekannt)"
+                return dt.strftime("%d.%m.%Y %H:%M:%S") + " (timezone unknown)"
 
 
 def _get_timezone_safe():

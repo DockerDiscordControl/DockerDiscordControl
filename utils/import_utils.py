@@ -7,8 +7,8 @@
 # ============================================================================ #
 
 """
-Zentrale Import-Utilities für häufig verwendete optionale Imports.
-Eliminiert redundante try/except Import-Patterns im gesamten Projekt.
+Central import utilities for frequently used optional imports.
+Eliminates redundant try/except import patterns throughout the project.
 """
 
 import logging
@@ -31,7 +31,7 @@ def safe_import(module_name: str, fallback_value: Any = None,
         cache_key: Optional cache key (default: module_name)
         
     Returns:
-        Tuple von (imported_module_or_fallback, success_flag)
+        Tuple of (imported_module_or_fallback, success_flag)
     """
     cache_key = cache_key or module_name
     
@@ -58,15 +58,15 @@ def safe_import(module_name: str, fallback_value: Any = None,
 def safe_import_from(module_name: str, item_name: str, 
                      fallback_value: Any = None) -> Tuple[Any, bool]:
     """
-    Sicherer Import eines spezifischen Items aus einem Modul.
-    
+    Safe import of a specific item from a module.
+
     Args:
-        module_name: Name des Moduls
-        item_name: Name des zu importierenden Items
-        fallback_value: Wert bei fehlgeschlagenem Import
-        
+        module_name: Name of the module
+        item_name: Name of the item to import
+        fallback_value: Value to use on failed import
+
     Returns:
-        Tuple von (imported_item_or_fallback, success_flag)
+        Tuple of (imported_item_or_fallback, success_flag)
     """
     cache_key = f"{module_name}.{item_name}"
     
@@ -88,11 +88,11 @@ def safe_import_from(module_name: str, item_name: str,
         return result
 
 def import_ujson() -> Tuple[Any, bool]:
-    """Importiert ujson mit json als Fallback"""
+    """Imports ujson with json as fallback"""
     return safe_import('ujson', fallback_value=__import__('json'))
 
 def import_uvloop() -> Tuple[Any, bool]:
-    """Importiert uvloop für bessere async Performance"""
+    """Imports uvloop for better async performance"""
     uvloop, success = safe_import('uvloop')
     if success:
         try:
@@ -104,15 +104,15 @@ def import_uvloop() -> Tuple[Any, bool]:
     return uvloop, success
 
 def import_gevent() -> Tuple[Any, bool]:
-    """Importiert gevent für bessere Threading-Performance"""
+    """Imports gevent for better threading performance"""
     return safe_import('gevent')
 
 def import_croniter() -> Tuple[Any, bool]:
-    """Importiert croniter für Cron-Funktionalität"""
+    """Imports croniter for cron functionality"""
     return safe_import('croniter')
 
 def import_docker() -> Tuple[Any, bool]:
-    """Importiert Docker SDK"""
+    """Imports Docker SDK"""
     return safe_import('docker')
 
 def get_performance_imports() -> dict:
@@ -151,7 +151,7 @@ def get_performance_imports() -> dict:
     return imports
 
 def log_performance_status():
-    """Loggt den Status aller Performance-Optimierungen"""
+    """Logs the status of all performance optimizations"""
     imports = get_performance_imports()
     
     logger.info("Performance optimization status:")

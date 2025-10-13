@@ -393,32 +393,32 @@ class LoggerMixin:
 
 def get_logger(name: str, level: Optional[int] = None) -> logging.Logger:
     """
-    Zentrale Funktion für Logger-Erstellung mit konsistenter Konfiguration.
-    Ersetzt alle direkten logging.getLogger() Aufrufe im Projekt.
-    
+    Central function for logger creation with consistent configuration.
+    Replaces all direct logging.getLogger() calls in the project.
+
     Args:
-        name: Logger-Name (z.B. 'ddc.module_name')
+        name: Logger name (e.g. 'ddc.module_name')
         level: Optional log level override
-        
+
     Returns:
-        Konfigurierter Logger
+        Configured logger
     """
     # Use setup_logger for consistent configuration
     if level is None:
-        # Bestimme Level basierend auf Debug-Modus
+        # Determine level based on debug mode
         level = logging.DEBUG if is_debug_mode_enabled() else logging.INFO
     
     return setup_logger(name, level=level)
 
 # Convenience functions for frequently used loggers
 def get_module_logger(module_name: str) -> logging.Logger:
-    """Erstellt Logger für Module mit ddc. Prefix"""
+    """Creates logger for modules with ddc. prefix"""
     return get_logger(f'ddc.{module_name}')
 
 def get_import_logger() -> logging.Logger:
-    """Erstellt Logger für Import-Operationen"""
+    """Creates logger for import operations"""
     return get_logger('discord.app_commands_import')
 
 def get_action_logger() -> logging.Logger:
-    """Erstellt Logger für User-Actions"""
+    """Creates logger for user actions"""
     return get_logger('user_actions') 

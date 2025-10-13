@@ -1000,7 +1000,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                 logger.error(f"Error retrieving container: {e}")
                 continue
             
-            # 2. Stats-Call (hier wird es interessant)
+            # 2. Stats call (this is where it gets interesting)
             stats_start_time = time.time()
             try:
                 stats = await asyncio.to_thread(container.stats, stream=False)
@@ -1115,22 +1115,22 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                         'likely_memory_impact': memory_high and avg_stats_time > 1000
                     }
             
-            # Empfehlungen basierend auf Analyse
+            # Recommendations based on analysis
             recommendations = []
             if results['analysis']['consistently_slow']:
-                recommendations.append("Container ist konsistent langsam - erwägen Sie niedrigere Timeouts")
+                recommendations.append("Container is consistently slow - consider lower timeouts")
             if results['analysis']['variability_high']:
-                recommendations.append("Hohe Variabilität - Container-Last schwankt stark")
+                recommendations.append("High variability - container load fluctuates strongly")
             if results['analysis'].get('memory_correlation', {}).get('likely_memory_impact', False):
-                recommendations.append("Hohe Memory-Nutzung könnte Stats-Performance beeinträchtigen")
+                recommendations.append("High memory usage could affect stats performance")
             if avg_stats_time > 2000:
-                recommendations.append("Sehr langsam - prüfen Sie Container-Gesundheit und Host-Performance")
+                recommendations.append("Very slow - check container health and host performance")
             
             results['analysis']['recommendations'] = recommendations
         
         logger.info(f"Performance analysis completed for '{container_name}': "
-                   f"Durchschnitt {results['analysis'].get('avg_stats_time_ms', 0):.1f}ms, "
-                   f"Kategorie: {results['analysis'].get('performance_category', 'unbekannt')}")
+                   f"Average {results['analysis'].get('avg_stats_time_ms', 0):.1f}ms, "
+                   f"Category: {results['analysis'].get('performance_category', 'unknown')}")
         
     except Exception as e:
         logger.error(f"Error in performance analysis for '{container_name}': {e}", exc_info=True)
@@ -1270,31 +1270,31 @@ async def compare_container_performance(container_names: List[str] = None) -> st
         speed_difference = slowest['avg_time'] / fastest['avg_time']
         
         output_lines.extend([
-            "📈 **ANALYSE:**",
-            f"   🏃 Schnellster: {fastest['name']} ({fastest['avg_time']:.0f}ms)",
-            f"   🐌 Langsamster: {slowest['name']} ({slowest['avg_time']:.0f}ms)",
-            f"   ⚡ Unterschied: {speed_difference:.1f}x langsamer!",
+            "📈 **ANALYSIS:**",
+            f"   🏃 Fastest: {fastest['name']} ({fastest['avg_time']:.0f}ms)",
+            f"   🐌 Slowest: {slowest['name']} ({slowest['avg_time']:.0f}ms)",
+            f"   ⚡ Difference: {speed_difference:.1f}x slower!",
             "",
-            "💡 **WARUM IST DAS SO?**",
-            "   Game-Server (Satisfactory, Valheim, etc.) haben:",
-            "   • Hohe CPU-Last → cgroups-Auslesen dauert länger",
-            "   • Viel Memory-Allokation → Memory-Stats brauchen Zeit", 
-            "   • Intensive Disk-I/O → Block-Device-Stats sind langsam",
-            "   • Viele Netzwerk-Connections → Network-Stats dauern länger",
+            "💡 **WHY IS THAT?**",
+            "   Game servers (Satisfactory, Valheim, etc.) have:",
+            "   • High CPU load → cgroups reading takes longer",
+            "   • High memory allocation → memory stats take time",
+            "   • Intensive disk I/O → block device stats are slow",
+            "   • Many network connections → network stats take longer",
             "",
-            "   Einfache Container (nginx, databases) haben:",
-            "   • Stabile, niedrige Ressourcennutzung",
-            "   • Vorhersagbare I/O-Patterns",
-            "   • Weniger aktive Prozesse",
+            "   Simple containers (nginx, databases) have:",
+            "   • Stable, low resource usage",
+            "   • Predictable I/O patterns",
+            "   • Fewer active processes",
             ""
         ])
     
     output_lines.extend([
-        "🔧 **LÖSUNGSANSATZ:**",
-        "   ✅ Pattern-basierte Timeouts (jetzt implementiert)",
-        "   ✅ Game-Server: 2s Timeout (schnell abbrechen)",
-        "   ✅ Standard-Container: 3s Timeout (mehr Zeit)",
-        "   ✅ Echte Parallelisierung (nicht mehr sequenziell)",
+        "🔧 **SOLUTION APPROACH:**",
+        "   ✅ Pattern-based timeouts (now implemented)",
+        "   ✅ Game servers: 2s timeout (abort quickly)",
+        "   ✅ Standard containers: 3s timeout (more time)",
+        "   ✅ True parallelization (no longer sequential)",
         ""
     ])
     
