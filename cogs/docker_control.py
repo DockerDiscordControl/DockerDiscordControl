@@ -3320,10 +3320,10 @@ class DonationBroadcastModal(discord.ui.Modal):
         logger.info(f"=== DONATION MODAL CALLBACK STARTED ===")
         logger.info(f"User: {interaction.user.name}, Raw inputs: name={self.name_input.value}, amount={self.amount_input.value}")
         
-        # Send immediate acknowledgment to avoid timeout
+        # Send immediate acknowledgment to avoid timeout (will be replaced quickly)
         from .translation_manager import _
         await interaction.response.send_message(
-            _("⏳ Processing your donation... Please wait a moment."),
+            _("⏳ Processing..."),  # Shortened processing message
             ephemeral=True
         )
         
@@ -3518,8 +3518,8 @@ class DonationBroadcastModal(discord.ui.Modal):
                 response_text += _("Thank you **{donor_name}** for your generous support! 🙏").format(donor_name=donor_name) + "\n"
                 response_text += _("Your donation has been recorded and helps fuel the Donation Engine.")
             
-            # Use followup for final response
-            await interaction.followup.send(response_text, ephemeral=True)
+            # Replace the processing message with the final result
+            await interaction.edit_original_response(content=response_text)
 
             # Clean up processing message if donation was processed
             if processing_msg:
@@ -3539,12 +3539,11 @@ class DonationBroadcastModal(discord.ui.Modal):
                     pass
 
             try:
-                await interaction.followup.send(
-                    _("❌ Error sending donation broadcast. Please try again later."),
-                    ephemeral=True
+                await interaction.edit_original_response(
+                    content=_("❌ Error sending donation broadcast. Please try again later.")
                 )
-            except Exception as followup_error:
-                logger.error(f"Could not send error response: {followup_error}")
+            except Exception as edit_error:
+                logger.error(f"Could not send error response: {edit_error}")
 
 # Setup function required for extension loading
 def setup(bot):
