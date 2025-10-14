@@ -1476,22 +1476,25 @@ class MechHistoryButton(Button):
                     await asyncio.sleep(0.7)
 
                 if level <= current_level:
-                    # Unlocked: Use pre-rendered cached animation
+                    # Unlocked: Use pre-rendered cached animation (properly decrypted)
                     try:
-                        # Get cached WebP animation directly from cache service
+                        # Get animation through cache service (handles decryption automatically)
                         from services.mech.animation_cache_service import get_animation_cache_service
-                        cache_service = get_animation_cache_service()
+                        from services.mech.mech_service import get_mech_service
 
-                        cached_path = cache_service.get_cached_animation_path(level)
-                        if cached_path.exists():
-                            with open(cached_path, 'rb') as f:
-                                animation_bytes = f.read()
-                        else:
-                            # Pre-generate if not exists
-                            logger.info(f"Pre-generating missing cached animation for level {level}")
-                            cache_service.pre_generate_animation(level)
-                            with open(cached_path, 'rb') as f:
-                                animation_bytes = f.read()
+                        cache_service = get_animation_cache_service()
+                        mech_service = get_mech_service()
+
+                        # Get current mech state to determine animation type
+                        current_state = mech_service.get_state()
+                        power = float(current_state.Power)
+
+                        # Get properly decrypted animation bytes
+                        animation_bytes = cache_service.get_animation_with_speed_and_power(
+                            evolution_level=level,
+                            speed_level=50.0,  # Default speed for history display
+                            power_level=power if level == current_state.level else 100.0  # Current level uses actual power, others show active
+                        )
 
                         # Special handling for Level 11
                         if level == 11:
@@ -1725,16 +1728,19 @@ class MechDisplayButton(Button):
                 return
 
             if self.unlocked:
-                # Show unlocked mech with animation
-                cached_path = cache_service.get_cached_animation_path(self.level)
+                # Show unlocked mech with properly decrypted animation
+                from services.mech.mech_service import get_mech_service
 
-                if cached_path.exists():
-                    with open(cached_path, 'rb') as f:
-                        animation_bytes = f.read()
-                else:
-                    cache_service.pre_generate_animation(self.level)
-                    with open(cached_path, 'rb') as f:
-                        animation_bytes = f.read()
+                mech_service = get_mech_service()
+                current_state = mech_service.get_state()
+                power = float(current_state.Power)
+
+                # Get properly decrypted animation bytes through cache service
+                animation_bytes = cache_service.get_animation_with_speed_and_power(
+                    evolution_level=self.level,
+                    speed_level=50.0,  # Default speed for mech display
+                    power_level=power if self.level == current_state.level else 100.0  # Current level uses actual power, others show active
+                )
 
                 embed = discord.Embed(
                     title=f"✅ Level {self.level}: {_(evolution_info.name)}",
