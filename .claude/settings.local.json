@@ -1,10 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(for:*)",
-      "Bash(do mv \"$file\" \"$file/wallk/walk\")",
-      "Bash(done)",
-      "Bash(DDC_WEB_PORT=5001 python3 -c \"\nimport sys\nsys.path.insert(0, ''/Volumes/appdata/dockerdiscordcontrol'')\nfrom services.mech.animation_cache_service import get_animation_cache_service\n\n# Regenerate Mech3 animation with corrected filenames\ncache_service = get_animation_cache_service()\ncache_service.pre_generate_animation(3)\nprint(''✅ Mech3 animation regenerated with corrected walk filenames!'')\n\")"
+      "Bash(tree:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

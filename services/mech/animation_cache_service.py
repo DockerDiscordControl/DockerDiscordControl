@@ -50,6 +50,19 @@ class AnimationCacheService:
         logger.info(f"Cache dir: {self.cache_dir}")
         logger.info(f"Base animation speed: 8 FPS (125ms per frame)")
 
+    def _obfuscate_data(self, data: bytes) -> bytes:
+        """Simple XOR obfuscation to make WebP files unrecognizable when browsing filesystem"""
+        # Super simple XOR key - fast and effective for hiding content
+        xor_key = b'MechAnimCache2024'
+        key_len = len(xor_key)
+
+        # XOR each byte with repeating key pattern
+        return bytes(data[i] ^ xor_key[i % key_len] for i in range(len(data)))
+
+    def _deobfuscate_data(self, data: bytes) -> bytes:
+        """Reverse the XOR obfuscation (XOR is symmetric)"""
+        return self._obfuscate_data(data)  # XOR is its own inverse
+
     def get_expected_canvas_size(self, evolution_level: int, animation_type: str = "walk") -> Tuple[int, int]:
         """Get expected canvas size for an evolution level using predefined heights"""
         # Fixed heights per evolution level for walk animations
@@ -94,16 +107,33 @@ class AnimationCacheService:
 
     def get_cached_animation_path(self, evolution_level: int, animation_type: str = "walk") -> Path:
         """Get path for cached animation file (unified for Discord and Web UI)"""
-        # Check if the specific mech folder exists
-        actual_mech_folder = self._get_actual_mech_folder(evolution_level)
-        actual_level = int(actual_mech_folder.name[4:])  # Extract number from "Mech1", "Mech2", etc.
-
+        # For cache-only operations, use the requested evolution level directly
+        # This prevents recursion when PNG folders are deleted
         if animation_type == "rest":
-            filename = f"mech_{actual_level}_rest_100speed.webp"
+            filename = f"mech_{evolution_level}_rest_100speed.cache"
         else:
-            filename = f"mech_{actual_level}_100speed.webp"
+            filename = f"mech_{evolution_level}_100speed.cache"
 
-        return self.cache_dir / filename
+        cache_path = self.cache_dir / filename
+
+        # If cache exists, return the direct path
+        if cache_path.exists():
+            return cache_path
+
+        # Only check for folder mapping if cache doesn't exist (for generation)
+        try:
+            actual_mech_folder = self._get_actual_mech_folder_no_cache_check(evolution_level)
+            actual_level = int(actual_mech_folder.name[4:])  # Extract number from "Mech1", "Mech2", etc.
+
+            if animation_type == "rest":
+                filename = f"mech_{actual_level}_rest_100speed.cache"
+            else:
+                filename = f"mech_{actual_level}_100speed.cache"
+
+            return self.cache_dir / filename
+        except:
+            # Fallback to direct evolution level if folder lookup fails
+            return cache_path
 
     def _get_walk_scale_factor(self, evolution_level: int) -> float:
         """
@@ -174,8 +204,8 @@ class AnimationCacheService:
             self._walk_scale_factors[evolution_level] = 1.0
             return 1.0
 
-    def _get_actual_mech_folder(self, evolution_level: int) -> Path:
-        """Get the actual mech folder that will be used (with fallback logic)"""
+    def _get_actual_mech_folder_no_cache_check(self, evolution_level: int) -> Path:
+        """Original logic for getting mech folder without cache check"""
         mech_folder = self.assets_dir / f"Mech{evolution_level}"
         if not mech_folder.exists():
             # Fallback to Mech1
@@ -183,6 +213,16 @@ class AnimationCacheService:
             if not mech_folder.exists():
                 raise FileNotFoundError(f"No Mech folders found in {self.assets_dir}")
         return mech_folder
+
+    def _get_actual_mech_folder(self, evolution_level: int) -> Path:
+        """Get the actual mech folder that will be used (with fallback logic for cached animations)"""
+        # If we have a cached animation, return virtual path (doesn't need to exist)
+        cache_path = self.cache_dir / f"mech_{evolution_level}_100speed.cache"
+        if cache_path.exists():
+            return self.assets_dir / f"Mech{evolution_level}"
+
+        # Use original logic for when PNG files are needed
+        return self._get_actual_mech_folder_no_cache_check(evolution_level)
 
     def _load_and_process_frames(self, evolution_level: int, animation_type: str = "walk") -> List[Image.Image]:
         """Load PNG frames and process them with fixed canvas heights and preserved aspect ratio"""
@@ -387,9 +427,11 @@ class AnimationCacheService:
 
             # Create unified WebP animation (for both Discord and Web UI)
             unified_webp = self._create_unified_webp(frames)
+            # Obfuscate the WebP data before writing to disk
+            obfuscated_data = self._obfuscate_data(unified_webp)
             with open(cache_path, 'wb') as f:
-                f.write(unified_webp)
-            logger.info(f"Generated {animation_type} animation: {cache_path} ({len(unified_webp)} bytes)")
+                f.write(obfuscated_data)
+            logger.info(f"Generated {animation_type} animation: {cache_path} ({len(unified_webp)} bytes, obfuscated: {len(obfuscated_data)} bytes)")
 
         except Exception as e:
             logger.error(f"Failed to pre-generate {animation_type} animation for evolution {evolution_level}: {e}")
@@ -478,9 +520,10 @@ class AnimationCacheService:
             logger.info(f"Cache miss - generating {animation_type} animation for evolution {evolution_level}")
             self.pre_generate_animation(evolution_level, animation_type)
 
-        # Read cached animation
+        # Read cached animation and deobfuscate
         with open(cache_path, 'rb') as f:
-            animation_data = f.read()
+            obfuscated_data = f.read()
+        animation_data = self._deobfuscate_data(obfuscated_data)
 
         # For REST animations: Use constant speed (base 8 FPS) since offline mechs don't change speed
         if animation_type == "rest":
@@ -618,7 +661,7 @@ class AnimationCacheService:
         """Remove cached animations older than specified hours"""
         if keep_hours == 0:
             # Remove all cached files
-            for cache_file in self.cache_dir.glob("*.webp"):
+            for cache_file in self.cache_dir.glob("*.cache"):
                 try:
                     cache_file.unlink()
                     logger.debug(f"Removed cache file: {cache_file.name}")
@@ -628,7 +671,7 @@ class AnimationCacheService:
         else:
             # Remove files older than keep_hours
             cutoff_time = time.time() - (keep_hours * 3600)
-            for cache_file in self.cache_dir.glob("*.webp"):
+            for cache_file in self.cache_dir.glob("*.cache"):
                 try:
                     if cache_file.stat().st_mtime < cutoff_time:
                         cache_file.unlink()
@@ -655,9 +698,10 @@ class AnimationCacheService:
             logger.info(f"Cache miss - generating animation for evolution {evolution_level}")
             self.pre_generate_animation(evolution_level)
 
-        # Read cached animation
+        # Read cached animation and deobfuscate
         with open(cache_path, 'rb') as f:
-            animation_data = f.read()
+            obfuscated_data = f.read()
+        animation_data = self._deobfuscate_data(obfuscated_data)
 
         # Calculate speed adjustment - 8 FPS base (125ms) with 80%-120% range
         base_duration = 125  # Match cached animation: 8 FPS = 125ms per frame
