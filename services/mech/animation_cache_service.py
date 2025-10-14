@@ -146,7 +146,11 @@ class AnimationCacheService:
         try:
             # Load walk animation frames to calculate actual scale factor
             mech_folder = self._get_actual_mech_folder(evolution_level)
-            pattern = re.compile(rf'{evolution_level}_walk_(\d{{4}})\.png')
+            # Special case for Level 8: Use optimized smaller images with pattern 8_XXXX.png
+            if evolution_level == 8:
+                pattern = re.compile(rf'{evolution_level}_(\d{{4}})\.png')
+            else:
+                pattern = re.compile(rf'{evolution_level}_walk_(\d{{4}})\.png')
             png_files = [f for f in sorted(mech_folder.glob('*.png')) if pattern.match(f.name)]
 
             if not png_files:
@@ -244,7 +248,11 @@ class AnimationCacheService:
             pattern = re.compile(rf"{evolution_level}_rest_(\d{{4}})\.png")
         else:
             # Walk pattern: 1_walk_0000.png, 2_walk_0000.png, etc.
-            pattern = re.compile(rf"{evolution_level}_walk_(\d{{4}})\.png")
+            # Special case for Level 8: Use optimized smaller images with pattern 8_XXXX.png
+            if evolution_level == 8:
+                pattern = re.compile(rf"{evolution_level}_(\d{{4}})\.png")
+            else:
+                pattern = re.compile(rf"{evolution_level}_walk_(\d{{4}})\.png")
 
         for file in sorted(mech_folder.glob("*.png")):
             if pattern.match(file.name):
