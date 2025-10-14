@@ -352,17 +352,15 @@ class AnimationCacheService:
         mech_width = int(crop_width * scale_factor)
         mech_height = int(crop_height * scale_factor)
 
-        # For REST animations: Auto-crop with maximum height limit
+        # For REST animations: Always use FULL configured canvas height (160px)
         if animation_type == "rest":
-            # Calculate optimal canvas height based on actual mech size (no padding)
-            padding_vertical = 0  # No padding - tight crop
-            optimal_canvas_height = mech_height + (padding_vertical * 2)
+            # REST animations MUST use the full canvas height to maintain the "+60px" rule
+            # This ensures consistent offline mech display and proper size difference from walk animations
+            configured_height = canvas_height  # This is our 160px (walk 100px + 60px)
+            # Force full height - no auto-cropping for rest animations
+            canvas_height = configured_height
 
-            # Use configured height as MAXIMUM limit, but allow smaller if mech is small
-            max_configured_height = canvas_height  # This is our 160px limit
-            canvas_height = min(optimal_canvas_height, max_configured_height)
-
-            logger.debug(f"REST smart crop: mech {mech_height}px + padding = {optimal_canvas_height}px, limited to {max_configured_height}px → final: {canvas_height}px")
+            logger.debug(f"REST fixed canvas: forced to full {configured_height}px height (mech size: {mech_height}px)")
 
         logger.debug(f"Canvas scaling: canvas {canvas_width}x{canvas_height}, mech {mech_width}x{mech_height}, scale {scale_factor:.3f}")
 
