@@ -1077,8 +1077,8 @@ def setup_save():
 # ========================================
 
 @main_bp.route('/api/mech/music/<int:level>')
-def stream_mech_music(level):
-    """Stream mech music for a specific level using MechMusicService."""
+def get_mech_music_url(level):
+    """Get YouTube URL for mech music at a specific level using MechMusicService."""
     try:
         # Use MechMusicService for business logic
         from services.web.mech_music_service import get_mech_music_service, MechMusicRequest
@@ -1086,29 +1086,31 @@ def stream_mech_music(level):
         service = get_mech_music_service()
         request_obj = MechMusicRequest(level=level)
 
-        # Get music file through service
-        result = service.get_mech_music(request_obj)
+        # Get YouTube music URL through service
+        result = service.get_mech_music_url(request_obj)
 
         if result.success:
-            current_app.logger.info(f"Streaming mech music for level {level}: {result.title}")
-            return send_file(
-                result.file_path,
-                mimetype='audio/mpeg',
-                as_attachment=False,
-                download_name=f"mech_{level}_{result.title}.mp3"
-            )
+            current_app.logger.info(f"Providing YouTube URL for mech music level {level}: {result.title}")
+            return jsonify({
+                'success': True,
+                'level': level,
+                'title': result.title,
+                'url': result.url,
+                'platform': 'YouTube',
+                'monetized': True  # Support creator revenue! 💰
+            })
         else:
-            current_app.logger.warning(f"Mech music not found for level {level}: {result.error}")
+            current_app.logger.warning(f"YouTube URL not found for mech level {level}: {result.error}")
             return jsonify({
                 'success': False,
-                'error': result.error or f'Music not found for Mech Level {level}'
+                'error': result.error or f'YouTube URL not found for Mech Level {level}'
             }), result.status_code
 
     except Exception as e:
-        current_app.logger.error(f"Error in stream_mech_music route: {e}", exc_info=True)
+        current_app.logger.error(f"Error in get_mech_music_url route: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': 'Error streaming mech music'
+            'error': 'Error getting YouTube music URL'
         }), 500
 
 @main_bp.route('/api/mech/music/info')
