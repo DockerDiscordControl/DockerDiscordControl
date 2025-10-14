@@ -331,6 +331,19 @@ class AnimationCacheService:
         else:
             crop_width = max_x - min_x
             crop_height = max_y - min_y
+
+            # Special handling for Level 8: Add padding to reduce animation jitter
+            # Level 8 has high bounding box variance (6px) which causes unsteady appearance
+            if evolution_level == 8 and animation_type == "walk":
+                padding = 3  # Add 3px padding on all sides to compensate for variance
+                min_x = max(0, min_x - padding)
+                min_y = max(0, min_y - padding)
+                max_x = min(all_frames[0].size[0], max_x + padding)
+                max_y = min(all_frames[0].size[1], max_y + padding)
+                crop_width = max_x - min_x
+                crop_height = max_y - min_y
+                logger.debug(f"Level 8 anti-jitter padding applied: expanded crop to {crop_width}x{crop_height}")
+
             logger.debug(f"Smart crop found: {crop_width}x{crop_height} (from {min_x},{min_y} to {max_x},{max_y})")
 
         # Scale to fit within fixed canvas height while preserving aspect ratio
