@@ -70,7 +70,7 @@ class AnimationCacheService:
             1: 100, 2: 100, 3: 100,  # Mech1-3: ~100px height
             4: 150, 5: 150,           # Mech4-5: ~150px height
             6: 170,                   # Mech 6: ~170px height
-            7: 150, 8: 150,           # Mech 7-8: ~150px height
+            7: 100, 8: 100,           # Mech 7-8: ~100px height (resized)
             9: 230,                   # Mech 9: ~230px height
             10: 250,                  # Mech 10: ~250px height
             11: 270                   # Mech 11: ~270px height
@@ -89,8 +89,8 @@ class AnimationCacheService:
                     4: 210,   # Walk 150px + 60px = 210px
                     5: 210,   # Walk 150px + 60px = 210px
                     6: 230,   # Walk 170px + 60px = 230px
-                    7: 210,   # Walk 150px + 60px = 210px
-                    8: 210,   # Walk 150px + 60px = 210px
+                    7: 160,   # Walk 100px + 60px = 160px (resized)
+                    8: 160,   # Walk 100px + 60px = 160px (resized)
                     9: 290,   # Walk 230px + 60px = 290px
                     10: 310   # Walk 250px + 60px = 310px
                 }
