@@ -421,8 +421,10 @@ class MechService:
 
         # decay from last donation to "now" - but only if enough time passed since evolution
         if last_ts is not None:
-            # If evolution just happened, don't apply immediate decay
-            if last_evolution_ts == last_ts:
+            # If evolution just happened (within 1 minute), don't apply immediate decay
+            evolution_was_recent = (last_evolution_ts is not None and
+                                  (now - last_evolution_ts).total_seconds() < 60)
+            if evolution_was_recent:
                 # Evolution just occurred - no decay yet, mech has fresh Power
                 pass
             else:
@@ -567,7 +569,10 @@ class MechService:
 
         # Final decay from last donation to now
         if last_ts is not None:
-            if last_evolution_ts == last_ts:
+            # If evolution just happened (within 1 minute), don't apply immediate decay
+            evolution_was_recent = (last_evolution_ts is not None and
+                                  (now - last_evolution_ts).total_seconds() < 60)
+            if evolution_was_recent:
                 pass  # No decay if evolution just occurred
             else:
                 Power = max(0.0, Power - self._decay_amount(last_ts, now, lvl.level))
