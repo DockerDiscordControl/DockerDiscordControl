@@ -322,71 +322,36 @@ class AnimationCacheService:
 
                 all_frames.append(frame)
 
-                # Find bounding box of non-transparent pixels - ONLY for WALK animations
-                if animation_type == "walk":
-                    bbox = frame.getbbox()
-                    if bbox:
-                        x1, y1, x2, y2 = bbox
-                        min_x = min(min_x, x1)
-                        min_y = min(min_y, y1)
-                        max_x = max(max_x, x2)
-                        max_y = max(max_y, y2)
-                # REST animations: SKIP smart cropping to preserve full mech
+                # Find bounding box of non-transparent pixels - for BOTH walk and rest
+                bbox = frame.getbbox()
+                if bbox:
+                    x1, y1, x2, y2 = bbox
+                    min_x = min(min_x, x1)
+                    min_y = min(min_y, y1)
+                    max_x = max(max_x, x2)
+                    max_y = max(max_y, y2)
 
-        # Calculate unified crop dimensions for entire animation
-        if animation_type == "rest":
-            # REST animations: Use FULL frame dimensions (no smart cropping)
-            if all_frames:
-                first_frame = all_frames[0]
-                crop_width, crop_height = first_frame.size
-                min_x, min_y, max_x, max_y = 0, 0, crop_width, crop_height
-                logger.debug(f"REST animation using FULL frame: {crop_width}x{crop_height} (NO smart cropping)")
-            else:
-                crop_width, crop_height = 64, 64
-                min_x, min_y, max_x, max_y = 0, 0, 64, 64
-                logger.warning(f"No REST frames found, using fallback")
+        # Calculate unified crop dimensions for entire animation (smart crop for both walk and rest)
+        if min_x == float('inf'):
+            # Fallback if no content found
+            crop_width, crop_height = 64, 64
+            logger.warning(f"No content found in frames, using fallback size")
         else:
-            # WALK animations: Use smart crop dimensions
-            if min_x == float('inf'):
-                # Fallback if no content found
-                crop_width, crop_height = 64, 64
-                logger.warning(f"No content found in WALK frames, using fallback size")
-            else:
-                crop_width = max_x - min_x
-                crop_height = max_y - min_y
-                logger.debug(f"WALK smart crop found: {crop_width}x{crop_height} (from {min_x},{min_y} to {max_x},{max_y})")
+            crop_width = max_x - min_x
+            crop_height = max_y - min_y
+            logger.debug(f"Smart crop found: {crop_width}x{crop_height} (from {min_x},{min_y} to {max_x},{max_y})")
 
         # Scale to fit within fixed canvas height while preserving aspect ratio
-        # For REST animations: Use COMPLETE canvas height (100%), center horizontally
-        if animation_type == "rest":
-            # REST animations should use the COMPLETE available height (160px) with NO margin
-            # Oben/unten: keine transparenten Pixel - volle Höhe nutzen
-            # Links/rechts: transparente Pixel zum Zentrieren
-            max_mech_height = canvas_height  # 100% of 160px = 160px FULL height
-            max_mech_width = canvas_width    # 100% of 270px = 270px FULL width
+        # Same logic for BOTH walk and rest animations - keep it simple
+        max_mech_height = int(canvas_height * 0.90)  # 90% margin for both
+        max_mech_width = int(canvas_width * 0.90)    # 90% margin for both
 
-            # Calculate scale factor to fit within both width and height constraints
-            scale_factor = min(max_mech_width / crop_width, max_mech_height / crop_height)
-            logger.debug(f"REST animation using COMPLETE canvas scale factor {scale_factor:.3f} (max: {max_mech_width}x{max_mech_height})")
-        else:
-            # WALK animations: Calculate scale factor normally
-            # Leave some margin (90% of canvas height) for better visual appearance
-            max_mech_height = int(canvas_height * 0.90)
-            max_mech_width = int(canvas_width * 0.90)  # Also limit width to prevent too wide mechs
-
-            # Calculate scale factor to fit within both width and height constraints
-            scale_factor = min(max_mech_width / crop_width, max_mech_height / crop_height)
+        # Calculate scale factor to fit within both width and height constraints
+        scale_factor = min(max_mech_width / crop_width, max_mech_height / crop_height)
+        logger.debug(f"Animation scale factor {scale_factor:.3f} (max: {max_mech_width}x{max_mech_height})")
 
         mech_width = int(crop_width * scale_factor)
         mech_height = int(crop_height * scale_factor)
-
-        # For REST animations: Use full configured height for initial layout, but smart crop afterward
-        if animation_type == "rest":
-            # REST animations use full canvas height for proper layout of reduced-size mech
-            configured_height = canvas_height  # This is our 160px (walk 100px + 60px)
-            canvas_height = configured_height
-
-            logger.debug(f"REST initial canvas: {configured_height}px height for reduced mech layout (mech size: {mech_height}px)")
 
         logger.debug(f"Canvas scaling: canvas {canvas_width}x{canvas_height}, mech {mech_width}x{mech_height}, scale {scale_factor:.3f}")
 
@@ -409,11 +374,6 @@ class AnimationCacheService:
 
             canvas.paste(scaled_mech, (x_offset, y_offset), scaled_mech)
             frames.append(canvas)
-
-        # Post-processing: Skip smart crop for REST animations to preserve charging cable
-        # REST animations need full +60px height for charging cable display
-        if animation_type == "rest" and frames:
-            logger.debug(f"Preserving full REST animation height for charging cable (no post-cropping)")
 
         logger.debug(f"Processed {len(frames)} frames for evolution {evolution_level} with fixed canvas {canvas_width}x{canvas_height}")
         return frames
