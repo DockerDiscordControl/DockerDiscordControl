@@ -342,17 +342,17 @@ class AnimationCacheService:
             logger.debug(f"Smart crop found: {crop_width}x{crop_height} (from {min_x},{min_y} to {max_x},{max_y})")
 
         # Scale to fit within fixed canvas height while preserving aspect ratio
-        # For REST animations: Use full canvas height, center horizontally
+        # For REST animations: Use COMPLETE canvas height (100%), center horizontally
         if animation_type == "rest":
-            # REST animations should fill the full available height (160px) and center horizontally
-            # No scale reduction - offline mech should be fully visible using all available space
-            # Leave some margin (90% of canvas height) for better visual appearance
-            max_mech_height = int(canvas_height * 0.90)  # 90% of 160px = 144px max
-            max_mech_width = int(canvas_width * 0.90)   # 90% of 270px = 243px max
+            # REST animations should use the COMPLETE available height (160px) with NO margin
+            # Oben/unten: keine transparenten Pixel - volle Höhe nutzen
+            # Links/rechts: transparente Pixel zum Zentrieren
+            max_mech_height = canvas_height  # 100% of 160px = 160px FULL height
+            max_mech_width = canvas_width    # 100% of 270px = 270px FULL width
 
             # Calculate scale factor to fit within both width and height constraints
             scale_factor = min(max_mech_width / crop_width, max_mech_height / crop_height)
-            logger.debug(f"REST animation using full canvas scale factor {scale_factor:.3f} (max: {max_mech_width}x{max_mech_height})")
+            logger.debug(f"REST animation using COMPLETE canvas scale factor {scale_factor:.3f} (max: {max_mech_width}x{max_mech_height})")
         else:
             # WALK animations: Calculate scale factor normally
             # Leave some margin (90% of canvas height) for better visual appearance
