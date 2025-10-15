@@ -1490,10 +1490,11 @@ class MechHistoryButton(Button):
                         power = float(current_state.Power)
 
                         # Get properly decrypted animation bytes
+                        # HISTORY DISPLAY: All unlocked mechs show as active (power > 0) regardless of current online status
                         animation_bytes = cache_service.get_animation_with_speed_and_power(
                             evolution_level=level,
                             speed_level=50.0,  # Default speed for history display
-                            power_level=power if level == current_state.level else 100.0  # Current level uses actual power, others show active
+                            power_level=100.0  # History always shows active animations for unlocked mechs
                         )
 
                         # Special handling for Level 11
@@ -1736,10 +1737,11 @@ class MechDisplayButton(Button):
                 power = float(current_state.Power)
 
                 # Get properly decrypted animation bytes through cache service
+                # MECH DISPLAY: All unlocked mechs show as active regardless of current online status
                 animation_bytes = cache_service.get_animation_with_speed_and_power(
                     evolution_level=self.level,
                     speed_level=50.0,  # Default speed for mech display
-                    power_level=power if self.level == current_state.level else 100.0  # Current level uses actual power, others show active
+                    power_level=100.0  # Display always shows active animations for unlocked mechs
                 )
 
                 embed = discord.Embed(
