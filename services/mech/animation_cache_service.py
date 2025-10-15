@@ -90,7 +90,7 @@ class AnimationCacheService:
                     5: 210,   # Walk 150px + 60px = 210px
                     6: 230,   # Walk 170px + 60px = 230px
                     7: 160,   # Walk 100px + 60px = 160px (resized)
-                    8: 120,   # Walk 100px + 20px = 120px (optimized for smart cropping)
+                    8: 160,   # Walk 100px + 60px = 160px (needs space for charging cable)
                     9: 290,   # Walk 230px + 60px = 290px
                     10: 310   # Walk 250px + 60px = 310px
                 }
@@ -344,10 +344,10 @@ class AnimationCacheService:
         # Scale to fit within fixed canvas height while preserving aspect ratio
         # For REST animations: Use reduced scale factor (30% smaller) to fix "angezoomt" appearance
         if animation_type == "rest":
-            # Get the exact scale factor used for walk animations and reduce by 50% for better cropping
+            # Get the exact scale factor used for walk animations and reduce by 30% for rest animation
             walk_scale_factor = self._get_walk_scale_factor(evolution_level)
-            scale_factor = walk_scale_factor * 0.5  # 50% reduction (was 30%)
-            logger.debug(f"Using reduced scale factor {scale_factor:.3f} (walk: {walk_scale_factor:.3f} * 0.5) for rest animation")
+            scale_factor = walk_scale_factor * 0.7  # 30% reduction to show charging cable properly
+            logger.debug(f"Using reduced scale factor {scale_factor:.3f} (walk: {walk_scale_factor:.3f} * 0.7) for rest animation")
         else:
             # WALK animations: Calculate scale factor normally
             # Leave some margin (90% of canvas height) for better visual appearance
@@ -390,12 +390,10 @@ class AnimationCacheService:
             canvas.paste(scaled_mech, (x_offset, y_offset), scaled_mech)
             frames.append(canvas)
 
-        # Post-processing: Smart crop REST animations to remove excess transparent space
+        # Post-processing: Skip smart crop for REST animations to preserve charging cable
+        # REST animations need full +60px height for charging cable display
         if animation_type == "rest" and frames:
-            logger.debug(f"Applying smart post-crop to REST animation (removing transparent borders)")
-            frames = self._smart_crop_frames(frames)
-            final_height = frames[0].size[1] if frames else canvas_height
-            logger.debug(f"REST post-crop: {canvas_height}px → {final_height}px (saved {canvas_height - final_height}px transparent space)")
+            logger.debug(f"Preserving full REST animation height for charging cable (no post-cropping)")
 
         logger.debug(f"Processed {len(frames)} frames for evolution {evolution_level} with fixed canvas {canvas_width}x{canvas_height}")
         return frames
