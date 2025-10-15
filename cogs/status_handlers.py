@@ -164,18 +164,19 @@ class StatusHandlersMixin:
         """Classify containers into fast and slow based on performance history."""
         fast_containers = []
         slow_containers = []
-        
+
         for container_name in container_names:
             profile = self._get_container_performance_profile(container_name)
-            
+
             if profile['is_slow'] or profile['success_rate'] < 0.8:
                 slow_containers.append(container_name)
                 logger.debug(f"Classified {container_name} as slow: avg={profile['avg_response_time']:.0f}ms, "
                            f"success_rate={profile['success_rate']:.2f}")
             else:
                 fast_containers.append(container_name)
-        
+
         return fast_containers, slow_containers
+
     
     async def _fetch_container_with_retries(self, docker_name: str) -> Tuple[str, Any, Any]:
         """Fetch container data with intelligent retry strategy - always gets complete data."""
@@ -330,19 +331,42 @@ class StatusHandlersMixin:
         """
         Intelligent bulk fetch with adaptive performance learning and complete data collection.
         Uses performance history to optimize timeouts and batching while always collecting full details.
-        
+
         Args:
             container_names: List of Docker container names to fetch
-            
+
         Returns:
             Dict mapping container_name -> (display_name, is_running, cpu, ram, uptime, details_allowed)
         """
         if not container_names:
             return {}
-        
+
+        # DOCKER CONNECTIVITY CHECK: Abort early if Docker is not accessible
+        from services.infrastructure.docker_connectivity_service import get_docker_connectivity_service, DockerConnectivityRequest
+
+        connectivity_service = get_docker_connectivity_service()
+        connectivity_request = DockerConnectivityRequest(timeout_seconds=5.0)
+        connectivity_result = await connectivity_service.check_connectivity(connectivity_request)
+
+        if not connectivity_result.is_connected:
+            logger.error(f"[INTELLIGENT_BULK_FETCH] Docker connectivity failed: {connectivity_result.error_message}")
+
+            # Return error status for all requested containers
+            error_results = {}
+            for docker_name in container_names:
+                # Find server config for this container
+                servers = self.config.get('servers', [])
+                server_config = next((s for s in servers if s.get('docker_name') == docker_name), None)
+                display_name = server_config.get('name', docker_name) if server_config else docker_name
+
+                # Return a special error tuple indicating Docker connectivity failure
+                error_results[docker_name] = ('docker_connectivity_error', connectivity_result.error_message, display_name)
+
+            return error_results
+
         start_time = time.time()
         logger.info(f"[INTELLIGENT_BULK_FETCH] Starting adaptive bulk fetch for {len(container_names)} containers")
-        
+
         # Initialize performance system
         self._ensure_performance_system()
         
@@ -942,14 +966,14 @@ class StatusHandlersMixin:
         """
         Sends or updates status information for a server in a channel.
         ALWAYS reads from the cache and respects pending status.
-        
+
         Parameters:
         - channel: The Discord text channel to send the message to
         - server_conf: Configuration for the specific server
         - current_config: The full bot configuration
         - allow_toggle: Whether to allow toggle button in the view
         - force_collapse: Whether to force the status to be collapsed
-        
+
         Returns:
         - The sent/edited Discord message, or None if no message was sent/edited
         """
@@ -958,6 +982,72 @@ class StatusHandlersMixin:
              logger.error("[SEND_STATUS] Server config missing name or docker_name.")
              return None
         logger.debug(f"[SEND_STATUS] Processing server '{display_name}' for channel {channel.id}, allow_toggle={allow_toggle}, force_collapse={force_collapse}")
+
+        # DOCKER CONNECTIVITY CHECK: Check before attempting to get/send status
+        from services.infrastructure.docker_connectivity_service import get_docker_connectivity_service, DockerConnectivityRequest, DockerErrorEmbedRequest
+
+        connectivity_service = get_docker_connectivity_service()
+        connectivity_request = DockerConnectivityRequest(timeout_seconds=5.0)
+        connectivity_result = await connectivity_service.check_connectivity(connectivity_request)
+
+        if not connectivity_result.is_connected:
+            logger.warning(f"[SEND_STATUS] Docker connectivity failed for '{display_name}': {connectivity_result.error_message}")
+
+            # Create Docker connectivity error embed using service
+            lang = current_config.get('language', 'de')
+            embed_request = DockerErrorEmbedRequest(
+                error_message=connectivity_result.error_message,
+                language=lang,
+                context='individual_container'
+            )
+            embed_result = connectivity_service.create_error_embed_data(embed_request)
+
+            if not embed_result.success:
+                logger.error(f"Failed to create Docker connectivity error embed: {embed_result.error}")
+                return None
+
+            # Create Discord embed from service result
+            embed = discord.Embed(
+                title=embed_result.title,
+                description=embed_result.description,
+                color=embed_result.color
+            )
+            embed.set_footer(text=embed_result.footer_text)
+            view = None  # No controls available during connectivity issues
+
+            # Send/edit with connectivity error embed
+            msg = None
+            try:
+                existing_msg_id = None
+                if channel.id in self.channel_server_message_ids:
+                     existing_msg_id = self.channel_server_message_ids[channel.id].get(display_name)
+                should_edit = existing_msg_id is not None
+
+                if should_edit:
+                    try:
+                        existing_message = channel.get_partial_message(existing_msg_id)
+                        await existing_message.edit(embed=embed, view=None)
+                        msg = existing_message
+                        logger.info(f"[SEND_STATUS] Updated message {existing_msg_id} with Docker connectivity error for '{display_name}'")
+                    except discord.NotFound:
+                        logger.warning(f"[SEND_STATUS] Message {existing_msg_id} not found, sending new connectivity error message")
+                        existing_msg_id = None
+                    except Exception as e:
+                        logger.error(f"[SEND_STATUS] Failed to edit connectivity error message: {e}")
+                        existing_msg_id = None
+
+                if not existing_msg_id:
+                    msg = await channel.send(embed=embed, view=None)
+                    if channel.id not in self.channel_server_message_ids:
+                        self.channel_server_message_ids[channel.id] = {}
+                    self.channel_server_message_ids[channel.id][display_name] = msg.id
+                    logger.info(f"[SEND_STATUS] Sent new Docker connectivity error message {msg.id} for '{display_name}'")
+
+            except Exception as e:
+                logger.error(f"[SEND_STATUS] Failed to send Docker connectivity error message for '{display_name}': {e}")
+
+            return msg
+
         msg = None
         try:
             embed, view, _ = await self._generate_status_embed_and_view(channel.id, display_name, server_conf, current_config, allow_toggle, force_collapse, show_cache_age=False)

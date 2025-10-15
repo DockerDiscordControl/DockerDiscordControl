@@ -1153,6 +1153,41 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 await ctx.followup.send(_("Error: Could not load configuration."), ephemeral=True)
                 return
 
+            # DOCKER CONNECTIVITY CHECK: Check before attempting to get container status
+            from services.infrastructure.docker_connectivity_service import get_docker_connectivity_service, DockerConnectivityRequest, DockerErrorEmbedRequest
+
+            connectivity_service = get_docker_connectivity_service()
+            connectivity_request = DockerConnectivityRequest(timeout_seconds=5.0)
+            connectivity_result = await connectivity_service.check_connectivity(connectivity_request)
+
+            if not connectivity_result.is_connected:
+                logger.warning(f"[SERVERSTATUS] Docker connectivity failed: {connectivity_result.error_message}")
+
+                # Create Docker connectivity error embed using service
+                lang = config.get('language', 'de')
+                embed_request = DockerErrorEmbedRequest(
+                    error_message=connectivity_result.error_message,
+                    language=lang,
+                    context='serverstatus'
+                )
+                embed_result = connectivity_service.create_error_embed_data(embed_request)
+
+                if not embed_result.success:
+                    logger.error(f"Failed to create Docker connectivity error embed: {embed_result.error}")
+                    await ctx.followup.send(_("Error creating connectivity status message."), ephemeral=True)
+                    return
+
+                # Create Discord embed from service result
+                embed = discord.Embed(
+                    title=embed_result.title,
+                    description=embed_result.description,
+                    color=embed_result.color
+                )
+                embed.set_footer(text=embed_result.footer_text)
+
+                await ctx.followup.send(embed=embed)
+                return
+
             # Get all servers and sort them according to ordered_server_names
             servers = config.get('servers', [])
             servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}

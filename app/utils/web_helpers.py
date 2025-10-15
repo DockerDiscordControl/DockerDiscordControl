@@ -327,13 +327,42 @@ def update_docker_cache(logger):
     except docker.errors.DockerException as e_outer:
         error_msg = f"Docker connection error during live query: {str(e_outer)}"
         logger.error(error_msg)
+
+        # Enhanced Docker connectivity error logging with actionable information
+        logger.warning("🚨 DOCKER CONNECTIVITY FAILURE DETECTED 🚨")
+        logger.warning("=" * 60)
+        logger.warning("IMPACT: All container controls will show as 'offline without buttons'")
+        logger.warning("IMPACT: Discord bot status messages will be corrupted/unavailable")
+        logger.warning("IMPACT: System running in FALLBACK MODE with cached data only")
+        logger.warning("")
+        logger.warning("COMMON CAUSES & SOLUTIONS:")
+        logger.warning("1. Docker daemon not running → Check: 'docker ps' on host system")
+        logger.warning("2. Docker socket not mounted → Check: '/var/run/docker.sock' mount in DDC container")
+        logger.warning("3. Permissions issue → Check: DDC container user has docker group access")
+        logger.warning("4. Docker API timeout → Check: Host system Docker performance")
+        logger.warning("5. Network connectivity → Check: Container can reach Docker daemon")
+        logger.warning("")
+        logger.warning("IMMEDIATE ACTIONS:")
+        logger.warning("- Verify Docker daemon: systemctl status docker")
+        logger.warning("- Check DDC container mounts: Unraid Docker tab → DDC → Edit")
+        logger.warning("- Restart DDC container if needed")
+        logger.warning("=" * 60)
+
         with cache_lock:
-            docker_cache['error'] = error_msg
+            docker_cache['error'] = f"🚨 DOCKER CONNECTIVITY LOST: {str(e_outer)}"
+
     except Exception as e_general:
         error_msg = f"Unexpected error during live query: {str(e_general)}"
         logger.error(error_msg, exc_info=True)
+
+        # Enhanced general error logging
+        logger.warning("⚠️ UNEXPECTED DOCKER QUERY ERROR")
+        logger.warning("This may indicate a deeper system issue beyond Docker connectivity")
+        logger.warning(f"Error details: {str(e_general)}")
+        logger.warning("Check the full traceback above for technical details")
+
         with cache_lock:
-            docker_cache['error'] = error_msg
+            docker_cache['error'] = f"⚠️ DOCKER QUERY ERROR: {str(e_general)}"
     finally:
         if client:
             try:
@@ -423,20 +452,69 @@ def background_refresh_worker(logger):
             docker_cache['bg_refresh_running'] = False
         logger.info("Background Docker cache refresh worker stopped")
 
+async def check_docker_connectivity(logger):
+    """Immediate Docker connectivity check using SERVICE FIRST architecture"""
+    logger.info("🔍 Performing Docker connectivity check...")
+
+    # Use DockerConnectivityService following SERVICE FIRST principle
+    from services.infrastructure.docker_connectivity_service import get_docker_connectivity_service, DockerConnectivityRequest
+
+    connectivity_service = get_docker_connectivity_service()
+    connectivity_request = DockerConnectivityRequest(timeout_seconds=5.0)
+    connectivity_result = await connectivity_service.check_connectivity(connectivity_request)
+
+    if connectivity_result.is_connected:
+        logger.info("✅ Docker connectivity: SUCCESS")
+        return True
+    else:
+        logger.error("🚨 DOCKER CONNECTIVITY CHECK FAILED 🚨")
+        logger.error("=" * 60)
+        logger.error(f"Error: {connectivity_result.error_message}")
+        logger.error(f"Type: {connectivity_result.error_type}")
+        if connectivity_result.technical_details:
+            logger.error(f"Details: {connectivity_result.technical_details}")
+        logger.error("")
+        logger.error("SYSTEM IMPACT:")
+        logger.error("- Container controls will show as 'offline without buttons'")
+        logger.error("- Discord bot status messages will fail")
+        logger.error("- Web UI will use fallback/cached data only")
+        logger.error("")
+        logger.error("TROUBLESHOOTING STEPS:")
+        logger.error("1. Check Docker daemon on host: 'docker ps'")
+        logger.error("2. Verify DDC container has Docker socket mounted:")
+        logger.error("   → Unraid: Docker tab → DDC → Edit → Extra Parameters")
+        logger.error("   → Should include: -v /var/run/docker.sock:/var/run/docker.sock")
+        logger.error("3. Check DDC container user permissions (docker group)")
+        logger.error("4. Restart DDC container if needed")
+        logger.error("=" * 60)
+        return False
+
 def start_background_refresh(logger):
     """Starts the background thread for cache updates"""
     global background_refresh_thread, stop_background_thread
-    
+
+    # Immediate Docker connectivity check (sync wrapper for async function)
+    import asyncio
+    try:
+        connectivity_ok = asyncio.get_event_loop().run_until_complete(check_docker_connectivity(logger))
+    except Exception as e:
+        logger.error(f"Error during Docker connectivity check: {e}")
+        connectivity_ok = False
+
+    if not connectivity_ok:
+        logger.warning("⚠️ Starting background refresh despite Docker connectivity issues")
+        logger.warning("Background refresh will continue attempting to connect...")
+
     # Check if thread is already running
     if background_refresh_thread:
         if (HAS_GEVENT and not background_refresh_thread.dead) or \
            (not HAS_GEVENT and background_refresh_thread.is_alive()):
             logger.debug("Background refresh thread already running")
             return
-    
+
     # Start a new thread only if the previous one is no longer running
     stop_background_thread.clear()
-    
+
     # Thread creation with Gevent compatibility
     background_refresh_thread = create_thread(
         background_refresh_worker,
@@ -444,13 +522,13 @@ def start_background_refresh(logger):
         daemon=True,
         name="DockerCacheRefresh"
     )
-    
+
     # Start the thread
     if HAS_GEVENT:
         background_refresh_thread.start_later(0)
     else:
         background_refresh_thread.start()
-        
+
     logger.info("Started background Docker cache refresh thread")
 
 def stop_background_refresh(logger):

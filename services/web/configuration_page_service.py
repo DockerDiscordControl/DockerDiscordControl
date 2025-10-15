@@ -129,10 +129,13 @@ class ConfigurationPageService:
         return config
 
     def _process_docker_containers(self, config: Dict[str, Any]) -> Dict[str, Any]:
-        """Process Docker containers with synthetic fallback."""
+        """Process Docker containers with synthetic fallback and connectivity status."""
         from app.utils.web_helpers import get_docker_containers_live
 
         live_containers_list, cache_error = get_docker_containers_live(self.logger)
+
+        # Determine Docker connectivity status
+        docker_status = self._determine_docker_status(live_containers_list, cache_error)
 
         # Create synthetic container list if Docker is not available
         if not live_containers_list and config.get('servers'):
@@ -151,8 +154,53 @@ class ConfigurationPageService:
 
         return {
             'live_containers': live_containers_list,
-            'cache_error': cache_error
+            'cache_error': cache_error,
+            'docker_status': docker_status
         }
+
+    def _determine_docker_status(self, containers: List[Dict[str, Any]], error: Optional[str]) -> Dict[str, Any]:
+        """Determine Docker connectivity status for Web UI display."""
+        if error:
+            # Extract specific error type for better user feedback
+            status_type = "error"
+            if "Connection aborted" in error and "No such file or directory" in error:
+                status_type = "socket_error"
+                user_message = "Docker socket not accessible - check container mounts"
+            elif "DockerException" in error:
+                status_type = "docker_error"
+                user_message = "Docker daemon unreachable - check Docker service"
+            else:
+                status_type = "unknown_error"
+                user_message = "Unknown Docker connectivity issue"
+
+            return {
+                'connected': False,
+                'status': status_type,
+                'message': user_message,
+                'technical_error': error,
+                'container_count': len(containers) if containers else 0,
+                'fallback_mode': True
+            }
+
+        elif containers:
+            return {
+                'connected': True,
+                'status': 'connected',
+                'message': f"Docker connected - {len(containers)} containers found",
+                'technical_error': None,
+                'container_count': len(containers),
+                'fallback_mode': False
+            }
+
+        else:
+            return {
+                'connected': False,
+                'status': 'no_containers',
+                'message': "Docker connected but no containers found",
+                'technical_error': None,
+                'container_count': 0,
+                'fallback_mode': False
+            }
 
     def _process_server_configuration(self, config: Dict[str, Any], live_containers: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Process server configuration and active containers."""
@@ -429,6 +477,7 @@ class ConfigurationPageService:
             'active_container_names': server_data['active_container_names'],
             'container_info_data': container_info,
             'cache_error': docker_data['cache_error'],
+            'docker_status': docker_data['docker_status'],  # Enhanced Docker connectivity status
             'docker_cache': cache_data['docker_cache'],
             'last_cache_update': cache_data['last_cache_update'],
             'formatted_timestamp': cache_data['formatted_timestamp'],
