@@ -90,7 +90,7 @@ class AnimationCacheService:
                     5: 210,   # Walk 150px + 60px = 210px
                     6: 230,   # Walk 170px + 60px = 230px
                     7: 160,   # Walk 100px + 60px = 160px (resized)
-                    8: 160,   # Walk 100px + 60px = 160px (resized)
+                    8: 120,   # Walk 100px + 20px = 120px (optimized for smart cropping)
                     9: 290,   # Walk 230px + 60px = 290px
                     10: 310   # Walk 250px + 60px = 310px
                 }
@@ -344,10 +344,10 @@ class AnimationCacheService:
         # Scale to fit within fixed canvas height while preserving aspect ratio
         # For REST animations: Use reduced scale factor (30% smaller) to fix "angezoomt" appearance
         if animation_type == "rest":
-            # Get the exact scale factor used for walk animations and reduce by 30%
+            # Get the exact scale factor used for walk animations and reduce by 50% for better cropping
             walk_scale_factor = self._get_walk_scale_factor(evolution_level)
-            scale_factor = walk_scale_factor * 0.7  # 30% reduction
-            logger.debug(f"Using reduced scale factor {scale_factor:.3f} (walk: {walk_scale_factor:.3f} * 0.7) for rest animation")
+            scale_factor = walk_scale_factor * 0.5  # 50% reduction (was 30%)
+            logger.debug(f"Using reduced scale factor {scale_factor:.3f} (walk: {walk_scale_factor:.3f} * 0.5) for rest animation")
         else:
             # WALK animations: Calculate scale factor normally
             # Leave some margin (90% of canvas height) for better visual appearance
@@ -360,15 +360,13 @@ class AnimationCacheService:
         mech_width = int(crop_width * scale_factor)
         mech_height = int(crop_height * scale_factor)
 
-        # For REST animations: Always use FULL configured canvas height (160px)
+        # For REST animations: Use full configured height for initial layout, but smart crop afterward
         if animation_type == "rest":
-            # REST animations MUST use the full canvas height to maintain the "+60px" rule
-            # This ensures consistent offline mech display and proper size difference from walk animations
+            # REST animations use full canvas height for proper layout of reduced-size mech
             configured_height = canvas_height  # This is our 160px (walk 100px + 60px)
-            # Force full height - no auto-cropping for rest animations
             canvas_height = configured_height
 
-            logger.debug(f"REST fixed canvas: forced to full {configured_height}px height (mech size: {mech_height}px)")
+            logger.debug(f"REST initial canvas: {configured_height}px height for reduced mech layout (mech size: {mech_height}px)")
 
         logger.debug(f"Canvas scaling: canvas {canvas_width}x{canvas_height}, mech {mech_width}x{mech_height}, scale {scale_factor:.3f}")
 
@@ -392,8 +390,57 @@ class AnimationCacheService:
             canvas.paste(scaled_mech, (x_offset, y_offset), scaled_mech)
             frames.append(canvas)
 
+        # Post-processing: Smart crop REST animations to remove excess transparent space
+        if animation_type == "rest" and frames:
+            logger.debug(f"Applying smart post-crop to REST animation (removing transparent borders)")
+            frames = self._smart_crop_frames(frames)
+            final_height = frames[0].size[1] if frames else canvas_height
+            logger.debug(f"REST post-crop: {canvas_height}px → {final_height}px (saved {canvas_height - final_height}px transparent space)")
+
         logger.debug(f"Processed {len(frames)} frames for evolution {evolution_level} with fixed canvas {canvas_width}x{canvas_height}")
         return frames
+
+    def _smart_crop_frames(self, frames: List[Image.Image]) -> List[Image.Image]:
+        """
+        Smart crop all frames to remove transparent borders while maintaining aspect ratio.
+        Finds the minimum bounding box that contains all non-transparent content across all frames.
+        """
+        if not frames:
+            return frames
+
+        # Find the collective bounding box across all frames
+        min_x, min_y = float('inf'), float('inf')
+        max_x, max_y = 0, 0
+
+        for frame in frames:
+            bbox = frame.getbbox()
+            if bbox:
+                frame_min_x, frame_min_y, frame_max_x, frame_max_y = bbox
+                min_x = min(min_x, frame_min_x)
+                min_y = min(min_y, frame_min_y)
+                max_x = max(max_x, frame_max_x)
+                max_y = max(max_y, frame_max_y)
+
+        # If no content found, return original frames
+        if min_x == float('inf'):
+            return frames
+
+        # Add minimal padding for rest animations (more aggressive cropping)
+        padding = 2  # Reduced from 5 to 2 for better cropping
+        original_width, original_height = frames[0].size
+        min_x = max(0, min_x - padding)
+        min_y = max(0, min_y - padding)
+        max_x = min(original_width, max_x + padding)
+        max_y = min(original_height, max_y + padding)
+
+        # Crop all frames to the collective bounding box
+        cropped_frames = []
+        for frame in frames:
+            cropped = frame.crop((min_x, min_y, max_x, max_y))
+            cropped_frames.append(cropped)
+
+        logger.debug(f"Smart crop: {original_width}x{original_height} → {max_x-min_x}x{max_y-min_y} (bbox: {min_x},{min_y},{max_x},{max_y})")
+        return cropped_frames
 
     def _create_unified_webp(self, frames: List[Image.Image], base_duration: int = 125) -> bytes:
         """Create MAXIMUM QUALITY WebP animation with ZERO compromises - file size irrelevant"""
