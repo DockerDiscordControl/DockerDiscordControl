@@ -300,46 +300,45 @@ class AnimationCacheService:
                         logger.debug(f"Mech 6 walk pre-crop: removed 48px from top, 12px from bottom, new size: {frame.size}")
 
                 elif animation_type == "rest":
-                    # Rest animation pre-cropping (offline mechs) - only from top, smart crop handles bottom
-                    frame_width, frame_height = frame.size
-
-                    # Define top crop values for each offline mech level
-                    rest_top_crop = {
-                        1: 135, 2: 135, 3: 135,  # Level 1,2,3: 135px from top
-                        4: 110,                   # Level 4: 110px from top
-                        5: 85,                    # Level 5: 85px from top
-                        6: 100,                   # Level 6: 100px from top
-                        7: 96,                    # Level 7: 96px from top
-                        8: 125,                   # Level 8: 125px from top
-                        9: 100,                   # Level 9: 100px from top
-                        10: 45                    # Level 10: 45px from top
-                    }
-
-                    top_crop_pixels = rest_top_crop.get(evolution_level, 0)
-                    if top_crop_pixels > 0:
-                        frame = frame.crop((0, top_crop_pixels, frame_width, frame_height))
-                        logger.debug(f"Mech {evolution_level} rest pre-crop: removed {top_crop_pixels}px from top, new size: {frame.size}")
+                    # REST animations: NO PRE-CROPPING! User wants FULL mech visible!
+                    # Keep original frame completely intact for full visibility
+                    logger.debug(f"REST animation: Preserving FULL original frame for Level {evolution_level} (NO pre-cropping)")
 
                 all_frames.append(frame)
 
-                # Find bounding box of non-transparent pixels
-                bbox = frame.getbbox()
-                if bbox:
-                    x1, y1, x2, y2 = bbox
-                    min_x = min(min_x, x1)
-                    min_y = min(min_y, y1)
-                    max_x = max(max_x, x2)
-                    max_y = max(max_y, y2)
+                # Find bounding box of non-transparent pixels - ONLY for WALK animations
+                if animation_type == "walk":
+                    bbox = frame.getbbox()
+                    if bbox:
+                        x1, y1, x2, y2 = bbox
+                        min_x = min(min_x, x1)
+                        min_y = min(min_y, y1)
+                        max_x = max(max_x, x2)
+                        max_y = max(max_y, y2)
+                # REST animations: SKIP smart cropping to preserve full mech
 
         # Calculate unified crop dimensions for entire animation
-        if min_x == float('inf'):
-            # Fallback if no content found
-            crop_width, crop_height = 64, 64
-            logger.warning(f"No content found in frames, using fallback size")
+        if animation_type == "rest":
+            # REST animations: Use FULL frame dimensions (no smart cropping)
+            if all_frames:
+                first_frame = all_frames[0]
+                crop_width, crop_height = first_frame.size
+                min_x, min_y, max_x, max_y = 0, 0, crop_width, crop_height
+                logger.debug(f"REST animation using FULL frame: {crop_width}x{crop_height} (NO smart cropping)")
+            else:
+                crop_width, crop_height = 64, 64
+                min_x, min_y, max_x, max_y = 0, 0, 64, 64
+                logger.warning(f"No REST frames found, using fallback")
         else:
-            crop_width = max_x - min_x
-            crop_height = max_y - min_y
-            logger.debug(f"Smart crop found: {crop_width}x{crop_height} (from {min_x},{min_y} to {max_x},{max_y})")
+            # WALK animations: Use smart crop dimensions
+            if min_x == float('inf'):
+                # Fallback if no content found
+                crop_width, crop_height = 64, 64
+                logger.warning(f"No content found in WALK frames, using fallback size")
+            else:
+                crop_width = max_x - min_x
+                crop_height = max_y - min_y
+                logger.debug(f"WALK smart crop found: {crop_width}x{crop_height} (from {min_x},{min_y} to {max_x},{max_y})")
 
         # Scale to fit within fixed canvas height while preserving aspect ratio
         # For REST animations: Use COMPLETE canvas height (100%), center horizontally
