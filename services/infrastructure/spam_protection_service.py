@@ -144,7 +144,21 @@ class SpamProtectionService:
         """Get cooldown for a specific button."""
         config_result = self.get_config()
         if config_result.success:
-            return config_result.data.button_cooldowns.get(button_name, 5)
+            # Check for exact match first
+            if button_name in config_result.data.button_cooldowns:
+                return config_result.data.button_cooldowns[button_name]
+
+            # Check for Mech button patterns (e.g., mech_donate_123456 -> mech_donate)
+            if button_name.startswith('mech_'):
+                parts = button_name.split('_')
+                if len(parts) >= 2:
+                    # Try patterns like mech_expand_channelid -> mech_expand
+                    pattern = f"{parts[0]}_{parts[1]}"
+                    if pattern in config_result.data.button_cooldowns:
+                        return config_result.data.button_cooldowns[pattern]
+
+            # Default cooldown
+            return 5
         return 5
     
     def load_settings(self) -> ServiceResult:
@@ -161,50 +175,56 @@ class SpamProtectionService:
     
     def is_on_cooldown(self, user_id: int, action_type: str) -> bool:
         """Check if user is on cooldown for specific action.
-        
+
         Args:
             user_id: Discord user ID
             action_type: Type of action (command or button name)
-            
+
         Returns:
             True if user is on cooldown, False otherwise
         """
         if not self.is_enabled():
             return False
-        
+
         cooldown_key = f"{user_id}:{action_type}"
         last_used = self._user_cooldowns.get(cooldown_key, 0)
         current_time = time.time()
-        
+
         # Get appropriate cooldown duration
-        cooldown_duration = self.get_button_cooldown(action_type)
-        if action_type in ['serverstatus', 'ss', 'control', 'info', 'help', 'ping', 'donate', 'task', 'command']:
+        # Check if it's a command first
+        if action_type in ['serverstatus', 'ss', 'control', 'info', 'help', 'ping', 'donate', 'command', 'language', 'forceupdate', 'start', 'stop', 'restart']:
             cooldown_duration = self.get_command_cooldown(action_type)
-        
+        else:
+            # It's a button (including Mech buttons)
+            cooldown_duration = self.get_button_cooldown(action_type)
+
         return (current_time - last_used) < cooldown_duration
     
     def get_remaining_cooldown(self, user_id: int, action_type: str) -> float:
         """Get remaining cooldown time for user action.
-        
+
         Args:
             user_id: Discord user ID
             action_type: Type of action (command or button name)
-            
+
         Returns:
             Remaining cooldown time in seconds
         """
         if not self.is_enabled():
             return 0.0
-        
+
         cooldown_key = f"{user_id}:{action_type}"
         last_used = self._user_cooldowns.get(cooldown_key, 0)
         current_time = time.time()
-        
+
         # Get appropriate cooldown duration
-        cooldown_duration = self.get_button_cooldown(action_type)
-        if action_type in ['serverstatus', 'ss', 'control', 'info', 'help', 'ping', 'donate', 'task', 'command']:
+        # Check if it's a command first
+        if action_type in ['serverstatus', 'ss', 'control', 'info', 'help', 'ping', 'donate', 'command', 'language', 'forceupdate', 'start', 'stop', 'restart']:
             cooldown_duration = self.get_command_cooldown(action_type)
-        
+        else:
+            # It's a button (including Mech buttons)
+            cooldown_duration = self.get_button_cooldown(action_type)
+
         remaining = cooldown_duration - (current_time - last_used)
         return max(0.0, remaining)
     
@@ -239,17 +259,8 @@ class SpamProtectionService:
                 "help": 3,
                 "ping": 3,
                 "donate": 5,
-                "task": 5,
-                "task_info": 5,
-                "task_once": 5,
-                "task_daily": 5,
-                "task_weekly": 5,
-                "task_monthly": 5,
-                "task_yearly": 5,
-                "task_delete": 3,
-                "task_delete_panel": 3,
-                "task_panel": 5,
-                "command": 10,
+                "donatebroadcast": 60,
+                "command": 5,
                 "language": 30,
                 "forceupdate": 60,
                 "start": 10,
@@ -264,11 +275,18 @@ class SpamProtectionService:
                 "refresh": 5,
                 "logs": 10,
                 "live_refresh": 5,
-                "auto_refresh": 5
+                "auto_refresh": 5,
+                "mech_expand": 3,
+                "mech_collapse": 2,
+                "mech_donate": 10,
+                "mech_history": 5,
+                "mech_display": 3,
+                "mech_story": 5,
+                "mech_music": 8
             },
             global_enabled=True,
             max_commands_per_minute=20,
-            max_buttons_per_minute=30,
+            max_buttons_per_minute=35,
             cooldown_message=True,
             log_violations=True
         )

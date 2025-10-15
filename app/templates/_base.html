@@ -27,7 +27,7 @@ Licensed under the MIT License
         .force-hide {
             display: none !important;
         }
-        body { background-color: #0D0B08; color: #ffffff; padding-top: 20px; padding-bottom: 80px; }
+        body { background-color: #030603; color: #ffffff; padding-top: 20px; padding-bottom: 80px; }
         .form-control, .form-select { background-color: #1E2125; color: #ffffff; border-color: #4a5568; }
         .form-control:focus, .form-select:focus { background-color: #1E2125; color: #ffffff; border-color: #4299e1; box-shadow: 0 0 0 0.2rem rgba(66, 153, 225, 0.25); }
         .form-control::placeholder { color: #6c757d; }
@@ -38,7 +38,36 @@ Licensed under the MIT License
         .btn-primary { background-color: #4299e1; border-color: #4299e1; font-weight: bold; } 
         .btn-secondary { background-color: #6c757d; border-color: #6c757d; }
         
-        .logo-header img { max-height: 200px; width: auto; margin-bottom: -1rem; position: relative; z-index: 5; } 
+        .logo-header img {
+            max-height: 200px;
+            width: auto;
+            margin-bottom: -1rem;
+            position: relative;
+            z-index: 5;
+            /* Subtiler 50px Fade-Effekt: links, rechts UND oben */
+            mask:
+                linear-gradient(to right,
+                    transparent 0%,
+                    black 50px,
+                    black calc(100% - 50px),
+                    transparent 100%),
+                linear-gradient(to bottom,
+                    transparent 0%,
+                    black 50px,
+                    black 100%);
+            mask-composite: intersect;
+            -webkit-mask:
+                linear-gradient(to right,
+                    transparent 0%,
+                    black 50px,
+                    black calc(100% - 50px),
+                    transparent 100%),
+                linear-gradient(to bottom,
+                    transparent 0%,
+                    black 50px,
+                    black 100%);
+            -webkit-mask-composite: source-in;
+        } 
         .alert { margin-top: 15px; }
         .help-icon { cursor: help; margin-left: 5px; color: #6c757d; font-size: 0.9em; }
         
