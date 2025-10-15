@@ -300,9 +300,25 @@ class AnimationCacheService:
                         logger.debug(f"Mech 6 walk pre-crop: removed 48px from top, 12px from bottom, new size: {frame.size}")
 
                 elif animation_type == "rest":
-                    # REST animations: NO PRE-CROPPING! User wants FULL mech visible!
-                    # Keep original frame completely intact for full visibility
-                    logger.debug(f"REST animation: Preserving FULL original frame for Level {evolution_level} (NO pre-cropping)")
+                    # Rest animation pre-cropping (offline mechs) - remove invisible parts, keep smart cropping disabled
+                    frame_width, frame_height = frame.size
+
+                    # Define top crop values for each offline mech level (das war super!)
+                    rest_top_crop = {
+                        1: 135, 2: 135, 3: 135,  # Level 1,2,3: 135px from top
+                        4: 110,                   # Level 4: 110px from top
+                        5: 85,                    # Level 5: 85px from top
+                        6: 100,                   # Level 6: 100px from top
+                        7: 96,                    # Level 7: 96px from top
+                        8: 125,                   # Level 8: 125px from top
+                        9: 100,                   # Level 9: 100px from top
+                        10: 45                    # Level 10: 45px from top
+                    }
+
+                    top_crop_pixels = rest_top_crop.get(evolution_level, 0)
+                    if top_crop_pixels > 0:
+                        frame = frame.crop((0, top_crop_pixels, frame_width, frame_height))
+                        logger.debug(f"Mech {evolution_level} rest pre-crop: removed {top_crop_pixels}px from top, new size: {frame.size}")
 
                 all_frames.append(frame)
 
