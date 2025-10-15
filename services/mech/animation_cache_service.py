@@ -342,13 +342,21 @@ class AnimationCacheService:
             logger.debug(f"Smart crop found: {crop_width}x{crop_height} (from {min_x},{min_y} to {max_x},{max_y})")
 
         # Scale to fit within fixed canvas height while preserving aspect ratio
-        # BEIDE GLEICH: REST und WALK sollen gleiche finale Größe haben!
-        max_mech_height = int(canvas_height * 0.90)  # 90% margin für BEIDE
-        max_mech_width = int(canvas_width * 0.90)    # 90% margin für BEIDE
+        if animation_type == "rest":
+            # REST: Gleiche Skalierung wie WALK für gleiche finale Größe
+            # Aber angepasst an REST Canvas (160px statt 100px)
+            max_mech_height = int(canvas_height * 0.90)  # 90% von 160px = 144px
+            max_mech_width = int(canvas_width * 0.90)    # 90% von 270px = 243px
+            logger.debug(f"REST: Scaling like WALK but for 160px canvas")
+        else:
+            # WALK: ORIGINAL Logik UNVERÄNDERT
+            max_mech_height = int(canvas_height * 0.90)  # 90% von 100px = 90px
+            max_mech_width = int(canvas_width * 0.90)    # 90% von 270px = 243px
+            logger.debug(f"WALK: Original logic unchanged")
 
-        # Standard Skalierung für beide - unterschiedliche PNG Größen werden automatisch ausgeglichen
+        # Calculate scale factor to fit within both width and height constraints
         scale_factor = min(max_mech_width / crop_width, max_mech_height / crop_height)
-        logger.debug(f"{animation_type.upper()}: Standard scaling {scale_factor:.3f} (max: {max_mech_width}x{max_mech_height})")
+        logger.debug(f"{animation_type.upper()}: Scale factor {scale_factor:.3f} (max: {max_mech_width}x{max_mech_height})")
 
         mech_width = int(crop_width * scale_factor)
         mech_height = int(crop_height * scale_factor)
