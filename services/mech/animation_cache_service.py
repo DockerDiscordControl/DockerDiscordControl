@@ -342,13 +342,20 @@ class AnimationCacheService:
             logger.debug(f"Smart crop found: {crop_width}x{crop_height} (from {min_x},{min_y} to {max_x},{max_y})")
 
         # Scale to fit within fixed canvas height while preserving aspect ratio
-        # Same logic for BOTH walk and rest animations - keep it simple
-        max_mech_height = int(canvas_height * 0.90)  # 90% margin for both
-        max_mech_width = int(canvas_width * 0.90)    # 90% margin for both
+        if animation_type == "rest":
+            # REST (offline) mech: Much smaller to show "weak/offline" state
+            max_mech_height = int(canvas_height * 0.45)  # 45% of 160px = 72px max (klein!)
+            max_mech_width = int(canvas_width * 0.45)    # 45% of 270px = 121px max
+            logger.debug(f"REST mech using SMALL scale: max {max_mech_width}x{max_mech_height}")
+        else:
+            # WALK mech: Normal size
+            max_mech_height = int(canvas_height * 0.90)  # 90% margin
+            max_mech_width = int(canvas_width * 0.90)    # 90% margin
+            logger.debug(f"WALK mech using NORMAL scale: max {max_mech_width}x{max_mech_height}")
 
         # Calculate scale factor to fit within both width and height constraints
         scale_factor = min(max_mech_width / crop_width, max_mech_height / crop_height)
-        logger.debug(f"Animation scale factor {scale_factor:.3f} (max: {max_mech_width}x{max_mech_height})")
+        logger.debug(f"Final scale factor {scale_factor:.3f}")
 
         mech_width = int(crop_width * scale_factor)
         mech_height = int(crop_height * scale_factor)
