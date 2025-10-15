@@ -300,19 +300,19 @@ class AnimationCacheService:
                         logger.debug(f"Mech 6 walk pre-crop: removed 48px from top, 12px from bottom, new size: {frame.size}")
 
                 elif animation_type == "rest":
-                    # Rest animation pre-cropping (offline mechs) - remove invisible parts, keep smart cropping disabled
+                    # Rest animation pre-cropping (wie es war!) - DANN auf 160px skalieren
                     frame_width, frame_height = frame.size
 
-                    # Define top crop values for each offline mech level (das war super!)
+                    # ORIGINAL pre-cropping für REST (wie es war!)
                     rest_top_crop = {
-                        1: 135, 2: 135, 3: 135,  # Level 1,2,3: 135px from top
-                        4: 110,                   # Level 4: 110px from top
-                        5: 85,                    # Level 5: 85px from top
-                        6: 100,                   # Level 6: 100px from top
-                        7: 96,                    # Level 7: 96px from top
-                        8: 125,                   # Level 8: 125px from top
-                        9: 100,                   # Level 9: 100px from top
-                        10: 45                    # Level 10: 45px from top
+                        1: 135, 2: 135, 3: 135,  # Level 1,2,3: 135px from top (ORIGINAL!)
+                        4: 110,                   # Level 4: 110px from top (ORIGINAL!)
+                        5: 85,                    # Level 5: 85px from top (ORIGINAL!)
+                        6: 100,                   # Level 6: 100px from top (ORIGINAL!)
+                        7: 96,                    # Level 7: 96px from top (ORIGINAL!)
+                        8: 125,                   # Level 8: 125px from top (ORIGINAL!)
+                        9: 100,                   # Level 9: 100px from top (ORIGINAL!)
+                        10: 45                    # Level 10: 45px from top (ORIGINAL!)
                     }
 
                     top_crop_pixels = rest_top_crop.get(evolution_level, 0)
@@ -343,19 +343,19 @@ class AnimationCacheService:
 
         # Scale to fit within fixed canvas height while preserving aspect ratio
         if animation_type == "rest":
-            # REST (offline) mech: Much smaller to show "weak/offline" state
-            max_mech_height = int(canvas_height * 0.45)  # 45% of 160px = 72px max (klein!)
-            max_mech_width = int(canvas_width * 0.45)    # 45% of 270px = 121px max
-            logger.debug(f"REST mech using SMALL scale: max {max_mech_width}x{max_mech_height}")
+            # REST: Cropping-Resultat auf KOMPLETTE 160px skalieren!
+            max_mech_height = canvas_height  # 100% von 160px = 160px!
+            max_mech_width = canvas_width    # 100% von 270px = 270px!
+            logger.debug(f"REST: Using FULL canvas {max_mech_width}x{max_mech_height}")
         else:
-            # WALK mech: Normal size
+            # WALK: Normal mit Margin
             max_mech_height = int(canvas_height * 0.90)  # 90% margin
             max_mech_width = int(canvas_width * 0.90)    # 90% margin
-            logger.debug(f"WALK mech using NORMAL scale: max {max_mech_width}x{max_mech_height}")
+            logger.debug(f"WALK: Using 90% canvas {max_mech_width}x{max_mech_height}")
 
         # Calculate scale factor to fit within both width and height constraints
         scale_factor = min(max_mech_width / crop_width, max_mech_height / crop_height)
-        logger.debug(f"Final scale factor {scale_factor:.3f}")
+        logger.debug(f"Scale factor {scale_factor:.3f} for {crop_width}x{crop_height} → {int(crop_width * scale_factor)}x{int(crop_height * scale_factor)}")
 
         mech_width = int(crop_width * scale_factor)
         mech_height = int(crop_height * scale_factor)
