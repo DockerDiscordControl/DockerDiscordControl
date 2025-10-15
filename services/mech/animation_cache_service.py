@@ -342,12 +342,13 @@ class AnimationCacheService:
             logger.debug(f"Smart crop found: {crop_width}x{crop_height} (from {min_x},{min_y} to {max_x},{max_y})")
 
         # Scale to fit within fixed canvas height while preserving aspect ratio
-        # For REST animations: Use reduced scale factor (30% smaller) to fix "angezoomt" appearance
+        # For REST animations: Use significantly reduced scale factor to compensate for larger canvas
         if animation_type == "rest":
-            # Get the exact scale factor used for walk animations and reduce by 30% for rest animation
+            # Get the exact scale factor used for walk animations and reduce by 50% for rest animation
+            # Since REST canvas is 60% taller (160px vs 100px), we need much smaller mech to appear properly sized
             walk_scale_factor = self._get_walk_scale_factor(evolution_level)
-            scale_factor = walk_scale_factor * 0.7  # 30% reduction to show charging cable properly
-            logger.debug(f"Using reduced scale factor {scale_factor:.3f} (walk: {walk_scale_factor:.3f} * 0.7) for rest animation")
+            scale_factor = walk_scale_factor * 0.45  # 55% reduction to fix "angezoomt" appearance
+            logger.debug(f"Using reduced scale factor {scale_factor:.3f} (walk: {walk_scale_factor:.3f} * 0.45) for rest animation")
         else:
             # WALK animations: Calculate scale factor normally
             # Leave some margin (90% of canvas height) for better visual appearance
