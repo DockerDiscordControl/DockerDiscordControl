@@ -300,25 +300,9 @@ class AnimationCacheService:
                         logger.debug(f"Mech 6 walk pre-crop: removed 48px from top, 12px from bottom, new size: {frame.size}")
 
                 elif animation_type == "rest":
-                    # Rest animation pre-cropping (wie es war!) - DANN auf 160px skalieren
-                    frame_width, frame_height = frame.size
-
-                    # ORIGINAL pre-cropping für REST (wie es war!)
-                    rest_top_crop = {
-                        1: 135, 2: 135, 3: 135,  # Level 1,2,3: 135px from top (ORIGINAL!)
-                        4: 110,                   # Level 4: 110px from top (ORIGINAL!)
-                        5: 85,                    # Level 5: 85px from top (ORIGINAL!)
-                        6: 100,                   # Level 6: 100px from top (ORIGINAL!)
-                        7: 96,                    # Level 7: 96px from top (ORIGINAL!)
-                        8: 125,                   # Level 8: 125px from top (ORIGINAL!)
-                        9: 100,                   # Level 9: 100px from top (ORIGINAL!)
-                        10: 45                    # Level 10: 45px from top (ORIGINAL!)
-                    }
-
-                    top_crop_pixels = rest_top_crop.get(evolution_level, 0)
-                    if top_crop_pixels > 0:
-                        frame = frame.crop((0, top_crop_pixels, frame_width, frame_height))
-                        logger.debug(f"Mech {evolution_level} rest pre-crop: removed {top_crop_pixels}px from top, new size: {frame.size}")
+                    # REST TEST: NO PRE-CROPPING AT ALL!
+                    # Lass uns schauen was ohne jegliches Cropping passiert
+                    logger.debug(f"REST TEST: Level {evolution_level} - NO pre-cropping, keeping original frame {frame.size}")
 
                 all_frames.append(frame)
 
