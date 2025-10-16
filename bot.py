@@ -94,7 +94,7 @@ try:
     # Use a preliminary print statement because logger is not yet available
     print(f"Attempting to set timezone to: {timezone_str}")
     tz = pytz.timezone(timezone_str)
-    print(f"Successfully set timezone to: {tz}")
+    # Success is logged later during bot startup with more detail
 except pytz.exceptions.UnknownTimeZoneError:
     print(f"WARNING: Unknown timezone '{timezone_str}'. Falling back to UTC for this session.")
     tz = pytz.timezone('UTC')
@@ -140,20 +140,10 @@ _attach_bot_file_handlers(logger)
 # Now we can safely log the outcome
 logger.info(f"Final effective timezone for logging and operations: {tz}")
 
-# Language configuration
-# Log config object WITHOUT the token for safety
-# Use loaded_main_config
-config_log_safe = loaded_main_config.copy()
-if 'bot_token_decrypted_for_usage' in config_log_safe: # Use the decrypted key if available
-    config_log_safe['bot_token'] = '********' # Mask the token
-    del config_log_safe['bot_token_decrypted_for_usage'] # Remove decrypted for logging
-else: # Fallback if decrypted key not present yet
-    config_log_safe['bot_token'] = '********'
-
-logger.info(f"Attempting to get language from config. Config object (token masked): {config_log_safe}") 
-language = loaded_main_config.get('language', 'en') # Read normally from loaded_main_config
-logger.info(f"Value read for 'language' from config: '{language}'") 
-logger.info(f"Bot language is configured to: {language}")
+# Language configuration - optimized logging
+language = loaded_main_config.get('language', 'en')
+timezone_config = loaded_main_config.get('timezone', 'Europe/Berlin')
+logger.info(f"Bot configuration loaded: language='{language}', timezone='{timezone_config}'")
 
 # RAM-OPTIMIZED Discord Intents: Only essential intents for Docker Control Bot
 intents = discord.Intents.none()    # Start with NO intents (minimal RAM usage)
@@ -612,10 +602,9 @@ def main():
         # Set for all datetime operations
         datetime.now().astimezone(tz)
         
-        # Try to get language from config
-        config = get_cached_config()
-        logger.info(f"Attempting to get language from config. Config object (token masked): {_mask_token_in_config(config)}")
-        
+        # Initialize bot with decrypted token
+        logger.info("Initializing Discord bot connection...")
+
         # Use proper token decryption method
         bot_token = get_decrypted_bot_token()
 
