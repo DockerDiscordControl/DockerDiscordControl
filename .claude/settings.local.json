@@ -6,7 +6,8 @@
       "Bash(lsof:*)",
       "Bash(xxd:*)",
       "Bash(time curl:*)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(docker ps:*)"
     ],
     "deny": [],
     "ask": []

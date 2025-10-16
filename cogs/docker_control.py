@@ -3504,12 +3504,12 @@ class DonationBroadcastModal(discord.ui.Modal):
 
                     # Force update of mech animation when level OR power changes
                     new_power = new_state.Power
-                    level_changed = new_state.level != old_state.level
+                    level_changed = new_state.level != old_state_result.level
                     power_changed = new_power != old_power
 
                     if level_changed or power_changed:
                         if level_changed:
-                            logger.info(f"Level changed from {old_state.level} to {new_state.level} - updating mech animations")
+                            logger.info(f"Level changed from {old_state_result.level} to {new_state.level} - updating mech animations")
                         if power_changed:
                             logger.info(f"Power changed from {old_power} to {new_power} - updating mech animations")
 
