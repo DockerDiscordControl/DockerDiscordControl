@@ -57,8 +57,25 @@ class DonationStatusService:
                     error="Failed to initialize mech service"
                 )
 
-            # Step 2: Get mech state
-            mech_state = mech_service.get_state()
+            # Step 2: Get mech state using SERVICE FIRST pattern
+            from services.mech.mech_service import GetMechStateRequest
+            mech_state_request = GetMechStateRequest(include_decimals=True)
+            mech_state_result = mech_service.get_mech_state_service(mech_state_request)
+            if not mech_state_result.success:
+                return DonationStatusResult(
+                    success=False,
+                    error="Failed to get mech state"
+                )
+
+            # For backward compatibility, create a mock state object with the required attributes
+            class MechStateCompat:
+                def __init__(self, result):
+                    self.total_donated = result.total_donated
+                    self.level = result.level
+                    self.Power = result.power
+                    self.level_name = result.name
+
+            mech_state = MechStateCompat(mech_state_result)
 
             # Step 3: Calculate speed information
             speed_info = self._calculate_speed_information(mech_state.total_donated)
@@ -152,8 +169,11 @@ class DonationStatusService:
     def _build_status_data(self, mech_state, mech_service, speed_info: Dict[str, Any], evolution_info: Dict[str, Any]) -> Dict[str, Any]:
         """Build the comprehensive status data object."""
         try:
-            # Get raw power with decimals for UI precision
-            raw_power = mech_service.get_power_with_decimals()
+            # Get raw power with decimals for UI precision using SERVICE FIRST
+            from services.mech.mech_service import GetMechStateRequest
+            power_request = GetMechStateRequest(include_decimals=True)
+            power_result = mech_service.get_mech_state_service(power_request)
+            raw_power = power_result.power if power_result.success else mech_state.Power
 
             # Build status object compatible with Web UI
             status_data = {

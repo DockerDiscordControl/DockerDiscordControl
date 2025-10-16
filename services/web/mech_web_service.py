@@ -240,10 +240,14 @@ class MechWebService:
             return force_power
 
         try:
-            from services.mech.mech_service import get_mech_service
+            from services.mech.mech_service import get_mech_service, GetMechStateRequest
             mech_service = get_mech_service()
-            mech_state = mech_service.get_state()
-            total_donations = mech_state.total_donated
+            mech_state_request = GetMechStateRequest(include_decimals=False)
+            mech_state_result = mech_service.get_mech_state_service(mech_state_request)
+            if not mech_state_result.success:
+                self.logger.error("Failed to get mech state")
+                return 20.0  # Fallback
+            total_donations = mech_state_result.total_donated
             self.logger.debug(f"Got total donations from mech service: {total_donations}")
             return total_donations
         except Exception as e:
@@ -254,15 +258,21 @@ class MechWebService:
         """Create donation animation using unified service."""
         try:
             from services.mech.mech_animation_service import get_mech_animation_service
-            from services.mech.mech_service import get_mech_service
+            from services.mech.mech_service import get_mech_service, GetMechStateRequest
 
             animation_service = get_mech_animation_service()
             mech_service = get_mech_service()
-            mech_state = mech_service.get_state()
+
+            # SERVICE FIRST: Get mech state with decimals for proper animation
+            mech_state_request = GetMechStateRequest(include_decimals=True)
+            mech_state_result = mech_service.get_mech_state_service(mech_state_request)
+            if not mech_state_result.success:
+                self.logger.error("Failed to get mech state for animation")
+                return None
 
             # Get current Power and total donated for proper animation
-            current_power = mech_service.get_power_with_decimals()
-            total_donated = mech_state.total_donated
+            current_power = mech_state_result.power
+            total_donated = mech_state_result.total_donated
 
             # Create animation bytes synchronously using unified service
             animation_bytes = animation_service.create_donation_animation_sync(

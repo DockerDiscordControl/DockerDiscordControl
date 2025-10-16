@@ -1392,11 +1392,15 @@ class MechHistoryButton(Button):
                 await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
                 return
 
-            # Get current mech state
-            from services.mech.mech_service import get_mech_service
+            # Get current mech state using SERVICE FIRST
+            from services.mech.mech_service import get_mech_service, GetMechStateRequest
             mech_service = get_mech_service()
-            current_state = mech_service.get_state()
-            current_level = current_state.level
+            mech_state_request = GetMechStateRequest(include_decimals=False)
+            mech_state_result = mech_service.get_mech_state_service(mech_state_request)
+            if not mech_state_result.success:
+                await interaction.response.send_message("❌ Failed to get mech state", ephemeral=True)
+                return
+            current_level = mech_state_result.level
 
             # Create mech selection view
             await self._show_mech_selection(interaction, current_level)
@@ -1485,9 +1489,14 @@ class MechHistoryButton(Button):
                         cache_service = get_animation_cache_service()
                         mech_service = get_mech_service()
 
-                        # Get current mech state to determine animation type
-                        current_state = mech_service.get_state()
-                        power = float(current_state.Power)
+                        # Get current mech state to determine animation type using SERVICE FIRST
+                        from services.mech.mech_service import GetMechStateRequest
+                        mech_state_request = GetMechStateRequest(include_decimals=False)
+                        mech_state_result = mech_service.get_mech_state_service(mech_state_request)
+                        if not mech_state_result.success:
+                            await interaction.response.send_message("❌ Failed to get mech state", ephemeral=True)
+                            return
+                        power = mech_state_result.power
 
                         # Load pre-rendered unlocked mech from cache
                         from services.mech.mech_display_cache_service import get_mech_display_cache_service, MechDisplayImageRequest
@@ -1552,10 +1561,15 @@ class MechHistoryButton(Button):
                         logger.error(f"Failed to load shadow mech {level}: {image_result.error_message}")
                         continue
 
-                    # Calculate how much more is needed
-                    from services.mech.mech_service import get_mech_service
+                    # Calculate how much more is needed using SERVICE FIRST
+                    from services.mech.mech_service import get_mech_service, GetMechStateRequest
                     mech_service = get_mech_service()
-                    current_total_donations = float(mech_service.get_state().total_donated)
+                    mech_state_request = GetMechStateRequest(include_decimals=False)
+                    mech_state_result = mech_service.get_mech_state_service(mech_state_request)
+                    if not mech_state_result.success:
+                        current_total_donations = 0.0  # Fallback
+                    else:
+                        current_total_donations = mech_state_result.total_donated
                     needed_amount = max(0, evolution_info.base_cost - current_total_donations)
 
                     if needed_amount > 0:
@@ -1789,9 +1803,14 @@ class MechDisplayButton(Button):
                     await interaction.response.send_message(_("❌ Error loading mech preview."), ephemeral=True)
                     return
 
-                from services.mech.mech_service import get_mech_service
+                from services.mech.mech_service import get_mech_service, GetMechStateRequest
                 mech_service = get_mech_service()
-                current_total_donations = float(mech_service.get_state().total_donated)
+                mech_state_request = GetMechStateRequest(include_decimals=False)
+                mech_state_result = mech_service.get_mech_state_service(mech_state_request)
+                if not mech_state_result.success:
+                    current_total_donations = 0.0  # Fallback
+                else:
+                    current_total_donations = mech_state_result.total_donated
                 needed_amount = max(0, evolution_info.base_cost - current_total_donations)
 
                 if needed_amount > 0:
