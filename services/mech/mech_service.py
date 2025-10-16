@@ -71,6 +71,7 @@ class GetMechStateResult:
     progress_to_next: float
     glvl: int = 0
     glvl_max: int = 100
+    bars: Optional['MechBars'] = None
     error_message: Optional[str] = None
 
 
@@ -261,7 +262,8 @@ class MechService:
                 threshold=state.next_level_threshold or 0,
                 progress_to_next=progress_to_next,
                 glvl=state.glvl,
-                glvl_max=state.glvl_max
+                glvl_max=state.glvl_max,
+                bars=state.bars
             )
         except Exception as e:
             logger.error(f"Error getting mech state: {e}", exc_info=True)
@@ -276,6 +278,12 @@ class MechService:
                 progress_to_next=0.0,
                 glvl=0,
                 glvl_max=100,
+                bars=MechBars(
+                    mech_progress_current=0,
+                    mech_progress_max=100,
+                    Power_current=0,
+                    Power_max_for_level=100
+                ),
                 error_message=str(e)
             )
 

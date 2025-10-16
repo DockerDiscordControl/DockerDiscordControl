@@ -45,6 +45,9 @@ class CompatibilityStateResult:
     glvl: int = 0
     glvl_max: int = 100
 
+    # Bars for progress display
+    bars: Optional[Any] = None
+
     error_message: Optional[str] = None
 
 
@@ -93,7 +96,8 @@ class MechCompatibilityService:
                 threshold=mech_state_result.threshold,
                 speed=mech_state_result.speed,
                 glvl=mech_state_result.glvl,
-                glvl_max=mech_state_result.glvl_max
+                glvl_max=mech_state_result.glvl_max,
+                bars=mech_state_result.bars
             )
 
         except Exception as e:
