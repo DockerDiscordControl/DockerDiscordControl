@@ -2006,11 +2006,12 @@ class MechHistoryButtonHelper:
             from services.mech.animation_cache_service import get_animation_cache_service
             cache_service = get_animation_cache_service()
 
-            cached_path = cache_service.get_cached_animation_path(evolution_level)
+            # Get the actual WebP animation bytes (not the .cache file!)
+            webp_bytes = cache_service.get_animation_with_speed(evolution_level, 100.0)
 
-            if cached_path.exists():
-                # Load the first frame of the cached WebP animation
-                with Image.open(cached_path) as cached_webp:
+            if webp_bytes:
+                # Load the first frame from WebP bytes
+                with Image.open(io.BytesIO(webp_bytes)) as cached_webp:
                     # Get first frame (already perfectly cropped and sized!)
                     first_frame = cached_webp.copy().convert('RGBA')
 
