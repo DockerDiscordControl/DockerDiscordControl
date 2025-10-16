@@ -69,6 +69,8 @@ class GetMechStateResult:
     name: str
     threshold: int
     progress_to_next: float
+    glvl: int = 0
+    glvl_max: int = 100
     error_message: Optional[str] = None
 
 
@@ -257,7 +259,9 @@ class MechService:
                 speed=50.0,  # Default speed (middle of 0-100 range)
                 name=state.level_name,
                 threshold=state.next_level_threshold or 0,
-                progress_to_next=progress_to_next
+                progress_to_next=progress_to_next,
+                glvl=state.glvl,
+                glvl_max=state.glvl_max
             )
         except Exception as e:
             logger.error(f"Error getting mech state: {e}", exc_info=True)
@@ -270,6 +274,8 @@ class MechService:
                 name="Error",
                 threshold=0,
                 progress_to_next=0.0,
+                glvl=0,
+                glvl_max=100,
                 error_message=str(e)
             )
 

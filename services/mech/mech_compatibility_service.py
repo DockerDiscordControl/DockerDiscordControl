@@ -41,6 +41,10 @@ class CompatibilityStateResult:
     threshold: int = 0
     speed: float = 50.0
 
+    # Speed/glvl properties for expanded view
+    glvl: int = 0
+    glvl_max: int = 100
+
     error_message: Optional[str] = None
 
 
@@ -87,7 +91,9 @@ class MechCompatibilityService:
                 level_name=mech_state_result.name,
                 name=mech_state_result.name,
                 threshold=mech_state_result.threshold,
-                speed=mech_state_result.speed
+                speed=mech_state_result.speed,
+                glvl=mech_state_result.glvl,
+                glvl_max=mech_state_result.glvl_max
             )
 
         except Exception as e:
