@@ -24,6 +24,31 @@ _PBKDF2_ITERATIONS = 260000
 
 logger = logging.getLogger('ddc.config_service')
 
+# SERVICE FIRST: Request/Result patterns
+@dataclass(frozen=True)
+class GetConfigRequest:
+    """Request to get configuration."""
+    force_reload: bool = False
+
+@dataclass(frozen=True)
+class GetConfigResult:
+    """Result containing configuration data."""
+    success: bool
+    config: Optional[Dict[str, Any]] = None
+    error_message: Optional[str] = None
+
+@dataclass(frozen=True)
+class ValidateDonationKeyRequest:
+    """Request to validate a donation key."""
+    key: str
+
+@dataclass(frozen=True)
+class ValidateDonationKeyResult:
+    """Result of donation key validation."""
+    success: bool
+    is_valid: bool = False
+    error_message: Optional[str] = None
+
 @dataclass
 class ConfigServiceResult:
     """Standard result wrapper for config operations."""
@@ -1243,6 +1268,48 @@ class ConfigService:
                 "recreate_messages_on_inactivity": True
             }
         }
+
+    # === SERVICE FIRST Methods ===
+
+    def get_config_service(self, request: GetConfigRequest) -> GetConfigResult:
+        """SERVICE FIRST: Get configuration with Request/Result pattern."""
+        try:
+            config = self.get_config(force_reload=request.force_reload)
+            return GetConfigResult(
+                success=True,
+                config=config
+            )
+        except Exception as e:
+            logger.error(f"Error getting config via service: {e}", exc_info=True)
+            return GetConfigResult(
+                success=False,
+                error_message=str(e)
+            )
+
+    def validate_donation_key_service(self, request: ValidateDonationKeyRequest) -> ValidateDonationKeyResult:
+        """SERVICE FIRST: Validate donation key with Request/Result pattern."""
+        try:
+            # Load current config to check for donation_disable_key
+            config = self.get_config()
+            stored_key = config.get('donation_disable_key', '').strip()
+
+            if not stored_key:
+                # No key set means donations are enabled (valid = False for disable key)
+                is_valid = False
+            else:
+                # Check if provided key matches stored key
+                is_valid = request.key.strip() == stored_key
+
+            return ValidateDonationKeyResult(
+                success=True,
+                is_valid=is_valid
+            )
+        except Exception as e:
+            logger.error(f"Error validating donation key via service: {e}", exc_info=True)
+            return ValidateDonationKeyResult(
+                success=False,
+                error_message=str(e)
+            )
 
 # === Global Service Instance ===
 

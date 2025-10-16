@@ -7,18 +7,31 @@ Now primarily uses MechService, these are compatibility functions.
 def is_donations_disabled() -> bool:
     """Check if donations are disabled by premium key (compatibility function)."""
     try:
-        from services.config.config_service import get_config_service
+        # SERVICE FIRST: Use Request/Result pattern for config access
+        from services.config.config_service import get_config_service, GetConfigRequest
         config_service = get_config_service()
-        config = config_service.get_config()
-        return bool(config.get('donation_disable_key'))
+        config_request = GetConfigRequest(force_reload=False)
+        config_result = config_service.get_config_service(config_request)
+
+        if config_result.success:
+            return bool(config_result.config.get('donation_disable_key'))
+        else:
+            return False
     except:
         return False
 
 def validate_donation_key(key: str) -> bool:
     """Validate donation key (compatibility function)."""
     try:
-        from services.config.config_service import get_config_service
+        # SERVICE FIRST: Use Request/Result pattern for donation key validation
+        from services.config.config_service import get_config_service, ValidateDonationKeyRequest
         config_service = get_config_service()
-        return config_service.validate_donation_key(key)
+        validation_request = ValidateDonationKeyRequest(key=key)
+        validation_result = config_service.validate_donation_key_service(validation_request)
+
+        if validation_result.success:
+            return validation_result.is_valid
+        else:
+            return False
     except:
         return False
