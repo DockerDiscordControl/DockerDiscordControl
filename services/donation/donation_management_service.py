@@ -52,12 +52,26 @@ class DonationManagementService:
             ServiceResult with donation data and stats
         """
         try:
-            from services.mech.mech_service import get_mech_service
+            from services.mech.mech_service import get_mech_service, GetMechStateRequest
             mech_service = get_mech_service()
-            
-            # Get mech state with donation data
-            mech_state = mech_service.get_state()
-            
+
+            # SERVICE FIRST: Get mech state with donation data
+            mech_state_request = GetMechStateRequest(include_decimals=False)
+            mech_state_result = mech_service.get_mech_state_service(mech_state_request)
+            if not mech_state_result.success:
+                return DonationListResult(
+                    success=False,
+                    error="Failed to get mech state",
+                    donations=[]
+                )
+
+            # Create compatibility object for existing code
+            class MechStateCompat:
+                def __init__(self, result):
+                    self.total_donated = result.total_donated
+                    self.level = result.level
+            mech_state = MechStateCompat(mech_state_result)
+
             # Get raw donations from mech service store
             store_data = mech_service.store.load()
             raw_donations = store_data.get('donations', [])
@@ -160,16 +174,24 @@ class DonationManagementService:
             ServiceResult with DonationStats
         """
         try:
-            from services.mech.mech_service import get_mech_service
+            from services.mech.mech_service import get_mech_service, GetMechStateRequest
             mech_service = get_mech_service()
-            
-            # Get mech state and raw donations
-            mech_state = mech_service.get_state()
+
+            # SERVICE FIRST: Get mech state and raw donations
+            mech_state_request = GetMechStateRequest(include_decimals=False)
+            mech_state_result = mech_service.get_mech_state_service(mech_state_request)
+            if not mech_state_result.success:
+                return DonationStatsResult(
+                    success=False,
+                    error="Failed to get mech state",
+                    stats=None
+                )
+
             store_data = mech_service.store.load()
             raw_donations = store_data.get('donations', [])
-            
+
             # Calculate stats using MechService data
-            total_donated = mech_state.total_donated
+            total_donated = mech_state_result.total_donated
             total_count = len(raw_donations)
             
             stats = DonationStats(

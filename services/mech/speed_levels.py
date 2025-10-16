@@ -149,8 +149,15 @@ def get_speed_info(donation_amount: float) -> tuple:
         # Get current mech state to determine evolution level
         mech_service = get_mech_service()
         config_manager = get_evolution_config_manager()
-        current_state = mech_service.get_state()
-        current_level = current_state.level
+
+        # SERVICE FIRST: Get current state
+        from services.mech.mech_service import GetMechStateRequest
+        current_state_request = GetMechStateRequest(include_decimals=False)
+        current_state_result = mech_service.get_mech_state_service(current_state_request)
+        if not current_state_result.success:
+            # Fallback for failed service call
+            return SPEED_DESCRIPTIONS[1]
+        current_level = current_state_result.level
 
         # Get evolution-specific max power
         evolution_level_info = config_manager.get_evolution_level(current_level)
@@ -272,8 +279,15 @@ def get_combined_mech_status(Power_amount: float, total_donations_received: floa
         # Get current mech state to determine evolution level
         mech_service = get_mech_service()
         config_manager = get_evolution_config_manager()
-        current_state = mech_service.get_state()
-        current_level = current_state.level
+
+        # SERVICE FIRST: Get current state
+        from services.mech.mech_service import GetMechStateRequest
+        current_state_request = GetMechStateRequest(include_decimals=False)
+        current_state_result = mech_service.get_mech_state_service(current_state_request)
+        if not current_state_result.success:
+            # Fallback for failed service call
+            return 1
+        current_level = current_state_result.level
 
         # Get evolution-specific max power
         evolution_level_info = config_manager.get_evolution_level(current_level)

@@ -545,7 +545,20 @@ def add_test_power():
                 # For negative amounts, we need to work around the limitation
                 # MechService only accepts positive integers, so we add a negative donation
                 # by manipulating the state directly (testing only!)
-                current_state = mech_service.get_state()
+                from services.mech.mech_service import GetMechStateRequest
+                current_state_request = GetMechStateRequest(include_decimals=False)
+                current_state_result = mech_service.get_mech_state_service(current_state_request)
+                if not current_state_result.success:
+                    current_app.logger.error("Failed to get mech state for negative donation")
+                    current_state = None
+                else:
+                    # Create compatibility object for existing code
+                    class StateCompat:
+                        def __init__(self, result):
+                            self.Power = result.power
+                            self.total_donated = result.total_donated
+                            self.level = result.level
+                    current_state = StateCompat(current_state_result)
                 
                 # Calculate new power (ensure it doesn't go below 0)
                 new_power = max(0, current_state.Power + amount)
@@ -595,8 +608,22 @@ def reset_power():
         store_data = {"donations": []}
         mech_service.store.save(store_data)
         
-        # Get new state (should be Level 1, 0 Power)
-        reset_state = mech_service.get_state()
+        # Get new state (should be Level 1, 0 Power) using SERVICE FIRST
+        from services.mech.mech_service import GetMechStateRequest
+        reset_state_request = GetMechStateRequest(include_decimals=False)
+        reset_state_result = mech_service.get_mech_state_service(reset_state_request)
+        if not reset_state_result.success:
+            current_app.logger.error("Failed to get reset state")
+            return jsonify({'success': False, 'error': 'Failed to get reset state'})
+
+        # Create compatibility object
+        class ResetStateCompat:
+            def __init__(self, result):
+                self.level = result.level
+                self.Power = result.power
+                self.level_name = result.name
+                self.total_donated = result.total_donated
+        reset_state = ResetStateCompat(reset_state_result)
         
         current_app.logger.info(f"NEW SERVICE: Power reset - Level {reset_state.level}, Power ${reset_state.Power}")
         
@@ -621,8 +648,19 @@ def consume_Power():
         from services.mech.mech_service import get_mech_service
         mech_service = get_mech_service()
         
-        # Just get current state - decay is calculated automatically
-        current_state = mech_service.get_state()
+        # Just get current state - decay is calculated automatically - using SERVICE FIRST
+        from services.mech.mech_service import GetMechStateRequest
+        current_state_request = GetMechStateRequest(include_decimals=False)
+        current_state_result = mech_service.get_mech_state_service(current_state_request)
+        if not current_state_result.success:
+            current_app.logger.error("Failed to get current state for power consumption")
+            return jsonify({'success': False, 'error': 'Failed to get current state'})
+
+        # Create compatibility object
+        class CurrentStateCompat:
+            def __init__(self, result):
+                self.Power = result.power
+        current_state = CurrentStateCompat(current_state_result)
         
         # Removed frequent Power consumption log to reduce noise in DEBUG mode
         # current_app.logger.debug(f"NEW SERVICE: Power consumption check - current Power: ${current_state.Power}")

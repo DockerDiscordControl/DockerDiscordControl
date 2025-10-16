@@ -157,10 +157,16 @@ class MonthlyMemberCache:
             )
             
             # Get current mech level to determine what levels are affected
-            from .mech_service import get_mech_service
+            from .mech_service import get_mech_service, GetMechStateRequest
             mech_service = get_mech_service()
-            current_state = mech_service.get_state()
-            current_level = current_state.level
+
+            # SERVICE FIRST: Get current state
+            current_state_request = GetMechStateRequest(include_decimals=False)
+            current_state_result = mech_service.get_mech_state_service(current_state_request)
+            if not current_state_result.success:
+                logger.error("Failed to get current mech state for monthly member cache")
+                return  # Skip update if we can't get state
+            current_level = current_state_result.level
             
             # Only future levels are affected
             levels_affected_from = current_level + 1
