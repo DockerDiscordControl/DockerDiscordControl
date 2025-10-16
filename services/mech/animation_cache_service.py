@@ -644,12 +644,18 @@ class AnimationCacheService:
             Animation bytes ready for Discord/WebUI display
         """
         try:
-            # Single source of truth: get current mech state
-            from services.mech.mech_service import get_mech_service
-            mech_service = get_mech_service()
+            # Single source of truth: get current mech state using SERVICE FIRST
+            from services.mech.mech_compatibility_service import get_mech_compatibility_service, CompatibilityStateRequest
+            compat_service = get_mech_compatibility_service()
+            compat_request = CompatibilityStateRequest(include_decimals=True)
+            compat_state = compat_service.get_compatible_state(compat_request)
+
+            if not compat_state.success:
+                logger.error("Failed to get mech state for animation cache")
+                return None
 
             # Use decimal power to avoid rounding issues (0.5+ power should show as active)
-            current_power = float(mech_service.get_power_with_decimals())
+            current_power = float(compat_state.Power)
 
             # Calculate speed level from current power
             speed_level = self._calculate_speed_level_from_power(current_power, evolution_level)

@@ -73,7 +73,10 @@ class DonationManagementService:
             mech_state = MechStateCompat(mech_state_result)
 
             # Get raw donations from mech service store
-            store_data = mech_service.store.load()
+            # Use SERVICE FIRST compatibility layer for store access
+            from services.mech.mech_compatibility_service import get_mech_compatibility_service
+            compat_service = get_mech_compatibility_service()
+            store_data = compat_service.get_store_data()
             raw_donations = store_data.get('donations', [])
             
             # Convert to format expected by frontend (limit results)
@@ -126,7 +129,10 @@ class DonationManagementService:
             mech_service = get_mech_service()
             
             # Get raw donations from mech service store
-            store_data = mech_service.store.load()
+            # Use SERVICE FIRST compatibility layer for store access
+            from services.mech.mech_compatibility_service import get_mech_compatibility_service
+            compat_service = get_mech_compatibility_service()
+            store_data = compat_service.get_store_data()
             raw_donations = store_data.get('donations', [])
             
             # Convert index (we display newest first, but store is oldest first)
@@ -150,7 +156,9 @@ class DonationManagementService:
             # Save updated data back to store
             updated_data = store_data.copy()
             updated_data['donations'] = raw_donations
-            mech_service.store.save(updated_data)
+            # Use SERVICE FIRST compatibility layer for store save
+            if not compat_service.save_store_data(updated_data):
+                return ServiceResult(success=False, error="Failed to save updated donations")
             
             logger.info(f"MechService donation deleted: {donor_name} - ${amount:.2f}")
             
@@ -187,7 +195,10 @@ class DonationManagementService:
                     stats=None
                 )
 
-            store_data = mech_service.store.load()
+            # Use SERVICE FIRST compatibility layer for store access
+            from services.mech.mech_compatibility_service import get_mech_compatibility_service
+            compat_service = get_mech_compatibility_service()
+            store_data = compat_service.get_store_data()
             raw_donations = store_data.get('donations', [])
 
             # Calculate stats using MechService data

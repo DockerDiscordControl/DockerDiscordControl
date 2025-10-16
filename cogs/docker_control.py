@@ -1780,8 +1780,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 mech_state_request = GetMechStateRequest(include_decimals=True)
                 mech_state_result = mech_service.get_mech_state_service(mech_state_request)
 
-                # HYBRID: Also get raw state for advanced properties not yet in service interface
-                mech_state_raw = mech_service.get_state()
+                # SERVICE FIRST: Get compatible state for advanced properties
+                from services.mech.mech_compatibility_service import get_mech_compatibility_service, CompatibilityStateRequest
+                compat_service = get_mech_compatibility_service()
+                compat_request = CompatibilityStateRequest(include_decimals=False)
+                mech_state_raw = compat_service.get_compatible_state(compat_request)
+                if not mech_state_raw.success:
+                    logger.error("Failed to get compatible mech state for raw access")
+                    return
                 logger.info("DEBUG: new MechService created")
 
                 # Get clean data from SERVICE FIRST result
@@ -1849,10 +1855,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 try:
                     from services.mech.mech_animation_service import get_mech_animation_service
                     mech_service = get_mech_animation_service()
-                    # Get total_donated from MechService (not animation service)
-                    from services.mech.mech_service import get_mech_service as get_data_service
-                    data_service = get_data_service()
-                    total_donated = data_service.get_state().total_donated
+                    # Get total_donated using SERVICE FIRST (already available)
+                    total_donated = mech_state_result.total_donated
                     animation_file = await mech_service.create_collapsed_status_animation_async(
                         current_Power, total_donated
                     )
@@ -2137,10 +2141,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 try:
                     from services.mech.mech_animation_service import get_mech_animation_service
                     mech_service = get_mech_animation_service()
-                    # Get total_donated from MechService (not animation service)
-                    from services.mech.mech_service import get_mech_service as get_data_service
-                    data_service = get_data_service()
-                    total_donated = data_service.get_state().total_donated
+                    # Get total_donated using SERVICE FIRST (already available)
+                    total_donated = mech_state_result.total_donated
                     animation_file = await mech_service.create_collapsed_status_animation_async(
                         current_Power, total_donated
                     )

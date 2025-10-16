@@ -604,9 +604,13 @@ def reset_power():
         from services.mech.mech_service import get_mech_service
         mech_service = get_mech_service()
         
-        # Reset by directly modifying the store
+        # Reset by directly modifying the store using SERVICE FIRST
+        from services.mech.mech_compatibility_service import get_mech_compatibility_service
+        compat_service = get_mech_compatibility_service()
         store_data = {"donations": []}
-        mech_service.store.save(store_data)
+        if not compat_service.save_store_data(store_data):
+            current_app.logger.error("Failed to reset store data")
+            return jsonify({'success': False, 'error': 'Failed to reset store data'})
         
         # Get new state (should be Level 1, 0 Power) using SERVICE FIRST
         from services.mech.mech_service import GetMechStateRequest
