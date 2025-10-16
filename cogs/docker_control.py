@@ -2124,9 +2124,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 from services.mech.mech_service import get_mech_service
                 mech_service = get_mech_service()
                 
-                # Get current Power for animation
-                mech_state = mech_service.get_state()
-                current_Power = mech_service.get_power_with_decimals()
+                # Get current Power for animation using SERVICE FIRST
+                from services.mech.mech_service import GetMechStateRequest
+                mech_state_request = GetMechStateRequest(include_decimals=True)
+                mech_state_result = mech_service.get_mech_state_service(mech_state_request)
+                if not mech_state_result.success:
+                    logger.error("Failed to get mech state for animation")
+                    return
+                current_Power = mech_state_result.power
                 
                 # Create mech animation with fallback
                 try:
@@ -3421,9 +3426,14 @@ class DonationBroadcastModal(discord.ui.Modal):
                     from services.mech.mech_service import get_mech_service
                     mech_service = get_mech_service()
                     
-                    # Get old state before donation
-                    old_state = mech_service.get_state()
-                    old_evolution_level = old_state.level
+                    # Get old state before donation using SERVICE FIRST
+                    from services.mech.mech_service import GetMechStateRequest
+                    old_state_request = GetMechStateRequest(include_decimals=False)
+                    old_state_result = mech_service.get_mech_state_service(old_state_request)
+                    if not old_state_result.success:
+                        logger.error("Failed to get old mech state")
+                        return
+                    old_evolution_level = old_state_result.level
                     
                     # Parse amount if provided
                     if amount:
@@ -3466,17 +3476,31 @@ class DonationBroadcastModal(discord.ui.Modal):
                             )
                             logger.info(f"Fallback donation recorded: ${amount_dollars}")
                     else:
-                        new_state = mech_service.get_state()
+                        # Get current state using SERVICE FIRST
+                        new_state_request = GetMechStateRequest(include_decimals=False)
+                        new_state_result = mech_service.get_mech_state_service(new_state_request)
+                        if not new_state_result.success:
+                            logger.error("Failed to get new mech state")
+                            return
                     
-                    # Check if evolution occurred
-                    evolution_occurred = new_state.level > old_state.level
-                    new_evolution_level = new_state.level
+                    # For donation cases, the new_state is returned from add_donation methods
+                    # For non-donation cases, we use the SERVICE FIRST result
+                    if 'new_state' not in locals():
+                        new_evolution_level = new_state_result.level
+                        evolution_occurred = new_evolution_level > old_evolution_level
+                        old_power = old_state_result.power
+                        new_power = new_state_result.power
+                    else:
+                        # Check if evolution occurred (donation cases)
+                        evolution_occurred = new_state.level > old_evolution_level
+                        new_evolution_level = new_state.level
+                        old_power = old_state_result.power
+                        new_power = new_state.Power
 
                     if evolution_occurred:
                         logger.info(f"EVOLUTION! Level {old_evolution_level} → {new_evolution_level}")
 
                     # Force update of mech animation when level OR power changes
-                    old_power = old_state.Power
                     new_power = new_state.Power
                     level_changed = new_state.level != old_state.level
                     power_changed = new_power != old_power
