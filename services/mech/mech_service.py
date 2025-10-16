@@ -48,6 +48,66 @@ MECH_LEVELS: List[MechLevel] = [
 ]
 
 
+# ---------------------------
+#   SERVICE FIRST: Request/Result Patterns
+# ---------------------------
+
+@dataclass(frozen=True)
+class GetMechStateRequest:
+    """Request to get current mech state."""
+    include_decimals: bool = False  # For power with decimal precision
+
+
+@dataclass(frozen=True)
+class GetMechStateResult:
+    """Result containing current mech state."""
+    success: bool
+    level: int
+    power: float
+    total_donated: float
+    speed: float
+    name: str
+    threshold: int
+    progress_to_next: float
+    error_message: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class AddDonationRequest:
+    """Request to add a donation."""
+    donor_name: str
+    amount: float
+    use_bot_integration: bool = False  # For Discord bot notifications
+
+
+@dataclass(frozen=True)
+class AddDonationResult:
+    """Result of adding a donation."""
+    success: bool
+    old_level: int
+    new_level: int
+    old_power: float
+    new_power: float
+    total_donated: float
+    level_changed: bool
+    error_message: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class CreateMechAnimationRequest:
+    """Request to create mech animation."""
+    animation_type: str = "collapsed_status"  # Type of animation
+    force_regenerate: bool = False
+
+
+@dataclass(frozen=True)
+class CreateMechAnimationResult:
+    """Result containing mech animation file."""
+    success: bool
+    animation_file: Optional[Any] = None  # Discord File object
+    error_message: Optional[str] = None
+
+
 def _next_level(curr: MechLevel) -> Optional[MechLevel]:
     try:
         return MECH_LEVELS[curr.level]  # 1-based levels vs 0-based list
@@ -163,10 +223,122 @@ class MechService:
         self._store_lock = threading.Lock()  # Protect load-modify-save operations
 
     # -------- Public API --------
-    
+
     def set_member_count(self, count: int) -> None:
         """Update the member count for dynamic evolution costs."""
         self.member_count_cache = count
+
+    # -------- SERVICE FIRST API --------
+
+    def get_mech_state_service(self, request: GetMechStateRequest) -> GetMechStateResult:
+        """SERVICE FIRST: Get current mech state with Request/Result pattern."""
+        try:
+            state = self.get_state()
+
+            # Get power with appropriate precision
+            if request.include_decimals:
+                power = self.get_power_with_decimals()
+            else:
+                power = float(state.Power)
+
+            # Calculate progress to next level
+            progress_to_next = 0.0
+            if state.next_level_threshold:
+                current_progress = float(state.total_donated)
+                threshold = float(state.next_level_threshold)
+                if threshold > 0:
+                    progress_to_next = min(100.0, (current_progress / threshold) * 100.0)
+
+            return GetMechStateResult(
+                success=True,
+                level=state.level,
+                power=power,
+                total_donated=float(state.total_donated),
+                speed=50.0,  # Default speed (middle of 0-100 range)
+                name=state.level_name,
+                threshold=state.next_level_threshold or 0,
+                progress_to_next=progress_to_next
+            )
+        except Exception as e:
+            logger.error(f"Error getting mech state: {e}", exc_info=True)
+            return GetMechStateResult(
+                success=False,
+                level=1,
+                power=0.0,
+                total_donated=0.0,
+                speed=0.0,
+                name="Error",
+                threshold=0,
+                progress_to_next=0.0,
+                error_message=str(e)
+            )
+
+    def add_donation_service(self, request: AddDonationRequest) -> AddDonationResult:
+        """SERVICE FIRST: Add donation with Request/Result pattern."""
+        try:
+            # Get old state
+            old_state = self.get_state()
+            old_level = old_state.level
+            old_power = float(old_state.Power)
+
+            # Add donation
+            if request.use_bot_integration:
+                new_state = self.add_donation_with_bot(request.donor_name, request.amount)
+            else:
+                new_state = self.add_donation(request.donor_name, request.amount)
+
+            return AddDonationResult(
+                success=True,
+                old_level=old_level,
+                new_level=new_state.level,
+                old_power=old_power,
+                new_power=float(new_state.Power),
+                total_donated=float(new_state.total_donated),
+                level_changed=(old_level != new_state.level)
+            )
+        except Exception as e:
+            logger.error(f"Error adding donation: {e}", exc_info=True)
+            return AddDonationResult(
+                success=False,
+                old_level=1,
+                new_level=1,
+                old_power=0.0,
+                new_power=0.0,
+                total_donated=0.0,
+                level_changed=False,
+                error_message=str(e)
+            )
+
+    async def create_mech_animation_service(self, request: CreateMechAnimationRequest) -> CreateMechAnimationResult:
+        """SERVICE FIRST: Create mech animation with Request/Result pattern."""
+        try:
+            if request.animation_type == "collapsed_status":
+                # Use PNG to WebP service for animation creation
+                from services.mech.png_to_webp_service import get_png_to_webp_service
+                webp_service = get_png_to_webp_service()
+
+                # Get current state for animation
+                state = self.get_state()
+                animation_file = await webp_service.create_collapsed_status_animation_async(
+                    power_level=float(state.Power),
+                    total_donations=float(state.total_donated)
+                )
+
+                return CreateMechAnimationResult(
+                    success=True,
+                    animation_file=animation_file
+                )
+            else:
+                return CreateMechAnimationResult(
+                    success=False,
+                    error_message=f"Unknown animation type: {request.animation_type}"
+                )
+        except Exception as e:
+            logger.error(f"Error creating animation: {e}", exc_info=True)
+            return CreateMechAnimationResult(
+                success=False,
+                error_message=str(e)
+            )
         self.dynamic_thresholds = None  # Clear threshold cache
         logger.info(f"MechService: Member count updated to {count}")
     

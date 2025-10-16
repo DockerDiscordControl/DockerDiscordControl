@@ -1489,13 +1489,26 @@ class MechHistoryButton(Button):
                         current_state = mech_service.get_state()
                         power = float(current_state.Power)
 
-                        # Get properly decrypted animation bytes
-                        # HISTORY DISPLAY: All unlocked mechs show as active (power > 0) regardless of current online status
-                        animation_bytes = cache_service.get_animation_with_speed_and_power(
+                        # Load pre-rendered unlocked mech from cache
+                        from services.mech.mech_display_cache_service import get_mech_display_cache_service, MechDisplayImageRequest
+                        import io
+
+                        display_cache_service = get_mech_display_cache_service()
+                        image_request = MechDisplayImageRequest(
                             evolution_level=level,
-                            speed_level=50.0,  # Default speed for history display
-                            power_level=100.0  # History always shows active animations for unlocked mechs
+                            image_type='unlocked'
                         )
+                        image_result = display_cache_service.get_mech_display_image(image_request)
+
+                        if not image_result.success:
+                            logger.error(f"Failed to load unlocked mech {level}: {image_result.error_message}")
+                            embed = discord.Embed(
+                                title=f"❌ **Level {level}: {_(evolution_info.name)}**",
+                                description="*Animation could not be loaded*",
+                                color=0xff0000
+                            )
+                            await channel.send(embed=embed, ephemeral=True)
+                            continue
 
                         # Special handling for Level 11
                         if level == 11:
@@ -1512,8 +1525,7 @@ class MechHistoryButton(Button):
                             color=int(evolution_info.color.replace('#', ''), 16)
                         )
 
-                        filename = f"mech_level_{level}.webp"
-                        file = discord.File(io.BytesIO(animation_bytes), filename=filename)
+                        file = discord.File(io.BytesIO(image_result.image_bytes), filename=image_result.filename)
                         await channel.send(embed=embed, file=file, ephemeral=True)
 
                     except Exception as e:
@@ -1525,8 +1537,21 @@ class MechHistoryButton(Button):
                         )
                         await channel.send(embed=embed, ephemeral=True)
                 else:
-                    # Next level: Show shadow as preview
-                    shadow_bytes = MechHistoryButtonHelper._create_shadow_animation(level)
+                    # Next level: Show pre-rendered shadow from cache
+                    from services.mech.mech_display_cache_service import get_mech_display_cache_service, MechDisplayImageRequest
+                    import io
+
+                    display_cache_service = get_mech_display_cache_service()
+                    image_request = MechDisplayImageRequest(
+                        evolution_level=level,
+                        image_type='shadow'
+                    )
+                    image_result = display_cache_service.get_mech_display_image(image_request)
+
+                    if not image_result.success:
+                        logger.error(f"Failed to load shadow mech {level}: {image_result.error_message}")
+                        continue
+
                     # Calculate how much more is needed
                     from services.mech.mech_service import get_mech_service
                     mech_service = get_mech_service()
@@ -1547,8 +1572,7 @@ class MechHistoryButton(Button):
                         color=0x444444
                     )
 
-                    filename = f"mech_shadow_{level}.webp"
-                    file = discord.File(io.BytesIO(shadow_bytes), filename=filename)
+                    file = discord.File(io.BytesIO(image_result.image_bytes), filename=image_result.filename)
                     await channel.send(embed=embed, file=file, ephemeral=True)
 
                 # Small delay to avoid rate limits
@@ -1709,7 +1733,7 @@ class MechDisplayButton(Button):
         )
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """Display the mech with Read Story button."""
+        """Display the mech using pre-rendered cached images."""
         try:
             # Check if donations are disabled
             if is_donations_disabled():
@@ -1717,11 +1741,11 @@ class MechDisplayButton(Button):
                 return
 
             from services.mech.evolution_config_manager import get_evolution_config_manager
-            from services.mech.animation_cache_service import get_animation_cache_service
+            from services.mech.mech_display_cache_service import get_mech_display_cache_service, MechDisplayImageRequest
             import io
 
             config_manager = get_evolution_config_manager()
-            cache_service = get_animation_cache_service()
+            display_cache_service = get_mech_display_cache_service()
             evolution_info = config_manager.get_evolution_level(self.level)
 
             if not evolution_info:
@@ -1729,20 +1753,17 @@ class MechDisplayButton(Button):
                 return
 
             if self.unlocked:
-                # Show unlocked mech with properly decrypted animation
-                from services.mech.mech_service import get_mech_service
-
-                mech_service = get_mech_service()
-                current_state = mech_service.get_state()
-                power = float(current_state.Power)
-
-                # Get properly decrypted animation bytes through cache service
-                # MECH DISPLAY: All unlocked mechs show as active regardless of current online status
-                animation_bytes = cache_service.get_animation_with_speed_and_power(
+                # Load pre-rendered unlocked mech from cache
+                image_request = MechDisplayImageRequest(
                     evolution_level=self.level,
-                    speed_level=50.0,  # Default speed for mech display
-                    power_level=100.0  # Display always shows active animations for unlocked mechs
+                    image_type='unlocked'
                 )
+                image_result = display_cache_service.get_mech_display_image(image_request)
+
+                if not image_result.success:
+                    logger.error(f"Failed to load unlocked mech {self.level}: {image_result.error_message}")
+                    await interaction.response.send_message(_("❌ Error loading mech animation."), ephemeral=True)
+                    return
 
                 embed = discord.Embed(
                     title=f"✅ Level {self.level}: {_(evolution_info.name)}",
@@ -1750,15 +1771,23 @@ class MechDisplayButton(Button):
                     color=int(evolution_info.color.replace('#', ''), 16)
                 )
 
-                filename = f"mech_level_{self.level}.webp"
-                file = discord.File(io.BytesIO(animation_bytes), filename=filename)
+                file = discord.File(io.BytesIO(image_result.image_bytes), filename=image_result.filename)
 
                 # Create view with Read Story and Music buttons (unlocked mech)
                 view = MechStoryView(self.cog, self.level, unlocked=True)
                 await interaction.response.send_message(embed=embed, file=file, view=view, ephemeral=True)
             else:
-                # Show shadow mech
-                shadow_bytes = MechHistoryButtonHelper._create_shadow_animation(self.level)
+                # Load pre-rendered shadow mech from cache
+                image_request = MechDisplayImageRequest(
+                    evolution_level=self.level,
+                    image_type='shadow'
+                )
+                image_result = display_cache_service.get_mech_display_image(image_request)
+
+                if not image_result.success:
+                    logger.error(f"Failed to load shadow mech {self.level}: {image_result.error_message}")
+                    await interaction.response.send_message(_("❌ Error loading mech preview."), ephemeral=True)
+                    return
 
                 from services.mech.mech_service import get_mech_service
                 mech_service = get_mech_service()
@@ -1778,8 +1807,7 @@ class MechDisplayButton(Button):
                     color=0x444444
                 )
 
-                filename = f"mech_shadow_{self.level}.webp"
-                file = discord.File(io.BytesIO(shadow_bytes), filename=filename)
+                file = discord.File(io.BytesIO(image_result.image_bytes), filename=image_result.filename)
 
                 # Create view WITHOUT buttons (preview mech - not unlocked)
                 view = MechStoryView(self.cog, self.level, unlocked=False)
@@ -1992,122 +2020,3 @@ class PlaySongButton(Button):
             await interaction.response.send_message(_("❌ Error loading music."), ephemeral=True)
 
 
-class MechHistoryButtonHelper:
-    """Helper methods for MechHistoryButton."""
-
-    @staticmethod
-    def _create_shadow_animation(evolution_level: int = 1) -> bytes:
-        """Create a static black silhouette from cached WebP animation."""
-        from PIL import Image
-        import io
-
-        try:
-            # Use the pre-generated cached WebP (already cropped and optimized!)
-            from services.mech.animation_cache_service import get_animation_cache_service
-            cache_service = get_animation_cache_service()
-
-            # Get the actual WebP animation bytes (not the .cache file!)
-            webp_bytes = cache_service.get_animation_with_speed(evolution_level, 100.0)
-
-            if webp_bytes:
-                # Load the first frame from WebP bytes
-                with Image.open(io.BytesIO(webp_bytes)) as cached_webp:
-                    # Get first frame (already perfectly cropped and sized!)
-                    first_frame = cached_webp.copy().convert('RGBA')
-
-                    # Create silhouette: keep transparent pixels transparent, make all others black
-                    silhouette_data = []
-                    for pixel in first_frame.getdata():
-                        r, g, b, a = pixel
-                        if a == 0:
-                            # Keep transparent pixels transparent
-                            silhouette_data.append((0, 0, 0, 0))
-                        else:
-                            # Make all non-transparent pixels black
-                            silhouette_data.append((0, 0, 0, min(180, a)))  # Semi-transparent black
-
-                    # Create silhouette image (same size as cached WebP!)
-                    silhouette_img = Image.new('RGBA', first_frame.size)
-                    silhouette_img.putdata(silhouette_data)
-
-                    # Save as static WebP
-                    buffer = io.BytesIO()
-                    silhouette_img.save(
-                        buffer,
-                        format='WebP',
-                        lossless=True,
-                        quality=100
-                    )
-                    buffer.seek(0)
-                    return buffer.getvalue()
-
-            else:
-                # Return a better placeholder if cache doesn't exist
-                logger.warning(f"No cached WebP for evolution level {evolution_level}, creating placeholder shadow")
-                # Create a larger, more visible shadow placeholder (512x512)
-                img = Image.new('RGBA', (512, 512), (0, 0, 0, 0))
-
-                # Draw a dark silhouette shape in the center
-                from PIL import ImageDraw
-                draw = ImageDraw.Draw(img)
-
-                # Draw a mech-like silhouette shape (centered hexagon/diamond)
-                center_x, center_y = 256, 256
-                size = 200
-
-                # Create a simple mech silhouette (diamond/hexagon shape)
-                points = [
-                    (center_x, center_y - size),           # Top
-                    (center_x + size//2, center_y - size//3),  # Upper right
-                    (center_x + size//2, center_y + size//3),  # Lower right
-                    (center_x, center_y + size),           # Bottom
-                    (center_x - size//2, center_y + size//3),  # Lower left
-                    (center_x - size//2, center_y - size//3),  # Upper left
-                ]
-
-                draw.polygon(points, fill=(0, 0, 0, 160))  # Semi-transparent black
-
-                # Add "?" in center to indicate unknown
-                from PIL import ImageFont
-                try:
-                    font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 120)
-                except:
-                    font = ImageFont.load_default()
-
-                text = "?"
-                # Get text bounding box for centering
-                bbox = draw.textbbox((0, 0), text, font=font)
-                text_width = bbox[2] - bbox[0]
-                text_height = bbox[3] - bbox[1]
-                text_x = center_x - text_width // 2
-                text_y = center_y - text_height // 2 - 20
-
-                draw.text((text_x, text_y), text, fill=(80, 80, 80, 200), font=font)
-
-                buffer = io.BytesIO()
-                img.save(buffer, format='WebP', lossless=True, quality=100)
-                buffer.seek(0)
-                return buffer.getvalue()
-
-        except Exception as e:
-            logger.error(f"Error creating shadow animation: {e}", exc_info=True)
-            # Return a better fallback placeholder
-            from PIL import Image, ImageDraw, ImageFont
-            img = Image.new('RGBA', (512, 512), (0, 0, 0, 0))
-            draw = ImageDraw.Draw(img)
-
-            # Simple dark circle as fallback
-            draw.ellipse([106, 106, 406, 406], fill=(0, 0, 0, 140))
-
-            # Add "?" text
-            try:
-                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 100)
-            except:
-                font = ImageFont.load_default()
-
-            draw.text((220, 180), "?", fill=(80, 80, 80, 200), font=font)
-
-            buffer = io.BytesIO()
-            img.save(buffer, format='WebP', lossless=True)
-            buffer.seek(0)
-            return buffer.getvalue()

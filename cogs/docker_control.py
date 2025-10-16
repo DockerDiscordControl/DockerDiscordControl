@@ -1773,36 +1773,42 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     sys.path.insert(0, project_root)
                 
                 logger.info("DEBUG: Using new MechService")
-                from services.mech.mech_service import get_mech_service
+                from services.mech.mech_service import get_mech_service, GetMechStateRequest
                 mech_service = get_mech_service()
-                mech_state = mech_service.get_state()
+
+                # SERVICE FIRST: Use Request/Result pattern for basic state
+                mech_state_request = GetMechStateRequest(include_decimals=True)
+                mech_state_result = mech_service.get_mech_state_service(mech_state_request)
+
+                # HYBRID: Also get raw state for advanced properties not yet in service interface
+                mech_state_raw = mech_service.get_state()
                 logger.info("DEBUG: new MechService created")
-                
-                # Get clean data from new service
-                current_Power = mech_service.get_power_with_decimals()  # Use decimal version for accurate display
-                total_donations_received = mech_state.total_donated
-                logger.info(f"NEW SERVICE: Power=${current_Power:.2f}, total_donations=${total_donations_received}, level={mech_state.level} ({mech_state.level_name})")
-                
+
+                # Get clean data from SERVICE FIRST result
+                current_Power = mech_state_result.power  # Already includes decimals from request
+                total_donations_received = mech_state_result.total_donated
+                logger.info(f"NEW SERVICE: Power=${current_Power:.2f}, total_donations=${total_donations_received}, level={mech_state_result.level} ({mech_state_result.name})")
+
                 # Evolution info from new service with next_name for UI
                 from services.mech.mech_service import MECH_LEVELS
                 next_name = None
-                if mech_state.next_level_threshold is not None:
+                if mech_state_result.threshold is not None and mech_state_result.threshold > 0:
                     # For Level 10 ONLY: use corrupted name (Level 11 should have no next_name)
-                    if mech_state.level == 10:
+                    if mech_state_result.level == 10:
                         next_name = "ERR#R: [DATA_C0RR*PTED]"
-                    elif mech_state.level < 10:
+                    elif mech_state_result.level < 10:
                         # Find next level name from MECH_LEVELS for normal levels (1-9)
                         for level_info in MECH_LEVELS:
-                            if level_info.threshold == mech_state.next_level_threshold:
+                            if level_info.threshold == mech_state_result.threshold:
                                 next_name = level_info.name
                                 break
                     # Level 11: next_name stays None -> "MAX EVOLUTION REACHED!"
-                
+
                 evolution = {
-                    'name': mech_state.level_name,
-                    'level': mech_state.level,
+                    'name': mech_state_result.name,
+                    'level': mech_state_result.level,
                     'current_threshold': 0,  # Will be calculated from level if needed
-                    'next_threshold': mech_state.next_level_threshold,
+                    'next_threshold': mech_state_result.threshold,
                 }
 
                 # Only add next_name if it exists (Level 11 has no next evolution)
@@ -1826,18 +1832,18 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     combined_status = get_combined_mech_status(current_Power, total_donations_received, language)
                     speed = combined_status['speed']
                     # Add glvl info to the speed object
-                    speed['glvl'] = mech_state.glvl
-                    speed['glvl_max'] = mech_state.glvl_max
+                    speed['glvl'] = mech_state_raw.glvl
+                    speed['glvl_max'] = mech_state_raw.glvl_max
                 except Exception as e:
                     logger.debug(f"Could not get speed description: {e}")
                     # Fallback to simple glvl display
                     speed = {
-                        'level': mech_state.glvl,
-                        'description': f"Glvl {mech_state.glvl}/{mech_state.glvl_max}",
-                        'glvl': mech_state.glvl
+                        'level': mech_state_raw.glvl,
+                        'description': f"Glvl {mech_state_raw.glvl}/{mech_state_raw.glvl_max}",
+                        'glvl': mech_state_raw.glvl
                     }
                 
-                logger.info(f"NEW SERVICE: evolution={evolution['name']}, glvl={mech_state.glvl}/{mech_state.glvl_max}")
+                logger.info(f"NEW SERVICE: evolution={evolution['name']}, glvl={mech_state_raw.glvl}/{mech_state_raw.glvl_max}")
                 
                 # Create mech animation with fallback
                 try:
@@ -1861,13 +1867,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 
                 # Use clean progress bar data from new service - NO MORE MANUAL CALCULATION! 🎯
                 # For Level 1, use decimal Power for accurate percentage
-                if mech_state.level == 1:
+                if mech_state_result.level == 1:
                     Power_current = current_Power  # Use decimal value for Level 1
                 else:
-                    Power_current = mech_state.bars.Power_current  # Use integer for Level 2+
-                Power_max = mech_state.bars.Power_max_for_level
-                evolution_current = mech_state.bars.mech_progress_current  
-                evolution_max = mech_state.bars.mech_progress_max
+                    Power_current = mech_state_raw.bars.Power_current  # Use integer for Level 2+
+                Power_max = mech_state_raw.bars.Power_max_for_level
+                evolution_current = mech_state_raw.bars.mech_progress_current
+                evolution_max = mech_state_raw.bars.mech_progress_max
                 
                 logger.info(f"NEW SERVICE BARS: Power={Power_current}/{Power_max}, evolution={evolution_current}/{evolution_max}")
                 
@@ -1911,7 +1917,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Get level-specific decay rate
                 from services.mech.evolution_config_manager import get_evolution_config_manager
                 config_mgr = get_evolution_config_manager()
-                evolution_info = config_mgr.get_evolution_level(mech_state.level)
+                evolution_info = config_mgr.get_evolution_level(mech_state_result.level)
                 decay_per_day = evolution_info.decay_per_day if evolution_info else 1.0
 
                 Power_consumption_text = translate("Power Consumption")
@@ -1925,13 +1931,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     next_evolution_name = translate(evolution['next_name'])
 
                     # Special handling for Level 10 → Level 11 progression (ALWAYS show corrupted bar)
-                    if mech_state.level == 10 or "ERR#R" in next_evolution_name or "DATA_C0RR*PTED" in next_evolution_name:
+                    if mech_state_result.level == 10 or "ERR#R" in next_evolution_name or "DATA_C0RR*PTED" in next_evolution_name:
                         # Create heavily corrupted progress bar with distorted characters
                         # Evolution bar: 23 chars with ░(10), #(5), %(2), !(2), &(2), @(2)
                         corrupted_bar = "░%#!░&░#░@░░#!#%░░&░#@░"  # 23 characters: evolution progression
 
                         # For Level 10 → 11: Show REAL progression with corrupted display
-                        if mech_state.level == 10:
+                        if mech_state_result.level == 10:
                             # Use actual percentage to Level 11, but display corrupted
                             corrupted_percentage = f"#{next_percentage:.1f}%&"
                             next_evolution_prefix = "ERR#R: [DATA_C0RR*PTED]"
@@ -2325,11 +2331,12 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         current_glvl = None
                         try:
                             # Get current Power amount for Glvl calculation using MechService
-                            from services.mech.mech_service import get_mech_service
+                            from services.mech.mech_service import get_mech_service, GetMechStateRequest
                             mech_service = get_mech_service()
-                            mech_state = mech_service.get_state()
-                            current_Power = mech_service.get_power_with_decimals()
-                            total_donations = mech_state.total_donated
+                            mech_state_request = GetMechStateRequest(include_decimals=True)
+                            mech_state_result = mech_service.get_mech_state_service(mech_state_request)
+                            current_Power = mech_state_result.power
+                            total_donations = mech_state_result.total_donated
                             
                             # Get current mech status to extract Glvl
                             from services.mech.speed_levels import get_combined_mech_status
@@ -3005,12 +3012,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                         # Update last_glvl_per_channel to prevent duplicate updates
                         try:
-                            from services.mech.mech_service import get_mech_service
+                            from services.mech.mech_service import get_mech_service, GetMechStateRequest
                             from services.mech.speed_levels import get_combined_mech_status
                             mech_service = get_mech_service()
-                            current_Power = mech_service.get_power_with_decimals()
-                            mech_state = mech_service.get_state()
-                            mech_status = get_combined_mech_status(current_Power, mech_state.total_donated, 'en')
+                            mech_state_request = GetMechStateRequest(include_decimals=True)
+                            mech_state_result = mech_service.get_mech_state_service(mech_state_request)
+                            current_Power = mech_state_result.power
+                            mech_status = get_combined_mech_status(current_Power, mech_state_result.total_donated, 'en')
                             current_glvl = mech_status.get('speed', {}).get('level', 0)
                             self.last_glvl_per_channel[channel_id] = current_glvl
                             self.mech_state_manager.set_last_glvl(channel_id, current_glvl)

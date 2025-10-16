@@ -407,6 +407,27 @@ async def on_ready():
 
         # Old donation message scheduling removed - now handled by MechService
 
+        # SMART PRE-RENDERING: Only render what's needed for instant Discord loading
+        try:
+            logger.info("Checking mech display cache for instant Discord loading...")
+            from services.mech.mech_display_cache_service import get_mech_display_cache_service, MechDisplayCacheRequest
+
+            display_cache_service = get_mech_display_cache_service()
+            request = MechDisplayCacheRequest(force_regenerate=False)  # Only generate missing files
+            result = display_cache_service.pre_render_all_displays(request)
+
+            if result.success:
+                logger.info(f"✅ Display cache ready: {result.message}")
+                if "already cached" in result.message:
+                    logger.info("Discord interactions already optimized - no pre-rendering needed!")
+                else:
+                    logger.info("Discord interactions will now load instantly without timeouts!")
+            else:
+                logger.warning(f"⚠️ Pre-rendering failed: {result.message}")
+        except Exception as e:
+            logger.error(f"Error checking mech display cache: {e}", exc_info=True)
+            logger.warning("Mech display images will be generated on-demand (slower)")
+
         _initial_startup_done = True # Prevents re-execution
         logger.info("Initialization complete.")
 

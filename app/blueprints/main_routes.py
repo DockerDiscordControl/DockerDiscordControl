@@ -1143,3 +1143,111 @@ def get_mech_music_info():
             'success': False,
             'error': 'Error getting mech music information'
         }), 500
+
+
+@main_bp.route('/api/mech/display/<int:level>/<string:image_type>')
+def get_mech_display_image(level: int, image_type: str):
+    """
+    Serve pre-rendered mech display images for instant Discord loading.
+
+    URL: /api/mech/display/{level}/{type}
+    Example: /api/mech/display/5/shadow
+             /api/mech/display/8/unlocked
+    """
+    try:
+        # Validate parameters
+        if level < 1 or level > 11:
+            return jsonify({'error': 'Invalid level. Must be 1-11.'}), 400
+
+        if image_type not in ['shadow', 'unlocked']:
+            return jsonify({'error': 'Invalid image type. Must be "shadow" or "unlocked".'}), 400
+
+        # Get pre-rendered image through SERVICE FIRST
+        from services.mech.mech_display_cache_service import get_mech_display_cache_service, MechDisplayImageRequest
+
+        display_cache_service = get_mech_display_cache_service()
+        image_request = MechDisplayImageRequest(
+            evolution_level=level,
+            image_type=image_type
+        )
+        image_result = display_cache_service.get_mech_display_image(image_request)
+
+        if not image_result.success:
+            current_app.logger.error(f"Failed to get mech display image: {image_result.error_message}")
+            return jsonify({'error': 'Image not available'}), 404
+
+        # Create in-memory file object for serving
+        image_buffer = io.BytesIO(image_result.image_bytes)
+        image_buffer.seek(0)
+
+        # Determine content type and set caching headers
+        response = Response(
+            image_buffer.getvalue(),
+            mimetype='image/webp',
+            headers={
+                'Content-Type': 'image/webp',
+                'Cache-Control': 'public, max-age=86400',  # Cache for 24 hours
+                'ETag': f'mech-{level}-{image_type}',
+                'Content-Disposition': f'inline; filename="{image_result.filename}"'
+            }
+        )
+
+        current_app.logger.info(f"Served mech display image: Level {level} {image_type} ({len(image_result.image_bytes)} bytes)")
+        return response
+
+    except Exception as e:
+        current_app.logger.error(f"Error serving mech display image: {e}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@main_bp.route('/api/mech/display/info')
+def get_mech_display_info():
+    """
+    Get information about available mech display images.
+
+    Returns: JSON with available levels and image types
+    """
+    try:
+        from services.mech.mech_display_cache_service import get_mech_display_cache_service
+
+        display_cache_service = get_mech_display_cache_service()
+
+        # Check available cache files
+        cache_files = list(display_cache_service.cache_dir.glob('mech_*_*.webp'))
+        available_images = {}
+
+        for cache_file in cache_files:
+            # Parse filename: mech_{level}_{type}.webp
+            parts = cache_file.stem.split('_')
+            if len(parts) >= 3:
+                try:
+                    level = int(parts[1])
+                    image_type = parts[2]
+
+                    if level not in available_images:
+                        available_images[level] = {}
+
+                    file_size = cache_file.stat().st_size
+                    available_images[level][image_type] = {
+                        'available': True,
+                        'size_bytes': file_size,
+                        'url': url_for('main_bp.get_mech_display_image', level=level, image_type=image_type, _external=True)
+                    }
+                except ValueError:
+                    continue
+
+        return jsonify({
+            'success': True,
+            'available_levels': list(range(1, 12)),
+            'available_types': ['shadow', 'unlocked'],
+            'cached_images': available_images,
+            'total_cached': len(cache_files),
+            'cache_directory': str(display_cache_service.cache_dir)
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Error getting mech display info: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Error getting display information'
+        }), 500

@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(tree:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(lsof:*)",
+      "Bash(xxd:*)",
+      "Bash(time curl:*)",
+      "Read(//tmp/**)"
     ],
     "deny": [],
     "ask": []
