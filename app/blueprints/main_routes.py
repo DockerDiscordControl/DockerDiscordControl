@@ -39,6 +39,62 @@ from services.infrastructure.spam_protection_service import get_spam_protection_
 main_bp = Blueprint('main_bp', __name__)
 
 
+def _get_cached_mech_state(include_decimals=False):
+    """Helper function to get mech state from cache with fallback to direct service."""
+    try:
+        # PERFORMANCE OPTIMIZATION: Try cache first
+        from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+
+        cache_service = get_mech_status_cache_service()
+        cache_request = MechStatusCacheRequest(include_decimals=include_decimals)
+        cache_result = cache_service.get_cached_status(cache_request)
+
+        if cache_result.success:
+            current_app.logger.info(f"WEB UI: Using cached mech status (age: {cache_result.cache_age_seconds:.1f}s)")
+            # Create compatibility object from cache
+            class CachedStateCompat:
+                def __init__(self, cache_result):
+                    self.level = cache_result.level
+                    self.Power = cache_result.power
+                    self.power = cache_result.power
+                    self.total_donated = cache_result.total_donated
+                    self.level_name = cache_result.name
+                    self.name = cache_result.name
+                    self.threshold = cache_result.threshold
+                    self.speed = cache_result.speed
+                    self.success = True
+            return CachedStateCompat(cache_result)
+        else:
+            current_app.logger.info("WEB UI: Cache miss - falling back to direct service call")
+            # Fallback to direct service call
+            from services.mech.mech_service import get_mech_service, GetMechStateRequest
+            mech_service = get_mech_service()
+            state_request = GetMechStateRequest(include_decimals=include_decimals)
+            state_result = mech_service.get_mech_state_service(state_request)
+
+            if state_result.success:
+                # Create compatibility object from service result
+                class ServiceStateCompat:
+                    def __init__(self, service_result):
+                        self.level = service_result.level
+                        self.Power = service_result.power
+                        self.power = service_result.power
+                        self.total_donated = service_result.total_donated
+                        self.level_name = service_result.name
+                        self.name = service_result.name
+                        self.threshold = service_result.threshold
+                        self.speed = service_result.speed
+                        self.success = True
+                return ServiceStateCompat(state_result)
+            else:
+                current_app.logger.error("Failed to get mech state from service")
+                return None
+
+    except Exception as e:
+        current_app.logger.error(f"Error getting cached mech state: {e}")
+        return None
+
+
 @main_bp.route('/', methods=['GET'])
 # Use direct auth decorator
 @auth.login_required
@@ -545,20 +601,11 @@ def add_test_power():
                 # For negative amounts, we need to work around the limitation
                 # MechService only accepts positive integers, so we add a negative donation
                 # by manipulating the state directly (testing only!)
-                from services.mech.mech_service import GetMechStateRequest
-                current_state_request = GetMechStateRequest(include_decimals=False)
-                current_state_result = mech_service.get_mech_state_service(current_state_request)
-                if not current_state_result.success:
+                # PERFORMANCE OPTIMIZATION: Use cached mech state
+                current_state = _get_cached_mech_state(include_decimals=False)
+                if not current_state:
                     current_app.logger.error("Failed to get mech state for negative donation")
                     current_state = None
-                else:
-                    # Create compatibility object for existing code
-                    class StateCompat:
-                        def __init__(self, result):
-                            self.Power = result.power
-                            self.total_donated = result.total_donated
-                            self.level = result.level
-                    current_state = StateCompat(current_state_result)
                 
                 # Calculate new power (ensure it doesn't go below 0)
                 new_power = max(0, current_state.Power + amount)
@@ -612,22 +659,12 @@ def reset_power():
             current_app.logger.error("Failed to reset store data")
             return jsonify({'success': False, 'error': 'Failed to reset store data'})
         
-        # Get new state (should be Level 1, 0 Power) using SERVICE FIRST
-        from services.mech.mech_service import GetMechStateRequest
-        reset_state_request = GetMechStateRequest(include_decimals=False)
-        reset_state_result = mech_service.get_mech_state_service(reset_state_request)
-        if not reset_state_result.success:
+        # Get new state (should be Level 1, 0 Power) using CACHE FOR PERFORMANCE
+        # PERFORMANCE OPTIMIZATION: Use cached mech state (will be fresh since we just reset)
+        reset_state = _get_cached_mech_state(include_decimals=False)
+        if not reset_state:
             current_app.logger.error("Failed to get reset state")
             return jsonify({'success': False, 'error': 'Failed to get reset state'})
-
-        # Create compatibility object
-        class ResetStateCompat:
-            def __init__(self, result):
-                self.level = result.level
-                self.Power = result.power
-                self.level_name = result.name
-                self.total_donated = result.total_donated
-        reset_state = ResetStateCompat(reset_state_result)
         
         current_app.logger.info(f"NEW SERVICE: Power reset - Level {reset_state.level}, Power ${reset_state.Power}")
         
@@ -646,25 +683,12 @@ def reset_power():
 @main_bp.route('/api/donation/consume-power', methods=['POST'])
 @auth.login_required
 def consume_Power():
-    """Get current Power state - NEW SERVICE HANDLES DECAY AUTOMATICALLY."""
+    """Get current Power state - USES CACHE FOR PERFORMANCE."""
     try:
-        # NEW SERVICE: Decay happens automatically in get_state()
-        from services.mech.mech_service import get_mech_service
-        mech_service = get_mech_service()
-        
-        # Just get current state - decay is calculated automatically - using SERVICE FIRST
-        from services.mech.mech_service import GetMechStateRequest
-        current_state_request = GetMechStateRequest(include_decimals=False)
-        current_state_result = mech_service.get_mech_state_service(current_state_request)
-        if not current_state_result.success:
-            current_app.logger.error("Failed to get current state for power consumption")
+        # PERFORMANCE OPTIMIZATION: Use cached mech state
+        current_state = _get_cached_mech_state(include_decimals=False)
+        if not current_state:
             return jsonify({'success': False, 'error': 'Failed to get current state'})
-
-        # Create compatibility object
-        class CurrentStateCompat:
-            def __init__(self, result):
-                self.Power = result.power
-        current_state = CurrentStateCompat(current_state_result)
         
         # Removed frequent Power consumption log to reduce noise in DEBUG mode
         # current_app.logger.debug(f"NEW SERVICE: Power consumption check - current Power: ${current_state.Power}")

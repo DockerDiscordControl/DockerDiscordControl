@@ -9,6 +9,8 @@ import time
 import logging
 from pathlib import Path
 from typing import Tuple, List, Optional
+from dataclasses import dataclass
+from datetime import datetime
 from PIL import Image
 from io import BytesIO
 import discord
@@ -16,6 +18,51 @@ import discord
 from utils.logging_utils import get_module_logger
 
 logger = get_module_logger('animation_cache_service')
+
+
+# ============================================================================
+# SERVICE FIRST REQUEST/RESULT PATTERNS
+# ============================================================================
+
+@dataclass
+class MechAnimationRequest:
+    """
+    Service First request for mech animation generation.
+
+    Contains all required information to generate animations without
+    requiring the service to query other services for state information.
+    """
+    evolution_level: int
+    power_level: float = 1.0
+    speed_level: float = 50.0
+    include_metadata: bool = False
+
+
+@dataclass
+class MechAnimationResult:
+    """
+    Service First result for mech animation generation.
+
+    Contains the animation bytes and comprehensive metadata about
+    the generation process and cache status.
+    """
+    success: bool
+    animation_bytes: Optional[bytes] = None
+
+    # Animation metadata
+    evolution_level: int = 0
+    animation_type: str = ""  # "walk" or "rest"
+    actual_speed_level: float = 0.0
+    frame_count: int = 0
+    canvas_size: Tuple[int, int] = (0, 0)
+
+    # Cache metadata
+    cache_hit: bool = False
+    cache_key: str = ""
+    generation_time_ms: float = 0.0
+
+    # Error information
+    error_message: Optional[str] = None
 
 class AnimationCacheService:
     """
@@ -59,6 +106,9 @@ class AnimationCacheService:
         self._maintenance_task = None
         self._maintenance_running = False
         self._maintenance_interval = 14400.0  # 4 hours in seconds
+
+        # SERVICE FIRST: Event-based cache invalidation setup
+        self._setup_event_listeners()
 
         logger.info(f"Animation Cache Service initialized")
         logger.info(f"Assets dir: {self.assets_dir}")
@@ -659,7 +709,8 @@ class AnimationCacheService:
             Animation bytes ready for Discord/WebUI display
         """
         try:
-            # PERFORMANCE OPTIMIZED: Use cached mech state instead of direct service calls
+            # SERVICE FIRST VIOLATION: This method should be refactored to accept power as parameter
+            # For now, reverting to working state while we refactor the calling services
             from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
             cache_service = get_mech_status_cache_service()
             cache_request = MechStatusCacheRequest(include_decimals=True)
@@ -852,6 +903,88 @@ class AnimationCacheService:
             return animation_data  # Return original if adjustment fails
 
     # ========================================================================
+    # SERVICE FIRST COMPLIANT ANIMATION METHODS
+    # ========================================================================
+
+    def get_mech_animation(self, request: MechAnimationRequest) -> MechAnimationResult:
+        """
+        Service First compliant method for mech animation generation.
+
+        This method follows Service First principles by:
+        - Accepting all required data via the request object
+        - Not querying other services for state information
+        - Returning comprehensive result with metadata
+        - Being stateless and deterministic
+
+        Args:
+            request: MechAnimationRequest with all required parameters
+
+        Returns:
+            MechAnimationResult with animation bytes and metadata
+        """
+        start_time = time.time()
+
+        try:
+            # Validate request parameters
+            if request.evolution_level < 1 or request.evolution_level > 11:
+                return MechAnimationResult(
+                    success=False,
+                    error_message=f"Invalid evolution level: {request.evolution_level} (must be 1-11)"
+                )
+
+            # Use the existing Service First compliant method
+            animation_bytes = self.get_animation_with_speed_and_power(
+                evolution_level=request.evolution_level,
+                speed_level=request.speed_level,
+                power_level=request.power_level
+            )
+
+            if animation_bytes is None:
+                return MechAnimationResult(
+                    success=False,
+                    error_message="Failed to generate animation bytes"
+                )
+
+            # Determine animation type based on power level
+            animation_type = "rest" if request.power_level <= 0.0 and request.evolution_level <= 10 else "walk"
+
+            # Get canvas size for metadata
+            canvas_size = self.get_expected_canvas_size(request.evolution_level, animation_type)
+
+            # Calculate generation time
+            generation_time = (time.time() - start_time) * 1000
+
+            # Build comprehensive result
+            result = MechAnimationResult(
+                success=True,
+                animation_bytes=animation_bytes,
+                evolution_level=request.evolution_level,
+                animation_type=animation_type,
+                actual_speed_level=request.speed_level,
+                canvas_size=canvas_size,
+                generation_time_ms=generation_time
+            )
+
+            # Add cache metadata if requested
+            if request.include_metadata:
+                # Check if this was a cache hit by timing (very fast = cache hit)
+                result.cache_hit = generation_time < 10.0  # < 10ms = likely cache hit
+                result.cache_key = f"mech_{request.evolution_level}_{animation_type}_{request.speed_level}"
+
+            logger.debug(f"Service First animation generated: level={request.evolution_level}, "
+                        f"type={animation_type}, speed={request.speed_level}, time={generation_time:.1f}ms")
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Error in Service First animation generation: {e}")
+            return MechAnimationResult(
+                success=False,
+                error_message=str(e),
+                generation_time_ms=(time.time() - start_time) * 1000
+            )
+
+    # ========================================================================
     # EVENT-BASED PREDICTIVE CACHING METHODS
     # ========================================================================
 
@@ -948,6 +1081,58 @@ class AnimationCacheService:
         except Exception as e:
             logger.error(f"Error storing in predictive cache: {e}")
 
+    def _setup_event_listeners(self):
+        """Set up Service First event listeners for animation cache invalidation."""
+        try:
+            from services.infrastructure.event_manager import get_event_manager
+            event_manager = get_event_manager()
+
+            # Register listener for donation completion events
+            event_manager.register_listener('donation_completed', self._handle_donation_event)
+
+            # Register listener for mech state changes
+            event_manager.register_listener('mech_state_changed', self._handle_state_change_event)
+
+            logger.info("Event listeners registered for animation cache invalidation")
+
+        except Exception as e:
+            logger.error(f"Failed to setup event listeners: {e}")
+
+    def _handle_donation_event(self, event_data):
+        """Handle donation completion events for cache invalidation."""
+        try:
+            # Extract relevant data from event
+            event_info = event_data.data
+            reason = f"Donation completed: ${event_info.get('amount', 'unknown')}"
+
+            # Invalidate cache since power/level may have changed
+            self.invalidate_animation_cache(reason)
+
+            logger.info(f"Animation cache invalidated due to donation event: {reason}")
+
+        except Exception as e:
+            logger.error(f"Error handling donation event: {e}")
+
+    def _handle_state_change_event(self, event_data):
+        """Handle mech state change events for selective cache invalidation."""
+        try:
+            # Extract state change information
+            event_info = event_data.data
+            old_power = event_info.get('old_power', 0)
+            new_power = event_info.get('new_power', 0)
+
+            # Only invalidate if power change is significant
+            power_change = abs(new_power - old_power)
+            if power_change >= self._significant_power_change_threshold:
+                reason = f"Significant power change: {old_power:.2f} → {new_power:.2f}"
+                self.invalidate_animation_cache(reason)
+                logger.info(f"Animation cache invalidated due to state change: {reason}")
+            else:
+                logger.debug(f"Minor power change ignored: {old_power:.2f} → {new_power:.2f}")
+
+        except Exception as e:
+            logger.error(f"Error handling state change event: {e}")
+
     def invalidate_animation_cache(self, reason: str = "Manual invalidation"):
         """Manually invalidate the entire animation cache (for donation events or system updates)."""
         cache_count = len(self._animation_memory_cache)
@@ -1014,18 +1199,14 @@ class AnimationCacheService:
         try:
             logger.info("Starting animation cache maintenance check...")
 
-            # Get current mech state using Status Cache
-            from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
-            cache_service = get_mech_status_cache_service()
-            cache_request = MechStatusCacheRequest(include_decimals=True)
-            cached_state = cache_service.get_cached_status(cache_request)
+            # SERVICE FIRST VIOLATION: Maintenance should use Event Manager
+            # For now, disabling maintenance until we implement event-based invalidation
+            logger.info("Maintenance check disabled during Service First refactoring")
+            return
 
-            if not cached_state.success:
-                logger.warning("Could not get mech state for maintenance check")
-                return
-
-            current_power = float(cached_state.power)
-            evolution_level = cached_state.level
+            # TODO: Replace with Event Manager integration
+            # The maintenance loop should listen for 'mech_state_changed' events
+            # instead of polling the status cache service directly
 
             # Check if current state differs significantly from last cached state
             if self._last_cached_state:

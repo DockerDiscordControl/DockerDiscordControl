@@ -301,19 +301,29 @@ class MechService:
             else:
                 new_state = self.add_donation(request.donor_name, request.amount)
 
-            # PERFORMANCE: Invalidate animation cache immediately after donation to ensure fresh animations
+            # SERVICE FIRST: Emit donation event for other services to handle (animation cache, etc.)
             try:
-                from services.mech.animation_cache_service import get_animation_cache_service
-                animation_cache = get_animation_cache_service()
+                from services.infrastructure.event_manager import get_event_manager
+                event_manager = get_event_manager()
                 new_power = float(new_state.Power)
                 power_change = abs(new_power - old_power)
 
-                if power_change > 0.1 or old_level != new_state.level:  # Significant change
-                    reason = f"Donation: ${request.amount} (power {old_power:.2f}→{new_power:.2f})"
-                    animation_cache.invalidate_animation_cache(reason)
-                    logger.info(f"Animation cache invalidated due to donation: {reason}")
+                event_data = {
+                    'donation_amount': request.amount,
+                    'donor_name': request.donor_name,
+                    'old_power': old_power,
+                    'new_power': new_power,
+                    'old_level': old_level,
+                    'new_level': new_state.level,
+                    'power_change': power_change,
+                    'level_changed': old_level != new_state.level,
+                    'total_donated': float(new_state.total_donated)
+                }
+
+                event_manager.emit_event('donation_completed', 'mech_service', event_data)
+                logger.info(f"Donation event emitted: ${request.amount} (power {old_power:.2f}→{new_power:.2f})")
             except Exception as e:
-                logger.warning(f"Failed to invalidate animation cache after donation: {e}")
+                logger.warning(f"Failed to emit donation event: {e}")
 
             return AddDonationResult(
                 success=True,

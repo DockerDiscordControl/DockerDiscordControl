@@ -75,6 +75,14 @@ class ContainerLogService:
         self.logger = logger
         self.default_container = 'dockerdiscordcontrol'
 
+        # Log file paths (try Docker paths first, then development paths)
+        self.log_paths = {
+            'bot': ['/app/logs/bot.log', '/Volumes/appdata/dockerdiscordcontrol/logs/bot.log'],
+            'discord': ['/app/logs/discord.log', '/Volumes/appdata/dockerdiscordcontrol/logs/discord.log'],
+            'webui': ['/app/logs/webui_error.log', '/Volumes/appdata/dockerdiscordcontrol/logs/webui_error.log'],
+            'application': ['/app/logs/supervisord.log', '/Volumes/appdata/dockerdiscordcontrol/logs/supervisord.log']
+        }
+
     def get_container_logs(self, request: ContainerLogRequest) -> LogResult:
         """
         Retrieve logs from a specific Docker container.
@@ -262,14 +270,16 @@ class ContainerLogService:
 
     def _get_bot_logs(self, max_lines: int) -> LogResult:
         """Get bot-specific logs with file fallback."""
-        # Try reading from bot.log file first
-        bot_log_path = '/app/logs/bot.log'
-        if os.path.exists(bot_log_path):
-            file_content = self._read_log_file(bot_log_path, max_lines)
-            if file_content and file_content.strip():
-                return LogResult(success=True, content=file_content)
+        # Try reading from bot.log file first (multiple possible paths)
+        for bot_log_path in self.log_paths['bot']:
+            if os.path.exists(bot_log_path):
+                file_content = self._read_log_file(bot_log_path, max_lines)
+                if file_content and file_content.strip():
+                    self.logger.info(f"Successfully read bot logs from: {bot_log_path}")
+                    return LogResult(success=True, content=file_content)
 
         # Fallback: Get from container logs and filter
+        self.logger.info("Bot log files not found, falling back to container log filtering")
         return self._get_filtered_container_logs(
             max_lines,
             ['bot.py', 'cog', 'discord.py', 'discord bot', 'command', 'slash', 'cache', 'container', 'update'],
@@ -277,7 +287,17 @@ class ContainerLogService:
         )
 
     def _get_discord_logs(self, max_lines: int) -> LogResult:
-        """Get Discord-specific filtered logs."""
+        """Get Discord-specific logs with file fallback."""
+        # Try reading from discord.log file first (multiple possible paths)
+        for discord_log_path in self.log_paths['discord']:
+            if os.path.exists(discord_log_path):
+                file_content = self._read_log_file(discord_log_path, max_lines)
+                if file_content and file_content.strip():
+                    self.logger.info(f"Successfully read Discord logs from: {discord_log_path}")
+                    return LogResult(success=True, content=file_content)
+
+        # Fallback: Get from container logs and filter
+        self.logger.info("Discord log files not found, falling back to container log filtering")
         return self._get_filtered_container_logs(
             max_lines,
             ['discord', 'guild', 'channel', 'member', 'message', 'voice', 'websocket'],
@@ -285,7 +305,17 @@ class ContainerLogService:
         )
 
     def _get_webui_logs(self, max_lines: int) -> LogResult:
-        """Get Web UI specific filtered logs."""
+        """Get Web UI specific logs with file fallback."""
+        # Try reading from webui_error.log file first (multiple possible paths)
+        for webui_log_path in self.log_paths['webui']:
+            if os.path.exists(webui_log_path):
+                file_content = self._read_log_file(webui_log_path, max_lines)
+                if file_content and file_content.strip():
+                    self.logger.info(f"Successfully read Web UI logs from: {webui_log_path}")
+                    return LogResult(success=True, content=file_content)
+
+        # Fallback: Get from container logs and filter
+        self.logger.info("Web UI log files not found, falling back to container log filtering")
         return self._get_filtered_container_logs(
             max_lines,
             ['flask', 'Flask', 'gunicorn', 'Gunicorn', 'GET /', 'POST /', 'HTTP', '127.0.0.1', '0.0.0.0:5000', 'werkzeug', 'jinja2'],
@@ -293,7 +323,17 @@ class ContainerLogService:
         )
 
     def _get_application_logs(self, max_lines: int) -> LogResult:
-        """Get application-level filtered logs."""
+        """Get application-level logs with file fallback."""
+        # Try reading from supervisord.log file first (multiple possible paths)
+        for app_log_path in self.log_paths['application']:
+            if os.path.exists(app_log_path):
+                file_content = self._read_log_file(app_log_path, max_lines)
+                if file_content and file_content.strip():
+                    self.logger.info(f"Successfully read application logs from: {app_log_path}")
+                    return LogResult(success=True, content=file_content)
+
+        # Fallback: Get from container logs and filter
+        self.logger.info("Application log files not found, falling back to container log filtering")
         return self._get_filtered_container_logs(
             max_lines,
             ['ERROR', 'WARNING', 'INFO', 'DEBUG', 'Starting', 'Stopping', 'Initializing', 'Config', 'Database', 'Scheduler'],
