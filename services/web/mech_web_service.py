@@ -78,7 +78,7 @@ class MechWebService:
 
     def get_live_animation(self, request: MechAnimationRequest) -> MechAnimationResult:
         """
-        Generate live mech animation based on current power level.
+        Generate live mech animation based on current power level using cached system.
 
         Args:
             request: MechAnimationRequest with optional power override
@@ -87,13 +87,34 @@ class MechWebService:
             MechAnimationResult with animation bytes or error information
         """
         try:
-            # Step 1: Get current donation status
-            total_donations = self._get_total_donations(request.force_power)
+            # PERFORMANCE OPTIMIZATION: Use cached data instead of live generation
+            from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+            from services.mech.animation_cache_service import get_animation_cache_service
+            from services.mech.mech_evolutions import get_evolution_level
 
-            self.logger.debug(f"Live mech animation request, Power: {total_donations}")
+            # Step 1: Get current mech status from cache (ultra-fast)
+            if request.force_power is not None:
+                # Use force_power for testing
+                total_donations = request.force_power
+                evolution_level = max(1, min(11, get_evolution_level(total_donations)))
+                self.logger.debug(f"Live mech animation request with force_power: {total_donations}")
+            else:
+                # Use cached mech status (30-second background refresh)
+                cache_service = get_mech_status_cache_service()
+                cache_request = MechStatusCacheRequest(include_decimals=True)
+                mech_cache_result = cache_service.get_cached_status(cache_request)
 
-            # Step 2: Generate animation using unified service
-            animation_bytes = self._create_donation_animation(total_donations, "Live User", f"${total_donations:.2f}")
+                if not mech_cache_result.success:
+                    self.logger.error("Failed to get mech status from cache")
+                    return self._create_error_response("Failed to get mech status from cache")
+
+                total_donations = mech_cache_result.total_donated
+                evolution_level = mech_cache_result.level
+                self.logger.debug(f"Live mech animation request from cache: level={evolution_level}, power={total_donations}")
+
+            # Step 2: Get pre-cached animation (instant response)
+            animation_service = get_animation_cache_service()
+            animation_bytes = animation_service.get_current_mech_animation(evolution_level)
 
             if animation_bytes:
                 return MechAnimationResult(
@@ -103,7 +124,8 @@ class MechWebService:
                     cache_headers={'Cache-Control': 'max-age=300'}
                 )
             else:
-                # Fallback to static image
+                # Animation generation failed - this should rarely happen with cache system
+                self.logger.warning(f"Cache animation failed for level {evolution_level}, using fallback")
                 return self._create_fallback_animation(total_donations)
 
         except Exception as e:
@@ -112,7 +134,7 @@ class MechWebService:
 
     def get_test_animation(self, request: MechTestAnimationRequest) -> MechAnimationResult:
         """
-        Generate test mech animation with specified parameters.
+        Generate test mech animation with specified parameters using cached system.
 
         Args:
             request: MechTestAnimationRequest with test parameters
@@ -123,12 +145,16 @@ class MechWebService:
         try:
             self.logger.info(f"Generating test mech animation for {request.donor_name}, donations: {request.total_donations}")
 
-            # Generate animation using unified service
-            animation_bytes = self._create_donation_animation(
-                request.total_donations,
-                request.donor_name,
-                request.amount
-            )
+            # PERFORMANCE OPTIMIZATION: Use cached animations for test too
+            from services.mech.animation_cache_service import get_animation_cache_service
+            from services.mech.mech_evolutions import get_evolution_level
+
+            # Calculate evolution level from test parameters
+            evolution_level = max(1, min(11, get_evolution_level(request.total_donations)))
+
+            # Get pre-cached animation (instant response)
+            animation_service = get_animation_cache_service()
+            animation_bytes = animation_service.get_current_mech_animation(evolution_level)
 
             if animation_bytes:
                 return MechAnimationResult(
