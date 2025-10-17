@@ -429,9 +429,9 @@
         
         .evolution-fill {
             height: 100%;
-            background: linear-gradient(90deg, #00ffff 0%, #00ccff 50%, #00ffff 100%);
+            background: linear-gradient(90deg, #ffd700 0%, #ffed4e 25%, #c0c0c0 50%, #ffed4e 75%, #ffd700 100%);
             transition: width 0.5s ease;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
         }
         
         .evolution-name {
@@ -993,7 +993,7 @@
             // Simple display update - all complex calculations come from server
             const powerAmountEl = document.getElementById('powerAmount');
             if (powerAmountEl) {
-                powerAmountEl.textContent = `$${powerAmount.toFixed(2)}`;
+                powerAmountEl.textContent = `${powerAmount.toFixed(2)}`;
             }
             
             // For bars, we need the full server data, not just Power amount

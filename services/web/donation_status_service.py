@@ -49,42 +49,29 @@ class DonationStatusService:
             DonationStatusResult with comprehensive status data
         """
         try:
-            # Step 1: Initialize mech service
-            mech_service = self._initialize_mech_service()
-            if not mech_service:
+            # PERFORMANCE OPTIMIZATION: Use MechStatusCacheService instead of direct MechService
+            from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+
+            cache_service = get_mech_status_cache_service()
+            cache_request = MechStatusCacheRequest(include_decimals=True)
+            mech_cache_result = cache_service.get_cached_status(cache_request)
+
+            if not mech_cache_result.success:
                 return DonationStatusResult(
                     success=False,
-                    error="Failed to initialize mech service"
+                    error="Failed to get mech state from cache"
                 )
 
-            # Step 2: Get mech state using SERVICE FIRST pattern
-            from services.mech.mech_service import GetMechStateRequest
-            mech_state_request = GetMechStateRequest(include_decimals=True)
-            mech_state_result = mech_service.get_mech_state_service(mech_state_request)
-            if not mech_state_result.success:
-                return DonationStatusResult(
-                    success=False,
-                    error="Failed to get mech state"
-                )
+            self.logger.info(f"WEB UI: Using cached mech status (age: {mech_cache_result.cache_age_seconds:.1f}s)")
 
-            # For backward compatibility, create a mock state object with the required attributes
-            class MechStateCompat:
-                def __init__(self, result):
-                    self.total_donated = result.total_donated
-                    self.level = result.level
-                    self.Power = result.power
-                    self.level_name = result.name
+            # Step 3: Get speed information using cached data
+            speed_info = self._calculate_speed_information(mech_cache_result.power)
 
-            mech_state = MechStateCompat(mech_state_result)
+            # Step 4: Get evolution information using cached data
+            evolution_info = self._get_evolution_information(mech_cache_result.level)
 
-            # Step 3: Calculate speed information
-            speed_info = self._calculate_speed_information(mech_state.total_donated)
-
-            # Step 4: Get evolution information
-            evolution_info = self._get_evolution_information(mech_state.level)
-
-            # Step 5: Build comprehensive status object
-            status_data = self._build_status_data(mech_state, mech_service, speed_info, evolution_info)
+            # Step 5: Build comprehensive status object using cached data
+            status_data = self._build_status_data_from_cache(mech_cache_result, speed_info, evolution_info)
 
             return DonationStatusResult(
                 success=True,
@@ -199,6 +186,53 @@ class DonationStatusService:
 
         except Exception as e:
             self.logger.error(f"Error building status data: {e}")
+            # Return minimal fallback status
+            return {
+                'total_amount': 0,
+                'current_Power': 0,
+                'current_Power_raw': 0,
+                'mech_level': 1,
+                'mech_level_name': 'Unknown',
+                'next_level_threshold': 0,
+                'glvl': 0,
+                'glvl_max': 0,
+                'decay_per_day': 1.0,
+                'bars': {
+                    'mech_progress_current': 0,
+                    'mech_progress_max': 0,
+                    'Power_current': 0,
+                    'Power_max_for_level': 0,
+                },
+                'speed': speed_info
+            }
+
+    def _build_status_data_from_cache(self, cache_result, speed_info: Dict[str, Any], evolution_info: Dict[str, Any]) -> Dict[str, Any]:
+        """Build the comprehensive status data object from cached data - PERFORMANCE OPTIMIZED."""
+        try:
+            # Build status object using cached data - NO additional service calls needed!
+            status_data = {
+                'total_amount': cache_result.total_donated,
+                'current_Power': cache_result.power,
+                'current_Power_raw': cache_result.power,  # Cache already includes decimals
+                'mech_level': cache_result.level,
+                'mech_level_name': cache_result.name,
+                'next_level_threshold': cache_result.threshold,
+                'glvl': cache_result.glvl,
+                'glvl_max': cache_result.glvl_max,
+                'decay_per_day': evolution_info['decay_per_day'],  # Level-specific decay rate
+                'bars': {
+                    'mech_progress_current': cache_result.bars.mech_progress_current,
+                    'mech_progress_max': cache_result.bars.mech_progress_max,
+                    'Power_current': cache_result.bars.Power_current,
+                    'Power_max_for_level': cache_result.bars.Power_max_for_level,
+                },
+                'speed': speed_info
+            }
+
+            return status_data
+
+        except Exception as e:
+            self.logger.error(f"Error building status data from cache: {e}")
             # Return minimal fallback status
             return {
                 'total_amount': 0,
