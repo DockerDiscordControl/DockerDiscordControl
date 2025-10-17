@@ -163,6 +163,23 @@ class AnimationCacheService:
             else:
                 # Level 11 has no rest animation, fallback to walk height
                 canvas_height = walk_heights.get(evolution_level, 270)
+        elif animation_type == "status_overview":
+            # Status overview animations for /ss command: reduce height by 2/3 (only 1/3 of original)
+            # Rule: STATUS_OVERVIEW height = WALK height / 3 (rounded up)
+            status_overview_heights = {
+                1: 34,    # Walk 100px / 3 = 33.3 → 34px
+                2: 34,    # Walk 100px / 3 = 33.3 → 34px
+                3: 34,    # Walk 100px / 3 = 33.3 → 34px
+                4: 50,    # Walk 150px / 3 = 50px
+                5: 50,    # Walk 150px / 3 = 50px
+                6: 57,    # Walk 170px / 3 = 56.7 → 57px
+                7: 34,    # Walk 100px / 3 = 33.3 → 34px
+                8: 34,    # Walk 100px / 3 = 33.3 → 34px
+                9: 77,    # Walk 230px / 3 = 76.7 → 77px
+                10: 84,   # Walk 250px / 3 = 83.3 → 84px
+                11: 90    # Walk 270px / 3 = 90px
+            }
+            canvas_height = status_overview_heights.get(evolution_level, 34)  # Fallback to 34
         else:
             # Walk animations use normal heights
             canvas_height = walk_heights.get(evolution_level, 100)
@@ -1245,6 +1262,121 @@ class AnimationCacheService:
             self._maintenance_task.cancel()
             self._maintenance_task = None
         logger.info("Animation cache maintenance loop stop requested")
+
+    def get_status_overview_animation(self, evolution_level: int, power_level: float = 1.0) -> bytes:
+        """
+        Get compact status overview animation for /ss command
+
+        Creates a smaller animation (1/3 height) with transparent padding to maintain
+        270px width. Perfect for Discord status displays where space is limited.
+
+        Args:
+            evolution_level: Mech evolution level (1-11)
+            power_level: Current power level (0.0 = offline/rest, >0 = walk)
+
+        Returns:
+            Compact animation bytes optimized for status overview
+        """
+        try:
+            from PIL import Image, ImageSequence
+            from io import BytesIO
+
+            # Determine animation type based on power (same logic as normal animations)
+            if power_level <= 0.0 and evolution_level <= 10:
+                animation_type = "rest"
+                logger.debug(f"Status Overview: Using REST animation for evolution {evolution_level}")
+            else:
+                animation_type = "walk"
+                logger.debug(f"Status Overview: Using WALK animation for evolution {evolution_level}")
+
+            # Get the normal-sized animation first
+            normal_animation_bytes = self.get_animation_with_speed_and_power(evolution_level, 50.0, power_level)
+
+            # Load the WebP animation
+            original_image = Image.open(BytesIO(normal_animation_bytes))
+
+            # Get target dimensions
+            target_canvas_size = self.get_expected_canvas_size(evolution_level, "status_overview")
+            target_width, target_height = target_canvas_size
+
+            logger.debug(f"Status Overview: Resizing from original to {target_width}x{target_height}")
+
+            # Process each frame
+            processed_frames = []
+            durations = []
+
+            for frame in ImageSequence.Iterator(original_image):
+                # Convert to RGBA if not already
+                frame = frame.convert("RGBA")
+
+                # Get the frame's actual content size (excluding transparent areas)
+                bbox = frame.getbbox()
+
+                if bbox:
+                    # Crop to content
+                    cropped_frame = frame.crop(bbox)
+
+                    # Calculate scale factor to fit target height while maintaining aspect ratio
+                    original_height = cropped_frame.height
+                    scale_factor = target_height / original_height
+                    new_width = int(cropped_frame.width * scale_factor)
+                    new_height = target_height
+
+                    # Resize the cropped content
+                    resized_frame = cropped_frame.resize((new_width, new_height), Image.LANCZOS)
+
+                    # Create target canvas with transparent background
+                    canvas = Image.new("RGBA", (target_width, target_height), (0, 0, 0, 0))
+
+                    # Center the resized content horizontally
+                    x_offset = (target_width - new_width) // 2
+                    canvas.paste(resized_frame, (x_offset, 0), resized_frame)
+
+                    processed_frames.append(canvas)
+                else:
+                    # Empty frame - create transparent canvas
+                    canvas = Image.new("RGBA", (target_width, target_height), (0, 0, 0, 0))
+                    processed_frames.append(canvas)
+
+                # Get frame duration (fallback to 125ms for 8 FPS)
+                frame_duration = getattr(frame, 'info', {}).get('duration', 125)
+                durations.append(frame_duration)
+
+            # Save as WebP animation with maximum quality
+            output_buffer = BytesIO()
+            if processed_frames:
+                processed_frames[0].save(
+                    output_buffer,
+                    format='WebP',
+                    save_all=True,
+                    append_images=processed_frames[1:],
+                    duration=durations,
+                    loop=0,                   # Infinite loop
+                    lossless=True,           # LOSSLESS = absolute zero color loss!
+                    quality=100,             # Maximum quality setting
+                    method=6,                # SLOWEST compression = BEST quality
+                    exact=True,              # Preserve exact pixel colors
+                    minimize_size=False,     # Never sacrifice quality for size
+                    allow_mixed=False        # Force pure lossless, no mixed mode
+                )
+
+            animation_bytes = output_buffer.getvalue()
+
+            logger.info(f"Status Overview animation created: evolution {evolution_level} → {len(animation_bytes):,} bytes ({target_width}x{target_height})")
+            return animation_bytes
+
+        except Exception as e:
+            logger.error(f"Error creating status overview animation: {e}")
+            # Fallback: create a simple transparent canvas
+            try:
+                target_size = self.get_expected_canvas_size(evolution_level, "status_overview")
+                fallback_img = Image.new('RGBA', target_size, (0, 0, 0, 0))
+                buffer = BytesIO()
+                fallback_img.save(buffer, format='WebP', lossless=True, quality=100)
+                return buffer.getvalue()
+            except:
+                # Ultimate fallback
+                return b''
 
 # Singleton instance
 _animation_cache_service = None
