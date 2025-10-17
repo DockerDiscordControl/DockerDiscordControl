@@ -45,6 +45,10 @@ class AnimationCacheService:
         # Cache for walk scale factors to ensure rest mechs use identical scaling
         self._walk_scale_factors = {}
 
+        # In-memory animation cache for Discord buttons (Level+Power+Speed based keys)
+        self._animation_memory_cache = {}
+        self._animation_cache_ttl = 300  # 5 minutes TTL for in-memory animations
+
         logger.info(f"Animation Cache Service initialized")
         logger.info(f"Assets dir: {self.assets_dir}")
         logger.info(f"Cache dir: {self.cache_dir}")
@@ -644,18 +648,18 @@ class AnimationCacheService:
             Animation bytes ready for Discord/WebUI display
         """
         try:
-            # Single source of truth: get current mech state using SERVICE FIRST
-            from services.mech.mech_compatibility_service import get_mech_compatibility_service, CompatibilityStateRequest
-            compat_service = get_mech_compatibility_service()
-            compat_request = CompatibilityStateRequest(include_decimals=True)
-            compat_state = compat_service.get_compatible_state(compat_request)
+            # PERFORMANCE OPTIMIZED: Use cached mech state instead of direct service calls
+            from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+            cache_service = get_mech_status_cache_service()
+            cache_request = MechStatusCacheRequest(include_decimals=True)
+            cached_state = cache_service.get_cached_status(cache_request)
 
-            if not compat_state.success:
-                logger.error("Failed to get mech state for animation cache")
+            if not cached_state.success:
+                logger.error("Failed to get cached mech state for animation")
                 return None
 
             # Use decimal power to avoid rounding issues (0.5+ power should show as active)
-            current_power = float(compat_state.Power)
+            current_power = float(cached_state.power)
 
             # Calculate speed level from current power
             speed_level = self._calculate_speed_level_from_power(current_power, evolution_level)
@@ -663,8 +667,35 @@ class AnimationCacheService:
             # Log the unified animation logic
             logger.debug(f"Auto-animation: evolution={evolution_level}, power={current_power:.4f}, speed={speed_level}")
 
-            # Delegate to unified power-based animation selection
-            return self.get_animation_with_speed_and_power(evolution_level, speed_level, current_power)
+            # PERFORMANCE: Check in-memory animation cache first for instant Discord button responses
+            cache_key = f"anim_{evolution_level}_{current_power:.2f}_{speed_level:.1f}"
+
+            # Check if cached animation exists and is not expired
+            if cache_key in self._animation_memory_cache:
+                cached_entry = self._animation_memory_cache[cache_key]
+                cache_age = time.time() - cached_entry['timestamp']
+
+                if cache_age < self._animation_cache_ttl:
+                    logger.debug(f"Animation cache hit: {cache_key} (age: {cache_age:.1f}s)")
+                    return cached_entry['animation_bytes']
+                else:
+                    # Expired cache entry - remove it
+                    del self._animation_memory_cache[cache_key]
+                    logger.debug(f"Animation cache expired: {cache_key} (age: {cache_age:.1f}s)")
+
+            # Cache miss or expired - generate fresh animation
+            logger.debug(f"Animation cache miss: {cache_key} - generating fresh animation")
+            animation_bytes = self.get_animation_with_speed_and_power(evolution_level, speed_level, current_power)
+
+            # Store in cache for future requests
+            if animation_bytes:
+                self._animation_memory_cache[cache_key] = {
+                    'animation_bytes': animation_bytes,
+                    'timestamp': time.time()
+                }
+                logger.debug(f"Animation cached: {cache_key} ({len(animation_bytes)} bytes)")
+
+            return animation_bytes
 
         except Exception as e:
             logger.error(f"Error in auto-animation for evolution {evolution_level}: {e}")
