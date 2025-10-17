@@ -84,6 +84,9 @@ class MechStatusCacheService:
         self._loop_running = False
         self._refresh_interval = 30.0  # 30 seconds refresh
 
+        # SERVICE FIRST: Event-based cache invalidation setup
+        self._setup_event_listeners()
+
         self.logger.info("Mech Status Cache Service initialized")
 
     def get_cached_status(self, request: MechStatusCacheRequest) -> MechStatusCacheResult:
@@ -249,6 +252,54 @@ class MechStatusCacheService:
             self._loop_task.cancel()
             self._loop_task = None
         self.logger.info("Background loop stop requested")
+
+    def _setup_event_listeners(self):
+        """Set up Service First event listeners for cache invalidation."""
+        try:
+            from services.infrastructure.event_manager import get_event_manager
+            event_manager = get_event_manager()
+
+            # Register listener for donation completion events
+            event_manager.register_listener('donation_completed', self._handle_donation_event)
+
+            # Register listener for mech state changes
+            event_manager.register_listener('mech_state_changed', self._handle_state_change_event)
+
+            self.logger.info("Event listeners registered for mech status cache invalidation")
+
+        except Exception as e:
+            self.logger.error(f"Failed to setup event listeners: {e}")
+
+    def _handle_donation_event(self, event_data):
+        """Handle donation completion events for immediate cache invalidation."""
+        try:
+            # Extract relevant data from event
+            event_info = event_data.data
+            reason = f"Donation completed: ${event_info.get('amount', 'unknown')}"
+
+            # CRITICAL: Clear cache immediately for donation events
+            self.clear_cache()
+
+            self.logger.info(f"Mech status cache invalidated due to donation event: {reason}")
+
+        except Exception as e:
+            self.logger.error(f"Error handling donation event: {e}")
+
+    def _handle_state_change_event(self, event_data):
+        """Handle mech state change events for cache invalidation."""
+        try:
+            # Extract state change information
+            event_info = event_data.data
+            old_power = event_info.get('old_power', 0)
+            new_power = event_info.get('new_power', 0)
+
+            # Clear cache for any significant state change
+            self.clear_cache()
+            reason = f"State change: {old_power:.2f} → {new_power:.2f}"
+            self.logger.info(f"Mech status cache invalidated due to state change: {reason}")
+
+        except Exception as e:
+            self.logger.error(f"Error handling state change event: {e}")
 
     def clear_cache(self):
         """Clear all cached data."""
