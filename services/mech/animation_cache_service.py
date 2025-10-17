@@ -1415,10 +1415,10 @@ class AnimationCacheService:
             # Load the WebP animation
             original_image = Image.open(BytesIO(full_size_bytes))
 
-            # Get original and target dimensions (50% size)
+            # Get original and target dimensions - KEEP 270px width, reduce height by 50%
             original_size = self.get_expected_canvas_size(evolution_level, animation_type)
-            target_width = original_size[0] // 2  # 270px → 135px
-            target_height = original_size[1] // 2  # Proportional height reduction
+            target_width = 270  # KEEP original width (270px)
+            target_height = original_size[1] // 2  # Reduce height by 50%
 
             logger.debug(f"Discord Optimized: Scaling from {original_size[0]}x{original_size[1]} to {target_width}x{target_height}")
 
@@ -1430,9 +1430,34 @@ class AnimationCacheService:
                 # Convert to RGBA if not already
                 frame = frame.convert("RGBA")
 
-                # High-quality downscaling to 50% size
-                resized_frame = frame.resize((target_width, target_height), Image.LANCZOS)
-                processed_frames.append(resized_frame)
+                # Get the frame's actual content size (excluding transparent areas)
+                bbox = frame.getbbox()
+
+                if bbox:
+                    # Crop to content
+                    cropped_frame = frame.crop(bbox)
+
+                    # Calculate scale factor to fit target height while maintaining aspect ratio
+                    original_height = cropped_frame.height
+                    scale_factor = target_height / original_height
+                    new_width = int(cropped_frame.width * scale_factor)
+                    new_height = target_height
+
+                    # Resize the cropped content
+                    resized_frame = cropped_frame.resize((new_width, new_height), Image.LANCZOS)
+
+                    # Create target canvas with transparent background (270px width)
+                    canvas = Image.new("RGBA", (target_width, target_height), (0, 0, 0, 0))
+
+                    # Center the resized content horizontally
+                    x_offset = (target_width - new_width) // 2
+                    canvas.paste(resized_frame, (x_offset, 0), resized_frame)
+
+                    processed_frames.append(canvas)
+                else:
+                    # Empty frame - create transparent canvas
+                    canvas = Image.new("RGBA", (target_width, target_height), (0, 0, 0, 0))
+                    processed_frames.append(canvas)
 
                 # Get frame duration (fallback to 125ms for 8 FPS)
                 frame_duration = getattr(frame, 'info', {}).get('duration', 125)
@@ -1464,10 +1489,10 @@ class AnimationCacheService:
 
         except Exception as e:
             logger.error(f"Error creating Discord optimized animation: {e}")
-            # Fallback: create a simple transparent canvas at 50% size
+            # Fallback: create a simple transparent canvas - 270px width, 50% height
             try:
                 original_size = self.get_expected_canvas_size(evolution_level, "walk")
-                target_size = (original_size[0] // 2, original_size[1] // 2)
+                target_size = (270, original_size[1] // 2)  # Keep 270px width, reduce height by 50%
                 fallback_img = Image.new('RGBA', target_size, (0, 0, 0, 0))
                 buffer = BytesIO()
                 fallback_img.save(buffer, format='WebP', lossless=True, quality=100, dpi=(300, 300))
