@@ -1378,6 +1378,99 @@ class AnimationCacheService:
                 # Ultimate fallback
                 return b''
 
+    def get_discord_optimized_animation(self, evolution_level: int, power_level: float = 1.0) -> bytes:
+        """
+        Get Discord-optimized animation (50% size from full resolution for best quality)
+
+        Creates a half-size animation by downscaling from full resolution. This gives
+        better quality than generating small animations directly, while being more
+        compact for Discord display.
+
+        Args:
+            evolution_level: Mech evolution level (1-11)
+            power_level: Current power level (0.0 = offline/rest, >0 = walk)
+
+        Returns:
+            Discord-optimized animation bytes (50% size, high quality)
+        """
+        try:
+            from PIL import Image, ImageSequence
+            from io import BytesIO
+
+            # Determine animation type based on power (same logic as normal animations)
+            if power_level <= 0.0 and evolution_level <= 10:
+                animation_type = "rest"
+                logger.debug(f"Discord Optimized: Using REST animation for evolution {evolution_level}")
+            else:
+                animation_type = "walk"
+                logger.debug(f"Discord Optimized: Using WALK animation for evolution {evolution_level}")
+
+            # Get the full-size animation first
+            full_size_bytes = self.get_animation_with_speed_and_power(evolution_level, 50.0, power_level)
+
+            # Load the WebP animation
+            original_image = Image.open(BytesIO(full_size_bytes))
+
+            # Get original and target dimensions (50% size)
+            original_size = self.get_expected_canvas_size(evolution_level, animation_type)
+            target_width = original_size[0] // 2  # 270px → 135px
+            target_height = original_size[1] // 2  # Proportional height reduction
+
+            logger.debug(f"Discord Optimized: Scaling from {original_size[0]}x{original_size[1]} to {target_width}x{target_height}")
+
+            # Process each frame
+            processed_frames = []
+            durations = []
+
+            for frame in ImageSequence.Iterator(original_image):
+                # Convert to RGBA if not already
+                frame = frame.convert("RGBA")
+
+                # High-quality downscaling to 50% size
+                resized_frame = frame.resize((target_width, target_height), Image.LANCZOS)
+                processed_frames.append(resized_frame)
+
+                # Get frame duration (fallback to 125ms for 8 FPS)
+                frame_duration = getattr(frame, 'info', {}).get('duration', 125)
+                durations.append(frame_duration)
+
+            # Save as WebP animation with maximum quality
+            output_buffer = BytesIO()
+            if processed_frames:
+                processed_frames[0].save(
+                    output_buffer,
+                    format='WebP',
+                    save_all=True,
+                    append_images=processed_frames[1:],
+                    duration=durations,
+                    loop=0,                   # Infinite loop
+                    lossless=True,           # LOSSLESS = absolute zero color loss!
+                    quality=100,             # Maximum quality setting
+                    method=6,                # SLOWEST compression = BEST quality
+                    exact=True,              # Preserve exact pixel colors
+                    minimize_size=False,     # Never sacrifice quality for size
+                    allow_mixed=False        # Force pure lossless, no mixed mode
+                )
+
+            animation_bytes = output_buffer.getvalue()
+
+            logger.info(f"Discord optimized animation created: evolution {evolution_level} → {len(animation_bytes):,} bytes ({target_width}x{target_height})")
+            return animation_bytes
+
+        except Exception as e:
+            logger.error(f"Error creating Discord optimized animation: {e}")
+            # Fallback: create a simple transparent canvas at 50% size
+            try:
+                original_size = self.get_expected_canvas_size(evolution_level, "walk")
+                target_size = (original_size[0] // 2, original_size[1] // 2)
+                fallback_img = Image.new('RGBA', target_size, (0, 0, 0, 0))
+                buffer = BytesIO()
+                fallback_img.save(buffer, format='WebP', lossless=True, quality=100)
+                return buffer.getvalue()
+            except:
+                # Ultimate fallback
+                return b''
+
 # Singleton instance
 _animation_cache_service = None
 
