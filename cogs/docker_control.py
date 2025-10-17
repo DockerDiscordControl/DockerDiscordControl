@@ -136,6 +136,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         # Initialize services
         self.cleanup_service = get_channel_cleanup_service(bot)
 
+        # Initialize Mech Status Cache Service
+        from services.mech.mech_status_cache_service import get_mech_status_cache_service
+        self.mech_status_cache_service = get_mech_status_cache_service()
+        logger.info("MechStatusCacheService initialized")
+
         # Docker query cooldown tracking
         self.last_docker_query = {}  # Track last query time per container
         self.docker_query_cooldown = int(os.environ.get('DDC_DOCKER_QUERY_COOLDOWN', '2'))
@@ -1764,101 +1769,75 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         mechonate_button = None
         if not donations_disabled:
             try:
-                logger.info("DEBUG: Starting mech status loading for /ss")
+                logger.info("DEBUG: Using Mech Status Cache Service")
                 import sys
                 import os
                 # Add project root to Python path for service imports
                 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                 if project_root not in sys.path:
                     sys.path.insert(0, project_root)
-                
-                logger.info("DEBUG: Using new MechService")
-                from services.mech.mech_service import get_mech_service, GetMechStateRequest
-                mech_service = get_mech_service()
 
-                # SERVICE FIRST: Use Request/Result pattern for basic state
-                mech_state_request = GetMechStateRequest(include_decimals=True)
-                mech_state_result = mech_service.get_mech_state_service(mech_state_request)
+                # SERVICE FIRST: Use MechStatusCacheService for instant response
+                from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+                cache_service = get_mech_status_cache_service()
+                cache_request = MechStatusCacheRequest(include_decimals=True)
+                mech_cache_result = cache_service.get_cached_status(cache_request)
 
-                # SERVICE FIRST: Get compatible state for advanced properties
-                from services.mech.mech_compatibility_service import get_mech_compatibility_service, CompatibilityStateRequest
-                compat_service = get_mech_compatibility_service()
-                compat_request = CompatibilityStateRequest(include_decimals=False)
-                mech_state_raw = compat_service.get_compatible_state(compat_request)
-                if not mech_state_raw.success:
-                    logger.error("Failed to get compatible mech state for raw access")
+                if not mech_cache_result.success:
+                    logger.error(f"Failed to get cached mech status: {mech_cache_result.error_message}")
                     return
-                logger.info("DEBUG: new MechService created")
 
-                # Get clean data from SERVICE FIRST result
-                current_Power = mech_state_result.power  # Already includes decimals from request
-                total_donations_received = mech_state_result.total_donated
-                logger.info(f"NEW SERVICE: Power=${current_Power:.2f}, total_donations=${total_donations_received}, level={mech_state_result.level} ({mech_state_result.name})")
+                logger.info(f"CACHE: Using cached mech data (age: {mech_cache_result.cache_age_seconds:.1f}s)")
 
-                # Evolution info from new service with next_name for UI
+                # Get clean data from CACHED result
+                current_Power = mech_cache_result.power  # Already includes decimals from request
+                total_donations_received = mech_cache_result.total_donated
+                logger.info(f"CACHE: Power=${current_Power:.2f}, total_donations=${total_donations_received}, level={mech_cache_result.level} ({mech_cache_result.name})")
+
+                # Evolution info from cached service with next_name for UI
                 from services.mech.mech_service import MECH_LEVELS
                 next_name = None
-                if mech_state_result.threshold is not None and mech_state_result.threshold > 0:
+                if mech_cache_result.threshold is not None and mech_cache_result.threshold > 0:
                     # For Level 10 ONLY: use corrupted name (Level 11 should have no next_name)
-                    if mech_state_result.level == 10:
+                    if mech_cache_result.level == 10:
                         next_name = "ERR#R: [DATA_C0RR*PTED]"
-                    elif mech_state_result.level < 10:
+                    elif mech_cache_result.level < 10:
                         # Find next level name from MECH_LEVELS for normal levels (1-9)
                         for level_info in MECH_LEVELS:
-                            if level_info.threshold == mech_state_result.threshold:
+                            if level_info.threshold == mech_cache_result.threshold:
                                 next_name = level_info.name
                                 break
                     # Level 11: next_name stays None -> "MAX EVOLUTION REACHED!"
 
                 evolution = {
-                    'name': mech_state_result.name,
-                    'level': mech_state_result.level,
+                    'name': mech_cache_result.name,
+                    'level': mech_cache_result.level,
                     'current_threshold': 0,  # Will be calculated from level if needed
-                    'next_threshold': mech_state_result.threshold,
+                    'next_threshold': mech_cache_result.threshold,
                 }
 
                 # Only add next_name if it exists (Level 11 has no next evolution)
                 if next_name is not None:
                     evolution['next_name'] = next_name
                 
-                # Speed info from glvl - get full speed description with translations
-                try:
-                    from services.mech.speed_levels import get_combined_mech_status
-                    # Try to get language from config
-                    try:
-                        from services.config.config_service import get_config_service
-                        config_manager = get_config_service()
-                        config = config_manager.get_config()
-                        language = config.get('language', 'en').lower()
-                        if language not in ['en', 'de', 'fr']:
-                            language = 'en'
-                    except:
-                        language = 'en'
-                    
-                    combined_status = get_combined_mech_status(current_Power, total_donations_received, language)
-                    speed = combined_status['speed']
-                    # Add glvl info to the speed object
-                    speed['glvl'] = mech_state_raw.glvl
-                    speed['glvl_max'] = mech_state_raw.glvl_max
-                except Exception as e:
-                    logger.debug(f"Could not get speed description: {e}")
-                    # Fallback to simple glvl display
-                    speed = {
-                        'level': mech_state_raw.glvl,
-                        'description': f"Glvl {mech_state_raw.glvl}/{mech_state_raw.glvl_max}",
-                        'glvl': mech_state_raw.glvl
-                    }
-                
-                logger.info(f"NEW SERVICE: evolution={evolution['name']}, glvl={mech_state_raw.glvl}/{mech_state_raw.glvl_max}")
+                # Speed info from CACHE - already computed!
+                speed = {
+                    'level': mech_cache_result.speed,
+                    'description': mech_cache_result.speed_description,
+                    'color': mech_cache_result.speed_color,
+                    'glvl': mech_cache_result.glvl,
+                    'glvl_max': mech_cache_result.glvl_max
+                }
+
+                logger.info(f"CACHE: evolution={evolution['name']}, glvl={mech_cache_result.glvl}/{mech_cache_result.glvl_max}")
                 
                 # Create mech animation with fallback
                 try:
                     from services.mech.mech_animation_service import get_mech_animation_service
                     mech_service = get_mech_animation_service()
-                    # Get total_donated using SERVICE FIRST (already available)
-                    total_donated = mech_state_result.total_donated
+                    # Use CACHED data for animation
                     animation_file = await mech_service.create_collapsed_status_animation_async(
-                        current_Power, total_donated
+                        current_Power, total_donations_received
                     )
                 except Exception as e:
                     logger.warning(f"Animation service failed (graceful degradation): {e}")
@@ -1868,18 +1847,18 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         embed.set_footer(text="🎬 Animation service temporarily unavailable")
                     else:
                         embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
-                
-                # Use clean progress bar data from new service - NO MORE MANUAL CALCULATION! 🎯
+
+                # Use clean progress bar data from CACHE - NO MORE MANUAL CALCULATION! 🎯
                 # For Level 1, use decimal Power for accurate percentage
-                if mech_state_result.level == 1:
+                if mech_cache_result.level == 1:
                     Power_current = current_Power  # Use decimal value for Level 1
                 else:
-                    Power_current = mech_state_raw.bars.Power_current  # Use integer for Level 2+
-                Power_max = mech_state_raw.bars.Power_max_for_level
-                evolution_current = mech_state_raw.bars.mech_progress_current
-                evolution_max = mech_state_raw.bars.mech_progress_max
-                
-                logger.info(f"NEW SERVICE BARS: Power={Power_current}/{Power_max}, evolution={evolution_current}/{evolution_max}")
+                    Power_current = mech_cache_result.bars.Power_current  # Use integer for Level 2+
+                Power_max = mech_cache_result.bars.Power_max_for_level
+                evolution_current = mech_cache_result.bars.mech_progress_current
+                evolution_max = mech_cache_result.bars.mech_progress_max
+
+                logger.info(f"CACHE BARS: Power={Power_current}/{Power_max}, evolution={evolution_current}/{evolution_max}")
                 
                 # Calculate percentages from clean data
                 if Power_max > 0:
@@ -1921,7 +1900,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Get level-specific decay rate
                 from services.mech.evolution_config_manager import get_evolution_config_manager
                 config_mgr = get_evolution_config_manager()
-                evolution_info = config_mgr.get_evolution_level(mech_state_result.level)
+                evolution_info = config_mgr.get_evolution_level(mech_cache_result.level)
                 decay_per_day = evolution_info.decay_per_day if evolution_info else 1.0
 
                 Power_consumption_text = translate("Power Consumption")
@@ -1935,13 +1914,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     next_evolution_name = translate(evolution['next_name'])
 
                     # Special handling for Level 10 → Level 11 progression (ALWAYS show corrupted bar)
-                    if mech_state_result.level == 10 or "ERR#R" in next_evolution_name or "DATA_C0RR*PTED" in next_evolution_name:
+                    if mech_cache_result.level == 10 or "ERR#R" in next_evolution_name or "DATA_C0RR*PTED" in next_evolution_name:
                         # Create heavily corrupted progress bar with distorted characters
                         # Evolution bar: 23 chars with ░(10), #(5), %(2), !(2), &(2), @(2)
                         corrupted_bar = "░%#!░&░#░@░░#!#%░░&░#@░"  # 23 characters: evolution progression
 
                         # For Level 10 → 11: Show REAL progression with corrupted display
-                        if mech_state_result.level == 10:
+                        if mech_cache_result.level == 10:
                             # Use actual percentage to Level 11, but display corrupted
                             corrupted_percentage = f"#{next_percentage:.1f}%&"
                             next_evolution_prefix = "ERR#R: [DATA_C0RR*PTED]"
@@ -2124,25 +2103,26 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                 if project_root not in sys.path:
                     sys.path.insert(0, project_root)
-                    
-                from services.mech.mech_service import get_mech_service
-                mech_service = get_mech_service()
-                
-                # Get current Power for animation using SERVICE FIRST
-                from services.mech.mech_service import GetMechStateRequest
-                mech_state_request = GetMechStateRequest(include_decimals=True)
-                mech_state_result = mech_service.get_mech_state_service(mech_state_request)
-                if not mech_state_result.success:
-                    logger.error("Failed to get mech state for animation")
+
+                # SERVICE FIRST: Use MechStatusCacheService for instant response
+                from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+                cache_service = get_mech_status_cache_service()
+                cache_request = MechStatusCacheRequest(include_decimals=True)
+                mech_cache_result = cache_service.get_cached_status(cache_request)
+
+                if not mech_cache_result.success:
+                    logger.error(f"Failed to get cached mech status for animation: {mech_cache_result.error_message}")
                     return
-                current_Power = mech_state_result.power
+
+                current_Power = mech_cache_result.power
+                logger.info(f"CACHE (collapsed): Using cached power data: {current_Power} (age: {mech_cache_result.cache_age_seconds:.1f}s)")
                 
                 # Create mech animation with fallback
                 try:
                     from services.mech.mech_animation_service import get_mech_animation_service
                     mech_service = get_mech_animation_service()
-                    # Get total_donated using SERVICE FIRST (already available)
-                    total_donated = mech_state_result.total_donated
+                    # Use CACHED data for animation
+                    total_donated = mech_cache_result.total_donated
                     animation_file = await mech_service.create_collapsed_status_animation_async(
                         current_Power, total_donated
                     )
@@ -2337,19 +2317,17 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         # Auto-detect Glvl changes for force_recreate decision
                         current_glvl = None
                         try:
-                            # Get current Power amount for Glvl calculation using MechService
-                            from services.mech.mech_service import get_mech_service, GetMechStateRequest
-                            mech_service = get_mech_service()
-                            mech_state_request = GetMechStateRequest(include_decimals=True)
-                            mech_state_result = mech_service.get_mech_state_service(mech_state_request)
-                            current_Power = mech_state_result.power
-                            total_donations = mech_state_result.total_donated
-                            
-                            # Get current mech status to extract Glvl
-                            from services.mech.speed_levels import get_combined_mech_status
-                            # Use default language for internal calculations (glvl doesn't need translation)
-                            mech_status = get_combined_mech_status(current_Power, total_donations, 'en')
-                            current_glvl = mech_status.get('speed', {}).get('level', 0)
+                            # Get current Power amount for Glvl calculation using CACHE
+                            from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+                            cache_service = get_mech_status_cache_service()
+                            cache_request = MechStatusCacheRequest(include_decimals=True)
+                            mech_cache_result = cache_service.get_cached_status(cache_request)
+
+                            if mech_cache_result.success:
+                                # Use cached glvl directly - no need for complex calculations
+                                current_glvl = mech_cache_result.glvl
+                            else:
+                                current_glvl = 0
                         except Exception as e:
                             logger.debug(f"Could not get current Glvl: {e}")
                         
@@ -2613,6 +2591,22 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     @status_update_loop.before_loop
     async def before_status_update_loop(self):
         """Wait until the bot is ready before starting the loop."""
+        await self.bot.wait_until_ready()
+
+    # --- Mech Status Cache Startup ---
+    @tasks.loop(count=1)  # Only run once to start the background loop
+    async def start_mech_cache_loop(self):
+        """Start the MechStatusCacheService background loop."""
+        try:
+            logger.info("Starting MechStatusCacheService background loop...")
+            await self.mech_status_cache_service.start_background_loop()
+            logger.info("MechStatusCacheService background loop started successfully")
+        except Exception as e:
+            logger.error(f"Failed to start MechStatusCacheService background loop: {e}", exc_info=True)
+
+    @start_mech_cache_loop.before_loop
+    async def before_start_mech_cache_loop(self):
+        """Wait until the bot is ready before starting the mech cache."""
         await self.bot.wait_until_ready()
 
     # --- Inactivity Check Loop ---
@@ -3019,16 +3013,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                         # Update last_glvl_per_channel to prevent duplicate updates
                         try:
-                            from services.mech.mech_service import get_mech_service, GetMechStateRequest
-                            from services.mech.speed_levels import get_combined_mech_status
-                            mech_service = get_mech_service()
-                            mech_state_request = GetMechStateRequest(include_decimals=True)
-                            mech_state_result = mech_service.get_mech_state_service(mech_state_request)
-                            current_Power = mech_state_result.power
-                            mech_status = get_combined_mech_status(current_Power, mech_state_result.total_donated, 'en')
-                            current_glvl = mech_status.get('speed', {}).get('level', 0)
-                            self.last_glvl_per_channel[channel_id] = current_glvl
-                            self.mech_state_manager.set_last_glvl(channel_id, current_glvl)
+                            # Use CACHE for glvl tracking
+                            from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+                            cache_service = get_mech_status_cache_service()
+                            cache_request = MechStatusCacheRequest(include_decimals=True)
+                            mech_cache_result = cache_service.get_cached_status(cache_request)
+
+                            if mech_cache_result.success:
+                                current_glvl = mech_cache_result.glvl
+                                self.last_glvl_per_channel[channel_id] = current_glvl
+                                self.mech_state_manager.set_last_glvl(channel_id, current_glvl)
                         except:
                             pass
 
@@ -3731,5 +3725,9 @@ def setup(bot):
     # Start the task and add to cog
     check_donation_notifications.start()
     cog.donation_notification_task = check_donation_notifications
-    
+
+    # Start the Mech Status Cache background loop
+    cog.start_mech_cache_loop.start()
+    logger.info("Mech Status Cache startup task initiated")
+
     bot.add_cog(cog)
