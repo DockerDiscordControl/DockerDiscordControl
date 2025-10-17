@@ -2609,6 +2609,25 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         """Wait until the bot is ready before starting the mech cache."""
         await self.bot.wait_until_ready()
 
+    # --- Animation Cache Maintenance Loop ---
+    @tasks.loop(count=1)  # Only run once to start the background maintenance loop
+    async def start_animation_maintenance_loop(self):
+        """Start the Animation Cache Maintenance background loop (4-hour intervals)."""
+        try:
+            from services.mech.animation_cache_service import get_animation_cache_service
+            animation_cache = get_animation_cache_service()
+
+            logger.info("Starting Animation Cache Maintenance background loop...")
+            await animation_cache.start_maintenance_loop()
+            logger.info("Animation Cache Maintenance background loop started successfully")
+        except Exception as e:
+            logger.error(f"Failed to start Animation Cache Maintenance background loop: {e}", exc_info=True)
+
+    @start_animation_maintenance_loop.before_loop
+    async def before_start_animation_maintenance_loop(self):
+        """Wait until the bot is ready before starting the animation maintenance."""
+        await self.bot.wait_until_ready()
+
     # --- Inactivity Check Loop ---
     @tasks.loop(seconds=30)
     async def inactivity_check_loop(self):
@@ -3729,5 +3748,9 @@ def setup(bot):
     # Start the Mech Status Cache background loop
     cog.start_mech_cache_loop.start()
     logger.info("Mech Status Cache startup task initiated")
+
+    # Start the Animation Cache Maintenance background loop
+    cog.start_animation_maintenance_loop.start()
+    logger.info("Animation Cache Maintenance startup task initiated")
 
     bot.add_cog(cog)

@@ -45,9 +45,20 @@ class AnimationCacheService:
         # Cache for walk scale factors to ensure rest mechs use identical scaling
         self._walk_scale_factors = {}
 
-        # In-memory animation cache for Discord buttons (Level+Power+Speed based keys)
+        # EVENT-BASED animation cache for Discord buttons - predictive caching system
         self._animation_memory_cache = {}
-        self._animation_cache_ttl = 300  # 5 minutes TTL for in-memory animations
+        self._last_cached_state = None  # Track last cached power/level for change detection
+
+        # Predictive cache holds: current level + one level lower (for decay prediction)
+        self._predictive_cache_enabled = True
+
+        # Track significant changes for event-based invalidation
+        self._significant_power_change_threshold = 0.5  # Invalidate if power changes by 0.5+
+
+        # Background maintenance task configuration (4-hour intervals)
+        self._maintenance_task = None
+        self._maintenance_running = False
+        self._maintenance_interval = 14400.0  # 4 hours in seconds
 
         logger.info(f"Animation Cache Service initialized")
         logger.info(f"Assets dir: {self.assets_dir}")
@@ -667,33 +678,37 @@ class AnimationCacheService:
             # Log the unified animation logic
             logger.debug(f"Auto-animation: evolution={evolution_level}, power={current_power:.4f}, speed={speed_level}")
 
-            # PERFORMANCE: Check in-memory animation cache first for instant Discord button responses
+            # EVENT-BASED PERFORMANCE: Check for significant state changes and update predictive cache
+            current_state = {
+                'evolution_level': evolution_level,
+                'power': current_power,
+                'speed': speed_level
+            }
+
+            # Check if we need to update our predictive cache (significant state change detected)
+            cache_needs_update = self._check_state_change_significance(current_state)
+
+            if cache_needs_update:
+                logger.info(f"Significant state change detected - updating predictive animation cache")
+                self._update_predictive_cache(evolution_level, current_power, speed_level)
+                self._last_cached_state = current_state.copy()
+
+            # Try to get animation from predictive cache
             cache_key = f"anim_{evolution_level}_{current_power:.2f}_{speed_level:.1f}"
 
-            # Check if cached animation exists and is not expired
             if cache_key in self._animation_memory_cache:
                 cached_entry = self._animation_memory_cache[cache_key]
-                cache_age = time.time() - cached_entry['timestamp']
+                logger.debug(f"Predictive cache hit: {cache_key}")
+                return cached_entry['animation_bytes']
 
-                if cache_age < self._animation_cache_ttl:
-                    logger.debug(f"Animation cache hit: {cache_key} (age: {cache_age:.1f}s)")
-                    return cached_entry['animation_bytes']
-                else:
-                    # Expired cache entry - remove it
-                    del self._animation_memory_cache[cache_key]
-                    logger.debug(f"Animation cache expired: {cache_key} (age: {cache_age:.1f}s)")
-
-            # Cache miss or expired - generate fresh animation
-            logger.debug(f"Animation cache miss: {cache_key} - generating fresh animation")
+            # Cache miss - generate animation and update predictive cache
+            logger.debug(f"Predictive cache miss: {cache_key} - generating and caching")
             animation_bytes = self.get_animation_with_speed_and_power(evolution_level, speed_level, current_power)
 
-            # Store in cache for future requests
             if animation_bytes:
-                self._animation_memory_cache[cache_key] = {
-                    'animation_bytes': animation_bytes,
-                    'timestamp': time.time()
-                }
-                logger.debug(f"Animation cached: {cache_key} ({len(animation_bytes)} bytes)")
+                # Store in predictive cache + generate one level lower for decay protection
+                self._store_in_predictive_cache(evolution_level, current_power, speed_level, animation_bytes)
+                self._last_cached_state = current_state.copy()
 
             return animation_bytes
 
@@ -835,6 +850,220 @@ class AnimationCacheService:
         except Exception as e:
             logger.error(f"Failed to adjust animation speed: {e}")
             return animation_data  # Return original if adjustment fails
+
+    # ========================================================================
+    # EVENT-BASED PREDICTIVE CACHING METHODS
+    # ========================================================================
+
+    def _check_state_change_significance(self, current_state: dict) -> bool:
+        """Check if current state has changed significantly enough to warrant cache update."""
+        if self._last_cached_state is None:
+            return True  # First time - always update
+
+        last_state = self._last_cached_state
+
+        # Check for significant power change (0.5+ power difference)
+        power_change = abs(current_state['power'] - last_state['power'])
+        if power_change >= self._significant_power_change_threshold:
+            logger.debug(f"Significant power change detected: {power_change:.2f}")
+            return True
+
+        # Check for evolution level change (new mech!)
+        if current_state['evolution_level'] != last_state['evolution_level']:
+            logger.debug(f"Evolution level changed: {last_state['evolution_level']} → {current_state['evolution_level']}")
+            return True
+
+        # Check for major speed change (crossing important thresholds)
+        speed_change = abs(current_state['speed'] - last_state['speed'])
+        if speed_change >= 10.0:  # 10+ speed level change
+            logger.debug(f"Major speed change detected: {speed_change:.1f}")
+            return True
+
+        return False
+
+    def _update_predictive_cache(self, evolution_level: int, current_power: float, speed_level: float):
+        """Update predictive cache with current + lower level animations for decay protection."""
+        try:
+            # Clear old cache entries for this evolution level
+            keys_to_remove = [k for k in self._animation_memory_cache.keys() if f"anim_{evolution_level}_" in k]
+            for key in keys_to_remove:
+                del self._animation_memory_cache[key]
+                logger.debug(f"Cleared old cache entry: {key}")
+
+            # Generate current animation
+            current_animation = self.get_animation_with_speed_and_power(evolution_level, speed_level, current_power)
+            if current_animation:
+                current_key = f"anim_{evolution_level}_{current_power:.2f}_{speed_level:.1f}"
+                self._animation_memory_cache[current_key] = {
+                    'animation_bytes': current_animation,
+                    'cached_at': time.time(),
+                    'cache_type': 'current'
+                }
+                logger.debug(f"Cached current animation: {current_key} ({len(current_animation)} bytes)")
+
+            # Generate predictive animation (lower power level for decay)
+            if current_power > 1.0:  # Only if there's room to go lower
+                lower_power = max(0.0, current_power - 1.0)  # 1 power level lower
+                lower_speed = self._calculate_speed_level_from_power(lower_power, evolution_level)
+
+                lower_animation = self.get_animation_with_speed_and_power(evolution_level, lower_speed, lower_power)
+                if lower_animation:
+                    lower_key = f"anim_{evolution_level}_{lower_power:.2f}_{lower_speed:.1f}"
+                    self._animation_memory_cache[lower_key] = {
+                        'animation_bytes': lower_animation,
+                        'cached_at': time.time(),
+                        'cache_type': 'predictive_lower'
+                    }
+                    logger.debug(f"Cached predictive lower animation: {lower_key} ({len(lower_animation)} bytes)")
+
+        except Exception as e:
+            logger.error(f"Error updating predictive cache: {e}")
+
+    def _store_in_predictive_cache(self, evolution_level: int, current_power: float, speed_level: float, animation_bytes: bytes):
+        """Store animation in predictive cache and generate companion lower-level animation."""
+        try:
+            # Store current animation
+            current_key = f"anim_{evolution_level}_{current_power:.2f}_{speed_level:.1f}"
+            self._animation_memory_cache[current_key] = {
+                'animation_bytes': animation_bytes,
+                'cached_at': time.time(),
+                'cache_type': 'current'
+            }
+
+            # Generate and store predictive lower animation if enabled
+            if self._predictive_cache_enabled and current_power > 1.0:
+                lower_power = max(0.0, current_power - 1.0)
+                lower_speed = self._calculate_speed_level_from_power(lower_power, evolution_level)
+
+                lower_animation = self.get_animation_with_speed_and_power(evolution_level, lower_speed, lower_power)
+                if lower_animation:
+                    lower_key = f"anim_{evolution_level}_{lower_power:.2f}_{lower_speed:.1f}"
+                    self._animation_memory_cache[lower_key] = {
+                        'animation_bytes': lower_animation,
+                        'cached_at': time.time(),
+                        'cache_type': 'predictive_lower'
+                    }
+                    logger.debug(f"Generated predictive lower animation: {lower_key}")
+
+        except Exception as e:
+            logger.error(f"Error storing in predictive cache: {e}")
+
+    def invalidate_animation_cache(self, reason: str = "Manual invalidation"):
+        """Manually invalidate the entire animation cache (for donation events or system updates)."""
+        cache_count = len(self._animation_memory_cache)
+        self._animation_memory_cache.clear()
+        self._last_cached_state = None
+        logger.info(f"Animation cache invalidated: {cache_count} entries cleared ({reason})")
+
+    def get_cache_status(self) -> dict:
+        """Get detailed cache status for monitoring and debugging."""
+        cache_stats = {
+            'total_entries': len(self._animation_memory_cache),
+            'predictive_enabled': self._predictive_cache_enabled,
+            'last_state': self._last_cached_state,
+            'entries_by_type': {},
+            'entries_detail': {}
+        }
+
+        # Categorize cache entries
+        for key, entry in self._animation_memory_cache.items():
+            cache_type = entry.get('cache_type', 'unknown')
+            if cache_type not in cache_stats['entries_by_type']:
+                cache_stats['entries_by_type'][cache_type] = 0
+            cache_stats['entries_by_type'][cache_type] += 1
+
+            # Detailed entry info
+            age = time.time() - entry.get('cached_at', 0)
+            cache_stats['entries_detail'][key] = {
+                'type': cache_type,
+                'size_bytes': len(entry['animation_bytes']),
+                'age_seconds': round(age, 1)
+            }
+
+        return cache_stats
+
+    # ========================================================================
+    # BACKGROUND MAINTENANCE SYSTEM (4-HOUR INTERVALS)
+    # ========================================================================
+
+    async def start_maintenance_loop(self):
+        """Start the 4-hour background maintenance loop for proactive animation cache updates."""
+        if self._maintenance_running:
+            logger.warning("Animation cache maintenance loop already running")
+            return
+
+        self._maintenance_running = True
+        logger.info(f"Starting animation cache maintenance loop (interval: {self._maintenance_interval/3600:.1f} hours)")
+
+        try:
+            import asyncio
+            while self._maintenance_running:
+                await self._perform_maintenance_check()
+                await asyncio.sleep(self._maintenance_interval)
+
+        except asyncio.CancelledError:
+            logger.info("Animation cache maintenance loop cancelled")
+        except Exception as e:
+            logger.error(f"Animation cache maintenance loop error: {e}")
+        finally:
+            self._maintenance_running = False
+            logger.info("Animation cache maintenance loop stopped")
+
+    async def _perform_maintenance_check(self):
+        """Perform proactive maintenance: check if animations need updates due to power decay."""
+        try:
+            logger.info("Starting animation cache maintenance check...")
+
+            # Get current mech state using Status Cache
+            from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+            cache_service = get_mech_status_cache_service()
+            cache_request = MechStatusCacheRequest(include_decimals=True)
+            cached_state = cache_service.get_cached_status(cache_request)
+
+            if not cached_state.success:
+                logger.warning("Could not get mech state for maintenance check")
+                return
+
+            current_power = float(cached_state.power)
+            evolution_level = cached_state.level
+
+            # Check if current state differs significantly from last cached state
+            if self._last_cached_state:
+                power_change = abs(current_power - self._last_cached_state['power'])
+                level_change = evolution_level != self._last_cached_state['evolution_level']
+
+                if power_change >= 0.25 or level_change:  # Lower threshold for maintenance
+                    logger.info(f"Maintenance detected state change: power {power_change:.2f}, level change: {level_change}")
+
+                    # Clear cache and let next access regenerate with current state
+                    self.invalidate_animation_cache("Maintenance: detected power decay or level change")
+                else:
+                    logger.debug("Maintenance check: no significant changes detected")
+            else:
+                # First maintenance run - ensure cache is populated
+                logger.info("First maintenance run - ensuring cache is populated")
+                speed_level = self._calculate_speed_level_from_power(current_power, evolution_level)
+
+                current_state = {
+                    'evolution_level': evolution_level,
+                    'power': current_power,
+                    'speed': speed_level
+                }
+                self._update_predictive_cache(evolution_level, current_power, speed_level)
+                self._last_cached_state = current_state
+
+            logger.info("Animation cache maintenance check completed")
+
+        except Exception as e:
+            logger.error(f"Error during animation cache maintenance: {e}")
+
+    def stop_maintenance_loop(self):
+        """Stop the background maintenance loop."""
+        self._maintenance_running = False
+        if self._maintenance_task:
+            self._maintenance_task.cancel()
+            self._maintenance_task = None
+        logger.info("Animation cache maintenance loop stop requested")
 
 # Singleton instance
 _animation_cache_service = None

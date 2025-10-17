@@ -301,6 +301,20 @@ class MechService:
             else:
                 new_state = self.add_donation(request.donor_name, request.amount)
 
+            # PERFORMANCE: Invalidate animation cache immediately after donation to ensure fresh animations
+            try:
+                from services.mech.animation_cache_service import get_animation_cache_service
+                animation_cache = get_animation_cache_service()
+                new_power = float(new_state.Power)
+                power_change = abs(new_power - old_power)
+
+                if power_change > 0.1 or old_level != new_state.level:  # Significant change
+                    reason = f"Donation: ${request.amount} (power {old_power:.2f}→{new_power:.2f})"
+                    animation_cache.invalidate_animation_cache(reason)
+                    logger.info(f"Animation cache invalidated due to donation: {reason}")
+            except Exception as e:
+                logger.warning(f"Failed to invalidate animation cache after donation: {e}")
+
             return AddDonationResult(
                 success=True,
                 old_level=old_level,
