@@ -525,7 +525,8 @@ class AnimationCacheService:
             method=6,             # SLOWEST compression = BEST quality (method 6 = maximum effort)
             exact=True,           # Preserve exact pixel colors
             minimize_size=False,  # Never sacrifice quality for size
-            allow_mixed=False     # Force pure lossless, no mixed mode
+            allow_mixed=False,    # Force pure lossless, no mixed mode
+            dpi=(300, 300)        # HIGH DPI for ultra-sharp rendering
         )
 
         buffer.seek(0)
@@ -697,7 +698,8 @@ class AnimationCacheService:
                 method=6,             # SLOWEST compression = BEST quality (method 6 = maximum effort)
                 exact=True,           # Preserve exact pixel colors
                 minimize_size=False,  # Never sacrifice quality for size
-                allow_mixed=False     # Force pure lossless, no mixed mode
+                allow_mixed=False,    # Force pure lossless, no mixed mode
+                dpi=(300, 300)        # HIGH DPI for ultra-sharp rendering
             )
 
             buffer.seek(0)
@@ -907,7 +909,8 @@ class AnimationCacheService:
                 method=6,             # SLOWEST compression = BEST quality (method 6 = maximum effort)
                 exact=True,           # Preserve exact pixel colors
                 minimize_size=False,  # Never sacrifice quality for size
-                allow_mixed=False     # Force pure lossless, no mixed mode
+                allow_mixed=False,    # Force pure lossless, no mixed mode
+                dpi=(300, 300)        # HIGH DPI for ultra-sharp rendering
             )
 
             buffer.seek(0)
@@ -1357,7 +1360,8 @@ class AnimationCacheService:
                     method=6,                # SLOWEST compression = BEST quality
                     exact=True,              # Preserve exact pixel colors
                     minimize_size=False,     # Never sacrifice quality for size
-                    allow_mixed=False        # Force pure lossless, no mixed mode
+                    allow_mixed=False,       # Force pure lossless, no mixed mode
+                    dpi=(300, 300)           # HIGH DPI for ultra-sharp rendering
                 )
 
             animation_bytes = output_buffer.getvalue()
@@ -1372,7 +1376,7 @@ class AnimationCacheService:
                 target_size = self.get_expected_canvas_size(evolution_level, "status_overview")
                 fallback_img = Image.new('RGBA', target_size, (0, 0, 0, 0))
                 buffer = BytesIO()
-                fallback_img.save(buffer, format='WebP', lossless=True, quality=100)
+                fallback_img.save(buffer, format='WebP', lossless=True, quality=100, dpi=(300, 300))
                 return buffer.getvalue()
             except:
                 # Ultimate fallback
@@ -1449,7 +1453,8 @@ class AnimationCacheService:
                     method=6,                # SLOWEST compression = BEST quality
                     exact=True,              # Preserve exact pixel colors
                     minimize_size=False,     # Never sacrifice quality for size
-                    allow_mixed=False        # Force pure lossless, no mixed mode
+                    allow_mixed=False,       # Force pure lossless, no mixed mode
+                    dpi=(300, 300)           # HIGH DPI for ultra-sharp rendering
                 )
 
             animation_bytes = output_buffer.getvalue()
@@ -1465,7 +1470,7 @@ class AnimationCacheService:
                 target_size = (original_size[0] // 2, original_size[1] // 2)
                 fallback_img = Image.new('RGBA', target_size, (0, 0, 0, 0))
                 buffer = BytesIO()
-                fallback_img.save(buffer, format='WebP', lossless=True, quality=100)
+                fallback_img.save(buffer, format='WebP', lossless=True, quality=100, dpi=(300, 300))
                 return buffer.getvalue()
             except:
                 # Ultimate fallback

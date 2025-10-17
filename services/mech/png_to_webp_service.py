@@ -75,7 +75,8 @@ class PngToWebpService:
                 method=6,             # SLOWEST compression = BEST quality (method 6 = maximum effort)
                 exact=True,           # Preserve exact pixel colors
                 minimize_size=False,  # Never sacrifice quality for size
-                allow_mixed=False     # Force pure lossless, no mixed mode
+                allow_mixed=False,    # Force pure lossless, no mixed mode
+                dpi=(300, 300)        # HIGH DPI for ultra-sharp rendering
             )
             buffer.seek(0)
             return buffer.getvalue()
@@ -93,7 +94,8 @@ class PngToWebpService:
             method=6,             # SLOWEST compression = BEST quality (method 6 = maximum effort)
             exact=True,           # Preserve exact pixel colors
             minimize_size=False,  # Never sacrifice quality for size
-            allow_mixed=False     # Force pure lossless, no mixed mode
+            allow_mixed=False,    # Force pure lossless, no mixed mode
+            dpi=(300, 300)        # HIGH DPI for ultra-sharp rendering
         )
         buffer.seek(0)
         return discord.File(buffer, filename="error_animation.webp")
