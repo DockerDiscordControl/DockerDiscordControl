@@ -3529,6 +3529,16 @@ class DonationBroadcastModal(discord.ui.Modal):
                         # Trigger immediate update of all overview messages
                         cog = interaction.client.get_cog('DockerControlCog')
                         if cog:
+                            # CRITICAL FIX: Clear mech status cache before updating overview messages
+                            # This ensures that the overview shows fresh level data after donation
+                            try:
+                                from services.mech.mech_status_cache_service import get_mech_status_cache_service
+                                cache_service = get_mech_status_cache_service()
+                                cache_service.clear_cache()
+                                logger.info("Mech status cache cleared before overview update to ensure fresh level data")
+                            except Exception as cache_error:
+                                logger.error(f"Failed to clear mech cache before overview update: {cache_error}")
+
                             task = asyncio.create_task(cog._update_all_overview_messages_after_donation())
                             task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
 
