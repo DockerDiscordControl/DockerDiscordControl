@@ -272,12 +272,8 @@ class AnimationCacheService:
             crop_width = max_x - min_x
             crop_height = max_y - min_y
 
-            # Get walk canvas size and calculate scale factor (same logic as _process_frames)
-            canvas_width, canvas_height = self.get_expected_canvas_size(evolution_level, "walk")
-            max_mech_height = int(canvas_height * 0.90)
-            max_mech_width = int(canvas_width * 0.90)
-
-            scale_factor = min(max_mech_width / crop_width, max_mech_height / crop_height)
+            # ZERO SCALING: Always return 1.0 (no scaling) for pure crop result
+            scale_factor = 1.0
 
             # Cache the result
             self._walk_scale_factors[evolution_level] = scale_factor
@@ -317,8 +313,7 @@ class AnimationCacheService:
         if mech_folder.name != f"Mech{evolution_level}":
             logger.warning(f"Mech{evolution_level} not found, using {mech_folder.name}")
 
-        # Get fixed canvas size for this evolution level and animation type
-        canvas_width, canvas_height = self.get_expected_canvas_size(evolution_level, animation_type)
+        # ZERO SCALING: No canvas size needed - use pure crop result directly
 
         # Find PNG files with animation pattern
         import re
@@ -330,11 +325,7 @@ class AnimationCacheService:
             pattern = re.compile(rf"{evolution_level}_rest_(\d{{4}})\.png")
         else:
             # Walk pattern: 1_walk_0000.png, 2_walk_0000.png, etc.
-            # Special case for Level 8: Use optimized smaller images with pattern 8_XXXX.png
-            if evolution_level == 8:
-                pattern = re.compile(rf"{evolution_level}_(\d{{4}})\.png")
-            else:
-                pattern = re.compile(rf"{evolution_level}_walk_(\d{{4}})\.png")
+            pattern = re.compile(rf"{evolution_level}_walk_(\d{{4}})\.png")
 
         for file in sorted(mech_folder.glob("*.png")):
             if pattern.match(file.name):
@@ -364,37 +355,38 @@ class AnimationCacheService:
 
                 # Special handling for mechs with invisible glow/effects issues
                 if animation_type == "walk":
-                    # Walk animation pre-cropping (existing logic)
+                    # Walk animation pre-cropping (CORRECTED for native asset sizes)
                     if evolution_level == 4:
-                        # Pre-crop 45 pixels from top and 13 pixels from bottom for Mech 4
+                        # Pre-crop 10 pixels from top and 5 pixels from bottom for Mech 4 (64x64 native)
                         frame_width, frame_height = frame.size
-                        frame = frame.crop((0, 45, frame_width, frame_height - 13))
-                        logger.debug(f"Mech 4 walk pre-crop: removed 45px from top, 13px from bottom, new size: {frame.size}")
+                        frame = frame.crop((0, 10, frame_width, frame_height - 5))
+                        logger.debug(f"Mech 4 walk pre-crop: removed 10px from top, 5px from bottom, new size: {frame.size}")
                     elif evolution_level == 5:
-                        # Pre-crop 22 pixels from top and 14 pixels from bottom for Mech 5
+                        # Pre-crop 8 pixels from top and 6 pixels from bottom for Mech 5 (64x64 native)
                         frame_width, frame_height = frame.size
-                        frame = frame.crop((0, 22, frame_width, frame_height - 14))
-                        logger.debug(f"Mech 5 walk pre-crop: removed 22px from top, 14px from bottom, new size: {frame.size}")
+                        frame = frame.crop((0, 8, frame_width, frame_height - 6))
+                        logger.debug(f"Mech 5 walk pre-crop: removed 8px from top, 6px from bottom, new size: {frame.size}")
                     elif evolution_level == 6:
-                        # Pre-crop 48 pixels from top and 12 pixels from bottom for Mech 6
+                        # Pre-crop 15 pixels from top and 8 pixels from bottom for Mech 6 (96x96 native)
                         frame_width, frame_height = frame.size
-                        frame = frame.crop((0, 48, frame_width, frame_height - 12))
-                        logger.debug(f"Mech 6 walk pre-crop: removed 48px from top, 12px from bottom, new size: {frame.size}")
+                        frame = frame.crop((0, 15, frame_width, frame_height - 8))
+                        logger.debug(f"Mech 6 walk pre-crop: removed 15px from top, 8px from bottom, new size: {frame.size}")
 
                 elif animation_type == "rest":
                     # REST pre-cropping (super!) + neue width-based Skalierung
                     frame_width, frame_height = frame.size
 
-                    # ORIGINAL pre-cropping für REST (war super!)
+                    # CORRECTED pre-cropping für REST (optimized for native asset sizes)
+                    # Adjusted values to work properly with native 128px height REST assets
                     rest_top_crop = {
-                        1: 135, 2: 135, 3: 135,  # Level 1,2,3: 135px from top
-                        4: 110,                   # Level 4: 110px from top
-                        5: 85,                    # Level 5: 85px from top
-                        6: 100,                   # Level 6: 100px from top
-                        7: 96,                    # Level 7: 96px from top
-                        8: 125,                   # Level 8: 125px from top (ORIGINAL!)
-                        9: 100,                   # Level 9: 100px from top
-                        10: 45                    # Level 10: 45px from top
+                        1: 25, 2: 25, 3: 25,     # Level 1,2,3: 25px from top (conservative for 64x128)
+                        4: 20,                    # Level 4: 20px from top (conservative for 64x128)
+                        5: 16,                    # Level 5: 16px from top (conservative for 64x128)
+                        6: 30,                    # Level 6: 30px from top (conservative for 96x128)
+                        7: 35,                    # Level 7: 35px from top (conservative for 96x128)
+                        8: 35,                    # Level 8: 35px from top (same as Level 7)
+                        9: 40,                    # Level 9: 40px from top (conservative for 128x128)
+                        10: 18                    # Level 10: 18px from top (conservative for 128x128)
                     }
 
                     top_crop_pixels = rest_top_crop.get(evolution_level, 0)
@@ -423,29 +415,12 @@ class AnimationCacheService:
             crop_height = max_y - min_y
             logger.debug(f"Smart crop found: {crop_width}x{crop_height} (from {min_x},{min_y} to {max_x},{max_y})")
 
-        # Scale to fit within fixed canvas height while preserving aspect ratio
-        if animation_type == "rest":
-            # REST: Gleiche Skalierung wie WALK für gleiche finale Größe
-            # Aber angepasst an REST Canvas (160px statt 100px)
-            max_mech_height = int(canvas_height * 0.90)  # 90% von 160px = 144px
-            max_mech_width = int(canvas_width * 0.90)    # 90% von 270px = 243px
-            logger.debug(f"REST: Scaling like WALK but for 160px canvas")
-        else:
-            # WALK: ORIGINAL Logik UNVERÄNDERT
-            max_mech_height = int(canvas_height * 0.90)  # 90% von 100px = 90px
-            max_mech_width = int(canvas_width * 0.90)    # 90% von 270px = 243px
-            logger.debug(f"WALK: Original logic unchanged")
+        # KOMPLETT KEINE SKALIERUNG: Nur pures Smart Cropping, sonst nichts!
+        # Direkt das gecroppte Resultat verwenden - ZERO weitere Manipulation
 
-        # Calculate scale factor to fit within both width and height constraints
-        scale_factor = min(max_mech_width / crop_width, max_mech_height / crop_height)
-        logger.debug(f"{animation_type.upper()}: Scale factor {scale_factor:.3f} (max: {max_mech_width}x{max_mech_height})")
+        logger.debug(f"Using pure crop result: {crop_width}x{crop_height} (ZERO scaling, ZERO canvas manipulation)")
 
-        mech_width = int(crop_width * scale_factor)
-        mech_height = int(crop_height * scale_factor)
-
-        logger.debug(f"Canvas scaling: canvas {canvas_width}x{canvas_height}, mech {mech_width}x{mech_height}, scale {scale_factor:.3f}")
-
-        # Process all frames with unified cropping and fixed canvas scaling
+        # Process all frames with unified cropping - PURE crop result only
         frames = []
         for frame in all_frames:
             # Apply unified crop to this frame
@@ -454,18 +429,10 @@ class AnimationCacheService:
             else:
                 cropped = frame
 
-            # Scale mech to fit within fixed canvas - NEAREST for crystal sharp pixel art
-            scaled_mech = cropped.resize((mech_width, mech_height), Image.NEAREST)
+            # DIREKTES Resultat ohne jegliche weitere Veränderung!
+            frames.append(cropped)
 
-            # Create fixed-size canvas and center mech both horizontally and vertically
-            canvas = Image.new('RGBA', (canvas_width, canvas_height), (0, 0, 0, 0))
-            x_offset = (canvas_width - mech_width) // 2
-            y_offset = (canvas_height - mech_height) // 2
-
-            canvas.paste(scaled_mech, (x_offset, y_offset), scaled_mech)
-            frames.append(canvas)
-
-        logger.debug(f"Processed {len(frames)} frames for evolution {evolution_level} with fixed canvas {canvas_width}x{canvas_height}")
+        logger.debug(f"Processed {len(frames)} frames for evolution {evolution_level} with pure crop size {crop_width}x{crop_height}")
         return frames
 
     def _smart_crop_frames(self, frames: List[Image.Image]) -> List[Image.Image]:
@@ -1415,77 +1382,15 @@ class AnimationCacheService:
             # Load the WebP animation
             original_image = Image.open(BytesIO(full_size_bytes))
 
-            # Get original and target dimensions - KEEP 270px width, reduce height by 50%
-            original_size = self.get_expected_canvas_size(evolution_level, animation_type)
-            target_width = 270  # KEEP original width (270px)
-            target_height = original_size[1] // 2  # Reduce height by 50%
+            # ZERO SCALING for Discord: Use native animation size directly
+            # No more 270px canvas or height reduction - pure native size
+            actual_size = original_image.size  # Use the actual animation size (native)
 
-            logger.debug(f"Discord Optimized: Scaling from {original_size[0]}x{original_size[1]} to {target_width}x{target_height}")
+            logger.debug(f"Discord Zero-Scaling: Using native animation size {actual_size[0]}x{actual_size[1]} directly")
 
-            # Process each frame
-            processed_frames = []
-            durations = []
-
-            for frame in ImageSequence.Iterator(original_image):
-                # Convert to RGBA if not already
-                frame = frame.convert("RGBA")
-
-                # Get the frame's actual content size (excluding transparent areas)
-                bbox = frame.getbbox()
-
-                if bbox:
-                    # Crop to content
-                    cropped_frame = frame.crop(bbox)
-
-                    # Calculate scale factor to fit target height while maintaining aspect ratio
-                    original_height = cropped_frame.height
-                    scale_factor = target_height / original_height
-                    new_width = int(cropped_frame.width * scale_factor)
-                    new_height = target_height
-
-                    # Resize the cropped content
-                    resized_frame = cropped_frame.resize((new_width, new_height), Image.LANCZOS)
-
-                    # Create target canvas with transparent background (270px width)
-                    canvas = Image.new("RGBA", (target_width, target_height), (0, 0, 0, 0))
-
-                    # Center the resized content horizontally
-                    x_offset = (target_width - new_width) // 2
-                    canvas.paste(resized_frame, (x_offset, 0), resized_frame)
-
-                    processed_frames.append(canvas)
-                else:
-                    # Empty frame - create transparent canvas
-                    canvas = Image.new("RGBA", (target_width, target_height), (0, 0, 0, 0))
-                    processed_frames.append(canvas)
-
-                # Get frame duration (fallback to 125ms for 8 FPS)
-                frame_duration = getattr(frame, 'info', {}).get('duration', 125)
-                durations.append(frame_duration)
-
-            # Save as WebP animation with maximum quality
-            output_buffer = BytesIO()
-            if processed_frames:
-                processed_frames[0].save(
-                    output_buffer,
-                    format='WebP',
-                    save_all=True,
-                    append_images=processed_frames[1:],
-                    duration=durations,
-                    loop=0,                   # Infinite loop
-                    lossless=True,           # LOSSLESS = absolute zero color loss!
-                    quality=100,             # Maximum quality setting
-                    method=6,                # SLOWEST compression = BEST quality
-                    exact=True,              # Preserve exact pixel colors
-                    minimize_size=False,     # Never sacrifice quality for size
-                    allow_mixed=False,       # Force pure lossless, no mixed mode
-                    dpi=(300, 300)           # HIGH DPI for ultra-sharp rendering
-                )
-
-            animation_bytes = output_buffer.getvalue()
-
-            logger.info(f"Discord optimized animation created: evolution {evolution_level} → {len(animation_bytes):,} bytes ({target_width}x{target_height})")
-            return animation_bytes
+            # ZERO SCALING: Return the original animation bytes directly without any processing
+            logger.info(f"Discord Zero-Scaling animation: evolution {evolution_level} → {len(full_size_bytes):,} bytes ({actual_size[0]}x{actual_size[1]})")
+            return full_size_bytes
 
         except Exception as e:
             logger.error(f"Error creating Discord optimized animation: {e}")
