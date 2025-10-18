@@ -161,13 +161,41 @@ class DonationManagementService:
                 return ServiceResult(success=False, error="Failed to save updated donations")
             
             logger.info(f"MechService donation deleted: {donor_name} - ${amount:.2f}")
-            
+
+            # Emit event for cache invalidation - deletion affects mech level/power
+            try:
+                from services.infrastructure.event_manager import get_event_manager
+                event_manager = get_event_manager()
+
+                # Get updated mech state after deletion
+                from services.mech.mech_service import get_mech_service
+                mech_service = get_mech_service()
+                updated_state = mech_service.get_state()
+
+                # Emit donation deleted event for cache invalidation
+                event_manager.emit_event(
+                    event_type='donation_completed',  # Use same event type as additions for consistency
+                    source_service='web_ui_donations',
+                    data={
+                        'action': 'deleted',
+                        'donor_name': donor_name,
+                        'amount': amount,
+                        'deleted_index': index,
+                        'new_level': updated_state.level,
+                        'new_power': updated_state.Power,
+                        'new_total_donated': updated_state.total_donated
+                    }
+                )
+                logger.info(f"Donation deletion event emitted: {donor_name} -${amount} (index {index})")
+            except Exception as event_error:
+                logger.error(f"Failed to emit donation deletion event: {event_error}")
+
             result_data = {
                 'donor_name': donor_name,
                 'amount': amount,
                 'index': index
             }
-            
+
             return ServiceResult(success=True, data=result_data)
                 
         except Exception as e:
