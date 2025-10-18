@@ -3526,19 +3526,33 @@ class DonationBroadcastModal(discord.ui.Modal):
                         if power_changed:
                             logger.info(f"Power changed from {old_power} to {new_power} - updating mech animations")
 
+                        # ELEGANT SOLUTION: Emit proper events for automatic cache invalidation
+                        # This uses the EVENT SYSTEM instead of manual cache clearing
+                        try:
+                            from services.infrastructure.event_manager import get_event_manager
+                            event_manager = get_event_manager()
+
+                            # Emit donation completed event for cache invalidation
+                            event_manager.emit_event(
+                                event_type='donation_completed',
+                                source_service='discord_donations',
+                                data={
+                                    'donor_name': donor_name,
+                                    'amount': amount,
+                                    'old_level': old_state_result.level,
+                                    'new_level': new_state.level,
+                                    'old_power': old_power,
+                                    'new_power': new_power,
+                                    'evolution_occurred': evolution_occurred
+                                }
+                            )
+                            logger.info(f"Donation event emitted: {donor_name} ${amount} - Level {old_state_result.level}→{new_state.level}")
+                        except Exception as event_error:
+                            logger.error(f"Failed to emit donation event: {event_error}")
+
                         # Trigger immediate update of all overview messages
                         cog = interaction.client.get_cog('DockerControlCog')
                         if cog:
-                            # CRITICAL FIX: Clear mech status cache before updating overview messages
-                            # This ensures that the overview shows fresh level data after donation
-                            try:
-                                from services.mech.mech_status_cache_service import get_mech_status_cache_service
-                                cache_service = get_mech_status_cache_service()
-                                cache_service.clear_cache()
-                                logger.info("Mech status cache cleared before overview update to ensure fresh level data")
-                            except Exception as cache_error:
-                                logger.error(f"Failed to clear mech cache before overview update: {cache_error}")
-
                             task = asyncio.create_task(cog._update_all_overview_messages_after_donation())
                             task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
 
