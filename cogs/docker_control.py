@@ -1827,12 +1827,23 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 
                 # Create mech animation with fallback
                 try:
-                    from services.mech.mech_animation_service import get_mech_animation_service
-                    mech_service = get_mech_animation_service()
-                    # Use CACHED data for animation
-                    animation_file = await mech_service.create_collapsed_status_animation_async(
-                        current_Power, total_donations_received
+                    from services.mech.animation_cache_service import get_animation_cache_service
+                    from services.mech.mech_evolutions import get_evolution_level
+
+                    # Get animation cache service and calculate evolution level
+                    cache_service = get_animation_cache_service()
+                    evolution_level = max(1, min(11, get_evolution_level(total_donations_received)))
+
+                    # Get animation bytes with power-based selection (REST if power=0, WALK if power>0)
+                    animation_bytes = cache_service.get_animation_with_speed_and_power(
+                        evolution_level=evolution_level,
+                        speed_level=50.0,  # Use default speed for expanded view
+                        power_level=current_Power
                     )
+
+                    # Convert to Discord File
+                    buffer = BytesIO(animation_bytes)
+                    animation_file = discord.File(buffer, filename=f"mech_status_expanded_{int(time.time())}.webp", spoiler=False)
                 except Exception as e:
                     logger.warning(f"Animation service failed (graceful degradation): {e}")
                     animation_file = None
@@ -1960,13 +1971,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
     async def _create_overview_embed_collapsed(self, ordered_servers, config):
         """Creates the server overview embed with COLLAPSED mech status (animation only).
-        
+
         Returns:
             tuple: (embed, animation_file) where animation_file is None if no animation
         """
         # Import translation function locally to ensure it's accessible
         from .translation_manager import _ as translate
-        
+        import discord
+        import time
+        from io import BytesIO
+
         # Initialize animation file
         animation_file = None
         
@@ -2113,13 +2127,24 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 
                 # Create mech animation with fallback
                 try:
-                    from services.mech.mech_animation_service import get_mech_animation_service
-                    mech_service = get_mech_animation_service()
-                    # Use CACHED data for animation
+                    from services.mech.animation_cache_service import get_animation_cache_service
+                    from services.mech.mech_evolutions import get_evolution_level
+
+                    # Get animation cache service and calculate evolution level
+                    cache_service = get_animation_cache_service()
                     total_donated = mech_cache_result.total_donated
-                    animation_file = await mech_service.create_collapsed_status_animation_async(
-                        current_Power, total_donated
+                    evolution_level = max(1, min(11, get_evolution_level(total_donated)))
+
+                    # Get animation bytes with power-based selection (REST if power=0, WALK if power>0)
+                    animation_bytes = cache_service.get_animation_with_speed_and_power(
+                        evolution_level=evolution_level,
+                        speed_level=50.0,  # Use default speed for collapsed view
+                        power_level=current_Power
                     )
+
+                    # Convert to Discord File
+                    buffer = BytesIO(animation_bytes)
+                    animation_file = discord.File(buffer, filename=f"mech_status_collapsed_{int(time.time())}.webp", spoiler=False)
                 except Exception as e:
                     logger.warning(f"Animation service failed (graceful degradation): {e}")
                     animation_file = None

@@ -1448,13 +1448,11 @@ class MechHistoryButton(Button):
 
     async def _create_mech_history_display(self, interaction: discord.Interaction, current_level: int):
         """Create the mech history display with sequential animations and epic story chapters."""
-        from services.mech.mech_animation_service import get_mech_animation_service
         from services.mech.evolution_config_manager import get_evolution_config_manager
         import discord
         import io
         import asyncio
 
-        animation_service = get_mech_animation_service()
         config_manager = get_evolution_config_manager()
 
         # Create main embed

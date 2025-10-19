@@ -19,7 +19,7 @@ import discord
 
 # Import necessary utilities
 from utils.logging_utils import setup_logger, get_module_logger
-from services.docker_service.docker_utils import get_docker_info, get_docker_stats
+from services.infrastructure.container_status_service import get_docker_info_dict_service_first, get_docker_stats_service_first
 from utils.time_utils import format_datetime_with_timezone
 from services.config.config_service import load_config
 
@@ -214,9 +214,10 @@ class StatusHandlersMixin:
                 
                 attempt_start = time.time()
                 
-                # Fetch info and stats in parallel with adaptive timeout
-                info_task = asyncio.create_task(get_docker_info(docker_name))
-                stats_task = asyncio.create_task(get_docker_stats(docker_name))
+                # Fetch info and stats in parallel with adaptive timeout using SERVICE FIRST
+                timeout_seconds = current_timeout / 1000.0  # Convert ms to seconds
+                info_task = asyncio.create_task(get_docker_info_dict_service_first(docker_name, timeout_seconds))
+                stats_task = asyncio.create_task(get_docker_stats_service_first(docker_name, timeout_seconds))
                 
                 info, stats = await asyncio.wait_for(
                     asyncio.gather(info_task, stats_task, return_exceptions=True),
@@ -484,11 +485,34 @@ class StatusHandlersMixin:
                         uptime = "Error"
                 
                 # Process stats - ALWAYS COLLECT IF ALLOWED (never skip for performance)
-                if details_allowed and not isinstance(stats, Exception) and stats:
-                    cpu_stat, ram_stat = stats
-                    # We waited for real values - use them!
-                    cpu = cpu_stat if cpu_stat is not None else 'N/A'
-                    ram = ram_stat if ram_stat is not None else 'N/A'
+                if details_allowed:
+                    # Try to get computed values from new SERVICE FIRST format first
+                    if info and '_computed' in info:
+                        computed = info['_computed']
+                        cpu = f"{computed['cpu_percent']:.1f}%" if computed['cpu_percent'] > 0 else 'N/A'
+                        ram = f"{computed['memory_usage_mb']:.0f}MB" if computed['memory_usage_mb'] > 0 else 'N/A'
+                        # Use uptime from SERVICE FIRST if available
+                        if computed['uptime_seconds'] > 0:
+                            uptime_sec = computed['uptime_seconds']
+                            days = uptime_sec // 86400
+                            hours = (uptime_sec % 86400) // 3600
+                            minutes = (uptime_sec % 3600) // 60
+                            uptime_parts = []
+                            if days > 0:
+                                uptime_parts.append(f"{days}d")
+                            if hours > 0:
+                                uptime_parts.append(f"{hours}h")
+                            if minutes > 0 or (days == 0 and hours == 0):
+                                uptime_parts.append(f"{minutes}m")
+                            uptime = " ".join(uptime_parts) if uptime_parts else "< 1m"
+                    # Fallback to old stats method if SERVICE FIRST data not available
+                    elif not isinstance(stats, Exception) and stats:
+                        cpu_stat, ram_stat = stats
+                        cpu = cpu_stat if cpu_stat is not None else 'N/A'
+                        ram = ram_stat if ram_stat is not None else 'N/A'
+                    else:
+                        # No stats available
+                        pass  # Keep N/A values set above
                 elif not details_allowed:
                     cpu = _("Hidden")
                     ram = _("Hidden")
