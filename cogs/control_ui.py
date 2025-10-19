@@ -1336,7 +1336,7 @@ class MechDonateButton(Button):
             style=discord.ButtonStyle.green,
             label=_("Power/Donate"),
             custom_id=f"mech_donate_{channel_id}",
-            row=0
+            row=1  # MOBILE FIX: Move to row 1 to avoid crowding row 0
         )
     
     async def callback(self, interaction: discord.Interaction) -> None:
