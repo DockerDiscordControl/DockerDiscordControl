@@ -56,12 +56,15 @@ class StatusHandlersMixin:
         if not hasattr(self, 'performance_learning_config'):
             # Import here to avoid circular imports
             try:
-                from services.docker_service.docker_utils import get_smart_timeout
-                
-                # Get Docker timeouts from Advanced Settings for alignment
+                # SERVICE FIRST: Use direct timeout values instead of old docker_utils
+                # These values come from DDC_FAST_STATS_TIMEOUT and DDC_FAST_INFO_TIMEOUT (both default to 45.0s)
+                stats_timeout_ms = 45.0 * 1000  # 45 seconds in milliseconds
+                info_timeout_ms = 45.0 * 1000   # 45 seconds in milliseconds
+
+                # Get Docker timeouts for alignment
                 max_docker_timeout = max(
-                    get_smart_timeout('stats') * 1000,  # Convert to milliseconds
-                    get_smart_timeout('info') * 1000
+                    stats_timeout_ms,
+                    info_timeout_ms
                 )
                 
                 self.performance_learning_config = {

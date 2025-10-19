@@ -430,11 +430,15 @@ def get_public_ip() -> Optional[str]:
         for service in services:
             try:
                 response = requests.get(service, timeout=5)
-                if response.status_code == 200:
-                    ip = response.text.strip()
-                    # Basic IP validation
-                    if _is_valid_ip(ip):
-                        return ip
+                try:
+                    if response.status_code == 200:
+                        ip = response.text.strip()
+                        # Basic IP validation
+                        if _is_valid_ip(ip):
+                            return ip
+                finally:
+                    # Ensure response is properly closed to prevent resource leaks
+                    response.close()
             except Exception as e:
                 logger.debug(f"Failed to get IP from {service}: {e}")
                 continue

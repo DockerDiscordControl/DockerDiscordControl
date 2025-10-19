@@ -61,8 +61,9 @@ async def schedule_container_select(
     
     active_docker_data_set = set() # Stores (docker_name, is_running)
     try:
-        from services.docker_service.docker_utils import get_containers_data
-        containers_data = await get_containers_data() # This has its own 10s cache
+        # SERVICE FIRST: Use container status service instead of old docker_utils
+        from services.infrastructure.container_status_service import get_container_list_service_first
+        containers_data = await get_container_list_service_first() # Modern service with caching
         
         if containers_data:
             for container_data in containers_data:

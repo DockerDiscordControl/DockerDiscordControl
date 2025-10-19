@@ -555,8 +555,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                                 slow_tasks.append(task)
                             else:
                                 fast_tasks.append(task)
-                        except:
-                            fast_tasks.append(task)  # Default to fast if we can't determine
+                        except Exception as frame_error:
+                            # Default to fast if we can't determine container type from frame inspection
+                            logger.debug(f"Failed to extract container name from task frame, defaulting to fast batch: {frame_error}")
+                            fast_tasks.append(task)
                     else:
                         fast_tasks.append(task)  # Default to fast if we can't determine
                 

@@ -603,27 +603,23 @@ class LiveLogView(discord.ui.View):
     async def _get_container_logs(self) -> str:
         """Get the last 50 log lines for the container."""
         try:
-            import docker
-            from services.docker_service.docker_utils import get_docker_client
+            # SERVICE FIRST: Use async Docker client pool instead of old docker_utils
+            from services.docker_service.docker_client_pool import get_docker_client_async
             from utils.common_helpers import validate_container_name
             
             # Validate container name for security
             if not validate_container_name(self.container_name):
                 return f"Invalid container name format: {self.container_name}"
             
-            client = get_docker_client()
-            if not client:
-                return "Docker client not available."
+            # Use SERVICE FIRST async Docker client
+            async with get_docker_client_async() as client:
+                # Get container with async client
+                container = await client.containers.get(self.container_name)
             
-            # Get container with timeout protection
-            import asyncio
-            container = await asyncio.to_thread(client.containers.get, self.container_name)
-            
-            # Get logs (configured number of lines) with timeout
-            tail_lines = int(os.getenv('DDC_LIVE_LOGS_TAIL_LINES', '50'))
-            logs = await asyncio.to_thread(
-                lambda: container.logs(tail=tail_lines, timestamps=True).decode('utf-8', errors='replace')
-            )
+                # Get logs (configured number of lines) - now async
+                tail_lines = int(os.getenv('DDC_LIVE_LOGS_TAIL_LINES', '50'))
+                logs_bytes = await container.logs(tail=tail_lines, timestamps=True)
+                logs = logs_bytes.decode('utf-8', errors='replace')
             
             # Limit log output to prevent Discord message limits
             if len(logs) > 1800:  # Leave room for embed formatting
@@ -763,27 +759,23 @@ class DebugLogsButton(discord.ui.Button):
     async def _get_container_logs(self) -> str:
         """Get the last 50 log lines for the container."""
         try:
-            import docker
-            from services.docker_service.docker_utils import get_docker_client
+            # SERVICE FIRST: Use async Docker client pool instead of old docker_utils
+            from services.docker_service.docker_client_pool import get_docker_client_async
             from utils.common_helpers import validate_container_name
             
             # Validate container name for security
             if not validate_container_name(self.container_name):
                 return f"Invalid container name format: {self.container_name}"
             
-            client = get_docker_client()
-            if not client:
-                return "Docker client not available."
+            # Use SERVICE FIRST async Docker client
+            async with get_docker_client_async() as client:
+                # Get container with async client
+                container = await client.containers.get(self.container_name)
             
-            # Get container with timeout protection
-            import asyncio
-            container = await asyncio.to_thread(client.containers.get, self.container_name)
-            
-            # Get logs (configured number of lines) with timeout
-            tail_lines = int(os.getenv('DDC_LIVE_LOGS_TAIL_LINES', '50'))
-            logs = await asyncio.to_thread(
-                lambda: container.logs(tail=tail_lines, timestamps=True).decode('utf-8', errors='replace')
-            )
+                # Get logs (configured number of lines) - now async
+                tail_lines = int(os.getenv('DDC_LIVE_LOGS_TAIL_LINES', '50'))
+                logs_bytes = await container.logs(tail=tail_lines, timestamps=True)
+                logs = logs_bytes.decode('utf-8', errors='replace')
             
             # Limit log output to prevent Discord message limits
             if len(logs) > 1800:  # Leave room for embed formatting

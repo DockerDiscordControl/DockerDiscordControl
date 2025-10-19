@@ -553,8 +553,9 @@ class ScheduleCommandsMixin:
             # Try to respond with error if defer failed
             try:
                 await ctx.respond(_("Command timeout. Please try again."), ephemeral=True)
-            except:
-                pass
+            except Exception as respond_error:
+                # Log the error but don't crash - this is last resort error handling
+                logger.warning(f"Failed to send error response after defer failed: {respond_error}")
             return
         
         try:
@@ -710,8 +711,9 @@ class ScheduleCommandsMixin:
             logger.error(traceback.format_exc())
             try:
                 await ctx.followup.send(_("An error occurred while fetching scheduled tasks. Please check the logs."))
-            except:
-                pass  # Interaction might already be dead
+            except Exception as followup_error:
+                # Log the error but don't crash - interaction might be dead or timed out
+                logger.debug(f"Failed to send error followup (interaction might be dead): {followup_error}")
 
     # Implementation for yearly tasks
     async def _impl_schedule_yearly_command(self, ctx: discord.ApplicationContext, 
