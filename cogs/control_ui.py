@@ -1026,6 +1026,25 @@ class TaskDeletePanelView(View):
 # MECH STATUS VIEW AND BUTTONS FOR /SS COMMAND
 # =============================================================================
 
+class MechControlsLabelButton(Button):
+    """Label button for Controls row in expanded mech view (mobile fix)."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
+        self.cog = cog_instance
+        self.channel_id = channel_id
+
+        super().__init__(
+            style=discord.ButtonStyle.secondary,
+            label="Controls",
+            custom_id=f"mech_controls_label_{channel_id}",
+            row=0,  # Row 0 for label
+            disabled=True  # Disabled = label only, not clickable
+        )
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """This should never be called since button is disabled."""
+        pass
+
 class MechView(View):
     """View with expand/collapse buttons for Mech status in /ss command."""
     
@@ -1043,10 +1062,14 @@ class MechView(View):
             is_expanded = cog_instance.mech_expanded_states.get(channel_id, False)
             
             if is_expanded:
-                # Expanded state: Close(-), Donate, History (no help button)
+                # Expanded state: MOBILE FIX with new row structure
+                # Row 0: Controls label
+                self.add_item(MechControlsLabelButton(cog_instance, channel_id))
+                # Row 1: Collapse(-) and History buttons
                 self.add_item(MechCollapseButton(cog_instance, channel_id))
-                self.add_item(MechDonateButton(cog_instance, channel_id))
                 self.add_item(MechHistoryButton(cog_instance, channel_id))
+                # Row 3: Donate button (separated for mobile)
+                self.add_item(MechDonateButton(cog_instance, channel_id))
             else:
                 # Collapsed state: Add "Mech +" button and help button
                 self.add_item(MechExpandButton(cog_instance, channel_id))
@@ -1236,7 +1259,7 @@ class MechCollapseButton(Button):
             label=None,
             emoji="➖",
             custom_id=f"mech_collapse_{channel_id}",
-            row=0
+            row=1  # MOBILE FIX: Move to row 1 with history button
         )
     
     async def callback(self, interaction: discord.Interaction) -> None:
@@ -1336,7 +1359,7 @@ class MechDonateButton(Button):
             style=discord.ButtonStyle.green,
             label=_("Power/Donate"),
             custom_id=f"mech_donate_{channel_id}",
-            row=1  # MOBILE FIX: Move to row 1 to avoid crowding row 0
+            row=3  # MOBILE FIX: Move to row 3 with clear separation
         )
     
     async def callback(self, interaction: discord.Interaction) -> None:
@@ -1367,7 +1390,7 @@ class MechHistoryButton(Button):
             style=discord.ButtonStyle.secondary,
             emoji="📖",  # Book - Mech evolution history
             custom_id=f"mech_history_{channel_id}",
-            row=0
+            row=1  # MOBILE FIX: Move to row 1 with collapse button
         )
 
     async def callback(self, interaction: discord.Interaction) -> None:
