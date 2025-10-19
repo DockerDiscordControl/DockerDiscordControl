@@ -1030,64 +1030,12 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         except Exception as e:
                             logger.error(f"Error deleting messages in {channel.name}: {e}")
                             
-                        # Send new messages
+                        # Send new messages using consistent logic with _regenerate_channel
                         if mode == 'control':
                             await self._send_control_panel_and_statuses(channel)
-                        else:  # mode == 'status'
-                            # Create and send overview embed
-                            config = load_config()
-                            if not config:
-                                logger.error("Could not load config for overview embed")
-                                return
-                                
-                            servers = config.get('servers', [])
-                            servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
-                            
-                            ordered_servers = []
-                            seen_docker_names = set()
-                            
-                            # First add servers in the defined order
-                            for docker_name in self.ordered_server_names:
-                                if docker_name in servers_by_name:
-                                    ordered_servers.append(servers_by_name[docker_name])
-                                    seen_docker_names.add(docker_name)
-                            
-                            # Add any servers that weren't in the ordered list
-                            for server in servers:
-                                docker_name = server.get('docker_name')
-                                if docker_name and docker_name not in seen_docker_names:
-                                    ordered_servers.append(server)
-                                    seen_docker_names.add(docker_name)
-                                    
-                            # For initial messages, always start in collapsed state
-                            channel_id = channel.id
-                            self.mech_expanded_states[channel_id] = False
-                            self.mech_state_manager.set_expanded_state(channel_id, False)
-                            embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
-                            
-                            # Create MechView with expand/collapse buttons for mech status
-                            from .control_ui import MechView
-                            view = MechView(self, channel_id)
-                            
-                            # Send with animation and button if available
-                            if animation_file:
-                                logger.info(f"✅ Sending initial message with animation and Mechonate button to {channel.name}")
-                                message = await self._send_message_with_files(channel, embed, animation_file, view)
-                            else:
-                                logger.warning(f"⚠️ Sending initial message WITHOUT animation to {channel.name}")
-                                message = await self._send_message_with_files(channel, embed, None, view)
-                            
-                            # Track the overview message
-                            if channel.id not in self.channel_server_message_ids:
-                                self.channel_server_message_ids[channel.id] = {}
-                            self.channel_server_message_ids[channel.id]["overview"] = message.id
-                            
-                            # Initialize update time tracking
-                            if channel.id not in self.last_message_update_time:
-                                self.last_message_update_time[channel.id] = {}
-                            self.last_message_update_time[channel.id]["overview"] = datetime.now(timezone.utc)
-                            
-                            logger.info(f"Tracked overview message {message.id} in status channel {channel.id}")
+                        elif mode == 'status':
+                            # Use the same method as _regenerate_channel to ensure consistency
+                            await self._send_all_server_statuses(channel, allow_toggle=False, force_collapse=True)
                             
                         # Set initial channel activity time so inactivity tracking works
                         self.last_channel_activity[channel.id] = datetime.now(timezone.utc)
