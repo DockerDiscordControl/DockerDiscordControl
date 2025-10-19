@@ -182,6 +182,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         # Initialize task tracking
         self._active_tasks = set()
         self._task_lock = asyncio.Lock()
+
+        # Initialize interaction lock to prevent race conditions between button clicks and auto-updates
+        self._interaction_lock = asyncio.Lock()
+        self._active_interactions = set()  # Track active button interactions per channel
         
         # Ensure clean loop state
         logger.info("Ensuring clean loop state...")
@@ -277,7 +281,32 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         finally:
             async with self._task_lock:
                 self._active_tasks.discard(task)
-    
+
+    async def _start_interaction(self, channel_id: int) -> bool:
+        """Mark the start of a button interaction for a channel.
+
+        Returns:
+            bool: True if interaction started successfully, False if already active
+        """
+        async with self._interaction_lock:
+            if channel_id in self._active_interactions:
+                logger.debug(f"Interaction already active for channel {channel_id}")
+                return False
+            self._active_interactions.add(channel_id)
+            logger.debug(f"Started interaction for channel {channel_id}")
+            return True
+
+    async def _end_interaction(self, channel_id: int):
+        """Mark the end of a button interaction for a channel."""
+        async with self._interaction_lock:
+            self._active_interactions.discard(channel_id)
+            logger.debug(f"Ended interaction for channel {channel_id}")
+
+    async def _is_channel_interacting(self, channel_id: int) -> bool:
+        """Check if a channel currently has an active button interaction."""
+        async with self._interaction_lock:
+            return channel_id in self._active_interactions
+
     def _setup_background_loops(self):
         """Initialize and start all background loops with proper tracking."""
         try:
@@ -2302,7 +2331,12 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         channel = self.bot.get_channel(channel_id)
                         if not channel:
                             continue
-                            
+
+                        # Skip update if channel has active button interaction
+                        if await self._is_channel_interacting(channel_id):
+                            logger.debug(f"Skipping auto-update for channel {channel_id} - active interaction")
+                            continue
+
                         message_id = messages['overview']
                         message = await channel.fetch_message(message_id)
                         if not message:

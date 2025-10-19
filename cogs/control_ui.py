@@ -1185,27 +1185,37 @@ class MechExpandButton(Button):
                 setattr(self, f'_last_click_{user_id}', current_time)
 
             await interaction.response.defer()
-            
-            # Update expansion state
-            self.cog.mech_expanded_states[self.channel_id] = True
-            # Persist state
-            self.cog.mech_state_manager.set_expanded_state(self.channel_id, True)
-            
-            # Create expanded embed
-            embed, _ = await self._create_expanded_ss_embed()
 
-            # Create new view for expanded state
-            view = MechView(self.cog, self.channel_id)
-
-            # Edit the message in place
-            try:
-                await interaction.edit_original_response(embed=embed, view=view)
-            except (discord.NotFound, discord.HTTPException) as e:
-                logger.warning(f"Interaction expired while expanding mech for channel {self.channel_id}: {e}")
+            # Start interaction tracking to prevent auto-update conflicts
+            if not await self.cog._start_interaction(self.channel_id):
+                await interaction.followup.send("⏰ Another interaction is in progress. Please try again.", ephemeral=True)
                 return
 
-            logger.info(f"Mech status expanded for channel {self.channel_id} by {interaction.user.name}")
-            
+            try:
+                # Update expansion state
+                self.cog.mech_expanded_states[self.channel_id] = True
+                # Persist state
+                self.cog.mech_state_manager.set_expanded_state(self.channel_id, True)
+
+                # Create expanded embed
+                embed, _ = await self._create_expanded_ss_embed()
+
+                # Create new view for expanded state
+                view = MechView(self.cog, self.channel_id)
+
+                # Edit the message in place
+                try:
+                    await interaction.edit_original_response(embed=embed, view=view)
+                except (discord.NotFound, discord.HTTPException) as e:
+                    logger.warning(f"Interaction expired while expanding mech for channel {self.channel_id}: {e}")
+                    return
+
+                logger.info(f"Mech status expanded for channel {self.channel_id} by {interaction.user.name}")
+
+            finally:
+                # Always end interaction tracking
+                await self.cog._end_interaction(self.channel_id)
+
         except Exception as e:
             logger.error(f"Error expanding mech status: {e}", exc_info=True)
             try:
@@ -1286,27 +1296,37 @@ class MechCollapseButton(Button):
                 setattr(self, f'_last_click_{user_id}', current_time)
 
             await interaction.response.defer()
-            
-            # Update expansion state
-            self.cog.mech_expanded_states[self.channel_id] = False
-            # Persist state
-            self.cog.mech_state_manager.set_expanded_state(self.channel_id, False)
-            
-            # Create collapsed embed
-            embed, _ = await self._create_collapsed_ss_embed()
 
-            # Create new view for collapsed state
-            view = MechView(self.cog, self.channel_id)
-
-            # Edit the message in place
-            try:
-                await interaction.edit_original_response(embed=embed, view=view)
-            except (discord.NotFound, discord.HTTPException) as e:
-                logger.warning(f"Interaction expired while collapsing mech for channel {self.channel_id}: {e}")
+            # Start interaction tracking to prevent auto-update conflicts
+            if not await self.cog._start_interaction(self.channel_id):
+                await interaction.followup.send("⏰ Another interaction is in progress. Please try again.", ephemeral=True)
                 return
 
-            logger.info(f"Mech status collapsed for channel {self.channel_id} by {interaction.user.name}")
-            
+            try:
+                # Update expansion state
+                self.cog.mech_expanded_states[self.channel_id] = False
+                # Persist state
+                self.cog.mech_state_manager.set_expanded_state(self.channel_id, False)
+
+                # Create collapsed embed
+                embed, _ = await self._create_collapsed_ss_embed()
+
+                # Create new view for collapsed state
+                view = MechView(self.cog, self.channel_id)
+
+                # Edit the message in place
+                try:
+                    await interaction.edit_original_response(embed=embed, view=view)
+                except (discord.NotFound, discord.HTTPException) as e:
+                    logger.warning(f"Interaction expired while collapsing mech for channel {self.channel_id}: {e}")
+                    return
+
+                logger.info(f"Mech status collapsed for channel {self.channel_id} by {interaction.user.name}")
+
+            finally:
+                # Always end interaction tracking
+                await self.cog._end_interaction(self.channel_id)
+
         except Exception as e:
             logger.error(f"Error collapsing mech status: {e}", exc_info=True)
             try:
