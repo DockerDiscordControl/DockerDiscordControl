@@ -141,6 +141,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         self.mech_status_cache_service = get_mech_status_cache_service()
         logger.info("MechStatusCacheService initialized")
 
+        # Setup event listeners for Discord updates
+        self._setup_discord_event_listeners()
+
         # Docker query cooldown tracking
         self.last_docker_query = {}  # Track last query time per container
         self.docker_query_cooldown = int(os.environ.get('DDC_DOCKER_QUERY_COOLDOWN', '2'))
@@ -3650,6 +3653,49 @@ class DonationBroadcastModal(discord.ui.Modal):
                 )
             except Exception as edit_error:
                 logger.error(f"Could not send error response: {edit_error}")
+
+    def _setup_discord_event_listeners(self):
+        """Set up event listeners for Discord status message updates."""
+        try:
+            from services.infrastructure.event_manager import get_event_manager
+            event_manager = get_event_manager()
+
+            # Register listener for Discord update events from cache service
+            event_manager.register_listener('discord_update_needed', self._handle_discord_update_event)
+
+            logger.info("Discord update event listener registered")
+
+        except Exception as e:
+            logger.error(f"Failed to setup Discord event listeners: {e}")
+
+    def _handle_discord_update_event(self, event_data):
+        """Handle discord_update_needed events for automatic status message refresh."""
+        try:
+            # Extract relevant data from event
+            event_info = event_data.data
+            reason = event_info.get('reason', 'unknown')
+            trigger_source = event_info.get('trigger_source', 'unknown')
+
+            logger.info(f"Discord update event received: reason={reason}, source={trigger_source}")
+
+            # Schedule async updates using the bot's event loop
+            if self.bot and hasattr(self.bot, 'loop'):
+                # Update both /ss messages and overview messages
+                asyncio.run_coroutine_threadsafe(
+                    self._auto_update_ss_messages(f"Event: {reason}", force_recreate=True),
+                    self.bot.loop
+                )
+                asyncio.run_coroutine_threadsafe(
+                    self._update_all_overview_messages_after_donation(),
+                    self.bot.loop
+                )
+
+                logger.info(f"Discord status message updates scheduled for: {reason}")
+            else:
+                logger.warning("Cannot schedule Discord updates: bot loop not available")
+
+        except Exception as e:
+            logger.error(f"Error handling Discord update event: {e}")
 
 # Setup function required for extension loading
 def setup(bot):

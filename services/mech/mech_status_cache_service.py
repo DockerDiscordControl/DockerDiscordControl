@@ -282,6 +282,25 @@ class MechStatusCacheService:
 
             self.logger.info(f"Mech status cache invalidated due to donation event: {reason}")
 
+            # ELEGANT SOLUTION: Emit Discord update event for automatic status message refresh
+            # This keeps service boundaries clean while ensuring Discord updates
+            try:
+                from services.infrastructure.event_manager import get_event_manager
+                event_manager = get_event_manager()
+
+                event_manager.emit_event(
+                    event_type='discord_update_needed',
+                    source_service='mech_status_cache',
+                    data={
+                        'reason': 'donation_event',
+                        'trigger_source': event_data.source_service,
+                        'donation_data': event_info
+                    }
+                )
+                self.logger.info("Discord update event emitted for automatic status message refresh")
+            except Exception as discord_event_error:
+                self.logger.error(f"Failed to emit Discord update event: {discord_event_error}")
+
         except Exception as e:
             self.logger.error(f"Error handling donation event: {e}")
 

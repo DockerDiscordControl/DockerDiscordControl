@@ -8,7 +8,12 @@
       "Bash(time curl:*)",
       "Read(//tmp/**)",
       "Bash(docker ps:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "Bash(xargs kill:*)",
+      "Bash(__NEW_LINE__ for i in {1..5})",
+      "Bash(do)",
+      "Bash(echo:*)",
+      "Bash(/dev/null)"
     ],
     "deny": [],
     "ask": []
