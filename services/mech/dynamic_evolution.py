@@ -82,7 +82,7 @@ class DynamicEvolutionCalculator:
             return self.cached_member_count
         
         try:
-            from utils.config_loader import load_config
+            from services.config.config_service import load_config
             config = load_config()
             
             if not config or not bot:

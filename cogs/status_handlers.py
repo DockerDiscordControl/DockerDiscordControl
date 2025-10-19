@@ -263,9 +263,9 @@ class StatusHandlersMixin:
         try:
             logger.info(f"Emergency full fetch for {docker_name} - no timeout limit")
             
-            # NO timeout - wait however long it takes
-            info_task = asyncio.create_task(get_docker_info(docker_name))
-            stats_task = asyncio.create_task(get_docker_stats(docker_name))
+            # NO timeout - wait however long it takes (use SERVICE FIRST with very long timeout)
+            info_task = asyncio.create_task(get_docker_info_dict_service_first(docker_name, timeout=300.0))
+            stats_task = asyncio.create_task(get_docker_stats_service_first(docker_name, timeout=300.0))
             
             start_emergency = time.time()
             info, stats = await asyncio.gather(info_task, stats_task, return_exceptions=True)
@@ -634,7 +634,7 @@ class StatusHandlersMixin:
             return ValueError(_("Missing docker_name in server configuration"))
 
         try:
-            info = await get_docker_info(docker_name)
+            info = await get_docker_info_dict_service_first(docker_name)
 
             if not info:
                 # Container does not exist or Docker daemon is unreachable
@@ -672,15 +672,16 @@ class StatusHandlersMixin:
                         logger.error(f"Could not parse StartedAt timestamp '{started_at_str}' for {docker_name}: {e}")
                         uptime = "Error"
 
-                # Fetch CPU and RAM only if allowed
+                # Fetch CPU and RAM only if allowed (SERVICE FIRST)
                 if details_allowed:
-                    stats_tuple = await get_docker_stats(docker_name)
-                    if stats_tuple and isinstance(stats_tuple, tuple) and len(stats_tuple) == 2:
-                         cpu_stat, ram_stat = stats_tuple
-                         cpu = cpu_stat if cpu_stat is not None else 'N/A'
-                         ram = ram_stat if ram_stat is not None else 'N/A'
+                    stats_dict = await get_docker_stats_service_first(docker_name)
+                    if stats_dict and isinstance(stats_dict, dict):
+                         cpu_percent = stats_dict.get('cpu_percent', 0.0)
+                         memory_mb = stats_dict.get('memory_usage_mb', 0.0)
+                         cpu = f"{cpu_percent:.1f}%" if cpu_percent > 0 else 'N/A'
+                         ram = f"{memory_mb:.1f} MB" if memory_mb > 0 else 'N/A'
                     else:
-                         logger.warning(f"Could not retrieve valid stats tuple for running container {docker_name}")
+                         logger.warning(f"Could not retrieve valid stats dict for running container {docker_name}")
                          cpu = "N/A"
                          ram = "N/A"
                 else:

@@ -36,7 +36,7 @@ from .config.config_service import get_config_service
 
 # Mech Services
 from .mech.mech_service import get_mech_service
-from .mech.mech_animation_service import get_mech_animation_service
+# Removed deprecated mech_animation_service - use png_to_webp_service directly
 
 __all__ = [
     # Infrastructure
@@ -46,6 +46,5 @@ __all__ = [
     # Config
     'get_config_service',
     # Mech
-    'get_mech_service',
-    'get_mech_animation_service'
+    'get_mech_service'
 ]

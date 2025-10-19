@@ -283,10 +283,10 @@ class MechWebService:
     def _create_donation_animation(self, total_donations: float, donor_name: str, amount: str) -> Optional[bytes]:
         """Create donation animation using unified service."""
         try:
-            from services.mech.mech_animation_service import get_mech_animation_service
+            from services.mech.png_to_webp_service import get_png_to_webp_service
             from services.mech.mech_service import get_mech_service, GetMechStateRequest
 
-            animation_service = get_mech_animation_service()
+            animation_service = get_png_to_webp_service()
             mech_service = get_mech_service()
 
             # SERVICE FIRST: Get mech state with decimals for proper animation

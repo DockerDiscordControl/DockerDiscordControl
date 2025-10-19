@@ -267,7 +267,7 @@ class ActionLogService:
     def _get_timezone(self) -> tuple[str, pytz.BaseTzInfo]:
         """Get timezone configuration."""
         try:
-            from utils.config_loader import load_config
+            from services.config.config_service import load_config
             config = load_config()
             timezone_str = config.get('timezone', 'Europe/Berlin')
             tz = pytz.timezone(timezone_str)

@@ -59,8 +59,8 @@ class DockerConnectivityService:
             DockerConnectivityResult with connectivity status and error details
         """
         try:
-            # Import docker_utils functions to test connectivity
-            from services.docker_service.docker_utils import get_docker_info
+            # Use SERVICE FIRST container status service for connectivity test
+            from services.infrastructure.container_status_service import get_docker_info_dict_service_first
 
             self.logger.debug(f"Checking Docker connectivity with {request.timeout_seconds}s timeout")
 
@@ -68,7 +68,7 @@ class DockerConnectivityService:
             # Use a non-existent container name - if Docker is accessible, this will fail gracefully
             # If Docker is not accessible, this will fail with connectivity errors
             test_result = await asyncio.wait_for(
-                get_docker_info("__ddc_connectivity_test__"),
+                get_docker_info_dict_service_first("__ddc_connectivity_test__", request.timeout_seconds),
                 timeout=request.timeout_seconds
             )
 

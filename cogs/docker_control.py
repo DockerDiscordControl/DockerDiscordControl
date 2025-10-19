@@ -28,7 +28,7 @@ from services.discord.channel_cleanup_service import get_channel_cleanup_service
 
 # Import our utility functions
 from services.config.config_service import load_config, get_config_service
-from services.docker_service.docker_utils import get_docker_info, get_docker_stats, docker_action
+from services.docker_service.docker_utils import docker_action
 
 from utils.time_utils import format_datetime_with_timezone
 from utils.logging_utils import setup_logger
