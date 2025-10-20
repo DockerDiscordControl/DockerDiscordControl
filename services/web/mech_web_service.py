@@ -91,13 +91,14 @@ class MechWebService:
             from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
             from services.mech.animation_cache_service import get_animation_cache_service
             from services.mech.mech_evolutions import get_evolution_level
+            from services.mech.speed_levels import get_combined_mech_status
 
             # Step 1: Get current mech status from cache (ultra-fast)
             if request.force_power is not None:
                 # Use force_power for testing
-                total_donations = request.force_power
-                evolution_level = max(1, min(11, get_evolution_level(total_donations)))
-                self.logger.debug(f"Live mech animation request with force_power: {total_donations}")
+                current_power = request.force_power
+                evolution_level = max(1, min(11, get_evolution_level(current_power)))
+                self.logger.debug(f"Live mech animation request with force_power: {current_power}")
             else:
                 # Use cached mech status (30-second background refresh)
                 cache_service = get_mech_status_cache_service()
@@ -108,29 +109,38 @@ class MechWebService:
                     self.logger.error("Failed to get mech status from cache")
                     return self._create_error_response("Failed to get mech status from cache")
 
-                total_donations = mech_cache_result.total_donated
+                current_power = mech_cache_result.power
                 evolution_level = mech_cache_result.level
-                self.logger.debug(f"Live mech animation request from cache: level={evolution_level}, power={total_donations}")
+                self.logger.debug(f"Live mech animation request from cache: level={evolution_level}, power={current_power}")
 
-            # Step 2: Get pre-cached animation (instant response)
+            # Step 2: Get power-based animation with proper speed calculation (same logic as big mechs)
             animation_service = get_animation_cache_service()
-            animation_bytes = animation_service.get_current_mech_animation(evolution_level)
+
+            # Calculate speed level from current power (same logic as MechStatusDetailsService)
+            speed_status = get_combined_mech_status(current_power)
+            speed_level = speed_status['speed']['level']
+
+            # Get animation with power-based selection (walk vs rest)
+            animation_bytes = animation_service.get_animation_with_speed_and_power(evolution_level, speed_level, current_power)
 
             if animation_bytes:
+                # Reduce cache time for power-sensitive animations
+                cache_headers = {'Cache-Control': 'max-age=60'} if current_power <= 0 else {'Cache-Control': 'max-age=300'}
+
                 return MechAnimationResult(
                     success=True,
                     animation_bytes=animation_bytes,
                     content_type='image/webp',
-                    cache_headers={'Cache-Control': 'max-age=300'}
+                    cache_headers=cache_headers
                 )
             else:
                 # Animation generation failed - this should rarely happen with cache system
                 self.logger.warning(f"Cache animation failed for level {evolution_level}, using fallback")
-                return self._create_fallback_animation(total_donations)
+                return self._create_fallback_animation(current_power)
 
         except Exception as e:
             self.logger.error(f"Error in get_live_animation: {e}", exc_info=True)
-            return self._create_error_animation(total_donations, str(e))
+            return self._create_error_animation(current_power if 'current_power' in locals() else 0.0, str(e))
 
     def get_test_animation(self, request: MechTestAnimationRequest) -> MechAnimationResult:
         """
