@@ -194,14 +194,21 @@ class AnimationCacheService:
         # Canvas: Always 270px wide, with calculated height
         return (270, canvas_height)
 
-    def get_cached_animation_path(self, evolution_level: int, animation_type: str = "walk") -> Path:
-        """Get path for cached animation file (unified for Discord and Web UI)"""
+    def get_cached_animation_path(self, evolution_level: int, animation_type: str = "walk", resolution: str = "small") -> Path:
+        """Get path for cached animation file (unified for Discord and Web UI, with resolution support)"""
         # For cache-only operations, use the requested evolution level directly
         # This prevents recursion when PNG folders are deleted
-        if animation_type == "rest":
-            filename = f"mech_{evolution_level}_rest_100speed.cache"
+        if resolution == "big":
+            if animation_type == "rest":
+                filename = f"mech_{evolution_level}_rest_100speed_big.cache"
+            else:
+                filename = f"mech_{evolution_level}_100speed_big.cache"
         else:
-            filename = f"mech_{evolution_level}_100speed.cache"
+            # Original small mech filenames for backward compatibility
+            if animation_type == "rest":
+                filename = f"mech_{evolution_level}_rest_100speed.cache"
+            else:
+                filename = f"mech_{evolution_level}_100speed.cache"
 
         cache_path = self.cache_dir / filename
 
@@ -214,10 +221,16 @@ class AnimationCacheService:
             actual_mech_folder = self._get_actual_mech_folder_no_cache_check(evolution_level)
             actual_level = int(actual_mech_folder.name[4:])  # Extract number from "Mech1", "Mech2", etc.
 
-            if animation_type == "rest":
-                filename = f"mech_{actual_level}_rest_100speed.cache"
+            if resolution == "big":
+                if animation_type == "rest":
+                    filename = f"mech_{actual_level}_rest_100speed_big.cache"
+                else:
+                    filename = f"mech_{actual_level}_100speed_big.cache"
             else:
-                filename = f"mech_{actual_level}_100speed.cache"
+                if animation_type == "rest":
+                    filename = f"mech_{actual_level}_rest_100speed.cache"
+                else:
+                    filename = f"mech_{actual_level}_100speed.cache"
 
             return self.cache_dir / filename
         except:
@@ -333,10 +346,10 @@ class AnimationCacheService:
             else:
                 return base_path
 
-    def _load_and_process_frames(self, evolution_level: int, animation_type: str = "walk") -> List[Image.Image]:
+    def _load_and_process_frames(self, evolution_level: int, animation_type: str = "walk", resolution: str = "small") -> List[Image.Image]:
         """Load PNG frames and process them with fixed canvas heights and preserved aspect ratio"""
         # Use the same folder detection logic as cache path
-        mech_folder = self._get_actual_mech_folder(evolution_level)
+        mech_folder = self._get_actual_mech_folder(evolution_level, resolution)
         if mech_folder.name != f"Mech{evolution_level}":
             logger.warning(f"Mech{evolution_level} not found, using {mech_folder.name}")
 
@@ -400,26 +413,24 @@ class AnimationCacheService:
                         logger.debug(f"Mech 6 walk pre-crop: removed 15px from top, 8px from bottom, new size: {frame.size}")
 
                 elif animation_type == "rest":
-                    # REST pre-cropping (super!) + neue width-based Skalierung
+                    # REST pre-cropping - CONSISTENT WITH WALK CROPPING
+                    # Use identical pre-cropping values as walk animations for visual consistency
                     frame_width, frame_height = frame.size
 
-                    # CORRECTED pre-cropping für REST (optimized for native asset sizes)
-                    # Adjusted values to work properly with native 128px height REST assets
-                    rest_top_crop = {
-                        1: 25, 2: 25, 3: 25,     # Level 1,2,3: 25px from top (conservative for 64x128)
-                        4: 20,                    # Level 4: 20px from top (conservative for 64x128)
-                        5: 16,                    # Level 5: 16px from top (conservative for 64x128)
-                        6: 30,                    # Level 6: 30px from top (conservative for 96x128)
-                        7: 35,                    # Level 7: 35px from top (conservative for 96x128)
-                        8: 35,                    # Level 8: 35px from top (same as Level 7)
-                        9: 40,                    # Level 9: 40px from top (conservative for 128x128)
-                        10: 18                    # Level 10: 18px from top (conservative for 128x128)
-                    }
-
-                    top_crop_pixels = rest_top_crop.get(evolution_level, 0)
-                    if top_crop_pixels > 0:
-                        frame = frame.crop((0, top_crop_pixels, frame_width, frame_height))
-                        logger.debug(f"Mech {evolution_level} rest pre-crop: removed {top_crop_pixels}px from top, new size: {frame.size}")
+                    # Apply same pre-cropping logic as walk animations
+                    if evolution_level == 4:
+                        # Enhanced pre-cropping for REST: 45px top + 13px bottom (same as walk)
+                        frame = frame.crop((0, 45, frame_width, frame_height - 13))
+                        logger.debug(f"Mech 4 rest pre-crop: removed 45px from top, 13px from bottom, new size: {frame.size}")
+                    elif evolution_level == 5:
+                        # Custom pre-cropping for REST: 22px top + 14px bottom (same as walk)
+                        frame = frame.crop((0, 22, frame_width, frame_height - 14))
+                        logger.debug(f"Mech 5 rest pre-crop: removed 22px from top, 14px from bottom, new size: {frame.size}")
+                    elif evolution_level == 6:
+                        # Pre-crop for REST: 15px top + 8px bottom (same as walk)
+                        frame = frame.crop((0, 15, frame_width, frame_height - 8))
+                        logger.debug(f"Mech 6 rest pre-crop: removed 15px from top, 8px from bottom, new size: {frame.size}")
+                    # Other levels (1,2,3,7,8,9,10): No special pre-cropping (same as walk)
 
                 all_frames.append(frame)
 
@@ -526,20 +537,20 @@ class AnimationCacheService:
         buffer.seek(0)
         return buffer.getvalue()
 
-    def pre_generate_animation(self, evolution_level: int, animation_type: str = "walk"):
-        """Pre-generate and cache unified animation for given evolution level and type"""
-        cache_path = self.get_cached_animation_path(evolution_level, animation_type)
+    def pre_generate_animation(self, evolution_level: int, animation_type: str = "walk", resolution: str = "small"):
+        """Pre-generate and cache unified animation for given evolution level, type, and resolution"""
+        cache_path = self.get_cached_animation_path(evolution_level, animation_type, resolution)
 
         # Check if already cached
         if cache_path.exists():
-            logger.debug(f"Animation already cached for evolution {evolution_level} ({animation_type})")
+            logger.debug(f"Animation already cached for evolution {evolution_level} ({animation_type}, {resolution})")
             return
 
-        logger.info(f"Pre-generating {animation_type} animation for evolution level {evolution_level}")
+        logger.info(f"Pre-generating {animation_type} animation for evolution level {evolution_level} ({resolution} resolution)")
 
         try:
             # Load and process frames
-            frames = self._load_and_process_frames(evolution_level, animation_type)
+            frames = self._load_and_process_frames(evolution_level, animation_type, resolution)
 
             # Create unified WebP animation (for both Discord and Web UI)
             unified_webp = self._create_unified_webp(frames)
@@ -547,10 +558,10 @@ class AnimationCacheService:
             obfuscated_data = self._obfuscate_data(unified_webp)
             with open(cache_path, 'wb') as f:
                 f.write(obfuscated_data)
-            logger.info(f"Generated {animation_type} animation: {cache_path} ({len(unified_webp)} bytes, obfuscated: {len(obfuscated_data)} bytes)")
+            logger.info(f"Generated {animation_type} animation ({resolution}): {cache_path} ({len(unified_webp)} bytes, obfuscated: {len(obfuscated_data)} bytes)")
 
         except Exception as e:
-            logger.error(f"Failed to pre-generate {animation_type} animation for evolution {evolution_level}: {e}")
+            logger.error(f"Failed to pre-generate {animation_type} animation for evolution {evolution_level} ({resolution}): {e}")
 
     def pre_generate_all_animations(self):
         """Pre-generate walk animations for all available evolution levels"""
@@ -607,6 +618,140 @@ class AnimationCacheService:
             self.pre_generate_rest_animation(level)
 
         logger.info(f"Rest animation pre-generation complete for {len(evolution_levels)} evolution levels")
+
+    def pre_generate_big_animation(self, evolution_level: int, animation_type: str = "walk"):
+        """Pre-generate big mech animation for a specific evolution level (native resolution after crop)"""
+        logger.info(f"Pre-generating big {animation_type} animation for evolution level {evolution_level}")
+        self.pre_generate_animation(evolution_level, animation_type, "big")
+
+    def pre_generate_all_big_animations(self):
+        """Pre-generate all big mech walk and rest animations (native resolution)"""
+        logger.info("Pre-generating ALL big mech animations (walk + rest) at native resolution...")
+
+        # Check what evolution levels we have
+        evolution_levels = []
+        for folder in self.assets_dir.iterdir():
+            if folder.is_dir() and folder.name.startswith("Mech"):
+                try:
+                    level = int(folder.name[4:])  # Extract number from "Mech1", "Mech2", etc.
+
+                    # Check if big version exists
+                    big_folder = folder / "big"
+                    if big_folder.exists():
+                        evolution_levels.append(level)
+                    else:
+                        logger.warning(f"No big folder found for Mech{level}, skipping big animation generation")
+                except ValueError:
+                    continue
+
+        evolution_levels.sort()
+        logger.info(f"Found big mech levels: {evolution_levels}")
+
+        # Generate both walk and rest animations for each level
+        for level in evolution_levels:
+            # Generate walk animation
+            self.pre_generate_big_animation(level, "walk")
+
+            # Generate rest animation (only for levels 1-10, level 11 never goes offline)
+            if level <= 10:
+                self.pre_generate_big_animation(level, "rest")
+            else:
+                logger.info(f"Skipping rest animation for big Mech{level} - level 11+ never goes offline")
+
+        logger.info(f"Big mech animation pre-generation complete for {len(evolution_levels)} evolution levels")
+
+    def get_animation_with_speed_and_power_big(self, evolution_level: int, speed_level: float, power_level: float = 1.0) -> bytes:
+        """
+        Get big mech animation with adjusted speed, automatically selecting rest vs walk based on power
+        Returns native resolution animations after smart cropping (no scaling)
+        """
+        # Determine animation type based on power
+        if power_level <= 0.0 and evolution_level <= 10:
+            animation_type = "rest"
+        else:
+            animation_type = "walk"
+
+        # Get cached big animation
+        cache_path = self.get_cached_animation_path(evolution_level, animation_type, "big")
+
+        if cache_path.exists():
+            # Load obfuscated data and deobfuscate
+            with open(cache_path, 'rb') as f:
+                obfuscated_data = f.read()
+
+            animation_data = self._deobfuscate_data(obfuscated_data)
+
+            # For REST animations: Use constant speed (no adjustment)
+            if animation_type == "rest":
+                logger.debug(f"Using constant speed for big REST animation (power=0): evolution {evolution_level}")
+                return animation_data  # Return cached version at base 8 FPS speed
+
+            # For WALK animations: Apply speed adjustment based on power level (same logic as small mechs)
+            # Calculate speed adjustment - 8 FPS base (125ms) with 80%-120% range
+            base_duration = 125  # Match cached animation: 8 FPS = 125ms per frame
+            speed_factor = 0.8 + (speed_level / 100.0) * 0.4  # 80% to 120% range
+            speed_factor = max(0.8, min(1.2, speed_factor))  # Clamp to safe range
+            new_duration = max(50, int(base_duration / speed_factor))  # Min 50ms for readability
+
+            # If speed is exactly 100% (speed_level = 50), return cached version as-is
+            if abs(speed_level - 50.0) < 5.0:
+                logger.debug(f"Using cached big {animation_type} animation at 100% speed for evolution {evolution_level}")
+                return animation_data
+
+            # Otherwise, adjust speed by re-encoding with new duration
+            logger.debug(f"Adjusting big {animation_type} speed for evolution {evolution_level}: {speed_level} → {new_duration}ms/frame")
+
+            # Load the cached animation and re-save with new duration (same logic as small mechs)
+            frames = []
+            try:
+                with Image.open(BytesIO(animation_data)) as img:
+                    frame_count = 0
+                    try:
+                        while True:
+                            frames.append(img.copy())
+                            frame_count += 1
+                            img.seek(frame_count)
+                    except EOFError:
+                        pass
+            except Exception as e:
+                logger.error(f"Failed to parse cached big {animation_type} animation: {e}")
+                return animation_data  # Return original if parsing fails
+
+            # Re-encode with new duration and MAXIMUM QUALITY - file size irrelevant
+            buffer = BytesIO()
+            try:
+                frames[0].save(
+                    buffer,
+                    format='WebP',
+                    save_all=True,
+                    append_images=frames[1:],
+                    duration=new_duration,
+                    loop=0,
+                    lossless=True,        # LOSSLESS = absolute zero color loss!
+                    quality=100,          # Maximum quality setting
+                    method=6,             # SLOWEST compression = BEST quality (method 6 = maximum effort)
+                    exact=True,           # Preserve exact pixel colors
+                    minimize_size=False,  # Never sacrifice quality for size
+                    allow_mixed=False,    # Force pure lossless, no mixed mode
+                    dpi=(300, 300)        # HIGH DPI for ultra-sharp rendering
+                )
+
+                buffer.seek(0)
+                adjusted_data = buffer.getvalue()
+                logger.debug(f"Speed-adjusted big {animation_type} animation: {len(adjusted_data)} bytes")
+                return adjusted_data
+
+            except Exception as e:
+                logger.error(f"Failed to adjust big {animation_type} animation speed: {e}")
+                return animation_data  # Return original if adjustment fails
+
+        else:
+            logger.error(f"Big {animation_type} animation for evolution {evolution_level} not found in cache: {cache_path}")
+            # Fallback to generating on-demand (not recommended for production)
+            frames = self._load_and_process_frames(evolution_level, animation_type, "big")
+            data = self._create_unified_webp(frames)
+            logger.warning(f"Generated big {animation_type} animation on-demand for evolution {evolution_level}: {len(data)} bytes")
+            return data
 
     def get_animation_with_speed_and_power(self, evolution_level: int, speed_level: float, power_level: float = 1.0) -> bytes:
         """

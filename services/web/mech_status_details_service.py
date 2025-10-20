@@ -186,24 +186,21 @@ class MechStatusDetailsService:
         """Get mech animation bytes with optional high resolution support."""
         try:
             if use_high_resolution:
-                # Use high-resolution animation cache service directly
-                from services.mech.mech_high_res_service import get_mech_high_res_service, MechResolutionRequest
+                # Use native resolution cached big animations with proper speed calculation
                 from services.mech.animation_cache_service import get_animation_cache_service
 
-                # Check if high-res version is available
-                high_res_service = get_mech_high_res_service()
-                resolution_request = MechResolutionRequest(evolution_level=level, preferred_resolution="big")
-                resolution_result = high_res_service.get_mech_resolution_info(resolution_request)
+                cache_service = get_animation_cache_service()
 
-                if resolution_result.success and resolution_result.available_resolution == "big":
-                    # Generate high-res animation
-                    cache_service = get_animation_cache_service()
+                # Calculate proper speed level from current power (same logic as small mechs)
+                speed_level = self._calculate_speed_level_from_power(power, level)
 
-                    # For now, use a simple approach to generate big animation
-                    # This is a prototype - full integration would need more cache service changes
-                    animation_bytes = self._generate_big_animation_prototype(level, power)
-                    if animation_bytes:
-                        return animation_bytes, "image/webp"
+                # Get big animation from cache (native resolution after smart cropping)
+                animation_bytes = cache_service.get_animation_with_speed_and_power_big(level, speed_level, power)
+                if animation_bytes:
+                    logger.debug(f"Loaded cached big animation for level {level} (speed={speed_level}, power={power}): {len(animation_bytes)} bytes")
+                    return animation_bytes, "image/webp"
+                else:
+                    logger.warning(f"No cached big animation found for level {level}, falling back to small")
 
             # Fallback to regular web service for small animations
             from services.web.mech_web_service import get_mech_web_service, MechAnimationRequest
@@ -221,6 +218,30 @@ class MechStatusDetailsService:
         except Exception as e:
             logger.debug(f"Error getting mech animation: {e}")
             return None, None
+
+    def _calculate_speed_level_from_power(self, current_power: float, evolution_level: int) -> float:
+        """
+        Calculate speed level from current power using evolution-specific max power
+        (Same logic as AnimationCacheService for consistency)
+        """
+        if current_power <= 0:
+            return 0
+
+        try:
+            # Use the speed system that considers evolution-specific max power
+            from services.mech.speed_levels import get_combined_mech_status
+
+            # Get speed status using the power system
+            speed_status = get_combined_mech_status(current_power)
+            speed_level = speed_status['speed']['level']
+
+            logger.debug(f"Calculated speed level {speed_level} for power ${current_power:.4f} at evolution {evolution_level}")
+            return float(speed_level)
+
+        except Exception as e:
+            logger.error(f"Error calculating speed level: {e}")
+            # Fallback to simple calculation
+            return min(100, current_power)
 
     def _generate_big_animation_prototype(self, level: int, power: float) -> Optional[bytes]:
         """Prototype implementation for big animation generation."""
