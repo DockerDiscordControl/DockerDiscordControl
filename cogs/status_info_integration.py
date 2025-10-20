@@ -604,7 +604,8 @@ class LiveLogView(discord.ui.View):
         """Get the last 50 log lines for the container."""
         try:
             # SERVICE FIRST: Use async Docker client pool instead of old docker_utils
-            from services.docker_service.docker_client_pool import get_docker_client_async
+            from services.docker_service.docker_utils import get_docker_client_async
+            import docker
             from utils.common_helpers import validate_container_name
             
             # Validate container name for security
@@ -760,7 +761,8 @@ class DebugLogsButton(discord.ui.Button):
         """Get the last 50 log lines for the container."""
         try:
             # SERVICE FIRST: Use async Docker client pool instead of old docker_utils
-            from services.docker_service.docker_client_pool import get_docker_client_async
+            from services.docker_service.docker_utils import get_docker_client_async
+            import docker
             from utils.common_helpers import validate_container_name
             
             # Validate container name for security
