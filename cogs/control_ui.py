@@ -7,6 +7,7 @@ from services.config.config_service import load_config
 import discord
 import logging
 import time
+import io
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 from discord.ui import View, Button
@@ -1046,31 +1047,21 @@ class MechControlsLabelButton(Button):
         pass
 
 class MechView(View):
-    """View with expand/collapse buttons for Mech status in /ss command."""
-    
+    """View with simplified buttons for Mech status in /ss command."""
+
     def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
         super().__init__(timeout=None)  # Persistent view
         self.cog = cog_instance
         self.channel_id = channel_id
-        
+
         # Check if donations are disabled
         donations_disabled = is_donations_disabled()
-        
+
         # Skip mech buttons if donations are disabled
         if not donations_disabled:
-            # Check current mech expansion state for this channel
-            is_expanded = cog_instance.mech_expanded_states.get(channel_id, False)
-            
-            if is_expanded:
-                # Expanded state: Collapse(-), Spenden, History in one row
-                # Row 0: Collapse(-), Donate, History buttons
-                self.add_item(MechCollapseButton(cog_instance, channel_id))
-                self.add_item(MechDonateButton(cog_instance, channel_id))
-                self.add_item(MechHistoryButton(cog_instance, channel_id))
-            else:
-                # Collapsed state: Add "Mech +" button and help button
-                self.add_item(MechExpandButton(cog_instance, channel_id))
-                self.add_item(HelpButton(cog_instance, channel_id))
+            # Simplified: Only "Mech" and "?" buttons
+            self.add_item(MechDetailsButton(cog_instance, channel_id))
+            self.add_item(HelpButton(cog_instance, channel_id))
 
 class HelpButton(Button):
     """Button to show help information from /ss messages."""
@@ -1139,6 +1130,113 @@ class HelpButton(Button):
             logger.error(f"Error showing help: {e}", exc_info=True)
             try:
                 await interaction.response.send_message("❌ Error showing help information.", ephemeral=True)
+            except Exception:
+                # Interaction may have already been responded to or expired
+                pass
+
+class MechDetailsButton(Button):
+    """Button to show detailed mech status in private message."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
+        super().__init__(
+            style=discord.ButtonStyle.primary,
+            label="Mech",
+            custom_id=f"mech_details_{channel_id}"
+        )
+        self.cog = cog_instance
+        self.channel_id = channel_id
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Handle mech details button click by sending private status message."""
+        try:
+            logger.info(f"Mech details requested by user {interaction.user.name} in channel {self.channel_id}")
+
+            # Defer the response as ephemeral (private message)
+            await interaction.response.defer(ephemeral=True)
+
+            # Get mech status details from service
+            from services.web.mech_status_details_service import get_mech_status_details_service, MechStatusDetailsRequest
+
+            service = get_mech_status_details_service()
+            request = MechStatusDetailsRequest()
+            result = service.get_mech_status_details(request)
+
+            if not result.success:
+                await interaction.followup.send(
+                    "❌ Error retrieving mech status details. Please try again later.",
+                    ephemeral=True
+                )
+                return
+
+            # Create embed with mech details
+            embed = discord.Embed(
+                title="🤖 Mech Status Details",
+                color=0x00ff88
+            )
+
+            # Add level info
+            if result.level_text:
+                embed.add_field(
+                    name=result.level_text,
+                    value=f"{result.speed_text or 'Geschwindigkeit: Unknown'}",
+                    inline=False
+                )
+
+            # Add power info
+            power_section = ""
+            if result.power_text:
+                power_section += f"{result.power_text}\n"
+            if result.power_bar:
+                power_section += f"`{result.power_bar}`\n"
+            if result.energy_consumption:
+                power_section += f"{result.energy_consumption}"
+
+            if power_section:
+                embed.add_field(name="⚡ Power Status", value=power_section, inline=False)
+
+            # Add evolution progress
+            if result.next_evolution and result.evolution_bar:
+                evolution_section = f"{result.next_evolution}\n`{result.evolution_bar}`"
+                embed.add_field(name="🔄 Evolution Progress", value=evolution_section, inline=False)
+
+            embed.set_footer(text="https://ddc.bot")
+
+            # Create view with donate and history buttons
+            view = MechDetailsView(self.cog, self.channel_id)
+
+            # Attach animation if available
+            files = []
+            if result.animation_bytes and result.content_type:
+                file = discord.File(
+                    io.BytesIO(result.animation_bytes),
+                    filename="mech_animation.webp"
+                )
+                files.append(file)
+                embed.set_image(url="attachment://mech_animation.webp")
+
+            # Send the private message
+            await interaction.followup.send(
+                embed=embed,
+                view=view,
+                files=files,
+                ephemeral=True
+            )
+
+            logger.info(f"Mech details sent to user {interaction.user.name}")
+
+        except Exception as e:
+            logger.error(f"Error showing mech details: {e}", exc_info=True)
+            try:
+                if interaction.response.is_done():
+                    await interaction.followup.send(
+                        "❌ Error retrieving mech details. Please try again later.",
+                        ephemeral=True
+                    )
+                else:
+                    await interaction.response.send_message(
+                        "❌ Error retrieving mech details. Please try again later.",
+                        ephemeral=True
+                    )
             except Exception:
                 # Interaction may have already been responded to or expired
                 pass
@@ -2075,5 +2173,82 @@ class PlaySongButton(Button):
         except Exception as e:
             logger.error(f"Error generating music URL for level {self.level}: {e}", exc_info=True)
             await interaction.response.send_message(_("❌ Error loading music."), ephemeral=True)
+
+
+# =============================================================================
+# MECH DETAILS VIEW FOR PRIVATE MESSAGES
+# =============================================================================
+
+class MechDetailsView(View):
+    """View for private mech details messages with Spenden and History buttons."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
+        super().__init__(timeout=300)  # 5 minute timeout for private messages
+        self.cog = cog_instance
+        self.channel_id = channel_id
+
+        # Add donate and history buttons
+        self.add_item(MechPrivateDonateButton(cog_instance, channel_id))
+        self.add_item(MechPrivateHistoryButton(cog_instance, channel_id))
+
+
+class MechPrivateDonateButton(Button):
+    """Donate button for private mech details messages."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
+        super().__init__(
+            style=discord.ButtonStyle.green,
+            label="Spenden / Aufladen",
+            custom_id=f"mech_private_donate_{channel_id}"
+        )
+        self.cog = cog_instance
+        self.channel_id = channel_id
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Handle donate button click - reuse existing donate functionality."""
+        try:
+            # Reuse the existing MechDonateButton logic
+            donate_button = MechDonateButton(self.cog, self.channel_id)
+            await donate_button.callback(interaction)
+
+        except Exception as e:
+            logger.error(f"Error in private donate button: {e}", exc_info=True)
+            try:
+                await interaction.response.send_message(
+                    "❌ Error processing donation request. Please try again later.",
+                    ephemeral=True
+                )
+            except Exception:
+                pass
+
+
+class MechPrivateHistoryButton(Button):
+    """History button for private mech details messages."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
+        super().__init__(
+            style=discord.ButtonStyle.secondary,
+            label="Mech History",
+            custom_id=f"mech_private_history_{channel_id}"
+        )
+        self.cog = cog_instance
+        self.channel_id = channel_id
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Handle history button click - reuse existing history functionality."""
+        try:
+            # Reuse the existing MechHistoryButton logic
+            history_button = MechHistoryButton(self.cog, self.channel_id)
+            await history_button.callback(interaction)
+
+        except Exception as e:
+            logger.error(f"Error in private history button: {e}", exc_info=True)
+            try:
+                await interaction.response.send_message(
+                    "❌ Error loading mech history. Please try again later.",
+                    ephemeral=True
+                )
+            except Exception:
+                pass
 
 
