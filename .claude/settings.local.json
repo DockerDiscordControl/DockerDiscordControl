@@ -13,7 +13,9 @@
       "Bash(__NEW_LINE__ for i in {1..5})",
       "Bash(do)",
       "Bash(echo:*)",
-      "Bash(/dev/null)"
+      "Bash(/dev/null)",
+      "Bash(do mv \"$file\" \"$file/wallk/walk\")",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []

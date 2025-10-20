@@ -1154,11 +1154,11 @@ class MechDetailsButton(Button):
             # Defer the response as ephemeral (private message)
             await interaction.response.defer(ephemeral=True)
 
-            # Get mech status details from service
+            # Get mech status details from service (using high resolution for private view)
             from services.web.mech_status_details_service import get_mech_status_details_service, MechStatusDetailsRequest
 
             service = get_mech_status_details_service()
-            request = MechStatusDetailsRequest()
+            request = MechStatusDetailsRequest(use_high_resolution=True)  # Use big mechs for private details
             result = service.get_mech_status_details(request)
 
             if not result.success:

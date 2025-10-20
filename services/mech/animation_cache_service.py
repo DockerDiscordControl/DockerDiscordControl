@@ -36,6 +36,7 @@ class MechAnimationRequest:
     power_level: float = 1.0
     speed_level: float = 50.0
     include_metadata: bool = False
+    resolution: str = "small"  # "small" or "big" - for high-res support
 
 
 @dataclass
@@ -128,9 +129,15 @@ class AnimationCacheService:
         """Reverse the XOR obfuscation (XOR is symmetric)"""
         return self._obfuscate_data(data)  # XOR is its own inverse
 
-    def get_expected_canvas_size(self, evolution_level: int, animation_type: str = "walk") -> Tuple[int, int]:
+    def get_expected_canvas_size(self, evolution_level: int, animation_type: str = "walk", resolution: str = "small") -> Tuple[int, int]:
         """Get expected canvas size for an evolution level using predefined heights"""
-        # Fixed heights per evolution level for walk animations
+        # For big resolution, delegate to high-res service
+        if resolution == "big":
+            from services.mech.mech_high_res_service import get_mech_high_res_service
+            high_res_service = get_mech_high_res_service()
+            return high_res_service.get_canvas_size_for_resolution(evolution_level, resolution, animation_type)
+
+        # Fixed heights per evolution level for small walk animations
         walk_heights = {
             1: 100, 2: 100, 3: 100,  # Mech1-3: ~100px height
             4: 150, 5: 150,           # Mech4-5: ~150px height
@@ -296,15 +303,35 @@ class AnimationCacheService:
                 raise FileNotFoundError(f"No Mech folders found in {self.assets_dir}")
         return mech_folder
 
-    def _get_actual_mech_folder(self, evolution_level: int) -> Path:
+    def _get_actual_mech_folder(self, evolution_level: int, resolution: str = "small") -> Path:
         """Get the actual mech folder that will be used (with fallback logic for cached animations)"""
         # If we have a cached animation, return virtual path (doesn't need to exist)
         cache_path = self.cache_dir / f"mech_{evolution_level}_100speed.cache"
         if cache_path.exists():
-            return self.assets_dir / f"Mech{evolution_level}"
+            base_path = self.assets_dir / f"Mech{evolution_level}"
+            if resolution == "big":
+                return base_path / "big"
+            else:
+                return base_path / "small"
 
         # Use original logic for when PNG files are needed
-        return self._get_actual_mech_folder_no_cache_check(evolution_level)
+        base_path = self._get_actual_mech_folder_no_cache_check(evolution_level)
+
+        # Add resolution subfolder support
+        if resolution == "big":
+            big_path = base_path / "big"
+            # Fallback to small if big doesn't exist
+            if big_path.exists():
+                return big_path
+            else:
+                return base_path / "small"
+        else:
+            small_path = base_path / "small"
+            # Fallback to root if small doesn't exist (backward compatibility)
+            if small_path.exists():
+                return small_path
+            else:
+                return base_path
 
     def _load_and_process_frames(self, evolution_level: int, animation_type: str = "walk") -> List[Image.Image]:
         """Load PNG frames and process them with fixed canvas heights and preserved aspect ratio"""

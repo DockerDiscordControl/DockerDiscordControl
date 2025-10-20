@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MechStatusDetailsRequest:
     """Request for formatted mech status details."""
-    pass  # No parameters needed - uses current mech state
+    use_high_resolution: bool = False  # True for big mechs, False for small mechs
 
 
 @dataclass
@@ -101,8 +101,8 @@ class MechStatusDetailsService:
                         state.bars.mech_progress_max
                     )
 
-            # Get animation
-            animation_bytes, content_type = self._get_mech_animation(state.level, state.Power)
+            # Get animation (use high resolution if requested)
+            animation_bytes, content_type = self._get_mech_animation(state.level, state.Power, request.use_high_resolution)
 
             return MechStatusDetailsResult(
                 success=True,
@@ -182,9 +182,30 @@ class MechStatusDetailsService:
             logger.debug(f"Error getting next level info: {e}")
             return None
 
-    def _get_mech_animation(self, level: int, power: float) -> tuple[Optional[bytes], Optional[str]]:
-        """Get mech animation bytes."""
+    def _get_mech_animation(self, level: int, power: float, use_high_resolution: bool = False) -> tuple[Optional[bytes], Optional[str]]:
+        """Get mech animation bytes with optional high resolution support."""
         try:
+            if use_high_resolution:
+                # Use high-resolution animation cache service directly
+                from services.mech.mech_high_res_service import get_mech_high_res_service, MechResolutionRequest
+                from services.mech.animation_cache_service import get_animation_cache_service
+
+                # Check if high-res version is available
+                high_res_service = get_mech_high_res_service()
+                resolution_request = MechResolutionRequest(evolution_level=level, preferred_resolution="big")
+                resolution_result = high_res_service.get_mech_resolution_info(resolution_request)
+
+                if resolution_result.success and resolution_result.available_resolution == "big":
+                    # Generate high-res animation
+                    cache_service = get_animation_cache_service()
+
+                    # For now, use a simple approach to generate big animation
+                    # This is a prototype - full integration would need more cache service changes
+                    animation_bytes = self._generate_big_animation_prototype(level, power)
+                    if animation_bytes:
+                        return animation_bytes, "image/webp"
+
+            # Fallback to regular web service for small animations
             from services.web.mech_web_service import get_mech_web_service, MechAnimationRequest
 
             web_service = get_mech_web_service()
@@ -200,6 +221,85 @@ class MechStatusDetailsService:
         except Exception as e:
             logger.debug(f"Error getting mech animation: {e}")
             return None, None
+
+    def _generate_big_animation_prototype(self, level: int, power: float) -> Optional[bytes]:
+        """Prototype implementation for big animation generation."""
+        try:
+            from services.mech.mech_high_res_service import get_mech_high_res_service, MechResolutionRequest
+            from pathlib import Path
+            from PIL import Image
+            import io
+            import re
+
+            # Get high-res service info
+            high_res_service = get_mech_high_res_service()
+            request = MechResolutionRequest(evolution_level=level, preferred_resolution="big")
+            result = high_res_service.get_mech_resolution_info(request)
+
+            if not result.success or not result.has_big_version:
+                return None
+
+            # Load big PNG files directly for prototype
+            big_folder = result.assets_folder
+            animation_type = "rest" if power <= 0 and level <= 10 else "walk"
+
+            # Find PNG files
+            pattern = re.compile(rf'{level}_{animation_type}_(\d{{4}})\.png')
+            png_files = [f for f in sorted(big_folder.glob('*.png')) if pattern.match(f.name)]
+
+            if not png_files:
+                logger.debug(f"No {animation_type} files found for level {level} in big folder")
+                return None
+
+            # Simple prototype: create WebP animation from big PNGs
+            frames = []
+            for png_file in png_files:
+                with Image.open(png_file) as img:
+                    # Apply smart cropping adjustments
+                    if result.cropping_adjustments:
+                        top = result.cropping_adjustments.get("top", 0)
+                        bottom = result.cropping_adjustments.get("bottom", 0)
+
+                        if top > 0 or bottom > 0:
+                            width, height = img.size
+                            crop_box = (0, top, width, height - bottom)
+                            img = img.crop(crop_box)
+
+                    # Smart crop to content
+                    bbox = img.getbbox()
+                    if bbox:
+                        img = img.crop(bbox)
+
+                    # Convert to RGBA for WebP
+                    if img.mode != 'RGBA':
+                        img = img.convert('RGBA')
+
+                    frames.append(img.copy())
+
+            if not frames:
+                return None
+
+            # Create WebP animation (high quality)
+            output = io.BytesIO()
+            frames[0].save(
+                output,
+                format='WebP',
+                save_all=True,
+                append_images=frames[1:],
+                duration=125,  # 8 FPS
+                loop=0,
+                lossless=True,
+                quality=100,
+                method=6
+            )
+
+            animation_bytes = output.getvalue()
+            logger.debug(f"Generated big animation for level {level}: {len(animation_bytes)} bytes")
+            return animation_bytes
+
+        except Exception as e:
+            logger.debug(f"Error generating big animation prototype: {e}")
+            return None
 
 
 # Global service instance
