@@ -616,12 +616,12 @@ class LiveLogView(discord.ui.View):
             async with get_docker_client_async() as client:
                 # Get container with async client
                 container = await client.containers.get(self.container_name)
-            
+
                 # Get logs (configured number of lines) - now async
                 tail_lines = int(os.getenv('DDC_LIVE_LOGS_TAIL_LINES', '50'))
                 logs_bytes = await container.logs(tail=tail_lines, timestamps=True)
                 logs = logs_bytes.decode('utf-8', errors='replace')
-            
+
             # Limit log output to prevent Discord message limits
             if len(logs) > 1800:  # Leave room for embed formatting
                 logs = logs[-1800:]
@@ -773,12 +773,12 @@ class DebugLogsButton(discord.ui.Button):
             async with get_docker_client_async() as client:
                 # Get container with async client
                 container = await client.containers.get(self.container_name)
-            
+
                 # Get logs (configured number of lines) - now async
                 tail_lines = int(os.getenv('DDC_LIVE_LOGS_TAIL_LINES', '50'))
                 logs_bytes = await container.logs(tail=tail_lines, timestamps=True)
                 logs = logs_bytes.decode('utf-8', errors='replace')
-            
+
             # Limit log output to prevent Discord message limits
             if len(logs) > 1800:  # Leave room for embed formatting
                 logs = logs[-1800:]
