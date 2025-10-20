@@ -413,43 +413,39 @@ class AnimationCacheService:
                         logger.debug(f"Mech 6 walk pre-crop: removed 15px from top, 8px from bottom, new size: {frame.size}")
 
                 elif animation_type == "rest":
-                    # REST pre-cropping - ORIGINAL VALUES for small mechs, proportional for big mechs
+                    # REST pre-cropping - COMPLETE ORIGINAL VALUES for small mechs, proportional for big mechs
                     frame_width, frame_height = frame.size
 
                     # Determine if we're processing big or small resolution
                     is_big_resolution = resolution == "big" if resolution else False
 
-                    if evolution_level == 4:
+                    # Complete original REST pre-cropping values (from commit a6bf1d7)
+                    rest_top_crop_small = {
+                        1: 25, 2: 25, 3: 25,     # Level 1,2,3: 25px from top
+                        4: 20,                    # Level 4: 20px from top
+                        5: 16,                    # Level 5: 16px from top
+                        6: 30,                    # Level 6: 30px from top
+                        7: 35,                    # Level 7: 35px from top
+                        8: 35,                    # Level 8: 35px from top
+                        9: 40,                    # Level 9: 40px from top
+                        10: 18                    # Level 10: 18px from top
+                    }
+
+                    small_crop_value = rest_top_crop_small.get(evolution_level, 0)
+
+                    if small_crop_value > 0:
                         if is_big_resolution:
-                            # Big REST: Scale the original small REST values proportionally (20px top → ~29px)
-                            # Size ratio for Mech 4: ~1.43x, so 20px * 1.43 ≈ 29px
-                            frame = frame.crop((0, 29, frame_width, frame_height))
-                            logger.debug(f"Mech 4 big rest pre-crop: removed 29px from top (proportional), new size: {frame.size}")
+                            # Big REST: Scale the original small REST values proportionally
+                            # Use size ratios: Mech 1-3 (~1.43x), Mech 4 (~1.43x), Mech 5 (~1.25x), etc.
+                            size_ratios = {1: 1.43, 2: 1.43, 3: 1.43, 4: 1.43, 5: 1.25, 6: 1.27, 7: 1.30, 8: 1.30, 9: 1.35, 10: 1.40}
+                            ratio = size_ratios.get(evolution_level, 1.3)  # Default fallback
+                            big_crop_value = int(small_crop_value * ratio)
+                            frame = frame.crop((0, big_crop_value, frame_width, frame_height))
+                            logger.debug(f"Mech {evolution_level} big rest pre-crop: removed {big_crop_value}px from top (proportional, ratio {ratio:.2f}x), new size: {frame.size}")
                         else:
-                            # Small REST: Original value (20px top only)
-                            frame = frame.crop((0, 20, frame_width, frame_height))
-                            logger.debug(f"Mech 4 small rest pre-crop: removed 20px from top (original), new size: {frame.size}")
-                    elif evolution_level == 5:
-                        if is_big_resolution:
-                            # Big REST: Scale the original small REST values proportionally (16px top → ~20px)
-                            # Size ratio for Mech 5: ~1.25x, so 16px * 1.25 = 20px
-                            frame = frame.crop((0, 20, frame_width, frame_height))
-                            logger.debug(f"Mech 5 big rest pre-crop: removed 20px from top (proportional), new size: {frame.size}")
-                        else:
-                            # Small REST: Original value (16px top only)
-                            frame = frame.crop((0, 16, frame_width, frame_height))
-                            logger.debug(f"Mech 5 small rest pre-crop: removed 16px from top (original), new size: {frame.size}")
-                    elif evolution_level == 6:
-                        if is_big_resolution:
-                            # Big REST: Scale the original small REST values proportionally (30px top → ~38px)
-                            # Size ratio for Mech 6: ~1.27x, so 30px * 1.27 ≈ 38px
-                            frame = frame.crop((0, 38, frame_width, frame_height))
-                            logger.debug(f"Mech 6 big rest pre-crop: removed 38px from top (proportional), new size: {frame.size}")
-                        else:
-                            # Small REST: Original value (30px top only)
-                            frame = frame.crop((0, 30, frame_width, frame_height))
-                            logger.debug(f"Mech 6 small rest pre-crop: removed 30px from top (original), new size: {frame.size}")
-                    # Other levels (1,2,3,7,8,9,10): No special pre-cropping for REST
+                            # Small REST: Original value
+                            frame = frame.crop((0, small_crop_value, frame_width, frame_height))
+                            logger.debug(f"Mech {evolution_level} small rest pre-crop: removed {small_crop_value}px from top (original), new size: {frame.size}")
 
                 all_frames.append(frame)
 
