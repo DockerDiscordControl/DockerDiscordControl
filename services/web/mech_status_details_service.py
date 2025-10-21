@@ -95,7 +95,7 @@ class MechStatusDetailsService:
             if state.next_level_threshold is not None:
                 next_level_info = self._get_next_level_info(state.level + 1)
                 if next_level_info:
-                    next_evolution = f" {next_level_info['name']}"
+                    next_evolution = f"⬆️ {next_level_info['name']}"
                     evolution_bar = self._create_progress_bar(
                         state.bars.mech_progress_current,
                         state.bars.mech_progress_max
