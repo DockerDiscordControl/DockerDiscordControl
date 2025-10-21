@@ -78,7 +78,7 @@ class MechStatusDetailsService:
 
             # Format power with decimals
             power_decimal = mech_service.get_power_with_decimals()
-            power_text = f"{power_decimal:.2f}"
+            power_text = f"⚡{power_decimal:.2f}"
 
             # Create power progress bar
             power_bar = self._create_progress_bar(
