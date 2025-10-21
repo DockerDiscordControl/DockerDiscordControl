@@ -50,8 +50,14 @@ class MechDisplayCacheService:
     """Service for pre-rendering and serving mech display images."""
 
     def __init__(self):
+        # Use correct path for Docker vs Local (same pattern as AnimationCacheService)
+        import os
+        if os.path.exists("/app/assets/mech_evolutions"):
+            self.cache_dir = Path("/app/cached_displays")
+        else:
+            self.cache_dir = Path("/Volumes/appdata/dockerdiscordcontrol/cached_displays")
+
         # Create cache directory for display images
-        self.cache_dir = Path("cached_displays")
         self.cache_dir.mkdir(exist_ok=True)
 
         logger.info(f"MechDisplayCacheService initialized with cache dir: {self.cache_dir}")
