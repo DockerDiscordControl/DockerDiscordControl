@@ -1170,7 +1170,7 @@ class MechDetailsButton(Button):
 
             # Create embed with mech details
             embed = discord.Embed(
-                title="🤖 Mech Status Details",
+                title="🤖 Mech Status",
                 color=0x00ff88
             )
 
@@ -1192,12 +1192,12 @@ class MechDetailsButton(Button):
                 power_section += f"{result.energy_consumption}"
 
             if power_section:
-                embed.add_field(name="⚡ Power Status", value=power_section, inline=False)
+                embed.add_field(name="\u200b", value=power_section, inline=False)
 
             # Add evolution progress
             if result.next_evolution and result.evolution_bar:
                 evolution_section = f"{result.next_evolution}\n`{result.evolution_bar}`"
-                embed.add_field(name="🔄 Evolution Progress", value=evolution_section, inline=False)
+                embed.add_field(name="\u200b", value=evolution_section, inline=False)
 
             embed.set_footer(text="https://ddc.bot")
 
