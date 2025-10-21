@@ -1174,26 +1174,36 @@ class MechDetailsButton(Button):
                 color=0x00ff88
             )
 
-            # Combine level, speed, power, and energy into one field (reduces spacing)
-            main_section = ""
+            # Create one field with proper spacing using \n\n (avoids large A-spacing)
+            full_section = ""
+
+            # Level and Speed section
             if result.level_text:
-                main_section += f"{result.level_text}\n"
+                full_section += f"{result.level_text}\n"
             if result.speed_text:
-                main_section += f"{result.speed_text}\n"
+                full_section += f"{result.speed_text}\n"
+
+            # Add spacing before power section (this was missing!)
+            full_section += "\n"
+
+            # Power section
             if result.power_text:
-                main_section += f"{result.power_text}\n"
+                full_section += f"{result.power_text}\n"
             if result.power_bar:
-                main_section += f"`{result.power_bar}`\n"
+                full_section += f"`{result.power_bar}`\n"
             if result.energy_consumption:
-                main_section += f"{result.energy_consumption}"
+                full_section += f"{result.energy_consumption}\n"
 
-            if main_section:
-                embed.add_field(name="\u200b", value=main_section, inline=False)
+            # Add spacing before evolution section
+            full_section += "\n"
 
-            # Add evolution progress as separate field (minimized spacing)
+            # Evolution section
             if result.next_evolution and result.evolution_bar:
-                evolution_section = f"{result.next_evolution}\n`{result.evolution_bar}`"
-                embed.add_field(name="\u200b", value=evolution_section, inline=False)
+                full_section += f"{result.next_evolution}\n"
+                full_section += f"`{result.evolution_bar}`"
+
+            if full_section:
+                embed.add_field(name="\u200b", value=full_section, inline=False)
 
             embed.set_footer(text="https://ddc.bot")
 
