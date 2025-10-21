@@ -16,7 +16,19 @@
       "Bash(/dev/null)",
       "Bash(do mv \"$file\" \"$file/wallk/walk\")",
       "Bash(git rm:*)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(DDC_WEB_PORT=5001 python3:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(find:*)",
+      "Bash(python3:*)",
+      "Bash(timeout 10 DDC_WEB_PORT=5001 python3:*)",
+      "Bash(for:*)",
+      "Bash(do echo \"=== $mech ===\")",
+      "Bash(ls:*)",
+      "Bash(done)",
+      "Bash(docker exec:*)"
     ],
     "deny": [],
     "ask": []

@@ -216,10 +216,10 @@ class MechDisplayCacheService:
     def _pre_render_unlocked_image(self, evolution_level: int, force: bool = False) -> bool:
         """Pre-render display animation for unlocked mech display."""
         try:
-            # SERVICE FIRST: Use unified MechWebService for Mech History too
-            from services.web.mech_web_service import get_mech_web_service, MechAnimationRequest
+            # OPTIMIZED: Use pre-rendered big walk animations directly (100 speed)
+            from services.mech.animation_cache_service import get_animation_cache_service
 
-            web_service = get_mech_web_service()
+            animation_service = get_animation_cache_service()
             unlocked_path = self.cache_dir / f"mech_{evolution_level}_unlocked.webp"
 
             # Skip if already exists and not forced
@@ -227,18 +227,12 @@ class MechDisplayCacheService:
                 logger.debug(f"Unlocked image already exists for Level {evolution_level}")
                 return True
 
-            # Get animation with consistent display settings - BIG MECHS with SPEED 100
-            request = MechAnimationRequest(
-                force_power=100.0,  # Display always shows active animations for unlocked mechs
-                resolution="big"    # Use big resolution for Mech History
-            )
-            result = web_service.get_live_animation(request)
+            # Get pre-rendered big walk animation (100 speed = high power = walking)
+            animation_bytes = animation_service.get_animation_with_speed_and_power_big(evolution_level, 100.0, 100.0)
 
-            if not result.success or not result.animation_bytes:
-                logger.error(f"No animation data for unlocked Level {evolution_level}")
+            if not animation_bytes:
+                logger.error(f"No pre-rendered big animation for Level {evolution_level}")
                 return False
-
-            animation_bytes = result.animation_bytes
 
             # Save pre-rendered animation to cache
             with open(unlocked_path, 'wb') as f:

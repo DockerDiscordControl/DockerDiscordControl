@@ -24,37 +24,52 @@ class PngToWebpService:
     """
 
     def __init__(self):
-        from .animation_cache_service import get_animation_cache_service
-        self.cache_service = get_animation_cache_service()
-        logger.info("PNG to WebP Service initialized with cached animation system")
+        # SERVICE FIRST: Use MechWebService instead of direct cache access
+        logger.info("PNG to WebP Service initialized with Service First architecture")
 
     async def create_donation_animation(self, donor_name: str, amount: str, total_donations: float, show_overlay: bool = True) -> discord.File:
-        """Create Discord-compatible animation file (async) - Thin wrapper over animation cache service"""
+        """Create Discord-compatible animation file (async) - SERVICE FIRST using MechWebService"""
         try:
-            from services.mech.mech_evolutions import get_evolution_level
+            # SERVICE FIRST: Use unified MechWebService
+            from services.web.mech_web_service import get_mech_web_service, MechAnimationRequest
 
-            evolution_level = max(1, min(11, get_evolution_level(total_donations)))
+            web_service = get_mech_web_service()
+            request = MechAnimationRequest(
+                force_power=total_donations,  # Use donation amount as power
+                resolution="small"  # Discord animations use small resolution
+            )
 
-            # Delegate all business logic to animation cache service
-            webp_bytes = self.cache_service.get_current_mech_animation(evolution_level)
+            result = web_service.get_live_animation(request)
 
-            # Interface adaptation: bytes -> Discord.File
-            buffer = BytesIO(webp_bytes)
-            return discord.File(buffer, filename=f"mech_animation_{int(time.time())}.webp", spoiler=False)
+            if result.success and result.animation_bytes:
+                # Interface adaptation: bytes -> Discord.File
+                buffer = BytesIO(result.animation_bytes)
+                return discord.File(buffer, filename=f"mech_animation_{int(time.time())}.webp", spoiler=False)
+            else:
+                return self._create_fallback_animation()
 
         except Exception as e:
             logger.error(f"Error creating donation animation: {e}")
             return self._create_fallback_animation()
 
     def create_donation_animation_sync(self, donor_name: str, amount: str, total_donations: float) -> bytes:
-        """Create animation bytes for Web UI (sync) - Thin wrapper over animation cache service"""
+        """Create animation bytes for Web UI (sync) - SERVICE FIRST using MechWebService"""
         try:
-            from services.mech.mech_evolutions import get_evolution_level
+            # SERVICE FIRST: Use unified MechWebService
+            from services.web.mech_web_service import get_mech_web_service, MechAnimationRequest
 
-            evolution_level = max(1, min(11, get_evolution_level(total_donations)))
+            web_service = get_mech_web_service()
+            request = MechAnimationRequest(
+                force_power=total_donations,  # Use donation amount as power
+                resolution="small"  # Web UI animations use small resolution
+            )
 
-            # Delegate all business logic to animation cache service
-            return self.cache_service.get_current_mech_animation(evolution_level)
+            result = web_service.get_live_animation(request)
+
+            if result.success and result.animation_bytes:
+                return result.animation_bytes
+            else:
+                raise Exception("Failed to get animation from MechWebService")
 
         except Exception as e:
             logger.error(f"Error creating sync animation: {e}")

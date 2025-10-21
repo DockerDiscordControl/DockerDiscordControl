@@ -17,6 +17,7 @@ services:
       - ./config:/app/config:cached
       # Mount for logs
       - ./logs:/app/logs:cached
+      # Note: cached_displays are now built into the Docker image for Community App compatibility
     # user: "99:100"
     environment:
       # FLASK_SECRET_KEY: Must be set! Best to use a .env file.

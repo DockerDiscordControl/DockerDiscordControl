@@ -62,29 +62,57 @@ class MechStatusDetailsService:
             MechStatusDetailsResult with formatted status information
         """
         try:
-            # Get current mech state
-            from services.mech.mech_service import get_mech_service
-            mech_service = get_mech_service()
-            state = mech_service.get_state()
+            # PERFORMANCE OPTIMIZATION: Use cached mech state instead of live calculations
+            from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
 
-            # Get speed description
-            speed_description = self._get_speed_description(state.Power)
+            cache_service = get_mech_status_cache_service()
+            cache_request = MechStatusCacheRequest(include_decimals=True)
+            cached_result = cache_service.get_cached_status(cache_request)
 
-            # Format level text
-            level_text = f"{state.level_name} (Level {state.level})"
+            if not cached_result.success:
+                # Fallback to live calculation if cache fails
+                from services.mech.mech_service import get_mech_service
+                mech_service = get_mech_service()
+                state = mech_service.get_state()
+                power_decimal = mech_service.get_power_with_decimals()
+
+                # Get speed description
+                speed_description = self._get_speed_description(state.Power)
+
+                # Format level text
+                level_text = f"{state.level_name} (Level {state.level})"
+
+                # Create power progress bar
+                power_bar = self._create_progress_bar(
+                    state.bars.Power_current,
+                    state.bars.Power_max_for_level
+                )
+            else:
+                # Use cached data - much faster!
+                power_decimal = cached_result.power
+
+                # Get speed description from cache (already calculated)
+                speed_description = cached_result.speed_description if cached_result.speed_description else self._get_speed_description(int(power_decimal))
+
+                # Format level text (cache has 'name' not 'level_name')
+                level_text = f"{cached_result.name} (Level {cached_result.level})"
+
+                # Create power progress bar from cache
+                if cached_result.bars and hasattr(cached_result.bars, 'Power_current'):
+                    power_bar = self._create_progress_bar(
+                        cached_result.bars.Power_current,
+                        cached_result.bars.Power_max_for_level
+                    )
+                else:
+                    # Fallback progress bar calculation
+                    current_progress = int((power_decimal % 1.0) * 100)
+                    power_bar = self._create_progress_bar(current_progress, 100)
 
             # Format speed text
             speed_text = f"Geschwindigkeit: {speed_description}"
 
             # Format power with decimals
-            power_decimal = mech_service.get_power_with_decimals()
             power_text = f"⚡{power_decimal:.2f}"
-
-            # Create power progress bar
-            power_bar = self._create_progress_bar(
-                state.bars.Power_current,
-                state.bars.Power_max_for_level
-            )
 
             # Format energy consumption (simplified)
             energy_consumption = "Energieverbrauch: 🔻 1.0/t"
@@ -92,17 +120,29 @@ class MechStatusDetailsService:
             # Format next evolution
             next_evolution = None
             evolution_bar = None
-            if state.next_level_threshold is not None:
-                next_level_info = self._get_next_level_info(state.level + 1)
-                if next_level_info:
-                    next_evolution = f"⬆️ {next_level_info['name']}"
+
+            # Get level for next evolution calculation
+            current_level = cached_result.level if cached_result.success else state.level
+
+            # Try to get next level info
+            next_level_info = self._get_next_level_info(current_level + 1)
+            if next_level_info:
+                next_evolution = f"⬆️ {next_level_info['name']}"
+
+                # Create evolution progress bar
+                if cached_result.success and cached_result.bars and hasattr(cached_result.bars, 'mech_progress_current'):
+                    evolution_bar = self._create_progress_bar(
+                        cached_result.bars.mech_progress_current,
+                        cached_result.bars.mech_progress_max
+                    )
+                elif not cached_result.success and hasattr(state, 'bars'):
                     evolution_bar = self._create_progress_bar(
                         state.bars.mech_progress_current,
                         state.bars.mech_progress_max
                     )
 
-            # Get animation (use high resolution if requested)
-            animation_bytes, content_type = self._get_mech_animation(state.level, state.Power, request.use_high_resolution)
+            # Get animation (use high resolution if requested) - use decimal power for proper animation selection
+            animation_bytes, content_type = self._get_mech_animation(current_level, power_decimal, request.use_high_resolution)
 
             return MechStatusDetailsResult(
                 success=True,
@@ -211,85 +251,6 @@ class MechStatusDetailsService:
             logger.debug(f"Error getting mech animation: {e}")
             return None, None
 
-
-    def _generate_big_animation_prototype(self, level: int, power: float) -> Optional[bytes]:
-        """Prototype implementation for big animation generation."""
-        try:
-            from services.mech.mech_high_res_service import get_mech_high_res_service, MechResolutionRequest
-            from pathlib import Path
-            from PIL import Image
-            import io
-            import re
-
-            # Get high-res service info
-            high_res_service = get_mech_high_res_service()
-            request = MechResolutionRequest(evolution_level=level, preferred_resolution="big")
-            result = high_res_service.get_mech_resolution_info(request)
-
-            if not result.success or not result.has_big_version:
-                return None
-
-            # Load big PNG files directly for prototype
-            big_folder = result.assets_folder
-            animation_type = "rest" if power <= 0 and level <= 10 else "walk"
-
-            # Find PNG files
-            pattern = re.compile(rf'{level}_{animation_type}_(\d{{4}})\.png')
-            png_files = [f for f in sorted(big_folder.glob('*.png')) if pattern.match(f.name)]
-
-            if not png_files:
-                logger.debug(f"No {animation_type} files found for level {level} in big folder")
-                return None
-
-            # Simple prototype: create WebP animation from big PNGs
-            frames = []
-            for png_file in png_files:
-                with Image.open(png_file) as img:
-                    # Apply smart cropping adjustments
-                    if result.cropping_adjustments:
-                        top = result.cropping_adjustments.get("top", 0)
-                        bottom = result.cropping_adjustments.get("bottom", 0)
-
-                        if top > 0 or bottom > 0:
-                            width, height = img.size
-                            crop_box = (0, top, width, height - bottom)
-                            img = img.crop(crop_box)
-
-                    # Smart crop to content
-                    bbox = img.getbbox()
-                    if bbox:
-                        img = img.crop(bbox)
-
-                    # Convert to RGBA for WebP
-                    if img.mode != 'RGBA':
-                        img = img.convert('RGBA')
-
-                    frames.append(img.copy())
-
-            if not frames:
-                return None
-
-            # Create WebP animation (high quality)
-            output = io.BytesIO()
-            frames[0].save(
-                output,
-                format='WebP',
-                save_all=True,
-                append_images=frames[1:],
-                duration=125,  # 8 FPS
-                loop=0,
-                lossless=True,
-                quality=100,
-                method=6
-            )
-
-            animation_bytes = output.getvalue()
-            logger.debug(f"Generated big animation for level {level}: {len(animation_bytes)} bytes")
-            return animation_bytes
-
-        except Exception as e:
-            logger.debug(f"Error generating big animation prototype: {e}")
-            return None
 
 
 # Global service instance

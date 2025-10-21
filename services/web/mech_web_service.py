@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 class MechAnimationRequest:
     """Represents a mech animation request."""
     force_power: Optional[float] = None  # Override power level for testing
+    force_evolution_level: Optional[int] = None  # Override evolution level (for Mech History)
     resolution: str = "small"  # Animation resolution: "small" | "big"
 
 
@@ -95,7 +96,12 @@ class MechWebService:
             from services.mech.speed_levels import get_combined_mech_status
 
             # Step 1: Get current mech status from cache (ultra-fast)
-            if request.force_power is not None:
+            if request.force_evolution_level is not None:
+                # Override evolution level (for Mech History)
+                evolution_level = max(1, min(11, request.force_evolution_level))
+                current_power = request.force_power if request.force_power is not None else 100.0  # Default high power
+                self.logger.debug(f"Live mech animation request with force_evolution_level: {evolution_level}, power: {current_power}")
+            elif request.force_power is not None:
                 # Use force_power for testing
                 current_power = request.force_power
                 evolution_level = max(1, min(11, get_evolution_level(current_power)))
@@ -168,16 +174,17 @@ class MechWebService:
             # Calculate evolution level from test parameters
             evolution_level = max(1, min(11, get_evolution_level(request.total_donations)))
 
-            # Get pre-cached animation (instant response)
-            animation_service = get_animation_cache_service()
-            animation_bytes = animation_service.get_current_mech_animation(evolution_level)
+            # SERVICE FIRST: Use unified animation system for test animations too
+            test_request = MechAnimationRequest(
+                force_power=request.total_donations,  # Use donation amount as power for test
+                resolution="small"  # Test animations use small resolution
+            )
 
-            if animation_bytes:
-                return MechAnimationResult(
-                    success=True,
-                    animation_bytes=animation_bytes,
-                    content_type='image/webp'
-                )
+            # Use the same unified system as live animations
+            result = self.get_live_animation(test_request)
+
+            if result.success:
+                return result
             else:
                 return self._create_fallback_animation(request.total_donations)
 

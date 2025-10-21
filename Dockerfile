@@ -58,6 +58,7 @@ COPY --chown=ddc:ddc services/ services/
 COPY --chown=ddc:ddc encrypted_assets/ encrypted_assets/
 COPY --chown=ddc:ddc assets/ assets/
 COPY --chown=ddc:ddc cached_animations/ cached_animations/
+COPY --chown=ddc:ddc cached_displays/ cached_displays/
 COPY --chown=ddc:ddc gunicorn_config.py .
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY --chown=ddc:ddc scripts/entrypoint.sh /app/entrypoint.sh
@@ -66,9 +67,10 @@ COPY --chown=ddc:ddc scripts/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh && \
     mkdir -p /app/config /app/logs /app/scripts && \
     mkdir -p /app/config/info /app/config/tasks && \
+    mkdir -p /app/cached_displays && \
     chown -R ddc:ddc /app && \
     chmod -R 755 /app && \
-    chmod -R 775 /app/config /app/logs
+    chmod -R 775 /app/config /app/logs /app/cached_displays
 
 # Environment
 ENV PATH="/venv/bin:$PATH" \
