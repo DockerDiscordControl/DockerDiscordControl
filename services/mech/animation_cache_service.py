@@ -419,25 +419,26 @@ class AnimationCacheService:
                     # Determine if we're processing big or small resolution
                     is_big_resolution = resolution == "big" if resolution else False
 
-                    # Complete original REST pre-cropping values (from commit a6bf1d7)
+                    # Uniform REST pre-cropping: All offline mechs use 60px from top
                     rest_top_crop_small = {
-                        1: 25, 2: 25, 3: 25,     # Level 1,2,3: 25px from top
-                        4: 20,                    # Level 4: 20px from top
-                        5: 16,                    # Level 5: 16px from top
-                        6: 30,                    # Level 6: 30px from top
-                        7: 35,                    # Level 7: 35px from top
-                        8: 35,                    # Level 8: 35px from top
-                        9: 40,                    # Level 9: 40px from top
-                        10: 18                    # Level 10: 18px from top
+                        1: 60, 2: 60, 3: 60,     # Level 1,2,3: 60px from top
+                        4: 60,                    # Level 4: 60px from top
+                        5: 60,                    # Level 5: 60px from top
+                        6: 60,                    # Level 6: 60px from top
+                        7: 60,                    # Level 7: 60px from top
+                        8: 60,                    # Level 8: 60px from top
+                        9: 60,                    # Level 9: 60px from top
+                        10: 60                    # Level 10: 60px from top
                     }
 
                     small_crop_value = rest_top_crop_small.get(evolution_level, 0)
 
                     if small_crop_value > 0:
                         if is_big_resolution:
-                            # Big REST: Scale the original small REST values proportionally
-                            # Use size ratios: Mech 1-3 (~1.43x), Mech 4 (~1.43x), Mech 5 (~1.25x), etc.
-                            size_ratios = {1: 1.43, 2: 1.43, 3: 1.43, 4: 1.43, 5: 1.25, 6: 1.27, 7: 1.30, 8: 1.30, 9: 1.35, 10: 1.40}
+                            # Big REST: Uniform 116px cropping for ALL levels (manually verified)
+                            # All levels use 116px÷60px = 1.9333 ratio for consistent offline appearance
+                            uniform_ratio = 116/60  # 1.9333 - gives exactly 116px for all levels
+                            size_ratios = {1: uniform_ratio, 2: uniform_ratio, 3: uniform_ratio, 4: uniform_ratio, 5: uniform_ratio, 6: uniform_ratio, 7: uniform_ratio, 8: uniform_ratio, 9: uniform_ratio, 10: uniform_ratio}
                             ratio = size_ratios.get(evolution_level, 1.3)  # Default fallback
                             big_crop_value = int(small_crop_value * ratio)
                             frame = frame.crop((0, big_crop_value, frame_width, frame_height))
@@ -1309,10 +1310,21 @@ class AnimationCacheService:
 
     def invalidate_animation_cache(self, reason: str = "Manual invalidation"):
         """Manually invalidate the entire animation cache (for donation events or system updates)."""
+        # Clear memory cache
         cache_count = len(self._animation_memory_cache)
         self._animation_memory_cache.clear()
         self._last_cached_state = None
-        logger.info(f"Animation cache invalidated: {cache_count} entries cleared ({reason})")
+
+        # Also clear file caches (big animations) to ensure consistency
+        file_count = 0
+        for cache_file in self.cache_dir.glob("*.cache"):
+            try:
+                cache_file.unlink()
+                file_count += 1
+            except Exception as e:
+                logger.warning(f"Could not remove cache file {cache_file}: {e}")
+
+        logger.info(f"Animation cache invalidated: {cache_count} memory entries + {file_count} file caches cleared ({reason})")
 
     def get_cache_status(self) -> dict:
         """Get detailed cache status for monitoring and debugging."""
