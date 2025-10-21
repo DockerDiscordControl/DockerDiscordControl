@@ -368,7 +368,7 @@ class TranslationManager:
                 # Mech System translations (German)
                 "Mech-onate": "Mech-oniere",
                 "Donation Engine": "Spendergie",
-                "Click + to view Mech details": "Klicke auf Mech-Button um Details zu sehen",
+                "Click + to view Mech details": "Klicke auf **🔵 Mech-Button** um Details zu sehen",
                 "Mech Status": "Mech Status",
                 "Evolution": "Evolution",
                 "Level": "Level",
@@ -1176,7 +1176,7 @@ class TranslationManager:
                 # Mech System translations (French)
                 "Mech-onate": "Mech-onner",
                 "Donation Engine": "Donergie",
-                "Click + to view Mech details": "Cliquez sur le bouton Mech pour voir les détails",
+                "Click + to view Mech details": "Cliquez sur le **🔵 bouton Mech** pour voir les détails",
                 "Mech Status": "Statut du Mech",
                 "Evolution": "Évolution",
                 "Level": "Niveau",
@@ -1606,7 +1606,7 @@ class TranslationManager:
                 # Mech System translations (English)
                 "Mech-onate": "Mech-onate",
                 "Donation Engine": "Chargenate",
-                "Click + to view Mech details": "Click Mech button to view details",
+                "Click + to view Mech details": "Click **🔵 Mech button** to view details",
                 "Mech Status": "Mech Status",
                 "Evolution": "Evolution",
                 "Level": "Level",
