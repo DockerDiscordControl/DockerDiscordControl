@@ -1168,14 +1168,13 @@ class MechDetailsButton(Button):
                 )
                 return
 
-            # Create embed with mech details
+            # Create embed with mech details (no title to avoid large A-spacing)
             embed = discord.Embed(
-                title="Mech Status",
                 color=0x00ff88
             )
 
-            # Create one field with proper spacing using \n\n (avoids large A-spacing)
-            full_section = ""
+            # Create one field with title included (eliminates title A-spacing)
+            full_section = "Mech Status\n\n"
 
             # Level and Speed section
             if result.level_text:
