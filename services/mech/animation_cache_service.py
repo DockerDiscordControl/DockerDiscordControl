@@ -676,6 +676,27 @@ class AnimationCacheService:
 
         logger.info(f"Big mech animation pre-generation complete for {len(evolution_levels)} evolution levels")
 
+    def pre_generate_all_unified_animations(self):
+        """
+        Pre-generate ALL animations in BOTH resolutions (small + big) for unified cache.
+        Service First: Single method to populate complete animation cache.
+        """
+        logger.info("🚀 Pre-generating UNIFIED animation cache (small + big resolutions)...")
+
+        # Step 1: Generate all small animations (walk + rest)
+        logger.info("📦 Generating small resolution animations...")
+        self.pre_generate_all_animations()      # Walk animations
+        self.pre_generate_all_rest_animations() # Rest animations
+
+        # Step 2: Generate all big animations (walk + rest)
+        logger.info("📦 Generating big resolution animations...")
+        self.pre_generate_all_big_animations()  # Walk + Rest animations
+
+        logger.info("✅ Unified animation cache complete!")
+        logger.info("   • Small animations: walk + rest for all levels")
+        logger.info("   • Big animations: walk + rest for all levels")
+        logger.info("   • Consistent animation selection logic across resolutions")
+
     def get_animation_with_speed_and_power_big(self, evolution_level: int, speed_level: float, power_level: float = 1.0) -> bytes:
         """
         Get big mech animation with adjusted speed, automatically selecting rest vs walk based on power

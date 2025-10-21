@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 class MechAnimationRequest:
     """Represents a mech animation request."""
     force_power: Optional[float] = None  # Override power level for testing
+    resolution: str = "small"  # Animation resolution: "small" | "big"
 
 
 @dataclass
@@ -81,7 +82,7 @@ class MechWebService:
         Generate live mech animation based on current power level using cached system.
 
         Args:
-            request: MechAnimationRequest with optional power override
+            request: MechAnimationRequest with optional power override and resolution
 
         Returns:
             MechAnimationResult with animation bytes or error information
@@ -120,12 +121,17 @@ class MechWebService:
             speed_status = get_combined_mech_status(current_power)
             speed_level = speed_status['speed']['level']
 
-            # Get animation with power-based selection (walk vs rest)
-            animation_bytes = animation_service.get_animation_with_speed_and_power(evolution_level, speed_level, current_power)
+            # Get animation with power-based selection (walk vs rest) - unified service interface
+            if request.resolution == "big":
+                animation_bytes = animation_service.get_animation_with_speed_and_power_big(evolution_level, speed_level, current_power)
+                self.logger.debug(f"Using big animation for resolution: {request.resolution}")
+            else:
+                animation_bytes = animation_service.get_animation_with_speed_and_power(evolution_level, speed_level, current_power)
+                self.logger.debug(f"Using small animation for resolution: {request.resolution}")
 
             if animation_bytes:
-                # Reduce cache time for power-sensitive animations
-                cache_headers = {'Cache-Control': 'max-age=60'} if current_power <= 0 else {'Cache-Control': 'max-age=300'}
+                # TEMPORARY: Disable caching to force browser to load fresh animations after cache regeneration
+                cache_headers = {'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0'}
 
                 return MechAnimationResult(
                     success=True,
