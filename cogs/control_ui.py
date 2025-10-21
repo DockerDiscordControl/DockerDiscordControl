@@ -1168,42 +1168,40 @@ class MechDetailsButton(Button):
                 )
                 return
 
-            # Create embed with mech details
-            embed = discord.Embed(
-                title="Mech Status",
-                color=0x00ff88
-            )
-
-            # Create one field with proper spacing using \n\n (avoids large A-spacing)
-            full_section = ""
+            # Use embed.description instead of add_field() to eliminate A-spacing!
+            description_parts = []
 
             # Level and Speed section
             if result.level_text:
-                full_section += f"{result.level_text}\n"
+                description_parts.append(result.level_text)
             if result.speed_text:
-                full_section += f"{result.speed_text}\n"
+                description_parts.append(result.speed_text)
 
-            # Add spacing before power section (this was missing!)
-            full_section += "\n"
+            # Add spacing before power section
+            description_parts.append("")
 
             # Power section
             if result.power_text:
-                full_section += f"{result.power_text}\n"
+                description_parts.append(result.power_text)
             if result.power_bar:
-                full_section += f"`{result.power_bar}`\n"
+                description_parts.append(f"`{result.power_bar}`")
             if result.energy_consumption:
-                full_section += f"{result.energy_consumption}\n"
+                description_parts.append(result.energy_consumption)
 
             # Add spacing before evolution section
-            full_section += "\n"
+            description_parts.append("")
 
             # Evolution section
             if result.next_evolution and result.evolution_bar:
-                full_section += f"{result.next_evolution}\n"
-                full_section += f"`{result.evolution_bar}`"
+                description_parts.append(result.next_evolution)
+                description_parts.append(f"`{result.evolution_bar}`")
 
-            if full_section:
-                embed.add_field(name="\u200b", value=full_section, inline=False)
+            # Create embed with description (NO A-spacing!)
+            embed = discord.Embed(
+                title="Mech Status",
+                description="\n".join(description_parts),
+                color=0x00ff88
+            )
 
             embed.set_footer(text="https://ddc.bot")
 
