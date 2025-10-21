@@ -1170,7 +1170,7 @@ class MechDetailsButton(Button):
 
             # Create embed with mech details
             embed = discord.Embed(
-                title="🤖 Mech Status",
+                title="Mech Status",
                 color=0x00ff88
             )
 
