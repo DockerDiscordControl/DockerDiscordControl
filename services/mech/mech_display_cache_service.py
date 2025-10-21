@@ -220,10 +220,10 @@ class MechDisplayCacheService:
                 logger.debug(f"Unlocked image already exists for Level {evolution_level}")
                 return True
 
-            # Get animation with consistent display settings
-            animation_bytes = cache_service.get_animation_with_speed_and_power(
+            # Get animation with consistent display settings - BIG MECHS with SPEED 100
+            animation_bytes = cache_service.get_animation_with_speed_and_power_big(
                 evolution_level=evolution_level,
-                speed_level=50.0,  # Default speed for mech display
+                speed_level=100.0,  # Speed 100 for mech history display
                 power_level=100.0  # Display always shows active animations for unlocked mechs
             )
 
