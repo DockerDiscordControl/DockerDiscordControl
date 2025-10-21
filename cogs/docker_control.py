@@ -2185,8 +2185,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     else:
                         embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
 
-                # For collapsed view, only add a simple field name (no detailed info)
-                embed.add_field(name=translate("Donation Engine"), value="*" + translate("Click + to view Mech details") + "*", inline=False)
+                # For collapsed view, add instruction text with minimal spacing
+                embed.description = "*" + translate("Click + to view Mech details") + "*"
                 
                 # For collapsed view, use mech animation
                 if animation_file:
