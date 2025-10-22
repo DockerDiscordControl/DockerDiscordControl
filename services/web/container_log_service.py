@@ -14,6 +14,7 @@ for various log types including container logs, bot logs, Discord logs, and acti
 
 import os
 import logging
+import asyncio
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 from enum import Enum
@@ -102,21 +103,22 @@ class ContainerLogService:
                     status_code=400
                 )
 
-            # Step 2: Get Docker client and container
-            docker_client = self._get_docker_client()
-            if not docker_client:
-                return LogResult(
-                    success=False,
-                    error="Could not connect to Docker",
-                    status_code=500
-                )
-
-            # Step 3: Retrieve container logs
-            logs_content = self._fetch_container_logs(
-                docker_client,
-                request.container_name,
-                request.max_lines
-            )
+            # Step 2 & 3: Get logs using SERVICE FIRST pattern (async internally)
+            try:
+                # Try to get current event loop
+                loop = asyncio.get_running_loop()
+                # Create task for existing loop
+                task = loop.create_task(self._get_container_logs_service_first(
+                    request.container_name,
+                    request.max_lines
+                ))
+                logs_content = asyncio.run_coroutine_threadsafe(task, loop).result()
+            except RuntimeError:
+                # No event loop running, use asyncio.run()
+                logs_content = asyncio.run(self._get_container_logs_service_first(
+                    request.container_name,
+                    request.max_lines
+                ))
 
             if logs_content is None:
                 return LogResult(
@@ -241,21 +243,27 @@ class ContainerLogService:
             import re
             return bool(re.match(r'^[a-zA-Z0-9_.-]+$', container_name))
 
-    def _get_docker_client(self):
-        """Get Docker client with error handling."""
+    async def _get_docker_client_async(self):
+        """Get Docker client with SERVICE FIRST pattern."""
         try:
-            import docker
-            return docker.from_env()
+            # SERVICE FIRST: Use Docker Client Service
+            from services.docker_service.docker_client_pool import get_docker_client_async
+            return get_docker_client_async(operation='logs', timeout=30.0)
         except Exception as e:
-            self.logger.error(f"Failed to initialize Docker client: {e}")
+            self.logger.error(f"Failed to get Docker client: {e}")
             return None
 
-    def _fetch_container_logs(self, client, container_name: str, max_lines: int) -> Optional[str]:
-        """Fetch logs from Docker container with error handling."""
+    async def _fetch_container_logs_async(self, client, container_name: str, max_lines: int) -> Optional[str]:
+        """Fetch logs from Docker container with error handling using SERVICE FIRST pattern."""
         try:
             import docker
-            container = client.containers.get(container_name)
-            logs = container.logs(tail=max_lines, stdout=True, stderr=True)
+            import asyncio
+
+            # Use async thread execution for Docker API calls
+            container = await asyncio.to_thread(client.containers.get, container_name)
+            logs = await asyncio.to_thread(
+                lambda: container.logs(tail=max_lines, stdout=True, stderr=True)
+            )
             return logs.decode('utf-8', errors='replace')
 
         except docker.errors.NotFound:
@@ -267,6 +275,22 @@ class ContainerLogService:
         except Exception as e:
             self.logger.error(f"Error fetching container logs: {e}")
             raise
+
+    async def _get_container_logs_service_first(self, container_name: str, max_lines: int) -> Optional[str]:
+        """Get container logs using SERVICE FIRST Docker Client Service."""
+        try:
+            # Get Docker client using SERVICE FIRST pattern
+            client_context = await self._get_docker_client_async()
+            if not client_context:
+                return None
+
+            # Use the context manager for proper cleanup
+            async with client_context as client:
+                return await self._fetch_container_logs_async(client, container_name, max_lines)
+
+        except Exception as e:
+            self.logger.error(f"Error in SERVICE FIRST container logs: {e}")
+            return None
 
     def _get_bot_logs(self, max_lines: int) -> LogResult:
         """Get bot-specific logs with file fallback."""
@@ -343,12 +367,17 @@ class ContainerLogService:
     def _get_filtered_container_logs(self, max_lines: int, filter_patterns: List[str], no_logs_message: str) -> LogResult:
         """Get filtered logs from default container."""
         try:
-            docker_client = self._get_docker_client()
-            if not docker_client:
-                return LogResult(success=False, error="Could not connect to Docker", status_code=500)
-
+            # Get logs using SERVICE FIRST pattern (async internally)
             # Get more logs to ensure we have enough after filtering
-            logs_str = self._fetch_container_logs(docker_client, self.default_container, max_lines * 2)
+            try:
+                # Try to get current event loop
+                loop = asyncio.get_running_loop()
+                # Create task for existing loop
+                task = loop.create_task(self._get_container_logs_service_first(self.default_container, max_lines * 2))
+                logs_str = asyncio.run_coroutine_threadsafe(task, loop).result()
+            except RuntimeError:
+                # No event loop running, use asyncio.run()
+                logs_str = asyncio.run(self._get_container_logs_service_first(self.default_container, max_lines * 2))
             if logs_str is None:
                 return LogResult(success=False, error="Container not found", status_code=404)
 

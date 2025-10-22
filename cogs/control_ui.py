@@ -300,8 +300,9 @@ class ActionButton(Button):
 
             async def run_docker_action():
                 try:
-                    from services.docker_service.docker_utils import docker_action
-                    success = await docker_action(self.docker_name, self.action)
+                    # SERVICE FIRST: Use new Docker Action Service
+                    from services.docker_service.docker_action_service import docker_action_service_first
+                    success = await docker_action_service_first(self.docker_name, self.action)
                     logger.info(f"[ACTION_BTN] Docker {self.action} for '{self.display_name}' completed: success={success}")
 
                     # Thread-safe removal from pending_actions
@@ -1196,10 +1197,20 @@ class MechDetailsButton(Button):
                 description_parts.append(result.next_evolution)
                 description_parts.append(f"`{result.evolution_bar}`")
 
-            # Create embed with description (NO A-spacing!)
+            # Create embed with description (NO A-spacing!) - DISCORD LIMIT: 4096 chars
+            full_description = "\n".join(description_parts)
+
+            # Discord embed description limit is 4096 characters
+            if len(full_description) > 4096:
+                # Truncate but keep important information visible
+                truncated_description = full_description[:4000] + "\n\n*[Description truncated]*"
+                logger.warning(f"Mech description truncated: {len(full_description)} -> {len(truncated_description)} chars")
+            else:
+                truncated_description = full_description
+
             embed = discord.Embed(
                 title="Mech Status",
-                description="\n".join(description_parts),
+                description=truncated_description,
                 color=0x00ff88
             )
 
@@ -1211,12 +1222,20 @@ class MechDetailsButton(Button):
             # Attach animation if available
             files = []
             if result.animation_bytes and result.content_type:
+                # Create unique filename to prevent Discord caching issues
+                # Include level and power to ensure cache busting when mech evolves
+                from services.mech.mech_service import get_mech_service
+                mech_service = get_mech_service()
+                state = mech_service.get_state()
+                power_decimal = mech_service.get_power_with_decimals()
+                unique_filename = f"mech_level_{state.level}_power_{power_decimal:.2f}.webp"
+
                 file = discord.File(
                     io.BytesIO(result.animation_bytes),
-                    filename="mech_animation.webp"
+                    filename=unique_filename
                 )
                 files.append(file)
-                embed.set_image(url="attachment://mech_animation.webp")
+                embed.set_image(url=f"attachment://{unique_filename}")
 
             # Send the private message
             await interaction.followup.send(

@@ -22,7 +22,8 @@ from services.config.config_service import load_config
 
 # Config directory for tasks file
 CONFIG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "config"))
-from services.docker_service.docker_utils import docker_action
+# SERVICE FIRST: Use new Docker Action Service
+from services.docker_service.docker_action_service import docker_action_service_first
 from services.infrastructure.action_logger import log_user_action, user_action_logger
 
 # Central datetime imports
@@ -1378,7 +1379,7 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
                         logger.warning(f"Retrying task {task.task_id} with increased timeout {current_timeout}s")
                     
                     result = await asyncio.wait_for(
-                        docker_action(task.container_name, task.action),
+                        docker_action_service_first(task.container_name, task.action, timeout=current_timeout),
                         timeout=current_timeout
                     )
                     

@@ -28,7 +28,7 @@ from services.discord.channel_cleanup_service import get_channel_cleanup_service
 
 # Import our utility functions
 from services.config.config_service import load_config, get_config_service
-from services.docker_service.docker_utils import docker_action
+# SERVICE FIRST: docker_action moved to docker_action_service.py
 
 from utils.time_utils import format_datetime_with_timezone
 from utils.logging_utils import setup_logger
@@ -993,17 +993,19 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         try:
             await self.bot.wait_until_ready() # Ensure bot is ready before fetching channels
             
-            # Directly update the cache before waiting for loops
-            logger.info("Running status update once to populate the cache")
-            await self.status_update_loop()
-            logger.info("Initial cache update completed")
+            # PERFORMANCE OPTIMIZATION: Skip blocking cache population for faster startup
+            logger.info("Starting background cache population (non-blocking)")
 
-            # --- Added: 5-second delay ---
-            wait_seconds = 5
-            logger.info(f"Waiting {wait_seconds} seconds for cache loop to potentially run")
-            await asyncio.sleep(wait_seconds)
-            logger.info("Wait finished. Proceeding with initial status send")
-            # --- End delay ---
+            # Start cache population in background - don't block initial status send
+            if not hasattr(self, '_status_update_semaphore'):
+                self._status_update_semaphore = asyncio.Semaphore(1)
+
+            # Run cache update in background task
+            asyncio.create_task(self._background_cache_population())
+
+            logger.info("Background cache population scheduled - proceeding with status send")
+
+            logger.info("Proceeding with initial status send")
 
             current_config = load_config()
             if not current_config:
@@ -1089,6 +1091,57 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         finally:
             self.initial_messages_sent = True
             logger.info(f"send_initial_status finished. Initial messages sent flag set to True. Success: {initial_send_successful}")
+
+    async def _background_cache_population(self):
+        """Perform background cache population without blocking initial status send."""
+        try:
+            logger.info("Starting background cache population")
+
+            # Load configuration
+            config = load_config()
+            if not config:
+                logger.error("Background cache population: Could not load configuration.")
+                return
+
+            # Get container names from servers
+            servers = config.get('servers', [])
+            if not servers:
+                logger.info("Background cache population: No servers configured")
+                return
+
+            container_names = [s.get('docker_name') for s in servers if s.get('docker_name')]
+            if not container_names:
+                logger.info("Background cache population: No containers found")
+                return
+
+            logger.info(f"Background cache population: Processing {len(container_names)} containers")
+            start_time = time.time()
+
+            # Use semaphore for race condition protection (same as status_update_loop)
+            async with self._status_update_semaphore:
+                # Bulk fetch container status (same logic as status_update_loop)
+                results = await self.bulk_fetch_container_status(container_names)
+
+                success_count = 0
+                error_count = 0
+
+                # Update cache with results (same logic as status_update_loop)
+                for name, (status, data, error) in results.items():
+                    if status == 'success':
+                        self.status_cache[name] = {
+                            'data': data,
+                            'timestamp': datetime.now(timezone.utc)
+                        }
+                        success_count += 1
+                    else:
+                        logger.warning(f"Background cache population: Failed to fetch status for {name}. Error: {error}")
+                        error_count += 1
+
+                duration_ms = (time.time() - start_time) * 1000
+                logger.info(f"Background cache population completed: {success_count} success, {error_count} errors in {duration_ms:.1f}ms")
+
+        except Exception as e:
+            logger.error(f"Error during background cache population: {e}", exc_info=True)
 
     # _update_single_message WAS REMOVED
     # _update_single_server_message_by_name WAS REMOVED
@@ -1859,16 +1912,25 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Create mech animation with fallback
                 try:
                     from services.mech.animation_cache_service import get_animation_cache_service
-                    from services.mech.mech_evolutions import get_evolution_level
+                    from services.mech.speed_levels import get_combined_mech_status
 
-                    # Get animation cache service and calculate evolution level
+                    # Get animation cache service and use actual evolution level
                     cache_service = get_animation_cache_service()
-                    evolution_level = max(1, min(11, get_evolution_level(total_donations_received)))
+                    # UNIFICATION: Use actual mech level instead of calculating from donations
+                    evolution_level = mech_cache_result.level
+
+                    # SPEED UNIFICATION: Calculate actual speed level from current power (same as MechWebService/Status Overview)
+                    # SPECIAL CASE: Level 11 is maximum level - always use Speed Level 100 (same logic as all other services)
+                    if evolution_level >= 11:
+                        actual_speed_level = 100  # Level 11 always has maximum speed (divine speed)
+                    else:
+                        speed_status = get_combined_mech_status(current_Power)
+                        actual_speed_level = speed_status['speed']['level']
 
                     # Get animation bytes with power-based selection (REST if power=0, WALK if power>0)
                     animation_bytes = cache_service.get_animation_with_speed_and_power(
                         evolution_level=evolution_level,
-                        speed_level=50.0,  # Use default speed for expanded view
+                        speed_level=actual_speed_level,  # Use actual speed level (unified with Big Mech)
                         power_level=current_Power
                     )
 
@@ -2159,17 +2221,25 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Create mech animation with fallback
                 try:
                     from services.mech.animation_cache_service import get_animation_cache_service
-                    from services.mech.mech_evolutions import get_evolution_level
+                    from services.mech.speed_levels import get_combined_mech_status
 
-                    # Get animation cache service and calculate evolution level
+                    # Get animation cache service and use actual evolution level
                     cache_service = get_animation_cache_service()
-                    total_donated = mech_cache_result.total_donated
-                    evolution_level = max(1, min(11, get_evolution_level(total_donated)))
+                    # UNIFICATION: Use actual mech level instead of calculating from donations
+                    evolution_level = mech_cache_result.level
+
+                    # SPEED UNIFICATION: Calculate actual speed level from current power (same as MechWebService/Status Overview)
+                    # SPECIAL CASE: Level 11 is maximum level - always use Speed Level 100 (same logic as all other services)
+                    if evolution_level >= 11:
+                        actual_speed_level = 100  # Level 11 always has maximum speed (divine speed)
+                    else:
+                        speed_status = get_combined_mech_status(current_Power)
+                        actual_speed_level = speed_status['speed']['level']
 
                     # Get animation bytes with power-based selection (REST if power=0, WALK if power>0)
                     animation_bytes = cache_service.get_animation_with_speed_and_power(
                         evolution_level=evolution_level,
-                        speed_level=50.0,  # Use default speed for collapsed view
+                        speed_level=actual_speed_level,  # Use actual speed level (unified with Big Mech)
                         power_level=current_Power
                     )
 
@@ -2381,10 +2451,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                             if mech_cache_result.success:
                                 # Use cached glvl directly - no need for complex calculations
                                 current_glvl = mech_cache_result.glvl
+                                # BUGFIX: Extract current_Power from cache for power depletion check
+                                current_Power = mech_cache_result.power
                             else:
                                 current_glvl = 0
+                                current_Power = 0.0
                         except Exception as e:
                             logger.debug(f"Could not get current Glvl: {e}")
+                            # BUGFIX: Set fallback values if cache fails
+                            current_glvl = 0
+                            current_Power = 0.0
                         
                         # Check if Glvl changed significantly (>= 1 level difference) or power reached 0
                         glvl_changed = False
@@ -2617,28 +2693,33 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             
         logger.info(f"[STATUS_LOOP] Bulk updating cache for {len(container_names)} containers")
         start_time = time.time()
-            
+
         try:
-            # This function now guarantees a dict with 3-element tuples as values
-            results = await self.bulk_fetch_container_status(container_names)
-            
-            success_count = 0
-            error_count = 0
-            
-            # This loop is now safe and will not cause a ValueError
-            for name, (status, data, error) in results.items():
-                if status == 'success':
-                    self.status_cache[name] = {
-                        'data': data,
-                        'timestamp': datetime.now(timezone.utc)
-                    }
-                    success_count += 1
-                else:
-                    logger.warning(f"[STATUS_LOOP] Failed to fetch status for {name}. Error: {error}")
-                    error_count += 1
-            
-            duration_ms = (time.time() - start_time) * 1000
-            logger.info(f"[STATUS_LOOP] Cache updated: {success_count} success, {error_count} errors in {duration_ms:.1f}ms")
+            # RACE CONDITION PROTECTION: Use semaphore to prevent concurrent status updates
+            if not hasattr(self, '_status_update_semaphore'):
+                self._status_update_semaphore = asyncio.Semaphore(1)
+
+            async with self._status_update_semaphore:
+                # This function now guarantees a dict with 3-element tuples as values
+                results = await self.bulk_fetch_container_status(container_names)
+
+                success_count = 0
+                error_count = 0
+
+                # This loop is now safe and will not cause a ValueError
+                for name, (status, data, error) in results.items():
+                    if status == 'success':
+                        self.status_cache[name] = {
+                            'data': data,
+                            'timestamp': datetime.now(timezone.utc)
+                        }
+                        success_count += 1
+                    else:
+                        logger.warning(f"[STATUS_LOOP] Failed to fetch status for {name}. Error: {error}")
+                        error_count += 1
+
+                duration_ms = (time.time() - start_time) * 1000
+                logger.info(f"[STATUS_LOOP] Cache updated: {success_count} success, {error_count} errors in {duration_ms:.1f}ms")
                 
         except Exception as e:
             logger.error(f"[STATUS_LOOP] Unexpected error during status update loop: {e}", exc_info=True)
@@ -2664,24 +2745,106 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         """Wait until the bot is ready before starting the mech cache."""
         await self.bot.wait_until_ready()
 
-    # --- Initial Animation Cache Warmup ---
+    # --- Initial Animation Cache Warmup (NON-BLOCKING OPTIMIZATION) ---
     @tasks.loop(count=1)  # Only run once to perform initial cache warmup
     async def initial_animation_cache_warmup(self):
-        """Perform initial animation cache warmup on startup."""
+        """Perform initial animation cache warmup in background after startup completes."""
         try:
+            # PERFORMANCE OPTIMIZATION: Let startup complete first, then cache in background
+            logger.info("Scheduling animation cache warmup in background (startup optimization)")
+
+            # Wait for bot to be fully ready and operational
+            await self.bot.wait_until_ready()
+
+            # Additional delay to ensure Discord channels are loaded and bot is responsive
+            await asyncio.sleep(15)  # Let all startup processes complete first
+
+            logger.info("Starting background animation cache warmup...")
+
             from services.mech.animation_cache_service import get_animation_cache_service
             animation_cache = get_animation_cache_service()
 
-            logger.info("Starting initial animation cache warmup...")
-            await animation_cache.perform_initial_cache_warmup()
-            logger.info("Initial animation cache warmup completed successfully")
+            # Run cache warmup with parallel optimization
+            await self._perform_optimized_cache_warmup(animation_cache)
+
+            logger.info("Background animation cache warmup completed successfully")
         except Exception as e:
-            logger.error(f"Failed to perform initial animation cache warmup: {e}", exc_info=True)
+            logger.error(f"Failed to perform background animation cache warmup: {e}", exc_info=True)
+
+    async def _perform_optimized_cache_warmup(self, animation_cache):
+        """Perform cache warmup with parallel processing for better performance."""
+        try:
+            # Get current mech status for cache warmup
+            from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+            from services.mech.speed_levels import get_combined_mech_status
+
+            cache_service = get_mech_status_cache_service()
+            cache_request = MechStatusCacheRequest(include_decimals=True)
+            mech_result = cache_service.get_cached_status(cache_request)
+
+            if not mech_result.success:
+                logger.warning("Could not get mech status for optimized warmup - using fallback")
+                # Use fallback: cache current level animation
+                await animation_cache.perform_initial_cache_warmup()
+                return
+
+            current_level = mech_result.level
+            current_power = mech_result.power
+
+            # Calculate current speed level
+            if current_level >= 11:
+                current_speed_level = 100  # Level 11 always has maximum speed
+            else:
+                speed_status = get_combined_mech_status(current_power)
+                current_speed_level = speed_status['speed']['level']
+
+            logger.info(f"Optimized cache warmup: Level {current_level}, Power {current_power:.2f}, Speed {current_speed_level}")
+
+            # PARALLEL OPTIMIZATION: Generate small and big animations simultaneously
+            small_task = asyncio.create_task(
+                self._cache_small_animation_async(animation_cache, current_level, current_speed_level, current_power)
+            )
+            big_task = asyncio.create_task(
+                self._cache_big_animation_async(animation_cache, current_level, current_speed_level, current_power)
+            )
+
+            # Wait for both to complete in parallel (much faster than serial)
+            await asyncio.gather(small_task, big_task, return_exceptions=True)
+
+        except Exception as e:
+            logger.error(f"Error in optimized cache warmup: {e}")
+            # Fallback to original implementation
+            await animation_cache.perform_initial_cache_warmup()
+
+    async def _cache_small_animation_async(self, animation_cache, level, speed_level, power):
+        """Cache small animation asynchronously."""
+        try:
+            logger.debug(f"Parallel caching: Small animation Level {level}, Speed {speed_level}")
+            # Run in thread pool to avoid blocking the event loop
+            await asyncio.to_thread(
+                animation_cache.get_animation_with_speed_and_power, level, speed_level, power
+            )
+            logger.debug(f"Completed: Small animation Level {level}")
+        except Exception as e:
+            logger.warning(f"Failed to cache small animation: {e}")
+
+    async def _cache_big_animation_async(self, animation_cache, level, speed_level, power):
+        """Cache big animation asynchronously."""
+        try:
+            logger.debug(f"Parallel caching: Big animation Level {level}, Speed {speed_level}")
+            # Run in thread pool to avoid blocking the event loop
+            await asyncio.to_thread(
+                animation_cache.get_animation_with_speed_and_power_big, level, speed_level, power
+            )
+            logger.debug(f"Completed: Big animation Level {level}")
+        except Exception as e:
+            logger.warning(f"Failed to cache big animation: {e}")
 
     @initial_animation_cache_warmup.before_loop
     async def before_initial_animation_cache_warmup(self):
-        """Wait until the bot is ready before starting the cache warmup."""
-        await self.bot.wait_until_ready()
+        """Minimal delay before starting background cache warmup."""
+        # No additional wait needed - the loop itself handles timing
+        pass
 
     # --- Inactivity Check Loop ---
     @tasks.loop(seconds=30)
