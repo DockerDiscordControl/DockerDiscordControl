@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 # ============================================================================ #
-# DockerDiscordControl (DDC) - Docker Client Connection Pool                  #
+# DockerDiscordControl (DDC) - Docker Client Service (SERVICE FIRST)         #
 # https://ddc.bot                                                              #
 # Copyright (c) 2025 MAX                                                  #
 # Licensed under the MIT License                                               #
 # ============================================================================ #
 """
-Optimized Docker client connection pooling for better performance.
-Reuses connections instead of creating new ones for each request.
+SERVICE FIRST Docker client connection service with intelligent pooling.
+Provides Docker client access with proper performance monitoring and caching.
 """
 
 import docker
@@ -19,8 +19,72 @@ from typing import Optional
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
-logger = logging.getLogger('ddc.docker_pool')
+logger = logging.getLogger('ddc.docker_client_service')
 
+
+# ============================================================================ #
+# SERVICE FIRST REQUEST/RESULT DATACLASSES                                     #
+# ============================================================================ #
+
+@dataclass(frozen=True)
+class DockerClientRequest:
+    """Request for Docker client access."""
+    operation: str = 'default'  # 'stats', 'info', 'action', 'list', etc.
+    container_name: Optional[str] = None
+    timeout_seconds: float = 30.0
+    priority: str = 'normal'  # 'low', 'normal', 'high'
+
+@dataclass(frozen=True)
+class DockerClientResult:
+    """Result of Docker client request."""
+    success: bool
+    client: Optional[docker.DockerClient] = None
+    error_message: Optional[str] = None
+    error_type: Optional[str] = None  # 'timeout', 'connection_failed', 'config_error'
+
+    # Performance metadata
+    queue_wait_time_ms: float = 0.0
+    connection_time_ms: float = 0.0
+    total_time_ms: float = 0.0
+
+    # Pool statistics
+    pool_size: int = 0
+    active_connections: int = 0
+    queue_depth: int = 0
+
+@dataclass(frozen=True)
+class DockerPoolStatsRequest:
+    """Request for Docker pool statistics."""
+    include_performance_history: bool = False
+
+@dataclass(frozen=True)
+class DockerPoolStatsResult:
+    """Result containing Docker pool statistics."""
+    success: bool
+
+    # Current pool state
+    total_connections: int = 0
+    active_connections: int = 0
+    available_connections: int = 0
+    queue_size: int = 0
+    max_connections: int = 0
+
+    # Performance statistics
+    total_requests: int = 0
+    successful_requests: int = 0
+    failed_requests: int = 0
+    timeout_requests: int = 0
+    average_wait_time_ms: float = 0.0
+    max_queue_size_reached: int = 0
+
+    # Optional performance history
+    performance_history: Optional[dict] = None
+    error_message: Optional[str] = None
+
+
+# ============================================================================ #
+# INTERNAL QUEUE MANAGEMENT                                                     #
+# ============================================================================ #
 
 @dataclass
 class QueueRequest:
@@ -31,8 +95,17 @@ class QueueRequest:
     future: asyncio.Future
 
 
-class DockerClientPool:
-    """Async Docker client connection pool with intelligent queue system."""
+class DockerClientService:
+    """
+    SERVICE FIRST Docker client service with intelligent connection pooling.
+
+    Features:
+    - Request/Result pattern for consistent API
+    - Intelligent connection pooling with queue management
+    - Performance monitoring and statistics
+    - Automatic connection health checking
+    - Smart timeout configuration from docker_config.json
+    """
     
     def __init__(self, max_connections: int = 3, timeout: int = 300):
         self._pool = []
@@ -59,6 +132,170 @@ class DockerClientPool:
         
         # Start queue processor
         self._start_queue_processor()
+
+    # ========================================================================= #
+    # SERVICE FIRST API METHODS                                                #
+    # ========================================================================= #
+
+    async def get_docker_client_service(self, request: DockerClientRequest) -> DockerClientResult:
+        """
+        SERVICE FIRST method to get Docker client access.
+
+        Args:
+            request: DockerClientRequest with operation details
+
+        Returns:
+            DockerClientResult with client or error information
+        """
+        start_time = time.time()
+        request_id = f"{id(self)}_{time.time()}"
+
+        try:
+            logger.debug(f"[SERVICE] Request {request_id}: Getting Docker client for {request.operation} operation")
+
+            # Update pool statistics
+            queue_size = self._queue.qsize()
+            self._queue_stats['total_requests'] += 1
+
+            # Try immediate acquisition first (fast path)
+            try:
+                client = await self._try_immediate_acquire()
+                if client:
+                    connection_time = (time.time() - start_time) * 1000
+                    logger.debug(f"[SERVICE] Request {request_id}: Fast path success in {connection_time:.1f}ms")
+
+                    return DockerClientResult(
+                        success=True,
+                        client=client,
+                        queue_wait_time_ms=0.0,
+                        connection_time_ms=connection_time,
+                        total_time_ms=connection_time,
+                        pool_size=len(self._pool),
+                        active_connections=len(self._in_use),
+                        queue_depth=queue_size
+                    )
+            except Exception as e:
+                logger.debug(f"[SERVICE] Request {request_id}: Fast path failed: {e}. Using queue.")
+
+            # Queue the request (slow path)
+            future = asyncio.Future()
+            queue_request = QueueRequest(
+                request_id=request_id,
+                timestamp=time.time(),
+                timeout=request.timeout_seconds,
+                future=future
+            )
+
+            logger.debug(f"[SERVICE] Request {request_id}: Queued at position {queue_size + 1}")
+            await self._queue.put(queue_request)
+
+            try:
+                # Wait for the client with generous queue timeout
+                queue_timeout = max(90.0, request.timeout_seconds * 3)
+                client = await asyncio.wait_for(future, timeout=queue_timeout)
+
+                total_time = (time.time() - start_time) * 1000
+                queue_wait_time = total_time  # Since this was queued, most time was waiting
+
+                return DockerClientResult(
+                    success=True,
+                    client=client,
+                    queue_wait_time_ms=queue_wait_time,
+                    connection_time_ms=0.0,  # Already connected when returned from queue
+                    total_time_ms=total_time,
+                    pool_size=len(self._pool),
+                    active_connections=len(self._in_use),
+                    queue_depth=self._queue.qsize()
+                )
+
+            except asyncio.TimeoutError:
+                total_wait = time.time() - start_time
+                error_msg = f"Request timed out after {total_wait:.1f}s total wait (queue_timeout was {queue_timeout}s)"
+                logger.warning(f"[SERVICE] Request {request_id}: TIMEOUT - {error_msg}")
+
+                self._queue_stats['timeouts'] += 1
+                return DockerClientResult(
+                    success=False,
+                    error_message=error_msg,
+                    error_type="timeout",
+                    total_time_ms=(time.time() - start_time) * 1000,
+                    pool_size=len(self._pool),
+                    active_connections=len(self._in_use),
+                    queue_depth=self._queue.qsize()
+                )
+
+        except Exception as e:
+            total_time = (time.time() - start_time) * 1000
+            error_msg = f"Unexpected error getting Docker client: {e}"
+            logger.error(f"[SERVICE] Request {request_id}: ERROR - {error_msg}")
+
+            return DockerClientResult(
+                success=False,
+                error_message=error_msg,
+                error_type="service_error",
+                total_time_ms=total_time,
+                pool_size=len(self._pool),
+                active_connections=len(self._in_use),
+                queue_depth=self._queue.qsize()
+            )
+
+    async def release_docker_client_service(self, client: docker.DockerClient) -> bool:
+        """
+        SERVICE FIRST method to release Docker client back to pool.
+
+        Args:
+            client: Docker client to release
+
+        Returns:
+            True if successfully released, False otherwise
+        """
+        try:
+            await self._release_client_async(client)
+            return True
+        except Exception as e:
+            logger.error(f"Error releasing Docker client: {e}")
+            return False
+
+    async def get_pool_stats_service(self, request: DockerPoolStatsRequest) -> DockerPoolStatsResult:
+        """
+        SERVICE FIRST method to get Docker pool statistics.
+
+        Args:
+            request: DockerPoolStatsRequest
+
+        Returns:
+            DockerPoolStatsResult with pool statistics
+        """
+        try:
+            stats = self.get_queue_stats()
+
+            result = DockerPoolStatsResult(
+                success=True,
+                total_connections=stats['available_clients'] + stats['clients_in_use'],
+                active_connections=stats['clients_in_use'],
+                available_connections=stats['available_clients'],
+                queue_size=stats['current_queue_size'],
+                max_connections=stats['max_connections'],
+                total_requests=stats['total_requests'],
+                successful_requests=stats['total_requests'] - stats['timeouts'],
+                failed_requests=stats['timeouts'],
+                timeout_requests=stats['timeouts'],
+                average_wait_time_ms=stats['average_wait_time'] * 1000,  # Convert to ms
+                max_queue_size_reached=stats['max_queue_size']
+            )
+
+            if request.include_performance_history:
+                result = DockerPoolStatsResult(
+                    **{**result.__dict__, 'performance_history': stats}
+                )
+
+            return result
+
+        except Exception as e:
+            return DockerPoolStatsResult(
+                success=False,
+                error_message=str(e)
+            )
     
     def _start_queue_processor(self):
         """Start the background queue processor."""
@@ -254,10 +491,40 @@ class DockerClientPool:
             return None
     
     async def _create_new_client_async(self) -> docker.DockerClient:
-        """Create a new Docker client async."""
-        client = await asyncio.to_thread(docker.from_env)
-        self._in_use.append(client)
-        return client
+        """Create a new Docker client async with proper Docker configuration."""
+        try:
+            # Load Docker configuration from config files (like the old working version)
+            from services.config.config_service import load_config
+            config = load_config()
+            docker_config = config.get('docker_config', {})
+            socket_path = docker_config.get('docker_socket_path', '/var/run/docker.sock')
+
+            # Create client with configured socket path (like old working implementation)
+            client = await asyncio.to_thread(
+                docker.DockerClient,
+                base_url=f'unix://{socket_path}',
+                timeout=30
+            )
+
+            # Test the connection immediately
+            await asyncio.to_thread(client.ping)
+
+            self._in_use.append(client)
+            logger.debug(f"Created Docker client with socket: {socket_path}")
+            return client
+
+        except Exception as e:
+            logger.warning(f"Failed to create Docker client with config socket: {e}")
+            # Fallback to docker.from_env (original behavior)
+            try:
+                client = await asyncio.to_thread(docker.from_env)
+                await asyncio.to_thread(client.ping)  # Test connection
+                self._in_use.append(client)
+                logger.debug("Created Docker client with docker.from_env fallback")
+                return client
+            except Exception as e2:
+                logger.error(f"All Docker client creation methods failed: config={e}, from_env={e2}")
+                raise e2
     
     async def _release_client_async(self, client: docker.DockerClient):
         """Release a client back to the pool async."""
@@ -330,22 +597,94 @@ class DockerClientPool:
             self._queue_processor_task = None
 
 
-# Global singleton pool
-_docker_pool = None
-_pool_lock = threading.Lock()
+# ============================================================================ #
+# SERVICE FIRST GLOBAL SERVICE INSTANCE                                        #
+# ============================================================================ #
+
+# Global singleton service instance
+_docker_client_service: Optional[DockerClientService] = None
+_service_lock = threading.Lock()
 
 
-def get_docker_pool() -> DockerClientPool:
-    """Get the global Docker client pool."""
-    global _docker_pool
-    
-    if _docker_pool is None:
-        with _pool_lock:
-            if _docker_pool is None:
-                _docker_pool = DockerClientPool()
-    
-    return _docker_pool
+def get_docker_client_service() -> DockerClientService:
+    """
+    Get the global Docker client service instance (SERVICE FIRST pattern).
+
+    Returns:
+        DockerClientService: Global singleton service instance
+    """
+    global _docker_client_service
+
+    if _docker_client_service is None:
+        with _service_lock:
+            if _docker_client_service is None:
+                _docker_client_service = DockerClientService()
+                logger.info("Docker Client Service initialized (SERVICE FIRST)")
+
+    return _docker_client_service
 
 
-# Modern async-only API
-# All functions now use pool.get_client_async() for optimal performance
+# ============================================================================ #
+# BACKWARD COMPATIBILITY LAYER                                                 #
+# ============================================================================ #
+
+# Deprecated get_docker_pool() function removed - use get_docker_client_service() instead
+
+
+# ============================================================================ #
+# CONVENIENCE CONTEXT MANAGER FOR BACKWARD COMPATIBILITY                      #
+# ============================================================================ #
+
+@asynccontextmanager
+async def get_docker_client_async(timeout: float = 30.0, operation: str = 'default', container_name: str = None):
+    """
+    Backward compatibility async context manager for Docker client access.
+    FALLBACK: Uses simple docker.from_env() until SERVICE FIRST is fully stable.
+
+    Args:
+        timeout: Operation timeout in seconds
+        operation: Operation type for optimization
+        container_name: Container name for type-specific optimization
+
+    Yields:
+        docker.DockerClient: Docker client instance
+    """
+    # TEMPORARY FALLBACK: Use direct docker.from_env() for stability
+    client = None
+    try:
+        # Load Docker configuration like the old working version
+        from services.config.config_service import load_config
+        config = load_config()
+        docker_config = config.get('docker_config', {})
+        socket_path = docker_config.get('docker_socket_path', '/var/run/docker.sock')
+
+        try:
+            # Method 1: Try configured socket path
+            client = await asyncio.to_thread(
+                docker.DockerClient,
+                base_url=f'unix://{socket_path}',
+                timeout=int(timeout)
+            )
+            await asyncio.to_thread(client.ping)
+            logger.debug(f"Docker client created with configured socket: {socket_path}")
+
+        except Exception as e1:
+            logger.debug(f"Configured socket failed ({socket_path}): {e1}")
+            try:
+                # Method 2: Fallback to docker.from_env
+                client = await asyncio.to_thread(docker.from_env, timeout=int(timeout))
+                await asyncio.to_thread(client.ping)
+                logger.debug("Docker client created with docker.from_env fallback")
+
+            except Exception as e2:
+                logger.error(f"All Docker client methods failed: config={e1}, from_env={e2}")
+                raise RuntimeError(f"Docker connection failed: {e2}")
+
+        yield client
+
+    finally:
+        if client:
+            try:
+                await asyncio.to_thread(client.close)
+            except:
+                pass

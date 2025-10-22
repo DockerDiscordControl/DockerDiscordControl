@@ -179,19 +179,8 @@ _initial_startup_done = False
 
 # Autocomplete functions removed - commands now use UI buttons instead
 
-# Function to set up application commands with slash command choices and autocomplete
-def setup_app_commands():
-    try:
-        logger.info("Setting up application commands with choices and autocomplete...")
-        
-        # All container control and info editing is now handled through Discord UI buttons
-        # Deprecated slash commands have been removed in favor of the UI-based approach
-        logger.info("Skipping deprecated slash command registration - using UI buttons instead")
-    
-    except Exception as e:
-        logger.error(f"Error setting up application commands: {e}", exc_info=True)
-
-# Add the improved setup_schedule_commands function after the setup_app_commands function
+# All container control and info editing is now handled through Discord UI buttons
+# Deprecated slash commands have been removed in favor of the UI-based approach
 def setup_schedule_commands():
     """Register schedule commands directly from the DockerControlCog.
     This improved implementation avoids duplicate command registration.
@@ -276,8 +265,7 @@ async def on_ready():
         except Exception as e:
             logger.error(f"Error loading extension 'cogs.docker_control': {e}", exc_info=True)
             
-        # Setup command and autocomplete
-        setup_app_commands()
+        # Commands now use Discord UI buttons instead of slash commands
         
         # Improve the direct registration of schedule commands with autocomplete support
         logger.info("Attempting direct registration of schedule commands...")

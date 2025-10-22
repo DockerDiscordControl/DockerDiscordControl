@@ -102,10 +102,18 @@ class MechWebService:
                 current_power = request.force_power if request.force_power is not None else 100.0  # Default high power
                 self.logger.debug(f"Live mech animation request with force_evolution_level: {evolution_level}, power: {current_power}")
             elif request.force_power is not None:
-                # Use force_power for testing
+                # Use force_power for testing, but get actual level from mech state
                 current_power = request.force_power
-                evolution_level = max(1, min(11, get_evolution_level(current_power)))
-                self.logger.debug(f"Live mech animation request with force_power: {current_power}")
+
+                # BUGFIX: Use actual mech level instead of calculating from power
+                # get_evolution_level() calculates based on thresholds, but actual level
+                # can be different (e.g., Level 3 with Power 2.97 after decay)
+                from services.mech.mech_service import get_mech_service
+                mech_service = get_mech_service()
+                actual_state = mech_service.get_state()
+                evolution_level = actual_state.level
+
+                self.logger.debug(f"Live mech animation request with force_power: {current_power}, actual_level: {evolution_level}")
             else:
                 # Use cached mech status (30-second background refresh)
                 cache_service = get_mech_status_cache_service()
@@ -124,8 +132,13 @@ class MechWebService:
             animation_service = get_animation_cache_service()
 
             # Calculate speed level from current power (same logic as MechStatusDetailsService)
-            speed_status = get_combined_mech_status(current_power)
-            speed_level = speed_status['speed']['level']
+            # SPECIAL CASE: Level 11 is maximum level - always use Speed Level 100 (maximum animation speed)
+            if evolution_level >= 11:
+                speed_level = 100  # Level 11 always has maximum speed (divine speed)
+                self.logger.debug(f"Level 11 using maximum speed level: {speed_level}")
+            else:
+                speed_status = get_combined_mech_status(current_power)
+                speed_level = speed_status['speed']['level']
 
             # Get animation with power-based selection (walk vs rest) - unified service interface
             if request.resolution == "big":

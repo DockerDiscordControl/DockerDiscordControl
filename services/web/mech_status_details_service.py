@@ -77,32 +77,52 @@ class MechStatusDetailsService:
                 power_decimal = mech_service.get_power_with_decimals()
 
                 # Get speed description
-                speed_description = self._get_speed_description(state.Power)
+                # SPECIAL CASE: Level 11 is maximum level - always show "Göttlich" (no more speed changes)
+                if state.level >= 11:
+                    speed_description = "Göttlich"  # Level 11 is final level with static divine speed
+                else:
+                    speed_description = self._get_speed_description(state.Power)
 
                 # Format level text
                 level_text = f"{state.level_name} (Level {state.level})"
 
                 # Create power progress bar
-                power_bar = self._create_progress_bar(
-                    state.bars.Power_current,
-                    state.bars.Power_max_for_level
-                )
+                # SPECIAL CASE: Level 11 is maximum level - show infinity instead of speed bar
+                if state.level >= 11:
+                    # For maximum level, show "reached infinity" message with appreciation (divine perfection achieved)
+                    power_bar = self._get_infinity_message()
+                else:
+                    # Normal level progression
+                    power_bar = self._create_progress_bar(
+                        state.bars.Power_current,
+                        state.bars.Power_max_for_level
+                    )
             else:
                 # Use cached data - much faster!
                 power_decimal = cached_result.power
 
                 # Get speed description from cache (already calculated)
-                speed_description = cached_result.speed_description if cached_result.speed_description else self._get_speed_description(int(power_decimal))
+                # SPECIAL CASE: Level 11 is maximum level - always show "Göttlich" (no more speed changes)
+                if cached_result.level >= 11:
+                    speed_description = "Göttlich"  # Level 11 is final level with static divine speed
+                else:
+                    speed_description = cached_result.speed_description if cached_result.speed_description else self._get_speed_description(int(power_decimal))
 
                 # Format level text (cache has 'name' not 'level_name')
                 level_text = f"{cached_result.name} (Level {cached_result.level})"
 
                 # Create power progress bar from cache
                 if cached_result.bars and hasattr(cached_result.bars, 'Power_current'):
-                    power_bar = self._create_progress_bar(
-                        cached_result.bars.Power_current,
-                        cached_result.bars.Power_max_for_level
-                    )
+                    # SPECIAL CASE: Level 11 is maximum level - show infinity instead of speed bar
+                    if cached_result.level >= 11:
+                        # For maximum level, show "reached infinity" message with appreciation (divine perfection achieved)
+                        power_bar = self._get_infinity_message()
+                    else:
+                        # Normal level progression
+                        power_bar = self._create_progress_bar(
+                            cached_result.bars.Power_current,
+                            cached_result.bars.Power_max_for_level
+                        )
                 else:
                     # Fallback progress bar calculation
                     current_progress = int((power_decimal % 1.0) * 100)
@@ -114,8 +134,12 @@ class MechStatusDetailsService:
             # Format power with decimals
             power_text = f"⚡{power_decimal:.2f}"
 
-            # Format energy consumption (simplified)
-            energy_consumption = "Energieverbrauch: 🔻 1.0/t"
+            # Format energy consumption (simplified) - Level 11 has no energy consumption
+            current_level = cached_result.level if cached_result.success else state.level
+            if current_level >= 11:
+                energy_consumption = None  # Maximum level has no energy consumption
+            else:
+                energy_consumption = "Energieverbrauch: 🔻 1.0/t"
 
             # Format next evolution
             next_evolution = None
@@ -204,6 +228,48 @@ class MechStatusDetailsService:
         except Exception as e:
             logger.debug(f"Error creating progress bar: {e}")
             return "░" * length + " 0.0%"
+
+    def _get_infinity_message(self) -> str:
+        """Get Level 11 infinity message using the existing translation system."""
+        try:
+            # Use existing translation system from speed_levels.py
+            from services.mech.speed_levels import SPEED_TRANSLATIONS
+
+            # Get current language (same logic as existing system)
+            try:
+                from services.config.config_service import load_config
+
+                config = load_config()
+                if config:
+                    language = config.get('language', 'en').lower()
+                    if language not in ['en', 'de', 'fr']:
+                        language = 'en'
+                else:
+                    language = 'en'
+            except:
+                language = 'en'
+
+            # Get infinity message using existing translation structure
+            if SPEED_TRANSLATIONS and 'infinity_messages' in SPEED_TRANSLATIONS:
+                infinity_messages = SPEED_TRANSLATIONS['infinity_messages']
+                level_11_messages = infinity_messages.get('level_11', {})
+                message = level_11_messages.get(language, level_11_messages.get('en', "∞ reached infinity, Thank you! 🖤"))
+
+                logger.debug(f"Level 11 infinity message ({language}): {message}")
+                return message
+
+            # Fallback if translation system unavailable
+            fallback_messages = {
+                'en': "∞ reached infinity, Thank you! 🖤",
+                'de': "∞ Unendlichkeit erreicht, Danke! 🖤",
+                'fr': "∞ infini atteint, Merci ! 🖤"
+            }
+            return fallback_messages.get(language, fallback_messages['en'])
+
+        except Exception as e:
+            logger.debug(f"Error getting infinity message: {e}")
+            # Fallback to German (current default)
+            return "∞ Unendlichkeit erreicht, Danke! 🖤"
 
     def _get_next_level_info(self, level: int) -> Optional[Dict[str, Any]]:
         """Get next level information."""

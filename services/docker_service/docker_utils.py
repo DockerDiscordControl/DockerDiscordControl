@@ -16,7 +16,7 @@ logger = setup_logger('ddc.docker_utils', level=logging.INFO)
 
 # Import the modern async connection pool
 try:
-    from .docker_client_pool import get_docker_pool
+    from .docker_client_pool import get_docker_client_service
     USE_CONNECTION_POOL = True
     logger.info("Modern Async Docker Queue System enabled for optimal performance")
 except ImportError:
@@ -341,8 +341,9 @@ def get_docker_client_async(timeout: float = None, operation: str = 'default', c
         timeout = get_smart_timeout(operation, container_name)
     if USE_CONNECTION_POOL:
         try:
-            pool = get_docker_pool()
-            return pool.get_client_async(timeout=timeout)
+            # SERVICE FIRST: Use new Docker Client Service with backward compatibility context manager
+            from .docker_client_pool import get_docker_client_async
+            return get_docker_client_async(timeout=timeout, operation=operation, container_name=container_name)
         except Exception as e:
             logger.warning(f"Connection pool failed, falling back: {e}")
     
@@ -367,23 +368,14 @@ def get_docker_client_async(timeout: float = None, operation: str = 'default', c
 def get_docker_client():
     """
     Get Docker client with immediate fallback and connection caching.
-    
+
     NEW: Uses connection pool if available for better performance.
     Falls back to legacy single client implementation.
-    
+
     Returns None if all methods fail.
     """
-    # NEW: Try connection pool first (optimal performance)
-    if USE_CONNECTION_POOL:
-        try:
-            # For backward compatibility, we need to return a direct client
-            # since existing code expects client.containers.list() etc.
-            pool = get_docker_pool()
-            client = pool._acquire_client()
-            return client
-        except Exception as e:
-            logger.warning(f"Connection pool failed, falling back to legacy client: {e}")
-    
+    # NOTE: Connection pool doesn't have a sync _acquire_client method
+    # Use legacy implementation for backward compatibility
     # LEGACY: Single client implementation (kept for compatibility)
     global _docker_client, _client_last_used
     
@@ -440,7 +432,7 @@ def release_docker_client(client=None):
     """
     if USE_CONNECTION_POOL and client:
         try:
-            pool = get_docker_pool()
+            pool = get_docker_client_service()
             pool._release_client(client)
             logger.debug("Released Docker client back to connection pool")
         except Exception as e:

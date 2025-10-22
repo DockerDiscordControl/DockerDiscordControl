@@ -510,5 +510,12 @@
       "de": "REALITÄTSBIEGENDE ALLGESCHWINDIGKEIT",
       "fr": "OMNIVITESSE DÉFORMANT LA RÉALITÉ"
     }
+  },
+  "infinity_messages": {
+    "level_11": {
+      "en": "∞ reached infinity, Thank you! 🖤",
+      "de": "∞ Unendlichkeit erreicht, Danke! 🖤",
+      "fr": "∞ infini atteint, Merci ! 🖤"
+    }
   }
 }

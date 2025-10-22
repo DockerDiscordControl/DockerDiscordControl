@@ -28,7 +28,11 @@
       "Bash(do echo \"=== $mech ===\")",
       "Bash(ls:*)",
       "Bash(done)",
-      "Bash(docker exec:*)"
+      "Bash(docker exec:*)",
+      "Bash(env)",
+      "Bash(git log:*)",
+      "Bash(timeout 60 DDC_WEB_PORT=5001 python3:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []

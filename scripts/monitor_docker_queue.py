@@ -16,13 +16,14 @@ sys.path.append(str(Path(__file__).parent.parent))
 def monitor_queue():
     """Monitor Docker queue statistics in real-time."""
     try:
-        from services.docker_service.docker_utils import USE_CONNECTION_POOL, get_docker_pool
+        from services.docker_service.docker_utils import USE_CONNECTION_POOL
+        from services.docker_service.docker_client_pool import get_docker_client_service
         
         if not USE_CONNECTION_POOL:
             print("❌ Connection pool not available")
             return
         
-        pool = get_docker_pool()
+        pool = get_docker_client_service()
         print("🔍 Docker Queue Monitor - Press Ctrl+C to exit")
         print("=" * 60)
         

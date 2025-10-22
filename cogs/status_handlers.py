@@ -492,8 +492,8 @@ class StatusHandlersMixin:
                     # Try to get computed values from new SERVICE FIRST format first
                     if info and '_computed' in info:
                         computed = info['_computed']
-                        cpu = f"{computed['cpu_percent']:.1f}%" if computed['cpu_percent'] > 0 else 'N/A'
-                        ram = f"{computed['memory_usage_mb']:.0f}MB" if computed['memory_usage_mb'] > 0 else 'N/A'
+                        cpu = f"{computed['cpu_percent']:.1f}%" if computed['cpu_percent'] is not None else 'N/A'
+                        ram = f"{computed['memory_usage_mb']:.0f}MB" if computed['memory_usage_mb'] is not None else 'N/A'
                         # Use uptime from SERVICE FIRST if available
                         if computed['uptime_seconds'] > 0:
                             uptime_sec = computed['uptime_seconds']
@@ -681,8 +681,8 @@ class StatusHandlersMixin:
                     if stats_dict and isinstance(stats_dict, dict):
                          cpu_percent = stats_dict.get('cpu_percent', 0.0)
                          memory_mb = stats_dict.get('memory_usage_mb', 0.0)
-                         cpu = f"{cpu_percent:.1f}%" if cpu_percent > 0 else 'N/A'
-                         ram = f"{memory_mb:.1f} MB" if memory_mb > 0 else 'N/A'
+                         cpu = f"{cpu_percent:.1f}%" if cpu_percent is not None else 'N/A'
+                         ram = f"{memory_mb:.1f} MB" if memory_mb is not None else 'N/A'
                     else:
                          logger.warning(f"Could not retrieve valid stats dict for running container {docker_name}")
                          cpu = "N/A"

@@ -719,6 +719,11 @@ class AnimationCacheService:
             # For REST animations: Use constant speed (no adjustment)
             if animation_type == "rest":
                 logger.debug(f"Using constant speed for big REST animation (power=0): evolution {evolution_level}")
+                # Store in memory cache for future use
+                self._animation_memory_cache[cache_key] = {
+                    'animation_bytes': animation_data,
+                    'cached_at': time.time()
+                }
                 return animation_data  # Return cached version at base 8 FPS speed
 
             # For WALK animations: Apply speed adjustment based on power level (same logic as small mechs)
@@ -790,6 +795,11 @@ class AnimationCacheService:
 
             except Exception as e:
                 logger.error(f"Failed to adjust big {animation_type} animation speed: {e}")
+                # Store original data in memory cache as fallback
+                self._animation_memory_cache[cache_key] = {
+                    'animation_bytes': animation_data,
+                    'cached_at': time.time()
+                }
                 return animation_data  # Return original if adjustment fails
 
         else:
@@ -798,6 +808,23 @@ class AnimationCacheService:
             frames = self._load_and_process_frames(evolution_level, animation_type, "big")
             data = self._create_unified_webp(frames)
             logger.warning(f"Generated big {animation_type} animation on-demand for evolution {evolution_level}: {len(data)} bytes")
+
+            # BUGFIX: Store on-demand generated animation in BOTH memory cache AND file cache
+            # This prevents the "not found in cache" error on subsequent startups
+            try:
+                # Save to file cache (obfuscated)
+                obfuscated_data = self._obfuscate_data(data)
+                with open(cache_path, 'wb') as f:
+                    f.write(obfuscated_data)
+                logger.debug(f"Saved on-demand big {animation_type} animation to file cache: {cache_path}")
+            except Exception as save_error:
+                logger.error(f"Failed to save on-demand big animation to file: {save_error}")
+
+            # Store in memory cache for immediate use
+            self._animation_memory_cache[cache_key] = {
+                'animation_bytes': data,
+                'cached_at': time.time()
+            }
             return data
 
     def get_animation_with_speed_and_power(self, evolution_level: int, speed_level: float, power_level: float = 1.0) -> bytes:
@@ -820,6 +847,12 @@ class AnimationCacheService:
             animation_type = "walk"
             logger.debug(f"Using WALK animation for evolution {evolution_level} (power: {power_level})")
 
+        # PERFORMANCE FIX: Check memory cache first for speed-adjusted small animations (same as big animations)
+        cache_key = f"small_level_{evolution_level}_{animation_type}_{speed_level:.1f}"
+        if cache_key in self._animation_memory_cache:
+            logger.debug(f"Memory cache HIT for small {animation_type} animation: level {evolution_level}, speed {speed_level}")
+            return self._animation_memory_cache[cache_key]['animation_bytes']
+
         # Get cached animation path for the correct type
         cache_path = self.get_cached_animation_path(evolution_level, animation_type)
 
@@ -836,6 +869,11 @@ class AnimationCacheService:
         # For REST animations: Use constant speed (base 8 FPS) since offline mechs don't change speed
         if animation_type == "rest":
             logger.debug(f"Using constant speed for REST animation (power=0): evolution {evolution_level}")
+            # Store in memory cache for future use
+            self._animation_memory_cache[cache_key] = {
+                'animation_bytes': animation_data,
+                'cached_at': time.time()
+            }
             return animation_data  # Return cached version at base 8 FPS speed
 
         # For WALK animations: Apply speed adjustment based on power level
@@ -848,6 +886,11 @@ class AnimationCacheService:
         # If speed is exactly 100% (speed_level = 50), return cached version as-is
         if abs(speed_level - 50.0) < 5.0:
             logger.debug(f"Using cached {animation_type} animation at 100% speed for evolution {evolution_level}")
+            # Store in memory cache for future use
+            self._animation_memory_cache[cache_key] = {
+                'animation_bytes': animation_data,
+                'cached_at': time.time()
+            }
             return animation_data
 
         # Otherwise, adjust speed by re-encoding with new duration
@@ -891,10 +934,20 @@ class AnimationCacheService:
             buffer.seek(0)
             adjusted_data = buffer.getvalue()
             logger.debug(f"Speed-adjusted {animation_type} animation: {len(adjusted_data)} bytes")
+            # Store in memory cache for future use
+            self._animation_memory_cache[cache_key] = {
+                'animation_bytes': adjusted_data,
+                'cached_at': time.time()
+            }
             return adjusted_data
 
         except Exception as e:
             logger.error(f"Failed to adjust {animation_type} animation speed: {e}")
+            # Store original data in memory cache as fallback
+            self._animation_memory_cache[cache_key] = {
+                'animation_bytes': animation_data,
+                'cached_at': time.time()
+            }
             return animation_data  # Return original if adjustment fails
 
 
@@ -1115,7 +1168,8 @@ class AnimationCacheService:
             reason = f"Donation completed: ${event_info.get('amount', 'unknown')}"
 
             # Invalidate cache since power/level may have changed
-            self.invalidate_animation_cache(reason)
+            # For event-driven invalidation, only clear memory cache to allow fast re-caching
+            self.invalidate_memory_cache_only(reason)
 
             logger.info(f"Animation cache invalidated due to donation event: {reason}")
 
@@ -1123,9 +1177,18 @@ class AnimationCacheService:
             # This prevents 2-second delays when user clicks "Mech Details" after donations
             try:
                 import asyncio
-                # Schedule immediate re-caching (non-blocking)
-                asyncio.create_task(self._async_recache_current_animations(reason="donation_event"))
-                logger.info("Immediate animation re-caching scheduled after donation event")
+
+                # Check if there's a running event loop
+                try:
+                    loop = asyncio.get_running_loop()
+                    # Event loop is running - use async task
+                    asyncio.create_task(self._async_recache_current_animations(reason="donation_event"))
+                    logger.info("Immediate animation re-caching scheduled after donation event (async)")
+                except RuntimeError:
+                    # No event loop running - use synchronous re-caching
+                    logger.info("No event loop running - performing synchronous re-caching after donation event")
+                    self._sync_recache_current_animations(reason="donation_event")
+
             except Exception as recache_error:
                 logger.warning(f"Could not schedule immediate re-caching: {recache_error}")
 
@@ -1144,14 +1207,25 @@ class AnimationCacheService:
             power_change = abs(new_power - old_power)
             if power_change >= self._significant_power_change_threshold:
                 reason = f"Significant power change: {old_power:.2f} → {new_power:.2f}"
-                self.invalidate_animation_cache(reason)
+                # For event-driven invalidation, only clear memory cache to allow fast re-caching
+                self.invalidate_memory_cache_only(reason)
                 logger.info(f"Animation cache invalidated due to state change: {reason}")
 
                 # PROACTIVE RE-CACHING: Schedule immediate animation refresh
                 try:
                     import asyncio
-                    asyncio.create_task(self._async_recache_current_animations(reason="state_change_event"))
-                    logger.info("Immediate animation re-caching scheduled after state change")
+
+                    # Check if there's a running event loop
+                    try:
+                        loop = asyncio.get_running_loop()
+                        # Event loop is running - use async task
+                        asyncio.create_task(self._async_recache_current_animations(reason="state_change_event"))
+                        logger.info("Immediate animation re-caching scheduled after state change (async)")
+                    except RuntimeError:
+                        # No event loop running - use synchronous re-caching
+                        logger.info("No event loop running - performing synchronous re-caching after state change")
+                        self._sync_recache_current_animations(reason="state_change_event")
+
                 except Exception as recache_error:
                     logger.warning(f"Could not schedule re-caching after state change: {recache_error}")
             else:
@@ -1159,6 +1233,12 @@ class AnimationCacheService:
 
         except Exception as e:
             logger.error(f"Error handling state change event: {e}")
+
+    def invalidate_memory_cache_only(self, reason: str = "Event-driven invalidation"):
+        """Invalidate only memory cache, keeping file cache for fast re-caching."""
+        cache_count = len(self._animation_memory_cache)
+        self._animation_memory_cache.clear()
+        logger.info(f"Memory cache invalidated: {cache_count} entries cleared ({reason})")
 
     def invalidate_animation_cache(self, reason: str = "Manual invalidation"):
         """Manually invalidate the entire animation cache (for donation events or system updates)."""
@@ -1227,8 +1307,13 @@ class AnimationCacheService:
             current_power = mech_result.power
 
             # Calculate current speed level
-            speed_status = get_combined_mech_status(current_power)
-            current_speed_level = speed_status['speed']['level']
+            # SPECIAL CASE: Level 11 is maximum level - always use Speed Level 100 (same logic as MechWebService)
+            if current_level >= 11:
+                current_speed_level = 100  # Level 11 always has maximum speed (divine speed)
+                logger.debug(f"Level 11 cache warmup using maximum speed level: {current_speed_level}")
+            else:
+                speed_status = get_combined_mech_status(current_power)
+                current_speed_level = speed_status['speed']['level']
 
             logger.info(f"Cache warmup: Level {current_level}, Power {current_power:.2f}, Speed {current_speed_level}")
 
@@ -1264,14 +1349,166 @@ class AnimationCacheService:
         except Exception as e:
             logger.error(f"Error during initial cache warmup: {e}")
 
-    async def _async_recache_current_animations(self, reason: str = "event_trigger"):
-        """Async wrapper for immediate animation re-caching after events."""
+    def _perform_sync_cache_warmup(self):
+        """Perform synchronous animation cache warmup (fallback when no event loop)."""
         try:
-            logger.debug(f"Starting async animation re-caching: {reason}")
-            await self.perform_initial_cache_warmup()
-            logger.info(f"Async animation re-caching completed: {reason}")
+            logger.info("Performing sync animation cache warmup...")
+
+            # Get current mech status from cache service
+            from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+            from services.mech.speed_levels import get_combined_mech_status
+
+            cache_service = get_mech_status_cache_service()
+            cache_request = MechStatusCacheRequest(include_decimals=True)
+            mech_result = cache_service.get_cached_status(cache_request)
+
+            if not mech_result.success:
+                logger.warning("Could not get mech status for sync warmup - skipping")
+                return
+
+            current_level = mech_result.level
+            current_power = mech_result.power
+
+            # Calculate current speed level
+            # SPECIAL CASE: Level 11 is maximum level - always use Speed Level 100 (same logic as MechWebService)
+            if current_level >= 11:
+                current_speed_level = 100  # Level 11 always has maximum speed (divine speed)
+                logger.debug(f"Level 11 sync cache warmup using maximum speed level: {current_speed_level}")
+            else:
+                speed_status = get_combined_mech_status(current_power)
+                current_speed_level = speed_status['speed']['level']
+
+            logger.info(f"Sync cache warmup: Level {current_level}, Power {current_power:.2f}, Speed {current_speed_level}")
+
+            # Determine which animation types to cache based on level
+            animation_types = ["walk"]  # All levels have walk animations
+            if current_level <= 10:
+                animation_types.append("rest")  # Only levels 1-10 have rest animations
+
+            logger.debug(f"Caching animation types for Level {current_level}: {animation_types}")
+
+            for animation_type in animation_types:
+                try:
+                    # Cache small animation with current speed
+                    small_key = f"small_level_{current_level}_{animation_type}_{current_speed_level:.1f}"
+                    if small_key not in self._animation_memory_cache:
+                        logger.debug(f"Pre-caching small {animation_type} animation for level {current_level}, speed {current_speed_level}")
+                        self.get_animation_with_speed_and_power(current_level, current_speed_level, current_power)
+
+                    # Cache big animation with current speed
+                    big_key = f"big_level_{current_level}_{animation_type}_{current_speed_level:.1f}"
+                    if big_key not in self._animation_memory_cache:
+                        logger.debug(f"Pre-caching big {animation_type} animation for level {current_level}, speed {current_speed_level}")
+                        self.get_animation_with_speed_and_power_big(current_level, current_speed_level, current_power)
+
+                except Exception as cache_error:
+                    logger.error(f"Failed to pre-cache {animation_type} animation: {cache_error}")
+
+            logger.info(f"Sync cache warmup complete - cached animations for speed level {current_speed_level}")
+
         except Exception as e:
-            logger.error(f"Error during async animation re-caching: {e}")
+            logger.error(f"Error during sync cache warmup: {e}")
+
+    def _sync_recache_current_animations(self, reason: str = "event_trigger"):
+        """SERVICE FIRST: Synchronous animation re-caching via MechWebService (fallback when no event loop)."""
+        try:
+            logger.debug(f"Starting SERVICE FIRST sync animation re-caching: {reason}")
+            self._perform_service_first_sync_warmup()
+            logger.info(f"SERVICE FIRST sync animation re-caching completed: {reason}")
+        except Exception as e:
+            logger.error(f"Error during SERVICE FIRST sync animation re-caching: {e}")
+
+    async def _async_recache_current_animations(self, reason: str = "event_trigger"):
+        """SERVICE FIRST: Async animation re-caching via MechWebService."""
+        try:
+            logger.debug(f"Starting SERVICE FIRST async animation re-caching: {reason}")
+            await self._perform_service_first_async_warmup()
+            logger.info(f"SERVICE FIRST async animation re-caching completed: {reason}")
+        except Exception as e:
+            logger.error(f"Error during SERVICE FIRST async animation re-caching: {e}")
+
+    def _perform_service_first_sync_warmup(self):
+        """SERVICE FIRST: Synchronous animation warmup using MechWebService."""
+        try:
+            # SERVICE FIRST: Use MechWebService for animation requests
+            from services.web.mech_web_service import get_mech_web_service, MechAnimationRequest
+            from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+
+            web_service = get_mech_web_service()
+            cache_service = get_mech_status_cache_service()
+
+            # Get current mech status via service
+            cache_request = MechStatusCacheRequest(include_decimals=True)
+            mech_result = cache_service.get_cached_status(cache_request)
+
+            if not mech_result.success:
+                logger.warning("SERVICE FIRST sync warmup: Could not get mech status - skipping")
+                return
+
+            current_power = mech_result.power
+            logger.info(f"SERVICE FIRST sync warmup: Power {current_power:.2f}")
+
+            # Cache both small and big animations via service requests
+            for resolution in ["small", "big"]:
+                try:
+                    request = MechAnimationRequest(
+                        force_power=current_power,
+                        resolution=resolution
+                    )
+                    result = web_service.get_live_animation(request)
+
+                    if result.success:
+                        logger.debug(f"SERVICE FIRST: Cached {resolution} animation ({len(result.animation_bytes)} bytes)")
+                    else:
+                        logger.warning(f"SERVICE FIRST: Failed to cache {resolution} animation: {result.error}")
+
+                except Exception as e:
+                    logger.error(f"SERVICE FIRST sync warmup error for {resolution}: {e}")
+
+        except Exception as e:
+            logger.error(f"SERVICE FIRST sync warmup failed: {e}")
+
+    async def _perform_service_first_async_warmup(self):
+        """SERVICE FIRST: Async animation warmup using MechWebService."""
+        try:
+            # SERVICE FIRST: Use MechWebService for animation requests
+            from services.web.mech_web_service import get_mech_web_service, MechAnimationRequest
+            from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+
+            web_service = get_mech_web_service()
+            cache_service = get_mech_status_cache_service()
+
+            # Get current mech status via service
+            cache_request = MechStatusCacheRequest(include_decimals=True)
+            mech_result = cache_service.get_cached_status(cache_request)
+
+            if not mech_result.success:
+                logger.warning("SERVICE FIRST async warmup: Could not get mech status - skipping")
+                return
+
+            current_power = mech_result.power
+            logger.info(f"SERVICE FIRST async warmup: Power {current_power:.2f}")
+
+            # Cache both small and big animations via service requests (async-compatible)
+            for resolution in ["small", "big"]:
+                try:
+                    request = MechAnimationRequest(
+                        force_power=current_power,
+                        resolution=resolution
+                    )
+                    # Note: MechWebService.get_live_animation is sync, but we can call it from async context
+                    result = web_service.get_live_animation(request)
+
+                    if result.success:
+                        logger.debug(f"SERVICE FIRST: Cached {resolution} animation ({len(result.animation_bytes)} bytes)")
+                    else:
+                        logger.warning(f"SERVICE FIRST: Failed to cache {resolution} animation: {result.error}")
+
+                except Exception as e:
+                    logger.error(f"SERVICE FIRST async warmup error for {resolution}: {e}")
+
+        except Exception as e:
+            logger.error(f"SERVICE FIRST async warmup failed: {e}")
 
     def get_status_overview_animation(self, evolution_level: int, power_level: float = 1.0) -> bytes:
         """
@@ -1300,7 +1537,18 @@ class AnimationCacheService:
                 logger.debug(f"Status Overview: Using WALK animation for evolution {evolution_level}")
 
             # Get the normal-sized animation first
-            normal_animation_bytes = self.get_animation_with_speed_and_power(evolution_level, 50.0, power_level)
+            # UNIFIED SPEED CALCULATION: Use same logic as MechWebService (fully unified!)
+            if evolution_level >= 11:
+                speed_level = 100  # Level 11 always has maximum speed (divine speed)
+                logger.debug(f"Status Overview: Level 11 using maximum speed level: {speed_level}")
+            else:
+                # Use actual power-based speed calculation (same as MechWebService)
+                from services.mech.speed_levels import get_combined_mech_status
+                speed_status = get_combined_mech_status(power_level)
+                speed_level = speed_status['speed']['level']
+                logger.debug(f"Status Overview: Level {evolution_level} using calculated speed level: {speed_level} (power: {power_level})")
+
+            normal_animation_bytes = self.get_animation_with_speed_and_power(evolution_level, speed_level, power_level)
 
             # Load the WebP animation
             original_image = Image.open(BytesIO(normal_animation_bytes))

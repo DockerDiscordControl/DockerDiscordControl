@@ -25,11 +25,7 @@ from .evolution_config_manager import get_evolution_config_manager
 
 logger = logging.getLogger(__name__)
 
-# Legacy costs - now loaded from JSON config
-# Kept for backward compatibility
-BASE_EVOLUTION_COSTS = {
-    1: 0, 2: 20, 3: 50, 4: 100, 5: 200, 6: 400, 7: 800, 8: 1500, 9: 2500, 10: 4000, 11: 10000
-}
+# Evolution costs are now loaded from JSON config files
 
 @dataclass
 class CommunitySize:
