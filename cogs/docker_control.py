@@ -1294,11 +1294,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # Determine which embed to create based on mech expansion state
             channel_id = ctx.channel.id
             is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
-            
+
             if is_mech_expanded:
-                embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config)
+                embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config, force_refresh=True)
             else:
-                embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
+                embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config, force_refresh=True)
             
             # Create MechView with expand/collapse buttons for mech status
             from .control_ui import MechView
@@ -1714,9 +1714,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     # NOTE: Old _create_overview_embed method was removed
     # Use _create_overview_embed_expanded or _create_overview_embed_collapsed instead
 
-    async def _create_overview_embed_expanded(self, ordered_servers, config):
+    async def _create_overview_embed_expanded(self, ordered_servers, config, force_refresh=False):
         """Creates the server overview embed with EXPANDED mech status details.
-        
+
+        Args:
+            ordered_servers: List of server configurations
+            config: Application configuration
+            force_refresh: If True, forces fresh data from cache (for manual commands)
+
         Returns:
             tuple: (embed, animation_file) where animation_file is None if no animation
         """
@@ -1858,7 +1863,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # SERVICE FIRST: Use MechStatusCacheService for instant response
                 from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
                 cache_service = get_mech_status_cache_service()
-                cache_request = MechStatusCacheRequest(include_decimals=True)
+                cache_request = MechStatusCacheRequest(include_decimals=True, force_refresh=force_refresh)
                 mech_cache_result = cache_service.get_cached_status(cache_request)
 
                 if not mech_cache_result.success:
@@ -2062,8 +2067,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         # Return tuple (embed, animation_file) - single file for expanded view
         return embed, animation_file
 
-    async def _create_overview_embed_collapsed(self, ordered_servers, config):
+    async def _create_overview_embed_collapsed(self, ordered_servers, config, force_refresh=False):
         """Creates the server overview embed with COLLAPSED mech status (animation only).
+
+        Args:
+            ordered_servers: List of server configurations
+            config: Application configuration
+            force_refresh: If True, forces fresh data from cache (for manual commands)
 
         Returns:
             tuple: (embed, animation_file) where animation_file is None if no animation
@@ -2208,7 +2218,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # SERVICE FIRST: Use MechStatusCacheService for instant response
                 from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
                 cache_service = get_mech_status_cache_service()
-                cache_request = MechStatusCacheRequest(include_decimals=True)
+                cache_request = MechStatusCacheRequest(include_decimals=True, force_refresh=force_refresh)
                 mech_cache_result = cache_service.get_cached_status(cache_request)
 
                 if not mech_cache_result.success:
