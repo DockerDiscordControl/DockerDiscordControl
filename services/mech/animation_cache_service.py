@@ -78,12 +78,14 @@ class AnimationCacheService:
     """
 
     def __init__(self):
-        # Use correct path for Docker vs Local
+        # V2.0 Cache-Only Architecture: Use correct path for Docker vs Local
         import os
-        if os.path.exists("/app/assets/mech_evolutions"):
-            self.assets_dir = Path("/app/assets/mech_evolutions")
+        if os.path.exists("/app/cached_animations"):
+            # Docker environment - V2.0 cache-only (no PNG sources)
+            self.assets_dir = None  # V2.0: PNG sources not available in container
             self.cache_dir = Path("/app/cached_animations")
         else:
+            # Local development environment
             self.assets_dir = Path("/Volumes/appdata/dockerdiscordcontrol/assets/mech_evolutions")
             self.cache_dir = Path("/Volumes/appdata/dockerdiscordcontrol/cached_animations")
 
@@ -382,6 +384,10 @@ class AnimationCacheService:
 
     def _get_actual_mech_folder_no_cache_check(self, evolution_level: int) -> Path:
         """Original logic for getting mech folder without cache check"""
+        # V2.0 Cache-Only: PNG sources not available in container
+        if self.assets_dir is None:
+            raise FileNotFoundError("V2.0 Cache-Only: PNG sources not available, use cached animations only")
+
         mech_folder = self.assets_dir / f"Mech{evolution_level}"
         if not mech_folder.exists():
             # Fallback to Mech1
@@ -658,6 +664,11 @@ class AnimationCacheService:
 
     def pre_generate_all_animations(self):
         """Pre-generate walk animations for all available evolution levels"""
+        # V2.0 Cache-Only: Skip pre-generation if PNG sources not available
+        if self.assets_dir is None:
+            logger.info("V2.0 Cache-Only: Using pre-built cached animations, skipping PNG-based pre-generation")
+            return
+
         logger.info("Pre-generating all mech walk animations...")
 
         # Check what evolution levels we have
@@ -690,6 +701,11 @@ class AnimationCacheService:
 
     def pre_generate_all_rest_animations(self):
         """Pre-generate rest animations for levels 1-10 (level 11 never goes offline)"""
+        # V2.0 Cache-Only: Skip pre-generation if PNG sources not available
+        if self.assets_dir is None:
+            logger.info("V2.0 Cache-Only: Using pre-built cached rest animations, skipping PNG-based pre-generation")
+            return
+
         logger.info("Pre-generating all mech rest animations (offline states)...")
 
         # Check what evolution levels we have, but only generate rest for 1-10
@@ -719,6 +735,11 @@ class AnimationCacheService:
 
     def pre_generate_all_big_animations(self):
         """Pre-generate all big mech walk and rest animations (native resolution)"""
+        # V2.0 Cache-Only: Skip pre-generation if PNG sources not available
+        if self.assets_dir is None:
+            logger.info("V2.0 Cache-Only: Using pre-built cached big animations, skipping PNG-based pre-generation")
+            return
+
         logger.info("Pre-generating ALL big mech animations (walk + rest) at native resolution...")
 
         # Check what evolution levels we have

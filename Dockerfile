@@ -56,7 +56,7 @@ COPY --chown=ddc:ddc utils/ utils/
 COPY --chown=ddc:ddc cogs/ cogs/
 COPY --chown=ddc:ddc services/ services/
 COPY --chown=ddc:ddc encrypted_assets/ encrypted_assets/
-COPY --chown=ddc:ddc assets/ assets/
+# V2.0 Cache-Only: Only copy cached animations, PNG sources excluded via .dockerignore
 COPY --chown=ddc:ddc cached_animations/ cached_animations/
 COPY --chown=ddc:ddc cached_displays/ cached_displays/
 COPY --chown=ddc:ddc gunicorn_config.py .

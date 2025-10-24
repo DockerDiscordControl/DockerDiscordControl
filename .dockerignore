@@ -114,3 +114,7 @@ npm-debug.log*
 ALPINE_OPTIMIZATION_COMPARISON.md
 ASYNC_ARCHITECTURE_GUIDELINES.md
 PERFORMANCE_OPTIMIZATION.md
+
+# V2.0 Cache-Only Assets (PNG sources not needed in container)
+assets/mech_evolutions/
+# Keep other assets but exclude mech PNG source files
