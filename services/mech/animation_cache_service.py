@@ -534,7 +534,14 @@ class AnimationCacheService:
                 all_frames.append(frame)
 
                 # Find bounding box of non-transparent pixels - for BOTH walk and rest
-                bbox = frame.getbbox()
+                # Special handling for Level 4 rest small: use custom bbox to detect weak feet pixels
+                if evolution_level == 4 and animation_type == "rest" and resolution == "small":
+                    bbox = self._get_bbox_with_alpha_threshold(frame, alpha_threshold=10)
+                    logger.debug(f"Level 4 rest small: Using custom bbox with alpha_threshold=10")
+                else:
+                    # Standard bbox detection for all other animations
+                    bbox = frame.getbbox()
+
                 if bbox:
                     x1, y1, x2, y2 = bbox
                     min_x = min(min_x, x1)
@@ -571,6 +578,39 @@ class AnimationCacheService:
 
         logger.debug(f"Processed {len(frames)} frames for evolution {evolution_level} with pure crop size {crop_width}x{crop_height}")
         return frames
+
+    def _get_bbox_with_alpha_threshold(self, frame: Image.Image, alpha_threshold: int = 10) -> tuple:
+        """
+        Get bounding box with custom alpha threshold to detect weak/semi-transparent pixels (like feet).
+        Standard getbbox() only detects fully opaque pixels (alpha=255), this detects alpha>=threshold.
+        """
+        if frame.mode != 'RGBA':
+            # Fallback to standard getbbox for non-RGBA images
+            return frame.getbbox()
+
+        # Pure PIL approach without numpy
+        width, height = frame.size
+        min_x, min_y = width, height
+        max_x, max_y = -1, -1
+
+        # Scan each pixel for alpha >= threshold
+        for y in range(height):
+            for x in range(width):
+                pixel = frame.getpixel((x, y))
+                alpha = pixel[3] if len(pixel) >= 4 else 255  # Get alpha channel
+
+                if alpha >= alpha_threshold:
+                    min_x = min(min_x, x)
+                    min_y = min(min_y, y)
+                    max_x = max(max_x, x)
+                    max_y = max(max_y, y)
+
+        # Check if any visible pixels were found
+        if max_x == -1 or max_y == -1:
+            return None
+
+        # Return as (left, top, right, bottom) - same format as getbbox()
+        return (min_x, min_y, max_x + 1, max_y + 1)
 
     def _smart_crop_frames(self, frames: List[Image.Image]) -> List[Image.Image]:
         """
