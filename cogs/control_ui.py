@@ -1729,7 +1729,11 @@ class MechHistoryButton(Button):
                         current_total_donations = 0.0  # Fallback
                     else:
                         current_total_donations = mech_state_result.total_donated
-                    needed_amount = max(0, evolution_info.base_cost - current_total_donations)
+
+                    # Use correct evolution calculation for next level costs
+                    from services.mech.mech_evolutions import get_evolution_info
+                    evolution_data = get_evolution_info(current_total_donations)
+                    needed_amount = evolution_data['amount_needed'] if evolution_data['amount_needed'] is not None else 0
 
                     if needed_amount > 0:
                         formatted_amount = f"{needed_amount:.2f}".rstrip('0').rstrip('.')
@@ -1970,7 +1974,11 @@ class MechDisplayButton(Button):
                     current_total_donations = 0.0  # Fallback
                 else:
                     current_total_donations = mech_state_result.total_donated
-                needed_amount = max(0, evolution_info.base_cost - current_total_donations)
+
+                # Use correct evolution calculation for next level costs
+                from services.mech.mech_evolutions import get_evolution_info
+                evolution_data = get_evolution_info(current_total_donations)
+                needed_amount = evolution_data['amount_needed'] if evolution_data['amount_needed'] is not None else 0
 
                 if needed_amount > 0:
                     formatted_amount = f"{needed_amount:.2f}".rstrip('0').rstrip('.')
