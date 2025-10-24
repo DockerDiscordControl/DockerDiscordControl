@@ -93,12 +93,20 @@ class AnimationCacheService:
         # Cache for walk scale factors to ensure rest mechs use identical scaling
         self._walk_scale_factors = {}
 
-        # OPTIMIZED: LRU animation cache with quantized speeds for massive memory reduction
-        from collections import OrderedDict
-        self._animation_memory_cache = OrderedDict()
-        self._max_cache_entries = 20  # Reduced from unlimited to 20 entries
-        self._max_cache_memory_mb = 100  # Maximum 100MB total cache size
+        # ULTRA-FOCUSED: Only 2 cache entries for 100% hot path coverage
+        self._focused_cache = {
+            'current_small': None,  # Small animation for current level+speed (Discord Overview)
+            'current_big': None     # Big animation for current level+speed (Discord Expanded + Web UI)
+        }
 
+        # Current state tracking for cache validity
+        self._current_level = None
+        self._current_speed = None
+        self._current_power = None
+        self._current_animation_type = None  # 'walk' or 'rest'
+
+        # Power change threshold for focused cache invalidation
+        self._significant_power_change_threshold = 1.0  # Only invalidate on power changes >= $1
 
         # SERVICE FIRST: Event-based cache invalidation setup
         self._setup_event_listeners()
@@ -107,7 +115,7 @@ class AnimationCacheService:
         logger.info(f"Assets dir: {self.assets_dir}")
         logger.info(f"Cache dir: {self.cache_dir}")
         logger.info(f"Base animation speed: 8 FPS (125ms per frame)")
-        logger.info(f"Memory optimization: Max {self._max_cache_entries} entries, {self._max_cache_memory_mb}MB limit")
+        logger.info(f"Ultra-focused cache: 2 entries only (current_small + current_big for hot path)")
 
     def _quantize_speed(self, speed_level: float) -> float:
         """
@@ -130,58 +138,55 @@ class AnimationCacheService:
         quantized = round(speed_level / 5.0) * 5.0
         return max(5.0, min(100.0, quantized))
 
-    def _get_cache_memory_usage(self) -> int:
-        """Get current cache memory usage in bytes."""
-        total_bytes = 0
-        for entry in self._animation_memory_cache.values():
-            total_bytes += len(entry.get('animation_bytes', b''))
-        return total_bytes
+    def _update_current_state(self, level: int, speed: float, power: float):
+        """Update current state tracking for cache validity."""
+        animation_type = "rest" if power <= 0.0 and level <= 10 else "walk"
 
-    def _evict_cache_entries(self):
-        """LRU eviction when cache limits exceeded."""
-        current_memory = self._get_cache_memory_usage()
-        max_memory_bytes = self._max_cache_memory_mb * 1024 * 1024
+        # Check if state changed
+        state_changed = (
+            self._current_level != level or
+            self._current_speed != speed or
+            self._current_power != power or
+            self._current_animation_type != animation_type
+        )
 
-        # Evict oldest entries until within limits
-        while (len(self._animation_memory_cache) > self._max_cache_entries or
-               current_memory > max_memory_bytes):
-            if not self._animation_memory_cache:
-                break
+        if state_changed:
+            logger.debug(f"State change detected: L{level} S{speed:.1f} P{power:.2f} {animation_type}")
+            # Clear cache on state change
+            self._focused_cache['current_small'] = None
+            self._focused_cache['current_big'] = None
 
-            # Remove oldest entry (FIFO from OrderedDict)
-            oldest_key, oldest_entry = self._animation_memory_cache.popitem(last=False)
-            oldest_size = len(oldest_entry.get('animation_bytes', b''))
-            current_memory -= oldest_size
+            # Update tracked state
+            self._current_level = level
+            self._current_speed = speed
+            self._current_power = power
+            self._current_animation_type = animation_type
 
-            logger.debug(f"Cache evicted: {oldest_key} ({oldest_size:,} bytes)")
+    def _is_current_state(self, level: int, speed: float, power: float) -> bool:
+        """Check if requested animation matches current cached state."""
+        animation_type = "rest" if power <= 0.0 and level <= 10 else "walk"
+        return (
+            self._current_level == level and
+            self._current_speed == speed and
+            self._current_power == power and
+            self._current_animation_type == animation_type
+        )
 
-    def _store_in_cache(self, cache_key: str, animation_bytes: bytes):
-        """Store animation in LRU cache with memory management."""
-        # Skip storing huge animations that would immediately be evicted
-        max_single_size = (self._max_cache_memory_mb * 1024 * 1024) // 4  # Max 25% of total cache
-        if len(animation_bytes) > max_single_size:
-            logger.debug(f"Skipping cache storage: animation too large ({len(animation_bytes):,} bytes)")
-            return
-
-        # Store with LRU tracking
-        self._animation_memory_cache[cache_key] = {
+    def _store_in_focused_cache(self, resolution: str, animation_bytes: bytes):
+        """Store animation in focused cache (only for current state)."""
+        cache_key = 'current_small' if resolution == 'small' else 'current_big'
+        self._focused_cache[cache_key] = {
             'animation_bytes': animation_bytes,
             'cached_at': time.time(),
             'size_bytes': len(animation_bytes)
         }
+        logger.debug(f"Focused cache stored: {cache_key} ({len(animation_bytes):,} bytes)")
 
-        # Move to end (mark as most recently used)
-        self._animation_memory_cache.move_to_end(cache_key)
-
-        # Evict if necessary
-        self._evict_cache_entries()
-
-    def _get_from_cache(self, cache_key: str) -> Optional[bytes]:
-        """Get animation from LRU cache, updating access time."""
-        if cache_key in self._animation_memory_cache:
-            entry = self._animation_memory_cache[cache_key]
-            # Move to end (mark as most recently used)
-            self._animation_memory_cache.move_to_end(cache_key)
+    def _get_from_focused_cache(self, resolution: str) -> Optional[bytes]:
+        """Get animation from focused cache."""
+        cache_key = 'current_small' if resolution == 'small' else 'current_big'
+        entry = self._focused_cache.get(cache_key)
+        if entry:
             return entry['animation_bytes']
         return None
 
@@ -771,26 +776,23 @@ class AnimationCacheService:
 
     def get_animation_with_speed_and_power_big(self, evolution_level: int, speed_level: float, power_level: float = 1.0) -> bytes:
         """
-        Get big mech animation with adjusted speed, automatically selecting rest vs walk based on power
-        Returns native resolution animations after smart cropping (no scaling)
+        Get big mech animation with adjusted speed, automatically selecting rest vs walk based on power.
+        ULTRA-FOCUSED: Only caches current state for hot path (Discord Expanded + Web UI).
         """
         # Determine animation type based on power
-        if power_level <= 0.0 and evolution_level <= 10:
-            animation_type = "rest"
-        else:
-            animation_type = "walk"
+        animation_type = "rest" if power_level <= 0.0 and evolution_level <= 10 else "walk"
 
-        # MEMORY OPTIMIZATION: Use quantized speed for cache key (80% fewer entries)
-        quantized_speed = self._quantize_speed(speed_level)
-        cache_key = f"big_level_{evolution_level}_{animation_type}_{quantized_speed:.0f}"
+        # Update current state tracking
+        self._update_current_state(evolution_level, speed_level, power_level)
 
-        # Check memory cache first
-        cached_animation = self._get_from_cache(cache_key)
-        if cached_animation:
-            logger.debug(f"Memory cache HIT for big {animation_type} animation: level {evolution_level}, speed {speed_level}→{quantized_speed}")
-            return cached_animation
+        # HOT PATH: Check focused cache for current state
+        if self._is_current_state(evolution_level, speed_level, power_level):
+            cached_animation = self._get_from_focused_cache('big')
+            if cached_animation:
+                logger.debug(f"🚀 FOCUSED CACHE HIT: big animation L{evolution_level} S{speed_level:.1f} P{power_level:.2f}")
+                return cached_animation
 
-        # Get cached big animation
+        # Get cached big animation from file
         cache_path = self.get_cached_animation_path(evolution_level, animation_type, "big")
 
         if cache_path.exists():
@@ -803,11 +805,12 @@ class AnimationCacheService:
             # For REST animations: Use constant speed (no adjustment)
             if animation_type == "rest":
                 logger.debug(f"Using constant speed for big REST animation (power=0): evolution {evolution_level}")
-                # Store in optimized LRU cache
-                self._store_in_cache(cache_key, animation_data)
+                # Store in focused cache for current state
+                if self._is_current_state(evolution_level, speed_level, power_level):
+                    self._store_in_focused_cache('big', animation_data)
                 return animation_data  # Return cached version at base 8 FPS speed
 
-            # For WALK animations: Apply speed adjustment based on power level (same logic as small mechs)
+            # For WALK animations: Apply speed adjustment based on power level
             # Calculate speed adjustment - 8 FPS base (125ms) with 80%-120% range
             base_duration = 125  # Match cached animation: 8 FPS = 125ms per frame
             speed_factor = 0.8 + (speed_level / 100.0) * 0.4  # 80% to 120% range
@@ -815,17 +818,17 @@ class AnimationCacheService:
             new_duration = max(50, int(base_duration / speed_factor))  # Min 50ms for readability
 
             # If speed is exactly 100% (speed_level = 50), return cached version as-is
-            if abs(quantized_speed - 50.0) < 5.0:
+            if abs(speed_level - 50.0) < 5.0:
                 logger.debug(f"Using cached big {animation_type} animation at 100% speed for evolution {evolution_level}")
-
-                # Store base animation in optimized LRU cache
-                self._store_in_cache(cache_key, animation_data)
+                # Store in focused cache for current state
+                if self._is_current_state(evolution_level, speed_level, power_level):
+                    self._store_in_focused_cache('big', animation_data)
                 return animation_data
 
             # Otherwise, adjust speed by re-encoding with new duration
             logger.debug(f"Adjusting big {animation_type} speed for evolution {evolution_level}: {speed_level} → {new_duration}ms/frame")
 
-            # Load the cached animation and re-save with new duration (same logic as small mechs)
+            # Load the cached animation and re-save with new duration
             frames = []
             try:
                 with Image.open(BytesIO(animation_data)) as img:
@@ -863,15 +866,17 @@ class AnimationCacheService:
                 buffer.seek(0)
                 adjusted_data = buffer.getvalue()
 
-                # Store speed-adjusted animation in optimized LRU cache
-                self._store_in_cache(cache_key, adjusted_data)
-                logger.debug(f"Speed-adjusted big {animation_type} animation cached in memory: {len(adjusted_data)} bytes")
+                # Store speed-adjusted animation in focused cache for current state
+                if self._is_current_state(evolution_level, speed_level, power_level):
+                    self._store_in_focused_cache('big', adjusted_data)
+                logger.debug(f"Speed-adjusted big {animation_type} animation: {len(adjusted_data)} bytes")
                 return adjusted_data
 
             except Exception as e:
                 logger.error(f"Failed to adjust big {animation_type} animation speed: {e}")
-                # Store original data in optimized LRU cache as fallback
-                self._store_in_cache(cache_key, animation_data)
+                # Store original data in focused cache as fallback
+                if self._is_current_state(evolution_level, speed_level, power_level):
+                    self._store_in_focused_cache('big', animation_data)
                 return animation_data  # Return original if adjustment fails
 
         else:
@@ -881,7 +886,7 @@ class AnimationCacheService:
             data = self._create_unified_webp(frames)
             logger.warning(f"Generated big {animation_type} animation on-demand for evolution {evolution_level}: {len(data)} bytes")
 
-            # BUGFIX: Store on-demand generated animation in BOTH memory cache AND file cache
+            # BUGFIX: Store on-demand generated animation in BOTH focused cache AND file cache
             # This prevents the "not found in cache" error on subsequent startups
             try:
                 # Save to file cache (obfuscated)
@@ -892,13 +897,15 @@ class AnimationCacheService:
             except Exception as save_error:
                 logger.error(f"Failed to save on-demand big animation to file: {save_error}")
 
-            # Store in optimized LRU cache for immediate use
-            self._store_in_cache(cache_key, data)
+            # Store in focused cache for current state
+            if self._is_current_state(evolution_level, speed_level, power_level):
+                self._store_in_focused_cache('big', data)
             return data
 
     def get_animation_with_speed_and_power(self, evolution_level: int, speed_level: float, power_level: float = 1.0) -> bytes:
         """
-        Get animation with adjusted speed, automatically selecting rest vs walk based on power
+        Get animation with adjusted speed, automatically selecting rest vs walk based on power.
+        ULTRA-FOCUSED: Only caches current state for hot path (Discord Overview).
 
         Args:
             evolution_level: Mech evolution level
@@ -909,22 +916,18 @@ class AnimationCacheService:
             Animation bytes with adjusted speed
         """
         # Determine animation type based on power
-        if power_level <= 0.0 and evolution_level <= 10:
-            animation_type = "rest"
-            logger.debug(f"Using REST animation for evolution {evolution_level} (power: {power_level})")
-        else:
-            animation_type = "walk"
-            logger.debug(f"Using WALK animation for evolution {evolution_level} (power: {power_level})")
+        animation_type = "rest" if power_level <= 0.0 and evolution_level <= 10 else "walk"
+        logger.debug(f"Using {animation_type.upper()} animation for evolution {evolution_level} (power: {power_level})")
 
-        # MEMORY OPTIMIZATION: Use quantized speed for cache key (80% fewer entries)
-        quantized_speed = self._quantize_speed(speed_level)
-        cache_key = f"small_level_{evolution_level}_{animation_type}_{quantized_speed:.0f}"
+        # Update current state tracking
+        self._update_current_state(evolution_level, speed_level, power_level)
 
-        # Check memory cache first
-        cached_animation = self._get_from_cache(cache_key)
-        if cached_animation:
-            logger.debug(f"Memory cache HIT for small {animation_type} animation: level {evolution_level}, speed {speed_level}→{quantized_speed}")
-            return cached_animation
+        # HOT PATH: Check focused cache for current state
+        if self._is_current_state(evolution_level, speed_level, power_level):
+            cached_animation = self._get_from_focused_cache('small')
+            if cached_animation:
+                logger.debug(f"🚀 FOCUSED CACHE HIT: small animation L{evolution_level} S{speed_level:.1f} P{power_level:.2f}")
+                return cached_animation
 
         # Get cached animation path for the correct type
         cache_path = self.get_cached_animation_path(evolution_level, animation_type)
@@ -942,8 +945,9 @@ class AnimationCacheService:
         # For REST animations: Use constant speed (base 8 FPS) since offline mechs don't change speed
         if animation_type == "rest":
             logger.debug(f"Using constant speed for REST animation (power=0): evolution {evolution_level}")
-            # Store in optimized LRU cache
-            self._store_in_cache(cache_key, animation_data)
+            # Store in focused cache for current state
+            if self._is_current_state(evolution_level, speed_level, power_level):
+                self._store_in_focused_cache('small', animation_data)
             return animation_data  # Return cached version at base 8 FPS speed
 
         # For WALK animations: Apply speed adjustment based on power level
@@ -953,11 +957,12 @@ class AnimationCacheService:
         speed_factor = max(0.8, min(1.2, speed_factor))  # Clamp to safe range
         new_duration = max(50, int(base_duration / speed_factor))  # Min 50ms for readability
 
-        # If speed is exactly 100% (quantized speed = 50), return cached version as-is
-        if abs(quantized_speed - 50.0) < 5.0:
+        # If speed is exactly 100% (speed_level = 50), return cached version as-is
+        if abs(speed_level - 50.0) < 5.0:
             logger.debug(f"Using cached {animation_type} animation at 100% speed for evolution {evolution_level}")
-            # Store in optimized LRU cache
-            self._store_in_cache(cache_key, animation_data)
+            # Store in focused cache for current state
+            if self._is_current_state(evolution_level, speed_level, power_level):
+                self._store_in_focused_cache('small', animation_data)
             return animation_data
 
         # Otherwise, adjust speed by re-encoding with new duration
@@ -1001,14 +1006,16 @@ class AnimationCacheService:
             buffer.seek(0)
             adjusted_data = buffer.getvalue()
             logger.debug(f"Speed-adjusted {animation_type} animation: {len(adjusted_data)} bytes")
-            # Store in optimized LRU cache
-            self._store_in_cache(cache_key, adjusted_data)
+            # Store in focused cache for current state
+            if self._is_current_state(evolution_level, speed_level, power_level):
+                self._store_in_focused_cache('small', adjusted_data)
             return adjusted_data
 
         except Exception as e:
             logger.error(f"Failed to adjust {animation_type} animation speed: {e}")
-            # Store original data in optimized LRU cache as fallback
-            self._store_in_cache(cache_key, animation_data)
+            # Store original data in focused cache as fallback
+            if self._is_current_state(evolution_level, speed_level, power_level):
+                self._store_in_focused_cache('small', animation_data)
             return animation_data  # Return original if adjustment fails
 
 
@@ -1296,16 +1303,26 @@ class AnimationCacheService:
             logger.error(f"Error handling state change event: {e}")
 
     def invalidate_memory_cache_only(self, reason: str = "Event-driven invalidation"):
-        """Invalidate only memory cache, keeping file cache for fast re-caching."""
-        cache_count = len(self._animation_memory_cache)
-        self._animation_memory_cache.clear()
-        logger.info(f"Memory cache invalidated: {cache_count} entries cleared ({reason})")
+        """Invalidate only focused cache, keeping file cache for fast re-caching."""
+        cache_count = 0
+        if self._focused_cache['current_small'] is not None:
+            self._focused_cache['current_small'] = None
+            cache_count += 1
+        if self._focused_cache['current_big'] is not None:
+            self._focused_cache['current_big'] = None
+            cache_count += 1
+        logger.info(f"Focused cache invalidated: {cache_count} entries cleared ({reason})")
 
     def invalidate_animation_cache(self, reason: str = "Manual invalidation"):
         """Manually invalidate the entire animation cache (for donation events or system updates)."""
-        # Clear memory cache
-        cache_count = len(self._animation_memory_cache)
-        self._animation_memory_cache.clear()
+        # Clear focused cache
+        cache_count = 0
+        if self._focused_cache['current_small'] is not None:
+            self._focused_cache['current_small'] = None
+            cache_count += 1
+        if self._focused_cache['current_big'] is not None:
+            self._focused_cache['current_big'] = None
+            cache_count += 1
 
         # Also clear file caches (big animations) to ensure consistency
         file_count = 0
@@ -1316,43 +1333,51 @@ class AnimationCacheService:
             except Exception as e:
                 logger.warning(f"Could not remove cache file {cache_file}: {e}")
 
-        logger.info(f"Animation cache invalidated: {cache_count} memory entries + {file_count} file caches cleared ({reason})")
+        logger.info(f"Animation cache invalidated: {cache_count} focused entries + {file_count} file caches cleared ({reason})")
 
     def get_cache_status(self) -> dict:
-        """Get detailed cache status for monitoring and debugging with memory optimization info."""
-        current_memory = self._get_cache_memory_usage()
+        """Get detailed cache status for monitoring and debugging with focused cache info."""
+        total_memory = 0
+        total_entries = 0
+        entries_by_type = {'small': {'count': 0, 'total_size_mb': 0}, 'big': {'count': 0, 'total_size_mb': 0}}
+        entries_detail = {}
+
+        # Check focused cache entries
+        for cache_key, entry in self._focused_cache.items():
+            if entry is not None:
+                cache_type = 'small' if cache_key == 'current_small' else 'big'
+                entry_size = entry.get('size_bytes', 0)
+                total_memory += entry_size
+                total_entries += 1
+
+                entries_by_type[cache_type]['count'] += 1
+                entries_by_type[cache_type]['total_size_mb'] += round(entry_size / (1024 * 1024), 2)
+
+                # Detailed entry info
+                age = time.time() - entry.get('cached_at', 0)
+                entries_detail[cache_key] = {
+                    'type': cache_type,
+                    'size_bytes': entry_size,
+                    'size_mb': round(entry_size / (1024 * 1024), 2),
+                    'age_seconds': round(age, 1),
+                    'current_state': True  # Always true for focused cache
+                }
+
         cache_stats = {
-            'total_entries': len(self._animation_memory_cache),
-            'memory_usage_bytes': current_memory,
-            'memory_usage_mb': round(current_memory / (1024 * 1024), 2),
-            'memory_limit_mb': self._max_cache_memory_mb,
-            'memory_utilization_percent': round((current_memory / (self._max_cache_memory_mb * 1024 * 1024)) * 100, 1),
-            'entries_limit': self._max_cache_entries,
-            'entries_by_type': {},
-            'entries_detail': {}
-        }
-
-        # Categorize cache entries with size info
-        for key, entry in self._animation_memory_cache.items():
-            # Extract type from cache key (big_level_, small_level_)
-            cache_type = 'big' if key.startswith('big_') else 'small' if key.startswith('small_') else 'unknown'
-            if cache_type not in cache_stats['entries_by_type']:
-                cache_stats['entries_by_type'][cache_type] = {'count': 0, 'total_size_mb': 0}
-
-            entry_size = entry.get('size_bytes', len(entry.get('animation_bytes', b'')))
-            cache_stats['entries_by_type'][cache_type]['count'] += 1
-            cache_stats['entries_by_type'][cache_type]['total_size_mb'] += round(entry_size / (1024 * 1024), 2)
-
-            # Detailed entry info with LRU position
-            age = time.time() - entry.get('cached_at', 0)
-            lru_position = list(self._animation_memory_cache.keys()).index(key) + 1
-            cache_stats['entries_detail'][key] = {
-                'type': cache_type,
-                'size_bytes': entry_size,
-                'size_mb': round(entry_size / (1024 * 1024), 2),
-                'age_seconds': round(age, 1),
-                'lru_position': lru_position  # 1 = oldest, len = newest
+            'cache_type': 'ultra_focused',
+            'total_entries': total_entries,
+            'max_entries': 2,  # Ultra-focused: only 2 entries max
+            'memory_usage_bytes': total_memory,
+            'memory_usage_mb': round(total_memory / (1024 * 1024), 2),
+            'entries_by_type': entries_by_type,
+            'entries_detail': entries_detail,
+            'current_state': {
+                'level': self._current_level,
+                'speed': self._current_speed,
+                'power': self._current_power,
+                'animation_type': self._current_animation_type
             }
+        }
 
         return cache_stats
 
@@ -1403,18 +1428,12 @@ class AnimationCacheService:
 
             for animation_type in animation_types:
                 try:
-                    # MEMORY OPTIMIZATION: Use quantized speed for consistent cache keys
-                    quantized_speed = self._quantize_speed(current_speed_level)
-                    small_key = f"small_level_{current_level}_{animation_type}_{quantized_speed:.0f}"
-                    if small_key not in self._animation_memory_cache:
-                        logger.debug(f"Pre-caching small {animation_type} animation for level {current_level}, speed {current_speed_level}")
-                        self.get_animation_with_speed_and_power(current_level, current_speed_level, current_power)
+                    # ULTRA-FOCUSED: Pre-cache both small and big animations for current state
+                    logger.debug(f"Pre-caching small {animation_type} animation for level {current_level}, speed {current_speed_level}")
+                    self.get_animation_with_speed_and_power(current_level, current_speed_level, current_power)
 
-                    # MEMORY OPTIMIZATION: Use quantized speed for consistent cache keys
-                    big_key = f"big_level_{current_level}_{animation_type}_{quantized_speed:.0f}"
-                    if big_key not in self._animation_memory_cache:
-                        logger.debug(f"Pre-caching big {animation_type} animation for level {current_level}, speed {current_speed_level}")
-                        self.get_animation_with_speed_and_power_big(current_level, current_speed_level, current_power)
+                    logger.debug(f"Pre-caching big {animation_type} animation for level {current_level}, speed {current_speed_level}")
+                    self.get_animation_with_speed_and_power_big(current_level, current_speed_level, current_power)
 
                 except Exception as cache_error:
                     logger.error(f"Failed to pre-cache {animation_type} animation: {cache_error}")
@@ -1464,18 +1483,12 @@ class AnimationCacheService:
 
             for animation_type in animation_types:
                 try:
-                    # MEMORY OPTIMIZATION: Use quantized speed for consistent cache keys
-                    quantized_speed = self._quantize_speed(current_speed_level)
-                    small_key = f"small_level_{current_level}_{animation_type}_{quantized_speed:.0f}"
-                    if small_key not in self._animation_memory_cache:
-                        logger.debug(f"Pre-caching small {animation_type} animation for level {current_level}, speed {current_speed_level}")
-                        self.get_animation_with_speed_and_power(current_level, current_speed_level, current_power)
+                    # ULTRA-FOCUSED: Pre-cache both small and big animations for current state
+                    logger.debug(f"Pre-caching small {animation_type} animation for level {current_level}, speed {current_speed_level}")
+                    self.get_animation_with_speed_and_power(current_level, current_speed_level, current_power)
 
-                    # MEMORY OPTIMIZATION: Use quantized speed for consistent cache keys
-                    big_key = f"big_level_{current_level}_{animation_type}_{quantized_speed:.0f}"
-                    if big_key not in self._animation_memory_cache:
-                        logger.debug(f"Pre-caching big {animation_type} animation for level {current_level}, speed {current_speed_level}")
-                        self.get_animation_with_speed_and_power_big(current_level, current_speed_level, current_power)
+                    logger.debug(f"Pre-caching big {animation_type} animation for level {current_level}, speed {current_speed_level}")
+                    self.get_animation_with_speed_and_power_big(current_level, current_speed_level, current_power)
 
                 except Exception as cache_error:
                     logger.error(f"Failed to pre-cache {animation_type} animation: {cache_error}")
