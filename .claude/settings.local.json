@@ -32,7 +32,17 @@
       "Bash(env)",
       "Bash(git log:*)",
       "Bash(timeout 60 DDC_WEB_PORT=5001 python3:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(__NEW_LINE__ echo)",
+      "Bash(__NEW_LINE__ echo \"✅ Cache directories ready:\")",
+      "Bash(xargs basename:*)",
+      "Bash(if [ -d \"config/backup_20250909_232943\" ])",
+      "Bash(then)",
+      "Bash(else)",
+      "Bash(fi)",
+      "Bash(__NEW_LINE__ echo \"📁 Verzeichnisgrößen nach Cleanup:\")",
+      "Bash(__NEW_LINE__ git add -A)",
+      "Bash(git reset --hard HEAD echo \"✅ Git Reset durchgeführt\")"
     ],
     "deny": [],
     "ask": []
