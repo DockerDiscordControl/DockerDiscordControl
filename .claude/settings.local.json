@@ -42,7 +42,11 @@
       "Bash(fi)",
       "Bash(__NEW_LINE__ echo \"📁 Verzeichnisgrößen nach Cleanup:\")",
       "Bash(__NEW_LINE__ git add -A)",
-      "Bash(git reset --hard HEAD echo \"✅ Git Reset durchgeführt\")"
+      "Bash(git reset --hard HEAD echo \"✅ Git Reset durchgeführt\")",
+      "Bash(xargs du:*)",
+      "Bash(xargs:*)",
+      "Bash(git count-objects:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []

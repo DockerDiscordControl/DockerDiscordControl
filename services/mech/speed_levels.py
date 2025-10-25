@@ -143,12 +143,11 @@ def get_speed_info(donation_amount: float) -> tuple:
 
     # Import here to avoid circular imports
     from services.mech.mech_service import get_mech_service
-    from services.mech.evolution_config_manager import get_evolution_config_manager
+    from services.mech.mech_evolutions import get_evolution_level_info
 
     try:
         # Get current mech state to determine evolution level
         mech_service = get_mech_service()
-        config_manager = get_evolution_config_manager()
 
         # SERVICE FIRST: Get current state
         from services.mech.mech_service import GetMechStateRequest
@@ -159,8 +158,8 @@ def get_speed_info(donation_amount: float) -> tuple:
             return SPEED_DESCRIPTIONS[1]
         current_level = current_state_result.level
 
-        # Get evolution-specific max power
-        evolution_level_info = config_manager.get_evolution_level(current_level)
+        # Get evolution-specific max power (SERVICE FIRST: unified evolution system)
+        evolution_level_info = get_evolution_level_info(current_level)
         if not evolution_level_info:
             # Fallback for unknown levels
             return SPEED_DESCRIPTIONS[1]
@@ -280,11 +279,10 @@ def get_combined_mech_status(Power_amount: float, total_donations_received: floa
     # Calculate speed level with new evolution-specific logic
     try:
         from services.mech.mech_service import get_mech_service
-        from services.mech.evolution_config_manager import get_evolution_config_manager
+        from services.mech.mech_evolutions import get_evolution_level_info
 
         # Get current mech state to determine evolution level
         mech_service = get_mech_service()
-        config_manager = get_evolution_config_manager()
 
         # SERVICE FIRST: Get current state
         from services.mech.mech_service import GetMechStateRequest
@@ -295,8 +293,8 @@ def get_combined_mech_status(Power_amount: float, total_donations_received: floa
             return 1
         current_level = current_state_result.level
 
-        # Get evolution-specific max power
-        evolution_level_info = config_manager.get_evolution_level(current_level)
+        # Get evolution-specific max power (SERVICE FIRST: unified evolution system)
+        evolution_level_info = get_evolution_level_info(current_level)
         if evolution_level_info:
             max_power_for_level = evolution_level_info.power_max
 

@@ -259,11 +259,11 @@
                                 </div>
                             </div>
                             <div class="col-md-8">
-                                <label class="form-label">Evolution Cost Multiplier <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Adjusts the difficulty of mech evolution costs. Lower values make evolution cheaper, higher values make it more expensive. Level 2 cost ranges from $5 (0.25x) to $50 (2.5x)."></i></label>
+                                <label class="form-label">Evolution Cost Multiplier <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Adjusts the difficulty of mech evolution costs with 20 granular steps. Easy (0.5x) makes evolution half price, Hard (2.0x) makes it double price. Achieved levels stay locked forever."></i></label>
                                 <div class="d-flex align-items-center gap-3">
                                     <span class="text-muted">Easy</span>
-                                    <input type="range" class="form-range flex-grow-1" id="mech_difficulty_multiplier" name="mech_difficulty_multiplier" 
-                                           min="0.25" max="2.5" step="0.05" value="1.0" 
+                                    <input type="range" class="form-range flex-grow-1" id="mech_difficulty_multiplier" name="mech_difficulty_multiplier"
+                                           min="0.5" max="2.4" step="0.1" value="1.0"
                                            oninput="onSliderChange()" onchange="onSliderChange()">
                                     <span class="text-muted">Hard</span>
                                 </div>

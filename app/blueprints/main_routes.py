@@ -587,16 +587,20 @@ def add_test_power():
         donation_type = data.get('type', 'test')
         user = data.get('user', 'Test')
         
-        # Use new MechService instead of old donation_manager
-        from services.mech.mech_service import get_mech_service
-        mech_service = get_mech_service()
-        
+        # UNIFIED DONATION SERVICE: Centralized processing with guaranteed events
+        from services.donation.unified_donation_service import process_test_donation
+
         if amount != 0:
-            # Add donation (positive or negative)
+            # Add donation (positive only - negative testing requires special handling)
             if amount > 0:
-                # For positive amounts, add normally
-                result_state = mech_service.add_donation(f"WebUI:{user}", int(amount))
-                current_app.logger.info(f"NEW SERVICE: Added ${amount} Power, new total: ${result_state.Power}")
+                # Use unified service for positive donations with automatic events
+                donation_result = process_test_donation(user, int(amount))
+
+                if not donation_result.success:
+                    raise Exception(f"Test donation failed: {donation_result.error_message}")
+
+                result_state = donation_result.new_state
+                current_app.logger.info(f"UNIFIED SERVICE: Added ${amount} Power, new total: ${result_state.Power}")
             else:
                 # For negative amounts, we need to work around the limitation
                 # MechService only accepts positive integers, so we add a negative donation
@@ -647,17 +651,14 @@ def add_test_power():
 def reset_power():
     """Reset Power to 0 for testing (requires auth) - USING NEW MECH SERVICE."""
     try:
-        # NEW SERVICE: Reset by clearing donation file
-        from services.mech.mech_service import get_mech_service
-        mech_service = get_mech_service()
-        
-        # Reset by directly modifying the store using SERVICE FIRST
-        from services.mech.mech_compatibility_service import get_mech_compatibility_service
-        compat_service = get_mech_compatibility_service()
-        store_data = {"donations": []}
-        if not compat_service.save_store_data(store_data):
-            current_app.logger.error("Failed to reset store data")
-            return jsonify({'success': False, 'error': 'Failed to reset store data'})
+        # UNIFIED DONATION SERVICE: Reset with automatic event emission
+        from services.donation.unified_donation_service import reset_all_donations
+
+        reset_result = reset_all_donations(source='admin_reset')
+
+        if not reset_result.success:
+            current_app.logger.error(f"Failed to reset donations: {reset_result.error_message}")
+            return jsonify({'success': False, 'error': reset_result.error_message})
         
         # Get new state (should be Level 1, 0 Power) using CACHE FOR PERFORMANCE
         # PERFORMANCE OPTIMIZATION: Use cached mech state (will be fresh since we just reset)

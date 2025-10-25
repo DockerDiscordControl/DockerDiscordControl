@@ -21,7 +21,7 @@ import logging
 from typing import Dict, List, Set, Optional, Tuple
 from dataclasses import dataclass
 import math
-from .evolution_config_manager import get_evolution_config_manager
+from .mech_evolutions import get_evolution_config_service, calculate_dynamic_cost, get_evolution_level_info
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +37,8 @@ class CommunitySize:
     @classmethod
     def from_member_count(cls, member_count: int) -> 'CommunitySize':
         """Determine community size tier from member count using JSON config."""
-        config_manager = get_evolution_config_manager()
-        community_info = config_manager.get_community_size_info(member_count)
+        config_service = get_evolution_config_service()
+        community_info = config_service.get_community_size_info(member_count)
         
         return cls(
             unique_members=member_count,
@@ -132,11 +132,11 @@ class DynamicEvolutionCalculator:
         if level == 1:
             return 0, 1.0, "N/A"
             
-        config_manager = get_evolution_config_manager()
-        community_info = config_manager.get_community_size_info(member_count)
+        config_service = get_evolution_config_service()
+        community_info = config_service.get_community_size_info(member_count)
         
-        # Calculate dynamic cost using config manager
-        adjusted_cost, effective_multiplier = config_manager.calculate_dynamic_cost(
+        # Calculate dynamic cost using unified system
+        adjusted_cost, effective_multiplier = calculate_dynamic_cost(
             level, member_count, community_info["multiplier"]
         )
         
@@ -155,11 +155,11 @@ class DynamicEvolutionCalculator:
         Returns:
             Dict mapping level to cost information
         """
-        config_manager = get_evolution_config_manager()
+        config_service = get_evolution_config_service()
         costs = {}
         
         for level in range(2, 12):  # Levels 2-11 have evolution costs
-            evolution_level = config_manager.get_evolution_level(level)
+            evolution_level = get_evolution_level_info(level)
             if not evolution_level:
                 continue
                 

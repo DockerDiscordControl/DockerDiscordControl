@@ -116,84 +116,64 @@ class DonationManagementService:
             return ServiceResult(success=False, error=error_msg)
     
     def delete_donation(self, index: int) -> ServiceResult:
-        """Delete a donation by index using MechService.
-        
+        """Delete a donation by index using Unified Donation Service.
+
         Args:
             index: Index of donation to delete (0-based, from latest to oldest)
-            
+
         Returns:
             ServiceResult with deletion details
         """
         try:
-            from services.mech.mech_service import get_mech_service
-            mech_service = get_mech_service()
-            
-            # Get raw donations from mech service store
-            # Use SERVICE FIRST compatibility layer for store access
+            # UNIFIED DONATION SERVICE: Clean deletion with automatic events
+            from services.donation.unified_donation_service import get_unified_donation_service, DonationDeletionRequest
+
+            # Get current donations to validate index and convert display order to storage order
             from services.mech.mech_compatibility_service import get_mech_compatibility_service
             compat_service = get_mech_compatibility_service()
             store_data = compat_service.get_store_data()
             raw_donations = store_data.get('donations', [])
-            
+
             # Convert index (we display newest first, but store is oldest first)
             total_donations = len(raw_donations)
             if not (0 <= index < total_donations):
                 error_msg = f"Invalid donation index: {index}"
                 logger.warning(error_msg)
                 return ServiceResult(success=False, error=error_msg)
-            
-            # Get the actual index in the stored array (reverse order)
-            actual_index = total_donations - 1 - index
-            
-            # Get donation info before deletion
-            donation = raw_donations[actual_index]
-            donor_name = donation.get('username', 'Anonymous')
-            amount = donation.get('amount', 0.0)
-            
-            # Delete the donation from the store
-            raw_donations.pop(actual_index)
-            
-            # Save updated data back to store
-            updated_data = store_data.copy()
-            updated_data['donations'] = raw_donations
-            # Use SERVICE FIRST compatibility layer for store save
-            if not compat_service.save_store_data(updated_data):
-                return ServiceResult(success=False, error="Failed to save updated donations")
-            
-            logger.info(f"MechService donation deleted: {donor_name} - ${amount:.2f}")
 
-            # Emit event for cache invalidation - deletion affects mech level/power
-            try:
-                from services.infrastructure.event_manager import get_event_manager
-                event_manager = get_event_manager()
+            # Convert display index to storage index
+            storage_index = total_donations - 1 - index
 
-                # Get updated mech state after deletion
-                from services.mech.mech_service import get_mech_service
-                mech_service = get_mech_service()
-                updated_state = mech_service.get_state()
+            # Use unified service for deletion with automatic events
+            unified_service = get_unified_donation_service()
+            deletion_request = DonationDeletionRequest(
+                donation_index=storage_index,
+                source='web_ui_admin'
+            )
 
-                # Emit donation deleted event for cache invalidation
-                event_manager.emit_event(
-                    event_type='donation_completed',  # Use same event type as additions for consistency
-                    source_service='web_ui_donations',
-                    data={
-                        'action': 'deleted',
-                        'donor_name': donor_name,
-                        'amount': amount,
-                        'deleted_index': index,
-                        'new_level': updated_state.level,
-                        'new_power': updated_state.Power,
-                        'new_total_donated': updated_state.total_donated
-                    }
-                )
-                logger.info(f"Donation deletion event emitted: {donor_name} -${amount} (index {index})")
-            except Exception as event_error:
-                logger.error(f"Failed to emit donation deletion event: {event_error}")
+            deletion_result = unified_service.delete_donation(deletion_request)
 
+            if not deletion_result.success:
+                return ServiceResult(success=False, error=deletion_result.error_message)
+
+            # Extract donation info for response
+            deleted_donation = deletion_result.deleted_donation
+            donor_name = deleted_donation.get('username', 'Anonymous')
+            amount = deleted_donation.get('amount', 0.0)
+
+            logger.info(f"Donation deleted via unified service: {donor_name} - ${amount:.2f}")
+
+            # Return success with donation details (Web UI compatible format)
             result_data = {
-                'donor_name': donor_name,
-                'amount': amount,
-                'index': index
+                'donor_name': donor_name,  # Web UI expects this
+                'amount': amount,          # Web UI expects this
+                'deleted_donation': deleted_donation,
+                'remaining_count': total_donations - 1,
+                'new_state': {
+                    'level': deletion_result.new_state.level,
+                    'power': float(deletion_result.new_state.Power)
+                },
+                'index': index  # For backwards compatibility
             }
 
             return ServiceResult(success=True, data=result_data)

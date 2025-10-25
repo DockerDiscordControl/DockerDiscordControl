@@ -265,9 +265,8 @@ class MechDecayService:
     def _get_decay_rate_for_level(self, level: int) -> float:
         """Get decay rate for specific mech level."""
         try:
-            from services.mech.evolution_config_manager import get_evolution_config_manager
-            config_mgr = get_evolution_config_manager()
-            evolution = config_mgr.get_evolution_level(level)
+            from services.mech.mech_evolutions import get_evolution_level_info
+            evolution = get_evolution_level_info(level)
 
             return evolution.decay_per_day if evolution else 1.0
 
@@ -285,9 +284,8 @@ class MechDecayService:
     def _get_evolution_information(self, level: int) -> Dict[str, Any]:
         """Get evolution information for level."""
         try:
-            from services.mech.evolution_config_manager import get_evolution_config_manager
-            config_mgr = get_evolution_config_manager()
-            evolution = config_mgr.get_evolution_level(level)
+            from services.mech.mech_evolutions import get_evolution_level_info
+            evolution = get_evolution_level_info(level)
 
             if evolution:
                 return {

@@ -2000,10 +2000,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 else:
                     mech_status += f"⚡{current_Power:.2f}\n`{Power_bar}` {Power_percentage:.1f}%\n"
 
-                # Get level-specific decay rate
-                from services.mech.evolution_config_manager import get_evolution_config_manager
-                config_mgr = get_evolution_config_manager()
-                evolution_info = config_mgr.get_evolution_level(mech_cache_result.level)
+                # Get level-specific decay rate (SERVICE FIRST: unified evolution system)
+                from services.mech.mech_evolutions import get_evolution_level_info
+                evolution_info = get_evolution_level_info(mech_cache_result.level)
                 decay_per_day = evolution_info.decay_per_day if evolution_info else 1.0
 
                 Power_consumption_text = translate("Power Consumption")
@@ -3694,30 +3693,27 @@ class DonationBroadcastModal(discord.ui.Modal):
                             ephemeral=False  # Make it visible so we can delete it
                         )
                         
-                        # Process donation (may take a few seconds for member count)
-                        try:
-                            if self.bot:
-                                new_state = await mech_service.add_donation_with_bot(
-                                    username=f"Discord:{interaction.user.name}",
-                                    amount=amount_dollars,
-                                    bot=self.bot
-                                )
-                                logger.info(f"Donation recorded: ${amount_dollars}")
-                            else:
-                                # Fallback if no bot instance available
-                                new_state = mech_service.add_donation(
-                                    username=f"Discord:{interaction.user.name}",
-                                    amount=amount_dollars
-                                )
-                                logger.info(f"Donation recorded (no bot instance): ${amount_dollars}")
-                        except Exception as donation_error:
-                            logger.error(f"Error processing donation: {donation_error}")
-                            # Fallback to regular donation without bot
-                            new_state = mech_service.add_donation(
-                                username=f"Discord:{interaction.user.name}",
-                                amount=amount_dollars
+                        # UNIFIED DONATION SERVICE: Single clean path with guaranteed events
+                        from services.donation.unified_donation_service import process_discord_donation
+
+                        donation_result = await process_discord_donation(
+                            discord_username=interaction.user.name,
+                            amount=amount_dollars,
+                            user_id=str(interaction.user.id),
+                            guild_id=str(interaction.guild.id) if interaction.guild else None,
+                            bot_instance=self.bot
+                        )
+
+                        if not donation_result.success:
+                            logger.error(f"Donation failed: {donation_result.error_message}")
+                            await interaction.followup.send(
+                                _("❌ Donation processing failed: {error}").format(error=donation_result.error_message),
+                                ephemeral=True
                             )
-                            logger.info(f"Fallback donation recorded: ${amount_dollars}")
+                            return
+
+                        new_state = donation_result.new_state
+                        logger.info(f"Donation recorded via unified service: ${amount_dollars}")
                     else:
                         # Get current state using SERVICE FIRST
                         new_state_request = GetMechStateRequest(include_decimals=False)
@@ -3754,29 +3750,8 @@ class DonationBroadcastModal(discord.ui.Modal):
                         if power_changed:
                             logger.info(f"Power changed from {old_power} to {new_power} - updating mech animations")
 
-                        # ELEGANT SOLUTION: Emit proper events for automatic cache invalidation
-                        # This uses the EVENT SYSTEM instead of manual cache clearing
-                        try:
-                            from services.infrastructure.event_manager import get_event_manager
-                            event_manager = get_event_manager()
-
-                            # Emit donation completed event for cache invalidation
-                            event_manager.emit_event(
-                                event_type='donation_completed',
-                                source_service='discord_donations',
-                                data={
-                                    'donor_name': donor_name,
-                                    'amount': amount,
-                                    'old_level': old_state_result.level,
-                                    'new_level': new_state.level,
-                                    'old_power': old_power,
-                                    'new_power': new_power,
-                                    'evolution_occurred': evolution_occurred
-                                }
-                            )
-                            logger.info(f"Donation event emitted: {donor_name} ${amount} - Level {old_state_result.level}→{new_state.level}")
-                        except Exception as event_error:
-                            logger.error(f"Failed to emit donation event: {event_error}")
+                        # Events are now automatically handled by UnifiedDonationService
+                        # No manual event emission needed - prevents duplicate events
 
                         # Trigger immediate update of all overview messages
                         cog = interaction.client.get_cog('DockerControlCog')

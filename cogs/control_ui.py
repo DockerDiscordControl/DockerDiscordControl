@@ -1586,12 +1586,11 @@ class MechHistoryButton(Button):
 
     async def _create_mech_history_display(self, interaction: discord.Interaction, current_level: int):
         """Create the mech history display with sequential animations and epic story chapters."""
-        from services.mech.evolution_config_manager import get_evolution_config_manager
+        # SERVICE FIRST: Use unified evolution system
+        from services.mech.mech_evolutions import get_evolution_level_info
         import discord
         import io
         import asyncio
-
-        config_manager = get_evolution_config_manager()
 
         # Create main embed
         next_level = current_level + 1 if current_level < 10 else None
@@ -1628,7 +1627,7 @@ class MechHistoryButton(Button):
 
         for level in range(1, min(12, current_level + 2)):  # Show unlocked + next level only (max Level 11)
             try:
-                evolution_info = config_manager.get_evolution_level(level)
+                evolution_info = get_evolution_level_info(level)
                 if not evolution_info:
                     continue
 
@@ -1870,12 +1869,12 @@ class MechSelectionView(View):
         self.cog = cog_instance
         self.current_level = current_level
 
-        from services.mech.evolution_config_manager import get_evolution_config_manager
-        config_manager = get_evolution_config_manager()
+        # SERVICE FIRST: Use unified evolution system
+        from services.mech.mech_evolutions import get_evolution_level_info
 
         # Add button for each unlocked mech (Level 1-11)
         for level in range(1, min(current_level + 1, 12)):  # 12 to include up to Level 11
-            evolution_info = config_manager.get_evolution_level(level)
+            evolution_info = get_evolution_level_info(level)
             if evolution_info:
                 button = MechDisplayButton(cog_instance, level, evolution_info.name, unlocked=True)
                 self.add_item(button)
@@ -1884,7 +1883,7 @@ class MechSelectionView(View):
         # Level 10+ gets Epilogue instead of Next button
         next_level = current_level + 1
         if next_level <= 11 and current_level < 10:
-            evolution_info = config_manager.get_evolution_level(next_level)
+            evolution_info = get_evolution_level_info(next_level)
             if evolution_info:
                 button = MechDisplayButton(cog_instance, next_level, "Next", unlocked=False)
                 self.add_item(button)
@@ -1917,13 +1916,13 @@ class MechDisplayButton(Button):
                 await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
                 return
 
-            from services.mech.evolution_config_manager import get_evolution_config_manager
+            # SERVICE FIRST: Use unified evolution system
             from services.mech.mech_display_cache_service import get_mech_display_cache_service, MechDisplayImageRequest
             import io
 
-            config_manager = get_evolution_config_manager()
+            from services.mech.mech_evolutions import get_evolution_level_info
             display_cache_service = get_mech_display_cache_service()
-            evolution_info = config_manager.get_evolution_level(self.level)
+            evolution_info = get_evolution_level_info(self.level)
 
             if not evolution_info:
                 await interaction.response.send_message(_("❌ Mech data not found."), ephemeral=True)

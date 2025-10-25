@@ -410,18 +410,40 @@ class MechWebService:
     def _get_difficulty(self) -> MechConfigResult:
         """Get current mech evolution difficulty multiplier."""
         try:
-            from services.mech.evolution_config_manager import get_evolution_config_manager
+            from services.mech.mech_evolutions import get_evolution_config_service
+            from services.mech.simple_evolution_service import get_simple_evolution_service
 
-            config_manager = get_evolution_config_manager()
-            multiplier = config_manager.get_difficulty_multiplier()
-            is_auto = config_manager.is_auto_difficulty()
+            config_service = get_evolution_config_service()
+            simple_service = get_simple_evolution_service()
+
+            multiplier = config_service.get_difficulty_multiplier()
+            is_auto = config_service.is_auto_difficulty()
+
+            # Get current mech state for simple evolution display
+            total_donated = self._get_total_donations()
+            simple_state = simple_service.get_current_state(total_donated, multiplier)
+
+            # Get difficulty presets for Web UI buttons
+            presets = simple_service.get_difficulty_presets()
 
             return MechConfigResult(
                 success=True,
                 data={
                     'multiplier': multiplier,
                     'is_auto': is_auto,
-                    'status': 'auto' if is_auto else 'manual'
+                    'status': 'auto' if is_auto else 'manual',
+                    'simple_evolution': {
+                        'current_level': simple_state.current_level,
+                        'next_level_cost': simple_state.next_level_cost,
+                        'total_donated': simple_state.total_donated,
+                        'achieved_levels': {str(k): {
+                            'level': v.level,
+                            'cost': v.cost,
+                            'achieved': v.achieved,
+                            'locked': v.locked
+                        } for k, v in simple_state.achieved_levels.items()}
+                    },
+                    'presets': presets
                 }
             )
 
@@ -450,10 +472,17 @@ class MechWebService:
                     status_code=400
                 )
 
-            from services.mech.evolution_config_manager import get_evolution_config_manager
+            from services.mech.mech_evolutions import get_evolution_config_service
+            from services.mech.simple_evolution_service import get_simple_evolution_service
 
-            config_manager = get_evolution_config_manager()
-            config_manager.set_difficulty_multiplier(multiplier)
+            config_service = get_evolution_config_service()
+            simple_service = get_simple_evolution_service()
+
+            config_service.set_difficulty_multiplier(multiplier)
+
+            # Get updated simple evolution state
+            total_donated = self._get_total_donations()
+            simple_state = simple_service.get_current_state(total_donated, multiplier)
 
             # Log the action
             self._log_user_action(
@@ -468,7 +497,13 @@ class MechWebService:
                     'multiplier': multiplier,
                     'is_auto': False,
                     'status': 'manual',
-                    'message': f'Difficulty multiplier set to {multiplier}x'
+                    'message': f'Difficulty multiplier set to {multiplier}x',
+                    'simple_evolution': {
+                        'current_level': simple_state.current_level,
+                        'next_level_cost': simple_state.next_level_cost,
+                        'total_donated': simple_state.total_donated,
+                        'cost_change': f'Next level now costs ${simple_state.next_level_cost}'
+                    }
                 }
             )
 
@@ -483,11 +518,11 @@ class MechWebService:
     def _reset_difficulty(self) -> MechConfigResult:
         """Reset mech evolution difficulty to automatic mode."""
         try:
-            from services.mech.evolution_config_manager import get_evolution_config_manager
+            from services.mech.mech_evolutions import get_evolution_config_service
 
-            config_manager = get_evolution_config_manager()
-            config_manager.reset_to_auto_difficulty()
-            current_multiplier = config_manager.get_difficulty_multiplier()
+            config_service = get_evolution_config_service()
+            config_service.reset_to_auto_difficulty()
+            current_multiplier = config_service.get_difficulty_multiplier()
 
             # Log the action
             self._log_user_action(

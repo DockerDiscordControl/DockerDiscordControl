@@ -108,6 +108,9 @@ docker run -d \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v "$(pwd)/config":/app/config \
   -v "$(pwd)/logs":/app/logs \
+  -v "$(pwd)/cached_animations":/app/cached_animations \
+  -v "$(pwd)/cached_displays":/app/cached_displays \
+  -v "$(pwd)/assets":/app/assets \
   -e FLASK_SECRET_KEY="${FLASK_SECRET_KEY}" \
   -e ENV_FLASK_SECRET_KEY="${FLASK_SECRET_KEY}" \
   -e PYTHONWARNINGS="ignore" \

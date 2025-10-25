@@ -123,11 +123,18 @@ class DonationService:
     def _process_mech_donation(self, request: DonationRequest) -> Dict[str, Any]:
         """Process donation through MechService."""
         try:
-            from services.mech.mech_service import get_mech_service
-            mech_service = get_mech_service()
+            # UNIFIED DONATION SERVICE: Centralized processing with guaranteed events
+            from services.donation.unified_donation_service import process_web_ui_donation
 
-            # Add donation to the system
-            result_state = mech_service.add_donation(f"WebUI:{request.donor_name}", int(request.amount))
+            donation_result = process_web_ui_donation(
+                donor_name=request.donor_name,
+                amount=int(request.amount)
+            )
+
+            if not donation_result.success:
+                raise Exception(f"Donation failed: {donation_result.error_message}")
+
+            result_state = donation_result.new_state
 
             self.logger.info(f"Manual donation processed: ${request.amount} from {request.donor_name}")
 

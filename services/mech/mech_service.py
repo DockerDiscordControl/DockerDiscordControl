@@ -201,15 +201,15 @@ class MechState:
 # ---------------------------
 
 class MechService:
-    """Instance-wide black-box for DDC.
+    """Instance-wide mech service for DDC using SimpleEvolutionService.
 
     Rules:
     - Donations persist in JSON (username, amount, timestamp).
-    - Mech level from cumulative donations.
+    - Mech level from cumulative donations using STATIC evolution costs.
     - Power increases by donation dollars.
     - On level-up, Power resets to 1 plus overshoot beyond the new level threshold.
     - Power decays continuously: 1 Power per 86400 seconds (second-accurate).
-    - Evolution costs are dynamic based on unique Discord members in status channels.
+    - Evolution costs are STATIC: Level 1=$0, Level 2=$20, Level 3=$50, etc.
     - Bars:
         * Mech progress: 0..Δ (Δ = distance to next level)
         * Power bar: 0..(Δ + 1) (fresh level = 1); at MAX level 0..100
@@ -221,15 +221,7 @@ class MechService:
     def __init__(self, json_path: str | Path, tz: str = "Europe/Zurich") -> None:
         self.store = _Store(Path(json_path))
         self.tz = ZoneInfo(tz)
-        self.member_count_cache = None  # Cache for member count
-        self.dynamic_thresholds = None  # Cache for dynamic thresholds
         self._store_lock = threading.Lock()  # Protect load-modify-save operations
-
-    # -------- Public API --------
-
-    def set_member_count(self, count: int) -> None:
-        """Update the member count for dynamic evolution costs."""
-        self.member_count_cache = count
 
     # -------- SERVICE FIRST API --------
 
@@ -288,7 +280,12 @@ class MechService:
             )
 
     def add_donation_service(self, request: AddDonationRequest) -> AddDonationResult:
-        """SERVICE FIRST: Add donation with Request/Result pattern."""
+        """
+        DEPRECATED: Use UnifiedDonationService instead.
+
+        This method is deprecated and will be removed in a future version.
+        Use services.donation.unified_donation_service.process_donation() instead.
+        """
         try:
             # Get old state
             old_state = self.get_state()
@@ -377,35 +374,6 @@ class MechService:
                 success=False,
                 error_message=str(e)
             )
-        self.dynamic_thresholds = None  # Clear threshold cache
-        logger.info(f"MechService: Member count updated to {count}")
-    
-    def get_dynamic_thresholds(self) -> Dict[int, int]:
-        """Get dynamic thresholds based on current member count."""
-        if self.dynamic_thresholds is not None:
-            return self.dynamic_thresholds
-            
-        from .monthly_member_cache import get_monthly_member_cache
-        from .dynamic_evolution import get_evolution_calculator
-        
-        cache = get_monthly_member_cache()
-        calculator = get_evolution_calculator()
-        
-        # Build dynamic threshold mapping with level-based member counts
-        thresholds = {}
-        for level in range(1, 12):
-            if level == 1:
-                thresholds[level] = 0
-            else:
-                # Use appropriate member count based on level protection rules
-                member_count = cache.get_member_count_for_level(level)
-                threshold, _, _ = calculator.calculate_evolution_cost(level, member_count)
-                thresholds[level] = threshold
-        
-        self.dynamic_thresholds = thresholds
-        cache_info = cache.get_cache_info()
-        logger.debug(f"Dynamic thresholds calculated using monthly cache from {cache_info.get('month_year', 'N/A')}")
-        return thresholds
 
     def add_donation(self, username: str, amount: int, ts_iso: Optional[str] = None) -> MechState:
         """Persist a donation and return the fresh state."""
@@ -434,26 +402,16 @@ class MechService:
         return self.get_state(now_iso=ts.isoformat())
     
     async def add_donation_with_bot(self, username: str, amount: int, bot=None, ts_iso: Optional[str] = None) -> MechState:
-        """Persist a donation with optimized community count check and return the fresh state."""
+        """
+        DEPRECATED: Use UnifiedDonationService instead.
+
+        This method is deprecated and will be removed in a future version.
+        Use services.donation.unified_donation_service.process_discord_donation() instead.
+        """
         if amount <= 0:
             raise ValueError("amount must be a positive integer number of dollars")
 
-        # Check if monthly member cache needs updating (random monthly updates)
-        if bot:
-            try:
-                from .monthly_member_cache import get_monthly_member_cache
-                cache = get_monthly_member_cache()
-                
-                # Non-blocking cache update check
-                updated = await cache.update_member_count_if_needed(bot)
-                if updated:
-                    logger.info(f"Monthly member cache updated during donation from {username}")
-                    # Clear dynamic thresholds cache to force recalculation
-                    self.dynamic_thresholds = None
-                    
-            except Exception as e:
-                logger.error(f"Error checking monthly member cache: {e}")
-                # Continue with existing cache
+        # No more dynamic member cache updates needed (using simple static evolution)
 
         # Fast path: Record donation immediately (thread-safe)
         ts = self._now() if ts_iso is None else self._parse_iso(ts_iso)
@@ -558,76 +516,54 @@ class MechService:
         donations = list(self.store.load().get("donations", []))
         donations.sort(key=lambda d: d["ts"])  # chronological
 
-        # Get dynamic thresholds based on current member count
-        dynamic_thresholds = self.get_dynamic_thresholds()
-        
-        # Build dynamic MechLevel objects
-        dynamic_levels = []
-        for i, static_level in enumerate(MECH_LEVELS):
-            if static_level.level in dynamic_thresholds:
-                dynamic_levels.append(MechLevel(
-                    level=static_level.level,
-                    name=static_level.name,
-                    threshold=dynamic_thresholds[static_level.level]
-                ))
-            else:
-                dynamic_levels.append(static_level)
+        # Use SimpleEvolutionService for consistent level calculations
+        from services.mech.simple_evolution_service import get_simple_evolution_service
+        simple_service = get_simple_evolution_service()
 
-        total: int = 0
-        Power: float = 0.0  # internal float to support fractional decay
-        lvl: MechLevel = dynamic_levels[0]
+        # Calculate total donated amount
+        total_donated = sum(int(d["amount"]) for d in donations)
+
+        # Get simple evolution state with default difficulty
+        simple_state = simple_service.get_current_state(total_donated=float(total_donated), difficulty=1.0)
+
+        # Use STATIC base thresholds (no dynamic evolution)
+        static_levels = MECH_LEVELS  # Use original static levels
+
+        # Use SimpleEvolutionService results for consistent level calculation
+        lvl = static_levels[simple_state.current_level - 1]  # Convert to MechLevel object
+        total = int(total_donated)
+
+        # Calculate Power with decay from donations
+        Power: float = 0.0
         last_ts: Optional[datetime] = None
         last_evolution_ts: Optional[datetime] = None
 
         for d in donations:
             ts = self._parse_iso(d["ts"])
             if last_ts is not None:
-                Power = max(0.0, Power - self._decay_amount(last_ts, ts, lvl.level))
+                Power = max(0.0, Power - self._decay_amount(last_ts, ts, simple_state.current_level))
             last_ts = ts
 
             amount = int(d["amount"])
-            total += amount
             Power += amount
 
-            # Handle (possibly multi-step) level-ups in one donation
-            # Recalculate dynamic thresholds at each level-up check
-            while True:
-                # Recalculate thresholds for current community size
-                current_dynamic_thresholds = self.get_dynamic_thresholds()
-                
-                # Rebuild dynamic levels with current thresholds
-                current_dynamic_levels = []
-                for i, static_level in enumerate(MECH_LEVELS):
-                    if static_level.level in current_dynamic_thresholds:
-                        current_dynamic_levels.append(MechLevel(
-                            level=static_level.level,
-                            name=static_level.name,
-                            threshold=current_dynamic_thresholds[static_level.level]
-                        ))
-                    else:
-                        current_dynamic_levels.append(static_level)
-                
-                # Get next level from recalculated dynamic levels
-                try:
-                    nxt = current_dynamic_levels[lvl.level] if lvl.level < len(current_dynamic_levels) else None
-                except IndexError:
-                    nxt = None
-                if not nxt:
-                    break
-                if total >= nxt.threshold:
-                    old_level = lvl.level
-                    lvl = nxt
-                    # fresh level starts with 1 + overshoot beyond this level's threshold
-                    Power = 1.0 + max(0, total - lvl.threshold)
-                    last_evolution_ts = ts  # Track when evolution occurred
-                    
-                    # Log the level-up with dynamic cost information
-                    logger.info(
-                        f"Mech evolved from Level {old_level} to Level {lvl.level} "
-                        f"(threshold: ${lvl.threshold}, total donations: ${total})"
-                    )
-                    continue
-                break
+            # Simple level-up check using static thresholds
+            # Find highest level achievable with current total
+            temp_total = sum(int(dd["amount"]) for dd in donations[:donations.index(d)+1])
+            temp_simple_state = simple_service.get_current_state(total_donated=float(temp_total), difficulty=1.0)
+
+            if temp_simple_state.current_level > simple_state.current_level:
+                # Level up occurred - reset Power to 1 + overshoot
+                old_level = simple_state.current_level
+                lvl = static_levels[temp_simple_state.current_level - 1]
+                Power = 1.0 + max(0, temp_total - lvl.threshold)
+                last_evolution_ts = ts
+
+                logger.info(
+                    f"Mech evolved from Level {old_level} to Level {temp_simple_state.current_level} "
+                    f"(threshold: ${lvl.threshold}, total donations: ${temp_total})"
+                )
+                simple_state = temp_simple_state  # Update for next iterations
 
         # decay from last donation to "now" - but only if enough time passed since evolution
         if last_ts is not None:
@@ -641,9 +577,8 @@ class MechService:
                 # Normal decay from last donation
                 Power = max(0.0, Power - self._decay_amount(last_ts, now, lvl.level))
 
-        # Compose bars & glvl
-        # Get next level from dynamic levels
-        # For Level 10+: Show corrupted/hacked Level 11 data as easter egg
+        # Compose bars & glvl using SimpleEvolutionService results
+        # Get next level from static levels
         try:
             if lvl.level >= 10:
                 # Create corrupted OMEGA MECH entry for Level 10 users
@@ -653,11 +588,11 @@ class MechService:
                 nxt.name = "ERR#R: [DATA_C0RR*PTED]"
                 nxt.threshold = 10000  # Real threshold for percentage calculation
             else:
-                nxt = dynamic_levels[lvl.level] if lvl.level < len(dynamic_levels) else None
+                nxt = static_levels[lvl.level] if lvl.level < len(static_levels) else None
         except IndexError:
             nxt = None
-        
-        # Calculate delta using dynamic thresholds
+
+        # Calculate delta using STATIC base costs (no dynamic evolution)
         delta = None if not nxt else (nxt.threshold - lvl.threshold)
         progress_current = 0 if delta is None else max(0, total - lvl.threshold)
         progress_max = 0 if delta is None else delta
@@ -693,7 +628,7 @@ class MechService:
         bars = MechBars(
             mech_progress_current=int(progress_current),
             mech_progress_max=int(progress_max),
-            Power_current=int(max(0, math.floor(Power))),
+            Power_current=int(max(0, round(Power))),  # Round instead of floor for more accurate representation
             Power_max_for_level=int(Power_max),
         )
 
@@ -712,70 +647,47 @@ class MechService:
         """Get raw Power value with decimal places for Web UI display"""
         data = self.store.load()
         donations = data["donations"]
-        
-        # Get dynamic thresholds
-        dynamic_thresholds = self.get_dynamic_thresholds()
-        
-        # Build dynamic MechLevel objects
-        dynamic_levels = []
-        for i, static_level in enumerate(MECH_LEVELS):
-            if static_level.level in dynamic_thresholds:
-                dynamic_levels.append(MechLevel(
-                    level=static_level.level,
-                    name=static_level.name,
-                    threshold=dynamic_thresholds[static_level.level]
-                ))
-            else:
-                dynamic_levels.append(static_level)
-        
+
+        # Use SimpleEvolutionService for consistent calculations
+        from services.mech.simple_evolution_service import get_simple_evolution_service
+        simple_service = get_simple_evolution_service()
+
+        # Calculate total donated amount
+        total_donated = sum(int(d["amount"]) for d in donations)
+        simple_state = simple_service.get_current_state(total_donated=float(total_donated), difficulty=1.0)
+
+        # Use static levels
+        static_levels = MECH_LEVELS
+        lvl = static_levels[simple_state.current_level - 1]
+
         total = 0.0
         Power = 0.0
-        lvl = dynamic_levels[0]  # Start at level 1
         now = self._now()
         last_ts = None
         last_evolution_ts = None
 
         for d in donations:
             ts = self._parse_iso(d["ts"])
-            
+
             # Apply decay from last donation to current donation
             if last_ts is not None:
-                Power = max(0.0, Power - self._decay_amount(last_ts, ts, lvl.level))
+                Power = max(0.0, Power - self._decay_amount(last_ts, ts, simple_state.current_level))
             last_ts = ts
 
             amount = int(d["amount"])
             total += amount
             Power += amount
 
-            # Handle level-ups using dynamic levels with real-time recalculation
-            while True:
-                # Recalculate thresholds for current community size at each level-up
-                current_dynamic_thresholds = self.get_dynamic_thresholds()
-                
-                # Rebuild dynamic levels with current thresholds
-                current_dynamic_levels = []
-                for i, static_level in enumerate(MECH_LEVELS):
-                    if static_level.level in current_dynamic_thresholds:
-                        current_dynamic_levels.append(MechLevel(
-                            level=static_level.level,
-                            name=static_level.name,
-                            threshold=current_dynamic_thresholds[static_level.level]
-                        ))
-                    else:
-                        current_dynamic_levels.append(static_level)
-                
-                try:
-                    nxt = current_dynamic_levels[lvl.level] if lvl.level < len(current_dynamic_levels) else None
-                except IndexError:
-                    nxt = None
-                if not nxt:
-                    break
-                if total >= nxt.threshold:
-                    lvl = nxt
-                    Power = 1.0 + max(0, total - lvl.threshold)
-                    last_evolution_ts = ts
-                    continue
-                break
+            # Simple level-up check using static thresholds
+            temp_total = sum(int(dd["amount"]) for dd in donations[:donations.index(d)+1])
+            temp_simple_state = simple_service.get_current_state(total_donated=float(temp_total), difficulty=1.0)
+
+            if temp_simple_state.current_level > simple_state.current_level:
+                # Level up occurred - reset Power to 1 + overshoot
+                lvl = static_levels[temp_simple_state.current_level - 1]
+                Power = 1.0 + max(0, temp_total - lvl.threshold)
+                last_evolution_ts = ts
+                simple_state = temp_simple_state
 
         # Final decay from last donation to now
         if last_ts is not None:
@@ -785,7 +697,7 @@ class MechService:
             if evolution_was_recent:
                 pass  # No decay if evolution just occurred
             else:
-                Power = max(0.0, Power - self._decay_amount(last_ts, now, lvl.level))
+                Power = max(0.0, Power - self._decay_amount(last_ts, now, simple_state.current_level))
 
         return Power  # Return raw float with decimals
 

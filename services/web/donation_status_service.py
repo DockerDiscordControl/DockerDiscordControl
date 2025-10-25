@@ -138,10 +138,9 @@ class DonationStatusService:
                 }
             else:
                 self.logger.warning(f"MechDecayService failed for level {mech_level}: {result.error}")
-                # Fallback to direct config access
-                from services.mech.evolution_config_manager import get_evolution_config_manager
-                config_mgr = get_evolution_config_manager()
-                evolution_info = config_mgr.get_evolution_level(mech_level)
+                # Fallback to direct config access (SERVICE FIRST: unified evolution system)
+                from services.mech.mech_evolutions import get_evolution_level_info
+                evolution_info = get_evolution_level_info(mech_level)
                 return {
                     'decay_per_day': evolution_info.decay_per_day if evolution_info else 1.0
                 }
