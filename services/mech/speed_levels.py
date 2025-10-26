@@ -153,7 +153,7 @@ def _calculate_speed_level_from_power_ratio(current_level: int, power_amount: fl
 def get_speed_info(donation_amount: float) -> tuple:
     """
     Get speed description and color based on donation amount.
-    Uses evolution-specific max power for proper scaling.
+    Uses MechDataStore for centralized data access.
 
     Args:
         donation_amount: Amount in dollars (current power)
@@ -164,25 +164,15 @@ def get_speed_info(donation_amount: float) -> tuple:
     if donation_amount <= 0:
         return SPEED_DESCRIPTIONS[0]
 
-    # Import here to avoid circular imports
-    from services.mech.mech_service import get_mech_service
-    from services.mech.mech_evolutions import get_evolution_level_info
-
     try:
-        # Get current mech state to determine evolution level
-        mech_service = get_mech_service()
+        # For arbitrary power values, calculate speed level directly using evolution system
+        from services.mech.mech_evolutions import get_evolution_level, get_evolution_level_info
 
-        # SERVICE FIRST: Get current state
-        from services.mech.mech_service import GetMechStateRequest
-        current_state_request = GetMechStateRequest(include_decimals=False)
-        current_state_result = mech_service.get_mech_state_service(current_state_request)
-        if not current_state_result.success:
-            # Fallback for failed service call
-            return SPEED_DESCRIPTIONS[1]
-        current_level = current_state_result.level
+        # Get evolution level from donation amount
+        evolution_level = get_evolution_level(donation_amount)
 
-        # Get evolution-specific max power (SERVICE FIRST: unified evolution system)
-        evolution_level_info = get_evolution_level_info(current_level)
+        # Get evolution-specific max power
+        evolution_level_info = get_evolution_level_info(evolution_level)
         if not evolution_level_info:
             # Fallback for unknown levels
             return SPEED_DESCRIPTIONS[1]
@@ -190,7 +180,7 @@ def get_speed_info(donation_amount: float) -> tuple:
         max_power_for_level = evolution_level_info.power_max
 
         # Use consolidated speed level calculation
-        level = _calculate_speed_level_from_power_ratio(current_level, donation_amount, max_power_for_level)
+        level = _calculate_speed_level_from_power_ratio(evolution_level, donation_amount, max_power_for_level)
         return SPEED_DESCRIPTIONS.get(level, SPEED_DESCRIPTIONS[0])
 
     except Exception as e:
@@ -284,30 +274,20 @@ def get_combined_mech_status(Power_amount: float, total_donations_received: floa
     # Get speed info based on POWER amount
     speed_description, speed_color = get_speed_info(Power_amount)
 
-    # Calculate speed level with new evolution-specific logic
+    # Calculate speed level directly for arbitrary power values
     try:
-        from services.mech.mech_service import get_mech_service
-        from services.mech.mech_evolutions import get_evolution_level_info
+        from services.mech.mech_evolutions import get_evolution_level, get_evolution_level_info
 
-        # Get current mech state to determine evolution level
-        mech_service = get_mech_service()
+        # Get evolution level from total donations
+        evolution_level = get_evolution_level(total_donations_received)
 
-        # SERVICE FIRST: Get current state
-        from services.mech.mech_service import GetMechStateRequest
-        current_state_request = GetMechStateRequest(include_decimals=False)
-        current_state_result = mech_service.get_mech_state_service(current_state_request)
-        if not current_state_result.success:
-            # Fallback for failed service call
-            return 1
-        current_level = current_state_result.level
-
-        # Get evolution-specific max power (SERVICE FIRST: unified evolution system)
-        evolution_level_info = get_evolution_level_info(current_level)
+        # Get evolution-specific max power
+        evolution_level_info = get_evolution_level_info(evolution_level)
         if evolution_level_info:
             max_power_for_level = evolution_level_info.power_max
 
             # Use consolidated speed level calculation
-            speed_level = _calculate_speed_level_from_power_ratio(current_level, Power_amount, max_power_for_level)
+            speed_level = _calculate_speed_level_from_power_ratio(evolution_level, Power_amount, max_power_for_level)
         else:
             # Fallback for unknown levels
             speed_level = min(int(Power_amount), 100)

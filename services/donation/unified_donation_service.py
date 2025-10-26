@@ -141,6 +141,15 @@ class UnifiedDonationService:
             # Emit unified event
             event_id = self._emit_donation_event(request, old_state, new_state)
 
+            # CRITICAL: Clear MechDataStore cache after donation processing
+            try:
+                from services.mech.mech_data_store import get_mech_data_store
+                data_store = get_mech_data_store()
+                data_store.clear_cache()
+                logger.debug("MechDataStore cache cleared after donation")
+            except Exception as cache_error:
+                logger.warning(f"Failed to clear MechDataStore cache: {cache_error}")
+
             logger.info(f"Donation processed successfully: {old_level}→{new_level}, {old_power:.2f}→{new_power:.2f}")
 
             return DonationResult(
@@ -239,6 +248,15 @@ class UnifiedDonationService:
 
             # Emit deletion event
             self._emit_deletion_event(deleted_donation, old_state, new_state, request.source)
+
+            # CRITICAL: Clear MechDataStore cache after donation deletion
+            try:
+                from services.mech.mech_data_store import get_mech_data_store
+                data_store = get_mech_data_store()
+                data_store.clear_cache()
+                logger.debug("MechDataStore cache cleared after donation deletion")
+            except Exception as cache_error:
+                logger.warning(f"Failed to clear MechDataStore cache: {cache_error}")
 
             logger.info(f"Donation deleted: ${deleted_donation['amount']} from {deleted_donation['username']}")
 
@@ -462,6 +480,15 @@ def reset_all_donations(source: str = 'admin') -> DonationResult:
             source_service='unified_donations',
             data=event_data
         )
+
+        # CRITICAL: Clear MechDataStore cache after donation reset
+        try:
+            from services.mech.mech_data_store import get_mech_data_store
+            data_store = get_mech_data_store()
+            data_store.clear_cache()
+            logger.debug("MechDataStore cache cleared after donation reset")
+        except Exception as cache_error:
+            logger.warning(f"Failed to clear MechDataStore cache: {cache_error}")
 
         logger.info(f"All donations reset: {old_level}→{new_level}, {old_power:.2f}→{new_power:.2f}")
 

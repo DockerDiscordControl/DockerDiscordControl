@@ -108,10 +108,16 @@ class MechWebService:
                 # BUGFIX: Use actual mech level instead of calculating from power
                 # get_evolution_level() calculates based on thresholds, but actual level
                 # can be different (e.g., Level 3 with Power 2.97 after decay)
-                from services.mech.mech_service import get_mech_service
-                mech_service = get_mech_service()
-                actual_state = mech_service.get_state()
-                evolution_level = actual_state.level
+                from services.mech.mech_data_store import get_mech_data_store, LevelDataRequest
+                data_store = get_mech_data_store()
+                level_request = LevelDataRequest()
+                level_result = data_store.get_level_info(level_request)
+
+                if level_result.success:
+                    evolution_level = level_result.current_level
+                else:
+                    # Fallback to calculation from power if MechDataStore fails
+                    evolution_level = max(1, min(11, get_evolution_level(current_power)))
 
                 self.logger.debug(f"Live mech animation request with force_power: {current_power}, actual_level: {evolution_level}")
             else:
@@ -297,44 +303,49 @@ class MechWebService:
             self.logger.warning(f"Could not set Python path: {e}")
 
     def _get_total_donations(self, force_power: Optional[float] = None) -> float:
-        """Get total donations with multiple fallbacks."""
+        """Get total donations using MechDataStore (centralized data service)."""
         if force_power is not None:
             return force_power
 
         try:
-            from services.mech.mech_service import get_mech_service, GetMechStateRequest
-            mech_service = get_mech_service()
-            mech_state_request = GetMechStateRequest(include_decimals=False)
-            mech_state_result = mech_service.get_mech_state_service(mech_state_request)
-            if not mech_state_result.success:
-                self.logger.error("Failed to get mech state")
+            from services.mech.mech_data_store import get_mech_data_store, PowerDataRequest
+
+            data_store = get_mech_data_store()
+            power_request = PowerDataRequest(include_decimals=False)
+            power_result = data_store.get_power_info(power_request)
+
+            if not power_result.success:
+                self.logger.error("Failed to get power info from MechDataStore")
                 return 20.0  # Fallback
-            total_donations = mech_state_result.total_donated
-            self.logger.debug(f"Got total donations from mech service: {total_donations}")
+
+            total_donations = power_result.total_donated
+            self.logger.debug(f"Got total donations from MechDataStore: {total_donations}")
             return total_donations
+
         except Exception as e:
-            self.logger.error(f"Error getting donation status: {e}")
+            self.logger.error(f"Error getting donation status from MechDataStore: {e}")
             return 20.0  # Fallback default
 
     def _create_donation_animation(self, total_donations: float, donor_name: str, amount: str) -> Optional[bytes]:
-        """Create donation animation using unified service."""
+        """Create donation animation using MechDataStore and unified service."""
         try:
             from services.mech.png_to_webp_service import get_png_to_webp_service
-            from services.mech.mech_service import get_mech_service, GetMechStateRequest
+            from services.mech.mech_data_store import get_mech_data_store, PowerDataRequest
 
             animation_service = get_png_to_webp_service()
-            mech_service = get_mech_service()
+            data_store = get_mech_data_store()
 
-            # SERVICE FIRST: Get mech state with decimals for proper animation
-            mech_state_request = GetMechStateRequest(include_decimals=True)
-            mech_state_result = mech_service.get_mech_state_service(mech_state_request)
-            if not mech_state_result.success:
-                self.logger.error("Failed to get mech state for animation")
+            # MECHDATASTORE: Get power info with decimals for proper animation
+            power_request = PowerDataRequest(include_decimals=True)
+            power_result = data_store.get_power_info(power_request)
+
+            if not power_result.success:
+                self.logger.error("Failed to get power info from MechDataStore for animation")
                 return None
 
             # Get current Power and total donated for proper animation
-            current_power = mech_state_result.power
-            total_donated = mech_state_result.total_donated
+            current_power = power_result.current_power
+            total_donated = power_result.total_donated
 
             # Create animation bytes synchronously using unified service
             animation_bytes = animation_service.create_donation_animation_sync(
@@ -408,21 +419,28 @@ class MechWebService:
             )
 
     def _get_difficulty(self) -> MechConfigResult:
-        """Get current mech evolution difficulty multiplier using MechService evolution mode."""
+        """Get current mech evolution difficulty multiplier using MechDataStore and evolution config."""
         try:
-            from services.mech.mech_service import get_mech_service
+            from services.mech.mech_data_store import get_mech_data_store, EvolutionDataRequest
             from services.mech.simple_evolution_service import get_simple_evolution_service
 
-            mech_service = get_mech_service()
+            data_store = get_mech_data_store()
             simple_service = get_simple_evolution_service()
 
-            # Get evolution mode from MechService
-            evolution_mode = mech_service._get_evolution_mode()
-            multiplier = evolution_mode.get('difficulty_multiplier', 1.0)
-            is_auto = evolution_mode.get('use_dynamic', True)  # Dynamic = auto
+            # MECHDATASTORE: Get evolution information
+            evolution_request = EvolutionDataRequest()
+            evolution_result = data_store.get_evolution_info(evolution_request)
 
-            # Get current mech state for evolution display
-            total_donated = self._get_total_donations()
+            if not evolution_result.success:
+                self.logger.error("Failed to get evolution info from MechDataStore")
+                return MechConfigResult(success=False, error=evolution_result.error, status_code=500)
+
+            multiplier = evolution_result.difficulty_multiplier
+            is_auto = evolution_result.evolution_mode == 'dynamic'
+
+            # Get current mech state for evolution display using MechDataStore
+            total_donated = evolution_result.amount_needed  # This might need adjustment
+            total_donated = self._get_total_donations()  # Keep this for compatibility
             simple_state = simple_service.get_current_state(total_donated, multiplier)
 
             # Get difficulty presets for Web UI buttons

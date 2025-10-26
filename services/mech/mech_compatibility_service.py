@@ -63,7 +63,7 @@ class MechCompatibilityService:
 
     def get_compatible_state(self, request: CompatibilityStateRequest) -> CompatibilityStateResult:
         """
-        Get mech state in legacy-compatible format using SERVICE FIRST.
+        Get mech state in legacy-compatible format using MechDataStore.
 
         Args:
             request: CompatibilityStateRequest with configuration
@@ -72,32 +72,32 @@ class MechCompatibilityService:
             CompatibilityStateResult with legacy-compatible properties
         """
         try:
-            from services.mech.mech_service import get_mech_service, GetMechStateRequest
+            # MECHDATASTORE: Use centralized data service for compatibility layer
+            from services.mech.mech_data_store import get_mech_data_store, MechDataRequest
 
-            # Use SERVICE FIRST to get state
-            mech_service = get_mech_service()
-            mech_state_request = GetMechStateRequest(include_decimals=request.include_decimals)
-            mech_state_result = mech_service.get_mech_state_service(mech_state_request)
+            data_store = get_mech_data_store()
+            data_request = MechDataRequest(include_decimals=request.include_decimals)
+            data_result = data_store.get_comprehensive_data(data_request)
 
-            if not mech_state_result.success:
+            if not data_result.success:
                 return CompatibilityStateResult(
                     success=False,
-                    error_message="Failed to get mech state from service"
+                    error_message="Failed to get mech data from MechDataStore"
                 )
 
-            # Map to legacy format
+            # Map to legacy format for backward compatibility
             return CompatibilityStateResult(
                 success=True,
-                level=mech_state_result.level,
-                Power=mech_state_result.power,
-                total_donated=mech_state_result.total_donated,
-                level_name=mech_state_result.name,
-                name=mech_state_result.name,
-                threshold=mech_state_result.threshold,
-                speed=mech_state_result.speed,
-                glvl=mech_state_result.glvl,
-                glvl_max=mech_state_result.glvl_max,
-                bars=mech_state_result.bars
+                level=data_result.current_level,
+                Power=data_result.current_power,
+                total_donated=data_result.total_donated,
+                level_name=data_result.level_name,
+                name=data_result.level_name,
+                threshold=data_result.next_level_threshold or 0,
+                speed=50.0,  # Default speed for compatibility
+                glvl=data_result.current_level,  # Use level as glvl for compatibility
+                glvl_max=100,  # Default max for compatibility
+                bars=getattr(data_result, 'bars', None)
             )
 
         except Exception as e:

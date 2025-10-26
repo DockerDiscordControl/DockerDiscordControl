@@ -70,11 +70,27 @@ class MechStatusDetailsService:
             cached_result = cache_service.get_cached_status(cache_request)
 
             if not cached_result.success:
-                # Fallback to live calculation if cache fails
-                from services.mech.mech_service import get_mech_service
-                mech_service = get_mech_service()
-                state = mech_service.get_state()
-                power_decimal = mech_service.get_power_with_decimals()
+                # Fallback to MechDataStore if cache fails
+                from services.mech.mech_data_store import get_mech_data_store, MechDataRequest
+                data_store = get_mech_data_store()
+                data_request = MechDataRequest(include_decimals=True)
+                data_result = data_store.get_comprehensive_data(data_request)
+
+                if not data_result.success:
+                    return MechStatusDetailsResult(success=False, error="Failed to get mech data from both cache and MechDataStore")
+
+                # Extract data from MechDataStore result
+                power_decimal = data_result.current_power
+
+                # Create a state-like object for compatibility
+                class StateCompat:
+                    def __init__(self, data_result):
+                        self.level = data_result.current_level
+                        self.level_name = data_result.level_name
+                        self.Power = int(data_result.current_power)
+                        self.bars = data_result.bars if hasattr(data_result, 'bars') else None
+
+                state = StateCompat(data_result)
 
                 # Get speed description
                 # SPECIAL CASE: Level 11 is maximum level - always show "Göttlich" (no more speed changes)
@@ -276,49 +292,66 @@ class MechStatusDetailsService:
             return "∞ Unendlichkeit erreicht, Danke! 🖤"
 
     def _get_next_level_info(self, level: int) -> Optional[Dict[str, Any]]:
-        """Get next level information using current evolution mode (dynamic/static)."""
+        """Get next level information using MechDataStore."""
         try:
-            from services.mech.mech_service import get_mech_service, MECH_LEVELS
+            from services.mech.mech_data_store import get_mech_data_store, EvolutionDataRequest
 
-            mech_service = get_mech_service()
+            data_store = get_mech_data_store()
+            evolution_request = EvolutionDataRequest()
+            evolution_result = data_store.get_evolution_info(evolution_request)
 
-            # Get evolution mode to use correct thresholds
-            evolution_mode = mech_service._get_evolution_mode()
+            if not evolution_result.success:
+                logger.debug(f"Error getting evolution info from MechDataStore: {evolution_result.error}")
+                return None
 
-            if evolution_mode['use_dynamic']:
-                # DYNAMIC: Use community-based thresholds with protection
-                dynamic_thresholds = mech_service.get_dynamic_thresholds()
+            # Get level information from MechDataStore
+            if hasattr(evolution_result, 'level_data') and evolution_result.level_data:
+                level_data = evolution_result.level_data
 
-                for mech_level in MECH_LEVELS:
-                    if mech_level.level == level:
-                        # Use dynamic threshold if available, otherwise base threshold
-                        threshold = dynamic_thresholds.get(level, mech_level.threshold)
-
+                # Find the requested level
+                for level_info in level_data:
+                    if hasattr(level_info, 'level') and level_info.level == level:
                         return {
-                            'name': mech_level.name,
-                            'threshold': threshold,
-                            'mode': 'dynamic',
-                            'base_threshold': mech_level.threshold
+                            'name': level_info.name,
+                            'threshold': level_info.threshold,
+                            'mode': evolution_result.evolution_mode,
+                            'difficulty': evolution_result.difficulty_multiplier,
+                            'base_threshold': getattr(level_info, 'base_threshold', level_info.threshold)
                         }
-            else:
-                # STATIC: Use custom difficulty multiplier
-                difficulty = evolution_mode.get('difficulty_multiplier', 1.0)
 
-                for mech_level in MECH_LEVELS:
-                    if mech_level.level == level:
-                        # Apply difficulty multiplier (Level 1 always $0)
-                        if level == 1:
-                            threshold = 0
-                        else:
-                            threshold = int(mech_level.threshold * difficulty)
+            # Fallback: construct from evolution result data
+            if level <= 11:  # Valid mech levels
+                # Use evolution result data for threshold calculation
+                if evolution_result.evolution_mode == 'dynamic':
+                    # For dynamic mode, we may not have exact level data, use base calculation
+                    base_thresholds = [0, 20, 50, 100, 200, 350, 550, 800, 1100, 1450, 1850]
+                    if level <= len(base_thresholds):
+                        threshold = base_thresholds[level - 1] if level > 0 else 0
+                    else:
+                        return None
+                else:
+                    # For static mode, apply difficulty multiplier
+                    base_thresholds = [0, 20, 50, 100, 200, 350, 550, 800, 1100, 1450, 1850]
+                    if level <= len(base_thresholds):
+                        base_threshold = base_thresholds[level - 1] if level > 0 else 0
+                        threshold = int(base_threshold * evolution_result.difficulty_multiplier) if level > 1 else 0
+                    else:
+                        return None
 
-                        return {
-                            'name': mech_level.name,
-                            'threshold': threshold,
-                            'mode': 'static',
-                            'difficulty': difficulty,
-                            'base_threshold': mech_level.threshold
-                        }
+                # Get level names
+                level_names = ["", "The Rustborn Husk", "The Battle-Scarred Survivor", "The Relentless Hunter",
+                              "The Iron Predator", "The Steel Juggernaut", "The Chrome Destroyer",
+                              "The Titanium Behemoth", "The Quantum Colossus", "The Plasma Phoenix",
+                              "The Void Reaper", "The Omega Mech"]
+
+                if level <= len(level_names):
+                    return {
+                        'name': level_names[level - 1] if level > 0 else "",
+                        'threshold': threshold,
+                        'mode': evolution_result.evolution_mode,
+                        'difficulty': evolution_result.difficulty_multiplier,
+                        'base_threshold': base_thresholds[level - 1] if level > 0 and level <= len(base_thresholds) else 0
+                    }
 
             return None
 
