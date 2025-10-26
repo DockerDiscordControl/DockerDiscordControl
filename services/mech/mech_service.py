@@ -111,6 +111,33 @@ class CreateMechAnimationResult:
     error_message: Optional[str] = None
 
 
+@dataclass(frozen=True)
+class GetStoreDataRequest:
+    """Request to get store data with proper abstraction."""
+    pass
+
+
+@dataclass(frozen=True)
+class GetStoreDataResult:
+    """Result containing store data."""
+    success: bool
+    data: Optional[Dict[str, Any]] = None
+    error_message: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class SaveStoreDataRequest:
+    """Request to save store data with validation."""
+    data: Dict[str, Any]
+
+
+@dataclass(frozen=True)
+class SaveStoreDataResult:
+    """Result of saving store data."""
+    success: bool
+    error_message: Optional[str] = None
+
+
 def _next_level(curr: MechLevel) -> Optional[MechLevel]:
     try:
         return MECH_LEVELS[curr.level]  # 1-based levels vs 0-based list
@@ -377,7 +404,12 @@ class MechService:
             )
 
     def add_donation(self, username: str, amount: int, ts_iso: Optional[str] = None) -> MechState:
-        """Persist a donation and return the fresh state."""
+        """
+        SINGLE POINT OF TRUTH: Persist a donation with level-up tracking.
+
+        This method now handles level-ups directly and stores all level information
+        in the donation itself, eliminating the need for achieved_levels.json.
+        """
         if not isinstance(amount, int):
             raise TypeError("amount must be an integer")
         if amount <= 0:
@@ -389,16 +421,48 @@ class MechService:
 
         ts = self._now() if ts_iso is None else self._parse_iso(ts_iso)
 
-        # Thread-safe load-modify-save
+        # Thread-safe load-modify-save with level-up logic
         with self._store_lock:
             data = self.store.load()
             data.setdefault("donations", [])
-            data["donations"].append({
+
+            # Calculate state BEFORE this donation
+            existing_donations = data["donations"]
+            old_total = sum(int(d["amount"]) for d in existing_donations)
+            old_level = self._calculate_level_from_donations(existing_donations)
+
+            # Calculate state AFTER this donation
+            new_total = old_total + amount
+            new_level = self._calculate_level_from_total(new_total)
+
+            # Check if level-up occurred
+            level_upgrade = new_level > old_level
+
+            # Get the threshold that was used for level-up (if any)
+            threshold_used = None
+            is_dynamic = False
+            if level_upgrade:
+                level_info = self._get_level_info_for_calculation(new_level)
+                threshold_used = level_info['threshold']
+                is_dynamic = level_info['is_dynamic']
+
+            # Create enhanced donation record
+            donation_record = {
                 "username": username,
                 "amount": int(amount),
                 "ts": ts.isoformat(),
-            })
+                "level_upgrade": level_upgrade,
+                "level_reached": new_level if level_upgrade else None,
+                "threshold_used": threshold_used,
+                "is_dynamic": is_dynamic
+            }
+
+            data["donations"].append(donation_record)
             self.store.save(data)
+
+            # Log level-up if it occurred
+            if level_upgrade:
+                logger.info(f"LEVEL UP! {username} donated ${amount}, level {old_level} → {new_level} (threshold: ${threshold_used}, dynamic: {is_dynamic})")
 
         return self.get_state(now_iso=ts.isoformat())
     
@@ -578,9 +642,8 @@ class MechService:
                         threshold=adjusted_threshold
                     ))
 
-        # Load current level from persistent storage (never recalculate!)
-        achieved_data = self._load_achieved_levels_json()
-        current_level_number = achieved_data.get('current_level', 1)
+        # SINGLE POINT OF TRUTH: Calculate current level from donations only
+        current_level_number = self._calculate_level_from_donations(donations)
 
         # Find the MechLevel object for the current level
         lvl = levels[0]  # Default to Level 1
@@ -608,8 +671,7 @@ class MechService:
             temp_total = sum(int(dd["amount"]) for dd in donations[:donations.index(d)+1])
 
             # Check if we can achieve NEW levels (only levels higher than current persistent level)
-            achieved_data = self._load_achieved_levels_json()
-            current_persistent_level = achieved_data.get('current_level', 1)
+            current_persistent_level = self._calculate_level_from_donations(donations[:donations.index(d)])
 
             for level in levels:
                 if temp_total >= level.threshold and level.level > current_persistent_level:
@@ -619,8 +681,7 @@ class MechService:
                     Power = 1.0 + max(0, temp_total - lvl.threshold)
                     last_evolution_ts = ts
 
-                    # PERSIST LEVEL UP: Save to achieved_levels.json
-                    self._save_level_achievement(lvl.level, temp_total, lvl.threshold)
+                    # SINGLE POINT OF TRUTH: Level achievement now stored in donation record above
 
                     # Enhanced logging with evolution mode details
                     mode_info = "Dynamic (community-based)" if evolution_mode['use_dynamic'] else f"Static ({evolution_mode.get('difficulty_multiplier', 1.0)}x)"
@@ -647,8 +708,7 @@ class MechService:
         # POWER FIX: For already achieved levels, reset power correctly
         # If no new level-up occurred, but we're at an achieved level, reset power properly
         if last_evolution_ts is None:  # No evolution happened in this calculation
-            achieved_data = self._load_achieved_levels_json()
-            current_persistent_level = achieved_data.get('current_level', 1)
+            current_persistent_level = self._calculate_level_from_donations(donations)
             if current_persistent_level > 1:  # We're at an achieved level
                 # Find the current level threshold
                 current_level_obj = None
@@ -783,9 +843,8 @@ class MechService:
                     adjusted_threshold = int(static_level.threshold * difficulty)
                     levels.append(MechLevel(static_level.level, static_level.name, adjusted_threshold))
 
-        # Load current level from persistent storage (never recalculate!)
-        achieved_data = self._load_achieved_levels_json()
-        current_level_number = achieved_data.get('current_level', 1)
+        # SINGLE POINT OF TRUTH: Calculate current level from donations only
+        current_level_number = self._calculate_level_from_donations(donations)
 
         # Find the MechLevel object for the current level
         current_level = levels[0]  # Default to Level 1
@@ -817,8 +876,7 @@ class MechService:
             temp_total = sum(int(dd["amount"]) for dd in donations[:donations.index(d)+1])
 
             # Check if we can achieve NEW levels (only levels higher than current persistent level)
-            achieved_data = self._load_achieved_levels_json()
-            current_persistent_level = achieved_data.get('current_level', 1)
+            current_persistent_level = self._calculate_level_from_donations(donations[:donations.index(d)])
 
             for level in levels:
                 if temp_total >= level.threshold and level.level > current_persistent_level:
@@ -828,8 +886,7 @@ class MechService:
                     Power = 1.0 + max(0, temp_total - lvl.threshold)
                     last_evolution_ts = ts
 
-                    # PERSIST LEVEL UP: Save to achieved_levels.json
-                    self._save_level_achievement(lvl.level, temp_total, lvl.threshold)
+                    # SINGLE POINT OF TRUTH: Level achievement now stored in donation record above
 
                     logger.debug(f"Level up in power calculation: {old_level} → {lvl.level} (saved to JSON)")
                     break  # Only one level up per donation
@@ -837,8 +894,7 @@ class MechService:
         # POWER FIX (DUPLICATE): For already achieved levels, reset power correctly
         # Same fix as in get_state() method - this is code duplication that needs the same fix
         if last_evolution_ts is None:  # No evolution happened in this calculation
-            achieved_data = self._load_achieved_levels_json()
-            current_persistent_level = achieved_data.get('current_level', 1)
+            current_persistent_level = self._calculate_level_from_donations(donations)
             if current_persistent_level > 1:  # We're at an achieved level
                 # Find the current level threshold
                 current_level_obj = None
@@ -915,19 +971,12 @@ class MechService:
         }
 
     def _get_achieved_levels(self, total_donated: int) -> Dict[int, Dict[str, Any]]:
-        """Get achieved levels from persistent storage."""
-        achieved_data = self._load_achieved_levels_json()
-        achieved = {}
+        """
+        SINGLE POINT OF TRUTH: Get achieved levels from donation history.
 
-        # Convert string keys to int and extract achieved levels
-        for level_str, level_info in achieved_data.get('achieved_levels', {}).items():
-            try:
-                level_int = int(level_str)
-                achieved[level_int] = level_info
-            except (ValueError, TypeError):
-                continue
-
-        return achieved
+        This method now uses the new _get_achieved_levels_from_donations().
+        """
+        return self._get_achieved_levels_from_donations()
 
     def _save_level_achievement(self, level: int, total_donated: int, cost_paid: int) -> None:
         """Save level achievement to persistent JSON file."""
@@ -1061,6 +1110,191 @@ class MechService:
             logger.warning(f"MechDecayService failed, using fallback: {result.error}")
             sec = (b.astimezone(self.tz) - a.astimezone(self.tz)).total_seconds()
             return max(0.0, (sec / 86400.0) * 1.0)  # Default 1.0 decay rate
+
+    # -------- Store Data Service Abstraction --------
+
+    def get_store_data_service(self, request: GetStoreDataRequest) -> GetStoreDataResult:
+        """
+        SERVICE FIRST: Get store data with proper abstraction.
+
+        Args:
+            request: GetStoreDataRequest
+
+        Returns:
+            GetStoreDataResult with store data or error
+        """
+        try:
+            # Load store data through proper internal mechanism
+            store_data = self.store.load()
+
+            # Return sanitized copy (don't expose internal references)
+            return GetStoreDataResult(
+                success=True,
+                data=dict(store_data)  # Create defensive copy
+            )
+        except Exception as e:
+            logger.error(f"Error getting store data via service: {e}")
+            return GetStoreDataResult(
+                success=False,
+                error_message=str(e)
+            )
+
+    def save_store_data_service(self, request: SaveStoreDataRequest) -> SaveStoreDataResult:
+        """
+        SERVICE FIRST: Save store data with validation.
+
+        Args:
+            request: SaveStoreDataRequest with data to save
+
+        Returns:
+            SaveStoreDataResult indicating success or failure
+        """
+        try:
+            # Validate data structure (basic validation)
+            if not isinstance(request.data, dict):
+                return SaveStoreDataResult(
+                    success=False,
+                    error_message="Store data must be a dictionary"
+                )
+
+            # Save through proper internal mechanism
+            self.store.save(request.data)
+
+            return SaveStoreDataResult(success=True)
+
+        except Exception as e:
+            logger.error(f"Error saving store data via service: {e}")
+            return SaveStoreDataResult(
+                success=False,
+                error_message=str(e)
+            )
+
+    # ---------------------------
+    #   SINGLE POINT OF TRUTH: Helper Methods
+    # ---------------------------
+
+    def _calculate_level_from_donations(self, donations: List[Dict[str, Any]]) -> int:
+        """
+        Calculate current level from donations using Single Point of Truth logic.
+
+        This is the NEW way to calculate level - purely from donation data,
+        no more dependency on achieved_levels.json!
+        """
+        if not donations:
+            return 1
+
+        # Find the highest level that was reached via level_upgrade donations
+        highest_level = 1
+        for donation in donations:
+            if donation.get('level_upgrade') and donation.get('level_reached'):
+                highest_level = max(highest_level, donation['level_reached'])
+
+        return highest_level
+
+    def _calculate_level_from_total(self, total_amount: int) -> int:
+        """
+        Calculate what level this total amount should achieve based on current thresholds.
+
+        Uses dynamic/static pricing but respects already achieved levels.
+        """
+        if total_amount <= 0:
+            return 1
+
+        # Get current evolution mode and thresholds
+        evolution_mode = self._get_evolution_mode()
+        current_thresholds = self._get_current_thresholds(evolution_mode)
+
+        # Find highest level achievable with this amount
+        level = 1
+        for threshold_level, threshold_amount in current_thresholds.items():
+            if total_amount >= threshold_amount:
+                level = max(level, threshold_level)
+
+        return level
+
+    def _get_level_info_for_calculation(self, level: int) -> Dict[str, Any]:
+        """
+        Get threshold and pricing info for a specific level.
+
+        Returns info about whether it was calculated using dynamic or static pricing.
+        """
+        evolution_mode = self._get_evolution_mode()
+
+        if evolution_mode['use_dynamic']:
+            # Dynamic pricing
+            dynamic_thresholds = self.get_dynamic_thresholds()
+            threshold = dynamic_thresholds.get(level, MECH_LEVELS[level-1].threshold)
+            is_dynamic = True
+        else:
+            # Static pricing with difficulty multiplier
+            difficulty = evolution_mode.get('difficulty_multiplier', 1.0)
+            base_threshold = MECH_LEVELS[level-1].threshold if level <= len(MECH_LEVELS) else 10000
+            threshold = int(base_threshold * difficulty) if level > 1 else 0
+            is_dynamic = False
+
+        return {
+            'level': level,
+            'threshold': threshold,
+            'is_dynamic': is_dynamic
+        }
+
+    def _get_current_thresholds(self, evolution_mode: Dict[str, Any]) -> Dict[int, int]:
+        """
+        Get current threshold amounts for all levels based on evolution mode.
+
+        This respects already achieved levels - they keep their original thresholds.
+        """
+        thresholds = {}
+
+        if evolution_mode['use_dynamic']:
+            # Dynamic pricing, but protect achieved levels
+            dynamic_thresholds = self.get_dynamic_thresholds()
+            achieved_levels = self._get_achieved_levels_from_donations()
+
+            for level in range(1, 12):  # Levels 1-11
+                if level in achieved_levels:
+                    # Use original threshold for achieved levels
+                    thresholds[level] = achieved_levels[level]['threshold_used']
+                else:
+                    # Use dynamic threshold for future levels
+                    base_threshold = MECH_LEVELS[level-1].threshold if level <= len(MECH_LEVELS) else 10000
+                    dynamic_threshold = dynamic_thresholds.get(level, base_threshold)
+                    thresholds[level] = max(dynamic_threshold, base_threshold)
+        else:
+            # Static pricing with difficulty multiplier
+            difficulty = evolution_mode.get('difficulty_multiplier', 1.0)
+            for level in range(1, 12):
+                base_threshold = MECH_LEVELS[level-1].threshold if level <= len(MECH_LEVELS) else 10000
+                thresholds[level] = int(base_threshold * difficulty) if level > 1 else 0
+
+        return thresholds
+
+    def _get_achieved_levels_from_donations(self) -> Dict[int, Dict[str, Any]]:
+        """
+        Extract achieved level information from donation history.
+
+        This replaces the old achieved_levels.json dependency.
+        """
+        try:
+            data = self.store.load()
+            donations = data.get("donations", [])
+            achieved = {}
+
+            for donation in donations:
+                if donation.get('level_upgrade') and donation.get('level_reached'):
+                    level = donation['level_reached']
+                    achieved[level] = {
+                        'level': level,
+                        'threshold_used': donation.get('threshold_used', 0),
+                        'is_dynamic': donation.get('is_dynamic', False),
+                        'achieved_at': donation.get('ts'),
+                        'donor': donation.get('username')
+                    }
+
+            return achieved
+        except Exception as e:
+            logger.error(f"Error extracting achieved levels from donations: {e}")
+            return {}
 
 
 # ---------------------------

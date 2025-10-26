@@ -502,7 +502,7 @@ class AnimationCacheService:
                     # Determine if we're processing big or small resolution
                     is_big_resolution = resolution == "big" if resolution else False
 
-                    # Uniform REST pre-cropping: All offline mechs use 60px from top
+                    # Uniform REST pre-cropping: All offline mechs use 60px from top (from commit 448b0b5 - matches cache files)
                     rest_top_crop_small = {
                         1: 60, 2: 60, 3: 60,     # Level 1,2,3: 60px from top
                         4: 60,                    # Level 4: 60px from top
@@ -518,7 +518,7 @@ class AnimationCacheService:
 
                     if small_crop_value > 0:
                         if is_big_resolution:
-                            # Big REST: Uniform 116px cropping for ALL levels (manually verified)
+                            # Big REST: Uniform 116px cropping for ALL levels (manually verified, from commit 448b0b5 - matches cache files)
                             # All levels use 116px÷60px = 1.9333 ratio for consistent offline appearance
                             uniform_ratio = 116/60  # 1.9333 - gives exactly 116px for all levels
                             size_ratios = {1: uniform_ratio, 2: uniform_ratio, 3: uniform_ratio, 4: uniform_ratio, 5: uniform_ratio, 6: uniform_ratio, 7: uniform_ratio, 8: uniform_ratio, 9: uniform_ratio, 10: uniform_ratio}

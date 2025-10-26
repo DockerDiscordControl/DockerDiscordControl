@@ -132,7 +132,7 @@ class SimpleEvolutionService:
         except Exception as e:
             logger.warning(f"Could not load achieved levels: {e}")
 
-        return {"achieved_levels": {}, "current_level": 1, "total_donated": 0.0}
+        return {"achieved_levels": {}, "current_level": 1}
 
     def update_achieved_level(self, level: int, total_donated: float) -> None:
         """Update achieved levels when a level is reached."""
@@ -147,7 +147,6 @@ class SimpleEvolutionService:
         }
 
         data["current_level"] = level
-        data["total_donated"] = total_donated
         data["last_updated"] = datetime.now().isoformat()
 
         # Save

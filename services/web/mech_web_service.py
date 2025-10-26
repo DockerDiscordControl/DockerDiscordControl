@@ -408,18 +408,20 @@ class MechWebService:
             )
 
     def _get_difficulty(self) -> MechConfigResult:
-        """Get current mech evolution difficulty multiplier."""
+        """Get current mech evolution difficulty multiplier using MechService evolution mode."""
         try:
-            from services.mech.mech_evolutions import get_evolution_config_service
+            from services.mech.mech_service import get_mech_service
             from services.mech.simple_evolution_service import get_simple_evolution_service
 
-            config_service = get_evolution_config_service()
+            mech_service = get_mech_service()
             simple_service = get_simple_evolution_service()
 
-            multiplier = config_service.get_difficulty_multiplier()
-            is_auto = config_service.is_auto_difficulty()
+            # Get evolution mode from MechService
+            evolution_mode = mech_service._get_evolution_mode()
+            multiplier = evolution_mode.get('difficulty_multiplier', 1.0)
+            is_auto = evolution_mode.get('use_dynamic', True)  # Dynamic = auto
 
-            # Get current mech state for simple evolution display
+            # Get current mech state for evolution display
             total_donated = self._get_total_donations()
             simple_state = simple_service.get_current_state(total_donated, multiplier)
 
@@ -456,7 +458,7 @@ class MechWebService:
             )
 
     def _set_difficulty(self, multiplier: Optional[float]) -> MechConfigResult:
-        """Set mech evolution difficulty multiplier."""
+        """Set mech evolution difficulty multiplier using MechService evolution mode."""
         try:
             if multiplier is None:
                 return MechConfigResult(
@@ -465,20 +467,21 @@ class MechWebService:
                     status_code=400
                 )
 
-            if not (0.1 <= multiplier <= 10.0):
+            if not (0.5 <= multiplier <= 2.4):  # Match Web UI slider range
                 return MechConfigResult(
                     success=False,
-                    error="Multiplier must be between 0.1 and 10.0",
+                    error="Multiplier must be between 0.5 and 2.4",
                     status_code=400
                 )
 
-            from services.mech.mech_evolutions import get_evolution_config_service
+            from services.mech.mech_service import get_mech_service
             from services.mech.simple_evolution_service import get_simple_evolution_service
 
-            config_service = get_evolution_config_service()
+            mech_service = get_mech_service()
             simple_service = get_simple_evolution_service()
 
-            config_service.set_difficulty_multiplier(multiplier)
+            # Set evolution mode to static with custom difficulty
+            mech_service.set_evolution_mode(use_dynamic=False, difficulty_multiplier=multiplier)
 
             # Get updated simple evolution state
             total_donated = self._get_total_donations()
@@ -487,7 +490,7 @@ class MechWebService:
             # Log the action
             self._log_user_action(
                 action="SET_MECH_DIFFICULTY",
-                target=f"Multiplier: {multiplier}",
+                target=f"Static mode: {multiplier}x",
                 source="Web UI"
             )
 
@@ -497,7 +500,7 @@ class MechWebService:
                     'multiplier': multiplier,
                     'is_auto': False,
                     'status': 'manual',
-                    'message': f'Difficulty multiplier set to {multiplier}x',
+                    'message': f'Evolution set to static mode with {multiplier}x difficulty',
                     'simple_evolution': {
                         'current_level': simple_state.current_level,
                         'next_level_cost': simple_state.next_level_cost,
@@ -516,25 +519,26 @@ class MechWebService:
             )
 
     def _reset_difficulty(self) -> MechConfigResult:
-        """Reset mech evolution difficulty to automatic mode."""
+        """Reset mech evolution difficulty to dynamic mode."""
         try:
-            from services.mech.mech_evolutions import get_evolution_config_service
+            from services.mech.mech_service import get_mech_service
 
-            config_service = get_evolution_config_service()
-            config_service.reset_to_auto_difficulty()
-            current_multiplier = config_service.get_difficulty_multiplier()
+            mech_service = get_mech_service()
+
+            # Set evolution mode to dynamic (community-based)
+            mech_service.set_evolution_mode(use_dynamic=True, difficulty_multiplier=1.0)
 
             # Log the action
             self._log_user_action(
                 action="RESET_MECH_DIFFICULTY",
-                target="Auto mode",
+                target="Dynamic mode (community-based)",
                 source="Web UI"
             )
 
             return MechConfigResult(
                 success=True,
                 data={
-                    'multiplier': current_multiplier,
+                    'multiplier': 1.0,  # Reset to normal in UI
                     'is_auto': True,
                     'status': 'auto',
                     'message': 'Difficulty reset to automatic mode'
