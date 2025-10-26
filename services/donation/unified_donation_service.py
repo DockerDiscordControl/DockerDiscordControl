@@ -141,14 +141,21 @@ class UnifiedDonationService:
             # Emit unified event
             event_id = self._emit_donation_event(request, old_state, new_state)
 
-            # CRITICAL: Clear MechDataStore cache after donation processing
+            # CRITICAL: Clear ALL mech caches after donation processing
             try:
+                # Clear MechDataStore cache
                 from services.mech.mech_data_store import get_mech_data_store
                 data_store = get_mech_data_store()
                 data_store.clear_cache()
                 logger.debug("MechDataStore cache cleared after donation")
+
+                # Clear MechStatusCacheService cache (used by animation service)
+                from services.mech.mech_status_cache_service import get_mech_status_cache_service
+                status_cache = get_mech_status_cache_service()
+                status_cache.clear_cache()
+                logger.debug("MechStatusCacheService cache cleared after donation")
             except Exception as cache_error:
-                logger.warning(f"Failed to clear MechDataStore cache: {cache_error}")
+                logger.warning(f"Failed to clear mech caches: {cache_error}")
 
             logger.info(f"Donation processed successfully: {old_level}→{new_level}, {old_power:.2f}→{new_power:.2f}")
 
@@ -249,14 +256,21 @@ class UnifiedDonationService:
             # Emit deletion event
             self._emit_deletion_event(deleted_donation, old_state, new_state, request.source)
 
-            # CRITICAL: Clear MechDataStore cache after donation deletion
+            # CRITICAL: Clear ALL mech caches after donation deletion
             try:
+                # Clear MechDataStore cache
                 from services.mech.mech_data_store import get_mech_data_store
                 data_store = get_mech_data_store()
                 data_store.clear_cache()
                 logger.debug("MechDataStore cache cleared after donation deletion")
+
+                # Clear MechStatusCacheService cache (used by animation service)
+                from services.mech.mech_status_cache_service import get_mech_status_cache_service
+                status_cache = get_mech_status_cache_service()
+                status_cache.clear_cache()
+                logger.debug("MechStatusCacheService cache cleared after donation deletion")
             except Exception as cache_error:
-                logger.warning(f"Failed to clear MechDataStore cache: {cache_error}")
+                logger.warning(f"Failed to clear mech caches: {cache_error}")
 
             logger.info(f"Donation deleted: ${deleted_donation['amount']} from {deleted_donation['username']}")
 
@@ -481,14 +495,21 @@ def reset_all_donations(source: str = 'admin') -> DonationResult:
             data=event_data
         )
 
-        # CRITICAL: Clear MechDataStore cache after donation reset
+        # CRITICAL: Clear ALL mech caches after donation reset
         try:
+            # Clear MechDataStore cache
             from services.mech.mech_data_store import get_mech_data_store
             data_store = get_mech_data_store()
             data_store.clear_cache()
             logger.debug("MechDataStore cache cleared after donation reset")
+
+            # Clear MechStatusCacheService cache (used by animation service)
+            from services.mech.mech_status_cache_service import get_mech_status_cache_service
+            status_cache = get_mech_status_cache_service()
+            status_cache.clear_cache()
+            logger.debug("MechStatusCacheService cache cleared after donation reset")
         except Exception as cache_error:
-            logger.warning(f"Failed to clear MechDataStore cache: {cache_error}")
+            logger.warning(f"Failed to clear mech caches: {cache_error}")
 
         logger.info(f"All donations reset: {old_level}→{new_level}, {old_power:.2f}→{new_power:.2f}")
 
