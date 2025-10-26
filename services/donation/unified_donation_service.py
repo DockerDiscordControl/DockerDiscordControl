@@ -138,17 +138,17 @@ class UnifiedDonationService:
             new_power = float(new_state.Power)
             level_changed = old_level != new_level
 
-            # Emit unified event
-            event_id = self._emit_donation_event(request, old_state, new_state)
-
-            # CRITICAL: Clear MechDataStore cache after donation processing (Single Point of Truth)
+            # CRITICAL: Clear MechDataStore cache BEFORE event emission (prevent race condition)
             try:
                 from services.mech.mech_data_store import get_mech_data_store
                 data_store = get_mech_data_store()
                 data_store.clear_cache()
-                logger.debug("MechDataStore cache cleared after donation (Single Point of Truth)")
+                logger.debug("MechDataStore cache cleared before event emission (prevents race condition)")
             except Exception as cache_error:
                 logger.warning(f"Failed to clear MechDataStore cache: {cache_error}")
+
+            # Emit unified event (animation service will now get fresh data)
+            event_id = self._emit_donation_event(request, old_state, new_state)
 
             logger.info(f"Donation processed successfully: {old_level}→{new_level}, {old_power:.2f}→{new_power:.2f}")
 
@@ -246,17 +246,17 @@ class UnifiedDonationService:
             # Get new state
             new_state = self.mech_service.get_state()
 
-            # Emit deletion event
-            self._emit_deletion_event(deleted_donation, old_state, new_state, request.source)
-
-            # CRITICAL: Clear MechDataStore cache after donation deletion (Single Point of Truth)
+            # CRITICAL: Clear MechDataStore cache BEFORE event emission (prevent race condition)
             try:
                 from services.mech.mech_data_store import get_mech_data_store
                 data_store = get_mech_data_store()
                 data_store.clear_cache()
-                logger.debug("MechDataStore cache cleared after donation deletion (Single Point of Truth)")
+                logger.debug("MechDataStore cache cleared before deletion event emission (prevents race condition)")
             except Exception as cache_error:
                 logger.warning(f"Failed to clear MechDataStore cache: {cache_error}")
+
+            # Emit deletion event (animation service will now get fresh data)
+            self._emit_deletion_event(deleted_donation, old_state, new_state, request.source)
 
             logger.info(f"Donation deleted: ${deleted_donation['amount']} from {deleted_donation['username']}")
 
@@ -475,20 +475,21 @@ def reset_all_donations(source: str = 'admin') -> DonationResult:
             'timestamp': datetime.now().isoformat()
         }
 
+        # CRITICAL: Clear MechDataStore cache BEFORE event emission (prevent race condition)
+        try:
+            from services.mech.mech_data_store import get_mech_data_store
+            data_store = get_mech_data_store()
+            data_store.clear_cache()
+            logger.debug("MechDataStore cache cleared before reset event emission (prevents race condition)")
+        except Exception as cache_error:
+            logger.warning(f"Failed to clear MechDataStore cache: {cache_error}")
+
+        # Emit reset event (animation service will now get fresh data)
         service.event_manager.emit_event(
             event_type='donation_completed',
             source_service='unified_donations',
             data=event_data
         )
-
-        # CRITICAL: Clear MechDataStore cache after donation reset (Single Point of Truth)
-        try:
-            from services.mech.mech_data_store import get_mech_data_store
-            data_store = get_mech_data_store()
-            data_store.clear_cache()
-            logger.debug("MechDataStore cache cleared after donation reset (Single Point of Truth)")
-        except Exception as cache_error:
-            logger.warning(f"Failed to clear MechDataStore cache: {cache_error}")
 
         logger.info(f"All donations reset: {old_level}→{new_level}, {old_power:.2f}→{new_power:.2f}")
 
