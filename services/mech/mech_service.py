@@ -222,6 +222,7 @@ class MechService:
         self.store = _Store(Path(json_path))
         self.tz = ZoneInfo(tz)
         self._store_lock = threading.Lock()  # Protect load-modify-save operations
+        self.dynamic_thresholds = None  # Cache for dynamic thresholds
 
     # -------- SERVICE FIRST API --------
 
@@ -516,21 +517,77 @@ class MechService:
         donations = list(self.store.load().get("donations", []))
         donations.sort(key=lambda d: d["ts"])  # chronological
 
-        # Use SimpleEvolutionService for consistent level calculations
-        from services.mech.simple_evolution_service import get_simple_evolution_service
-        simple_service = get_simple_evolution_service()
-
         # Calculate total donated amount
         total_donated = sum(int(d["amount"]) for d in donations)
 
-        # Get simple evolution state with default difficulty
-        simple_state = simple_service.get_current_state(total_donated=float(total_donated), difficulty=1.0)
+        # Check evolution mode: dynamic (default) vs static override
+        evolution_mode = self._get_evolution_mode()
 
-        # Use STATIC base thresholds (no dynamic evolution)
-        static_levels = MECH_LEVELS  # Use original static levels
+        if evolution_mode['use_dynamic']:
+            # DYNAMIC EVOLUTION: Community-based costs (default)
+            dynamic_thresholds = self.get_dynamic_thresholds()
 
-        # Use SimpleEvolutionService results for consistent level calculation
-        lvl = static_levels[simple_state.current_level - 1]  # Convert to MechLevel object
+            # CRITICAL: Protect achieved levels - dynamic costs can never be higher than what was paid
+            achieved_levels = self._get_achieved_levels(total_donated)
+
+            # Build dynamic MechLevel objects with achieved level protection
+            levels = []
+            for i, static_level in enumerate(MECH_LEVELS):
+                if static_level.level in dynamic_thresholds:
+                    dynamic_threshold = dynamic_thresholds[static_level.level]
+
+                    # PROTECT ACHIEVED LEVELS: If level was already achieved, keep original cost
+                    if static_level.level in achieved_levels:
+                        # Use the minimum between dynamic and what was actually paid
+                        protected_threshold = min(dynamic_threshold, achieved_levels[static_level.level]['cost_paid'])
+                        logger.debug(f"Level {static_level.level} protected: dynamic=${dynamic_threshold}, paid=${achieved_levels[static_level.level]['cost_paid']}, using=${protected_threshold}")
+                        levels.append(MechLevel(
+                            level=static_level.level,
+                            name=static_level.name,
+                            threshold=protected_threshold
+                        ))
+                    else:
+                        # Not achieved yet - use dynamic cost with 1.0x minimum
+                        safe_threshold = max(dynamic_threshold, static_level.threshold)  # Never below base cost
+                        levels.append(MechLevel(
+                            level=static_level.level,
+                            name=static_level.name,
+                            threshold=safe_threshold
+                        ))
+                else:
+                    levels.append(static_level)
+        else:
+            # STATIC EVOLUTION: SimpleEvolutionService with custom difficulty
+            from services.mech.simple_evolution_service import get_simple_evolution_service
+            simple_service = get_simple_evolution_service()
+
+            difficulty = evolution_mode.get('difficulty_multiplier', 1.0)
+            simple_state = simple_service.get_current_state(total_donated=float(total_donated), difficulty=difficulty)
+
+            # Build static levels with custom difficulty
+            levels = []
+            for static_level in MECH_LEVELS:
+                if static_level.level == 1:
+                    levels.append(static_level)  # Level 1 always $0
+                else:
+                    # Apply difficulty multiplier to base cost
+                    adjusted_threshold = int(static_level.threshold * difficulty)
+                    levels.append(MechLevel(
+                        level=static_level.level,
+                        name=static_level.name,
+                        threshold=adjusted_threshold
+                    ))
+
+        # Load current level from persistent storage (never recalculate!)
+        achieved_data = self._load_achieved_levels_json()
+        current_level_number = achieved_data.get('current_level', 1)
+
+        # Find the MechLevel object for the current level
+        lvl = levels[0]  # Default to Level 1
+        for level in levels:
+            if level.level == current_level_number:
+                lvl = level
+                break
         total = int(total_donated)
 
         # Calculate Power with decay from donations
@@ -541,44 +598,86 @@ class MechService:
         for d in donations:
             ts = self._parse_iso(d["ts"])
             if last_ts is not None:
-                Power = max(0.0, Power - self._decay_amount(last_ts, ts, simple_state.current_level))
+                Power = max(0.0, Power - self._decay_amount(last_ts, ts, lvl.level))
             last_ts = ts
 
             amount = int(d["amount"])
             Power += amount
 
-            # Simple level-up check using static thresholds
-            # Find highest level achievable with current total
+            # Handle level-ups using current levels system
             temp_total = sum(int(dd["amount"]) for dd in donations[:donations.index(d)+1])
-            temp_simple_state = simple_service.get_current_state(total_donated=float(temp_total), difficulty=1.0)
 
-            if temp_simple_state.current_level > simple_state.current_level:
-                # Level up occurred - reset Power to 1 + overshoot
-                old_level = simple_state.current_level
-                lvl = static_levels[temp_simple_state.current_level - 1]
-                Power = 1.0 + max(0, temp_total - lvl.threshold)
-                last_evolution_ts = ts
+            # Check if we can achieve NEW levels (only levels higher than current persistent level)
+            achieved_data = self._load_achieved_levels_json()
+            current_persistent_level = achieved_data.get('current_level', 1)
 
-                logger.info(
-                    f"Mech evolved from Level {old_level} to Level {temp_simple_state.current_level} "
-                    f"(threshold: ${lvl.threshold}, total donations: ${temp_total})"
-                )
-                simple_state = temp_simple_state  # Update for next iterations
+            for level in levels:
+                if temp_total >= level.threshold and level.level > current_persistent_level:
+                    # NEW level up occurred - save to JSON and reset Power
+                    old_level = lvl.level
+                    lvl = level
+                    Power = 1.0 + max(0, temp_total - lvl.threshold)
+                    last_evolution_ts = ts
 
-        # decay from last donation to "now" - but only if enough time passed since evolution
+                    # PERSIST LEVEL UP: Save to achieved_levels.json
+                    self._save_level_achievement(lvl.level, temp_total, lvl.threshold)
+
+                    # Enhanced logging with evolution mode details
+                    mode_info = "Dynamic (community-based)" if evolution_mode['use_dynamic'] else f"Static ({evolution_mode.get('difficulty_multiplier', 1.0)}x)"
+
+                    if evolution_mode['use_dynamic']:
+                        # Get community info for dynamic mode
+                        try:
+                            from .monthly_member_cache import get_monthly_member_cache
+                            cache = get_monthly_member_cache()
+                            cache_info = cache.get_cache_info()
+                            community_info = f", Community: {cache_info.get('total_members', 'Unknown')} members"
+                        except:
+                            community_info = ""
+                    else:
+                        community_info = ""
+
+                    logger.info(
+                        f"🚀 MECH EVOLUTION: Level {old_level} → {lvl.level} "
+                        f"(Cost: ${lvl.threshold}, Donated: ${temp_total}, "
+                        f"Mode: {mode_info}{community_info}) - SAVED TO JSON"
+                    )
+                    break  # Only one level up per donation
+
+        # POWER FIX: For already achieved levels, reset power correctly
+        # If no new level-up occurred, but we're at an achieved level, reset power properly
+        if last_evolution_ts is None:  # No evolution happened in this calculation
+            achieved_data = self._load_achieved_levels_json()
+            current_persistent_level = achieved_data.get('current_level', 1)
+            if current_persistent_level > 1:  # We're at an achieved level
+                # Find the current level threshold
+                current_level_obj = None
+                for level in levels:
+                    if level.level == current_persistent_level:
+                        current_level_obj = level
+                        break
+
+                if current_level_obj:
+                    # Reset power correctly: 1.0 + overshoot
+                    total_donations = sum(int(d["amount"]) for d in donations)
+                    old_power = Power
+                    Power = 1.0 + max(0, total_donations - current_level_obj.threshold)
+
+        # decay from last donation to "now" - but only if enough time passed since evolution OR power reset
         if last_ts is not None:
             # If evolution just happened (within 1 minute), don't apply immediate decay
             evolution_was_recent = (last_evolution_ts is not None and
                                   (now - last_evolution_ts).total_seconds() < 60)
+
             if evolution_was_recent:
                 # Evolution just occurred - no decay yet, mech has fresh Power
                 pass
             else:
-                # Normal decay from last donation
+                # Normal decay from last donation (even for already achieved levels)
                 Power = max(0.0, Power - self._decay_amount(last_ts, now, lvl.level))
 
-        # Compose bars & glvl using SimpleEvolutionService results
-        # Get next level from static levels
+        # Compose bars & glvl using current levels system
+        # Get next level from levels (dynamic or static)
         try:
             if lvl.level >= 10:
                 # Create corrupted OMEGA MECH entry for Level 10 users
@@ -588,11 +687,11 @@ class MechService:
                 nxt.name = "ERR#R: [DATA_C0RR*PTED]"
                 nxt.threshold = 10000  # Real threshold for percentage calculation
             else:
-                nxt = static_levels[lvl.level] if lvl.level < len(static_levels) else None
+                nxt = levels[lvl.level] if lvl.level < len(levels) else None
         except IndexError:
             nxt = None
 
-        # Calculate delta using STATIC base costs (no dynamic evolution)
+        # Calculate delta using current threshold system (dynamic or static)
         delta = None if not nxt else (nxt.threshold - lvl.threshold)
         progress_current = 0 if delta is None else max(0, total - lvl.threshold)
         progress_max = 0 if delta is None else delta
@@ -637,31 +736,67 @@ class MechService:
             level=lvl.level,
             level_name=lvl.name,
             next_level_threshold=None if not nxt else nxt.threshold,
-            Power=int(max(0, math.floor(Power))),
+            Power=int(max(0, round(Power))),
             glvl=int(glvl),
             glvl_max=int(glvl_max),
             bars=bars,
         )
 
     def get_power_with_decimals(self) -> float:
-        """Get raw Power value with decimal places for Web UI display"""
+        """Get raw Power value with decimal places for Web UI display using current evolution mode."""
         data = self.store.load()
         donations = data["donations"]
 
-        # Use SimpleEvolutionService for consistent calculations
-        from services.mech.simple_evolution_service import get_simple_evolution_service
-        simple_service = get_simple_evolution_service()
-
         # Calculate total donated amount
         total_donated = sum(int(d["amount"]) for d in donations)
-        simple_state = simple_service.get_current_state(total_donated=float(total_donated), difficulty=1.0)
 
-        # Use static levels
-        static_levels = MECH_LEVELS
-        lvl = static_levels[simple_state.current_level - 1]
+        # Use same evolution mode as get_state() for consistency
+        evolution_mode = self._get_evolution_mode()
+
+        if evolution_mode['use_dynamic']:
+            # DYNAMIC EVOLUTION: Use dynamic thresholds with achieved level protection
+            dynamic_thresholds = self.get_dynamic_thresholds()
+            achieved_levels = self._get_achieved_levels(total_donated)
+
+            # Build levels with protection
+            levels = []
+            for static_level in MECH_LEVELS:
+                if static_level.level in dynamic_thresholds:
+                    dynamic_threshold = dynamic_thresholds[static_level.level]
+
+                    if static_level.level in achieved_levels:
+                        protected_threshold = min(dynamic_threshold, achieved_levels[static_level.level]['cost_paid'])
+                        levels.append(MechLevel(static_level.level, static_level.name, protected_threshold))
+                    else:
+                        safe_threshold = max(dynamic_threshold, static_level.threshold)
+                        levels.append(MechLevel(static_level.level, static_level.name, safe_threshold))
+                else:
+                    levels.append(static_level)
+        else:
+            # STATIC EVOLUTION: Use custom difficulty multiplier
+            difficulty = evolution_mode.get('difficulty_multiplier', 1.0)
+            levels = []
+            for static_level in MECH_LEVELS:
+                if static_level.level == 1:
+                    levels.append(static_level)
+                else:
+                    adjusted_threshold = int(static_level.threshold * difficulty)
+                    levels.append(MechLevel(static_level.level, static_level.name, adjusted_threshold))
+
+        # Load current level from persistent storage (never recalculate!)
+        achieved_data = self._load_achieved_levels_json()
+        current_level_number = achieved_data.get('current_level', 1)
+
+        # Find the MechLevel object for the current level
+        current_level = levels[0]  # Default to Level 1
+        for level in levels:
+            if level.level == current_level_number:
+                current_level = level
+                break
 
         total = 0.0
         Power = 0.0
+        lvl = current_level
         now = self._now()
         last_ts = None
         last_evolution_ts = None
@@ -671,23 +806,51 @@ class MechService:
 
             # Apply decay from last donation to current donation
             if last_ts is not None:
-                Power = max(0.0, Power - self._decay_amount(last_ts, ts, simple_state.current_level))
+                Power = max(0.0, Power - self._decay_amount(last_ts, ts, lvl.level))
             last_ts = ts
 
             amount = int(d["amount"])
             total += amount
             Power += amount
 
-            # Simple level-up check using static thresholds
+            # Level-up check using current levels system
             temp_total = sum(int(dd["amount"]) for dd in donations[:donations.index(d)+1])
-            temp_simple_state = simple_service.get_current_state(total_donated=float(temp_total), difficulty=1.0)
 
-            if temp_simple_state.current_level > simple_state.current_level:
-                # Level up occurred - reset Power to 1 + overshoot
-                lvl = static_levels[temp_simple_state.current_level - 1]
-                Power = 1.0 + max(0, temp_total - lvl.threshold)
-                last_evolution_ts = ts
-                simple_state = temp_simple_state
+            # Check if we can achieve NEW levels (only levels higher than current persistent level)
+            achieved_data = self._load_achieved_levels_json()
+            current_persistent_level = achieved_data.get('current_level', 1)
+
+            for level in levels:
+                if temp_total >= level.threshold and level.level > current_persistent_level:
+                    # NEW level up occurred - save to JSON and reset Power
+                    old_level = lvl.level
+                    lvl = level
+                    Power = 1.0 + max(0, temp_total - lvl.threshold)
+                    last_evolution_ts = ts
+
+                    # PERSIST LEVEL UP: Save to achieved_levels.json
+                    self._save_level_achievement(lvl.level, temp_total, lvl.threshold)
+
+                    logger.debug(f"Level up in power calculation: {old_level} → {lvl.level} (saved to JSON)")
+                    break  # Only one level up per donation
+
+        # POWER FIX (DUPLICATE): For already achieved levels, reset power correctly
+        # Same fix as in get_state() method - this is code duplication that needs the same fix
+        if last_evolution_ts is None:  # No evolution happened in this calculation
+            achieved_data = self._load_achieved_levels_json()
+            current_persistent_level = achieved_data.get('current_level', 1)
+            if current_persistent_level > 1:  # We're at an achieved level
+                # Find the current level threshold
+                current_level_obj = None
+                for level in levels:
+                    if level.level == current_persistent_level:
+                        current_level_obj = level
+                        break
+
+                if current_level_obj:
+                    # Reset power correctly: 1.0 + overshoot
+                    total_donations = sum(int(d["amount"]) for d in donations)
+                    Power = 1.0 + max(0, total_donations - current_level_obj.threshold)
 
         # Final decay from last donation to now
         if last_ts is not None:
@@ -697,9 +860,166 @@ class MechService:
             if evolution_was_recent:
                 pass  # No decay if evolution just occurred
             else:
-                Power = max(0.0, Power - self._decay_amount(last_ts, now, simple_state.current_level))
+                Power = max(0.0, Power - self._decay_amount(last_ts, now, lvl.level))
 
         return Power  # Return raw float with decimals
+
+    # -------- Evolution Mode Management --------
+
+    def _get_evolution_mode(self) -> Dict[str, Any]:
+        """Get current evolution mode: dynamic (default) vs static override."""
+        try:
+            # SERVICE FIRST: Use ConfigService instead of direct JSON access
+            from services.config.config_service import get_config_service, GetEvolutionModeRequest
+
+            config_service = get_config_service()
+            request = GetEvolutionModeRequest()
+            result = config_service.get_evolution_mode_service(request)
+
+            if result.success:
+                return {
+                    'use_dynamic': result.use_dynamic,
+                    'difficulty_multiplier': result.difficulty_multiplier
+                }
+            else:
+                logger.warning(f"Could not load evolution mode config: {result.error}")
+
+        except Exception as e:
+            logger.warning(f"Error using ConfigService for evolution mode: {e}")
+
+        # Default: Dynamic evolution system active
+        return {'use_dynamic': True, 'difficulty_multiplier': 1.0}
+
+    def _load_achieved_levels_json(self) -> Dict[str, Any]:
+        """Load achieved levels from persistent JSON file."""
+        try:
+            config_path = Path("config/achieved_levels.json")
+            if config_path.exists():
+                with config_path.open('r', encoding='utf-8') as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.warning(f"Could not load achieved levels JSON: {e}")
+
+        # Default structure if file doesn't exist
+        return {
+            "current_level": 1,
+            "achieved_levels": {
+                "1": {
+                    "level": 1,
+                    "cost_paid": 0,
+                    "achieved_at": datetime.now().isoformat(),
+                    "locked": True
+                }
+            },
+            "last_updated": datetime.now().isoformat()
+        }
+
+    def _get_achieved_levels(self, total_donated: int) -> Dict[int, Dict[str, Any]]:
+        """Get achieved levels from persistent storage."""
+        achieved_data = self._load_achieved_levels_json()
+        achieved = {}
+
+        # Convert string keys to int and extract achieved levels
+        for level_str, level_info in achieved_data.get('achieved_levels', {}).items():
+            try:
+                level_int = int(level_str)
+                achieved[level_int] = level_info
+            except (ValueError, TypeError):
+                continue
+
+        return achieved
+
+    def _save_level_achievement(self, level: int, total_donated: int, cost_paid: int) -> None:
+        """Save level achievement to persistent JSON file."""
+        try:
+            config_path = Path("config/achieved_levels.json")
+            config_path.parent.mkdir(exist_ok=True)
+
+            # Load existing data
+            achieved_data = self._load_achieved_levels_json()
+
+            # Update achieved levels
+            achieved_data['achieved_levels'][str(level)] = {
+                'level': level,
+                'cost_paid': cost_paid,
+                'achieved_at': datetime.now().isoformat(),
+                'locked': True
+            }
+
+            # Update current level (total_donated is calculated from mech_donations.json)
+            achieved_data['current_level'] = level
+            achieved_data['last_updated'] = datetime.now().isoformat()
+
+            # Save to file
+            with config_path.open('w', encoding='utf-8') as f:
+                json.dump(achieved_data, f, indent=2, ensure_ascii=False)
+
+            logger.info(f"Level {level} achievement saved to JSON (cost: ${cost_paid})")
+
+        except Exception as e:
+            logger.error(f"Failed to save level achievement: {e}")
+
+    def get_dynamic_thresholds(self) -> Dict[int, int]:
+        """Get dynamic thresholds based on current member count with 1.0x minimum."""
+        if self.dynamic_thresholds is not None:
+            return self.dynamic_thresholds
+
+        try:
+            from .monthly_member_cache import get_monthly_member_cache
+            from .dynamic_evolution import get_evolution_calculator
+
+            cache = get_monthly_member_cache()
+            calculator = get_evolution_calculator()
+
+            # Build dynamic threshold mapping with level-based member counts
+            thresholds = {}
+            for level in range(1, 12):
+                if level == 1:
+                    thresholds[level] = 0
+                else:
+                    # Use appropriate member count based on level protection rules
+                    member_count = cache.get_member_count_for_level(level)
+                    threshold, _, _ = calculator.calculate_evolution_cost(level, member_count)
+
+                    # MINIMUM 1.0x: Never below base cost
+                    base_cost = MECH_LEVELS[level-1].threshold if level <= len(MECH_LEVELS) else 10000
+                    safe_threshold = max(threshold, base_cost)
+                    thresholds[level] = safe_threshold
+
+            self.dynamic_thresholds = thresholds
+            cache_info = cache.get_cache_info()
+            logger.debug(f"Dynamic thresholds calculated with 1.0x minimum from {cache_info.get('month_year', 'N/A')}")
+            return thresholds
+
+        except Exception as e:
+            logger.error(f"Error calculating dynamic thresholds: {e}")
+            # Fallback to static thresholds
+            fallback = {level.level: level.threshold for level in MECH_LEVELS}
+            return fallback
+
+    def set_evolution_mode(self, use_dynamic: bool, difficulty_multiplier: float = 1.0) -> None:
+        """Set evolution mode: dynamic (community-based) vs static (custom difficulty)."""
+        try:
+            config_path = Path("config/evolution_mode.json")
+            config_path.parent.mkdir(exist_ok=True)
+
+            mode_config = {
+                'use_dynamic': use_dynamic,
+                'difficulty_multiplier': difficulty_multiplier,
+                'last_updated': datetime.now().isoformat()
+            }
+
+            with config_path.open('w', encoding='utf-8') as f:
+                json.dump(mode_config, f, indent=2, ensure_ascii=False)
+
+            # Clear cache to force recalculation
+            self.dynamic_thresholds = None
+
+            mode_name = "Dynamic (community-based)" if use_dynamic else f"Static ({difficulty_multiplier}x)"
+            logger.info(f"Evolution mode changed to: {mode_name}")
+
+        except Exception as e:
+            logger.error(f"Failed to save evolution mode: {e}")
 
     # -------- Helpers --------
 
@@ -738,7 +1058,7 @@ class MechService:
             return result.decay_amount
         else:
             # Fallback to legacy calculation if service fails
-            self.logger.warning(f"MechDecayService failed, using fallback: {result.error}")
+            logger.warning(f"MechDecayService failed, using fallback: {result.error}")
             sec = (b.astimezone(self.tz) - a.astimezone(self.tz)).total_seconds()
             return max(0.0, (sec / 86400.0) * 1.0)  # Default 1.0 decay rate
 

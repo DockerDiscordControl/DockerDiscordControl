@@ -50,6 +50,19 @@ class ValidateDonationKeyResult:
     error_message: Optional[str] = None
 
 @dataclass
+class GetEvolutionModeRequest:
+    """Request to get evolution mode configuration."""
+    pass
+
+@dataclass
+class GetEvolutionModeResult:
+    """Result containing evolution mode configuration."""
+    success: bool
+    use_dynamic: bool = True
+    difficulty_multiplier: float = 1.0
+    error: Optional[str] = None
+
+@dataclass
 class ConfigServiceResult:
     """Standard result wrapper for config operations."""
     success: bool
@@ -97,10 +110,10 @@ class ConfigService:
         self.main_config_file = self.config_dir / "config.json"
         self.auth_config_file = self.config_dir / "auth.json"
         self.heartbeat_config_file = self.config_dir / "heartbeat.json"
-        self.advanced_settings_file = self.config_dir / "advanced_settings.json"
+        # self.advanced_settings_file = self.config_dir / "advanced_settings.json"  # REMOVED: Use web_config.json instead
         self.web_ui_config_file = self.config_dir / "web_ui.json"
         self.docker_settings_file = self.config_dir / "docker_settings.json"
-        self.system_tasks_file = self.config_dir / "system_tasks.json"
+        # Removed: system_tasks.json is duplicate of tasks.json (used by scheduler service)
         
         # Legacy config file paths (for migration)
         self.bot_config_file = self.config_dir / "bot_config.json"
@@ -219,7 +232,7 @@ class ConfigService:
                 'docker_config.json', 
                 'web_config.json',
                 'channels_config.json',
-                'advanced_settings.json',
+                # 'advanced_settings.json',  # REMOVED: Data is in web_config.json
                 'heartbeat.json'
             ]
             
@@ -360,9 +373,9 @@ class ConfigService:
         try:
             web_data = self._load_json_file(self.web_config_file, {})
             
-            # Extract advanced_settings.json
-            advanced_settings = web_data.get("advanced_settings", {})
-            self._save_json_file(self.advanced_settings_file, advanced_settings)
+            # Note: advanced_settings are kept in web_config.json (no separate file)
+            # advanced_settings = web_data.get("advanced_settings", {})
+            # self._save_json_file(self.advanced_settings_file, advanced_settings)  # REMOVED
             
             # Create clean web_ui.json (without advanced_settings)
             web_ui_config = {
@@ -375,7 +388,7 @@ class ConfigService:
             }
             self._save_json_file(self.web_ui_config_file, web_ui_config)
             
-            logger.info("✅ Migrated web configs (advanced_settings.json, web_ui.json)")
+            logger.info("✅ Migrated web configs (web_ui.json) - advanced_settings kept in web_config.json")
             
         except Exception as e:
             logger.error(f"Error migrating web configs to files: {e}")
@@ -383,21 +396,8 @@ class ConfigService:
     
     def _migrate_system_tasks(self) -> None:
         """Handle system_tasks.json migration."""
-        try:
-            tasks_file = self.config_dir / "tasks.json"
-            
-            if tasks_file.exists() and not self.system_tasks_file.exists():
-                import shutil
-                shutil.copy2(tasks_file, self.system_tasks_file)
-                logger.info("✅ Created system_tasks.json from tasks.json")
-            elif not self.system_tasks_file.exists():
-                # Create empty system tasks file
-                self._save_json_file(self.system_tasks_file, {})
-                logger.info("✅ Created empty system_tasks.json")
-                
-        except Exception as e:
-            logger.error(f"Error migrating system tasks: {e}")
-            raise
+        # REMOVED: system_tasks.json was duplicate of tasks.json - scheduler service uses tasks.json directly
+        pass
     
     def _migrate_to_modular_structure(self) -> None:
         """Migrate legacy config files to new modular structure."""
@@ -778,10 +778,10 @@ class ConfigService:
     
     def _has_real_modular_structure(self) -> bool:
         """Check if we have real modular file structure."""
+        # After consolidation, we only use real modular structure if individual channel/container files exist
+        # Main config files alone don't constitute real modular structure anymore
         return ((self.channels_dir.exists() and len(list(self.channels_dir.glob("*.json"))) > 0) or
-                (self.containers_dir.exists() and len(list(self.containers_dir.glob("*.json"))) > 0) or
-                self.main_config_file.exists() or
-                self.auth_config_file.exists())
+                (self.containers_dir.exists() and len(list(self.containers_dir.glob("*.json"))) > 0))
     
     def _load_real_modular_config(self) -> Dict[str, Any]:
         """Load configuration from real modular file structure."""
@@ -807,10 +807,9 @@ class ConfigService:
             web_ui_config = self._load_json_file(self.web_ui_config_file, {})
             config.update(web_ui_config)
         
-        # 5. Load advanced settings
-        if self.advanced_settings_file.exists():
-            advanced_settings = self._load_json_file(self.advanced_settings_file, {})
-            config['advanced_settings'] = advanced_settings
+        # 5. Load advanced settings (from web_config.json)
+        web_config = self._load_json_file(self.web_config_file, {})
+        config['advanced_settings'] = web_config.get('advanced_settings', {})
         
         # 6. Load Docker settings
         if self.docker_settings_file.exists():
@@ -935,16 +934,18 @@ class ConfigService:
                 'scheduler_debug_mode': web_config.get('scheduler_debug_mode', False)
             })
             
-            # Extract advanced settings (virtual advanced_settings.json)
+            # Extract advanced settings (from web_config.json)
             config['advanced_settings'] = web_config.get('advanced_settings', {})
         
-        # 4. Channels config (contains: channel permissions)
+        # 4. Channels config (contains: channel permissions + channel data)
         if self.channels_config_file.exists():
             channels_config = self._load_json_file(self.channels_config_file, {})
-            
+
             # Extract channel data (virtual channels/*.json)
             config['channel_permissions'] = channels_config.get('channel_permissions', {})
             config['default_channel_permissions'] = channels_config.get('default_channel_permissions', {})
+            config['channels'] = channels_config.get('channels', {})
+            config['server_selection'] = channels_config.get('server_selection', {})
         
         # 5. Load other existing configs
         self._load_existing_configs_virtual(config)
@@ -954,13 +955,9 @@ class ConfigService:
     
     def _load_existing_configs_virtual(self, config: Dict[str, Any]) -> None:
         """Load existing configs for virtual modular structure."""
-        # Load spam protection
-        spam_file = self.config_dir / "spam_protection.json"
-        if spam_file.exists():
-            spam_config = self._load_json_file(spam_file, {})
-            config['spam_protection'] = spam_config
-        else:
-            config['spam_protection'] = {}
+        # Load spam protection from channels_config.json
+        channels_config = self._load_json_file(self.channels_config_file, {})
+        config['spam_protection'] = channels_config.get('spam_protection', {})
         
         # Load server order
         server_order_file = self.config_dir / "server_order.json"
@@ -970,7 +967,7 @@ class ConfigService:
         else:
             config['server_order'] = []
         
-        # Add missing fields with defaults
+        # Add missing fields with defaults (if not already loaded from channels_config.json)
         if 'channels' not in config:
             config['channels'] = {}
         if 'server_selection' not in config:
@@ -1026,11 +1023,9 @@ class ConfigService:
     
     def _load_existing_configs(self, config: Dict[str, Any]) -> None:
         """Load existing configs that don't need migration."""
-        # Load spam protection
-        spam_file = self.config_dir / "spam_protection.json"
-        if spam_file.exists():
-            spam_config = self._load_json_file(spam_file, {})
-            config['spam_protection'] = spam_config
+        # Load spam protection from channels_config.json
+        channels_config = self._load_json_file(self.channels_config_file, {})
+        config['spam_protection'] = channels_config.get('spam_protection', {})
         
         # Load server order
         server_order_file = self.config_dir / "server_order.json"
@@ -1038,13 +1033,8 @@ class ConfigService:
             server_order = self._load_json_file(server_order_file, {})
             config.update(server_order)
         
-        # Load system tasks (renamed from tasks.json)
-        if self.system_tasks_file.exists():
-            # Use system_tasks.json if available
-            pass  # Tasks are handled separately by TaskService
-        elif (self.config_dir / "tasks.json").exists():
-            # Legacy tasks.json exists, will be renamed during migration
-            pass
+        # Load system tasks (uses tasks.json directly via scheduler service)
+        # REMOVED: system_tasks.json consolidation - scheduler service manages tasks.json directly
     
     def _has_legacy_configs(self) -> bool:
         """Check if legacy config files exist."""
@@ -1192,9 +1182,9 @@ class ConfigService:
         try:
             web_data = self._load_json_file(self.web_config_file, {})
             
-            # Extract advanced_settings.json
-            advanced_settings = web_data.get("advanced_settings", {})
-            self._save_json_file(self.advanced_settings_file, advanced_settings)
+            # Note: advanced_settings are kept in web_config.json (no separate file)
+            # advanced_settings = web_data.get("advanced_settings", {})
+            # self._save_json_file(self.advanced_settings_file, advanced_settings)  # REMOVED
             
             # Create clean web_ui.json (without advanced_settings)
             web_ui_config = {
@@ -1207,7 +1197,7 @@ class ConfigService:
             }
             self._save_json_file(self.web_ui_config_file, web_ui_config)
             
-            logger.info("✅ Migrated web configs (advanced_settings.json, web_ui.json)")
+            logger.info("✅ Migrated web configs (web_ui.json) - advanced_settings kept in web_config.json")
             
         except Exception as e:
             logger.error(f"Error migrating web configs: {e}")
@@ -1309,6 +1299,37 @@ class ConfigService:
             return ValidateDonationKeyResult(
                 success=False,
                 error_message=str(e)
+            )
+
+    def get_evolution_mode_service(self, request: GetEvolutionModeRequest) -> GetEvolutionModeResult:
+        """SERVICE FIRST: Get evolution mode configuration with Request/Result pattern."""
+        try:
+            # Load evolution mode from config/evolution_mode.json
+            config_path = Path("config/evolution_mode.json")
+
+            if config_path.exists():
+                with config_path.open('r', encoding='utf-8') as f:
+                    mode_config = json.load(f)
+                    return GetEvolutionModeResult(
+                        success=True,
+                        use_dynamic=mode_config.get('use_dynamic', True),
+                        difficulty_multiplier=mode_config.get('difficulty_multiplier', 1.0)
+                    )
+            else:
+                # Default: Dynamic evolution system active
+                return GetEvolutionModeResult(
+                    success=True,
+                    use_dynamic=True,
+                    difficulty_multiplier=1.0
+                )
+
+        except Exception as e:
+            logger.error(f"Error getting evolution mode via service: {e}", exc_info=True)
+            return GetEvolutionModeResult(
+                success=False,
+                error=str(e),
+                use_dynamic=True,  # Safe default
+                difficulty_multiplier=1.0
             )
 
 # === Global Service Instance ===

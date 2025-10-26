@@ -127,6 +127,29 @@ SPEED_DESCRIPTIONS = {
     101: ("REALITY-BENDING OMNISPEED", "#ff00ff")  # OMEGA MECH at full power - THE ULTIMATE ACHIEVEMENT!
 }
 
+def _calculate_speed_level_from_power_ratio(current_level: int, power_amount: float, max_power_for_level: float) -> int:
+    """
+    HELPER: Calculate speed level based on power ratio within current evolution level.
+
+    This consolidates the speed calculation logic used in multiple places.
+    """
+    # Calculate speed level based on power ratio within current evolution level
+    power_ratio = min(1.0, power_amount / max_power_for_level)
+
+    # SPECIAL CASE: Level 11 (OMEGA MECH) can reach speed level 101!
+    if current_level == 11 and power_ratio >= 1.0:
+        # Check if we're at transcendent level (double the requirement)
+        transcendent_threshold = max_power_for_level * 2  # 20000 for level 11
+        if power_amount >= transcendent_threshold:
+            return 101  # TRANSCENDENT!
+        else:
+            return 100
+    elif power_amount <= 0:
+        return 0
+    else:
+        # Scale from 1-100 based on power ratio (never 0 if we have any power)
+        return max(1, min(100, int(power_ratio * 100)))
+
 def get_speed_info(donation_amount: float) -> tuple:
     """
     Get speed description and color based on donation amount.
@@ -166,23 +189,8 @@ def get_speed_info(donation_amount: float) -> tuple:
 
         max_power_for_level = evolution_level_info.power_max
 
-        # Calculate speed level based on power ratio within current evolution level
-        power_ratio = min(1.0, donation_amount / max_power_for_level)
-
-        # SPECIAL CASE: Level 11 (OMEGA MECH) can reach speed level 101!
-        if current_level == 11 and power_ratio >= 1.0:
-            # Check if we're at transcendent level (double the requirement)
-            transcendent_threshold = max_power_for_level * 2  # 20000 for level 11
-            if donation_amount >= transcendent_threshold:
-                return SPEED_DESCRIPTIONS[101]  # REALITY-BENDING OMNISPEED!
-
-        # Normal speed calculation: 0-100 based on power ratio
-        if power_ratio <= 0:
-            level = 0
-        else:
-            # Scale from 1-100 based on power ratio (never 0 if we have any power)
-            level = max(1, min(100, int(power_ratio * 100)))
-
+        # Use consolidated speed level calculation
+        level = _calculate_speed_level_from_power_ratio(current_level, donation_amount, max_power_for_level)
         return SPEED_DESCRIPTIONS.get(level, SPEED_DESCRIPTIONS[0])
 
     except Exception as e:
@@ -298,22 +306,8 @@ def get_combined_mech_status(Power_amount: float, total_donations_received: floa
         if evolution_level_info:
             max_power_for_level = evolution_level_info.power_max
 
-            # Calculate speed level based on power ratio within current evolution level
-            power_ratio = min(1.0, Power_amount / max_power_for_level)
-
-            # SPECIAL CASE: Level 11 (OMEGA MECH) can reach speed level 101!
-            if current_level == 11 and power_ratio >= 1.0:
-                # Check if we're at transcendent level (double the requirement)
-                transcendent_threshold = max_power_for_level * 2  # 20000 for level 11
-                if Power_amount >= transcendent_threshold:
-                    speed_level = 101  # TRANSCENDENT!
-                else:
-                    speed_level = 100
-            elif Power_amount <= 0:
-                speed_level = 0
-            else:
-                # Scale from 1-100 based on power ratio (never 0 if we have any power)
-                speed_level = max(1, min(100, int(power_ratio * 100)))
+            # Use consolidated speed level calculation
+            speed_level = _calculate_speed_level_from_power_ratio(current_level, Power_amount, max_power_for_level)
         else:
             # Fallback for unknown levels
             speed_level = min(int(Power_amount), 100)
