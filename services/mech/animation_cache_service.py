@@ -1451,20 +1451,20 @@ class AnimationCacheService:
         try:
             logger.info("Performing initial animation cache warmup...")
 
-            # Get current mech status from cache service
-            from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+            # Get current mech status from MechDataStore (Single Point of Truth)
+            from services.mech.mech_data_store import get_mech_data_store, MechDataRequest
             from services.mech.speed_levels import get_combined_mech_status
 
-            cache_service = get_mech_status_cache_service()
-            cache_request = MechStatusCacheRequest(include_decimals=True)
-            mech_result = cache_service.get_cached_status(cache_request)
+            data_store = get_mech_data_store()
+            data_request = MechDataRequest(include_decimals=True)
+            mech_result = data_store.get_comprehensive_data(data_request)
 
             if not mech_result.success:
                 logger.warning("Could not get mech status for warmup - skipping")
                 return
 
-            current_level = mech_result.level
-            current_power = mech_result.power
+            current_level = mech_result.current_level
+            current_power = mech_result.current_power
 
             # Calculate current speed level
             # SPECIAL CASE: Level 11 is maximum level - always use Speed Level 100 (same logic as MechWebService)
@@ -1509,20 +1509,20 @@ class AnimationCacheService:
         try:
             logger.info("Performing sync animation cache warmup...")
 
-            # Get current mech status from cache service
-            from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+            # Get current mech status from MechDataStore (Single Point of Truth)
+            from services.mech.mech_data_store import get_mech_data_store, MechDataRequest
             from services.mech.speed_levels import get_combined_mech_status
 
-            cache_service = get_mech_status_cache_service()
-            cache_request = MechStatusCacheRequest(include_decimals=True)
-            mech_result = cache_service.get_cached_status(cache_request)
+            data_store = get_mech_data_store()
+            data_request = MechDataRequest(include_decimals=True)
+            mech_result = data_store.get_comprehensive_data(data_request)
 
             if not mech_result.success:
                 logger.warning("Could not get mech status for sync warmup - skipping")
                 return
 
-            current_level = mech_result.level
-            current_power = mech_result.power
+            current_level = mech_result.current_level
+            current_power = mech_result.current_power
 
             # Calculate current speed level
             # SPECIAL CASE: Level 11 is maximum level - always use Speed Level 100 (same logic as MechWebService)
@@ -1582,20 +1582,20 @@ class AnimationCacheService:
         try:
             # SERVICE FIRST: Use MechWebService for animation requests
             from services.web.mech_web_service import get_mech_web_service, MechAnimationRequest
-            from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+            from services.mech.mech_data_store import get_mech_data_store, MechDataRequest
 
             web_service = get_mech_web_service()
-            cache_service = get_mech_status_cache_service()
+            data_store = get_mech_data_store()
 
-            # Get current mech status via service
-            cache_request = MechStatusCacheRequest(include_decimals=True)
-            mech_result = cache_service.get_cached_status(cache_request)
+            # Get current mech status via MechDataStore (Single Point of Truth)
+            data_request = MechDataRequest(include_decimals=True)
+            mech_result = data_store.get_comprehensive_data(data_request)
 
             if not mech_result.success:
                 logger.warning("SERVICE FIRST sync warmup: Could not get mech status - skipping")
                 return
 
-            current_power = mech_result.power
+            current_power = mech_result.current_power
             logger.info(f"SERVICE FIRST sync warmup: Power {current_power:.2f}")
 
             # Cache both small and big animations via service requests
@@ -1623,20 +1623,20 @@ class AnimationCacheService:
         try:
             # SERVICE FIRST: Use MechWebService for animation requests
             from services.web.mech_web_service import get_mech_web_service, MechAnimationRequest
-            from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+            from services.mech.mech_data_store import get_mech_data_store, MechDataRequest
 
             web_service = get_mech_web_service()
-            cache_service = get_mech_status_cache_service()
+            data_store = get_mech_data_store()
 
-            # Get current mech status via service
-            cache_request = MechStatusCacheRequest(include_decimals=True)
-            mech_result = cache_service.get_cached_status(cache_request)
+            # Get current mech status via MechDataStore (Single Point of Truth)
+            data_request = MechDataRequest(include_decimals=True)
+            mech_result = data_store.get_comprehensive_data(data_request)
 
             if not mech_result.success:
                 logger.warning("SERVICE FIRST async warmup: Could not get mech status - skipping")
                 return
 
-            current_power = mech_result.power
+            current_power = mech_result.current_power
             logger.info(f"SERVICE FIRST async warmup: Power {current_power:.2f}")
 
             # Cache both small and big animations via service requests (async-compatible)
