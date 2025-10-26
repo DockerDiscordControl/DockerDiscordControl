@@ -1085,12 +1085,39 @@
                     speedStatusOverlay.style.color = "#ff00ff";
                     speedStatusOverlay.style.textShadow = "0 0 10px #ff00ff";
                 } else {
-                    // Use simplified speed calculation for display
-                    const glvl = Math.floor(currentPower);
-                    const speedInfo = getSpeedDescription(glvl);
-                    speedStatusOverlay.textContent = speedInfo.text;
-                    speedStatusOverlay.style.color = speedInfo.color;
-                    speedStatusOverlay.style.textShadow = "none";
+                    // Use backend API for accurate speed calculation instead of flawed Math.floor
+                    if (data && data.speed) {
+                        // Use speed info from API response (includes correct power ratio calculation)
+                        speedStatusOverlay.textContent = data.speed.description;
+                        speedStatusOverlay.style.color = data.speed.color;
+                        speedStatusOverlay.style.textShadow = "none";
+                    } else {
+                        // Fallback for missing speed data - fetch from API
+                        fetch('/api/donation/status')
+                            .then(response => response.json())
+                            .then(apiData => {
+                                if (apiData && apiData.speed) {
+                                    speedStatusOverlay.textContent = apiData.speed.description;
+                                    speedStatusOverlay.style.color = apiData.speed.color;
+                                    speedStatusOverlay.style.textShadow = "none";
+                                } else {
+                                    // Final fallback to simplified calculation (but improved)
+                                    const glvl = currentPower <= 0 ? 0 : Math.max(1, Math.min(100, Math.floor(currentPower * 5))); // Better than Math.floor(currentPower)
+                                    const speedInfo = getSpeedDescription(glvl);
+                                    speedStatusOverlay.textContent = speedInfo.text;
+                                    speedStatusOverlay.style.color = speedInfo.color;
+                                    speedStatusOverlay.style.textShadow = "none";
+                                }
+                            })
+                            .catch(() => {
+                                // Final fallback to simplified calculation (but improved)
+                                const glvl = currentPower <= 0 ? 0 : Math.max(1, Math.min(100, Math.floor(currentPower * 5))); // Better than Math.floor(currentPower)
+                                const speedInfo = getSpeedDescription(glvl);
+                                speedStatusOverlay.textContent = speedInfo.text;
+                                speedStatusOverlay.style.color = speedInfo.color;
+                                speedStatusOverlay.style.textShadow = "none";
+                            });
+                    }
                 }
             }
         }

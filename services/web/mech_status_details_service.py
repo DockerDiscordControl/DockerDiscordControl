@@ -134,12 +134,16 @@ class MechStatusDetailsService:
             # Format power with decimals
             power_text = f"⚡{power_decimal:.2f}"
 
-            # Format energy consumption (simplified) - Level 11 has no energy consumption
+            # Format energy consumption (dynamic) - Level 11 has no energy consumption
             current_level = cached_result.level if cached_result.success else state.level
             if current_level >= 11:
                 energy_consumption = None  # Maximum level has no energy consumption
             else:
-                energy_consumption = "Energieverbrauch: 🔻 1.0/t"
+                # Get dynamic decay rate from evolution config (SERVICE FIRST: unified evolution system)
+                from services.mech.mech_evolutions import get_evolution_level_info
+                evolution_info = get_evolution_level_info(current_level)
+                decay_per_day = evolution_info.decay_per_day if evolution_info else 1.0
+                energy_consumption = f"Energieverbrauch: 🔻 {decay_per_day}/t"
 
             # Format next evolution
             next_evolution = None
@@ -272,16 +276,50 @@ class MechStatusDetailsService:
             return "∞ Unendlichkeit erreicht, Danke! 🖤"
 
     def _get_next_level_info(self, level: int) -> Optional[Dict[str, Any]]:
-        """Get next level information."""
+        """Get next level information using current evolution mode (dynamic/static)."""
         try:
-            from services.mech.mech_service import MECH_LEVELS
+            from services.mech.mech_service import get_mech_service, MECH_LEVELS
 
-            for mech_level in MECH_LEVELS:
-                if mech_level.level == level:
-                    return {
-                        'name': mech_level.name,
-                        'threshold': mech_level.threshold
-                    }
+            mech_service = get_mech_service()
+
+            # Get evolution mode to use correct thresholds
+            evolution_mode = mech_service._get_evolution_mode()
+
+            if evolution_mode['use_dynamic']:
+                # DYNAMIC: Use community-based thresholds with protection
+                dynamic_thresholds = mech_service.get_dynamic_thresholds()
+
+                for mech_level in MECH_LEVELS:
+                    if mech_level.level == level:
+                        # Use dynamic threshold if available, otherwise base threshold
+                        threshold = dynamic_thresholds.get(level, mech_level.threshold)
+
+                        return {
+                            'name': mech_level.name,
+                            'threshold': threshold,
+                            'mode': 'dynamic',
+                            'base_threshold': mech_level.threshold
+                        }
+            else:
+                # STATIC: Use custom difficulty multiplier
+                difficulty = evolution_mode.get('difficulty_multiplier', 1.0)
+
+                for mech_level in MECH_LEVELS:
+                    if mech_level.level == level:
+                        # Apply difficulty multiplier (Level 1 always $0)
+                        if level == 1:
+                            threshold = 0
+                        else:
+                            threshold = int(mech_level.threshold * difficulty)
+
+                        return {
+                            'name': mech_level.name,
+                            'threshold': threshold,
+                            'mode': 'static',
+                            'difficulty': difficulty,
+                            'base_threshold': mech_level.threshold
+                        }
+
             return None
 
         except Exception as e:

@@ -85,14 +85,6 @@ class DonationStatusService:
                 error=f"Error getting donation status: {str(e)}"
             )
 
-    def _initialize_mech_service(self):
-        """Initialize the mech service."""
-        try:
-            from services.mech.mech_service import get_mech_service
-            return get_mech_service()
-        except Exception as e:
-            self.logger.error(f"Failed to initialize mech service: {e}")
-            return None
 
     def _calculate_speed_information(self, total_amount: float) -> Dict[str, Any]:
         """Calculate speed level and related information."""
@@ -152,58 +144,6 @@ class DonationStatusService:
                 'decay_per_day': 1.0
             }
 
-    def _build_status_data(self, mech_state, mech_service, speed_info: Dict[str, Any], evolution_info: Dict[str, Any]) -> Dict[str, Any]:
-        """Build the comprehensive status data object."""
-        try:
-            # Get raw power with decimals for UI precision using SERVICE FIRST
-            from services.mech.mech_service import GetMechStateRequest
-            power_request = GetMechStateRequest(include_decimals=True)
-            power_result = mech_service.get_mech_state_service(power_request)
-            raw_power = power_result.power if power_result.success else mech_state.Power
-
-            # Build status object compatible with Web UI
-            status_data = {
-                'total_amount': mech_state.total_donated,
-                'current_Power': mech_state.Power,
-                'current_Power_raw': raw_power,  # Raw Power with decimals for UI
-                'mech_level': mech_state.level,
-                'mech_level_name': mech_state.level_name,
-                'next_level_threshold': mech_state.next_level_threshold,
-                'glvl': mech_state.glvl,
-                'glvl_max': mech_state.glvl_max,
-                'decay_per_day': evolution_info['decay_per_day'],  # Level-specific decay rate
-                'bars': {
-                    'mech_progress_current': mech_state.bars.mech_progress_current,
-                    'mech_progress_max': mech_state.bars.mech_progress_max,
-                    'Power_current': mech_state.bars.Power_current,
-                    'Power_max_for_level': mech_state.bars.Power_max_for_level,
-                },
-                'speed': speed_info
-            }
-
-            return status_data
-
-        except Exception as e:
-            self.logger.error(f"Error building status data: {e}")
-            # Return minimal fallback status
-            return {
-                'total_amount': 0,
-                'current_Power': 0,
-                'current_Power_raw': 0,
-                'mech_level': 1,
-                'mech_level_name': 'Unknown',
-                'next_level_threshold': 0,
-                'glvl': 0,
-                'glvl_max': 0,
-                'decay_per_day': 1.0,
-                'bars': {
-                    'mech_progress_current': 0,
-                    'mech_progress_max': 0,
-                    'Power_current': 0,
-                    'Power_max_for_level': 0,
-                },
-                'speed': speed_info
-            }
 
     def _build_status_data_from_cache(self, cache_result, speed_info: Dict[str, Any], evolution_info: Dict[str, Any]) -> Dict[str, Any]:
         """Build the comprehensive status data object from cached data - PERFORMANCE OPTIMIZED."""

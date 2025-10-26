@@ -332,10 +332,10 @@ class MechDecayService:
         """Get human-readable description of decay speed."""
         if decay_rate <= 0:
             return "Immortal (no decay)"
-        elif decay_rate == 1.0:
-            return "Normal decay speed"
         elif decay_rate < 1.0:
             return f"Slow decay ({decay_rate}x normal)"
+        elif decay_rate == 1.0:
+            return "Normal decay speed"
         elif decay_rate <= 2.0:
             return f"Fast decay ({decay_rate}x normal)"
         elif decay_rate <= 4.0:
