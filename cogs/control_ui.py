@@ -1130,7 +1130,12 @@ class HelpButton(Button):
         except Exception as e:
             logger.error(f"Error showing help: {e}", exc_info=True)
             try:
-                await interaction.response.send_message("❌ Error showing help information.", ephemeral=True)
+                # Check if interaction has already been responded to (avoid double response error)
+                if not interaction.response.is_done():
+                    await interaction.response.send_message("❌ Error showing help information.", ephemeral=True)
+                else:
+                    # Use followup if interaction already responded
+                    await interaction.followup.send("❌ Error showing help information.", ephemeral=True)
             except Exception:
                 # Interaction may have already been responded to or expired
                 pass
@@ -1553,13 +1558,16 @@ class MechHistoryButton(Button):
                 await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
                 return
 
+            # Defer response to prevent timeout during mech service calls
+            await interaction.response.defer(ephemeral=True)
+
             # Get current mech state using SERVICE FIRST
             from services.mech.mech_service import get_mech_service, GetMechStateRequest
             mech_service = get_mech_service()
             mech_state_request = GetMechStateRequest(include_decimals=False)
             mech_state_result = mech_service.get_mech_state_service(mech_state_request)
             if not mech_state_result.success:
-                await interaction.response.send_message("❌ Failed to get mech state", ephemeral=True)
+                await interaction.followup.send("❌ Failed to get mech state", ephemeral=True)
                 return
             current_level = mech_state_result.level
 
@@ -1568,7 +1576,8 @@ class MechHistoryButton(Button):
 
         except Exception as e:
             logger.error(f"Error in mech history button: {e}", exc_info=True)
-            await interaction.response.send_message(_("❌ Error loading mech history."), ephemeral=True)
+            # After defer(), always use followup for error messages
+            await interaction.followup.send(_("❌ Error loading mech history."), ephemeral=True)
 
     async def _show_mech_selection(self, interaction: discord.Interaction, current_level: int):
         """Show buttons for each unlocked mech + next shadow mech."""
@@ -1582,7 +1591,7 @@ class MechHistoryButton(Button):
         )
 
         view = MechSelectionView(self.cog, current_level)
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
     async def _create_mech_history_display(self, interaction: discord.Interaction, current_level: int):
         """Create the mech history display with sequential animations and epic story chapters."""
@@ -1916,6 +1925,9 @@ class MechDisplayButton(Button):
                 await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
                 return
 
+            # Defer response to prevent Discord interaction timeout
+            await interaction.response.defer(ephemeral=True)
+
             # SERVICE FIRST: Use unified evolution system
             from services.mech.mech_display_cache_service import get_mech_display_cache_service, MechDisplayImageRequest
             import io
@@ -1925,7 +1937,7 @@ class MechDisplayButton(Button):
             evolution_info = get_evolution_level_info(self.level)
 
             if not evolution_info:
-                await interaction.response.send_message(_("❌ Mech data not found."), ephemeral=True)
+                await interaction.followup.send(_("❌ Mech data not found."), ephemeral=True)
                 return
 
             if self.unlocked:
@@ -1938,7 +1950,7 @@ class MechDisplayButton(Button):
 
                 if not image_result.success:
                     logger.error(f"Failed to load unlocked mech {self.level}: {image_result.error_message}")
-                    await interaction.response.send_message(_("❌ Error loading mech animation."), ephemeral=True)
+                    await interaction.followup.send(_("❌ Error loading mech animation."), ephemeral=True)
                     return
 
                 embed = discord.Embed(
@@ -1951,7 +1963,7 @@ class MechDisplayButton(Button):
 
                 # Create view with Read Story and Music buttons (unlocked mech)
                 view = MechStoryView(self.cog, self.level, unlocked=True)
-                await interaction.response.send_message(embed=embed, file=file, view=view, ephemeral=True)
+                await interaction.followup.send(embed=embed, file=file, view=view, ephemeral=True)
             else:
                 # Load pre-rendered shadow mech from cache
                 image_request = MechDisplayImageRequest(
@@ -1962,7 +1974,7 @@ class MechDisplayButton(Button):
 
                 if not image_result.success:
                     logger.error(f"Failed to load shadow mech {self.level}: {image_result.error_message}")
-                    await interaction.response.send_message(_("❌ Error loading mech preview."), ephemeral=True)
+                    await interaction.followup.send(_("❌ Error loading mech preview."), ephemeral=True)
                     return
 
                 from services.mech.mech_service import get_mech_service, GetMechStateRequest
@@ -1996,11 +2008,12 @@ class MechDisplayButton(Button):
 
                 # Create view WITHOUT buttons (preview mech - not unlocked)
                 view = MechStoryView(self.cog, self.level, unlocked=False)
-                await interaction.response.send_message(embed=embed, file=file, view=view, ephemeral=True)
+                await interaction.followup.send(embed=embed, file=file, view=view, ephemeral=True)
 
         except Exception as e:
             logger.error(f"Error displaying mech {self.level}: {e}", exc_info=True)
-            await interaction.response.send_message(_("❌ Error loading mech."), ephemeral=True)
+            # After defer(), always use followup for error messages
+            await interaction.followup.send(_("❌ Error loading mech."), ephemeral=True)
 
 
 class EpilogueButton(Button):
@@ -2102,6 +2115,9 @@ class ReadStoryButton(Button):
                 await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
                 return
 
+            # Defer response to prevent timeout during story loading
+            await interaction.response.defer(ephemeral=True)
+
             # Load story chapters
             from services.mech.mech_service import get_mech_service
             story_chapters = {}
@@ -2147,13 +2163,14 @@ class ReadStoryButton(Button):
                 )
                 embed.set_footer(text="The Song of Steel and Stars - A Chronicle of the Mech Ascension")
 
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=True)
             else:
-                await interaction.response.send_message(_("📖 No story chapter available for this mech yet."), ephemeral=True)
+                await interaction.followup.send(_("📖 No story chapter available for this mech yet."), ephemeral=True)
 
         except Exception as e:
             logger.error(f"Error showing story for level {self.level}: {e}", exc_info=True)
-            await interaction.response.send_message(_("❌ Error loading story."), ephemeral=True)
+            # After defer(), always use followup for error messages
+            await interaction.followup.send(_("❌ Error loading story."), ephemeral=True)
 
 
 class PlaySongButton(Button):
@@ -2178,6 +2195,9 @@ class PlaySongButton(Button):
                 await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
                 return
 
+            # Defer response to prevent timeout during music service calls
+            await interaction.response.defer(ephemeral=True)
+
             # Import and use MechMusicService to get GitHub URL
             from services.web.mech_music_service import get_mech_music_service, MechMusicRequest
 
@@ -2192,9 +2212,9 @@ class PlaySongButton(Button):
                 # This triggers Discord's automatic YouTube preview with play button!
                 message_text = f"🎵 **{result.title}** (Mech Level {self.level})\n\n{result.url}"
 
-                await interaction.response.send_message(message_text, ephemeral=True)
+                await interaction.followup.send(message_text, ephemeral=True)
             else:
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     f"❌ No music available for Mech Level {self.level}\n"
                     f"Error: {result.error}",
                     ephemeral=True
@@ -2202,7 +2222,8 @@ class PlaySongButton(Button):
 
         except Exception as e:
             logger.error(f"Error generating music URL for level {self.level}: {e}", exc_info=True)
-            await interaction.response.send_message(_("❌ Error loading music."), ephemeral=True)
+            # After defer(), always use followup for error messages
+            await interaction.followup.send(_("❌ Error loading music."), ephemeral=True)
 
 
 # =============================================================================
@@ -2213,7 +2234,7 @@ class MechDetailsView(View):
     """View for private mech details messages with Spenden and History buttons."""
 
     def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
-        super().__init__(timeout=300)  # 5 minute timeout for private messages
+        super().__init__(timeout=None)  # Persistent view - buttons never expire
         self.cog = cog_instance
         self.channel_id = channel_id
 

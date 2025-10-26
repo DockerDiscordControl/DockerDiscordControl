@@ -3572,7 +3572,7 @@ class DonationBroadcastModal(discord.ui.Modal):
         super().__init__(title=_("📢 Broadcast Your Donation"))
         self.donation_manager_available = donation_manager_available
         self.bot = bot  # Store bot instance for mech service access
-        
+
         # Name field (pre-filled with Discord username)
         self.name_input = discord.ui.InputText(
             label=_("Your Name") + " *",
@@ -3583,11 +3583,14 @@ class DonationBroadcastModal(discord.ui.Modal):
             max_length=50
         )
         self.add_item(self.name_input)
-        
-        # Amount field (optional)
+
+        # Get dynamic placeholder for amount field with next level info
+        amount_placeholder = self._get_dynamic_amount_placeholder()
+
+        # Amount field (optional) with dynamic placeholder showing next level goal
         self.amount_input = discord.ui.InputText(
             label=_("💰 Donation Amount (optional)"),
-            placeholder=_("10.50 (numbers only, $ will be added automatically)"),
+            placeholder=amount_placeholder,
             style=discord.InputTextStyle.short,
             required=False,
             max_length=10
@@ -3604,6 +3607,47 @@ class DonationBroadcastModal(discord.ui.Modal):
             max_length=10
         )
         self.add_item(self.share_input)
+
+    def _get_dynamic_amount_placeholder(self) -> str:
+        """Get dynamic placeholder text showing how much is needed for next level."""
+        from .translation_manager import _
+
+        try:
+            # Get current mech state using same logic as control_ui.py
+            from services.mech.mech_service import get_mech_service, GetMechStateRequest
+            from services.mech.mech_evolutions import get_evolution_info
+
+            mech_service = get_mech_service()
+            state_request = GetMechStateRequest(include_decimals=False)
+            state_result = mech_service.get_mech_state_service(state_request)
+
+            if not state_result.success:
+                # Fallback if mech service is not available
+                return _("10.50 (numbers only, $ will be added automatically)")
+
+            # Use same calculation as control_ui.py MechDisplayButton
+            current_total_donations = state_result.total_donated
+            evolution_data = get_evolution_info(current_total_donations)
+            needed_amount = evolution_data['amount_needed'] if evolution_data['amount_needed'] is not None else 0
+
+            if needed_amount > 0:
+                # Same formatting logic as control_ui.py
+                formatted_amount = f"{needed_amount:.2f}".rstrip('0').rstrip('.')
+                formatted_amount = formatted_amount.replace('.00', '')
+
+                current_level = evolution_data['level']
+                next_level = current_level + 1
+
+                # Return dynamic placeholder with motivation text
+                return f"💎 Need ${formatted_amount} for Level {next_level}! (e.g. {formatted_amount})"
+            else:
+                # At max level or no next level info
+                return _("🎯 Support DDC development! (e.g. 10.50)")
+
+        except Exception as e:
+            logger.error(f"Error getting dynamic amount placeholder: {e}")
+            # Fallback to default placeholder
+            return _("10.50 (numbers only, $ will be added automatically)")
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle modal submission."""
