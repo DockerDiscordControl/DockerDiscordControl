@@ -115,9 +115,14 @@ class MechCompatibilityService:
             Dict with store data or empty dict on failure
         """
         try:
-            from services.mech.mech_service import get_mech_service
+            from services.mech.mech_service import get_mech_service, GetStoreDataRequest
             mech_service = get_mech_service()
-            return mech_service.store.load()
+
+            # SERVICE FIRST: Use proper Request/Result pattern
+            request = GetStoreDataRequest()
+            result = mech_service.get_store_data_service(request)
+
+            return result.data if result.success else {}
         except Exception as e:
             self.logger.error(f"Error loading store data: {e}")
             return {}
@@ -133,10 +138,14 @@ class MechCompatibilityService:
             True if successful, False otherwise
         """
         try:
-            from services.mech.mech_service import get_mech_service
+            from services.mech.mech_service import get_mech_service, SaveStoreDataRequest
             mech_service = get_mech_service()
-            mech_service.store.save(data)
-            return True
+
+            # SERVICE FIRST: Use proper Request/Result pattern
+            request = SaveStoreDataRequest(data=data)
+            result = mech_service.save_store_data_service(request)
+
+            return result.success
         except Exception as e:
             self.logger.error(f"Error saving store data: {e}")
             return False
