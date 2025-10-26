@@ -450,6 +450,34 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 message_id = server_messages_in_channel[display_name]
                 last_update_time = self.last_message_update_time[channel_id].get(display_name)
 
+                # EARLY CHECK: Special case for overview message - use SERVICE FIRST decision
+                if display_name == "overview":
+                    # SERVICE FIRST: Use StatusOverviewService for overview update decisions
+                    try:
+                        from services.discord.status_overview_service import get_status_overview_service
+                        overview_service = get_status_overview_service()
+
+                        decision = overview_service.make_update_decision(
+                            channel_id=channel_id,
+                            global_config=config,
+                            last_update_time=last_update_time,
+                            reason="periodic_overview_check"
+                        )
+
+                        if decision.should_update:
+                            logger.debug(f"SERVICE_FIRST: Overview update approved - {decision.reason}")
+                            tasks_to_run.append(self._update_overview_message(channel_id, message_id))
+                        else:
+                            logger.debug(f"SERVICE_FIRST: Overview update skipped - {decision.skip_reason}")
+
+                    except Exception as service_error:
+                        logger.warning(f"SERVICE_FIRST: Error in overview decision service: {service_error}")
+                        # Fallback to original logic on service error
+                        tasks_to_run.append(self._update_overview_message(channel_id, message_id))
+
+                    continue  # Overview message handled, move to next message
+
+                # Individual server message timing logic
                 should_update = False
                 if last_update_time is None:
                     should_update = True
@@ -473,7 +501,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     
                     # PERFORMANCE OPTIMIZATION: Smart offline container handling
                     current_server_conf = next((s for s in self.config.get('servers', []) if s.get('name', s.get('docker_name')) == display_name), None)
-                    if current_server_conf and display_name != "overview":
+                    if current_server_conf:
                         docker_name = current_server_conf.get('docker_name')
                         if docker_name:
                                                          # Check if container is offline from status cache
@@ -529,19 +557,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                                             continue  # Skip offline container update
                     
                     allow_toggle_for_channel = _channel_has_permission(channel_id, 'control', self.config)
-                    # Special case for overview message
-                    if display_name == "overview":
-                        tasks_to_run.append(self._update_overview_message(channel_id, message_id))
-                    else:
-                        # ULTRA-PERFORMANCE: Collect container names for bulk fetching
-                        current_server_conf = next((s for s in self.config.get('servers', []) if s.get('name', s.get('docker_name')) == display_name), None)
-                        if current_server_conf:
-                            docker_name = current_server_conf.get('docker_name')
-                            if docker_name:
-                                all_container_names.add(docker_name)
-                        
-                        # Regular server message
-                        tasks_to_run.append(self._edit_single_message_wrapper(channel_id, display_name, message_id, self.config, allow_toggle_for_channel))
+
+                    # ULTRA-PERFORMANCE: Collect container names for bulk fetching
+                    current_server_conf = next((s for s in self.config.get('servers', []) if s.get('name', s.get('docker_name')) == display_name), None)
+                    if current_server_conf:
+                        docker_name = current_server_conf.get('docker_name')
+                        if docker_name:
+                            all_container_names.add(docker_name)
+
+                    # Regular server message (individual containers only - overview handled early)
+                    tasks_to_run.append(self._edit_single_message_wrapper(channel_id, display_name, message_id, self.config, allow_toggle_for_channel))
             
         if tasks_to_run:
             # ULTRA-PERFORMANCE: Bulk update status cache before processing tasks
@@ -1294,6 +1319,18 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # Determine which embed to create based on mech expansion state
             channel_id = ctx.channel.id
             is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
+
+            # SERVICE FIRST: Log decision for manual /ss command (always proceeds but logs settings)
+            try:
+                from services.discord.status_overview_service import log_channel_update_decision
+                log_channel_update_decision(
+                    channel_id=channel_id,
+                    global_config=config,
+                    last_update_time=None,  # Manual commands ignore timing
+                    reason="manual_serverstatus_command"
+                )
+            except Exception as service_error:
+                logger.warning(f"SERVICE_FIRST: Error logging decision for manual /ss command: {service_error}")
 
             if is_mech_expanded:
                 embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config, force_refresh=True)
@@ -2420,12 +2457,48 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         message = await channel.fetch_message(message_id)
                         if not message:
                             continue
-                        
+
                         # Get fresh server data
                         config = load_config()
                         if not config:
                             continue
-                            
+
+                        # SERVICE FIRST: Check Web UI refresh/recreate settings before proceeding
+                        try:
+                            from services.discord.status_overview_service import get_status_overview_service
+                            overview_service = get_status_overview_service()
+
+                            # Get last update time for this channel
+                            last_update_time = None
+                            if channel_id in self.last_message_update_time and 'overview' in self.last_message_update_time[channel_id]:
+                                last_update_time = self.last_message_update_time[channel_id]['overview']
+
+                            # Make update decision based on Web UI settings
+                            decision = overview_service.make_update_decision(
+                                channel_id=channel_id,
+                                global_config=config,
+                                last_update_time=last_update_time,
+                                reason=reason,
+                                force_refresh=False,  # This is auto-update, not manual
+                                force_recreate=force_recreate
+                            )
+
+                            # Skip if Service decides no update needed
+                            if not decision.should_update:
+                                logger.debug(f"SERVICE_FIRST: Skipping channel {channel_id} - {decision.skip_reason}")
+                                continue
+
+                            # Use Service decision for recreate logic
+                            if decision.should_recreate:
+                                force_recreate = True
+                                logger.debug(f"SERVICE_FIRST: Force recreate for channel {channel_id} - {decision.reason}")
+
+                            logger.debug(f"SERVICE_FIRST: Updating channel {channel_id} - {decision.reason}")
+
+                        except Exception as service_error:
+                            logger.warning(f"SERVICE_FIRST: Error in decision service for channel {channel_id}: {service_error}")
+                            # Continue with original logic if service fails (safe fallback)
+
                         servers = config.get('servers', [])
                         ordered_servers = []
                         seen_docker_names = set()
