@@ -72,7 +72,8 @@ class SpamProtectionService:
         
         self.config_dir = Path(config_dir)
         self.config_dir.mkdir(parents=True, exist_ok=True)
-        self.config_file = self.config_dir / "spam_protection.json"
+        # Updated: Use channels_config.json as single source for spam protection
+        self.config_file = self.config_dir / "channels_config.json"
         
         # In-memory cooldown tracking
         self._user_cooldowns: Dict[str, float] = {}
@@ -80,8 +81,8 @@ class SpamProtectionService:
         logger.info(f"Spam protection service initialized: {self.config_dir}")
     
     def get_config(self) -> ServiceResult:
-        """Get spam protection configuration.
-        
+        """Get spam protection configuration from channels_config.json.
+
         Returns:
             ServiceResult with SpamProtectionConfig data or error
         """
@@ -90,11 +91,13 @@ class SpamProtectionService:
                 # Return default config
                 default_config = self._get_default_config()
                 return ServiceResult(success=True, data=default_config)
-            
+
             with open(self.config_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            
-            config = SpamProtectionConfig.from_dict(data)
+                channels_data = json.load(f)
+
+            # Extract spam_protection section from channels_config.json
+            spam_data = channels_data.get('spam_protection', {})
+            config = SpamProtectionConfig.from_dict(spam_data)
             return ServiceResult(success=True, data=config)
             
         except Exception as e:
@@ -103,22 +106,32 @@ class SpamProtectionService:
             return ServiceResult(success=False, error=error_msg)
     
     def save_config(self, config: SpamProtectionConfig) -> ServiceResult:
-        """Save spam protection configuration.
-        
+        """Save spam protection configuration to channels_config.json.
+
         Args:
             config: SpamProtectionConfig to save
-            
+
         Returns:
             ServiceResult indicating success or failure
         """
         try:
+            # Load existing channels_config.json
+            if self.config_file.exists():
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    channels_data = json.load(f)
+            else:
+                channels_data = {}
+
+            # Update spam_protection section
+            channels_data['spam_protection'] = config.to_dict()
+
             # Atomic write
             temp_file = self.config_file.with_suffix('.tmp')
             with open(temp_file, 'w', encoding='utf-8') as f:
-                json.dump(config.to_dict(), f, indent=2, ensure_ascii=False)
+                json.dump(channels_data, f, indent=2, ensure_ascii=False)
             temp_file.replace(self.config_file)
-            
-            logger.info("Saved spam protection configuration")
+
+            logger.info("Saved spam protection configuration to channels_config.json")
             return ServiceResult(success=True, data=config)
             
         except Exception as e:

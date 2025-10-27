@@ -49,19 +49,19 @@ class EvolutionConfigService:
 
     def _get_fallback_config(self) -> Dict[str, Any]:
         """Return fallback configuration with hardcoded values."""
-        # Hardcoded fallback data (same as JSON config including dynamic decay rates!)
+        # Hardcoded fallback data (REALISTIC PRICING - matches evolution_config.json)
         fallback_data = {
-            1: {"name": "SCRAP MECH", "description": "Barely holding together with rust and spare parts", "color": "#444444", "cost": 0, "power_max": 20, "decay_per_day": 1.0},
-            2: {"name": "REPAIRED MECH", "description": "Basic repairs complete, systems barely functional", "color": "#666666", "cost": 20, "power_max": 40, "decay_per_day": 1.0},
-            3: {"name": "STANDARD MECH", "description": "Standard military-grade combat chassis", "color": "#888888", "cost": 50, "power_max": 60, "decay_per_day": 1.0},
-            4: {"name": "ENHANCED MECH", "description": "Reinforced armor plating and enhanced servos", "color": "#0099cc", "cost": 100, "power_max": 80, "decay_per_day": 4.0},  # Fast decay!
-            5: {"name": "ADVANCED MECH", "description": "Advanced targeting systems and weapon upgrades", "color": "#00ccff", "cost": 200, "power_max": 100, "decay_per_day": 1.0},
-            6: {"name": "ELITE MECH", "description": "Elite combat protocols and titanium armor", "color": "#ffcc00", "cost": 400, "power_max": 120, "decay_per_day": 3.0},  # Moderate-fast decay
-            7: {"name": "CYBER MECH", "description": "Cybernetic neural interface and energy shields", "color": "#ff6600", "cost": 800, "power_max": 140, "decay_per_day": 2.0},  # Moderate decay
-            8: {"name": "PLASMA MECH", "description": "Plasma-powered core with quantum processors", "color": "#cc00ff", "cost": 1500, "power_max": 160, "decay_per_day": 1.5},  # Slow decay
-            9: {"name": "QUANTUM MECH", "description": "Quantum entanglement drive and phase shifting", "color": "#00ffff", "cost": 2500, "power_max": 180, "decay_per_day": 5.0},  # Extreme decay!
-            10: {"name": "DIVINE MECH", "description": "Transcendent technology beyond mortal comprehension", "color": "#ffff00", "cost": 4000, "power_max": 200, "decay_per_day": 4.0},  # Fast decay
-            11: {"name": "OMEGA MECH", "description": "Reality-bending omnipotent war machine of the gods", "color": "#ff00ff", "cost": 10000, "power_max": 300, "decay_per_day": 0.0}   # IMMORTAL!
+            1: {"name": "The Rustborn Husk", "description": "Once a glorious war machine, now a corroded ruin. Rust gnaws through its joints, hydraulic fluids drip from torn plating, and its reactor sputters faintly. Barely able to move, it staggers like a dying beast.", "color": "#444444", "cost": 0, "power_max": 20, "decay_per_day": 1.0},
+            2: {"name": "The Battle-Scarred Survivor", "description": "A patched-up wreck, limping forward with mismatched armor and screeching servos. Every step is agony, but its core refuses to shut down. It is stubborn survival embodied in steel.", "color": "#666666", "cost": 10, "power_max": 10, "decay_per_day": 1.0},
+            3: {"name": "The Corewalker Standard", "description": "The dependable backbone of every mechanized army. Neither rusted ruin nor experimental prototype, but the perfected baseline. Mass-produced, balanced in offense and defense, its sturdy frame and reliable core make it the soldier's choice—the mech that wins wars through sheer numbers and unshakable consistency.", "color": "#888888", "cost": 15, "power_max": 15, "decay_per_day": 1.0},
+            4: {"name": "The Titanframe", "description": "Augmented with bulked plating and spiked enhancements, this mech becomes a juggernaut of intimidation. Every movement resonates with power, built to crush resistance head-on.", "color": "#0099cc", "cost": 20, "power_max": 20, "decay_per_day": 1.0},
+            5: {"name": "The Pulseforged Guardian", "description": "Energy channels glow across its reinforced body, pulsing like living veins. Its reactor hums with controlled plasma output, a perfected synthesis of raw strength and engineered balance.", "color": "#00ccff", "cost": 25, "power_max": 25, "decay_per_day": 1.0},
+            6: {"name": "The Abyss Engine", "description": "A dark branch of evolution, tainted by void-tech. Corruption twists its frame, reactor howls like a collapsing star. It moves with unnatural spasms—unstable, terrifying, yet overwhelmingly powerful.", "color": "#ffcc00", "cost": 30, "power_max": 30, "decay_per_day": 1.0},
+            7: {"name": "The Rift Strider", "description": "Mastery from chaos: sleek, fast, and armed with rift engines. It phases in and out of existence, striking enemies with energy blades before they can react. A predator between dimensions.", "color": "#ff6600", "cost": 35, "power_max": 35, "decay_per_day": 1.0},
+            8: {"name": "The Radiant Bastion", "description": "A glowing fortress of shields and radiant plating. Built to withstand orbital bombardments, this mech inspires entire armies with its unyielding defense and brilliant aura.", "color": "#cc00ff", "cost": 40, "power_max": 40, "decay_per_day": 1.0},
+            9: {"name": "The Overlord Ascendant", "description": "Elevated above the battlefield, carried and revered by lesser frames. Wreathed in fire and cloaked in command systems, it has become both warlord and deity of steel.", "color": "#00ffff", "cost": 45, "power_max": 45, "decay_per_day": 1.0},
+            10: {"name": "The Celestial Exarch", "description": "The final transcendence. No longer merely a machine, it radiates with cosmic energy, haloed in starlight. A godlike protector forged from centuries of steel and sacrifice.", "color": "#ffff00", "cost": 50, "power_max": 50, "decay_per_day": 1.0},
+            11: {"name": "OMEGA MECH", "description": "The final scream of a burning universe, forged into indestructible form. Its steps tear the fabric of existence, its pulse synchronizes with the heartbeat of dead gods. Finality in metal form.", "color": "#ff00ff", "cost": 100, "power_max": 100, "decay_per_day": 0.0}   # IMMORTAL!
         }
 
         base_costs = {}

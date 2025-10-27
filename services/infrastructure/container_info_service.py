@@ -60,36 +60,33 @@ class ServiceResult:
     error: Optional[str] = None
 
 class ContainerInfoService:
-    """Clean service for managing container information with proper separation of concerns."""
-    
-    def __init__(self, config_dir: Optional[str] = None):
+    """Clean service for managing container information using docker_config.json as single source."""
+
+    def __init__(self, config_file: Optional[str] = None):
         """Initialize the container info service.
-        
+
         Args:
-            config_dir: Directory to store container info files. Defaults to config/container_info/
+            config_file: Path to docker config file. Defaults to config/docker_config.json
         """
-        if config_dir is None:
+        if config_file is None:
             base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            config_dir = os.path.join(base_dir, "config", "container_info")
-        
-        self.config_dir = Path(config_dir)
-        self.config_dir.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Container info service initialized: {self.config_dir}")
+            config_file = os.path.join(base_dir, "config", "docker_config.json")
+
+        self.config_file = Path(config_file)
+        logger.info(f"Container info service initialized using: {self.config_file}")
     
     def get_container_info(self, container_name: str) -> ServiceResult:
-        """Get container information by name.
-        
+        """Get container information by name from docker_config.json.
+
         Args:
             container_name: Name of the container
-            
+
         Returns:
             ServiceResult with ContainerInfo data or error
         """
         try:
-            file_path = self.config_dir / f"{container_name}_info.json"
-            
-            if not file_path.exists():
-                # Return default info for non-existent containers
+            if not self.config_file.exists():
+                # Return default info if docker config doesn't exist
                 default_info = ContainerInfo(
                     enabled=False,
                     show_ip=False,
@@ -101,93 +98,183 @@ class ContainerInfoService:
                     protected_password=''
                 )
                 return ServiceResult(success=True, data=default_info)
-            
-            with open(file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            
-            container_info = ContainerInfo.from_dict(data)
-            logger.debug(f"Loaded info for container: {container_name}")
-            
-            return ServiceResult(success=True, data=container_info)
-            
+
+            with open(self.config_file, 'r', encoding='utf-8') as f:
+                docker_config = json.load(f)
+
+            # Find container in servers array
+            servers = docker_config.get('servers', [])
+            for server in servers:
+                if (server.get('name') == container_name or
+                    server.get('docker_name') == container_name):
+
+                    # Extract info section
+                    info_data = server.get('info', {})
+                    container_info = ContainerInfo.from_dict(info_data)
+                    logger.debug(f"Loaded info for container: {container_name}")
+                    return ServiceResult(success=True, data=container_info)
+
+            # Container not found - return default info
+            default_info = ContainerInfo(
+                enabled=False,
+                show_ip=False,
+                custom_ip='',
+                custom_port='',
+                custom_text='',
+                protected_enabled=False,
+                protected_content='',
+                protected_password=''
+            )
+            logger.debug(f"Container not found, returning default info: {container_name}")
+            return ServiceResult(success=True, data=default_info)
+
         except Exception as e:
             error_msg = f"Error loading info for {container_name}: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
     
     def save_container_info(self, container_name: str, container_info: ContainerInfo) -> ServiceResult:
-        """Save container information.
-        
+        """Save container information to docker_config.json.
+
         Args:
             container_name: Name of the container
             container_info: Container information to save
-            
+
         Returns:
             ServiceResult indicating success or failure
         """
         try:
-            file_path = self.config_dir / f"{container_name}_info.json"
-            
+            if not self.config_file.exists():
+                error_msg = f"Docker config file not found: {self.config_file}"
+                logger.error(error_msg)
+                return ServiceResult(success=False, error=error_msg)
+
+            with open(self.config_file, 'r', encoding='utf-8') as f:
+                docker_config = json.load(f)
+
+            # Find and update container in servers array
+            servers = docker_config.get('servers', [])
+            container_found = False
+
+            for server in servers:
+                if (server.get('name') == container_name or
+                    server.get('docker_name') == container_name):
+
+                    # Update info section
+                    server['info'] = container_info.to_dict()
+                    container_found = True
+                    break
+
+            if not container_found:
+                error_msg = f"Container not found in docker config: {container_name}"
+                logger.error(error_msg)
+                return ServiceResult(success=False, error=error_msg)
+
             # Atomic write using temporary file
-            temp_path = file_path.with_suffix('.tmp')
+            temp_path = self.config_file.with_suffix('.tmp')
             with open(temp_path, 'w', encoding='utf-8') as f:
-                json.dump(container_info.to_dict(), f, indent=2, ensure_ascii=False)
-            
+                json.dump(docker_config, f, indent=2, ensure_ascii=False)
+
             # Atomic rename
-            temp_path.rename(file_path)
-            
-            logger.info(f"Saved container info: {container_name}")
+            temp_path.rename(self.config_file)
+
+            logger.info(f"Saved container info to docker config: {container_name}")
             return ServiceResult(success=True, data=container_info)
-            
+
         except Exception as e:
             error_msg = f"Error saving info for {container_name}: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
     
     def delete_container_info(self, container_name: str) -> ServiceResult:
-        """Delete container information file.
-        
+        """Reset container information to defaults in docker_config.json.
+
         Args:
             container_name: Name of the container
-            
+
         Returns:
             ServiceResult indicating success or failure
         """
         try:
-            file_path = self.config_dir / f"{container_name}_info.json"
-            
-            if file_path.exists():
-                file_path.unlink()
-                logger.info(f"Deleted container info: {container_name}")
-            else:
-                logger.debug(f"Container info file not found: {container_name}")
-            
+            if not self.config_file.exists():
+                error_msg = f"Docker config file not found: {self.config_file}"
+                logger.error(error_msg)
+                return ServiceResult(success=False, error=error_msg)
+
+            with open(self.config_file, 'r', encoding='utf-8') as f:
+                docker_config = json.load(f)
+
+            # Find and reset container info in servers array
+            servers = docker_config.get('servers', [])
+            container_found = False
+
+            for server in servers:
+                if (server.get('name') == container_name or
+                    server.get('docker_name') == container_name):
+
+                    # Reset info section to defaults
+                    server['info'] = {
+                        'enabled': False,
+                        'show_ip': False,
+                        'custom_ip': '',
+                        'custom_port': '',
+                        'custom_text': '',
+                        'protected_enabled': False,
+                        'protected_content': '',
+                        'protected_password': ''
+                    }
+                    container_found = True
+                    break
+
+            if not container_found:
+                logger.debug(f"Container not found in docker config: {container_name}")
+                return ServiceResult(success=True)  # Not an error if container doesn't exist
+
+            # Atomic write using temporary file
+            temp_path = self.config_file.with_suffix('.tmp')
+            with open(temp_path, 'w', encoding='utf-8') as f:
+                json.dump(docker_config, f, indent=2, ensure_ascii=False)
+
+            # Atomic rename
+            temp_path.rename(self.config_file)
+
+            logger.info(f"Reset container info to defaults: {container_name}")
             return ServiceResult(success=True)
-            
+
         except Exception as e:
-            error_msg = f"Error deleting info for {container_name}: {e}"
+            error_msg = f"Error resetting info for {container_name}: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
     
     def list_all_containers(self) -> ServiceResult:
-        """List all containers that have info files.
-        
+        """List all containers from docker_config.json servers array.
+
         Returns:
             ServiceResult with list of container names
         """
         try:
             container_names = []
-            
-            for file_path in self.config_dir.glob("*_info.json"):
-                # Extract container name from filename
-                container_name = file_path.stem.replace('_info', '')
-                container_names.append(container_name)
-            
-            logger.debug(f"Found {len(container_names)} container info files")
+
+            if not self.config_file.exists():
+                logger.debug("Docker config file not found, returning empty list")
+                return ServiceResult(success=True, data=container_names)
+
+            with open(self.config_file, 'r', encoding='utf-8') as f:
+                docker_config = json.load(f)
+
+            # Extract container names from servers array
+            servers = docker_config.get('servers', [])
+            for server in servers:
+                # Use docker_name as primary, fallback to name
+                container_name = server.get('docker_name') or server.get('name')
+                if container_name:
+                    container_names.append(container_name)
+
+            logger.debug(f"Found {len(container_names)} containers in docker config")
             return ServiceResult(success=True, data=container_names)
-            
+
         except Exception as e:
-            error_msg = f"Error listing container info files: {e}"
+            error_msg = f"Error listing containers from docker config: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
 

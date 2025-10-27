@@ -926,15 +926,22 @@ def set_mech_difficulty():
             return jsonify({'success': False, 'error': 'Missing difficulty_multiplier parameter'}), 400
 
         difficulty_multiplier = float(data['difficulty_multiplier'])
+        manual_override = data.get('manual_override', False)
 
         # Use MechWebService for business logic
         from services.web.mech_web_service import get_mech_web_service, MechDifficultyRequest
 
         service = get_mech_web_service()
-        request_obj = MechDifficultyRequest(
-            operation='set',
-            multiplier=difficulty_multiplier
-        )
+
+        if manual_override:
+            # Manual override = static mode with custom difficulty
+            request_obj = MechDifficultyRequest(
+                operation='set',
+                multiplier=difficulty_multiplier
+            )
+        else:
+            # No manual override = reset to dynamic mode
+            request_obj = MechDifficultyRequest(operation='reset')
 
         # Set difficulty through service
         result = service.manage_difficulty(request_obj)
@@ -1317,4 +1324,84 @@ def get_mech_display_info():
         return jsonify({
             'success': False,
             'error': 'Error getting display information'
+        }), 500
+
+@main_bp.route('/api/mech/reset', methods=['POST'])
+@auth.login_required
+def reset_mech_to_level_1():
+    """Reset Mech system to Level 1 for testing/development."""
+    try:
+        from services.mech.mech_reset_service import get_mech_reset_service
+
+        # Get reset service
+        reset_service = get_mech_reset_service()
+
+        # Get current status before reset
+        current_status = reset_service.get_current_status()
+
+        # Perform full reset
+        result = reset_service.full_reset()
+
+        # Log the action
+        try:
+            from services.infrastructure.action_logger import log_user_action
+            log_user_action(
+                action="MECH_RESET",
+                target="Mech System",
+                user=session.get('username', 'Unknown'),
+                source="Web UI",
+                details=f"Reset to Level 1 - Previous: Level {current_status.get('current_level', 'Unknown')}"
+            )
+        except Exception as log_error:
+            current_app.logger.warning(f"Failed to log mech reset action: {log_error}")
+
+        # Return result
+        response_data = {
+            'success': result.success,
+            'message': result.message,
+            'previous_status': current_status,
+            'timestamp': result.details.get('timestamp') if result.details else None
+        }
+
+        if result.details and 'operations' in result.details:
+            response_data['operations'] = result.details['operations']
+
+        if result.success:
+            current_app.logger.info(f"Mech reset to Level 1 completed by user: {session.get('username', 'Unknown')}")
+            return jsonify(response_data)
+        else:
+            current_app.logger.error(f"Mech reset failed: {result.message}")
+            return jsonify(response_data), 400
+
+    except Exception as e:
+        error_msg = f"Error during mech reset: {e}"
+        current_app.logger.error(error_msg, exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': error_msg
+        }), 500
+
+@main_bp.route('/api/mech/status', methods=['GET'])
+@auth.login_required
+def get_mech_status():
+    """Get current Mech system status."""
+    try:
+        from services.mech.mech_reset_service import get_mech_reset_service
+
+        # Get reset service for status
+        reset_service = get_mech_reset_service()
+        status = reset_service.get_current_status()
+
+        return jsonify({
+            'success': True,
+            'status': status,
+            'timestamp': datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        error_msg = f"Error getting mech status: {e}"
+        current_app.logger.error(error_msg, exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': error_msg
         }), 500

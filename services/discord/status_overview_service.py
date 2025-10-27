@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 class StatusOverviewUpdateConfig:
     """Configuration for status overview updates from Web UI."""
     enable_auto_refresh: bool = True
-    update_interval_minutes: int = 5
+    update_interval_minutes: int = 10
     recreate_messages_on_inactivity: bool = True
     inactivity_timeout_minutes: int = 10
 
@@ -43,12 +43,14 @@ class UpdateDecision:
 
 class StatusOverviewService:
     """
-    SERVICE FIRST: Discord Status Overview Decision Layer (Phase 1)
+    SERVICE FIRST: Discord Message Update Decision Layer
 
-    SAFE APPROACH: This service only makes decisions about when/how to update.
-    The actual embed creation and message handling stays in docker_control.py.
+    UNIFIED APPROACH: Handles update decisions for both:
+    - Status Overview messages (/ss commands)
+    - Individual Server messages (control channels)
 
-    This prevents breaking changes while adding Web UI configuration support.
+    This ensures Web UI refresh/recreate settings are consistently applied across
+    the entire application, not just overview messages.
     """
 
     def __init__(self):
@@ -61,7 +63,8 @@ class StatusOverviewService:
                            last_update_time: Optional[datetime] = None,
                            reason: str = "auto_update",
                            force_refresh: bool = False,
-                           force_recreate: bool = False) -> UpdateDecision:
+                           force_recreate: bool = False,
+                           last_channel_activity: Optional[datetime] = None) -> UpdateDecision:
         """
         DECISION LAYER: Determine if and how status overview should be updated.
 
@@ -74,6 +77,7 @@ class StatusOverviewService:
             reason: Reason for this update check
             force_refresh: Force update regardless of timing (manual commands)
             force_recreate: Force recreation regardless of settings
+            last_channel_activity: When this channel was last active (for inactivity-based recreation)
 
         Returns:
             UpdateDecision: What action to take
@@ -116,7 +120,7 @@ class StatusOverviewService:
                     time_reason = f"interval_reached_({config.update_interval_minutes}m)"
 
             # CHECK RECREATE REQUIREMENTS
-            should_recreate = self._should_recreate_message(channel_id, config, force_recreate)
+            should_recreate = self._should_recreate_message(channel_id, config, force_recreate, last_channel_activity)
 
             # FINAL DECISION
             should_update = should_update_by_time or should_recreate or force_recreate
@@ -148,14 +152,15 @@ class StatusOverviewService:
             )
 
     def _should_recreate_message(self, channel_id: int, config: StatusOverviewUpdateConfig,
-                               force_recreate: bool = False) -> bool:
+                               force_recreate: bool = False, last_channel_activity: Optional[datetime] = None) -> bool:
         """
-        Determine if message should be recreated based on Web UI settings and mech state.
+        Determine if message should be recreated based on Web UI settings, channel inactivity and mech state.
 
         Args:
             channel_id: Discord channel ID
             config: Channel update configuration
             force_recreate: Force recreation regardless of settings
+            last_channel_activity: When this channel was last active (from calling code)
 
         Returns:
             bool: True if message should be recreated
@@ -176,6 +181,15 @@ class StatusOverviewService:
             if state_manager.should_force_recreate(str(channel_id)):
                 self.logger.debug(f"Mech state requires recreation for channel {channel_id}")
                 return True
+
+            # Check channel inactivity timeout
+            if last_channel_activity:
+                time_since_activity = datetime.now(timezone.utc) - last_channel_activity
+                inactivity_threshold = timedelta(minutes=config.inactivity_timeout_minutes)
+
+                if time_since_activity >= inactivity_threshold:
+                    self.logger.debug(f"Channel {channel_id} inactive for {time_since_activity}, threshold: {inactivity_threshold}")
+                    return True
 
             return False
 
@@ -212,7 +226,7 @@ class StatusOverviewService:
 
             # Parse channel permissions from config
             channel_permissions = global_config.get('channel_permissions', {})
-            default_perms = global_config.get('default_permissions', {})
+            default_perms = global_config.get('default_channel_permissions', {})
 
             channel_config = channel_permissions.get(str(channel_id), default_perms)
 
@@ -221,7 +235,7 @@ class StatusOverviewService:
                 enable_auto_refresh=channel_config.get('enable_auto_refresh',
                                                      default_perms.get('enable_auto_refresh', True)),
                 update_interval_minutes=channel_config.get('update_interval_minutes',
-                                                          default_perms.get('update_interval_minutes', 5)),
+                                                          default_perms.get('update_interval_minutes', 10)),
                 recreate_messages_on_inactivity=channel_config.get('recreate_messages_on_inactivity',
                                                                   default_perms.get('recreate_messages_on_inactivity', True)),
                 inactivity_timeout_minutes=channel_config.get('inactivity_timeout_minutes',

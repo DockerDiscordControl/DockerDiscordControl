@@ -139,13 +139,17 @@ class MechStatusDetailsService:
                     current_threshold = 0
 
                 # Calculate progress: how much of the gap between current and next threshold is filled
-                progress_range = next_threshold - current_threshold
-                progress_current = total_donated - current_threshold
+                if next_threshold is not None and next_threshold > current_threshold:
+                    progress_range = next_threshold - current_threshold
+                    progress_current = total_donated - current_threshold
 
-                if progress_range > 0:
-                    evolution_bar = self._create_progress_bar(progress_current, progress_range)
+                    if progress_range > 0:
+                        evolution_bar = self._create_progress_bar(progress_current, progress_range)
+                    else:
+                        evolution_bar = self._create_progress_bar(100, 100)  # Full bar if at max level
                 else:
-                    evolution_bar = self._create_progress_bar(100, 100)  # Full bar if at max level
+                    # Max level reached or invalid data
+                    evolution_bar = self._create_progress_bar(100, 100)  # Full bar
 
             # Get animation (use high resolution if requested) - use decimal power for proper animation selection
             animation_bytes, content_type = self._get_mech_animation(current_level, power_decimal, request.use_high_resolution)
@@ -286,14 +290,14 @@ class MechStatusDetailsService:
                 # Use evolution result data for threshold calculation
                 if evolution_result.evolution_mode == 'dynamic':
                     # For dynamic mode, we may not have exact level data, use base calculation
-                    base_thresholds = [0, 20, 50, 100, 200, 350, 550, 800, 1100, 1450, 1850]
+                    base_thresholds = [0, 10, 15, 20, 25, 30, 35, 40, 45, 50, 100]
                     if level <= len(base_thresholds):
                         threshold = base_thresholds[level - 1] if level > 0 else 0
                     else:
                         return None
                 else:
                     # For static mode, apply difficulty multiplier
-                    base_thresholds = [0, 20, 50, 100, 200, 350, 550, 800, 1100, 1450, 1850]
+                    base_thresholds = [0, 10, 15, 20, 25, 30, 35, 40, 45, 50, 100]
                     if level <= len(base_thresholds):
                         base_threshold = base_thresholds[level - 1] if level > 0 else 0
                         threshold = int(base_threshold * evolution_result.difficulty_multiplier) if level > 1 else 0

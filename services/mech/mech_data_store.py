@@ -754,25 +754,51 @@ class MechDataStore:
 
     def _calculate_power_bars(self, core_data: dict, evolution_data: dict, progress_data: dict) -> BarsCompat:
         """Calculate power bars with correct additional cost logic."""
-        # Level thresholds (total costs to reach each level)
-        level_thresholds = {1: 0, 2: 20, 3: 50, 4: 100, 5: 200, 6: 350, 7: 550, 8: 800, 9: 1100, 10: 1450, 11: 1850}
+        try:
+            # Level thresholds (total costs to reach each level) - REALISTIC PRICING
+            level_thresholds = {1: 0, 2: 10, 3: 15, 4: 20, 5: 25, 6: 30, 7: 35, 8: 40, 9: 45, 10: 50, 11: 100}
 
-        current_level = core_data['level']
-        current_threshold = level_thresholds.get(current_level, 0)
-        next_threshold = evolution_data['next_threshold']
+            current_level = core_data.get('level', 1)
+            current_threshold = level_thresholds.get(current_level, 0)
+            next_threshold = evolution_data.get('next_threshold')
 
-        # Calculate additional cost for next level (not total cost)
-        additional_cost = next_threshold - current_threshold  # e.g. Level 2→3: 50-20=30$
+            # Handle edge cases
+            if next_threshold is None or next_threshold <= current_threshold:
+                # For maximum level or invalid data, use reasonable defaults
+                if current_level >= 11:
+                    additional_cost = 100  # OMEGA MECH max power
+                else:
+                    # Calculate next level threshold as fallback
+                    next_level = current_level + 1
+                    next_threshold = level_thresholds.get(next_level, current_threshold + 10)
+                    additional_cost = next_threshold - current_threshold
+            else:
+                # Calculate additional cost for next level (not total cost)
+                additional_cost = next_threshold - current_threshold  # e.g. Level 2→3: 15-10=5$
 
-        return BarsCompat(
-            # Power Bar: Show current power vs. max power for CURRENT level
-            Power_current=core_data['power'],  # Current power with decimals (e.g. 29.99)
-            Power_max_for_level=additional_cost + 1,  # Additional cost + 1 gift (e.g. 30+1=31)
+            # Ensure minimum values
+            additional_cost = max(1, additional_cost)
+            power_current = max(0.0, core_data.get('power', 0.0))
 
-            # Evolution Bar: Show progress toward next level threshold
-            mech_progress_current=progress_data['progress_current'],
-            mech_progress_max=progress_data['progress_max']
-        )
+            return BarsCompat(
+                # Power Bar: Show current power vs. max power for CURRENT level
+                Power_current=power_current,  # Current power with decimals (e.g. 29.99)
+                Power_max_for_level=additional_cost + 1,  # Additional cost + 1 gift (e.g. 5+1=6)
+
+                # Evolution Bar: Show progress toward next level threshold
+                mech_progress_current=progress_data.get('progress_current', 0),
+                mech_progress_max=progress_data.get('progress_max', 100)
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error in _calculate_power_bars: {e}", exc_info=True)
+            # Return safe fallback values
+            return BarsCompat(
+                Power_current=core_data.get('power', 0.0),
+                Power_max_for_level=10,  # Safe fallback
+                mech_progress_current=0,
+                mech_progress_max=100
+            )
 
 
 # ============================================================================ #

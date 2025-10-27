@@ -457,11 +457,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         from services.discord.status_overview_service import get_status_overview_service
                         overview_service = get_status_overview_service()
 
+                        last_activity = self.last_channel_activity.get(channel_id)
                         decision = overview_service.make_update_decision(
                             channel_id=channel_id,
                             global_config=config,
                             last_update_time=last_update_time,
-                            reason="periodic_overview_check"
+                            reason="periodic_overview_check",
+                            last_channel_activity=last_activity
                         )
 
                         if decision.should_update:
@@ -477,18 +479,42 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                     continue  # Overview message handled, move to next message
 
-                # Individual server message timing logic
-                should_update = False
-                if last_update_time is None:
-                    should_update = True
-                    logger.info(f"Direct Cog Periodic Edit Loop: Scheduling edit for '{display_name}' in channel {channel_id} (Message ID: {message_id}). Reason: No previous update time recorded.")
-                elif (now_utc - last_update_time) >= update_interval_delta:
-                    should_update = True
-                    logger.info(f"Direct Cog Periodic Edit Loop: Scheduling edit for '{display_name}' in channel {channel_id} (Message ID: {message_id}). Reason: Interval passed (Last: {last_update_time}, Now: {now_utc}, Interval: {update_interval_delta}).")
-                else:
-                    time_since_last_update = now_utc - last_update_time
-                    time_to_next_update = update_interval_delta - time_since_last_update
-                    logger.debug(f"Direct Cog Periodic Edit Loop: Skipping edit for '{display_name}' in channel {channel_id} (Message ID: {message_id}). Interval not passed. Time since last: {time_since_last_update}. Next update in: {time_to_next_update}.")
+                # SERVICE FIRST: Individual server message update decision
+                try:
+                    from services.discord.status_overview_service import get_status_overview_service
+                    service = get_status_overview_service()
+
+                    # Make update decision using Web UI settings
+                    last_activity = self.last_channel_activity.get(channel_id)
+                    decision = service.make_update_decision(
+                        channel_id=channel_id,
+                        global_config=self.config,
+                        last_update_time=last_update_time,
+                        reason=f"individual_server_{display_name}",
+                        force_refresh=False,
+                        force_recreate=False,
+                        last_channel_activity=last_activity
+                    )
+
+                    should_update = decision.should_update
+                    should_recreate = decision.should_recreate
+
+                    if should_update:
+                        logger.info(f"SERVICE_FIRST: Individual server message scheduled for '{display_name}' in channel {channel_id} (Message ID: {message_id}). Decision: {decision.reason}")
+                    else:
+                        logger.debug(f"SERVICE_FIRST: Individual server message skipped for '{display_name}' in channel {channel_id} (Message ID: {message_id}). Reason: {decision.skip_reason}")
+
+                except Exception as service_error:
+                    logger.warning(f"SERVICE_FIRST: Error in individual server decision service: {service_error}")
+                    # Fallback to simplified logic on service error
+                    should_update = False
+                    should_recreate = False
+                    if last_update_time is None:
+                        should_update = True
+                        logger.info(f"FALLBACK: Scheduling edit for '{display_name}' in channel {channel_id} (Message ID: {message_id}). Reason: No previous update time recorded.")
+                    elif (now_utc - last_update_time) >= update_interval_delta:
+                        should_update = True
+                        logger.info(f"FALLBACK: Scheduling edit for '{display_name}' in channel {channel_id} (Message ID: {message_id}). Reason: Interval passed.")
 
                 if should_update:
                     # IMPROVED: Skip refresh for containers in pending state
@@ -2474,13 +2500,15 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                                 last_update_time = self.last_message_update_time[channel_id]['overview']
 
                             # Make update decision based on Web UI settings
+                            last_activity = self.last_channel_activity.get(channel_id)
                             decision = overview_service.make_update_decision(
                                 channel_id=channel_id,
                                 global_config=config,
                                 last_update_time=last_update_time,
                                 reason=reason,
                                 force_refresh=False,  # This is auto-update, not manual
-                                force_recreate=force_recreate
+                                force_recreate=force_recreate,
+                                last_channel_activity=last_activity
                             )
 
                             # Skip if Service decides no update needed
@@ -3870,11 +3898,10 @@ class DonationBroadcastModal(discord.ui.Modal):
                         # Events are now automatically handled by UnifiedDonationService
                         # No manual event emission needed - prevents duplicate events
 
-                        # Trigger immediate update of all overview messages
-                        cog = interaction.client.get_cog('DockerControlCog')
-                        if cog:
-                            task = asyncio.create_task(cog._update_all_overview_messages_after_donation())
-                            task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
+                        # REMOVED: Manual update call to prevent duplicate updates
+                        # The donation_event already triggers automatic updates via event system
+                        # Manual update here caused double-updates and race conditions
+                        logger.info("Donation event will trigger automatic overview updates via event system")
 
                 except Exception as e:
                     logger.error(f"Error processing donation: {e}")
