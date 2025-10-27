@@ -1558,7 +1558,7 @@ class MechHistoryButton(Button):
                 await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
                 return
 
-            # Defer response to prevent timeout during mech service calls
+            # Quick defer within 3 seconds - then we have 15 minutes for processing
             await interaction.response.defer(ephemeral=True)
 
             # Get current mech state using SERVICE FIRST
@@ -1576,8 +1576,14 @@ class MechHistoryButton(Button):
 
         except Exception as e:
             logger.error(f"Error in mech history button: {e}", exc_info=True)
-            # After defer(), always use followup for error messages
-            await interaction.followup.send(_("❌ Error loading mech history."), ephemeral=True)
+            # After defer(), we have 15 minutes - use followup for error messages
+            try:
+                await interaction.followup.send(_("❌ Error loading mech history."), ephemeral=True)
+            except discord.errors.NotFound:
+                # Interaction expired - log but don't crash (should not happen within 15 min)
+                logger.warning(f"Interaction expired unexpectedly: {e}")
+            except Exception as error_ex:
+                logger.error(f"Failed to send error message: {error_ex}")
 
     async def _show_mech_selection(self, interaction: discord.Interaction, current_level: int):
         """Show buttons for each unlocked mech + next shadow mech."""
