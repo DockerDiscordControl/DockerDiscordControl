@@ -300,15 +300,15 @@ class MechStatusDetailsService:
                     else:
                         return None
 
-                # Get level names
-                level_names = ["", "The Rustborn Husk", "The Battle-Scarred Survivor", "The Relentless Hunter",
-                              "The Iron Predator", "The Steel Juggernaut", "The Chrome Destroyer",
-                              "The Titanium Behemoth", "The Quantum Colossus", "The Plasma Phoenix",
-                              "The Void Reaper", "The Omega Mech"]
+                # Get level names (matching evolution_config.json) - Index aligned with level numbers
+                level_names = ["INVALID", "The Rustborn Husk", "The Battle-Scarred Survivor", "The Corewalker Standard",
+                              "The Titanframe", "The Pulseforged Guardian", "The Abyss Engine",
+                              "The Rift Strider", "The Radiant Bastion", "The Overlord Ascendant",
+                              "The Celestial Exarch", "OMEGA MECH"]
 
-                if level <= len(level_names):
+                if level < len(level_names) and level > 0:
                     return {
-                        'name': level_names[level - 1] if level > 0 else "",
+                        'name': level_names[level],  # Direct index: level_names[3] = "The Corewalker Standard"
                         'threshold': threshold,
                         'mode': evolution_result.evolution_mode,
                         'difficulty': evolution_result.difficulty_multiplier,

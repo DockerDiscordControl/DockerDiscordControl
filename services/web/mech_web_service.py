@@ -452,6 +452,7 @@ class MechWebService:
                     'multiplier': multiplier,
                     'is_auto': is_auto,
                     'status': 'auto' if is_auto else 'manual',
+                    'manual_override': not is_auto,  # Frontend expects manual_override boolean: dynamic=False, static=True
                     'simple_evolution': {
                         'current_level': simple_state.current_level,
                         'next_level_cost': simple_state.next_level_cost,

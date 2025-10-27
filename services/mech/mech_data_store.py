@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class BarsCompat:
     """Legacy compatibility object for bars data."""
-    Power_current: int = 0
+    Power_current: float = 0.0  # Support decimal power values (e.g. 0.99)
     Power_max_for_level: int = 100
     mech_progress_current: int = 0
     mech_progress_max: int = 20
@@ -323,15 +323,7 @@ class MechDataStore:
                 cache_timestamp=time.time(),
 
                 # Legacy compatibility - separate Power Bar and Evolution Bar calculations
-                bars=BarsCompat(
-                    # Power Bar: Show current power vs. max power for CURRENT level
-                    Power_current=int(core_data['power']),  # Current power in dollars (e.g. 1)
-                    Power_max_for_level=int(evolution_data['next_threshold']) + 1,  # Next level cost + 1 gift (e.g. 30+1=31)
-
-                    # Evolution Bar: Show progress toward next level threshold
-                    mech_progress_current=progress_data['progress_current'],
-                    mech_progress_max=progress_data['progress_max']
-                ),
+                bars=self._calculate_power_bars(core_data, evolution_data, progress_data),
 
                 # Optional projections
                 projections=projections
@@ -759,6 +751,28 @@ class MechDataStore:
         self._cache.clear()
         self._last_cache_clear = time.time()
         self.logger.info("Manual cache clear performed")
+
+    def _calculate_power_bars(self, core_data: dict, evolution_data: dict, progress_data: dict) -> BarsCompat:
+        """Calculate power bars with correct additional cost logic."""
+        # Level thresholds (total costs to reach each level)
+        level_thresholds = {1: 0, 2: 20, 3: 50, 4: 100, 5: 200, 6: 350, 7: 550, 8: 800, 9: 1100, 10: 1450, 11: 1850}
+
+        current_level = core_data['level']
+        current_threshold = level_thresholds.get(current_level, 0)
+        next_threshold = evolution_data['next_threshold']
+
+        # Calculate additional cost for next level (not total cost)
+        additional_cost = next_threshold - current_threshold  # e.g. Level 2→3: 50-20=30$
+
+        return BarsCompat(
+            # Power Bar: Show current power vs. max power for CURRENT level
+            Power_current=core_data['power'],  # Current power with decimals (e.g. 29.99)
+            Power_max_for_level=additional_cost + 1,  # Additional cost + 1 gift (e.g. 30+1=31)
+
+            # Evolution Bar: Show progress toward next level threshold
+            mech_progress_current=progress_data['progress_current'],
+            mech_progress_max=progress_data['progress_max']
+        )
 
 
 # ============================================================================ #
