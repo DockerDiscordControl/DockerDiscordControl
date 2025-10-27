@@ -324,9 +324,9 @@ class MechDataStore:
 
                 # Legacy compatibility - separate Power Bar and Evolution Bar calculations
                 bars=BarsCompat(
-                    # Power Bar: Show current power vs. power needed for NEXT level
+                    # Power Bar: Show current power vs. max power for CURRENT level
                     Power_current=int(core_data['power']),  # Current power in dollars (e.g. 1)
-                    Power_max_for_level=int(evolution_data['next_threshold']),  # Next level cost (e.g. 30)
+                    Power_max_for_level=int(evolution_data['next_threshold']) + 1,  # Next level cost + 1 gift (e.g. 30+1=31)
 
                     # Evolution Bar: Show progress toward next level threshold
                     mech_progress_current=progress_data['progress_current'],

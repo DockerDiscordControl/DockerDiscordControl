@@ -29,8 +29,8 @@
       "name": "The Corewalker Standard",
       "description": "The dependable backbone of every mechanized army. Neither rusted ruin nor experimental prototype, but the perfected baseline. Mass-produced, balanced in offense and defense, its sturdy frame and reliable core make it the soldier's choice—the mech that wins wars through sheer numbers and unshakable consistency.",
       "color": "#888888",
-      "cost": 50,
-      "power_max": 50,
+      "cost": 30,
+      "power_max": 30,
       "decay_per_day": 1.0
     },
     "4": {
