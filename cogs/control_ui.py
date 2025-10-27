@@ -1513,7 +1513,16 @@ class MechDonateButton(Button):
             
         except Exception as e:
             logger.error(f"Error in mech donate button: {e}", exc_info=True)
-            await interaction.response.send_message("❌ Error processing donation. Please try `/donate` directly.", ephemeral=True)
+            try:
+                # Smart error response - check if interaction was already handled by _handle_donate_interaction
+                if interaction.response.is_done():
+                    await interaction.followup.send("❌ Error processing donation. Please try `/donate` directly.", ephemeral=True)
+                else:
+                    await interaction.response.send_message("❌ Error processing donation. Please try `/donate` directly.", ephemeral=True)
+            except discord.errors.NotFound:
+                logger.warning("Cannot send error message - interaction expired")
+            except Exception:
+                pass
 
 # DonationView has been moved back to docker_control.py where it belongs
     
@@ -2271,10 +2280,19 @@ class MechPrivateDonateButton(Button):
         except Exception as e:
             logger.error(f"Error in private donate button: {e}", exc_info=True)
             try:
-                await interaction.response.send_message(
-                    "❌ Error processing donation request. Please try again later.",
-                    ephemeral=True
-                )
+                # Smart error response - check if interaction was already deferred by child button
+                if interaction.response.is_done():
+                    await interaction.followup.send(
+                        "❌ Error processing donation request. Please try again later.",
+                        ephemeral=True
+                    )
+                else:
+                    await interaction.response.send_message(
+                        "❌ Error processing donation request. Please try again later.",
+                        ephemeral=True
+                    )
+            except discord.errors.NotFound:
+                logger.warning("Cannot send error message - interaction expired")
             except Exception:
                 pass
 
@@ -2301,10 +2319,19 @@ class MechPrivateHistoryButton(Button):
         except Exception as e:
             logger.error(f"Error in private history button: {e}", exc_info=True)
             try:
-                await interaction.response.send_message(
-                    "❌ Error loading mech history. Please try again later.",
-                    ephemeral=True
-                )
+                # Smart error response - check if interaction was already deferred by child button
+                if interaction.response.is_done():
+                    await interaction.followup.send(
+                        "❌ Error loading mech history. Please try again later.",
+                        ephemeral=True
+                    )
+                else:
+                    await interaction.response.send_message(
+                        "❌ Error loading mech history. Please try again later.",
+                        ephemeral=True
+                    )
+            except discord.errors.NotFound:
+                logger.warning("Cannot send error message - interaction expired")
             except Exception:
                 pass
 
