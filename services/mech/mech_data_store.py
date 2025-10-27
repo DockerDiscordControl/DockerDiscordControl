@@ -324,9 +324,9 @@ class MechDataStore:
 
                 # Legacy compatibility - separate Power Bar and Evolution Bar calculations
                 bars=BarsCompat(
-                    # Power Bar: Show current power as percentage of max power for current level
-                    Power_current=int(core_data['power'] * 100),  # Convert $1.00 to 100 points
-                    Power_max_for_level=500,  # Standard max power per level (500 points = $5.00)
+                    # Power Bar: Show current power vs. power needed for NEXT level
+                    Power_current=int(core_data['power']),  # Current power in dollars (e.g. 1)
+                    Power_max_for_level=int(evolution_data['next_threshold']),  # Next level cost (e.g. 30)
 
                     # Evolution Bar: Show progress toward next level threshold
                     mech_progress_current=progress_data['progress_current'],
