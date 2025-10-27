@@ -62,87 +62,40 @@ class MechStatusDetailsService:
             MechStatusDetailsResult with formatted status information
         """
         try:
-            # PERFORMANCE OPTIMIZATION: Use cached mech state instead of live calculations
-            from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+            # SINGLE POINT OF TRUTH: Use MechDataStore for all mech data
+            from services.mech.mech_data_store import get_mech_data_store, MechDataRequest
 
-            cache_service = get_mech_status_cache_service()
-            cache_request = MechStatusCacheRequest(include_decimals=True)
-            cached_result = cache_service.get_cached_status(cache_request)
+            data_store = get_mech_data_store()
+            data_request = MechDataRequest(include_decimals=True)
+            data_result = data_store.get_comprehensive_data(data_request)
 
-            if not cached_result.success:
-                # Fallback to MechDataStore if cache fails
-                from services.mech.mech_data_store import get_mech_data_store, MechDataRequest
-                data_store = get_mech_data_store()
-                data_request = MechDataRequest(include_decimals=True)
-                data_result = data_store.get_comprehensive_data(data_request)
+            if not data_result.success:
+                return MechStatusDetailsResult(success=False, error="Failed to get mech data from MechDataStore")
 
-                if not data_result.success:
-                    return MechStatusDetailsResult(success=False, error="Failed to get mech data from both cache and MechDataStore")
+            # Extract data from MechDataStore result
+            power_decimal = data_result.current_power
 
-                # Extract data from MechDataStore result
-                power_decimal = data_result.current_power
-
-                # Create a state-like object for compatibility
-                class StateCompat:
-                    def __init__(self, data_result):
-                        self.level = data_result.current_level
-                        self.level_name = data_result.level_name
-                        self.Power = int(data_result.current_power)
-                        self.bars = data_result.bars if hasattr(data_result, 'bars') else None
-
-                state = StateCompat(data_result)
-
-                # Get speed description
-                # SPECIAL CASE: Level 11 is maximum level - always show "Göttlich" (no more speed changes)
-                if state.level >= 11:
-                    speed_description = "Göttlich"  # Level 11 is final level with static divine speed
-                else:
-                    speed_description = self._get_speed_description(state.Power)
-
-                # Format level text
-                level_text = f"{state.level_name} (Level {state.level})"
-
-                # Create power progress bar
-                # SPECIAL CASE: Level 11 is maximum level - show infinity instead of speed bar
-                if state.level >= 11:
-                    # For maximum level, show "reached infinity" message with appreciation (divine perfection achieved)
-                    power_bar = self._get_infinity_message()
-                else:
-                    # Normal level progression
-                    power_bar = self._create_progress_bar(
-                        state.bars.Power_current,
-                        state.bars.Power_max_for_level
-                    )
+            # Get speed description from MechDataStore
+            # SPECIAL CASE: Level 11 is maximum level - always show "Göttlich" (no more speed changes)
+            if data_result.current_level >= 11:
+                speed_description = "Göttlich"  # Level 11 is final level with static divine speed
             else:
-                # Use cached data - much faster!
-                power_decimal = cached_result.power
+                speed_description = self._get_speed_description(int(data_result.current_power))
 
-                # Get speed description from cache (already calculated)
-                # SPECIAL CASE: Level 11 is maximum level - always show "Göttlich" (no more speed changes)
-                if cached_result.level >= 11:
-                    speed_description = "Göttlich"  # Level 11 is final level with static divine speed
-                else:
-                    speed_description = cached_result.speed_description if cached_result.speed_description else self._get_speed_description(int(power_decimal))
+            # Format level text
+            level_text = f"{data_result.level_name} (Level {data_result.current_level})"
 
-                # Format level text (cache has 'name' not 'level_name')
-                level_text = f"{cached_result.name} (Level {cached_result.level})"
-
-                # Create power progress bar from cache
-                if cached_result.bars and hasattr(cached_result.bars, 'Power_current'):
-                    # SPECIAL CASE: Level 11 is maximum level - show infinity instead of speed bar
-                    if cached_result.level >= 11:
-                        # For maximum level, show "reached infinity" message with appreciation (divine perfection achieved)
-                        power_bar = self._get_infinity_message()
-                    else:
-                        # Normal level progression
-                        power_bar = self._create_progress_bar(
-                            cached_result.bars.Power_current,
-                            cached_result.bars.Power_max_for_level
-                        )
-                else:
-                    # Fallback progress bar calculation
-                    current_progress = int((power_decimal % 1.0) * 100)
-                    power_bar = self._create_progress_bar(current_progress, 100)
+            # Create power progress bar using MechDataStore bars data
+            # SPECIAL CASE: Level 11 is maximum level - show infinity instead of speed bar
+            if data_result.current_level >= 11:
+                # For maximum level, show "reached infinity" message with appreciation (divine perfection achieved)
+                power_bar = self._get_infinity_message()
+            else:
+                # Normal level progression - use Power bar data (not Evolution data)
+                power_bar = self._create_progress_bar(
+                    data_result.bars.Power_current,
+                    data_result.bars.Power_max_for_level
+                )
 
             # Format speed text
             speed_text = f"Geschwindigkeit: {speed_description}"
@@ -151,7 +104,7 @@ class MechStatusDetailsService:
             power_text = f"⚡{power_decimal:.2f}"
 
             # Format energy consumption (dynamic) - Level 11 has no energy consumption
-            current_level = cached_result.level if cached_result.success else state.level
+            current_level = data_result.current_level
             if current_level >= 11:
                 energy_consumption = None  # Maximum level has no energy consumption
             else:
@@ -165,25 +118,34 @@ class MechStatusDetailsService:
             next_evolution = None
             evolution_bar = None
 
-            # Get level for next evolution calculation
-            current_level = cached_result.level if cached_result.success else state.level
+            # Get level for next evolution calculation using MechDataStore
+            current_level = data_result.current_level
 
             # Try to get next level info
             next_level_info = self._get_next_level_info(current_level + 1)
             if next_level_info:
                 next_evolution = f"⬆️ {next_level_info['name']}"
 
-                # Create evolution progress bar
-                if cached_result.success and cached_result.bars and hasattr(cached_result.bars, 'mech_progress_current'):
-                    evolution_bar = self._create_progress_bar(
-                        cached_result.bars.mech_progress_current,
-                        cached_result.bars.mech_progress_max
-                    )
-                elif not cached_result.success and hasattr(state, 'bars'):
-                    evolution_bar = self._create_progress_bar(
-                        state.bars.mech_progress_current,
-                        state.bars.mech_progress_max
-                    )
+                # Create evolution progress bar using MechDataStore evolution data
+                # Calculate current progress toward next level
+                total_donated = data_result.total_donated
+                next_threshold = data_result.next_threshold
+
+                # Find current level threshold (previous level's threshold)
+                if current_level > 1:
+                    current_threshold_info = self._get_next_level_info(current_level)
+                    current_threshold = current_threshold_info.get('threshold', 0) if current_threshold_info else 0
+                else:
+                    current_threshold = 0
+
+                # Calculate progress: how much of the gap between current and next threshold is filled
+                progress_range = next_threshold - current_threshold
+                progress_current = total_donated - current_threshold
+
+                if progress_range > 0:
+                    evolution_bar = self._create_progress_bar(progress_current, progress_range)
+                else:
+                    evolution_bar = self._create_progress_bar(100, 100)  # Full bar if at max level
 
             # Get animation (use high resolution if requested) - use decimal power for proper animation selection
             animation_bytes, content_type = self._get_mech_animation(current_level, power_decimal, request.use_high_resolution)
