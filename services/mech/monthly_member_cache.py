@@ -48,6 +48,10 @@ class MonthlyMemberCache:
         data = self._load_cache()
         return data.get("member_count", 50)
 
+    def get_member_count_for_level(self, level: int) -> int:
+        """Get member count for a specific level (compatibility method)."""
+        return self.get_member_count()  # Same count for all levels in simple implementation
+
 # Global instance
 _monthly_cache_instance = None
 
