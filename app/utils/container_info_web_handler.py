@@ -109,6 +109,8 @@ def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
     import json
     from pathlib import Path
 
+    logger.info(f"[SAVE_DEBUG] save_container_configs_from_web called with {len(servers_data)} servers")
+
     results = {}
     containers_dir = Path('config/containers')
 
@@ -165,7 +167,7 @@ def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
                 json.dump(container_config, f, indent=2)
 
             results[container_name] = True
-            logger.info(f"Saved container config for {container_name} to {container_file}")
+            logger.info(f"[SAVE_DEBUG] Saved container config for {container_name}: actions={container_config.get('allowed_actions')}, display={container_config.get('display_name')}")
 
         except Exception as e:
             logger.error(f"Error saving container config for {container_name}: {e}")

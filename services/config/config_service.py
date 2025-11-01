@@ -1365,10 +1365,15 @@ def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
     """
     servers = []
 
+    # DEBUG: Log all form keys to see what we receive
+    logger.info(f"[FORM_DEBUG] Form data keys: {list(form_data.keys())[:20]}")  # First 20 keys
+
     # Get list of selected containers
     selected_servers = form_data.getlist('selected_servers') if hasattr(form_data, 'getlist') else \
                       (form_data.get('selected_servers') if isinstance(form_data.get('selected_servers'), list) else \
                        [form_data.get('selected_servers')] if form_data.get('selected_servers') else [])
+
+    logger.info(f"[FORM_DEBUG] Selected servers: {selected_servers}")
 
     for container_name in selected_servers:
         if not container_name:
@@ -1402,7 +1407,9 @@ def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
         }
 
         servers.append(server_config)
+        logger.info(f"[FORM_DEBUG] Parsed server: {container_name} - actions: {allowed_actions}")
 
+    logger.info(f"[FORM_DEBUG] Total servers parsed: {len(servers)}")
     return servers
 
 def process_config_form(form_data: Dict[str, Any], current_config: Dict[str, Any]) -> Tuple[Dict[str, Any], bool, str]:
