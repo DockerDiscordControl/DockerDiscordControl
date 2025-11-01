@@ -202,7 +202,7 @@ class ConfigurationSaveService:
         """Save main configuration and container info files."""
         try:
             from services.config.config_service import save_config
-            from app.utils.web_helpers import save_container_info_from_web
+            from app.utils.container_info_web_handler import save_container_info_from_web
 
             # Save main configuration
             save_config(processed_data)

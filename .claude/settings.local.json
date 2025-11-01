@@ -1,7 +1,27 @@
 {
   "permissions": {
     "allow": [
-      "Bash(__NEW_LINE__ echo \"🟢 DEFINITELY KEEP (core services):\")"
+      "Bash(__NEW_LINE__ echo \"🟢 DEFINITELY KEEP (core services):\")",
+      "Bash(docker --version:*)",
+      "Bash(git stash:*)",
+      "Bash(DDC_WEB_PORT=5100 python3:*)",
+      "Bash(DDC_WEB_PORT=5200 python3:*)",
+      "Bash(docker logs:*)",
+      "Bash(DDC_WEB_PORT=8374 python3:*)",
+      "Bash(docker exec:*)",
+      "Bash(curl:*)",
+      "Bash(find:*)",
+      "Bash(awk:*)",
+      "Bash(cat:*)",
+      "Bash(while read c)",
+      "Bash(do echo $c)",
+      "Bash(done)",
+      "Bash(xargs:*)",
+      "Bash(python3:*)",
+      "Bash(chmod:*)",
+      "Bash(sudo chmod:*)",
+      "Bash(config/tasks_new.json)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
