@@ -93,5 +93,82 @@ def load_container_info_for_web(container_names: list) -> Dict[str, Dict[str, An
                 'custom_port': '',
                 'custom_text': ''
             }
-    
+
+    return results
+
+def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
+    """
+    Save container configuration data (allowed_actions, display_name, etc.) to individual container JSON files.
+
+    Args:
+        servers_data: List of server dictionaries from processed config
+
+    Returns:
+        Dict with container names as keys and success status as values
+    """
+    import json
+    from pathlib import Path
+
+    results = {}
+    containers_dir = Path('config/containers')
+
+    if not containers_dir.exists():
+        logger.error(f"Containers directory not found: {containers_dir}")
+        return results
+
+    for server in servers_data:
+        container_name = server.get('docker_name') or server.get('container_name')
+        if not container_name:
+            logger.warning(f"Server data missing container name: {server}")
+            continue
+
+        try:
+            container_file = containers_dir / f"{container_name}.json"
+
+            # Load existing container config or create new one
+            if container_file.exists():
+                with open(container_file, 'r') as f:
+                    container_config = json.load(f)
+            else:
+                container_config = {}
+
+            # Update container config with server data
+            container_config['container_name'] = container_name
+            container_config['docker_name'] = container_name  # Required by status handlers
+            container_config['name'] = container_name  # Alternative field for compatibility
+            container_config['display_name'] = server.get('display_name', [container_name, container_name])
+            container_config['allowed_actions'] = server.get('allowed_actions', ['status'])
+
+            # Preserve existing info data if present
+            if 'info' not in container_config:
+                container_config['info'] = {
+                    'enabled': False,
+                    'show_ip': False,
+                    'custom_ip': '',
+                    'custom_port': '',
+                    'custom_text': '',
+                    'protected_enabled': False,
+                    'protected_content': '',
+                    'protected_password': ''
+                }
+
+            # Set order if provided
+            if 'order' in server:
+                container_config['order'] = server['order']
+
+            # Set allow_detailed_status if provided
+            if 'allow_detailed_status' in server:
+                container_config['allow_detailed_status'] = server['allow_detailed_status']
+
+            # Save updated config
+            with open(container_file, 'w') as f:
+                json.dump(container_config, f, indent=2)
+
+            results[container_name] = True
+            logger.info(f"Saved container config for {container_name} to {container_file}")
+
+        except Exception as e:
+            logger.error(f"Error saving container config for {container_name}: {e}")
+            results[container_name] = False
+
     return results
