@@ -1354,14 +1354,77 @@ def save_config(config: Dict[str, Any]) -> bool:
     result = get_config_service().save_config(config)
     return result.success
 
+def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
+    """
+    Parse container/server configuration from web form data.
+
+    Form fields:
+    - selected_servers: list of selected container names
+    - display_name_<container>: display name for container
+    - allow_status_<container>, allow_start_<container>, etc.: allowed actions
+    """
+    servers = []
+
+    # Get list of selected containers
+    selected_servers = form_data.getlist('selected_servers') if hasattr(form_data, 'getlist') else \
+                      (form_data.get('selected_servers') if isinstance(form_data.get('selected_servers'), list) else \
+                       [form_data.get('selected_servers')] if form_data.get('selected_servers') else [])
+
+    for container_name in selected_servers:
+        if not container_name:
+            continue
+
+        # Extract display name
+        display_name_key = f'display_name_{container_name}'
+        display_name = form_data.get(display_name_key, container_name)
+
+        # Parse display name (format: "Name 1, Name 2" or just "Name")
+        if isinstance(display_name, str) and ',' in display_name:
+            display_names = [name.strip() for name in display_name.split(',', 1)]
+        else:
+            display_names = [display_name, display_name]
+
+        # Extract allowed actions
+        allowed_actions = []
+        for action in ['status', 'start', 'stop', 'restart']:
+            action_key = f'allow_{action}_{container_name}'
+            if form_data.get(action_key) == '1':
+                allowed_actions.append(action)
+
+        # Build server config
+        server_config = {
+            'docker_name': container_name,
+            'name': container_name,
+            'container_name': container_name,
+            'display_name': display_names,
+            'allowed_actions': allowed_actions,
+            'allow_detailed_status': True  # Default to True
+        }
+
+        servers.append(server_config)
+
+    return servers
+
 def process_config_form(form_data: Dict[str, Any], current_config: Dict[str, Any]) -> Tuple[Dict[str, Any], bool, str]:
     """Legacy compatibility: Process web form configuration."""
     try:
         # Merge form data with current config
         updated_config = current_config.copy()
-        
+
+        # Parse servers from form data
+        servers = _parse_servers_from_form(form_data)
+        if servers:
+            updated_config['servers'] = servers
+            logger.info(f"Parsed {len(servers)} servers from form data")
+
         # Process each form field
         for key, value in form_data.items():
+            # Skip server-related fields (already processed above)
+            if key in ['selected_servers'] or key.startswith('display_name_') or \
+               key.startswith('allow_status_') or key.startswith('allow_start_') or \
+               key.startswith('allow_stop_') or key.startswith('allow_restart_'):
+                continue
+
             if key == 'donation_disable_key':
                 # Special handling for donation key
                 if isinstance(value, str):
@@ -1376,17 +1439,17 @@ def process_config_form(form_data: Dict[str, Any], current_config: Dict[str, Any
                         # Empty key means remove it (reactivate donations)
                         updated_config.pop(key, None)
                 continue
-            
+
             # Handle other form fields
             if isinstance(value, str):
                 value = value.strip()
             updated_config[key] = value
-        
+
         # Save the configuration
         result = get_config_service().save_config(updated_config)
-        
+
         return updated_config, result.success, result.message or "Configuration saved"
-        
+
     except Exception as e:
         logger.error(f"Error processing config form: {e}")
         return current_config, False, str(e)
