@@ -85,6 +85,10 @@
                         <input type="hidden" name="info_custom_ip_{{ container.name }}" value="{{ info_config.get('custom_ip', '') }}">
                         <input type="hidden" name="info_custom_port_{{ container.name }}" value="{{ info_config.get('custom_port', '') }}">
                         <textarea name="info_custom_text_{{ container.name }}" style="display:none;">{{ info_config.get('custom_text', '') }}</textarea>
+                        {# Protected info hidden inputs #}
+                        <input type="hidden" name="info_protected_enabled_{{ container.name }}" value="{% if info_config.get('protected_enabled', False) %}1{% else %}0{% endif %}">
+                        <textarea name="info_protected_content_{{ container.name }}" style="display:none;">{{ info_config.get('protected_content', '') }}</textarea>
+                        <input type="hidden" name="info_protected_password_{{ container.name }}" value="{{ info_config.get('protected_password', '') }}">
                     {% endfor %}
                 {% elif cache_error %}
                     <tr><td colspan="9"><div class="alert alert-warning m-0">{{ cache_error }}</div></td></tr>
@@ -170,6 +174,39 @@
                         <textarea class="form-control" name="info_custom_text" id="modal-info-custom-text" rows="4" maxlength="250" placeholder="Password: mypass123&#10;Mods: ModName1, ModName2&#10;Max Players: 8"></textarea>
                         <div class="form-text">
                             <span id="modal-char-counter">0</span>/250 characters - Use line breaks for multiple entries
+                        </div>
+                    </div>
+
+                    {# Protected Info Section #}
+                    <div class="border-top pt-3 mt-3">
+                        <h6 class="mb-3"><i class="bi bi-shield-lock"></i> Protected Information</h6>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="info_protected_enabled" value="1" id="modal-info-protected-enabled">
+                            <label class="form-check-label" for="modal-info-protected-enabled">
+                                <i class="bi bi-lock"></i> Enable Password-Protected Content
+                            </label>
+                            <div class="form-text">Content that requires a password to view in Discord</div>
+                        </div>
+
+                        <div id="protected-info-fields" style="display: none;">
+                            <div class="mb-3">
+                                <label for="modal-info-protected-content" class="form-label">
+                                    <i class="bi bi-file-earmark-lock"></i> Protected Content
+                                </label>
+                                <textarea class="form-control" name="info_protected_content" id="modal-info-protected-content" rows="3" maxlength="250" placeholder="Admin passwords, secret IPs, sensitive information..."></textarea>
+                                <div class="form-text">
+                                    <span id="modal-protected-char-counter">0</span>/250 characters - This content will be password protected
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="modal-info-protected-password" class="form-label">
+                                    <i class="bi bi-key"></i> Access Password
+                                </label>
+                                <input type="text" class="form-control" name="info_protected_password" id="modal-info-protected-password" maxlength="60" placeholder="Password required to view protected content">
+                                <div class="form-text">Users will need this password to see the protected information</div>
+                            </div>
                         </div>
                     </div>
                 </form>

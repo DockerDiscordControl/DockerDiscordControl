@@ -17,13 +17,50 @@ document.addEventListener('DOMContentLoaded', function() {
             const counter = document.getElementById('modal-char-counter');
             if (counter) {
                 counter.textContent = length;
-                
+
                 // Change color based on character count
                 if (length > 225) {
                     counter.classList.add('text-warning');
                 } else {
                     counter.classList.remove('text-warning');
                 }
+            }
+        });
+    }
+
+    // Handle character counter for protected content textarea
+    const protectedTextarea = document.getElementById('modal-info-protected-content');
+    if (protectedTextarea) {
+        protectedTextarea.addEventListener('input', function() {
+            const length = this.value.length;
+            const counter = document.getElementById('modal-protected-char-counter');
+            if (counter) {
+                counter.textContent = length;
+
+                // Change color based on character count
+                if (length > 225) {
+                    counter.classList.add('text-warning');
+                } else {
+                    counter.classList.remove('text-warning');
+                }
+            }
+        });
+    }
+
+    // Handle protected info checkbox toggle
+    const protectedCheckbox = document.getElementById('modal-info-protected-enabled');
+    const protectedFields = document.getElementById('protected-info-fields');
+    if (protectedCheckbox && protectedFields) {
+        protectedCheckbox.addEventListener('change', function() {
+            protectedFields.style.display = this.checked ? 'block' : 'none';
+            if (!this.checked) {
+                // Clear fields when disabled
+                const contentField = document.getElementById('modal-info-protected-content');
+                const passwordField = document.getElementById('modal-info-protected-password');
+                if (contentField) contentField.value = '';
+                if (passwordField) passwordField.value = '';
+                const counter = document.getElementById('modal-protected-char-counter');
+                if (counter) counter.textContent = '0';
             }
         });
     }
@@ -83,6 +120,9 @@ function openContainerInfoModal(containerName) {
     const customIpInput = document.querySelector(`input[name="info_custom_ip_${containerName}"]`);
     const customPortInput = document.querySelector(`input[name="info_custom_port_${containerName}"]`);
     const customTextInput = document.querySelector(`textarea[name="info_custom_text_${containerName}"]`);
+    const protectedEnabledInput = document.querySelector(`input[name="info_protected_enabled_${containerName}"]`);
+    const protectedContentInput = document.querySelector(`textarea[name="info_protected_content_${containerName}"]`);
+    const protectedPasswordInput = document.querySelector(`input[name="info_protected_password_${containerName}"]`);
     
     // Set modal values (convert string values to boolean)
     const modalEnabled = document.getElementById('modal-info-enabled');
@@ -109,13 +149,42 @@ function openContainerInfoModal(containerName) {
     
     if (modalCustomText && customTextInput) {
         modalCustomText.value = customTextInput.value || '';
-        
+
         // Update character counter
         const textLength = modalCustomText.value.length;
         const counter = document.getElementById('modal-char-counter');
         if (counter) {
             counter.textContent = textLength;
         }
+    }
+
+    // Set protected field values
+    const modalProtectedEnabled = document.getElementById('modal-info-protected-enabled');
+    const modalProtectedContent = document.getElementById('modal-info-protected-content');
+    const modalProtectedPassword = document.getElementById('modal-info-protected-password');
+    const protectedFields = document.getElementById('protected-info-fields');
+
+    if (modalProtectedEnabled && protectedEnabledInput) {
+        modalProtectedEnabled.checked = protectedEnabledInput.value === '1';
+        // Show/hide protected fields based on checkbox state
+        if (protectedFields) {
+            protectedFields.style.display = modalProtectedEnabled.checked ? 'block' : 'none';
+        }
+    }
+
+    if (modalProtectedContent && protectedContentInput) {
+        modalProtectedContent.value = protectedContentInput.value || '';
+
+        // Update character counter for protected content
+        const protectedLength = modalProtectedContent.value.length;
+        const protectedCounter = document.getElementById('modal-protected-char-counter');
+        if (protectedCounter) {
+            protectedCounter.textContent = protectedLength;
+        }
+    }
+
+    if (modalProtectedPassword && protectedPasswordInput) {
+        modalProtectedPassword.value = protectedPasswordInput.value || '';
     }
     
     // Show modal using Bootstrap
@@ -146,7 +215,10 @@ function saveContainerInfo() {
         info_show_ip: document.getElementById('modal-info-show-ip')?.checked ? '1' : '0',
         info_custom_ip: document.getElementById('modal-info-custom-ip')?.value || '',
         info_custom_port: document.getElementById('modal-info-custom-port')?.value || '',
-        info_custom_text: document.getElementById('modal-info-custom-text')?.value || ''
+        info_custom_text: document.getElementById('modal-info-custom-text')?.value || '',
+        info_protected_enabled: document.getElementById('modal-info-protected-enabled')?.checked ? '1' : '0',
+        info_protected_content: document.getElementById('modal-info-protected-content')?.value || '',
+        info_protected_password: document.getElementById('modal-info-protected-password')?.value || ''
     };
     
     // Update the corresponding form inputs (hidden inputs)
@@ -155,12 +227,18 @@ function saveContainerInfo() {
     const customIpInput = document.querySelector(`input[name="info_custom_ip_${containerName}"]`);
     const customPortInput = document.querySelector(`input[name="info_custom_port_${containerName}"]`);
     const customTextInput = document.querySelector(`textarea[name="info_custom_text_${containerName}"]`);
-    
+    const protectedEnabledInput = document.querySelector(`input[name="info_protected_enabled_${containerName}"]`);
+    const protectedContentInput = document.querySelector(`textarea[name="info_protected_content_${containerName}"]`);
+    const protectedPasswordInput = document.querySelector(`input[name="info_protected_password_${containerName}"]`);
+
     if (enabledInput) enabledInput.value = formData.info_enabled;
     if (showIpInput) showIpInput.value = formData.info_show_ip;
     if (customIpInput) customIpInput.value = formData.info_custom_ip;
     if (customPortInput) customPortInput.value = formData.info_custom_port;
     if (customTextInput) customTextInput.value = formData.info_custom_text;
+    if (protectedEnabledInput) protectedEnabledInput.value = formData.info_protected_enabled;
+    if (protectedContentInput) protectedContentInput.value = formData.info_protected_content;
+    if (protectedPasswordInput) protectedPasswordInput.value = formData.info_protected_password;
     
     // Update button styling based on enabled state
     const infoButton = document.querySelector(`button.info-btn[data-container="${containerName}"]`);

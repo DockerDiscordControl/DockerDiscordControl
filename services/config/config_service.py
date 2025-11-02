@@ -1399,16 +1399,19 @@ def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
 
     # Also find containers that have checkbox values but aren't in selected_servers
     # (in case selected_servers is incomplete)
+    # ONLY add containers that have the status checkbox explicitly set to '1' or 'on'
+    # This helps catch containers that might not be in selected_servers due to form submission issues
     for key in form_data.keys():
         if key.startswith('allow_status_'):
             container_name = key.replace('allow_status_', '')
             if container_name not in selected_servers:
-                # Check if this container has any enabled checkboxes
+                # Check if this container has status checkbox enabled
                 value = form_data.get(key)
                 if isinstance(value, list) and len(value) > 0:
                     value = value[0]
-                if value in ['1', 'on', True, 'true', 'True']:
-                    logger.info(f"[FORM_DEBUG] Found additional container with checkboxes: {container_name}")
+                # Only add if explicitly enabled, not just present
+                if value in ['1', 'on']:
+                    logger.info(f"[FORM_DEBUG] Found additional container with status enabled: {container_name}")
                     selected_servers.append(container_name)
 
     for container_name in selected_servers:
