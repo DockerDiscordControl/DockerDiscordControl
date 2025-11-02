@@ -122,6 +122,31 @@ def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
         logger.error(f"Containers directory not found: {containers_dir}")
         return results
 
+    # First, get list of active containers from servers_data
+    active_containers = set()
+    for server in servers_data:
+        container_name = server.get('docker_name') or server.get('container_name')
+        if container_name:
+            active_containers.add(container_name)
+
+    # Mark all existing containers as inactive first
+    for container_file in containers_dir.glob('*.json'):
+        try:
+            with open(container_file, 'r') as f:
+                container_config = json.load(f)
+
+            container_name = container_config.get('container_name') or container_file.stem
+
+            # If this container is not in the active list, mark it as inactive
+            if container_name not in active_containers:
+                container_config['active'] = False
+                with open(container_file, 'w') as f:
+                    json.dump(container_config, f, indent=2)
+                logger.info(f"[SAVE_DEBUG] Marked {container_name} as inactive")
+        except Exception as e:
+            logger.error(f"Error updating {container_file}: {e}")
+
+    # Now process the active containers
     for server in servers_data:
         container_name = server.get('docker_name') or server.get('container_name')
         if not container_name:
@@ -142,6 +167,9 @@ def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
             container_config['container_name'] = container_name
             container_config['docker_name'] = container_name  # Required by status handlers
             container_config['name'] = container_name  # Alternative field for compatibility
+
+            # IMPORTANT: Mark container as active (selected in Web UI)
+            container_config['active'] = True  # This container was in selected_servers
 
             # Clean up display_name to ensure it's always a simple list of 2 strings
             display_name_raw = server.get('display_name', [container_name, container_name])

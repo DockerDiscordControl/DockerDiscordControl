@@ -833,19 +833,26 @@ class ConfigService:
     def _load_all_containers_from_files(self) -> list:
         """Load all container configurations from individual files."""
         servers = []
-        
+
         if not self.containers_dir.exists():
             return servers
-        
+
         for container_file in self.containers_dir.glob("*.json"):
             try:
                 container_config = self._load_json_file(container_file, {})
-                servers.append(container_config)
+                # ONLY include containers that are marked as active
+                # This respects the "Active" checkbox in the Web UI
+                if container_config.get('active', False):
+                    servers.append(container_config)
+                    logger.debug(f"Loading active container: {container_config.get('container_name', container_file.stem)}")
+                else:
+                    logger.debug(f"Skipping inactive container: {container_config.get('container_name', container_file.stem)}")
             except Exception as e:
                 logger.error(f"Error loading container {container_file}: {e}")
-        
+
         # Sort by order if available
         servers.sort(key=lambda x: x.get('order', 999))
+        logger.info(f"Loaded {len(servers)} active containers for Discord")
         return servers
     
     def _load_all_channels_from_files(self) -> Dict[str, Any]:
@@ -1395,24 +1402,12 @@ def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
             seen.add(server)
     selected_servers = selected_servers_clean
 
-    logger.info(f"[FORM_DEBUG] Selected servers: {selected_servers}")
+    logger.info(f"[FORM_DEBUG] Selected servers (Active checkboxes): {selected_servers}")
 
-    # Also find containers that have checkbox values but aren't in selected_servers
-    # (in case selected_servers is incomplete)
-    # ONLY add containers that have the status checkbox explicitly set to '1' or 'on'
-    # This helps catch containers that might not be in selected_servers due to form submission issues
-    for key in form_data.keys():
-        if key.startswith('allow_status_'):
-            container_name = key.replace('allow_status_', '')
-            if container_name not in selected_servers:
-                # Check if this container has status checkbox enabled
-                value = form_data.get(key)
-                if isinstance(value, list) and len(value) > 0:
-                    value = value[0]
-                # Only add if explicitly enabled, not just present
-                if value in ['1', 'on']:
-                    logger.info(f"[FORM_DEBUG] Found additional container with status enabled: {container_name}")
-                    selected_servers.append(container_name)
+    # DO NOT automatically add containers based on allow_status or other checkboxes
+    # ONLY containers with the "Active" checkbox (selected_servers) should be shown in Discord
+    # The other checkboxes (Status, Start, Stop, Restart) only control what actions are allowed
+    # for ACTIVE containers
 
     for container_name in selected_servers:
         if not container_name:
