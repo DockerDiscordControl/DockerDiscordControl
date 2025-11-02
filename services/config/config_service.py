@@ -1385,7 +1385,31 @@ def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
                       (form_data.get('selected_servers') if isinstance(form_data.get('selected_servers'), list) else \
                        [form_data.get('selected_servers')] if form_data.get('selected_servers') else [])
 
+    # Handle the case where selected_servers comes as arrays of duplicates
+    # e.g., ['dockerdiscordcontrol', 'dockerdiscordcontrol'] -> ['dockerdiscordcontrol']
+    selected_servers_clean = []
+    seen = set()
+    for server in selected_servers:
+        if server not in seen:
+            selected_servers_clean.append(server)
+            seen.add(server)
+    selected_servers = selected_servers_clean
+
     logger.info(f"[FORM_DEBUG] Selected servers: {selected_servers}")
+
+    # Also find containers that have checkbox values but aren't in selected_servers
+    # (in case selected_servers is incomplete)
+    for key in form_data.keys():
+        if key.startswith('allow_status_'):
+            container_name = key.replace('allow_status_', '')
+            if container_name not in selected_servers:
+                # Check if this container has any enabled checkboxes
+                value = form_data.get(key)
+                if isinstance(value, list) and len(value) > 0:
+                    value = value[0]
+                if value in ['1', 'on', True, 'true', 'True']:
+                    logger.info(f"[FORM_DEBUG] Found additional container with checkboxes: {container_name}")
+                    selected_servers.append(container_name)
 
     for container_name in selected_servers:
         if not container_name:
@@ -1399,18 +1423,22 @@ def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
         # Handle different display_name formats
         display_names = []
 
-        if isinstance(display_name_raw, list):
-            # Already a list, use it
-            display_names = display_name_raw
-        elif isinstance(display_name_raw, str):
+        # If it's an array, take first element
+        if isinstance(display_name_raw, list) and len(display_name_raw) > 0:
+            display_name_raw = display_name_raw[0]
+
+        if isinstance(display_name_raw, str):
             # Clean up any stringified list representations
             if display_name_raw.startswith('[') and display_name_raw.endswith(']'):
                 # It's a stringified list like "['Name1', 'Name2']"
                 try:
                     import ast
                     parsed_list = ast.literal_eval(display_name_raw)
-                    if isinstance(parsed_list, list):
-                        display_names = parsed_list
+                    if isinstance(parsed_list, list) and len(parsed_list) >= 2:
+                        # Take the first two elements
+                        display_names = [str(parsed_list[0]), str(parsed_list[1])]
+                    elif isinstance(parsed_list, list) and len(parsed_list) == 1:
+                        display_names = [str(parsed_list[0]), str(parsed_list[0])]
                 except:
                     # Failed to parse, treat as regular string
                     pass
@@ -1438,6 +1466,13 @@ def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
             # Also handle '1' for compatibility
             value = form_data.get(action_key)
             logger.debug(f"[FORM_DEBUG] Checking {action_key}: value={repr(value)}")
+
+            # Handle arrays (when value comes as ['1', '1'])
+            if isinstance(value, list):
+                if len(value) > 0:
+                    value = value[0]  # Take first element
+
+            # Now check the actual value
             if value in ['1', 'on', True, 'true', 'True']:
                 allowed_actions.append(action)
                 logger.info(f"[FORM_DEBUG] ✓ Added action {action} for {container_name} (value={repr(value)})")
