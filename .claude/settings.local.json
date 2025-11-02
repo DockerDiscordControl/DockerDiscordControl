@@ -21,7 +21,12 @@
       "Bash(chmod:*)",
       "Bash(sudo chmod:*)",
       "Bash(config/tasks_new.json)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(ping:*)",
+      "Bash(for file in config/containers/*.json)",
+      "Bash(do)"
     ],
     "deny": [],
     "ask": []

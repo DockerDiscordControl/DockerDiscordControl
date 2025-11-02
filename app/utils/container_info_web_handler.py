@@ -32,13 +32,17 @@ def save_container_info_from_web(form_data: Dict[str, Any], container_names: lis
     
     for container_name in container_names:
         try:
-            # Extract and create ContainerInfo object
+            # Extract and create ContainerInfo object with all required parameters
             container_info = ContainerInfo(
                 enabled=form_data.get(f'info_enabled_{container_name}', '0') == '1',
                 show_ip=form_data.get(f'info_show_ip_{container_name}', '0') == '1',
                 custom_ip=form_data.get(f'info_custom_ip_{container_name}', '').strip(),
                 custom_port=form_data.get(f'info_custom_port_{container_name}', '').strip(),
-                custom_text=form_data.get(f'info_custom_text_{container_name}', '').strip()
+                custom_text=form_data.get(f'info_custom_text_{container_name}', '').strip(),
+                # Add protected fields with defaults (not exposed in current UI)
+                protected_enabled=form_data.get(f'info_protected_enabled_{container_name}', '0') == '1',
+                protected_content=form_data.get(f'info_protected_content_{container_name}', '').strip(),
+                protected_password=form_data.get(f'info_protected_password_{container_name}', '').strip()
             )
             
             # Save via service
@@ -138,8 +142,21 @@ def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
             container_config['container_name'] = container_name
             container_config['docker_name'] = container_name  # Required by status handlers
             container_config['name'] = container_name  # Alternative field for compatibility
-            container_config['display_name'] = server.get('display_name', [container_name, container_name])
-            container_config['allowed_actions'] = server.get('allowed_actions', ['status'])
+
+            # Clean up display_name to ensure it's always a simple list of 2 strings
+            display_name_raw = server.get('display_name', [container_name, container_name])
+            if isinstance(display_name_raw, list) and len(display_name_raw) == 2:
+                # Ensure each element is a string, not a nested structure
+                display_names = [str(display_name_raw[0]), str(display_name_raw[1])]
+            else:
+                display_names = [container_name, container_name]
+            container_config['display_name'] = display_names
+
+            # Set allowed_actions, ensuring it has at least 'status' if empty
+            allowed_actions = server.get('allowed_actions', [])
+            if not allowed_actions:
+                allowed_actions = ['status']
+            container_config['allowed_actions'] = allowed_actions
 
             # Preserve existing info data if present
             if 'info' not in container_config:

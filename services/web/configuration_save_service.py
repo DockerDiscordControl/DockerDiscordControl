@@ -202,15 +202,20 @@ class ConfigurationSaveService:
         """Save main configuration and container info files."""
         try:
             from services.config.config_service import save_config
-            from app.utils.container_info_web_handler import save_container_info_from_web
+            from app.utils.container_info_web_handler import save_container_info_from_web, save_container_configs_from_web
 
             # Save main configuration
             save_config(processed_data)
 
+            # Save container configs (allowed_actions, display_name, etc.) to individual files
+            if 'servers' in processed_data and processed_data['servers']:
+                config_results = save_container_configs_from_web(processed_data['servers'])
+                self.logger.info(f"Container config save results: {config_results}")
+
             # Save container info to separate JSON files
             container_names = []
             if 'servers' in processed_data:
-                container_names = [server.get('docker_name') for server in processed_data['servers'] if server.get('docker_name')]
+                container_names = [server.get('docker_name') or server.get('container_name') for server in processed_data['servers'] if server.get('docker_name') or server.get('container_name')]
 
             if container_names:
                 info_results = save_container_info_from_web(form_data, container_names)

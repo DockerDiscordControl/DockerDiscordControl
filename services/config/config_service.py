@@ -1368,6 +1368,15 @@ def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
     # DEBUG: Log all form keys to see what we receive
     logger.info(f"[FORM_DEBUG] Form data keys: {list(form_data.keys())[:20]}")  # First 20 keys
 
+    # DEBUG: Log checkbox-related keys specifically
+    checkbox_keys = [k for k in form_data.keys() if 'allow_' in k or 'display_' in k]
+    logger.info(f"[FORM_DEBUG] Checkbox/display keys: {checkbox_keys[:30]}")
+
+    # DEBUG: Log actual checkbox values
+    for k in form_data.keys():
+        if 'allow_' in k:
+            logger.info(f"[FORM_DEBUG] {k} = {form_data.get(k)}")
+
     # Get list of selected containers
     selected_servers = form_data.getlist('selected_servers') if hasattr(form_data, 'getlist') else \
                       (form_data.get('selected_servers') if isinstance(form_data.get('selected_servers'), list) else \
@@ -1381,20 +1390,53 @@ def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
 
         # Extract display name
         display_name_key = f'display_name_{container_name}'
-        display_name = form_data.get(display_name_key, container_name)
+        display_name_raw = form_data.get(display_name_key, container_name)
+        logger.debug(f"[FORM_DEBUG] Raw display_name for {container_name}: {repr(display_name_raw)}")
 
-        # Parse display name (format: "Name 1, Name 2" or just "Name")
-        if isinstance(display_name, str) and ',' in display_name:
-            display_names = [name.strip() for name in display_name.split(',', 1)]
-        else:
-            display_names = [display_name, display_name]
+        # Handle different display_name formats
+        display_names = []
+
+        if isinstance(display_name_raw, list):
+            # Already a list, use it
+            display_names = display_name_raw
+        elif isinstance(display_name_raw, str):
+            # Clean up any stringified list representations
+            if display_name_raw.startswith('[') and display_name_raw.endswith(']'):
+                # It's a stringified list like "['Name1', 'Name2']"
+                try:
+                    import ast
+                    parsed_list = ast.literal_eval(display_name_raw)
+                    if isinstance(parsed_list, list):
+                        display_names = parsed_list
+                except:
+                    # Failed to parse, treat as regular string
+                    pass
+
+            # If still empty, parse as comma-separated or single value
+            if not display_names:
+                if ',' in display_name_raw:
+                    display_names = [name.strip() for name in display_name_raw.split(',', 1)]
+                else:
+                    display_names = [display_name_raw, display_name_raw]
+
+        # Ensure we always have a list with 2 elements
+        if not display_names:
+            display_names = [container_name, container_name]
+        elif len(display_names) == 1:
+            display_names = [display_names[0], display_names[0]]
+
+        logger.debug(f"[FORM_DEBUG] Parsed display_names for {container_name}: {display_names}")
 
         # Extract allowed actions
         allowed_actions = []
         for action in ['status', 'start', 'stop', 'restart']:
             action_key = f'allow_{action}_{container_name}'
-            if form_data.get(action_key) == '1':
+            # HTML checkboxes send "on" when checked, or don't exist when unchecked
+            # Also handle '1' for compatibility
+            value = form_data.get(action_key)
+            if value in ['1', 'on', True, 'true', 'True']:
                 allowed_actions.append(action)
+                logger.debug(f"[FORM_DEBUG] Added action {action} for {container_name} (value={value})")
 
         # Build server config
         server_config = {
