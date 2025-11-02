@@ -1373,9 +1373,12 @@ def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
     logger.info(f"[FORM_DEBUG] Checkbox/display keys: {checkbox_keys[:30]}")
 
     # DEBUG: Log actual checkbox values
+    checkbox_count = 0
     for k in form_data.keys():
         if 'allow_' in k:
-            logger.info(f"[FORM_DEBUG] {k} = {form_data.get(k)}")
+            logger.info(f"[FORM_DEBUG] {k} = {repr(form_data.get(k))}")
+            checkbox_count += 1
+    logger.info(f"[FORM_DEBUG] Total allow_ checkboxes found: {checkbox_count}")
 
     # Get list of selected containers
     selected_servers = form_data.getlist('selected_servers') if hasattr(form_data, 'getlist') else \
@@ -1434,9 +1437,12 @@ def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
             # HTML checkboxes send "on" when checked, or don't exist when unchecked
             # Also handle '1' for compatibility
             value = form_data.get(action_key)
+            logger.debug(f"[FORM_DEBUG] Checking {action_key}: value={repr(value)}")
             if value in ['1', 'on', True, 'true', 'True']:
                 allowed_actions.append(action)
-                logger.debug(f"[FORM_DEBUG] Added action {action} for {container_name} (value={value})")
+                logger.info(f"[FORM_DEBUG] ✓ Added action {action} for {container_name} (value={repr(value)})")
+            elif value == '0':
+                logger.debug(f"[FORM_DEBUG] ✗ Action {action} for {container_name} is disabled (value='0')")
 
         # Build server config
         server_config = {
@@ -1462,9 +1468,15 @@ def process_config_form(form_data: Dict[str, Any], current_config: Dict[str, Any
 
         # Parse servers from form data
         servers = _parse_servers_from_form(form_data)
+        logger.info(f"[PROCESS_DEBUG] _parse_servers_from_form returned {len(servers)} servers")
         if servers:
             updated_config['servers'] = servers
-            logger.info(f"Parsed {len(servers)} servers from form data")
+            logger.info(f"[PROCESS_DEBUG] Added {len(servers)} servers to updated_config")
+            # Log first server for debugging
+            if servers:
+                logger.info(f"[PROCESS_DEBUG] First server: {servers[0].get('docker_name')} with actions: {servers[0].get('allowed_actions')}")
+        else:
+            logger.warning("[PROCESS_DEBUG] No servers parsed from form data!")
 
         # Process each form field
         for key, value in form_data.items():
@@ -1496,6 +1508,12 @@ def process_config_form(form_data: Dict[str, Any], current_config: Dict[str, Any
 
         # Save the configuration
         result = get_config_service().save_config(updated_config)
+
+        # Debug: Log if servers are in the updated config
+        if 'servers' in updated_config:
+            logger.info(f"[PROCESS_DEBUG] Returning updated_config with {len(updated_config.get('servers', []))} servers")
+        else:
+            logger.warning("[PROCESS_DEBUG] Returning updated_config WITHOUT servers key!")
 
         return updated_config, result.success, result.message or "Configuration saved"
 

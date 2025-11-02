@@ -208,9 +208,18 @@ class ConfigurationSaveService:
             save_config(processed_data)
 
             # Save container configs (allowed_actions, display_name, etc.) to individual files
-            if 'servers' in processed_data and processed_data['servers']:
-                config_results = save_container_configs_from_web(processed_data['servers'])
-                self.logger.info(f"Container config save results: {config_results}")
+            if 'servers' in processed_data:
+                self.logger.info(f"[SAVE_DEBUG] Found servers in processed_data: {len(processed_data.get('servers', []))} servers")
+                if processed_data['servers']:
+                    self.logger.info(f"[SAVE_DEBUG] Calling save_container_configs_from_web with {len(processed_data['servers'])} servers")
+                    for server in processed_data['servers'][:3]:  # Log first 3 servers for debugging
+                        self.logger.info(f"[SAVE_DEBUG] Server: {server.get('docker_name')} - actions: {server.get('allowed_actions')}")
+                    config_results = save_container_configs_from_web(processed_data['servers'])
+                    self.logger.info(f"[SAVE_DEBUG] Container config save results: {config_results}")
+                else:
+                    self.logger.warning("[SAVE_DEBUG] servers list is empty!")
+            else:
+                self.logger.warning("[SAVE_DEBUG] No 'servers' key in processed_data!")
 
             # Save container info to separate JSON files
             container_names = []
