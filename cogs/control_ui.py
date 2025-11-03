@@ -772,8 +772,15 @@ class InfoButton(Button):
             # Generate info embed using StatusInfoButton logic
             info_button = StatusInfoButton(self.cog, self.server_config, info_config)
             
+            # Check if this is an admin control message (title contains "Admin Control")
+            is_admin_control = False
+            if interaction.message and interaction.message.embeds:
+                embed_title = interaction.message.embeds[0].title if interaction.message.embeds else ""
+                is_admin_control = "Admin Control" in str(embed_title)
+
             # Since this is in ControlView, we know it's a control channel, so add admin buttons
-            has_control = _channel_has_permission(channel_id, 'control', config) if config else False
+            # Admin control messages always have control permission
+            has_control = is_admin_control or (_channel_has_permission(channel_id, 'control', config) if config else False)
             
             # Generate embed with protected info if in control channel
             embed = await info_button._generate_info_embed(include_protected=has_control)
@@ -782,14 +789,14 @@ class InfoButton(Button):
             if has_control:
                 view = ContainerInfoAdminView(self.cog, self.server_config, info_config)
                 logger.info(f"InfoButton (ControlView) created admin view for {docker_name} in control channel {channel_id}")
-                
+
                 message = await interaction.followup.send(embed=embed, view=view, ephemeral=True)
                 # Update view with message reference and start auto-delete timer
                 view.message = message
                 view.auto_delete_task = asyncio.create_task(view.start_auto_delete_timer())
             else:
                 logger.warning(f"InfoButton (ControlView) no control permission for {docker_name} in channel {channel_id}")
-                await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=True)
             
         except Exception as e:
             logger.error(f"[INFO_BTN] Error showing info for '{self.display_name}': {e}")
