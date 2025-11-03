@@ -1067,6 +1067,9 @@ class MechView(View):
         # Add Info button for container information
         self.add_item(InfoDropdownButton(cog_instance, channel_id))
 
+        # Add Admin button for administrative control
+        self.add_item(AdminButton(cog_instance, channel_id))
+
 class InfoDropdownButton(Button):
     """Button to show container info selection dropdown from /ss messages."""
 
@@ -1416,6 +1419,230 @@ class PasswordButton(Button):
                     await interaction.response.send_message("❌ Error showing password modal.", ephemeral=True)
                 else:
                     await interaction.followup.send("❌ Error showing password modal.", ephemeral=True)
+            except Exception:
+                pass
+
+class AdminButton(Button):
+    """Button to show admin control dropdown from /ss messages."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
+        self.cog = cog_instance
+        self.channel_id = channel_id
+
+        super().__init__(
+            style=discord.ButtonStyle.danger,  # Red button for admin
+            label=None,
+            emoji="🛡️",  # Shield emoji for admin
+            custom_id=f"admin_button_{channel_id}",
+            row=0
+        )
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Show admin container selection dropdown when clicked."""
+        try:
+            # Check if user is admin
+            from services.config.config_service import load_config
+            config = load_config()
+
+            # Load web config to get admin users
+            import json
+            from pathlib import Path
+            base_dir = config.get('base_dir', '/app')
+            web_config_file = Path(base_dir) / 'config' / 'web_config.json'
+
+            admin_users = []
+            if web_config_file.exists():
+                with open(web_config_file, 'r') as f:
+                    web_config = json.load(f)
+                    admin_users = web_config.get('discord_admin_users', [])
+
+            # Check if user is admin
+            user_id = str(interaction.user.id)
+            if user_id not in admin_users:
+                await interaction.response.send_message("🚫 You are not authorized to use admin controls.", ephemeral=True)
+                return
+
+            # Apply spam protection
+            from services.infrastructure.spam_protection_service import get_spam_protection_service
+            spam_service = get_spam_protection_service()
+            if spam_service.is_enabled():
+                cooldown = spam_service.get_button_cooldown("admin")
+                # Use simple rate limiting for buttons
+                import time
+                current_time = time.time()
+                last_click = getattr(self, f'_last_click_{user_id}', 0)
+                if current_time - last_click < cooldown:
+                    await interaction.response.send_message(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
+                    return
+                setattr(self, f'_last_click_{user_id}', current_time)
+
+            # Get active containers
+            from pathlib import Path
+            containers_dir = Path(base_dir) / 'config' / 'containers'
+
+            # Collect active containers
+            active_containers = []
+            for container_file in containers_dir.glob("*.json"):
+                try:
+                    with open(container_file, 'r', encoding='utf-8') as f:
+                        container_data = json.load(f)
+
+                        # Check if container is active
+                        if not container_data.get('active', False):
+                            continue
+
+                        container_name = container_data.get('container_name', container_file.stem)
+                        display_name = container_data.get('display_name', [container_name, container_name])
+                        if isinstance(display_name, list) and len(display_name) > 0:
+                            display_name = display_name[0]
+
+                        active_containers.append({
+                            'name': container_name,
+                            'display': display_name,
+                            'docker_name': container_data.get('docker_name', container_name)
+                        })
+                except Exception as e:
+                    logger.error(f"Error reading container file {container_file}: {e}")
+                    continue
+
+            if not active_containers:
+                await interaction.response.send_message("📦 No active containers found.", ephemeral=True)
+                return
+
+            # Sort containers by display name
+            active_containers.sort(key=lambda x: x['display'])
+
+            # Create view with dropdown
+            from .translation_manager import _
+            view = AdminContainerSelectView(self.cog, active_containers, interaction.channel.id)
+
+            embed = discord.Embed(
+                title="🛡️ " + _("Admin Control Panel"),
+                description=_("Select a container to view its control panel:"),
+                color=discord.Color.red()
+            )
+
+            # Send as ephemeral response
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+            logger.info(f"Admin panel shown for user {interaction.user.name} in channel {self.channel_id}")
+
+        except Exception as e:
+            logger.error(f"Error showing admin panel: {e}", exc_info=True)
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message("❌ Error showing admin panel.", ephemeral=True)
+                else:
+                    await interaction.followup.send("❌ Error showing admin panel.", ephemeral=True)
+            except Exception:
+                pass
+
+class AdminContainerSelectView(View):
+    """View with dropdown for selecting a container for admin control."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', containers: list, channel_id: int):
+        super().__init__(timeout=180)  # 3 minutes timeout
+        self.cog = cog_instance
+        self.channel_id = channel_id
+
+        # Add dropdown
+        self.add_item(AdminContainerDropdown(cog_instance, containers, channel_id))
+
+class AdminContainerDropdown(discord.ui.Select):
+    """Dropdown for selecting a container for admin control."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', containers: list, channel_id: int):
+        self.cog = cog_instance
+        self.containers = containers
+        self.channel_id = channel_id
+
+        # Create options from containers
+        options = []
+        for container in containers[:25]:  # Discord limit is 25 options
+            option = discord.SelectOption(
+                label=container['display'],
+                value=container['docker_name'],
+                emoji="📦"
+            )
+            options.append(option)
+
+        super().__init__(
+            placeholder="Select a container to control...",
+            options=options,
+            min_values=1,
+            max_values=1,
+            custom_id="admin_container_select"
+        )
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Handle container selection and show control panel."""
+        try:
+            selected_container = self.values[0]
+
+            # Find the container configuration
+            from services.config.config_service import load_config
+            import json
+            from pathlib import Path
+
+            config = load_config()
+            base_dir = config.get('base_dir', '/app')
+            containers_dir = Path(base_dir) / 'config' / 'containers'
+
+            container_config = None
+            for container_file in containers_dir.glob("*.json"):
+                with open(container_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    if data.get('docker_name') == selected_container:
+                        container_config = data
+                        break
+
+            if not container_config:
+                await interaction.response.edit_message(
+                    content=f"❌ Container configuration not found for '{selected_container}'",
+                    embed=None,
+                    view=None
+                )
+                return
+
+            # Generate control message for this container
+            from .translation_manager import _
+            from .status_handlers import StatusHandlersCog
+
+            # Get or create status handlers instance
+            status_cog = self.cog.bot.get_cog('StatusHandlersCog')
+            if not status_cog:
+                # Create minimal status handlers for this operation
+                status_cog = StatusHandlersCog(self.cog.bot, self.cog)
+
+            # Generate status embed and view for this container
+            embed, view, _ = await status_cog._generate_status_embed_and_view(
+                self.channel_id,
+                container_config.get('display_name', [selected_container])[0],
+                container_config,
+                config,
+                allow_toggle=True,
+                force_collapse=False
+            )
+
+            # Add admin header to embed
+            embed.title = f"🛡️ Admin Control: {embed.title}"
+            embed.color = discord.Color.red()
+
+            await interaction.response.edit_message(embed=embed, view=view)
+
+            logger.info(f"Admin control panel shown for {selected_container} to user {interaction.user.name}")
+
+        except Exception as e:
+            logger.error(f"Error handling admin container selection: {e}", exc_info=True)
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.edit_message(
+                        content="❌ Error showing container control panel.",
+                        embed=None,
+                        view=None
+                    )
+                else:
+                    await interaction.followup.send("❌ Error showing container control panel.", ephemeral=True)
             except Exception:
                 pass
 
