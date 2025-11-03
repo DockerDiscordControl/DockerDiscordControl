@@ -26,7 +26,12 @@
       "Bash(git push:*)",
       "Bash(ping:*)",
       "Bash(for file in config/containers/*.json)",
-      "Bash(do)"
+      "Bash(do)",
+      "Bash(lsof:*)",
+      "Bash(for f in config/containers/*.json)",
+      "Bash(do echo \"Checking $f...\")",
+      "Bash(/dev/null)",
+      "Bash(sort:*)"
     ],
     "deny": [],
     "ask": []

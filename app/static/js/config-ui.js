@@ -1,5 +1,17 @@
 // Container Info Modal functionality - Vanilla JavaScript (no jQuery)
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize order numbers on page load
+    updateOrderNumbers();
+
+    // Handle order change buttons (+ and -)
+    document.addEventListener('click', function(event) {
+        if (event.target.classList.contains('move-up-btn')) {
+            moveRow(event.target, 'up');
+        } else if (event.target.classList.contains('move-down-btn')) {
+            moveRow(event.target, 'down');
+        }
+    });
+
     // Handle info button clicks
     document.addEventListener('click', function(event) {
         if (event.target.closest('.info-btn')) {
@@ -78,24 +90,27 @@ document.addEventListener('DOMContentLoaded', function() {
         if (event.target.classList.contains('server-checkbox')) {
             const containerRow = event.target.closest('tr');
             const isChecked = event.target.checked;
-            
+
             // Enable/disable info button based on selection
             const infoBtn = containerRow.querySelector('.info-btn');
             if (infoBtn) {
                 infoBtn.disabled = !isChecked;
             }
-            
+
             // Enable/disable other form controls in the row
             const displayNameInput = containerRow.querySelector('.display-name-input');
             const actionCheckboxes = containerRow.querySelectorAll('.action-checkbox');
-            
+
             if (displayNameInput) {
                 displayNameInput.disabled = !isChecked;
             }
-            
+
             actionCheckboxes.forEach(checkbox => {
                 checkbox.disabled = !isChecked;
             });
+
+            // Update order numbers when checkbox state changes
+            updateOrderNumbers();
         }
     });
 });
@@ -270,11 +285,11 @@ function saveContainerInfo() {
 function showToast(message, type = 'info') {
     const toastClass = type === 'success' ? 'text-success' : type === 'error' ? 'text-danger' : 'text-info';
     const iconClass = type === 'success' ? 'bi-check-circle' : type === 'error' ? 'bi-exclamation-triangle' : 'bi-info-circle';
-    
+
     const toast = document.createElement('div');
     toast.className = 'position-fixed top-0 end-0 p-3';
     toast.style.zIndex = '1055';
-    
+
     toast.innerHTML = `
         <div class="toast show" role="alert">
             <div class="toast-body ${toastClass}">
@@ -282,9 +297,9 @@ function showToast(message, type = 'info') {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(toast);
-    
+
     // Auto-remove after 3 seconds
     setTimeout(() => {
         toast.style.opacity = '0';
@@ -294,4 +309,95 @@ function showToast(message, type = 'info') {
             }
         }, 300);
     }, 3000);
+}
+
+// Function to move container rows up or down
+function moveRow(button, direction) {
+    const row = button.closest('tr');
+    const tbody = row.parentElement;
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const currentIndex = rows.indexOf(row);
+
+    if (direction === 'up' && currentIndex > 0) {
+        // Move row up
+        tbody.insertBefore(row, rows[currentIndex - 1]);
+    } else if (direction === 'down' && currentIndex < rows.length - 1) {
+        // Move row down
+        if (currentIndex === rows.length - 2) {
+            // If second to last, append to end
+            tbody.appendChild(row);
+        } else {
+            // Otherwise insert after next row
+            tbody.insertBefore(row, rows[currentIndex + 2]);
+        }
+    }
+
+    // Update order numbers and buttons
+    updateOrderNumbers();
+    updateMoveButtons();
+
+    // Mark configuration as changed
+    markConfigurationChanged();
+}
+
+// Function to update order numbers in the table
+function updateOrderNumbers() {
+    const tbody = document.getElementById('docker-container-list');
+    if (!tbody) return;
+
+    const rows = tbody.querySelectorAll('tr[data-container-name]');
+    let activeCount = 0;
+
+    rows.forEach((row, index) => {
+        const orderSpan = row.querySelector('.order-number');
+        const checkbox = row.querySelector('.server-checkbox');
+
+        if (orderSpan) {
+            if (checkbox && checkbox.checked) {
+                activeCount++;
+                orderSpan.textContent = activeCount;
+                orderSpan.style.display = 'inline';
+            } else {
+                orderSpan.textContent = '';
+                orderSpan.style.display = 'none';
+            }
+        }
+
+        // Add hidden input for order
+        let orderInput = row.querySelector('input[name^="order_"]');
+        if (!orderInput) {
+            orderInput = document.createElement('input');
+            orderInput.type = 'hidden';
+            orderInput.name = `order_${row.getAttribute('data-container-name')}`;
+            row.appendChild(orderInput);
+        }
+        orderInput.value = index;
+    });
+}
+
+// Function to update move buttons (enable/disable based on position)
+function updateMoveButtons() {
+    const tbody = document.getElementById('docker-container-list');
+    if (!tbody) return;
+
+    const rows = tbody.querySelectorAll('tr[data-container-name]');
+
+    rows.forEach((row, index) => {
+        const upBtn = row.querySelector('.move-up-btn');
+        const downBtn = row.querySelector('.move-down-btn');
+
+        if (upBtn) {
+            upBtn.disabled = (index === 0);
+        }
+        if (downBtn) {
+            downBtn.disabled = (index === rows.length - 1);
+        }
+    });
+}
+
+// Function to mark configuration as changed
+function markConfigurationChanged() {
+    // This would trigger any unsaved changes warnings
+    const event = new Event('change', { bubbles: true });
+    document.getElementById('docker-container-list').dispatchEvent(event);
 }

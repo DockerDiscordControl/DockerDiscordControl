@@ -131,6 +131,8 @@ class ConfigurationPageService:
     def _process_docker_containers(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """Process Docker containers with synthetic fallback and connectivity status."""
         from app.utils.web_helpers import get_docker_containers_live
+        import json
+        from pathlib import Path
 
         live_containers_list, cache_error = get_docker_containers_live(self.logger)
 
@@ -151,6 +153,27 @@ class ConfigurationPageService:
                 }
                 live_containers_list.append(synthetic_container)
             self.logger.info(f"Created synthetic container list with {len(live_containers_list)} containers from config")
+
+        # Load order values from container JSON files
+        container_orders = {}
+        import os
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        containers_dir = Path(base_dir) / "config" / "containers"
+        if containers_dir.exists():
+            for container_file in containers_dir.glob("*.json"):
+                try:
+                    with open(container_file, 'r') as f:
+                        container_data = json.load(f)
+                        container_name = container_data.get('container_name', container_file.stem)
+                        container_order = container_data.get('order', 999)
+                        container_orders[container_name] = container_order
+                except Exception as e:
+                    self.logger.debug(f"Could not load order for {container_file.name}: {e}")
+
+        # Sort containers by order value
+        if container_orders:
+            live_containers_list.sort(key=lambda x: container_orders.get(x.get('name', ''), 999))
+            self.logger.debug(f"Sorted {len(live_containers_list)} containers by order values from JSON files")
 
         return {
             'live_containers': live_containers_list,

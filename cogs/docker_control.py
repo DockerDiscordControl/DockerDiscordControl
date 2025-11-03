@@ -932,23 +932,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             
             # Send ONLY the overview embed (status channels don't need individual server messages)
             try:
-                servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
-                
-                ordered_servers = []
-                seen_docker_names = set()
-                
-                # First add servers in the defined order
-                for docker_name in self.ordered_server_names:
-                    if docker_name in servers_by_name:
-                        ordered_servers.append(servers_by_name[docker_name])
-                        seen_docker_names.add(docker_name)
-                
-                # Add any servers that weren't in the ordered list
-                for server in servers:
-                    docker_name = server.get('docker_name')
-                    if docker_name and docker_name not in seen_docker_names:
-                        ordered_servers.append(server)
-                        seen_docker_names.add(docker_name)
+                # Sort servers by the 'order' field from container configurations
+                ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
                         
                 # Set collapsed state (force_collapse overrides)
                 channel_id = channel.id
@@ -1322,25 +1307,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 await ctx.followup.send(embed=embed)
                 return
 
-            # Get all servers and sort them according to ordered_server_names
+            # Get all servers and sort them by the 'order' field from container configurations
             servers = config.get('servers', [])
-            servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
-            
-            ordered_servers = []
-            seen_docker_names = set()
-            
-            # First add servers in the defined order
-            for docker_name in self.ordered_server_names:
-                if docker_name in servers_by_name:
-                    ordered_servers.append(servers_by_name[docker_name])
-                    seen_docker_names.add(docker_name)
-            
-            # Add any servers that weren't in the ordered list
-            for server in servers:
-                docker_name = server.get('docker_name')
-                if docker_name and docker_name not in seen_docker_names:
-                    ordered_servers.append(server)
-                    seen_docker_names.add(docker_name)
+            ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
             
             # Determine which embed to create based on mech expansion state
             channel_id = ctx.channel.id
@@ -3249,24 +3218,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                                     continue
 
                                 servers = config.get('servers', [])
-                                ordered_servers = []
-                                seen_docker_names = set()
 
-                                # Apply server ordering
-                                from services.docker_service.server_order import load_server_order
-                                ordered_server_names = load_server_order()
-
-                                # Build ordered servers list (same logic as serverstatus command)
-                                servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
-                                for docker_name in ordered_server_names:
-                                    if docker_name in servers_by_name:
-                                        ordered_servers.append(servers_by_name[docker_name])
-                                        seen_docker_names.add(docker_name)
-                                for server in servers:
-                                    docker_name = server.get('docker_name')
-                                    if docker_name and docker_name not in seen_docker_names:
-                                        ordered_servers.append(server)
-                                        seen_docker_names.add(docker_name)
+                                # Sort servers by the 'order' field from container configurations
+                                ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
 
                                 # Determine mech expansion state and create appropriate embed
                                 is_mech_expanded = self.mech_expanded_states.get(channel_id, False)

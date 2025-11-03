@@ -1358,24 +1358,9 @@ class MechExpandButton(Button):
             return embed, None
             
         servers = config.get('servers', [])
-        servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
-        
-        # Build ordered servers list (same logic as serverstatus command)
-        ordered_servers = []
-        seen_docker_names = set()
-        
-        # First add servers in the defined order
-        for docker_name in self.cog.ordered_server_names:
-            if docker_name in servers_by_name:
-                ordered_servers.append(servers_by_name[docker_name])
-                seen_docker_names.add(docker_name)
-        
-        # Add any servers that weren't in the ordered list
-        for server in servers:
-            docker_name = server.get('docker_name')
-            if docker_name and docker_name not in seen_docker_names:
-                ordered_servers.append(server)
-                seen_docker_names.add(docker_name)
+
+        # Sort servers by the 'order' field from container configurations
+        ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
         
         # Create the expanded embed with detailed mech information
         return await self.cog._create_overview_embed_expanded(ordered_servers, config)
@@ -1469,24 +1454,9 @@ class MechCollapseButton(Button):
             return embed, None
             
         servers = config.get('servers', [])
-        servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
-        
-        # Build ordered servers list (same logic as serverstatus command)
-        ordered_servers = []
-        seen_docker_names = set()
-        
-        # First add servers in the defined order
-        for docker_name in self.cog.ordered_server_names:
-            if docker_name in servers_by_name:
-                ordered_servers.append(servers_by_name[docker_name])
-                seen_docker_names.add(docker_name)
-        
-        # Add any servers that weren't in the ordered list
-        for server in servers:
-            docker_name = server.get('docker_name')
-            if docker_name and docker_name not in seen_docker_names:
-                ordered_servers.append(server)
-                seen_docker_names.add(docker_name)
+
+        # Sort servers by the 'order' field from container configurations
+        ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
         
         # Create the collapsed embed (only mech animation, no details)
         return await self.cog._create_overview_embed_collapsed(ordered_servers, config)

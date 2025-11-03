@@ -1477,6 +1477,14 @@ def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
             elif value == '0':
                 logger.debug(f"[FORM_DEBUG] ✗ Action {action} for {container_name} is disabled (value='0')")
 
+        # Extract order value
+        order_key = f'order_{container_name}'
+        order_value = form_data.get(order_key, 999)
+        try:
+            order = int(order_value) if order_value else 999
+        except (ValueError, TypeError):
+            order = 999
+
         # Build server config
         server_config = {
             'docker_name': container_name,
@@ -1484,11 +1492,12 @@ def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
             'container_name': container_name,
             'display_name': display_names,
             'allowed_actions': allowed_actions,
-            'allow_detailed_status': True  # Default to True
+            'allow_detailed_status': True,  # Default to True
+            'order': order
         }
 
         servers.append(server_config)
-        logger.info(f"[FORM_DEBUG] Parsed server: {container_name} - actions: {allowed_actions}")
+        logger.info(f"[FORM_DEBUG] Parsed server: {container_name} - actions: {allowed_actions}, order: {order}")
 
     logger.info(f"[FORM_DEBUG] Total servers parsed: {len(servers)}")
     return servers
