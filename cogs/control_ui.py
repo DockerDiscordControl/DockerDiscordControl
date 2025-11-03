@@ -1110,12 +1110,17 @@ class InfoDropdownButton(Button):
             base_dir = config.get('base_dir', '/app')
             containers_dir = Path(base_dir) / 'config' / 'containers'
 
-            # Collect containers with info enabled
+            # Collect containers with info enabled AND active flag
             containers_with_info = []
             for container_file in containers_dir.glob("*.json"):
                 try:
                     with open(container_file, 'r', encoding='utf-8') as f:
                         container_data = json.load(f)
+
+                        # Check if container is active
+                        if not container_data.get('active', False):
+                            continue
+
                         # Check if container has info enabled or protected info
                         info_config = container_data.get('info', {})
                         if info_config.get('enabled', False) or info_config.get('protected_enabled', False):
@@ -1133,7 +1138,7 @@ class InfoDropdownButton(Button):
                     continue
 
             if not containers_with_info:
-                await interaction.response.send_message("ℹ️ No containers have information configured.", ephemeral=True)
+                await interaction.response.send_message("ℹ️ No active containers have information configured.", ephemeral=True)
                 return
 
             # Sort containers by display name
