@@ -27,16 +27,32 @@ logger = get_module_logger('enhanced_info_modal_simple')
 
 class SimplifiedContainerInfoModal(discord.ui.Modal):
     """Simplified modal with all options in one dialog."""
-    
+
     def __init__(self, cog_instance, container_name: str, display_name: str = None):
         self.cog = cog_instance
         self.container_name = container_name
         self.display_name = display_name or container_name
-        
-        # Load container info from service
+
+        # Load container info directly from JSON file
         self.info_service = get_container_info_service()
-        info_result = self.info_service.get_container_info(container_name)
-        self.container_info = info_result.data.to_dict() if info_result.success else {}
+        import json
+        from pathlib import Path
+        import os
+
+        # Get the container JSON file
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        containers_dir = Path(base_dir) / "config" / "containers"
+        container_file = containers_dir / f"{container_name}.json"
+
+        self.container_info = {}
+        if container_file.exists():
+            try:
+                with open(container_file, 'r', encoding='utf-8') as f:
+                    container_data = json.load(f)
+                    self.container_info = container_data.get('info', {})
+            except Exception as e:
+                logger.error(f"Error loading container info from {container_file}: {e}")
+                self.container_info = {}
         
         title = f"📝 Container Info: {self.display_name}"
         if len(title) > 45:  # Discord modal title limit
@@ -275,16 +291,32 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
 
 class ProtectedInfoModal(discord.ui.Modal):
     """Modal for managing protected container information."""
-    
+
     def __init__(self, cog_instance, container_name: str, display_name: str = None):
         self.cog = cog_instance
         self.container_name = container_name
         self.display_name = display_name or container_name
-        
-        # Load container info from service
+
+        # Load container info directly from JSON file
         self.info_service = get_container_info_service()
-        info_result = self.info_service.get_container_info(container_name)
-        self.container_info = info_result.data.to_dict() if info_result.success else {}
+        import json
+        from pathlib import Path
+        import os
+
+        # Get the container JSON file
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        containers_dir = Path(base_dir) / "config" / "containers"
+        container_file = containers_dir / f"{container_name}.json"
+
+        self.container_info = {}
+        if container_file.exists():
+            try:
+                with open(container_file, 'r', encoding='utf-8') as f:
+                    container_data = json.load(f)
+                    self.container_info = container_data.get('info', {})
+            except Exception as e:
+                logger.error(f"Error loading container info from {container_file}: {e}")
+                self.container_info = {}
         
         title = f"🔒 Protected Info: {self.display_name}"
         if len(title) > 45:  # Discord modal title limit
