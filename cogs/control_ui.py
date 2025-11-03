@@ -1065,9 +1065,9 @@ class MechView(View):
             self.add_item(HelpButton(cog_instance, channel_id))
 
         # Add Info button for container information
-        self.add_item(InfoButton(cog_instance, channel_id))
+        self.add_item(InfoDropdownButton(cog_instance, channel_id))
 
-class InfoButton(Button):
+class InfoDropdownButton(Button):
     """Button to show container info selection dropdown from /ss messages."""
 
     def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
