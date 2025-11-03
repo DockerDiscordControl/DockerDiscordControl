@@ -1444,17 +1444,17 @@ class AdminButton(Button):
             from services.config.config_service import load_config
             config = load_config()
 
-            # Load web config to get admin users
+            # Load admin users from admins.json
             import json
             from pathlib import Path
             base_dir = config.get('base_dir', '/app')
-            web_config_file = Path(base_dir) / 'config' / 'web_config.json'
+            admins_file = Path(base_dir) / 'config' / 'admins.json'
 
             admin_users = []
-            if web_config_file.exists():
-                with open(web_config_file, 'r') as f:
-                    web_config = json.load(f)
-                    admin_users = web_config.get('discord_admin_users', [])
+            if admins_file.exists():
+                with open(admins_file, 'r') as f:
+                    admins_data = json.load(f)
+                    admin_users = admins_data.get('discord_admin_users', [])
 
             # Check if user is admin
             user_id = str(interaction.user.id)

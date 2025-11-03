@@ -31,7 +31,8 @@
       "Bash(for f in config/containers/*.json)",
       "Bash(do echo \"Checking $f...\")",
       "Bash(/dev/null)",
-      "Bash(sort:*)"
+      "Bash(sort:*)",
+      "Bash(DDC_WEB_PORT=5001 python3:*)"
     ],
     "deny": [],
     "ask": []

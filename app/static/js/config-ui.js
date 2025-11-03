@@ -401,3 +401,123 @@ function markConfigurationChanged() {
     const event = new Event('change', { bubbles: true });
     document.getElementById('docker-container-list').dispatchEvent(event);
 }
+
+// Admin Users Management Functions
+let adminUsers = [];
+let adminNotes = {};
+let pendingAdminChanges = [];
+
+function openAdminModal() {
+    // Load admin users from server
+    fetch('/api/admin-users')
+        .then(response => response.json())
+        .then(data => {
+            adminUsers = data.discord_admin_users || [];
+            adminNotes = data.admin_notes || {};
+            pendingAdminChanges = [];
+            renderAdminUsers();
+            const modal = new bootstrap.Modal(document.getElementById('adminModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error loading admin users:', error);
+            alert('Failed to load admin users');
+        });
+}
+
+function renderAdminUsers() {
+    const listContainer = document.getElementById('adminUsersList');
+    listContainer.innerHTML = '';
+
+    if (adminUsers.length === 0) {
+        listContainer.innerHTML = '<div class="text-muted">No admin users configured</div>';
+        return;
+    }
+
+    adminUsers.forEach((userId, index) => {
+        const note = adminNotes[userId] || '';
+        const item = document.createElement('div');
+        item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center bg-dark text-white';
+        item.innerHTML = `
+            <div>
+                <strong>${userId}</strong>
+                ${note ? `<span class="text-muted ms-2">(${note})</span>` : ''}
+            </div>
+            <button class="btn btn-sm btn-danger" onclick="removeAdminUser(${index})">Remove</button>
+        `;
+        listContainer.appendChild(item);
+    });
+}
+
+function addAdminUser() {
+    const idInput = document.getElementById('newAdminId');
+    const noteInput = document.getElementById('newAdminNote');
+    const userId = idInput.value.trim();
+    const note = noteInput.value.trim();
+
+    if (!userId) {
+        alert('Please enter a Discord User ID');
+        return;
+    }
+
+    if (!/^\d+$/.test(userId)) {
+        alert('Discord User ID must contain only numbers');
+        return;
+    }
+
+    if (adminUsers.includes(userId)) {
+        alert('This user is already an admin');
+        return;
+    }
+
+    adminUsers.push(userId);
+    if (note) {
+        adminNotes[userId] = note;
+    }
+
+    pendingAdminChanges.push({action: 'add', userId, note});
+
+    idInput.value = '';
+    noteInput.value = '';
+    renderAdminUsers();
+}
+
+function removeAdminUser(index) {
+    if (index >= 0 && index < adminUsers.length) {
+        const userId = adminUsers[index];
+        adminUsers.splice(index, 1);
+        delete adminNotes[userId];
+
+        pendingAdminChanges.push({action: 'remove', userId});
+        renderAdminUsers();
+    }
+}
+
+function saveAdminUsers() {
+    const data = {
+        discord_admin_users: adminUsers,
+        admin_notes: adminNotes
+    };
+
+    fetch('/api/admin-users', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('adminModal'));
+            modal.hide();
+            alert('Admin users saved successfully');
+        } else {
+            alert('Failed to save admin users: ' + (result.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error saving admin users:', error);
+        alert('Failed to save admin users');
+    });
+}

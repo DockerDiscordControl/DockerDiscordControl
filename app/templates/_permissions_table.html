@@ -2,6 +2,10 @@
 <div class="mb-3 card p-3">
     <h4>Command Permissions</h4>
     <p class="form-text">Configure which commands can be used in which channels. The control channel always allows all commands.</p>
+    <div class="d-flex justify-content-between mb-3">
+        <button type="button" class="btn btn-success btn-sm" onclick="addChannelRow()">+ Add Channel</button>
+        <button type="button" class="btn btn-warning btn-sm" onclick="openAdminModal()">👤 Admin Users</button>
+    </div>
     <table class="table table-dark table-sm small table-hover" id="command-permissions-table">
         <thead>
             <tr>
@@ -141,9 +145,37 @@
              {% endif %}
          </tbody>
      </table>
-    <div class="text-start mt-2">
-        <button type="button" class="btn btn-sm btn-outline-info mt-2" id="add-channel-btn">
-            <i class="bi bi-plus-circle"></i> Add Channel
-        </button>
+</div>
+
+<!-- Admin Users Modal -->
+<div class="modal fade" id="adminModal" tabindex="-1" aria-labelledby="adminModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title" id="adminModalLabel">👤 Discord Admin Users</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Manage Discord users who can access the Admin Control Panel.</p>
+                <div class="mb-3">
+                    <label class="form-label">Add Admin User</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="newAdminId" placeholder="Discord User ID (e.g., 766595606574530581)">
+                        <input type="text" class="form-control" id="newAdminNote" placeholder="Note (optional, e.g., Username)">
+                        <button class="btn btn-success" type="button" onclick="addAdminUser()">Add</button>
+                    </div>
+                    <small class="form-text text-muted">To get a Discord User ID: Enable Developer Mode in Discord, right-click on user, and select "Copy User ID"</small>
+                </div>
+                <hr>
+                <h6>Current Admin Users</h6>
+                <div id="adminUsersList" class="list-group">
+                    <!-- Admin users will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="saveAdminUsers()">Save Changes</button>
+            </div>
+        </div>
     </div>
 </div> 

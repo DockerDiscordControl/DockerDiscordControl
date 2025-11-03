@@ -308,6 +308,55 @@ def create_app(test_config=None):
                 # Continue with teardown, ignore errors
     
     # Add health check route for Docker - NO SESSION REQUIRED
+    @app.route("/api/admin-users", methods=["GET", "POST"])
+    @auth.login_required
+    def admin_users():
+        """API endpoint for managing Discord admin users."""
+        import json
+        from pathlib import Path
+
+        # Get base directory
+        config = load_config()
+        base_dir = config.get('base_dir', '/app')
+        admins_file = Path(base_dir) / 'config' / 'admins.json'
+
+        if request.method == 'GET':
+            # Load admin users
+            admin_data = {'discord_admin_users': [], 'admin_notes': {}}
+            if admins_file.exists():
+                try:
+                    with open(admins_file, 'r') as f:
+                        admin_data = json.load(f)
+                except Exception as e:
+                    app.logger.error(f"Error loading admins.json: {e}")
+            return jsonify(admin_data)
+
+        elif request.method == 'POST':
+            # Save admin users
+            try:
+                data = request.json
+                admin_users = data.get('discord_admin_users', [])
+                admin_notes = data.get('admin_notes', {})
+
+                # Validate user IDs
+                for user_id in admin_users:
+                    if not user_id.isdigit():
+                        return jsonify({'success': False, 'error': f'Invalid user ID: {user_id}'})
+
+                # Save to file
+                admin_data = {
+                    'discord_admin_users': admin_users,
+                    'admin_notes': admin_notes
+                }
+
+                with open(admins_file, 'w') as f:
+                    json.dump(admin_data, f, indent=2)
+
+                return jsonify({'success': True})
+            except Exception as e:
+                app.logger.error(f"Error saving admins.json: {e}")
+                return jsonify({'success': False, 'error': str(e)})
+
     @app.route("/health")
     def health_check():
         """
