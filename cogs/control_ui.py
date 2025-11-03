@@ -1154,21 +1154,6 @@ class InfoDropdownButton(Button):
                 color=discord.Color.blue()
             )
 
-            # Add list of available containers
-            container_list = []
-            for container in containers_with_info:
-                icon = "🔒" if container['protected'] else "ℹ️"
-                container_list.append(f"{icon} {container['display']}")
-
-            if container_list:
-                embed.add_field(
-                    name=_("Available Containers"),
-                    value="\n".join(container_list[:10]),  # Show max 10 containers
-                    inline=False
-                )
-                if len(container_list) > 10:
-                    embed.set_footer(text=f"... and {len(container_list) - 10} more containers")
-
             # Send as ephemeral response
             await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
@@ -1278,8 +1263,8 @@ class ContainerInfoDropdown(discord.ui.Select):
                 )
                 return
 
-            # Check if protected info should be shown
-            show_protected = False
+            # Check channel type for protected info WITHOUT password
+            is_control_channel = False
             channel = interaction.channel
             if channel:
                 # Check if this is a control channel
@@ -1289,9 +1274,8 @@ class ContainerInfoDropdown(discord.ui.Select):
                 channel_config = channel_perms.get(str(channel.id), {})
                 is_control_channel = channel_config.get('allow_start', False) or channel_config.get('allow_stop', False)
 
-                # Show protected info only in control channels
-                if is_control_channel and info_config.get('protected_enabled', False):
-                    show_protected = True
+                # Log channel type for debugging
+                logger.debug(f"Channel {channel.id} - is_control: {is_control_channel}, protected_enabled: {info_config.get('protected_enabled', False)}")
 
             # Build the info message
             display_name = container_data.get('display_name', [selected_container])
@@ -1325,11 +1309,11 @@ class ContainerInfoDropdown(discord.ui.Select):
                         inline=False
                     )
 
-            # Check if we should show protected info or password button
-            if show_protected and info_config.get('protected_enabled', False):
-                # Check if password is required
+            # Handle protected information
+            if info_config.get('protected_enabled', False):
+                # Check if password is set
                 if info_config.get('protected_password'):
-                    # Add password button
+                    # Password protection - show button in ALL channels
                     view = PasswordProtectedView(self.cog, container_data, info_config)
 
                     embed.add_field(
@@ -1340,17 +1324,26 @@ class ContainerInfoDropdown(discord.ui.Select):
 
                     await interaction.response.edit_message(embed=embed, view=view)
                 else:
-                    # Show protected content directly (no password)
-                    if info_config.get('protected_content'):
+                    # No password set - only show in control channels
+                    if is_control_channel:
+                        # Show protected content directly in control channels
+                        if info_config.get('protected_content'):
+                            embed.add_field(
+                                name="🔓 " + _("Additional Information"),
+                                value=info_config['protected_content'],
+                                inline=False
+                            )
+                        await interaction.response.edit_message(embed=embed, view=None)
+                    else:
+                        # In status channels, show info about needing control channel
                         embed.add_field(
-                            name="🔓 " + _("Additional Information"),
-                            value=info_config['protected_content'],
+                            name="🔒 " + _("Protected Information"),
+                            value=_("Protected information is available for this container but can only be accessed in control channels."),
                             inline=False
                         )
-
-                    await interaction.response.edit_message(embed=embed, view=None)
+                        await interaction.response.edit_message(embed=embed, view=None)
             else:
-                # No protected info or not in control channel
+                # No protected info at all
                 await interaction.response.edit_message(embed=embed, view=None)
 
             logger.info(f"Container info shown for {selected_container} to user {interaction.user.name}")
