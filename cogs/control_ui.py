@@ -1607,16 +1607,42 @@ class AdminContainerDropdown(discord.ui.Select):
             # Generate control message for this container
             from .translation_manager import _
 
-            # Generate status embed and view for this container using the cog's method
+            # Force expanded state for admin control
+            display_name = container_config.get('name', selected_container)
+            self.cog.expanded_states[display_name] = True
+
+            # Generate expanded control embed and view using the cog's method
             if hasattr(self.cog, '_generate_status_embed_and_view'):
                 embed, view, _ = await self.cog._generate_status_embed_and_view(
                     self.channel_id,
                     selected_container,  # Use container name, not display name
                     container_config,
                     config,
-                    allow_toggle=True,
+                    allow_toggle=False,  # No toggle button needed for admin control
                     force_collapse=False
                 )
+
+                # Create ControlView with all control buttons
+                from utils.docker_utils import get_container_status_async
+
+                # Get container status
+                status_result = await get_container_status_async(selected_container)
+                is_running = status_result and status_result.get('State') == 'running'
+
+                # Create control view with buttons
+                control_view = ControlView(
+                    self.cog,
+                    container_config,
+                    is_running=is_running,
+                    channel_has_control_permission=True,  # Admin always has control
+                    allow_toggle=False  # No toggle for admin control
+                )
+
+                # Add admin header to embed
+                embed.title = f"🛡️ Admin Control: {display_name}"
+                embed.color = discord.Color.red()
+
+                await interaction.response.edit_message(embed=embed, view=control_view)
             else:
                 # Fallback if method not available
                 await interaction.response.edit_message(
@@ -1625,12 +1651,6 @@ class AdminContainerDropdown(discord.ui.Select):
                     view=None
                 )
                 return
-
-            # Add admin header to embed
-            embed.title = f"🛡️ Admin Control: {embed.title}"
-            embed.color = discord.Color.red()
-
-            await interaction.response.edit_message(embed=embed, view=view)
 
             logger.info(f"Admin control panel shown for {selected_container} to user {interaction.user.name}")
 
