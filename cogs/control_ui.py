@@ -1430,7 +1430,7 @@ class AdminButton(Button):
         self.channel_id = channel_id
 
         super().__init__(
-            style=discord.ButtonStyle.danger,  # Red button for admin
+            style=discord.ButtonStyle.secondary,  # Gray/transparent button for admin
             label=None,
             emoji="🛠️",  # Hammer and wrench emoji for admin
             custom_id=f"admin_button_{channel_id}",
