@@ -893,8 +893,12 @@ class StatusInfoButton(discord.ui.Button):
                 view = ContainerInfoAdminView(self.cog, self.server_config, self.info_config)
             else:
                 logger.info(f"Not creating admin view - has_control is False")
-            
-            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+
+            # Send with or without view based on availability
+            if view:
+                await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+            else:
+                await interaction.followup.send(embed=embed, ephemeral=True)
             logger.info(f"Displayed container info for {self.container_name} to user {interaction.user.id} (control: {has_control})")
             
         except Exception as e:
