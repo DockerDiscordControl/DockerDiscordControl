@@ -1224,23 +1224,45 @@ class ContainerInfoDropdown(discord.ui.Select):
         try:
             selected_container = self.values[0]
 
-            # Get container info
+            # Get container info and full container data
             from services.infrastructure.container_info_service import get_container_info_service
+            from services.config.config_service import load_config
             from .translation_manager import _
-            info_service = get_container_info_service()
+            import json
+            from pathlib import Path
 
-            # Get info for selected container
-            result = info_service.get_container_info(selected_container)
+            # Get the full container configuration from JSON file
+            config = load_config()
+            base_dir = config.get('base_dir', '/app')
+            containers_dir = Path(base_dir) / 'config' / 'containers'
 
-            if not result.success:
+            # Find the container file
+            container_file = containers_dir / f"{selected_container}.json"
+            container_data = None
+
+            if container_file.exists():
+                with open(container_file, 'r', encoding='utf-8') as f:
+                    container_data = json.load(f)
+            else:
+                # Try alternative naming patterns
+                for file in containers_dir.glob("*.json"):
+                    with open(file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        if (data.get('container_name') == selected_container or
+                            data.get('docker_name') == selected_container or
+                            data.get('name') == selected_container):
+                            container_data = data
+                            break
+
+            if not container_data:
                 await interaction.response.edit_message(
-                    content=f"❌ {result.error or 'Container information not found'}",
+                    content=f"❌ Container '{selected_container}' not found",
                     embed=None,
                     view=None
                 )
                 return
 
-            info_config = result.data.get('info', {})
+            info_config = container_data.get('info', {})
 
             # Check if info is enabled
             if not info_config.get('enabled', False) and not info_config.get('protected_enabled', False):
@@ -1267,8 +1289,12 @@ class ContainerInfoDropdown(discord.ui.Select):
                     show_protected = True
 
             # Build the info message
+            display_name = container_data.get('display_name', [selected_container])
+            if isinstance(display_name, list) and len(display_name) > 0:
+                display_name = display_name[0]
+
             embed = discord.Embed(
-                title=f"ℹ️ {result.data.get('display_name', [selected_container])[0] if isinstance(result.data.get('display_name'), list) else selected_container}",
+                title=f"ℹ️ {display_name}",
                 color=discord.Color.blue()
             )
 
@@ -1299,7 +1325,7 @@ class ContainerInfoDropdown(discord.ui.Select):
                 # Check if password is required
                 if info_config.get('protected_password'):
                     # Add password button
-                    view = PasswordProtectedView(self.cog, result.data, info_config)
+                    view = PasswordProtectedView(self.cog, container_data, info_config)
 
                     embed.add_field(
                         name="🔒 " + _("Protected Information"),
