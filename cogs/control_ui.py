@@ -1606,23 +1606,25 @@ class AdminContainerDropdown(discord.ui.Select):
 
             # Generate control message for this container
             from .translation_manager import _
-            from .status_handlers import StatusHandlersCog
 
-            # Get or create status handlers instance
-            status_cog = self.cog.bot.get_cog('StatusHandlersCog')
-            if not status_cog:
-                # Create minimal status handlers for this operation
-                status_cog = StatusHandlersCog(self.cog.bot, self.cog)
-
-            # Generate status embed and view for this container
-            embed, view, _ = await status_cog._generate_status_embed_and_view(
-                self.channel_id,
-                container_config.get('display_name', [selected_container])[0],
-                container_config,
-                config,
-                allow_toggle=True,
-                force_collapse=False
-            )
+            # Generate status embed and view for this container using the cog's method
+            if hasattr(self.cog, '_generate_status_embed_and_view'):
+                embed, view, _ = await self.cog._generate_status_embed_and_view(
+                    self.channel_id,
+                    container_config.get('display_name', [selected_container])[0],
+                    container_config,
+                    config,
+                    allow_toggle=True,
+                    force_collapse=False
+                )
+            else:
+                # Fallback if method not available
+                await interaction.response.edit_message(
+                    content="❌ Control generation method not available",
+                    embed=None,
+                    view=None
+                )
+                return
 
             # Add admin header to embed
             embed.title = f"🛡️ Admin Control: {embed.title}"
