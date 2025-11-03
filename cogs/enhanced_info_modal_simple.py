@@ -50,10 +50,26 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
                 with open(container_file, 'r', encoding='utf-8') as f:
                     container_data = json.load(f)
                     self.container_info = container_data.get('info', {})
+                    logger.info(f"Loaded info for {container_name}: {self.container_info}")
             except Exception as e:
                 logger.error(f"Error loading container info from {container_file}: {e}")
                 self.container_info = {}
-        
+        else:
+            logger.warning(f"Container file not found: {container_file}. Will check alternative patterns.")
+            # Try alternative naming patterns
+            for file in containers_dir.glob("*.json"):
+                try:
+                    with open(file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        if (data.get('container_name') == container_name or
+                            data.get('docker_name') == container_name or
+                            data.get('name') == container_name):
+                            self.container_info = data.get('info', {})
+                            logger.info(f"Found container info in {file.name} for {container_name}: {self.container_info}")
+                            break
+                except Exception as e:
+                    continue
+
         title = f"📝 Container Info: {self.display_name}"
         if len(title) > 45:  # Discord modal title limit
             title = f"📝 Info: {self.display_name[:35]}..."
@@ -314,10 +330,26 @@ class ProtectedInfoModal(discord.ui.Modal):
                 with open(container_file, 'r', encoding='utf-8') as f:
                     container_data = json.load(f)
                     self.container_info = container_data.get('info', {})
+                    logger.info(f"Loaded protected info for {container_name}: {self.container_info}")
             except Exception as e:
                 logger.error(f"Error loading container info from {container_file}: {e}")
                 self.container_info = {}
-        
+        else:
+            logger.warning(f"Container file not found: {container_file}. Will check alternative patterns.")
+            # Try alternative naming patterns
+            for file in containers_dir.glob("*.json"):
+                try:
+                    with open(file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        if (data.get('container_name') == container_name or
+                            data.get('docker_name') == container_name or
+                            data.get('name') == container_name):
+                            self.container_info = data.get('info', {})
+                            logger.info(f"Found protected info in {file.name} for {container_name}: {self.container_info}")
+                            break
+                except Exception as e:
+                    continue
+
         title = f"🔒 Protected Info: {self.display_name}"
         if len(title) > 45:  # Discord modal title limit
             title = f"🔒 Protected: {self.display_name[:30]}..."
