@@ -1064,6 +1064,337 @@ class MechView(View):
             self.add_item(MechDetailsButton(cog_instance, channel_id))
             self.add_item(HelpButton(cog_instance, channel_id))
 
+        # Add Info button for container information
+        self.add_item(InfoButton(cog_instance, channel_id))
+
+class InfoButton(Button):
+    """Button to show container info selection dropdown from /ss messages."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
+        self.cog = cog_instance
+        self.channel_id = channel_id
+
+        super().__init__(
+            style=discord.ButtonStyle.secondary,
+            label="Info",
+            emoji="ℹ️",  # Info emoji
+            custom_id=f"info_button_{channel_id}",
+            row=0
+        )
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Show container selection dropdown when clicked."""
+        try:
+            # Apply spam protection
+            from services.infrastructure.spam_protection_service import get_spam_protection_service
+            spam_service = get_spam_protection_service()
+            if spam_service.is_enabled():
+                cooldown = spam_service.get_button_cooldown("info")
+                # Use simple rate limiting for buttons
+                import time
+                current_time = time.time()
+                user_id = str(interaction.user.id)
+                last_click = getattr(self, f'_last_click_{user_id}', 0)
+                if current_time - last_click < cooldown:
+                    await interaction.response.send_message(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
+                    return
+                setattr(self, f'_last_click_{user_id}', current_time)
+
+            # Get containers that have info enabled
+            from services.config.config_service import load_config, ConfigService
+            from services.infrastructure.container_info_service import get_container_info_service
+            import json
+            from pathlib import Path
+
+            config = load_config()
+            base_dir = config.get('base_dir', '/app')
+            containers_dir = Path(base_dir) / 'config' / 'containers'
+
+            # Collect containers with info enabled
+            containers_with_info = []
+            for container_file in containers_dir.glob("*.json"):
+                try:
+                    with open(container_file, 'r', encoding='utf-8') as f:
+                        container_data = json.load(f)
+                        # Check if container has info enabled or protected info
+                        info_config = container_data.get('info', {})
+                        if info_config.get('enabled', False) or info_config.get('protected_enabled', False):
+                            container_name = container_data.get('container_name', container_file.stem)
+                            display_name = container_data.get('display_name', [container_name, container_name])
+                            if isinstance(display_name, list) and len(display_name) > 0:
+                                display_name = display_name[0]
+                            containers_with_info.append({
+                                'name': container_name,
+                                'display': display_name,
+                                'protected': info_config.get('protected_enabled', False)
+                            })
+                except Exception as e:
+                    logger.error(f"Error reading container file {container_file}: {e}")
+                    continue
+
+            if not containers_with_info:
+                await interaction.response.send_message("ℹ️ No containers have information configured.", ephemeral=True)
+                return
+
+            # Sort containers by display name
+            containers_with_info.sort(key=lambda x: x['display'])
+
+            # Create view with dropdown
+            from .translation_manager import _
+            view = ContainerInfoSelectView(self.cog, containers_with_info)
+
+            embed = discord.Embed(
+                title=_("Container Information"),
+                description=_("Select a container from the dropdown to view its information:"),
+                color=discord.Color.blue()
+            )
+
+            # Add list of available containers
+            container_list = []
+            for container in containers_with_info:
+                icon = "🔒" if container['protected'] else "ℹ️"
+                container_list.append(f"{icon} {container['display']}")
+
+            if container_list:
+                embed.add_field(
+                    name=_("Available Containers"),
+                    value="\n".join(container_list[:10]),  # Show max 10 containers
+                    inline=False
+                )
+                if len(container_list) > 10:
+                    embed.set_footer(text=f"... and {len(container_list) - 10} more containers")
+
+            # Send as ephemeral response
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+            logger.info(f"Info selection shown for user {interaction.user.name} in channel {self.channel_id}")
+
+        except Exception as e:
+            logger.error(f"Error showing info selection: {e}", exc_info=True)
+            try:
+                # Check if interaction has already been responded to (avoid double response error)
+                if not interaction.response.is_done():
+                    await interaction.response.send_message("❌ Error showing container selection.", ephemeral=True)
+                else:
+                    # Use followup if interaction already responded
+                    await interaction.followup.send("❌ Error showing container selection.", ephemeral=True)
+            except Exception:
+                # Interaction may have already been responded to or expired
+                pass
+
+class ContainerInfoSelectView(View):
+    """View with dropdown for selecting a container to view info."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', containers: list):
+        super().__init__(timeout=180)  # 3 minutes timeout
+        self.cog = cog_instance
+
+        # Add dropdown
+        self.add_item(ContainerInfoDropdown(cog_instance, containers))
+
+class ContainerInfoDropdown(discord.ui.Select):
+    """Dropdown for selecting a container."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', containers: list):
+        self.cog = cog_instance
+        self.containers = containers
+
+        # Create options from containers
+        options = []
+        for container in containers[:25]:  # Discord limit is 25 options
+            icon = "🔒" if container['protected'] else "ℹ️"
+            option = discord.SelectOption(
+                label=container['display'],
+                value=container['name'],
+                emoji=icon,
+                description=f"{'Protected info' if container['protected'] else 'Public info'}"
+            )
+            options.append(option)
+
+        super().__init__(
+            placeholder="Select a container...",
+            options=options,
+            min_values=1,
+            max_values=1,
+            custom_id="container_info_select"
+        )
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Handle container selection."""
+        try:
+            selected_container = self.values[0]
+
+            # Get container info
+            from services.infrastructure.container_info_service import get_container_info_service
+            from .translation_manager import _
+            info_service = get_container_info_service()
+
+            # Get info for selected container
+            result = info_service.get_container_info(selected_container)
+
+            if not result.success:
+                await interaction.response.edit_message(
+                    content=f"❌ {result.error or 'Container information not found'}",
+                    embed=None,
+                    view=None
+                )
+                return
+
+            info_config = result.data.get('info', {})
+
+            # Check if info is enabled
+            if not info_config.get('enabled', False) and not info_config.get('protected_enabled', False):
+                await interaction.response.edit_message(
+                    content=f"ℹ️ {_('Container information is not enabled for')} '{selected_container}'.",
+                    embed=None,
+                    view=None
+                )
+                return
+
+            # Check if protected info should be shown
+            show_protected = False
+            channel = interaction.channel
+            if channel:
+                # Check if this is a control channel
+                from services.config.config_service import load_config
+                config = load_config()
+                channel_perms = config.get('channel_permissions', {})
+                channel_config = channel_perms.get(str(channel.id), {})
+                is_control_channel = channel_config.get('allow_start', False) or channel_config.get('allow_stop', False)
+
+                # Show protected info only in control channels
+                if is_control_channel and info_config.get('protected_enabled', False):
+                    show_protected = True
+
+            # Build the info message
+            embed = discord.Embed(
+                title=f"ℹ️ {result.data.get('display_name', [selected_container])[0] if isinstance(result.data.get('display_name'), list) else selected_container}",
+                color=discord.Color.blue()
+            )
+
+            # Add public info
+            if info_config.get('enabled', False):
+                info_text = []
+
+                if info_config.get('show_ip', False) and info_config.get('custom_ip'):
+                    ip_value = info_config['custom_ip']
+                    port_value = info_config.get('custom_port', '')
+                    if port_value:
+                        info_text.append(f"**{_('Server')}:** `{ip_value}:{port_value}`")
+                    else:
+                        info_text.append(f"**{_('Server')}:** `{ip_value}`")
+
+                if info_config.get('custom_text'):
+                    info_text.append(info_config['custom_text'])
+
+                if info_text:
+                    embed.add_field(
+                        name=_("Information"),
+                        value='\n'.join(info_text),
+                        inline=False
+                    )
+
+            # Check if we should show protected info or password button
+            if show_protected and info_config.get('protected_enabled', False):
+                # Check if password is required
+                if info_config.get('protected_password'):
+                    # Add password button
+                    view = PasswordProtectedView(self.cog, result.data, info_config)
+
+                    embed.add_field(
+                        name="🔒 " + _("Protected Information"),
+                        value=_("This container has password-protected information. Click the button below to access it."),
+                        inline=False
+                    )
+
+                    await interaction.response.edit_message(embed=embed, view=view)
+                else:
+                    # Show protected content directly (no password)
+                    if info_config.get('protected_content'):
+                        embed.add_field(
+                            name="🔓 " + _("Additional Information"),
+                            value=info_config['protected_content'],
+                            inline=False
+                        )
+
+                    await interaction.response.edit_message(embed=embed, view=None)
+            else:
+                # No protected info or not in control channel
+                await interaction.response.edit_message(embed=embed, view=None)
+
+            logger.info(f"Container info shown for {selected_container} to user {interaction.user.name}")
+
+        except Exception as e:
+            logger.error(f"Error handling container selection: {e}", exc_info=True)
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.edit_message(
+                        content="❌ Error showing container information.",
+                        embed=None,
+                        view=None
+                    )
+                else:
+                    await interaction.followup.send("❌ Error showing container information.", ephemeral=True)
+            except Exception:
+                pass
+
+class PasswordProtectedView(View):
+    """View with button for entering password to access protected info."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', server_config: dict, info_config: dict):
+        super().__init__(timeout=180)  # 3 minutes timeout
+        self.cog = cog_instance
+        self.server_config = server_config
+        self.info_config = info_config
+
+        # Add password button
+        self.add_item(PasswordButton(cog_instance, server_config, info_config))
+
+class PasswordButton(Button):
+    """Button to enter password for protected information."""
+
+    def __init__(self, cog_instance: 'DockerControlCog', server_config: dict, info_config: dict):
+        self.cog = cog_instance
+        self.server_config = server_config
+        self.info_config = info_config
+
+        super().__init__(
+            style=discord.ButtonStyle.primary,
+            label="Enter Password",
+            emoji="🔐",
+            custom_id="password_button"
+        )
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Show modal for password entry."""
+        try:
+            # Show password modal
+            from .enhanced_info_modal_simple import PasswordValidationModal
+
+            # Extract container name and display name from server_config
+            container_name = self.server_config.get('container_name', self.server_config.get('docker_name', 'Unknown'))
+            display_name = self.server_config.get('display_name', [container_name, container_name])
+            if isinstance(display_name, list) and len(display_name) > 0:
+                display_name = display_name[0]
+
+            modal = PasswordValidationModal(
+                self.cog,
+                container_name,
+                display_name,
+                self.info_config
+            )
+            await interaction.response.send_modal(modal)
+
+        except Exception as e:
+            logger.error(f"Error showing password modal: {e}", exc_info=True)
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message("❌ Error showing password modal.", ephemeral=True)
+                else:
+                    await interaction.followup.send("❌ Error showing password modal.", ephemeral=True)
+            except Exception:
+                pass
+
 class HelpButton(Button):
     """Button to show help information from /ss messages."""
     
