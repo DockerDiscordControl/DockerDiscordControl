@@ -38,9 +38,11 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
         import json
         from pathlib import Path
         import os
+        from services.config.config_service import load_config
 
-        # Get the container JSON file
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        # Get the container JSON file - use config to get correct base_dir
+        config = load_config()
+        base_dir = config.get('base_dir', '/app')
         containers_dir = Path(base_dir) / "config" / "containers"
         container_file = containers_dir / f"{container_name}.json"
 
@@ -318,9 +320,11 @@ class ProtectedInfoModal(discord.ui.Modal):
         import json
         from pathlib import Path
         import os
+        from services.config.config_service import load_config
 
-        # Get the container JSON file
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        # Get the container JSON file - use config to get correct base_dir
+        config = load_config()
+        base_dir = config.get('base_dir', '/app')
         containers_dir = Path(base_dir) / "config" / "containers"
         container_file = containers_dir / f"{container_name}.json"
 
