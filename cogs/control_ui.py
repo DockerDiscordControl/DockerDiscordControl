@@ -261,7 +261,14 @@ class ActionButton(Button):
             await interaction.followup.send(_("Error: Could not determine channel."), ephemeral=True)
             return
 
-        channel_has_control = _get_cached_channel_permission(interaction.channel.id, 'control', config)
+        # Check if this is an admin control message (title contains "Admin Control")
+        is_admin_control = False
+        if interaction.message and interaction.message.embeds:
+            embed_title = interaction.message.embeds[0].title if interaction.message.embeds else ""
+            is_admin_control = "Admin Control" in str(embed_title)
+
+        # Admin control messages always have control permission
+        channel_has_control = is_admin_control or _get_cached_channel_permission(interaction.channel.id, 'control', config)
 
         if not channel_has_control:
             await interaction.followup.send(_("This action is not allowed in this channel."), ephemeral=True)
