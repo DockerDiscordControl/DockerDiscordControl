@@ -1076,7 +1076,7 @@ class InfoDropdownButton(Button):
 
         super().__init__(
             style=discord.ButtonStyle.secondary,
-            label="Info",
+            label=None,
             emoji="ℹ️",  # Info emoji
             custom_id=f"info_button_{channel_id}",
             row=0
