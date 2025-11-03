@@ -7,12 +7,12 @@
 # ============================================================================ #
 
 """
-from services.config.config_service import load_config
 Smart integration of container info into status-only channels.
 Provides read-only info display for channels with only /ss permission.
 """
 
 import discord
+from services.config.config_service import load_config
 from discord.ui import View, Button
 import os
 from typing import Dict, Any, Optional, List

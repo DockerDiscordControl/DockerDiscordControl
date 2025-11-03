@@ -1611,7 +1611,7 @@ class AdminContainerDropdown(discord.ui.Select):
             if hasattr(self.cog, '_generate_status_embed_and_view'):
                 embed, view, _ = await self.cog._generate_status_embed_and_view(
                     self.channel_id,
-                    container_config.get('display_name', [selected_container])[0],
+                    selected_container,  # Use container name, not display name
                     container_config,
                     config,
                     allow_toggle=True,
