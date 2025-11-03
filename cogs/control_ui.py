@@ -1432,7 +1432,7 @@ class AdminButton(Button):
         super().__init__(
             style=discord.ButtonStyle.danger,  # Red button for admin
             label=None,
-            emoji="🛡️",  # Shield emoji for admin
+            emoji="🛠️",  # Hammer and wrench emoji for admin
             custom_id=f"admin_button_{channel_id}",
             row=0
         )
@@ -1459,7 +1459,7 @@ class AdminButton(Button):
             # Check if user is admin
             user_id = str(interaction.user.id)
             if user_id not in admin_users:
-                await interaction.response.send_message("🚫 You are not authorized to use admin controls.", ephemeral=True)
+                await interaction.response.send_message("🛠️ You are not authorized to use admin controls.", ephemeral=True)
                 return
 
             # Apply spam protection
@@ -1517,7 +1517,7 @@ class AdminButton(Button):
             view = AdminContainerSelectView(self.cog, active_containers, interaction.channel.id)
 
             embed = discord.Embed(
-                title="🛡️ " + _("Admin Control Panel"),
+                title="🛠️ " + _("Admin Control Panel"),
                 description=_("Select a container to view its control panel:"),
                 color=discord.Color.red()
             )
@@ -1622,12 +1622,12 @@ class AdminContainerDropdown(discord.ui.Select):
                     force_collapse=False
                 )
 
-                # Create ControlView with all control buttons
-                from utils.docker_utils import get_container_status_async
-
-                # Get container status
-                status_result = await get_container_status_async(selected_container)
-                is_running = status_result and status_result.get('State') == 'running'
+                # Get container status using cog's method
+                status_result = await self.cog.get_status(container_config)
+                is_running = False
+                if not isinstance(status_result, Exception):
+                    # status_result is tuple: (status, is_running, uptime, cpu, memory, disabled)
+                    _, is_running, _, _, _, _ = status_result
 
                 # Create control view with buttons
                 control_view = ControlView(
@@ -1639,7 +1639,7 @@ class AdminContainerDropdown(discord.ui.Select):
                 )
 
                 # Add admin header to embed
-                embed.title = f"🛡️ Admin Control: {display_name}"
+                embed.title = f"🛠️ Admin Control: {display_name}"
                 embed.color = discord.Color.red()
 
                 await interaction.response.edit_message(embed=embed, view=control_view)
