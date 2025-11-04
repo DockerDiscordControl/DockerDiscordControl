@@ -335,40 +335,35 @@ class ActionButton(Button):
                                 if original_message and original_message.embeds:
                                     embed_title = original_message.embeds[0].title if original_message.embeds else ""
                                     is_admin_message = "Admin Control" in str(embed_title)
-                            except:
-                                pass
+                                    logger.debug(f"[ACTION_BTN] Is admin message check: {is_admin_message}, title: {embed_title}")
+                            except Exception as e:
+                                logger.error(f"[ACTION_BTN] Error checking admin status: {e}")
 
-                            # Preserve admin control state if it was an admin message
                             if is_admin_message:
+                                # For Admin Control, force expanded state
+                                self.cog.expanded_states[self.display_name] = True
+                                # Mark config for admin control
                                 self.server_config['_is_admin_control'] = True
+                                logger.info(f"[ACTION_BTN] Preserving Admin Control for {self.display_name}")
 
-                            embed, view, _ = await self.cog._generate_status_embed_and_view(
-                                interaction.channel.id,
-                                self.display_name,
-                                self.server_config,
-                                config,
-                                allow_toggle=False if is_admin_message else True,  # No toggle for admin
-                                force_collapse=False,
-                                show_cache_age=False
-                            )
+                                # Generate embed with admin flag
+                                embed, _, _ = await self.cog._generate_status_embed_and_view(
+                                    interaction.channel.id,
+                                    self.display_name,
+                                    self.server_config,
+                                    config,
+                                    allow_toggle=False,  # No toggle for admin
+                                    force_collapse=False,
+                                    show_cache_age=False
+                                )
 
-                            if embed and is_admin_message:
-                                # Restore admin header and color
-                                embed.title = f"🛠️ Admin Control: {self.display_name}"
-
-                                # Get fresh status for color
+                                # Get fresh status for running state and color
                                 fresh_status = self.cog.status_cache.get(self.display_name, {}).get('data')
-                                if fresh_status and not isinstance(fresh_status, Exception):
-                                    _, is_running, _, _, _, _ = fresh_status
-                                    embed.color = discord.Color.green() if is_running else discord.Color.red()
-                                else:
-                                    embed.color = discord.Color.gold()
-
-                                # Get container status from fresh status
                                 is_running = False
                                 if fresh_status and not isinstance(fresh_status, Exception):
                                     _, is_running, _, _, _, _ = fresh_status
 
+                                # Create admin control view with all buttons
                                 view = ControlView(
                                     self.cog,
                                     self.server_config,
@@ -377,9 +372,30 @@ class ActionButton(Button):
                                     allow_toggle=False
                                 )
 
-                            # Clean up temporary flag
-                            if is_admin_message:
+                                if embed:
+                                    # Set admin header and dynamic color
+                                    embed.title = f"🛠️ Admin Control: {self.display_name}"
+                                    if not fresh_status or isinstance(fresh_status, Exception):
+                                        embed.color = discord.Color.gold()  # Yellow for unknown
+                                    elif is_running:
+                                        embed.color = discord.Color.green()  # Green for online
+                                    else:
+                                        embed.color = discord.Color.red()  # Red for offline
+
+                                # Clean up temporary flag
                                 self.server_config.pop('_is_admin_control', None)
+
+                            else:
+                                # Normal control message update
+                                embed, view, _ = await self.cog._generate_status_embed_and_view(
+                                    interaction.channel.id,
+                                    self.display_name,
+                                    self.server_config,
+                                    config,
+                                    allow_toggle=True,
+                                    force_collapse=False,
+                                    show_cache_age=False
+                                )
 
                             if embed:
                                 try:
