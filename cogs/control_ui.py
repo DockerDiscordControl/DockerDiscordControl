@@ -328,15 +328,58 @@ class ActionButton(Button):
                     
                     try:
                         if hasattr(self.cog, '_generate_status_embed_and_view'):
+                            # Check if original message was Admin Control
+                            is_admin_message = False
+                            try:
+                                original_message = interaction.message
+                                if original_message and original_message.embeds:
+                                    embed_title = original_message.embeds[0].title if original_message.embeds else ""
+                                    is_admin_message = "Admin Control" in str(embed_title)
+                            except:
+                                pass
+
+                            # Preserve admin control state if it was an admin message
+                            if is_admin_message:
+                                self.server_config['_is_admin_control'] = True
+
                             embed, view, _ = await self.cog._generate_status_embed_and_view(
-                                interaction.channel.id, 
-                                self.display_name, 
-                                self.server_config, 
-                                config, 
-                                allow_toggle=True, 
+                                interaction.channel.id,
+                                self.display_name,
+                                self.server_config,
+                                config,
+                                allow_toggle=False if is_admin_message else True,  # No toggle for admin
                                 force_collapse=False,
                                 show_cache_age=False
                             )
+
+                            if embed and is_admin_message:
+                                # Restore admin header and color
+                                embed.title = f"🛠️ Admin Control: {self.display_name}"
+
+                                # Get fresh status for color
+                                fresh_status = self.cog.status_cache.get(self.display_name, {}).get('data')
+                                if fresh_status and not isinstance(fresh_status, Exception):
+                                    _, is_running, _, _, _, _ = fresh_status
+                                    embed.color = discord.Color.green() if is_running else discord.Color.red()
+                                else:
+                                    embed.color = discord.Color.gold()
+
+                                # Get container status from fresh status
+                                is_running = False
+                                if fresh_status and not isinstance(fresh_status, Exception):
+                                    _, is_running, _, _, _, _ = fresh_status
+
+                                view = ControlView(
+                                    self.cog,
+                                    self.server_config,
+                                    is_running=is_running,
+                                    channel_has_control_permission=True,
+                                    allow_toggle=False
+                                )
+
+                            # Clean up temporary flag
+                            if is_admin_message:
+                                self.server_config.pop('_is_admin_control', None)
 
                             if embed:
                                 try:
