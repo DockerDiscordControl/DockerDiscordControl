@@ -966,13 +966,18 @@ class StatusHandlersMixin:
         if embed and server_conf and not (embed.title and embed.title.startswith("🆘")):
             channel_has_control = _channel_has_permission(channel_id, 'control', current_config)
             actual_server_conf = next((s for s in all_servers_config if s.get('name', s.get('docker_name')) == display_name), server_conf)
-            
+
             # Import here to avoid circular imports
             from .status_info_integration import should_show_info_in_status_channel, StatusInfoView, create_enhanced_status_embed
-            
+
             # Check if this is a status-only channel that should show info integration
-            # Skip info integration for admin control messages
-            is_admin_control = actual_server_conf.get('_is_admin_control', False)
+            # Skip info integration for admin control messages (check original server_conf, not actual_server_conf)
+            is_admin_control = server_conf.get('_is_admin_control', False)
+
+            # Also propagate the flag to actual_server_conf for create_enhanced_status_embed
+            if is_admin_control:
+                actual_server_conf['_is_admin_control'] = True
+
             show_info_integration = should_show_info_in_status_channel(channel_id, current_config) and not is_admin_control
 
             if show_info_integration and not channel_has_control:
@@ -987,6 +992,10 @@ class StatusHandlersMixin:
                 # CONTROL CHANNEL: Use standard ControlView
                 logger.debug(f"[_GEN_EMBED] Using ControlView for control channel {channel_id}")
                 view = ControlView(self, actual_server_conf, running, channel_has_control_permission=channel_has_control, allow_toggle=allow_toggle)
+
+            # Clean up temporary admin control flag from actual_server_conf
+            if is_admin_control and actual_server_conf:
+                actual_server_conf.pop('_is_admin_control', None)
         else:
             view = None # Ensure view is None if server_conf is missing or critical error
 
