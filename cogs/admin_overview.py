@@ -78,7 +78,7 @@ class AdminOverviewAdminButton(Button):
                 display_name = server.get('name', docker_name)
                 if docker_name:
                     containers.append({
-                        'name': display_name,
+                        'display': display_name,  # AdminContainerDropdown expects 'display' field
                         'docker_name': docker_name
                     })
 
