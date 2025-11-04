@@ -857,21 +857,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
     # Send helpers (remain here as they interact closely with Cog state)
     async def _send_control_panel_and_statuses(self, channel: discord.TextChannel) -> None:
-        """Send control panel and all server statuses to a channel."""
+        """Send Admin Overview to a control channel."""
         try:
             current_config = load_config()
             if not current_config:
                 logger.error(f"Send Control Panel: Could not load configuration for channel {channel.id}.")
                 return
 
-            logger.info(f"Sending control panel and statuses to channel {channel.name} ({channel.id})")
-            
-            # Get timezone from config
-            timezone_str = current_config.get('timezone_str', 'Europe/Berlin')
-            
-            # Get current time for footer
-            now = datetime.now(timezone.utc)
-            current_time = format_datetime_with_timezone(now, timezone_str).split()[1]  # Extract only time part
+            logger.info(f"Sending admin overview to control channel {channel.name} ({channel.id})")
 
             # Get all server configurations
             servers = current_config.get('servers', [])
@@ -879,38 +872,29 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 logger.warning(f"No servers configured for channel {channel.id}")
                 return
 
-            # Send server status messages directly without setup message
-            try:
-                # Get real status data with timeout
-                success_count = 0
-                fail_count = 0
-                
-                for server in servers:  # Send all servers
-                    try:
-                        result = await asyncio.wait_for(
-                            self.status_handlers.send_server_status(
-                                channel=channel,
-                                server_conf=server,
-                                current_config=current_config,
-                                allow_toggle=True
-                            ),
-                            timeout=10.0  # 10 second timeout per server
-                        )
-                        if result:
-                            success_count += 1
-                        else:
-                            fail_count += 1
-                    except asyncio.TimeoutError:
-                        logger.warning(f"Timeout sending status for {server.get('name', 'unknown')}")
-                        fail_count += 1
-                    except Exception as e:
-                        logger.error(f"Error sending status for {server.get('name', 'unknown')}: {e}")
-                        fail_count += 1
+            # Sort servers by order
+            ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
 
-                logger.info(f"Finished sending initial statuses to {channel.name}: {success_count} success, {fail_count} failure.")
-                
+            # Create Admin Overview embed with CPU and RAM info
+            embed, _, has_running = await self._create_admin_overview_embed(ordered_servers, current_config, force_refresh=True)
+
+            # Import AdminOverviewView from admin_overview module
+            from .admin_overview import AdminOverviewView
+
+            # Create the Admin Overview view with buttons
+            view = AdminOverviewView(self, channel.id, has_running)
+
+            # Send the Admin Overview message
+            try:
+                await channel.send(embed=embed, view=view)
+                logger.info(f"Successfully sent Admin Overview to control channel {channel.name}")
             except Exception as e:
-                logger.error(f"Error setting up control panel: {e}", exc_info=True)
+                logger.error(f"Error sending Admin Overview to channel: {e}")
+                # Fallback: Send without view if there's an issue
+                try:
+                    await channel.send(embed=embed)
+                except Exception as e2:
+                    logger.error(f"Failed to send Admin Overview even without view: {e2}")
 
         except Exception as e:
             logger.error(f"Error in _send_control_panel_and_statuses: {e}", exc_info=True)
@@ -1387,6 +1371,84 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         """Shortcut for the serverstatus command."""
         # Directly call serverstatus (it has its own spam protection check)
         await self.serverstatus(ctx)
+
+    @commands.slash_command(name="admin-overview", description=_("Shows admin overview in control channels"), guild_ids=get_guild_id())
+    async def admin_overview(self, ctx: discord.ApplicationContext):
+        """Show admin overview with all containers including CPU/RAM info and bulk actions."""
+        try:
+            # Check spam protection first
+            if not await self._check_spam_protection(ctx, "admin-overview"):
+                return
+
+            # Defer the response to prevent timeout
+            await ctx.defer(ephemeral=True)
+
+            # Check if user is admin
+            config = load_config()
+            if not config:
+                await ctx.followup.send("❌ Could not load configuration.", ephemeral=True)
+                return
+
+            # Load admin users
+            import json
+            from pathlib import Path
+            base_dir = config.get('base_dir', '/app')
+            admins_file = Path(base_dir) / 'config' / 'admins.json'
+
+            admin_users = []
+            if admins_file.exists():
+                try:
+                    with open(admins_file, 'r') as f:
+                        admin_data = json.load(f)
+                        admin_users = admin_data.get('discord_admin_users', [])
+                except Exception as e:
+                    logger.error(f"Error loading admins.json: {e}")
+
+            # Check if user is admin
+            user_id_str = str(ctx.author.id)
+            if user_id_str not in admin_users:
+                await ctx.followup.send("❌ You don't have permission to use the admin overview command.", ephemeral=True)
+                return
+
+            # Check if this is a control channel
+            from .control_helpers import _channel_has_permission
+            has_control = _channel_has_permission(ctx.channel_id, 'control', config)
+
+            if not has_control:
+                await ctx.followup.send("❌ This command can only be used in control channels.", ephemeral=True)
+                return
+
+            # Get all server configurations
+            servers = config.get('servers', [])
+            if not servers:
+                await ctx.followup.send("❌ No servers configured.", ephemeral=True)
+                return
+
+            # Sort servers by order
+            ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
+
+            # Create Admin Overview embed with CPU and RAM info
+            embed, _, has_running = await self._create_admin_overview_embed(ordered_servers, config, force_refresh=True)
+
+            # Import AdminOverviewView from admin_overview module
+            from .admin_overview import AdminOverviewView
+
+            # Create the Admin Overview view with buttons
+            view = AdminOverviewView(self, ctx.channel_id, has_running)
+
+            # Send the Admin Overview message
+            await ctx.followup.send(embed=embed, view=view, ephemeral=True)
+            logger.info(f"Admin overview command used by {ctx.author} in {ctx.channel.name}")
+
+        except Exception as e:
+            logger.error(f"Error in admin_overview command: {e}", exc_info=True)
+            try:
+                if not ctx.response.is_done():
+                    await ctx.respond("❌ Error showing admin overview.", ephemeral=True)
+                else:
+                    await ctx.followup.send("❌ Error showing admin overview.", ephemeral=True)
+            except Exception:
+                pass
 
     # Legacy command methods removed - all container control and info editing
     # is now handled through Discord UI buttons for better user experience
@@ -2097,6 +2159,128 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
         # Return tuple (embed, animation_file) - single file for expanded view
         return embed, animation_file
+
+    async def _create_admin_overview_embed(self, ordered_servers, config, force_refresh=False):
+        """Creates the admin overview embed with CPU and RAM details for control channels.
+
+        Args:
+            ordered_servers: List of server configurations
+            config: Application configuration
+            force_refresh: If True, forces fresh data from cache
+
+        Returns:
+            tuple: (embed, None, has_running_containers) - No animation for admin overview
+        """
+        from .translation_manager import _ as translate
+        import discord
+        from datetime import datetime, timezone
+
+        # Create the admin overview embed
+        embed = discord.Embed(
+            title="Admin Overview",
+            color=discord.Color.gold()  # Gold color for admin functions
+        )
+
+        # Build server status lines with CPU and RAM
+        now_utc = datetime.now(timezone.utc)
+        fresh_config = load_config()
+        timezone_str = fresh_config.get('timezone') if fresh_config else config.get('timezone')
+
+        current_time = format_datetime_with_timezone(now_utc, timezone_str, time_only=True)
+
+        # Start building the content
+        content_lines = [
+            f"{translate('Last update')}: {current_time}",
+            "┌── Status & Resources ─────"
+        ]
+
+        # Track if any containers are running for bulk actions
+        has_running_containers = False
+
+        # Add server statuses with resource info
+        for server_conf in ordered_servers:
+            display_name = server_conf.get('name', server_conf.get('docker_name'))
+            docker_name = server_conf.get('docker_name')
+            if not display_name or not docker_name:
+                continue
+
+            # Use cached data
+            cached_entry = self.status_cache.get(display_name)
+            status_result = None
+
+            if cached_entry and cached_entry.get('data'):
+                import os
+                max_cache_age = int(os.environ.get('DDC_DOCKER_MAX_CACHE_AGE', '300'))
+
+                if 'timestamp' in cached_entry:
+                    cache_age = (datetime.now(timezone.utc) - cached_entry['timestamp']).total_seconds()
+                    if cache_age > max_cache_age:
+                        logger.debug(f"Cache for {display_name} expired")
+                        cached_entry = None
+
+                if cached_entry and cached_entry.get('data'):
+                    status_result = cached_entry['data']
+
+            # Check info availability
+            info_indicator = ""
+            try:
+                from services.infrastructure.container_info_service import get_container_info_service
+                info_service = get_container_info_service()
+                info_result = info_service.get_container_info(docker_name)
+                if info_result.success and info_result.data.enabled:
+                    info_indicator = " ℹ️"
+            except Exception:
+                pass
+
+            # Process status with CPU and RAM
+            if status_result and isinstance(status_result, tuple) and len(status_result) == 6:
+                _, is_running, cpu_percent, memory_mb, _, _ = status_result
+
+                if is_running:
+                    has_running_containers = True
+
+                # Determine status icon
+                if display_name in self.pending_actions:
+                    pending_timestamp = self.pending_actions[display_name]['timestamp']
+                    pending_duration = (now_utc - pending_timestamp).total_seconds()
+                    if pending_duration < 120:
+                        status_emoji = "🟡"
+                    else:
+                        del self.pending_actions[display_name]
+                        status_emoji = "🟢" if is_running else "🔴"
+                else:
+                    status_emoji = "🟢" if is_running else "🔴"
+
+                # Truncate name for display
+                truncated_name = display_name[:15] + ".." if len(display_name) > 15 else display_name
+
+                # Format resource info
+                if is_running:
+                    cpu_str = f"{cpu_percent:.1f}%" if cpu_percent is not None else "N/A"
+                    mem_str = f"{memory_mb}MB" if memory_mb is not None else "N/A"
+                    line = f"│ {status_emoji} {truncated_name}{info_indicator}"
+                    # Add resource info on next line, indented
+                    content_lines.append(line)
+                    content_lines.append(f"│   CPU: {cpu_str} RAM: {mem_str}")
+                else:
+                    line = f"│ {status_emoji} {truncated_name}{info_indicator}"
+                    content_lines.append(line)
+            else:
+                # No data available
+                truncated_name = display_name[:15] + ".." if len(display_name) > 15 else display_name
+                line = f"│ ⚫ {truncated_name} (Loading...)"
+                content_lines.append(line)
+
+        # Close the box
+        content_lines.append("└───────────────────────────")
+
+        # Set the description
+        embed.description = "\n".join(content_lines)
+
+        # Add footer
+        embed.set_footer(text="https://ddc.bot")
+
+        return embed, None, has_running_containers
 
     async def _create_overview_embed_collapsed(self, ordered_servers, config, force_refresh=False):
         """Creates the server overview embed with COLLAPSED mech status (animation only).
