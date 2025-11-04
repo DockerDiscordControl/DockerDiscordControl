@@ -1630,6 +1630,9 @@ class AdminContainerDropdown(discord.ui.Select):
             display_name = container_config.get('name', selected_container)
             self.cog.expanded_states[display_name] = True
 
+            # Temporarily mark the container config for admin control
+            container_config['_is_admin_control'] = True
+
             # Generate expanded control embed and view using the cog's method
             if hasattr(self.cog, '_generate_status_embed_and_view'):
                 embed, view, _ = await self.cog._generate_status_embed_and_view(
@@ -1640,6 +1643,9 @@ class AdminContainerDropdown(discord.ui.Select):
                     allow_toggle=False,  # No toggle button needed for admin control
                     force_collapse=False
                 )
+
+                # Remove temporary marker
+                container_config.pop('_is_admin_control', None)
 
                 # Get container status using cog's method
                 status_result = await self.cog.get_status(container_config)

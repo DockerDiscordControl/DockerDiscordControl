@@ -1111,16 +1111,20 @@ def create_enhanced_status_embed(
 ) -> discord.Embed:
     """
     Enhance a status embed with info indicators for status channels.
-    
+
     Args:
         original_embed: The original status embed
         server_config: Server configuration
         info_indicator: Whether to add info indicator to the embed
-        
+
     Returns:
         Enhanced embed with info indicators
     """
     if not info_indicator:
+        return original_embed
+
+    # Skip enrichments for Admin Control messages
+    if server_config.get('_is_admin_control', False):
         return original_embed
     
     try:
