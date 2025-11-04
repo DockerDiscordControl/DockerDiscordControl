@@ -971,12 +971,8 @@ class StatusHandlersMixin:
             from .status_info_integration import should_show_info_in_status_channel, StatusInfoView, create_enhanced_status_embed
 
             # Check if this is a status-only channel that should show info integration
-            # Skip info integration for admin control messages (check original server_conf, not actual_server_conf)
+            # Skip info integration for admin control messages - check original server_conf flag
             is_admin_control = server_conf.get('_is_admin_control', False)
-
-            # Also propagate the flag to actual_server_conf for create_enhanced_status_embed
-            if is_admin_control:
-                actual_server_conf['_is_admin_control'] = True
 
             show_info_integration = should_show_info_in_status_channel(channel_id, current_config) and not is_admin_control
 
@@ -986,16 +982,13 @@ class StatusHandlersMixin:
                 view = StatusInfoView(self, actual_server_conf, running)
 
                 # Enhance embed with info indicators if info is available
-                embed = create_enhanced_status_embed(embed, actual_server_conf, info_indicator=True)
+                # Use server_conf instead of actual_server_conf to preserve _is_admin_control flag
+                embed = create_enhanced_status_embed(embed, server_conf, info_indicator=True)
                 
             else:
                 # CONTROL CHANNEL: Use standard ControlView
                 logger.debug(f"[_GEN_EMBED] Using ControlView for control channel {channel_id}")
                 view = ControlView(self, actual_server_conf, running, channel_has_control_permission=channel_has_control, allow_toggle=allow_toggle)
-
-            # Clean up temporary admin control flag from actual_server_conf
-            if is_admin_control and actual_server_conf:
-                actual_server_conf.pop('_is_admin_control', None)
         else:
             view = None # Ensure view is None if server_conf is missing or critical error
 
