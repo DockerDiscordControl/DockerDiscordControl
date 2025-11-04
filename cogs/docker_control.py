@@ -2234,7 +2234,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
             # Process status with CPU and RAM
             if status_result and isinstance(status_result, tuple) and len(status_result) == 6:
-                _, is_running, cpu_percent, memory_mb, _, _ = status_result
+                # Cache format: (display_name, is_running, cpu_str, ram_str, uptime, details_allowed)
+                _, is_running, cpu_str, ram_str, _, _ = status_result
 
                 if is_running:
                     has_running_containers = True
@@ -2254,24 +2255,21 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Truncate name for display (max 20 chars like Status Overview)
                 truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
 
-                # Format resource info
+                # Use the pre-formatted CPU and RAM strings from cache
                 if is_running:
-                    # Convert to float if it's a string
-                    try:
-                        cpu_value = float(cpu_percent) if cpu_percent is not None else None
-                        cpu_str = f"{cpu_value:.1f}%" if cpu_value is not None else "N/A"
-                    except (ValueError, TypeError):
-                        cpu_str = "N/A"
+                    # Clean up the formatted strings for display
+                    # Remove " MB" from ram string to just show number with MB
+                    if ram_str and ram_str != "N/A" and " MB" in ram_str:
+                        ram_display = ram_str.replace(" MB", "MB")
+                    else:
+                        ram_display = ram_str if ram_str else "N/A"
 
-                    try:
-                        mem_value = float(memory_mb) if memory_mb is not None else None
-                        mem_str = f"{mem_value:.0f}MB" if mem_value is not None else "N/A"
-                    except (ValueError, TypeError):
-                        mem_str = "N/A"
+                    cpu_display = cpu_str if cpu_str else "N/A"
+
                     line = f"│ {status_emoji} {truncated_name}{info_indicator}"
                     # Add resource info on next line, properly aligned with container name
                     content_lines.append(line)
-                    content_lines.append(f"│    CPU: {cpu_str} RAM: {mem_str}")
+                    content_lines.append(f"│    CPU: {cpu_display} RAM: {ram_display}")
                 else:
                     line = f"│ {status_emoji} {truncated_name}{info_indicator}"
                     content_lines.append(line)
