@@ -1647,7 +1647,12 @@ class AdminContainerDropdown(discord.ui.Select):
                 # Get container status using cog's method
                 status_result = await self.cog.get_status(container_config)
                 is_running = False
-                if not isinstance(status_result, Exception):
+                status_known = True
+
+                if isinstance(status_result, Exception):
+                    # Status unknown (error)
+                    status_known = False
+                else:
                     # status_result is tuple: (status, is_running, uptime, cpu, memory, disabled)
                     _, is_running, _, _, _, _ = status_result
 
@@ -1662,7 +1667,14 @@ class AdminContainerDropdown(discord.ui.Select):
 
                 # Add admin header to embed
                 embed.title = f"🛠️ Admin Control: {display_name}"
-                embed.color = discord.Color.red()
+
+                # Dynamic color based on container status
+                if not status_known:
+                    embed.color = discord.Color.gold()  # Yellow/Gold for unknown
+                elif is_running:
+                    embed.color = discord.Color.green()  # Green for online
+                else:
+                    embed.color = discord.Color.red()  # Red for offline
 
                 # Clean up temporary marker after everything is done
                 container_config.pop('_is_admin_control', None)
