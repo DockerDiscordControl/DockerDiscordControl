@@ -322,19 +322,44 @@ class ActionButton(Button):
                         logger.info(f"[ACTION_BTN] Invalidating cache for {self.display_name}")
                         del self.cog.status_cache[self.display_name]
 
-                    # Wait a moment for Docker to update container state
-                    await asyncio.sleep(2)  # 2 seconds for container to transition
+                    # Multiple attempts to get correct status after Docker updates
+                    max_retries = 3
+                    retry_delays = [3, 2, 2]  # Wait 3s, then 2s, then 2s more (total 7s)
 
-                    # Get fresh status after Docker has updated
-                    server_config_for_update = next((s for s in config.get('servers', []) if s.get('name') == self.display_name), None)
-                    if server_config_for_update:
-                        fresh_status = await self.cog.get_status(server_config_for_update)
-                        if not isinstance(fresh_status, Exception):
-                            self.cog.status_cache[self.display_name] = {
-                                'data': fresh_status,
-                                'timestamp': datetime.now(timezone.utc)
-                            }
-                            logger.info(f"[ACTION_BTN] Cache updated for {self.display_name}, is_running: {fresh_status[1] if fresh_status else 'Unknown'}")
+                    for retry in range(max_retries):
+                        await asyncio.sleep(retry_delays[retry])
+                        logger.info(f"[ACTION_BTN] Getting status for {self.display_name} (attempt {retry + 1}/{max_retries})")
+
+                        # Get fresh status after Docker has updated
+                        server_config_for_update = next((s for s in config.get('servers', []) if s.get('name') == self.display_name), None)
+                        if server_config_for_update:
+                            # Always invalidate cache before fetching
+                            if self.display_name in self.cog.status_cache:
+                                del self.cog.status_cache[self.display_name]
+
+                            fresh_status = await self.cog.get_status(server_config_for_update)
+                            if not isinstance(fresh_status, Exception):
+                                self.cog.status_cache[self.display_name] = {
+                                    'data': fresh_status,
+                                    'timestamp': datetime.now(timezone.utc)
+                                }
+                                is_running = fresh_status[1] if fresh_status else None
+                                logger.info(f"[ACTION_BTN] Status for {self.display_name}: is_running={is_running}, action was '{self.action}'")
+
+                                # Check if status matches expected state
+                                if self.action == "stop" and not is_running:
+                                    logger.info(f"[ACTION_BTN] Container successfully stopped")
+                                    break
+                                elif self.action == "start" and is_running:
+                                    logger.info(f"[ACTION_BTN] Container successfully started")
+                                    break
+                                elif self.action == "restart" and is_running:
+                                    logger.info(f"[ACTION_BTN] Container successfully restarted")
+                                    break
+                                elif retry < max_retries - 1:
+                                    logger.info(f"[ACTION_BTN] Status not yet updated, will retry...")
+                            else:
+                                logger.error(f"[ACTION_BTN] Error getting status: {fresh_status}")
                     
                     try:
                         if hasattr(self.cog, '_generate_status_embed_and_view'):
