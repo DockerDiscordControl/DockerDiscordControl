@@ -75,10 +75,9 @@ class AdminOverviewAdminButton(Button):
             containers = []
             for server in servers:
                 docker_name = server.get('docker_name')
-                display_name = server.get('name', docker_name)
                 if docker_name:
                     containers.append({
-                        'display': display_name,  # AdminContainerDropdown expects 'display' field
+                        'display': docker_name,  # Use docker_name for display (more stable than display_name)
                         'docker_name': docker_name
                     })
 
