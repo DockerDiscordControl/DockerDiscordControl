@@ -1,13 +1,18 @@
 # =============================================================================
-# ADMIN OVERVIEW VIEW FOR CONTROL CHANNELS
+# ADMIN OVERVIEW VIEW FOR CONTROL CHANNELS - SERVICE FIRST IMPLEMENTATION
 # =============================================================================
 
 import discord
 from discord.ui import View, Button
 import asyncio
 import logging
-from services.config.config_service import load_config
 from datetime import datetime, timezone
+
+# SERVICE FIRST: Import all required services
+from services.admin.admin_service import get_admin_service
+from services.status.status_cache_service import get_status_cache_service
+from services.config.server_config_service import get_server_config_service
+from services.config.config_service import load_config  # Keep for backward compatibility
 
 logger = logging.getLogger('ddc.admin_overview')
 
@@ -55,68 +60,22 @@ class AdminOverviewAdminButton(Button):
             return
 
         try:
-            # Edge case: Config might be unavailable
-            config = load_config()
-            if not config:
-                await interaction.followup.send(
-                    "❌ Configuration unavailable. Please try again later.",
-                    ephemeral=True
-                )
-                return
+            # SERVICE FIRST: Use AdminService to check permissions
+            admin_service = get_admin_service()
+            user_id = str(interaction.user.id)
 
-            # Load admin users with proper error handling
-            import json
-            from pathlib import Path
-            base_dir = config.get('base_dir', '/app')
-            admins_file = Path(base_dir) / 'config' / 'admins.json'
-
-            admin_users = []
-            if admins_file.exists():
-                try:
-                    with open(admins_file, 'r') as f:
-                        content = f.read()
-                        if content.strip():  # Edge case: Empty file
-                            admin_data = json.loads(content)
-                            admin_users = admin_data.get('discord_admin_users', [])
-                except json.JSONDecodeError as e:
-                    logger.error(f"Invalid JSON in admins.json: {e}")
-                    await interaction.followup.send(
-                        "❌ Admin configuration error. Please contact support.",
-                        ephemeral=True
-                    )
-                    return
-                except Exception as e:
-                    logger.error(f"Error loading admins.json: {e}")
-
-            # Check if user is admin
-            user_id_str = str(interaction.user.id)
-            if user_id_str not in admin_users:
+            # Check if user is admin using service
+            is_admin = await admin_service.is_user_admin_async(user_id)
+            if not is_admin:
                 await interaction.followup.send(
                     "❌ You don't have permission to use admin controls.",
                     ephemeral=True
                 )
                 return
 
-            # Get containers list with validation
-            servers = config.get('servers', [])
-            if not isinstance(servers, list):  # Edge case: Invalid config format
-                logger.error(f"Invalid servers configuration: expected list, got {type(servers)}")
-                await interaction.followup.send(
-                    "❌ Invalid server configuration.",
-                    ephemeral=True
-                )
-                return
-
-            containers = []
-            for server in servers:
-                if not isinstance(server, dict):  # Edge case: Invalid server entry
-                    continue
-                docker_name = server.get('docker_name')
-                if docker_name and isinstance(docker_name, str):  # Validate docker_name
-                    containers.append({
-                        'display': docker_name,
-                        'docker_name': docker_name
-                    })
+            # SERVICE FIRST: Use ServerConfigService to get containers
+            server_config_service = get_server_config_service()
+            containers = server_config_service.get_valid_containers()
 
             if not containers:
                 await interaction.followup.send(
@@ -184,41 +143,13 @@ class AdminOverviewRestartAllButton(Button):
             return
 
         try:
-            # Edge case: Config might be unavailable
-            config = load_config()
-            if not config:
-                await interaction.followup.send(
-                    "❌ Configuration unavailable. Please try again later.",
-                    ephemeral=True
-                )
-                return
+            # SERVICE FIRST: Use AdminService to check permissions
+            admin_service = get_admin_service()
+            user_id = str(interaction.user.id)
 
-            # Load admin users with proper error handling
-            import json
-            from pathlib import Path
-            base_dir = config.get('base_dir', '/app')
-            admins_file = Path(base_dir) / 'config' / 'admins.json'
-
-            admin_users = []
-            if admins_file.exists():
-                try:
-                    with open(admins_file, 'r') as f:
-                        content = f.read()
-                        if content.strip():  # Edge case: Empty file
-                            admin_data = json.loads(content)
-                            admin_users = admin_data.get('discord_admin_users', [])
-                except json.JSONDecodeError as e:
-                    logger.error(f"Invalid JSON in admins.json: {e}")
-                    await interaction.followup.send(
-                        "❌ Admin configuration error. Please contact support.",
-                        ephemeral=True
-                    )
-                    return
-                except Exception as e:
-                    logger.error(f"Error loading admins.json: {e}")
-
-            user_id_str = str(interaction.user.id)
-            if user_id_str not in admin_users:
+            # Check if user is admin using service
+            is_admin = await admin_service.is_user_admin_async(user_id)
+            if not is_admin:
                 await interaction.followup.send(
                     "❌ You don't have permission to restart all containers.",
                     ephemeral=True
@@ -286,41 +217,13 @@ class AdminOverviewStopAllButton(Button):
             return
 
         try:
-            # Edge case: Config might be unavailable
-            config = load_config()
-            if not config:
-                await interaction.followup.send(
-                    "❌ Configuration unavailable. Please try again later.",
-                    ephemeral=True
-                )
-                return
+            # SERVICE FIRST: Use AdminService to check permissions
+            admin_service = get_admin_service()
+            user_id = str(interaction.user.id)
 
-            # Load admin users with proper error handling
-            import json
-            from pathlib import Path
-            base_dir = config.get('base_dir', '/app')
-            admins_file = Path(base_dir) / 'config' / 'admins.json'
-
-            admin_users = []
-            if admins_file.exists():
-                try:
-                    with open(admins_file, 'r') as f:
-                        content = f.read()
-                        if content.strip():  # Edge case: Empty file
-                            admin_data = json.loads(content)
-                            admin_users = admin_data.get('discord_admin_users', [])
-                except json.JSONDecodeError as e:
-                    logger.error(f"Invalid JSON in admins.json: {e}")
-                    await interaction.followup.send(
-                        "❌ Admin configuration error. Please contact support.",
-                        ephemeral=True
-                    )
-                    return
-                except Exception as e:
-                    logger.error(f"Error loading admins.json: {e}")
-
-            user_id_str = str(interaction.user.id)
-            if user_id_str not in admin_users:
+            # Check if user is admin using service
+            is_admin = await admin_service.is_user_admin_async(user_id)
+            if not is_admin:
                 await interaction.followup.send(
                     "❌ You don't have permission to stop all containers.",
                     ephemeral=True
@@ -513,17 +416,11 @@ class ConfirmRestartAllButton(Button):
         self.cog._bulk_operation_in_progress = True
 
         try:
-            # Edge case: Config might be unavailable
-            config = load_config()
-            if not config:
-                await interaction.followup.send(
-                    "❌ Configuration unavailable. Operation cancelled.",
-                    ephemeral=True
-                )
-                return
+            # SERVICE FIRST: Use ServerConfigService to get server configurations
+            server_config_service = get_server_config_service()
+            servers = server_config_service.get_all_servers()
 
-            servers = config.get('servers', [])
-            if not isinstance(servers, list) or not servers:
+            if not servers:
                 await interaction.followup.send(
                     "❌ No servers configured.",
                     ephemeral=True
@@ -554,14 +451,16 @@ class ConfirmRestartAllButton(Button):
                 if not docker_name or not isinstance(docker_name, str):
                     continue
 
-                # Check if container is running (with validation)
-                cached_entry = self.cog.status_cache.get(server.get('name', docker_name))
-                if cached_entry and cached_entry.get('data'):
-                    try:
-                        data = cached_entry['data']
-                        if isinstance(data, tuple) and len(data) >= 2:
-                            is_running = data[1]
-                            if is_running:
+                # SERVICE FIRST: Use StatusCacheService to check if container is running
+                status_cache_service = get_status_cache_service(self.cog)
+                display_name = server.get('name', docker_name)
+                is_running = status_cache_service.is_container_running(display_name)
+
+                if is_running is None and display_name != docker_name:
+                    # Try with docker_name if display_name didn't work
+                    is_running = status_cache_service.is_container_running(docker_name)
+
+                if is_running:
                                 # Restart container with timeout protection
                                 try:
                                     # Add small delay between operations to avoid overloading
@@ -585,12 +484,8 @@ class ConfirmRestartAllButton(Button):
                                 except Exception as e:
                                     logger.error(f"Error restarting {docker_name}: {e}")
                                     failed_count += 1
-                            else:
-                                skipped_count += 1
-                        else:
-                            logger.warning(f"Invalid cache data format for {docker_name}")
-                    except Exception as e:
-                        logger.error(f"Error processing cache for {docker_name}: {e}")
+                else:
+                    skipped_count += 1
 
             # Send result message
             description = f"Successfully restarted: **{restarted_count}** containers"
@@ -640,10 +535,10 @@ class ConfirmRestartAllButton(Button):
                     if message.author == self.cog.bot.user and message.embeds:
                         embed = message.embeds[0]
                         if embed.title == "Admin Overview":
-                            # Recreate admin overview
-                            config = load_config()
-                            servers = config.get('servers', [])
-                            ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
+                            # SERVICE FIRST: Recreate admin overview using service
+                            server_config_service = get_server_config_service()
+                            ordered_servers = server_config_service.get_ordered_servers()
+                            config = load_config()  # Still need config for embed creation
 
                             new_embed, _, has_running = await self.cog._create_admin_overview_embed(ordered_servers, config)
                             new_view = AdminOverviewView(self.cog, self.channel_id, has_running)
@@ -691,17 +586,11 @@ class ConfirmStopAllButton(Button):
         self.cog._bulk_operation_in_progress = True
 
         try:
-            # Edge case: Config might be unavailable
-            config = load_config()
-            if not config:
-                await interaction.followup.send(
-                    "❌ Configuration unavailable. Operation cancelled.",
-                    ephemeral=True
-                )
-                return
+            # SERVICE FIRST: Use ServerConfigService to get server configurations
+            server_config_service = get_server_config_service()
+            servers = server_config_service.get_all_servers()
 
-            servers = config.get('servers', [])
-            if not isinstance(servers, list) or not servers:
+            if not servers:
                 await interaction.followup.send(
                     "❌ No servers configured.",
                     ephemeral=True
@@ -732,14 +621,16 @@ class ConfirmStopAllButton(Button):
                 if not docker_name or not isinstance(docker_name, str):
                     continue
 
-                # Check if container is running (with validation)
-                cached_entry = self.cog.status_cache.get(server.get('name', docker_name))
-                if cached_entry and cached_entry.get('data'):
-                    try:
-                        data = cached_entry['data']
-                        if isinstance(data, tuple) and len(data) >= 2:
-                            is_running = data[1]
-                            if is_running:
+                # SERVICE FIRST: Use StatusCacheService to check if container is running
+                status_cache_service = get_status_cache_service(self.cog)
+                display_name = server.get('name', docker_name)
+                is_running = status_cache_service.is_container_running(display_name)
+
+                if is_running is None and display_name != docker_name:
+                    # Try with docker_name if display_name didn't work
+                    is_running = status_cache_service.is_container_running(docker_name)
+
+                if is_running:
                                 # Stop container with timeout protection
                                 try:
                                     # Add small delay between operations to avoid overloading
@@ -763,12 +654,8 @@ class ConfirmStopAllButton(Button):
                                 except Exception as e:
                                     logger.error(f"Error stopping {docker_name}: {e}")
                                     failed_count += 1
-                            else:
-                                skipped_count += 1
-                        else:
-                            logger.warning(f"Invalid cache data format for {docker_name}")
-                    except Exception as e:
-                        logger.error(f"Error processing cache for {docker_name}: {e}")
+                else:
+                    skipped_count += 1
 
             # Send result message
             description = f"Successfully stopped: **{stopped_count}** containers"
@@ -818,10 +705,10 @@ class ConfirmStopAllButton(Button):
                     if message.author == self.cog.bot.user and message.embeds:
                         embed = message.embeds[0]
                         if embed.title == "Admin Overview":
-                            # Recreate admin overview
-                            config = load_config()
-                            servers = config.get('servers', [])
-                            ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
+                            # SERVICE FIRST: Recreate admin overview using service
+                            server_config_service = get_server_config_service()
+                            ordered_servers = server_config_service.get_ordered_servers()
+                            config = load_config()  # Still need config for embed creation
 
                             new_embed, _, has_running = await self.cog._create_admin_overview_embed(ordered_servers, config)
                             new_view = AdminOverviewView(self.cog, self.channel_id, has_running)
