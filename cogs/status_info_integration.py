@@ -654,45 +654,52 @@ class DebugLogsButton(discord.ui.Button):
     
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle debug logs button click with live-updating response."""
-        # Check button cooldown first  
-        from services.infrastructure.spam_protection_service import get_spam_protection_service
-        spam_manager = get_spam_protection_service()
-        
-        if spam_manager.is_enabled():
-            cooldown_seconds = spam_manager.get_button_cooldown("logs")  # Use logs cooldown
-            current_time = time.time()
-            cooldown_key = f"button_logs_{interaction.user.id}"
-            
-            if hasattr(self.cog, '_button_cooldowns'):
-                if cooldown_key in self.cog._button_cooldowns:
-                    last_use = self.cog._button_cooldowns[cooldown_key]
-                    if current_time - last_use < cooldown_seconds:
-                        remaining = cooldown_seconds - (current_time - last_use)
-                        await interaction.response.send_message(
-                            f"⏰ Please wait {remaining:.1f} more seconds before using this button again.", 
-                            ephemeral=True
-                        )
-                        return
-            else:
-                self.cog._button_cooldowns = {}
-            
-            # Record button use
-            self.cog._button_cooldowns[cooldown_key] = current_time
-        
         try:
+            # Try to defer immediately to avoid timeout
+            try:
+                await interaction.response.defer(ephemeral=True)
+            except discord.errors.NotFound:
+                logger.warning(f"Debug logs interaction expired for {self.container_name}")
+                return
+            except Exception as e:
+                logger.error(f"Error deferring debug logs interaction: {e}")
+                return
+
+            # Check button cooldown after deferring
+            from services.infrastructure.spam_protection_service import get_spam_protection_service
+            spam_manager = get_spam_protection_service()
+
+            if spam_manager.is_enabled():
+                cooldown_seconds = spam_manager.get_button_cooldown("logs")  # Use logs cooldown
+                current_time = time.time()
+                cooldown_key = f"button_logs_{interaction.user.id}"
+
+                if hasattr(self.cog, '_button_cooldowns'):
+                    if cooldown_key in self.cog._button_cooldowns:
+                        last_use = self.cog._button_cooldowns[cooldown_key]
+                        if current_time - last_use < cooldown_seconds:
+                            remaining = cooldown_seconds - (current_time - last_use)
+                            await interaction.followup.send(
+                                f"⏰ Please wait {remaining:.1f} more seconds before using this button again.",
+                                ephemeral=True
+                            )
+                            return
+                else:
+                    self.cog._button_cooldowns = {}
+
+                # Record button use
+                self.cog._button_cooldowns[cooldown_key] = current_time
+
             # Check if Live Logs feature is enabled
             live_logs_enabled = os.getenv('DDC_LIVE_LOGS_ENABLED', 'true').lower() in ['true', '1', 'on', 'yes']
-            
+
             if not live_logs_enabled:
                 # Live Logs feature is disabled - show error message
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     _("❌ Live Logs feature is currently disabled by administrator."),
                     ephemeral=True
                 )
                 return
-            
-            # Always use ephemeral (private) messages for Live Logs
-            await interaction.response.defer(ephemeral=True)
             
             logger.info(f"Live debug logs (ephemeral) requested for container: {self.container_name}")
             
@@ -1196,8 +1203,17 @@ class TaskManagementButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle task management button click."""
         try:
-            # Defer immediately to avoid timeout
-            await interaction.response.defer(ephemeral=True)
+            # Try to defer immediately, but handle the case where interaction has already expired
+            try:
+                await interaction.response.defer(ephemeral=True)
+                deferred = True
+            except discord.errors.NotFound:
+                # Interaction has already expired (>3 seconds)
+                logger.warning(f"Task management interaction expired for {self.container_name}")
+                return  # Can't send any response if interaction expired
+            except Exception as e:
+                logger.error(f"Error deferring task management interaction: {e}")
+                return
 
             # Check spam protection after deferring
             from services.infrastructure.spam_protection_service import get_spam_protection_service

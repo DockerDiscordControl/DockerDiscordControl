@@ -24,6 +24,7 @@ class AdminOverviewView(View):
         self.add_item(AdminOverviewAdminButton(cog_instance, channel_id))
         self.add_item(AdminOverviewRestartAllButton(cog_instance, channel_id, enabled=has_running_containers))
         self.add_item(AdminOverviewStopAllButton(cog_instance, channel_id, enabled=has_running_containers))
+        self.add_item(AdminOverviewDonateButton(cog_instance, channel_id))
 
 class AdminOverviewAdminButton(Button):
     """Admin button for accessing individual container controls."""
@@ -239,6 +240,85 @@ class AdminOverviewStopAllButton(Button):
                 if not interaction.response.is_done():
                     await interaction.response.send_message(
                         "❌ Error processing stop all request.",
+                        ephemeral=True
+                    )
+            except Exception:
+                pass
+
+class AdminOverviewDonateButton(Button):
+    """Donate button for supporting the project."""
+
+    def __init__(self, cog_instance, channel_id: int):
+        self.cog = cog_instance
+        self.channel_id = channel_id
+
+        super().__init__(
+            style=discord.ButtonStyle.success,  # Green button
+            label=None,  # No text, only icon
+            emoji="💖",  # Heart icon for donations
+            custom_id=f"admin_overview_donate_{channel_id}",
+            row=0
+        )
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Execute /donate command when clicked."""
+        try:
+            # Defer the interaction first
+            await interaction.response.defer(ephemeral=True)
+
+            # Check if donations are disabled
+            try:
+                from services.donation.donation_utils import is_donations_disabled
+                if is_donations_disabled():
+                    # Donations disabled, send minimal response
+                    try:
+                        await interaction.followup.send(".", delete_after=0.1)
+                    except:
+                        pass
+                    return
+            except Exception as e:
+                logger.debug(f"Donation check failed: {e}")
+
+            # Create donation embed (matching the /donate command)
+            from .translation_manager import _ as translate
+
+            embed = discord.Embed(
+                title=translate('Support DockerDiscordControl'),
+                description=translate(
+                    'If DDC helps you, please consider supporting ongoing development. '
+                    'Donations help cover hosting, CI, maintenance, and feature work.'
+                ),
+                color=0x00ff41  # Green color
+            )
+            embed.add_field(
+                name=translate('Choose your preferred method:'),
+                value=translate('Click one of the buttons below to support DDC development'),
+                inline=False
+            )
+
+            # Create donation view with buttons
+            # Check MechService availability (same as /donate command)
+            mech_service_available = False
+            try:
+                from services.mech.mech_service import get_mech_service
+                mech_service = get_mech_service()
+                mech_service_available = True
+            except:
+                pass
+
+            # Import DonationView from docker_control
+            from .docker_control import DonationView
+            view = DonationView(mech_service_available, bot=self.cog.bot)
+
+            # Send the donation embed with buttons
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"Error in donate button: {e}", exc_info=True)
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(
+                        "❌ Error processing donate request.",
                         ephemeral=True
                     )
             except Exception:
