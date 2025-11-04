@@ -2239,7 +2239,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 if is_running:
                     has_running_containers = True
 
-                # Determine status icon
+                # Determine status icon (same as Status Overview)
                 if display_name in self.pending_actions:
                     pending_timestamp = self.pending_actions[display_name]['timestamp']
                     pending_duration = (now_utc - pending_timestamp).total_seconds()
@@ -2251,8 +2251,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 else:
                     status_emoji = "🟢" if is_running else "🔴"
 
-                # Truncate name for display
-                truncated_name = display_name[:15] + ".." if len(display_name) > 15 else display_name
+                # Truncate name for display (max 20 chars like Status Overview)
+                truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
 
                 # Format resource info
                 if is_running:
@@ -2276,16 +2276,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     line = f"│ {status_emoji} {truncated_name}{info_indicator}"
                     content_lines.append(line)
             else:
-                # No data available
-                truncated_name = display_name[:15] + ".." if len(display_name) > 15 else display_name
-                line = f"│ ⚫ {truncated_name} (Loading...)"
+                # No data available (use 🔄 like Status Overview)
+                truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
+                line = f"│ 🔄 {truncated_name}{info_indicator}"
                 content_lines.append(line)
 
         # Close the box
         content_lines.append("└───────────────────────────")
 
-        # Set the description
-        embed.description = "\n".join(content_lines)
+        # Set the description with code block (like Status Overview)
+        embed.description = "```\n" + "\n".join(content_lines) + "\n```"
 
         # Add footer
         embed.set_footer(text="https://ddc.bot")

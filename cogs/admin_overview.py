@@ -120,7 +120,7 @@ class AdminOverviewRestartAllButton(Button):
 
         super().__init__(
             style=discord.ButtonStyle.primary,
-            label="Restart All",
+            label=None,
             emoji="🔄",
             custom_id=f"admin_overview_restart_all_{channel_id}",
             row=0,
@@ -187,7 +187,7 @@ class AdminOverviewStopAllButton(Button):
 
         super().__init__(
             style=discord.ButtonStyle.danger,
-            label="Stop All",
+            label=None,
             emoji="⏹️",
             custom_id=f"admin_overview_stop_all_{channel_id}",
             row=0,
