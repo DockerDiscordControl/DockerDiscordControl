@@ -70,11 +70,30 @@ class AdminOverviewAdminButton(Button):
                 )
                 return
 
+            # Get containers list for dropdown
+            servers = config.get('servers', [])
+            containers = []
+            for server in servers:
+                docker_name = server.get('docker_name')
+                display_name = server.get('name', docker_name)
+                if docker_name:
+                    containers.append({
+                        'name': display_name,
+                        'docker_name': docker_name
+                    })
+
+            if not containers:
+                await interaction.response.send_message(
+                    "❌ No containers found in configuration.",
+                    ephemeral=True
+                )
+                return
+
             # Import AdminContainerSelectView from control_ui
             from .control_ui import AdminContainerSelectView
 
-            # Create dropdown view
-            view = AdminContainerSelectView(self.cog, self.channel_id)
+            # Create dropdown view with containers list
+            view = AdminContainerSelectView(self.cog, containers, self.channel_id)
             await interaction.response.send_message(
                 "Select a container to control:",
                 view=view,
