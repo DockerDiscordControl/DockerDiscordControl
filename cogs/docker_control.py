@@ -2178,7 +2178,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         # Create the admin overview embed
         embed = discord.Embed(
             title="Admin Overview",
-            color=discord.Color.gold()  # Gold color for admin functions
+            color=discord.Color.blue()  # Blue like Status Overview
         )
 
         # Build server status lines with CPU and RAM
@@ -2198,7 +2198,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         has_running_containers = False
 
         # Add server statuses with resource info
-        for server_conf in ordered_servers:
+        for idx, server_conf in enumerate(ordered_servers):
             display_name = server_conf.get('name', server_conf.get('docker_name'))
             docker_name = server_conf.get('docker_name')
             if not display_name or not docker_name:
@@ -2269,9 +2269,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     except (ValueError, TypeError):
                         mem_str = "N/A"
                     line = f"│ {status_emoji} {truncated_name}{info_indicator}"
-                    # Add resource info on next line, indented
+                    # Add resource info on next line, properly aligned with container name
                     content_lines.append(line)
-                    content_lines.append(f"│   CPU: {cpu_str} RAM: {mem_str}")
+                    content_lines.append(f"│    CPU: {cpu_str} RAM: {mem_str}")
                 else:
                     line = f"│ {status_emoji} {truncated_name}{info_indicator}"
                     content_lines.append(line)
@@ -2280,6 +2280,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
                 line = f"│ 🔄 {truncated_name}{info_indicator}"
                 content_lines.append(line)
+
+            # Add separator between containers (except after the last one)
+            if idx < len(ordered_servers) - 1:
+                content_lines.append("├───────────────────────────")
 
         # Close the box
         content_lines.append("└───────────────────────────")
