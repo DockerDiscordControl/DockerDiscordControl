@@ -316,7 +316,16 @@ class ActionButton(Button):
                     async with self.cog.pending_actions_lock:
                         if self.display_name in self.cog.pending_actions:
                             del self.cog.pending_actions[self.display_name]
-                    
+
+                    # Invalidate cache for this container to force fresh status
+                    if self.display_name in self.cog.status_cache:
+                        logger.info(f"[ACTION_BTN] Invalidating cache for {self.display_name}")
+                        del self.cog.status_cache[self.display_name]
+
+                    # Wait a moment for Docker to update container state
+                    await asyncio.sleep(2)  # 2 seconds for container to transition
+
+                    # Get fresh status after Docker has updated
                     server_config_for_update = next((s for s in config.get('servers', []) if s.get('name') == self.display_name), None)
                     if server_config_for_update:
                         fresh_status = await self.cog.get_status(server_config_for_update)
@@ -325,6 +334,7 @@ class ActionButton(Button):
                                 'data': fresh_status,
                                 'timestamp': datetime.now(timezone.utc)
                             }
+                            logger.info(f"[ACTION_BTN] Cache updated for {self.display_name}, is_running: {fresh_status[1] if fresh_status else 'Unknown'}")
                     
                     try:
                         if hasattr(self.cog, '_generate_status_embed_and_view'):
@@ -404,7 +414,58 @@ class ActionButton(Button):
                                     logger.warning(f"[ACTION_BTN] Interaction expired during update for {self.display_name}: {e}")
                     except Exception as e:
                         logger.error(f"[ACTION_BTN] Error updating message after {self.action}: {e}")
-                        
+
+                    # Schedule status overview update after 10 seconds
+                    async def update_status_overview():
+                        try:
+                            await asyncio.sleep(10)  # Wait 10 seconds
+                            logger.info(f"[ACTION_BTN] Updating status overview for {self.display_name}")
+
+                            # Invalidate cache again to get latest status
+                            if self.display_name in self.cog.status_cache:
+                                del self.cog.status_cache[self.display_name]
+
+                            # Get fresh status
+                            server_config_for_update = next((s for s in config.get('servers', []) if s.get('name') == self.display_name), None)
+                            if server_config_for_update:
+                                fresh_status = await self.cog.get_status(server_config_for_update)
+                                if not isinstance(fresh_status, Exception):
+                                    self.cog.status_cache[self.display_name] = {
+                                        'data': fresh_status,
+                                        'timestamp': datetime.now(timezone.utc)
+                                    }
+
+                            # Update all status messages for this container
+                            if hasattr(self.cog, 'tracked_status_messages'):
+                                for channel_id, messages in self.cog.tracked_status_messages.items():
+                                    for msg_data in messages:
+                                        if msg_data.get('display_name') == self.display_name:
+                                            try:
+                                                channel = self.cog.bot.get_channel(channel_id)
+                                                if channel:
+                                                    message = await channel.fetch_message(msg_data['message_id'])
+                                                    if message:
+                                                        embed, view, _ = await self.cog._generate_status_embed_and_view(
+                                                            channel_id,
+                                                            self.display_name,
+                                                            server_config_for_update,
+                                                            config,
+                                                            allow_toggle=True,
+                                                            force_collapse=False,
+                                                            show_cache_age=False
+                                                        )
+                                                        if embed:
+                                                            await message.edit(embed=embed, view=view)
+                                                            logger.info(f"[ACTION_BTN] Updated status overview message for {self.display_name} in channel {channel_id}")
+                                            except Exception as e:
+                                                logger.error(f"[ACTION_BTN] Failed to update status message: {e}")
+                        except Exception as e:
+                            logger.error(f"[ACTION_BTN] Error in status overview update: {e}")
+
+                    # Create task for status overview update
+                    overview_task = asyncio.create_task(update_status_overview())
+                    overview_task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
+
                 except Exception as e:
                     logger.error(f"[ACTION_BTN] Error in background Docker {self.action}: {e}")
                     # Thread-safe removal from pending_actions
