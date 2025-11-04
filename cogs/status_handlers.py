@@ -971,13 +971,15 @@ class StatusHandlersMixin:
             from .status_info_integration import should_show_info_in_status_channel, StatusInfoView, create_enhanced_status_embed
             
             # Check if this is a status-only channel that should show info integration
-            show_info_integration = should_show_info_in_status_channel(channel_id, current_config)
-            
+            # Skip info integration for admin control messages
+            is_admin_control = actual_server_conf.get('_is_admin_control', False)
+            show_info_integration = should_show_info_in_status_channel(channel_id, current_config) and not is_admin_control
+
             if show_info_integration and not channel_has_control:
                 # STATUS-ONLY CHANNEL: Use StatusInfoView and enhance embed
                 logger.debug(f"[_GEN_EMBED] Using StatusInfoView for status-only channel {channel_id}")
                 view = StatusInfoView(self, actual_server_conf, running)
-                
+
                 # Enhance embed with info indicators if info is available
                 embed = create_enhanced_status_embed(embed, actual_server_conf, info_indicator=True)
                 

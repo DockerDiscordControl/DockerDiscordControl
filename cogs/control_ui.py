@@ -1644,9 +1644,6 @@ class AdminContainerDropdown(discord.ui.Select):
                     force_collapse=False
                 )
 
-                # Remove temporary marker
-                container_config.pop('_is_admin_control', None)
-
                 # Get container status using cog's method
                 status_result = await self.cog.get_status(container_config)
                 is_running = False
@@ -1666,6 +1663,9 @@ class AdminContainerDropdown(discord.ui.Select):
                 # Add admin header to embed
                 embed.title = f"🛠️ Admin Control: {display_name}"
                 embed.color = discord.Color.red()
+
+                # Clean up temporary marker after everything is done
+                container_config.pop('_is_admin_control', None)
 
                 await interaction.response.edit_message(embed=embed, view=control_view)
             else:
