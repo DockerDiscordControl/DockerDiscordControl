@@ -323,12 +323,14 @@ class ActionButton(Button):
                         del self.cog.status_cache[self.display_name]
 
                     # Multiple attempts to get correct status after Docker updates
-                    max_retries = 3
-                    retry_delays = [3, 2, 2]  # Wait 3s, then 2s, then 2s more (total 7s)
+                    # Some containers (like game servers) can take 15-30+ seconds to fully start
+                    max_retries = 6
+                    retry_delays = [3, 3, 5, 5, 5, 5]  # Total up to 26 seconds
 
                     for retry in range(max_retries):
                         await asyncio.sleep(retry_delays[retry])
-                        logger.info(f"[ACTION_BTN] Getting status for {self.display_name} (attempt {retry + 1}/{max_retries})")
+                        total_waited = sum(retry_delays[:retry+1])
+                        logger.info(f"[ACTION_BTN] Getting status for {self.display_name} (attempt {retry + 1}/{max_retries}, waited {total_waited}s total)")
 
                         # Get fresh status after Docker has updated
                         server_config_for_update = next((s for s in config.get('servers', []) if s.get('name') == self.display_name), None)
@@ -440,10 +442,10 @@ class ActionButton(Button):
                     except Exception as e:
                         logger.error(f"[ACTION_BTN] Error updating message after {self.action}: {e}")
 
-                    # Schedule status overview update after 10 seconds
+                    # Schedule status overview update after container has time to fully transition
                     async def update_status_overview():
                         try:
-                            await asyncio.sleep(10)  # Wait 10 seconds
+                            await asyncio.sleep(30)  # Wait 30 seconds for container to fully start/stop
                             logger.info(f"[ACTION_BTN] Updating status overview for {self.display_name}")
 
                             # Invalidate cache again to get latest status
