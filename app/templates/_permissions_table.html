@@ -1,150 +1,206 @@
 <hr class="my-4">
-<div class="mb-3 card p-3">
-    <h4>Command Permissions</h4>
-    <p class="form-text">Configure which commands can be used in which channels. The control channel always allows all commands.</p>
+
+<!-- Status Channels Section -->
+<div class="mb-4 card p-3">
+    <h4>📊 Status Channels</h4>
+    <p class="form-text">Status channels display container status messages. Only admin users can use /task and Info functions.</p>
+    <div class="alert alert-info small">
+        <strong>Permissions:</strong> All users can use <code>/serverstatus</code> command. Admin users additionally get access to <code>/task</code> commands and Info buttons.
+    </div>
     <div class="d-flex justify-content-between mb-3">
-        <button type="button" class="btn btn-success btn-sm" onclick="addChannelRow()">+ Add Channel</button>
+        <button type="button" class="btn btn-success btn-sm" onclick="addStatusChannelRow()">+ Add Channel</button>
         <button type="button" class="btn btn-warning btn-sm" onclick="openAdminModal()">👤 Admin Users</button>
     </div>
-    <table class="table table-dark table-sm small table-hover" id="command-permissions-table">
+    <table class="table table-dark table-sm small table-hover" id="status-channels-table">
         <thead>
             <tr>
-                <th scope="col" style="width: 12%;">Channel Name<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" title="A display name to help you remember which channel this is"></i></th>
-                <th scope="col" style="width: 12%;">Channel ID<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" title="The Discord channel ID. Enable Developer Mode in Discord, then right-click the channel and select Copy ID"></i></th>
-                <th scope="col" class="text-center" style="width: 7%;" data-bs-toggle="tooltip" title="Allows /serverstatus and /ss commands">/serverstatus<i class="bi bi-question-circle help-icon"></i></th>
-                <th scope="col" class="text-center" style="width: 7%;" data-bs-toggle="tooltip" title="Allows /control command (automatically enables /command)">/control<i class="bi bi-question-circle help-icon"></i></th>
-                <th scope="col" class="text-center" style="width: 7%;" data-bs-toggle="tooltip" title="Allows all task commands (/task_once, /task_daily, etc.)...">/task<i class="bi bi-question-circle help-icon"></i></th>
-                <th scope="col" class="text-center border-start border-secondary" style="width: 7%;" data-bs-toggle="tooltip" title="Allows container info button display and editing">Info<i class="bi bi-question-circle help-icon"></i></th>
-                <th scope="col" class="text-center" style="width: 8%;" data-bs-toggle="tooltip" title="Post initial status/control messages on bot start?">Initial<i class="bi bi-question-circle help-icon"></i></th>
-                <th scope="col" class="text-center" style="width: 9%; border-left: 3px solid #0dcaf0;" data-bs-toggle="tooltip" title="Enable periodic status updates?">Refresh<i class="bi bi-question-circle help-icon"></i></th>
-                <th scope="col" style="width: 7%;" data-bs-toggle="tooltip" title="Update status messages every X minutes (if refresh is enabled).">Minutes</th>
-                <th scope="col" class="text-center" style="width: 9%; border-left: 3px solid #0dcaf0;" data-bs-toggle="tooltip" title="If enabled, checks if the bot's last activity in the channel is older than the timeout. If yes, AND the actual last message in the channel is NOT from the bot, the bot will delete its old messages and post fresh ones to bring them back to the bottom.">Recreate<i class="bi bi-question-circle help-icon"></i></th>
-                <th scope="col" style="width: 7%;" data-bs-toggle="tooltip" title="Regenerate messages after X minutes of inactivity (if recreate is enabled). Minimum 1.">Minutes</th>
+                <th scope="col" style="width: 15%;">Channel Name<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" title="A display name to help you remember which channel this is"></i></th>
+                <th scope="col" style="width: 20%;">Channel ID<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" title="The Discord channel ID. Enable Developer Mode in Discord, then right-click the channel and select Copy ID"></i></th>
+                <th scope="col" class="text-center" style="width: 10%;" data-bs-toggle="tooltip" title="Post initial status messages on bot start?">Initial<i class="bi bi-question-circle help-icon"></i></th>
+                <th scope="col" class="text-center" style="width: 10%; border-left: 3px solid #0dcaf0;" data-bs-toggle="tooltip" title="Enable periodic status updates?">Refresh<i class="bi bi-question-circle help-icon"></i></th>
+                <th scope="col" style="width: 10%;" data-bs-toggle="tooltip" title="Update status messages every X minutes (if refresh is enabled).">Minutes</th>
+                <th scope="col" class="text-center" style="width: 10%; border-left: 3px solid #0dcaf0;" data-bs-toggle="tooltip" title="Recreate messages after channel inactivity?">Recreate<i class="bi bi-question-circle help-icon"></i></th>
+                <th scope="col" style="width: 10%;" data-bs-toggle="tooltip" title="Recreate messages after X minutes of inactivity.">Minutes</th>
                 <th scope="col" class="text-center" style="width: 5%; border-left: 3px solid #0dcaf0;">Action</th>
             </tr>
         </thead>
         <tbody>
             {% set channel_permissions = config.get('channel_permissions', {}) %}
             {% set defaults = config.get('default_channel_permissions', DEFAULT_CONFIG['default_channel_permissions']) %}
-            {% if not channel_permissions %}
-                 <tr id="channel-row-1">
-                    <td><input type="text" class="form-control form-control-sm" name="channel_name_1" placeholder="Channel Name"></td>
+            {% set status_channel_count = 0 %}
+            {% for channel_id, channel_data in channel_permissions.items() %}
+                {% if not channel_data.commands.control %}
+                    {% set status_channel_count = status_channel_count + 1 %}
+                    <tr id="status-channel-row-{{ status_channel_count }}">
+                        <td><input type="text" class="form-control form-control-sm" name="status_channel_name_{{ status_channel_count }}" value="{{ channel_data.name }}" placeholder="Channel Name"></td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm" name="status_channel_id_{{ status_channel_count }}" value="{{ channel_id }}" placeholder="Channel ID">
+                            <input type="hidden" name="old_status_channel_id_{{ status_channel_count }}" value="{{ channel_id }}">
+                        </td>
+                        <td class="text-center">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="status_post_initial_{{ status_channel_count }}" value="1" {% if channel_data.post_initial %}checked{% endif %}>
+                                <label class="form-check-label visually-hidden">Initial</label>
+                            </div>
+                        </td>
+                        <td class="text-center" style="border-left: 3px solid #0dcaf0;">
+                            <div class="form-check">
+                                <input class="form-check-input auto-refresh-checkbox" type="checkbox" name="status_enable_auto_refresh_{{ status_channel_count }}" value="1" {% set is_ar_checked = channel_data.get('enable_auto_refresh', defaults.get('enable_auto_refresh', False)) %}{% if is_ar_checked %}checked{% endif %} data-target-input=".interval-minutes-input">
+                                <label class="form-check-label visually-hidden">Refresh</label>
+                            </div>
+                        </td>
+                        <td><input type="number" class="form-control form-control-sm interval-minutes-input" name="status_update_interval_minutes_{{ status_channel_count }}" value="{{ channel_data.get('update_interval_minutes', defaults.get('update_interval_minutes', 1)) }}" min="1" style="width: 70px;" {% if not is_ar_checked %}disabled{% endif %}></td>
+                        <td class="text-center" style="border-left: 3px solid #0dcaf0;">
+                            <div class="form-check">
+                                <input class="form-check-input recreate-checkbox" type="checkbox" name="status_recreate_messages_{{ status_channel_count }}" value="1" {% set is_ri_checked = channel_data.get('recreate_messages_on_inactivity', defaults.get('recreate_messages_on_inactivity', False)) %}{% if is_ri_checked %}checked{% endif %} data-target-input=".inactivity-minutes-input">
+                                <label class="form-check-label visually-hidden">Recreate on Inactivity</label>
+                            </div>
+                        </td>
+                        <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="status_inactivity_timeout_{{ status_channel_count }}" value="{{ channel_data.get('inactivity_timeout_minutes', defaults.get('inactivity_timeout_minutes', 1)) }}" min="1" style="width: 70px;" {% if not is_ri_checked %}disabled{% endif %}></td>
+                        <td class="text-center" style="border-left: 3px solid #0dcaf0;">
+                            <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="status-channel-row-{{ status_channel_count }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                {% endif %}
+            {% endfor %}
+            {% if status_channel_count == 0 %}
+                <tr id="status-channel-row-1">
+                    <td><input type="text" class="form-control form-control-sm" name="status_channel_name_1" placeholder="Channel Name"></td>
                     <td>
-                        <input type="text" class="form-control form-control-sm" name="channel_id_1" placeholder="Channel ID">
-                         <input type="hidden" name="old_channel_id_1" value="">
+                        <input type="text" class="form-control form-control-sm" name="status_channel_id_1" placeholder="Channel ID">
+                        <input type="hidden" name="old_status_channel_id_1" value="">
                     </td>
                     <td class="text-center">
                         <div class="form-check">
-                            <input class="form-check-input cmd-serverstatus" type="checkbox" name="cmd_serverstatus_1" value="1" {% if defaults.get('commands', {}).get('serverstatus', False) %}checked{% endif %}>
-                            <label class="form-check-label visually-hidden">/serverstatus</label>
-                        </div>
-                    </td>
-                    <td class="text-center">
-                         <div class="form-check">
-                            <input class="form-check-input cmd-control" type="checkbox" name="cmd_control_1" value="1" {% if defaults.get('commands', {}).get('control', False) %}checked{% endif %}>
-                             <label class="form-check-label visually-hidden">/control</label>
-                        </div>
-                    </td>
-                    <td class="text-center">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="cmd_schedule_1" value="1" {% if defaults.get('commands', {}).get('schedule', False) %}checked{% endif %}>
-                            <label class="form-check-label visually-hidden">/task</label>
-                        </div>
-                    </td>
-                    <td class="text-center border-start border-secondary">
-                        <div class="form-check">
-                            <input class="form-check-input cmd-info" type="checkbox" name="cmd_info_1" value="1">
-                            <label class="form-check-label visually-hidden">Info</label>
-                        </div>
-                    </td>
-                    <td class="text-center">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="post_initial_1" value="1" {% if defaults.get('post_initial', False) %}checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" name="status_post_initial_1" value="1" {% if defaults.get('post_initial', False) %}checked{% endif %}>
                             <label class="form-check-label visually-hidden">Initial</label>
                         </div>
                     </td>
                     <td class="text-center" style="border-left: 3px solid #0dcaf0;">
                         <div class="form-check">
-                            <input class="form-check-input auto-refresh-checkbox" type="checkbox" name="enable_auto_refresh_1" value="1" {% if defaults.get('enable_auto_refresh', False) %}checked{% endif %} data-target-input=".interval-minutes-input">
+                            <input class="form-check-input auto-refresh-checkbox" type="checkbox" name="status_enable_auto_refresh_1" value="1" {% if defaults.get('enable_auto_refresh', False) %}checked{% endif %} data-target-input=".interval-minutes-input">
                             <label class="form-check-label visually-hidden">Refresh</label>
                         </div>
                     </td>
-                    <td><input type="number" class="form-control form-control-sm interval-minutes-input" name="update_interval_minutes_1" value="{{ defaults.get('update_interval_minutes', 1) }}" min="1" style="width: 60px;" {% if not defaults.get('enable_auto_refresh', False) %}disabled{% endif %}></td>
+                    <td><input type="number" class="form-control form-control-sm interval-minutes-input" name="status_update_interval_minutes_1" value="{{ defaults.get('update_interval_minutes', 1) }}" min="1" style="width: 70px;" {% if not defaults.get('enable_auto_refresh', False) %}disabled{% endif %}></td>
                     <td class="text-center" style="border-left: 3px solid #0dcaf0;">
                         <div class="form-check">
-                            <input class="form-check-input recreate-checkbox" type="checkbox" name="recreate_messages_on_inactivity_1" value="1" {% if defaults.get('recreate_messages_on_inactivity', False) %}checked{% endif %} data-target-input=".inactivity-minutes-input">
+                            <input class="form-check-input recreate-checkbox" type="checkbox" name="status_recreate_messages_1" value="1" {% if defaults.get('recreate_messages_on_inactivity', False) %}checked{% endif %} data-target-input=".inactivity-minutes-input">
                             <label class="form-check-label visually-hidden">Recreate on Inactivity</label>
                         </div>
                     </td>
-                    <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="inactivity_timeout_minutes_1" value="{{ defaults.get('inactivity_timeout_minutes', 1) }}" min="1" style="width: 60px;" {% if not defaults.get('recreate_messages_on_inactivity', False) %}disabled{% endif %}></td>
+                    <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="status_inactivity_timeout_1" value="{{ defaults.get('inactivity_timeout_minutes', 1) }}" min="1" style="width: 70px;" {% if not defaults.get('recreate_messages_on_inactivity', False) %}disabled{% endif %}></td>
                     <td class="text-center" style="border-left: 3px solid #0dcaf0;">
-                        <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="channel-row-1">
+                        <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="status-channel-row-1">
                             <i class="bi bi-trash"></i>
                         </button>
                     </td>
                 </tr>
-            {% else %}
-                {% for channel_id, channel_data in channel_permissions.items() %}
-                 <tr id="channel-row-{{ loop.index }}">
-                    <td><input type="text" class="form-control form-control-sm" name="channel_name_{{ loop.index }}" value="{{ channel_data.name }}" placeholder="Channel Name"></td>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Control Channels Section -->
+<div class="mb-3 card p-3">
+    <h4>🎮 Control Channels</h4>
+    <p class="form-text">Control channels provide full container management capabilities to ALL users in the channel.</p>
+    <div class="alert alert-warning small">
+        <strong>⚠️ Security Warning:</strong> ALL users in control channels have unrestricted access to ALL container management functions including Start, Stop, Restart, /task commands, and Info editing. Only add trusted channels here!
+    </div>
+    <div class="mb-3">
+        <button type="button" class="btn btn-success btn-sm" onclick="addControlChannelRow()">+ Add Channel</button>
+    </div>
+    <table class="table table-dark table-sm small table-hover" id="control-channels-table">
+        <thead>
+            <tr>
+                <th scope="col" style="width: 15%;">Channel Name<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" title="A display name to help you remember which channel this is"></i></th>
+                <th scope="col" style="width: 20%;">Channel ID<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" title="The Discord channel ID. Enable Developer Mode in Discord, then right-click the channel and select Copy ID"></i></th>
+                <th scope="col" class="text-center" style="width: 10%;" data-bs-toggle="tooltip" title="Post initial control messages on bot start?">Initial<i class="bi bi-question-circle help-icon"></i></th>
+                <th scope="col" class="text-center" style="width: 10%; border-left: 3px solid #0dcaf0;" data-bs-toggle="tooltip" title="Enable periodic status updates?">Refresh<i class="bi bi-question-circle help-icon"></i></th>
+                <th scope="col" style="width: 10%;" data-bs-toggle="tooltip" title="Update control messages every X minutes (if refresh is enabled).">Minutes</th>
+                <th scope="col" class="text-center" style="width: 10%; border-left: 3px solid #0dcaf0;" data-bs-toggle="tooltip" title="Recreate messages after channel inactivity?">Recreate<i class="bi bi-question-circle help-icon"></i></th>
+                <th scope="col" style="width: 10%;" data-bs-toggle="tooltip" title="Recreate messages after X minutes of inactivity.">Minutes</th>
+                <th scope="col" class="text-center" style="width: 5%; border-left: 3px solid #0dcaf0;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set control_channel_count = 0 %}
+            {% for channel_id, channel_data in channel_permissions.items() %}
+                {% if channel_data.commands.control %}
+                    {% set control_channel_count = control_channel_count + 1 %}
+                    <tr id="control-channel-row-{{ control_channel_count }}">
+                        <td><input type="text" class="form-control form-control-sm" name="control_channel_name_{{ control_channel_count }}" value="{{ channel_data.name }}" placeholder="Channel Name"></td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm" name="control_channel_id_{{ control_channel_count }}" value="{{ channel_id }}" placeholder="Channel ID">
+                            <input type="hidden" name="old_control_channel_id_{{ control_channel_count }}" value="{{ channel_id }}">
+                        </td>
+                        <td class="text-center">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="control_post_initial_{{ control_channel_count }}" value="1" {% if channel_data.post_initial %}checked{% endif %}>
+                                <label class="form-check-label visually-hidden">Initial</label>
+                            </div>
+                        </td>
+                        <td class="text-center" style="border-left: 3px solid #0dcaf0;">
+                            <div class="form-check">
+                                <input class="form-check-input auto-refresh-checkbox" type="checkbox" name="control_enable_auto_refresh_{{ control_channel_count }}" value="1" {% set is_ar_checked = channel_data.get('enable_auto_refresh', defaults.get('enable_auto_refresh', False)) %}{% if is_ar_checked %}checked{% endif %} data-target-input=".interval-minutes-input">
+                                <label class="form-check-label visually-hidden">Refresh</label>
+                            </div>
+                        </td>
+                        <td><input type="number" class="form-control form-control-sm interval-minutes-input" name="control_update_interval_minutes_{{ control_channel_count }}" value="{{ channel_data.get('update_interval_minutes', defaults.get('update_interval_minutes', 1)) }}" min="1" style="width: 70px;" {% if not is_ar_checked %}disabled{% endif %}></td>
+                        <td class="text-center" style="border-left: 3px solid #0dcaf0;">
+                            <div class="form-check">
+                                <input class="form-check-input recreate-checkbox" type="checkbox" name="control_recreate_messages_{{ control_channel_count }}" value="1" {% set is_ri_checked = channel_data.get('recreate_messages_on_inactivity', defaults.get('recreate_messages_on_inactivity', False)) %}{% if is_ri_checked %}checked{% endif %} data-target-input=".inactivity-minutes-input">
+                                <label class="form-check-label visually-hidden">Recreate on Inactivity</label>
+                            </div>
+                        </td>
+                        <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="control_inactivity_timeout_{{ control_channel_count }}" value="{{ channel_data.get('inactivity_timeout_minutes', defaults.get('inactivity_timeout_minutes', 1)) }}" min="1" style="width: 70px;" {% if not is_ri_checked %}disabled{% endif %}></td>
+                        <td class="text-center" style="border-left: 3px solid #0dcaf0;">
+                            <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="control-channel-row-{{ control_channel_count }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                {% endif %}
+            {% endfor %}
+            {% if control_channel_count == 0 %}
+                <tr id="control-channel-row-1">
+                    <td><input type="text" class="form-control form-control-sm" name="control_channel_name_1" placeholder="Channel Name"></td>
                     <td>
-                        <input type="text" class="form-control form-control-sm" name="channel_id_{{ loop.index }}" value="{{ channel_id }}" placeholder="Channel ID" id="channel_id_{{ loop.index }}">
-                         <input type="hidden" name="old_channel_id_{{ loop.index }}" value="{{ channel_id }}">
+                        <input type="text" class="form-control form-control-sm" name="control_channel_id_1" placeholder="Channel ID">
+                        <input type="hidden" name="old_control_channel_id_1" value="">
                     </td>
                     <td class="text-center">
                         <div class="form-check">
-                            <input class="form-check-input cmd-serverstatus" type="checkbox" name="cmd_serverstatus_{{ loop.index }}" value="1" {% if channel_data.commands.serverstatus or channel_data.commands.ss %}checked{% endif %}>
-                            <label class="form-check-label visually-hidden">/serverstatus</label>
-                        </div>
-                    </td>
-                    <td class="text-center">
-                        <div class="form-check">
-                            <input class="form-check-input cmd-control" type="checkbox" name="cmd_control_{{ loop.index }}" value="1" {% if channel_data.commands.control %}checked{% endif %}>
-                            <label class="form-check-label visually-hidden">/control</label>
-                        </div>
-                    </td>
-                    <td class="text-center">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="cmd_schedule_{{ loop.index }}" value="1" {% if channel_data.commands.schedule %}checked{% endif %}>
-                            <label class="form-check-label visually-hidden">/task</label>
-                        </div>
-                    </td>
-                    <td class="text-center border-start border-secondary">
-                        <div class="form-check">
-                            <input class="form-check-input cmd-info" type="checkbox" name="cmd_info_{{ loop.index }}" value="1" {% if channel_data.commands.info %}checked{% endif %}>
-                            <label class="form-check-label visually-hidden">Info</label>
-                        </div>
-                    </td>
-                    <td class="text-center">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="post_initial_{{ loop.index }}" value="1" {% if channel_data.post_initial %}checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" name="control_post_initial_1" value="1" {% if defaults.get('post_initial', False) %}checked{% endif %}>
                             <label class="form-check-label visually-hidden">Initial</label>
                         </div>
                     </td>
                     <td class="text-center" style="border-left: 3px solid #0dcaf0;">
                         <div class="form-check">
-                            <input class="form-check-input auto-refresh-checkbox" type="checkbox" name="enable_auto_refresh_{{ loop.index }}" value="1" {% set is_ar_checked = channel_data.get('enable_auto_refresh', defaults.get('enable_auto_refresh', False)) %}{% if is_ar_checked %}checked{% endif %} data-target-input=".interval-minutes-input">
+                            <input class="form-check-input auto-refresh-checkbox" type="checkbox" name="control_enable_auto_refresh_1" value="1" {% if defaults.get('enable_auto_refresh', False) %}checked{% endif %} data-target-input=".interval-minutes-input">
                             <label class="form-check-label visually-hidden">Refresh</label>
                         </div>
                     </td>
-                    <td><input type="number" class="form-control form-control-sm interval-minutes-input" name="update_interval_minutes_{{ loop.index }}" value="{{ channel_data.get('update_interval_minutes', defaults.get('update_interval_minutes', 1)) }}" min="1" style="width: 60px;" {% if not is_ar_checked %}disabled{% endif %}></td>
+                    <td><input type="number" class="form-control form-control-sm interval-minutes-input" name="control_update_interval_minutes_1" value="{{ defaults.get('update_interval_minutes', 1) }}" min="1" style="width: 70px;" {% if not defaults.get('enable_auto_refresh', False) %}disabled{% endif %}></td>
                     <td class="text-center" style="border-left: 3px solid #0dcaf0;">
                         <div class="form-check">
-                            <input class="form-check-input recreate-checkbox" type="checkbox" name="recreate_messages_on_inactivity_{{ loop.index }}" value="1" {% set is_ri_checked = channel_data.get('recreate_messages_on_inactivity', defaults.get('recreate_messages_on_inactivity', False)) %}{% if is_ri_checked %}checked{% endif %} data-target-input=".inactivity-minutes-input">
+                            <input class="form-check-input recreate-checkbox" type="checkbox" name="control_recreate_messages_1" value="1" {% if defaults.get('recreate_messages_on_inactivity', False) %}checked{% endif %} data-target-input=".inactivity-minutes-input">
                             <label class="form-check-label visually-hidden">Recreate on Inactivity</label>
                         </div>
                     </td>
-                    <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="inactivity_timeout_minutes_{{ loop.index }}" value="{{ channel_data.get('inactivity_timeout_minutes', defaults.get('inactivity_timeout_minutes', 1)) }}" min="1" style="width: 60px;" {% if not is_ri_checked %}disabled{% endif %}></td>
+                    <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="control_inactivity_timeout_1" value="{{ defaults.get('inactivity_timeout_minutes', 1) }}" min="1" style="width: 70px;" {% if not defaults.get('recreate_messages_on_inactivity', False) %}disabled{% endif %}></td>
                     <td class="text-center" style="border-left: 3px solid #0dcaf0;">
-                         <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="channel-row-{{ loop.index }}">
-                             <i class="bi bi-trash"></i>
-                         </button>
-                     </td>
-                 </tr>
-                 {% endfor %}
-             {% endif %}
-         </tbody>
-     </table>
+                        <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="control-channel-row-1">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
 </div>
 
 <!-- Admin Users Modal -->
@@ -156,7 +212,10 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted">Manage Discord users who can access the Admin Control Panel.</p>
+                <p class="text-muted">Admin users can access /task commands and Info functions in Status Channels, and use the Admin Control Panel (🛠️ button).</p>
+                <div class="alert alert-info small">
+                    <strong>Note:</strong> This only affects Status Channels. In Control Channels, ALL users have full access regardless of admin status.
+                </div>
                 <div class="mb-3">
                     <label class="form-label">Add Admin User</label>
                     <div class="input-group">
@@ -178,4 +237,4 @@
             </div>
         </div>
     </div>
-</div> 
+</div>

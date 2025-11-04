@@ -521,3 +521,127 @@ function saveAdminUsers() {
         alert('Failed to save admin users');
     });
 }
+
+// Channel Row Management Functions
+function addStatusChannelRow() {
+    const tbody = document.querySelector('#status-channels-table tbody');
+    const rowCount = tbody.querySelectorAll('tr').length + 1;
+
+    const newRow = document.createElement('tr');
+    newRow.id = 'status-channel-row-' + rowCount;
+    newRow.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm" name="status_channel_name_${rowCount}" placeholder="Channel Name"></td>
+        <td>
+            <input type="text" class="form-control form-control-sm" name="status_channel_id_${rowCount}" placeholder="Channel ID">
+            <input type="hidden" name="old_status_channel_id_${rowCount}" value="">
+        </td>
+        <td class="text-center">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="status_post_initial_${rowCount}" value="1">
+                <label class="form-check-label visually-hidden">Initial</label>
+            </div>
+        </td>
+        <td class="text-center" style="border-left: 3px solid #0dcaf0;">
+            <div class="form-check">
+                <input class="form-check-input auto-refresh-checkbox" type="checkbox" name="status_enable_auto_refresh_${rowCount}" value="1" data-target-input=".interval-minutes-input">
+                <label class="form-check-label visually-hidden">Refresh</label>
+            </div>
+        </td>
+        <td><input type="number" class="form-control form-control-sm interval-minutes-input" name="status_update_interval_minutes_${rowCount}" value="1" min="1" style="width: 70px;" disabled></td>
+        <td class="text-center" style="border-left: 3px solid #0dcaf0;">
+            <div class="form-check">
+                <input class="form-check-input recreate-checkbox" type="checkbox" name="status_recreate_messages_${rowCount}" value="1" data-target-input=".inactivity-minutes-input">
+                <label class="form-check-label visually-hidden">Recreate on Inactivity</label>
+            </div>
+        </td>
+        <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="status_inactivity_timeout_${rowCount}" value="1" min="1" style="width: 70px;" disabled></td>
+        <td class="text-center" style="border-left: 3px solid #0dcaf0;">
+            <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="status-channel-row-${rowCount}">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    `;
+
+    tbody.appendChild(newRow);
+
+    // Re-initialize checkbox handlers for new row
+    initializeCheckboxHandlers(newRow);
+}
+
+function addControlChannelRow() {
+    const tbody = document.querySelector('#control-channels-table tbody');
+    const rowCount = tbody.querySelectorAll('tr').length + 1;
+
+    const newRow = document.createElement('tr');
+    newRow.id = 'control-channel-row-' + rowCount;
+    newRow.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm" name="control_channel_name_${rowCount}" placeholder="Channel Name"></td>
+        <td>
+            <input type="text" class="form-control form-control-sm" name="control_channel_id_${rowCount}" placeholder="Channel ID">
+            <input type="hidden" name="old_control_channel_id_${rowCount}" value="">
+        </td>
+        <td class="text-center">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="control_post_initial_${rowCount}" value="1">
+                <label class="form-check-label visually-hidden">Initial</label>
+            </div>
+        </td>
+        <td class="text-center" style="border-left: 3px solid #0dcaf0;">
+            <div class="form-check">
+                <input class="form-check-input auto-refresh-checkbox" type="checkbox" name="control_enable_auto_refresh_${rowCount}" value="1" data-target-input=".interval-minutes-input">
+                <label class="form-check-label visually-hidden">Refresh</label>
+            </div>
+        </td>
+        <td><input type="number" class="form-control form-control-sm interval-minutes-input" name="control_update_interval_minutes_${rowCount}" value="1" min="1" style="width: 70px;" disabled></td>
+        <td class="text-center" style="border-left: 3px solid #0dcaf0;">
+            <div class="form-check">
+                <input class="form-check-input recreate-checkbox" type="checkbox" name="control_recreate_messages_${rowCount}" value="1" data-target-input=".inactivity-minutes-input">
+                <label class="form-check-label visually-hidden">Recreate on Inactivity</label>
+            </div>
+        </td>
+        <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="control_inactivity_timeout_${rowCount}" value="1" min="1" style="width: 70px;" disabled></td>
+        <td class="text-center" style="border-left: 3px solid #0dcaf0;">
+            <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="control-channel-row-${rowCount}">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    `;
+
+    tbody.appendChild(newRow);
+
+    // Re-initialize checkbox handlers for new row
+    initializeCheckboxHandlers(newRow);
+}
+
+// Helper function to initialize checkbox handlers
+function initializeCheckboxHandlers(row) {
+    // Auto-refresh checkbox handler
+    const refreshCheckbox = row.querySelector('.auto-refresh-checkbox');
+    if (refreshCheckbox) {
+        refreshCheckbox.addEventListener('change', function() {
+            const targetInput = row.querySelector('.interval-minutes-input');
+            if (targetInput) {
+                targetInput.disabled = !this.checked;
+            }
+        });
+    }
+
+    // Recreate checkbox handler
+    const recreateCheckbox = row.querySelector('.recreate-checkbox');
+    if (recreateCheckbox) {
+        recreateCheckbox.addEventListener('change', function() {
+            const targetInput = row.querySelector('.inactivity-minutes-input');
+            if (targetInput) {
+                targetInput.disabled = !this.checked;
+            }
+        });
+    }
+
+    // Remove button handler
+    const removeBtn = row.querySelector('.remove-channel-btn');
+    if (removeBtn) {
+        removeBtn.addEventListener('click', function() {
+            row.remove();
+        });
+    }
+}
