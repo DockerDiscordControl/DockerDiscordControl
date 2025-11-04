@@ -1573,10 +1573,15 @@ class AdminContainerDropdown(discord.ui.Select):
         # Create options from containers
         options = []
         for container in containers[:25]:  # Discord limit is 25 options
+            # Remove " Server" suffix from display name
+            display_label = container['display']
+            if display_label.endswith(' Server'):
+                display_label = display_label[:-7]  # Remove last 7 characters (" Server")
+
             option = discord.SelectOption(
-                label=container['display'],
-                value=container['docker_name'],
-                emoji="📦"
+                label=display_label,
+                value=container['docker_name']
+                # No emoji - removed for cleaner look
             )
             options.append(option)
 
