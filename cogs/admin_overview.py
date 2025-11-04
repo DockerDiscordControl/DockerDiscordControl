@@ -43,11 +43,28 @@ class AdminOverviewAdminButton(Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Show container selection dropdown for admin control."""
+        # Edge case: Immediately defer to avoid timeout
         try:
-            # Check if user is admin
-            config = load_config()
+            await interaction.response.defer(ephemeral=True)
+            deferred = True
+        except discord.errors.NotFound:
+            logger.warning(f"Admin button interaction expired for channel {self.channel_id}")
+            return
+        except Exception as e:
+            logger.error(f"Error deferring admin button interaction: {e}")
+            return
 
-            # Load admin users
+        try:
+            # Edge case: Config might be unavailable
+            config = load_config()
+            if not config:
+                await interaction.followup.send(
+                    "❌ Configuration unavailable. Please try again later.",
+                    ephemeral=True
+                )
+                return
+
+            # Load admin users with proper error handling
             import json
             from pathlib import Path
             base_dir = config.get('base_dir', '/app')
@@ -57,44 +74,71 @@ class AdminOverviewAdminButton(Button):
             if admins_file.exists():
                 try:
                     with open(admins_file, 'r') as f:
-                        admin_data = json.load(f)
-                        admin_users = admin_data.get('discord_admin_users', [])
+                        content = f.read()
+                        if content.strip():  # Edge case: Empty file
+                            admin_data = json.loads(content)
+                            admin_users = admin_data.get('discord_admin_users', [])
+                except json.JSONDecodeError as e:
+                    logger.error(f"Invalid JSON in admins.json: {e}")
+                    await interaction.followup.send(
+                        "❌ Admin configuration error. Please contact support.",
+                        ephemeral=True
+                    )
+                    return
                 except Exception as e:
                     logger.error(f"Error loading admins.json: {e}")
 
             # Check if user is admin
             user_id_str = str(interaction.user.id)
             if user_id_str not in admin_users:
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     "❌ You don't have permission to use admin controls.",
                     ephemeral=True
                 )
                 return
 
-            # Get containers list for dropdown
+            # Get containers list with validation
             servers = config.get('servers', [])
+            if not isinstance(servers, list):  # Edge case: Invalid config format
+                logger.error(f"Invalid servers configuration: expected list, got {type(servers)}")
+                await interaction.followup.send(
+                    "❌ Invalid server configuration.",
+                    ephemeral=True
+                )
+                return
+
             containers = []
             for server in servers:
+                if not isinstance(server, dict):  # Edge case: Invalid server entry
+                    continue
                 docker_name = server.get('docker_name')
-                if docker_name:
+                if docker_name and isinstance(docker_name, str):  # Validate docker_name
                     containers.append({
-                        'display': docker_name,  # Use docker_name for display (more stable than display_name)
+                        'display': docker_name,
                         'docker_name': docker_name
                     })
 
             if not containers:
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     "❌ No containers found in configuration.",
                     ephemeral=True
                 )
                 return
 
             # Import AdminContainerSelectView from control_ui
-            from .control_ui import AdminContainerSelectView
+            try:
+                from .control_ui import AdminContainerSelectView
+            except ImportError as e:
+                logger.error(f"Failed to import AdminContainerSelectView: {e}")
+                await interaction.followup.send(
+                    "❌ Internal error. Please try again later.",
+                    ephemeral=True
+                )
+                return
 
             # Create dropdown view with containers list
             view = AdminContainerSelectView(self.cog, containers, self.channel_id)
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "Select a container to control:",
                 view=view,
                 ephemeral=True
@@ -129,9 +173,27 @@ class AdminOverviewRestartAllButton(Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Ask for confirmation before restarting all containers."""
+        # Edge case: Immediately defer to avoid timeout
         try:
-            # Check admin permission
+            await interaction.response.defer(ephemeral=True)
+        except discord.errors.NotFound:
+            logger.warning(f"Restart all interaction expired for channel {self.channel_id}")
+            return
+        except Exception as e:
+            logger.error(f"Error deferring restart all interaction: {e}")
+            return
+
+        try:
+            # Edge case: Config might be unavailable
             config = load_config()
+            if not config:
+                await interaction.followup.send(
+                    "❌ Configuration unavailable. Please try again later.",
+                    ephemeral=True
+                )
+                return
+
+            # Load admin users with proper error handling
             import json
             from pathlib import Path
             base_dir = config.get('base_dir', '/app')
@@ -141,15 +203,32 @@ class AdminOverviewRestartAllButton(Button):
             if admins_file.exists():
                 try:
                     with open(admins_file, 'r') as f:
-                        admin_data = json.load(f)
-                        admin_users = admin_data.get('discord_admin_users', [])
+                        content = f.read()
+                        if content.strip():  # Edge case: Empty file
+                            admin_data = json.loads(content)
+                            admin_users = admin_data.get('discord_admin_users', [])
+                except json.JSONDecodeError as e:
+                    logger.error(f"Invalid JSON in admins.json: {e}")
+                    await interaction.followup.send(
+                        "❌ Admin configuration error. Please contact support.",
+                        ephemeral=True
+                    )
+                    return
                 except Exception as e:
                     logger.error(f"Error loading admins.json: {e}")
 
             user_id_str = str(interaction.user.id)
             if user_id_str not in admin_users:
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     "❌ You don't have permission to restart all containers.",
+                    ephemeral=True
+                )
+                return
+
+            # Edge case: Check if button is already disabled
+            if self.disabled:
+                await interaction.followup.send(
+                    "❌ No running containers to restart.",
                     ephemeral=True
                 )
                 return
@@ -161,7 +240,7 @@ class AdminOverviewRestartAllButton(Button):
                 description="Are you sure you want to restart ALL running containers?\n\nThis will temporarily disrupt all services.",
                 color=discord.Color.orange()
             )
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 embed=embed,
                 view=view,
                 ephemeral=True
@@ -196,9 +275,27 @@ class AdminOverviewStopAllButton(Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Ask for confirmation before stopping all containers."""
+        # Edge case: Immediately defer to avoid timeout
         try:
-            # Check admin permission
+            await interaction.response.defer(ephemeral=True)
+        except discord.errors.NotFound:
+            logger.warning(f"Stop all interaction expired for channel {self.channel_id}")
+            return
+        except Exception as e:
+            logger.error(f"Error deferring stop all interaction: {e}")
+            return
+
+        try:
+            # Edge case: Config might be unavailable
             config = load_config()
+            if not config:
+                await interaction.followup.send(
+                    "❌ Configuration unavailable. Please try again later.",
+                    ephemeral=True
+                )
+                return
+
+            # Load admin users with proper error handling
             import json
             from pathlib import Path
             base_dir = config.get('base_dir', '/app')
@@ -208,15 +305,32 @@ class AdminOverviewStopAllButton(Button):
             if admins_file.exists():
                 try:
                     with open(admins_file, 'r') as f:
-                        admin_data = json.load(f)
-                        admin_users = admin_data.get('discord_admin_users', [])
+                        content = f.read()
+                        if content.strip():  # Edge case: Empty file
+                            admin_data = json.loads(content)
+                            admin_users = admin_data.get('discord_admin_users', [])
+                except json.JSONDecodeError as e:
+                    logger.error(f"Invalid JSON in admins.json: {e}")
+                    await interaction.followup.send(
+                        "❌ Admin configuration error. Please contact support.",
+                        ephemeral=True
+                    )
+                    return
                 except Exception as e:
                     logger.error(f"Error loading admins.json: {e}")
 
             user_id_str = str(interaction.user.id)
             if user_id_str not in admin_users:
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     "❌ You don't have permission to stop all containers.",
+                    ephemeral=True
+                )
+                return
+
+            # Edge case: Check if button is already disabled
+            if self.disabled:
+                await interaction.followup.send(
+                    "❌ No running containers to stop.",
                     ephemeral=True
                 )
                 return
@@ -228,7 +342,7 @@ class AdminOverviewStopAllButton(Button):
                 description="Are you sure you want to STOP ALL running containers?\n\n**WARNING:** This will shut down all services!",
                 color=discord.Color.red()
             )
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 embed=embed,
                 view=view,
                 ephemeral=True
@@ -262,10 +376,17 @@ class AdminOverviewDonateButton(Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Execute /donate command when clicked."""
+        # Edge case: Immediately defer to avoid timeout
         try:
-            # Defer the interaction first
             await interaction.response.defer(ephemeral=True)
+        except discord.errors.NotFound:
+            logger.warning(f"Donate button interaction expired for channel {self.channel_id}")
+            return
+        except Exception as e:
+            logger.error(f"Error deferring donate button interaction: {e}")
+            return
 
+        try:
             # Check if donations are disabled
             try:
                 from services.donation.donation_utils import is_donations_disabled
@@ -273,9 +394,11 @@ class AdminOverviewDonateButton(Button):
                     # Donations disabled, send minimal response
                     try:
                         await interaction.followup.send(".", delete_after=0.1)
-                    except:
-                        pass
+                    except Exception as e:
+                        logger.debug(f"Failed to send donation disabled response: {e}")
                     return
+            except ImportError as e:
+                logger.warning(f"Donation utils not available: {e}")
             except Exception as e:
                 logger.debug(f"Donation check failed: {e}")
 
@@ -367,53 +490,145 @@ class ConfirmRestartAllButton(Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Execute restart all containers."""
+        # Edge case: Defer immediately
         try:
             await interaction.response.defer()
+        except discord.errors.NotFound:
+            logger.warning("Restart all confirmation interaction expired")
+            return
+        except Exception as e:
+            logger.error(f"Error deferring restart all confirmation: {e}")
+            return
 
-            # Get all running containers
+        # Edge case: Prevent concurrent bulk operations
+        if hasattr(self.cog, '_bulk_operation_in_progress'):
+            if self.cog._bulk_operation_in_progress:
+                await interaction.followup.send(
+                    "⏳ Another bulk operation is in progress. Please wait.",
+                    ephemeral=True
+                )
+                return
+
+        # Set operation lock
+        self.cog._bulk_operation_in_progress = True
+
+        try:
+            # Edge case: Config might be unavailable
             config = load_config()
+            if not config:
+                await interaction.followup.send(
+                    "❌ Configuration unavailable. Operation cancelled.",
+                    ephemeral=True
+                )
+                return
+
             servers = config.get('servers', [])
+            if not isinstance(servers, list) or not servers:
+                await interaction.followup.send(
+                    "❌ No servers configured.",
+                    ephemeral=True
+                )
+                return
 
             restarted_count = 0
             failed_count = 0
+            skipped_count = 0
 
+            # Import docker service with error handling
+            try:
+                from services.docker.docker_action_service import docker_action_service_first
+            except ImportError as e:
+                logger.error(f"Failed to import docker action service: {e}")
+                await interaction.followup.send(
+                    "❌ Docker service unavailable. Operation cancelled.",
+                    ephemeral=True
+                )
+                return
+
+            # Process containers with rate limiting
             for server in servers:
-                docker_name = server.get('docker_name')
-                if not docker_name:
+                if not isinstance(server, dict):
                     continue
 
-                # Check if container is running
+                docker_name = server.get('docker_name')
+                if not docker_name or not isinstance(docker_name, str):
+                    continue
+
+                # Check if container is running (with validation)
                 cached_entry = self.cog.status_cache.get(server.get('name', docker_name))
                 if cached_entry and cached_entry.get('data'):
-                    _, is_running, _, _, _, _ = cached_entry['data']
-                    if is_running:
-                        # Restart container
-                        try:
-                            from services.docker.docker_action_service import docker_action_service_first
-                            success = await docker_action_service_first(docker_name, "restart")
-                            if success:
-                                restarted_count += 1
+                    try:
+                        data = cached_entry['data']
+                        if isinstance(data, tuple) and len(data) >= 2:
+                            is_running = data[1]
+                            if is_running:
+                                # Restart container with timeout protection
+                                try:
+                                    # Add small delay between operations to avoid overloading
+                                    if restarted_count > 0:
+                                        await asyncio.sleep(0.5)
+
+                                    # Set timeout for docker operation
+                                    success = await asyncio.wait_for(
+                                        docker_action_service_first(docker_name, "restart"),
+                                        timeout=30.0  # 30 second timeout per container
+                                    )
+                                    if success:
+                                        restarted_count += 1
+                                        logger.info(f"Successfully restarted {docker_name}")
+                                    else:
+                                        failed_count += 1
+                                        logger.warning(f"Failed to restart {docker_name}")
+                                except asyncio.TimeoutError:
+                                    logger.error(f"Timeout restarting {docker_name}")
+                                    failed_count += 1
+                                except Exception as e:
+                                    logger.error(f"Error restarting {docker_name}: {e}")
+                                    failed_count += 1
                             else:
-                                failed_count += 1
-                        except Exception as e:
-                            logger.error(f"Error restarting {docker_name}: {e}")
-                            failed_count += 1
+                                skipped_count += 1
+                        else:
+                            logger.warning(f"Invalid cache data format for {docker_name}")
+                    except Exception as e:
+                        logger.error(f"Error processing cache for {docker_name}: {e}")
 
             # Send result message
+            description = f"Successfully restarted: **{restarted_count}** containers"
+            if failed_count > 0:
+                description += f"\nFailed: **{failed_count}** containers"
+            if skipped_count > 0:
+                description += f"\nSkipped (not running): **{skipped_count}** containers"
+
             embed = discord.Embed(
                 title="🔄 Restart All Complete",
-                description=f"Successfully restarted: **{restarted_count}** containers\nFailed: **{failed_count}** containers",
+                description=description,
                 color=discord.Color.green() if failed_count == 0 else discord.Color.orange()
             )
             await interaction.followup.send(embed=embed, ephemeral=True)
 
-            # Update admin overview after a delay
-            await asyncio.sleep(5)
-            await self._update_admin_overview()
+            # Update admin overview after a delay (but don't wait for it)
+            asyncio.create_task(self._delayed_overview_update())
 
         except Exception as e:
-            logger.error(f"Error executing restart all: {e}", exc_info=True)
-            await interaction.followup.send("❌ Error restarting containers.", ephemeral=True)
+            logger.error(f"Critical error in restart all: {e}", exc_info=True)
+            try:
+                await interaction.followup.send(
+                    "❌ An error occurred during the restart operation.",
+                    ephemeral=True
+                )
+            except:
+                pass
+        finally:
+            # Always release the lock
+            self.cog._bulk_operation_in_progress = False
+
+    async def _delayed_overview_update(self):
+        """Update admin overview after a delay."""
+        try:
+            await asyncio.sleep(5)
+            await self._update_admin_overview()
+        except Exception as e:
+            logger.error(f"Error updating admin overview after restart: {e}")
 
     async def _update_admin_overview(self):
         """Update admin overview message after bulk action."""
@@ -453,53 +668,145 @@ class ConfirmStopAllButton(Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Execute stop all containers."""
+        # Edge case: Defer immediately
         try:
             await interaction.response.defer()
+        except discord.errors.NotFound:
+            logger.warning("Stop all confirmation interaction expired")
+            return
+        except Exception as e:
+            logger.error(f"Error deferring stop all confirmation: {e}")
+            return
 
-            # Get all running containers
+        # Edge case: Prevent concurrent bulk operations
+        if hasattr(self.cog, '_bulk_operation_in_progress'):
+            if self.cog._bulk_operation_in_progress:
+                await interaction.followup.send(
+                    "⏳ Another bulk operation is in progress. Please wait.",
+                    ephemeral=True
+                )
+                return
+
+        # Set operation lock
+        self.cog._bulk_operation_in_progress = True
+
+        try:
+            # Edge case: Config might be unavailable
             config = load_config()
+            if not config:
+                await interaction.followup.send(
+                    "❌ Configuration unavailable. Operation cancelled.",
+                    ephemeral=True
+                )
+                return
+
             servers = config.get('servers', [])
+            if not isinstance(servers, list) or not servers:
+                await interaction.followup.send(
+                    "❌ No servers configured.",
+                    ephemeral=True
+                )
+                return
 
             stopped_count = 0
             failed_count = 0
+            skipped_count = 0
 
+            # Import docker service with error handling
+            try:
+                from services.docker.docker_action_service import docker_action_service_first
+            except ImportError as e:
+                logger.error(f"Failed to import docker action service: {e}")
+                await interaction.followup.send(
+                    "❌ Docker service unavailable. Operation cancelled.",
+                    ephemeral=True
+                )
+                return
+
+            # Process containers with rate limiting
             for server in servers:
-                docker_name = server.get('docker_name')
-                if not docker_name:
+                if not isinstance(server, dict):
                     continue
 
-                # Check if container is running
+                docker_name = server.get('docker_name')
+                if not docker_name or not isinstance(docker_name, str):
+                    continue
+
+                # Check if container is running (with validation)
                 cached_entry = self.cog.status_cache.get(server.get('name', docker_name))
                 if cached_entry and cached_entry.get('data'):
-                    _, is_running, _, _, _, _ = cached_entry['data']
-                    if is_running:
-                        # Stop container
-                        try:
-                            from services.docker.docker_action_service import docker_action_service_first
-                            success = await docker_action_service_first(docker_name, "stop")
-                            if success:
-                                stopped_count += 1
+                    try:
+                        data = cached_entry['data']
+                        if isinstance(data, tuple) and len(data) >= 2:
+                            is_running = data[1]
+                            if is_running:
+                                # Stop container with timeout protection
+                                try:
+                                    # Add small delay between operations to avoid overloading
+                                    if stopped_count > 0:
+                                        await asyncio.sleep(0.5)
+
+                                    # Set timeout for docker operation
+                                    success = await asyncio.wait_for(
+                                        docker_action_service_first(docker_name, "stop"),
+                                        timeout=30.0  # 30 second timeout per container
+                                    )
+                                    if success:
+                                        stopped_count += 1
+                                        logger.info(f"Successfully stopped {docker_name}")
+                                    else:
+                                        failed_count += 1
+                                        logger.warning(f"Failed to stop {docker_name}")
+                                except asyncio.TimeoutError:
+                                    logger.error(f"Timeout stopping {docker_name}")
+                                    failed_count += 1
+                                except Exception as e:
+                                    logger.error(f"Error stopping {docker_name}: {e}")
+                                    failed_count += 1
                             else:
-                                failed_count += 1
-                        except Exception as e:
-                            logger.error(f"Error stopping {docker_name}: {e}")
-                            failed_count += 1
+                                skipped_count += 1
+                        else:
+                            logger.warning(f"Invalid cache data format for {docker_name}")
+                    except Exception as e:
+                        logger.error(f"Error processing cache for {docker_name}: {e}")
 
             # Send result message
+            description = f"Successfully stopped: **{stopped_count}** containers"
+            if failed_count > 0:
+                description += f"\nFailed: **{failed_count}** containers"
+            if skipped_count > 0:
+                description += f"\nSkipped (not running): **{skipped_count}** containers"
+
             embed = discord.Embed(
                 title="⏹️ Stop All Complete",
-                description=f"Successfully stopped: **{stopped_count}** containers\nFailed: **{failed_count}** containers",
+                description=description,
                 color=discord.Color.green() if failed_count == 0 else discord.Color.orange()
             )
             await interaction.followup.send(embed=embed, ephemeral=True)
 
-            # Update admin overview after a delay
-            await asyncio.sleep(5)
-            await self._update_admin_overview()
+            # Update admin overview after a delay (but don't wait for it)
+            asyncio.create_task(self._delayed_overview_update())
 
         except Exception as e:
-            logger.error(f"Error executing stop all: {e}", exc_info=True)
-            await interaction.followup.send("❌ Error stopping containers.", ephemeral=True)
+            logger.error(f"Critical error in stop all: {e}", exc_info=True)
+            try:
+                await interaction.followup.send(
+                    "❌ An error occurred during the stop operation.",
+                    ephemeral=True
+                )
+            except:
+                pass
+        finally:
+            # Always release the lock
+            self.cog._bulk_operation_in_progress = False
+
+    async def _delayed_overview_update(self):
+        """Update admin overview after a delay."""
+        try:
+            await asyncio.sleep(5)
+            await self._update_admin_overview()
+        except Exception as e:
+            logger.error(f"Error updating admin overview after stop: {e}")
 
     async def _update_admin_overview(self):
         """Update admin overview message after bulk action."""
@@ -536,8 +843,13 @@ class CancelBulkActionButton(Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Cancel the bulk action."""
-        await interaction.response.edit_message(
-            content="✅ Action cancelled.",
-            embed=None,
-            view=None
-        )
+        try:
+            await interaction.response.edit_message(
+                content="✅ Action cancelled.",
+                embed=None,
+                view=None
+            )
+        except discord.errors.NotFound:
+            logger.warning("Cancel button interaction expired")
+        except Exception as e:
+            logger.error(f"Error in cancel button: {e}")
