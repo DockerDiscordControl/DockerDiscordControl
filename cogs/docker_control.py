@@ -450,7 +450,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 message_id = server_messages_in_channel[display_name]
                 last_update_time = self.last_message_update_time[channel_id].get(display_name)
 
-                # EARLY CHECK: Special case for overview message - use SERVICE FIRST decision
+                # EARLY CHECK: Special case for overview or admin_overview messages
                 if display_name == "overview":
                     # SERVICE FIRST: Use StatusOverviewService for overview update decisions
                     try:
@@ -468,16 +468,46 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                         if decision.should_update:
                             logger.debug(f"SERVICE_FIRST: Overview update approved - {decision.reason}")
-                            tasks_to_run.append(self._update_overview_message(channel_id, message_id))
+                            tasks_to_run.append(self._update_overview_message(channel_id, message_id, "overview"))
                         else:
                             logger.debug(f"SERVICE_FIRST: Overview update skipped - {decision.skip_reason}")
 
                     except Exception as service_error:
                         logger.warning(f"SERVICE_FIRST: Error in overview decision service: {service_error}")
                         # Fallback to original logic on service error
-                        tasks_to_run.append(self._update_overview_message(channel_id, message_id))
+                        tasks_to_run.append(self._update_overview_message(channel_id, message_id, "overview"))
 
                     continue  # Overview message handled, move to next message
+
+                # EARLY CHECK: Special case for admin_overview message - uses same update logic
+                if display_name == "admin_overview":
+                    # Admin overview uses the same update logic as standard overview
+                    try:
+                        from services.discord.status_overview_service import get_status_overview_service
+                        overview_service = get_status_overview_service()
+
+                        last_activity = self.last_channel_activity.get(channel_id)
+                        decision = overview_service.make_update_decision(
+                            channel_id=channel_id,
+                            global_config=config,
+                            last_update_time=last_update_time,
+                            reason="periodic_admin_overview_check",
+                            last_channel_activity=last_activity
+                        )
+
+                        if decision.should_update:
+                            logger.debug(f"SERVICE_FIRST: Admin Overview update approved - {decision.reason}")
+                            tasks_to_run.append(self._update_overview_message(channel_id, message_id, "admin_overview"))
+                        else:
+                            logger.debug(f"SERVICE_FIRST: Admin Overview update skipped - {decision.skip_reason}")
+
+                    except Exception as service_error:
+                        logger.warning(f"SERVICE_FIRST: Error in admin overview decision service: {service_error}")
+                        # Fallback to simple update interval check
+                        if last_update_time is None or (now_utc - last_update_time) >= update_interval_delta:
+                            tasks_to_run.append(self._update_overview_message(channel_id, message_id, "admin_overview"))
+
+                    continue  # Admin overview message handled, move to next message
 
                 # SERVICE FIRST: Individual server message update decision
                 try:
@@ -857,14 +887,21 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
     # Send helpers (remain here as they interact closely with Cog state)
     async def _send_control_panel_and_statuses(self, channel: discord.TextChannel) -> None:
-        """Send Admin Overview to a control channel."""
+        """Send control panel and all server statuses to a channel."""
         try:
             current_config = load_config()
             if not current_config:
                 logger.error(f"Send Control Panel: Could not load configuration for channel {channel.id}.")
                 return
 
-            logger.info(f"Sending admin overview to control channel {channel.name} ({channel.id})")
+            logger.info(f"Sending control panel and statuses to channel {channel.name} ({channel.id})")
+
+            # Get timezone from config
+            timezone_str = current_config.get('timezone_str', 'Europe/Berlin')
+
+            # Get current time for footer
+            now = datetime.now(timezone.utc)
+            current_time = format_datetime_with_timezone(now, timezone_str).split()[1]  # Extract only time part
 
             # Get all server configurations
             servers = current_config.get('servers', [])
@@ -872,29 +909,38 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 logger.warning(f"No servers configured for channel {channel.id}")
                 return
 
-            # Sort servers by order
-            ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
-
-            # Create Admin Overview embed with CPU and RAM info
-            embed, _, has_running = await self._create_admin_overview_embed(ordered_servers, current_config, force_refresh=True)
-
-            # Import AdminOverviewView from admin_overview module
-            from .admin_overview import AdminOverviewView
-
-            # Create the Admin Overview view with buttons
-            view = AdminOverviewView(self, channel.id, has_running)
-
-            # Send the Admin Overview message
+            # Send server status messages directly without setup message
             try:
-                await channel.send(embed=embed, view=view)
-                logger.info(f"Successfully sent Admin Overview to control channel {channel.name}")
+                # Get real status data with timeout
+                success_count = 0
+                fail_count = 0
+
+                for server in servers:  # Send all servers
+                    try:
+                        result = await asyncio.wait_for(
+                            self.status_handlers.send_server_status(
+                                channel=channel,
+                                server_conf=server,
+                                current_config=current_config,
+                                allow_toggle=True
+                            ),
+                            timeout=10.0  # 10 second timeout per server
+                        )
+                        if result:
+                            success_count += 1
+                        else:
+                            fail_count += 1
+                    except asyncio.TimeoutError:
+                        logger.warning(f"Timeout sending status for {server.get('name', 'unknown')}")
+                        fail_count += 1
+                    except Exception as e:
+                        logger.error(f"Error sending status for {server.get('name', 'unknown')}: {e}")
+                        fail_count += 1
+
+                logger.info(f"Finished sending initial statuses to {channel.name}: {success_count} success, {fail_count} failure.")
+
             except Exception as e:
-                logger.error(f"Error sending Admin Overview to channel: {e}")
-                # Fallback: Send without view if there's an issue
-                try:
-                    await channel.send(embed=embed)
-                except Exception as e2:
-                    logger.error(f"Failed to send Admin Overview even without view: {e2}")
+                logger.error(f"Error setting up control panel: {e}", exc_info=True)
 
         except Exception as e:
             logger.error(f"Error in _send_control_panel_and_statuses: {e}", exc_info=True)
@@ -1372,56 +1418,27 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         # Directly call serverstatus (it has its own spam protection check)
         await self.serverstatus(ctx)
 
-    @commands.slash_command(name="admin-overview", description=_("Shows admin overview in control channels"), guild_ids=get_guild_id())
-    async def admin_overview(self, ctx: discord.ApplicationContext):
+    @commands.slash_command(name="control", description=_("Shows admin control overview for all containers"), guild_ids=get_guild_id())
+    async def control(self, ctx: discord.ApplicationContext):
         """Show admin overview with all containers including CPU/RAM info and bulk actions."""
         try:
             # Check spam protection first
-            if not await self._check_spam_protection(ctx, "admin-overview"):
+            if not await self._check_spam_protection(ctx, "control"):
                 return
 
             # Defer the response to prevent timeout
-            await ctx.defer(ephemeral=True)
+            await ctx.defer(ephemeral=False)  # Not ephemeral, like /ss
 
-            # Check if user is admin
+            # Load configuration
             config = load_config()
             if not config:
-                await ctx.followup.send("❌ Could not load configuration.", ephemeral=True)
-                return
-
-            # Load admin users
-            import json
-            from pathlib import Path
-            base_dir = config.get('base_dir', '/app')
-            admins_file = Path(base_dir) / 'config' / 'admins.json'
-
-            admin_users = []
-            if admins_file.exists():
-                try:
-                    with open(admins_file, 'r') as f:
-                        admin_data = json.load(f)
-                        admin_users = admin_data.get('discord_admin_users', [])
-                except Exception as e:
-                    logger.error(f"Error loading admins.json: {e}")
-
-            # Check if user is admin
-            user_id_str = str(ctx.author.id)
-            if user_id_str not in admin_users:
-                await ctx.followup.send("❌ You don't have permission to use the admin overview command.", ephemeral=True)
-                return
-
-            # Check if this is a control channel
-            from .control_helpers import _channel_has_permission
-            has_control = _channel_has_permission(ctx.channel_id, 'control', config)
-
-            if not has_control:
-                await ctx.followup.send("❌ This command can only be used in control channels.", ephemeral=True)
+                await ctx.followup.send("❌ Could not load configuration.")
                 return
 
             # Get all server configurations
             servers = config.get('servers', [])
             if not servers:
-                await ctx.followup.send("❌ No servers configured.", ephemeral=True)
+                await ctx.followup.send("❌ No servers configured.")
                 return
 
             # Sort servers by order
@@ -1436,17 +1453,24 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # Create the Admin Overview view with buttons
             view = AdminOverviewView(self, ctx.channel_id, has_running)
 
-            # Send the Admin Overview message
-            await ctx.followup.send(embed=embed, view=view, ephemeral=True)
-            logger.info(f"Admin overview command used by {ctx.author} in {ctx.channel.name}")
+            # Send the Admin Overview message and track it for updates
+            message = await ctx.followup.send(embed=embed, view=view)
+
+            # Track message for automatic updates (like /ss)
+            channel_id = ctx.channel_id
+            if channel_id not in self.channel_server_message_ids:
+                self.channel_server_message_ids[channel_id] = {}
+            self.channel_server_message_ids[channel_id]['admin_overview'] = message.id
+
+            logger.info(f"Control command used by {ctx.author} in {ctx.channel.name}")
 
         except Exception as e:
-            logger.error(f"Error in admin_overview command: {e}", exc_info=True)
+            logger.error(f"Error in control command: {e}", exc_info=True)
             try:
                 if not ctx.response.is_done():
-                    await ctx.respond("❌ Error showing admin overview.", ephemeral=True)
+                    await ctx.respond("❌ Error showing control overview.")
                 else:
-                    await ctx.followup.send("❌ Error showing admin overview.", ephemeral=True)
+                    await ctx.followup.send("❌ Error showing control overview.")
             except Exception:
                 pass
 
@@ -3533,18 +3557,19 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         except Exception as e:
             logger.error(f"Error updating overview messages after donation: {e}")
 
-    async def _update_overview_message(self, channel_id: int, message_id: int) -> bool:
+    async def _update_overview_message(self, channel_id: int, message_id: int, message_type: str = "overview") -> bool:
         """
-        Updates the overview message with current server statuses.
-        
+        Updates the overview or admin_overview message with current server statuses.
+
         Args:
             channel_id: Discord channel ID
             message_id: Discord message ID to update
-            
+            message_type: Type of message ("overview" or "admin_overview")
+
         Returns:
             bool: Success or failure
         """
-        logger.debug(f"Updating overview message {message_id} in channel {channel_id}")
+        logger.debug(f"Updating {message_type} message {message_id} in channel {channel_id}")
         try:
             # Get channel
             channel = await self.bot.fetch_channel(channel_id)
@@ -3557,64 +3582,73 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # PERFORMANCE OPTIMIZATION: Use partial message instead of fetch
                 message = channel.get_partial_message(message_id)  # No API call
             except discord.NotFound:
-                logger.warning(f"Overview message {message_id} in channel {channel_id} not found. Removing from tracking.")
-                if channel_id in self.channel_server_message_ids and "overview" in self.channel_server_message_ids[channel_id]:
-                    del self.channel_server_message_ids[channel_id]["overview"]
+                logger.warning(f"{message_type.capitalize()} message {message_id} in channel {channel_id} not found. Removing from tracking.")
+                if channel_id in self.channel_server_message_ids and message_type in self.channel_server_message_ids[channel_id]:
+                    del self.channel_server_message_ids[channel_id][message_type]
                 return False
-                
+
             # Get all servers
             config = self.config
             servers = config.get('servers', [])
-            
+
             # Sort servers
             ordered_docker_names = self.ordered_server_names
             servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
-            
+
             ordered_servers = []
             seen_docker_names = set()
-            
+
             # First add servers in the defined order
             for docker_name in ordered_docker_names:
                 if docker_name in servers_by_name:
                     ordered_servers.append(servers_by_name[docker_name])
                     seen_docker_names.add(docker_name)
-            
+
             # Add any servers that weren't in the ordered list
             for server in servers:
                 docker_name = server.get('docker_name')
                 if docker_name and docker_name not in seen_docker_names:
                     ordered_servers.append(server)
                     seen_docker_names.add(docker_name)
-            
-            # Create the updated embed based on expansion state
-            is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
-            if is_mech_expanded:
-                embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config)
+
+            # Create the updated embed and view based on message type
+            if message_type == "admin_overview":
+                # Create Admin Overview embed
+                embed, _, has_running = await self._create_admin_overview_embed(ordered_servers, config, force_refresh=False)
+                # Create Admin Overview view
+                from .admin_overview import AdminOverviewView
+                view = AdminOverviewView(self, channel_id, has_running)
+                animation_file = None  # Admin Overview doesn't have animations
             else:
-                embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
-            
+                # Create standard overview embed based on expansion state
+                is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
+                if is_mech_expanded:
+                    embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config)
+                else:
+                    embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
+                # Create MechView for standard overview
+                from .control_ui import MechView
+                view = MechView(self, channel_id)
+
             # Update the message (note: can't add files to edit, only embed)
-            # Also need to update the view to maintain button states
-            from .control_ui import MechView
-            view = MechView(self, channel_id)
             await message.edit(embed=embed, view=view)
             
             # Update message update timestamp, but NOT channel activity
             now_utc = datetime.now(timezone.utc)
             if channel_id not in self.last_message_update_time:
                 self.last_message_update_time[channel_id] = {}
-            self.last_message_update_time[channel_id]["overview"] = now_utc
+            self.last_message_update_time[channel_id][message_type] = now_utc
             
             # DO NOT update channel activity
             # This is commented out to fix the Recreate feature
             # self.last_channel_activity[channel_id] = now_utc
             
-            logger.debug(f"Successfully updated overview message {message_id} in channel {channel_id}")
+            logger.debug(f"Successfully updated {message_type} message {message_id} in channel {channel_id}")
             return True
-            
+
         except discord.errors.NotFound:
             # Message was deleted - RECOVERY: Recreate it automatically
-            logger.warning(f"Overview message {message_id} in channel {channel_id} not found (likely deleted). ATTEMPTING AUTOMATIC RECOVERY.")
+            logger.warning(f"{message_type.capitalize()} message {message_id} in channel {channel_id} not found (likely deleted). ATTEMPTING AUTOMATIC RECOVERY.")
 
             # Remove from old tracking system
             if hasattr(self, 'overview_message_ids') and channel_id in self.overview_message_ids:
