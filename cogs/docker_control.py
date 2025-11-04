@@ -2256,8 +2256,18 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                 # Format resource info
                 if is_running:
-                    cpu_str = f"{cpu_percent:.1f}%" if cpu_percent is not None else "N/A"
-                    mem_str = f"{memory_mb}MB" if memory_mb is not None else "N/A"
+                    # Convert to float if it's a string
+                    try:
+                        cpu_value = float(cpu_percent) if cpu_percent is not None else None
+                        cpu_str = f"{cpu_value:.1f}%" if cpu_value is not None else "N/A"
+                    except (ValueError, TypeError):
+                        cpu_str = "N/A"
+
+                    try:
+                        mem_value = float(memory_mb) if memory_mb is not None else None
+                        mem_str = f"{mem_value:.0f}MB" if mem_value is not None else "N/A"
+                    except (ValueError, TypeError):
+                        mem_str = "N/A"
                     line = f"│ {status_emoji} {truncated_name}{info_indicator}"
                     # Add resource info on next line, indented
                     content_lines.append(line)
