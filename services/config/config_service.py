@@ -1502,6 +1502,95 @@ def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
     logger.info(f"[FORM_DEBUG] Total servers parsed: {len(servers)}")
     return servers
 
+def _parse_channel_permissions_from_form(form_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Parse channel permissions from the new two-table format.
+    Status channels: status_channel_* fields
+    Control channels: control_channel_* fields
+    """
+    channel_permissions = {}
+
+    # Process Status Channels
+    status_channel_count = 1
+    while True:
+        channel_id_key = f'status_channel_id_{status_channel_count}'
+        channel_id = form_data.get(channel_id_key, '').strip() if isinstance(form_data.get(channel_id_key), str) else str(form_data.get(channel_id_key, '')).strip()
+
+        if not channel_id:
+            # Check if there are more (non-sequential)
+            found_more = False
+            for i in range(status_channel_count + 1, status_channel_count + 10):
+                if form_data.get(f'status_channel_id_{i}'):
+                    status_channel_count = i
+                    found_more = True
+                    break
+            if not found_more:
+                break
+        else:
+            # Build channel config for status channel
+            channel_config = {
+                'name': form_data.get(f'status_channel_name_{status_channel_count}', '').strip() if isinstance(form_data.get(f'status_channel_name_{status_channel_count}'), str) else '',
+                'commands': {
+                    'serverstatus': True,  # Always enabled for status channels
+                    'ss': True,  # Alias for serverstatus
+                    'control': False,  # Never enabled for status channels
+                    'schedule': False,  # Will be checked against admin users
+                    'info': False  # Will be checked against admin users
+                },
+                'post_initial': form_data.get(f'status_post_initial_{status_channel_count}') in ['1', 'on', True],
+                'enable_auto_refresh': form_data.get(f'status_enable_auto_refresh_{status_channel_count}') in ['1', 'on', True],
+                'update_interval_minutes': int(form_data.get(f'status_update_interval_minutes_{status_channel_count}', 1) or 1),
+                'recreate_messages_on_inactivity': form_data.get(f'status_recreate_messages_{status_channel_count}') in ['1', 'on', True],
+                'inactivity_timeout_minutes': int(form_data.get(f'status_inactivity_timeout_{status_channel_count}', 1) or 1)
+            }
+            channel_permissions[channel_id] = channel_config
+
+        status_channel_count += 1
+        if status_channel_count > 50:  # Safety limit
+            break
+
+    # Process Control Channels
+    control_channel_count = 1
+    while True:
+        channel_id_key = f'control_channel_id_{control_channel_count}'
+        channel_id = form_data.get(channel_id_key, '').strip() if isinstance(form_data.get(channel_id_key), str) else str(form_data.get(channel_id_key, '')).strip()
+
+        if not channel_id:
+            # Check if there are more (non-sequential)
+            found_more = False
+            for i in range(control_channel_count + 1, control_channel_count + 10):
+                if form_data.get(f'control_channel_id_{i}'):
+                    control_channel_count = i
+                    found_more = True
+                    break
+            if not found_more:
+                break
+        else:
+            # Build channel config for control channel
+            channel_config = {
+                'name': form_data.get(f'control_channel_name_{control_channel_count}', '').strip() if isinstance(form_data.get(f'control_channel_name_{control_channel_count}'), str) else '',
+                'commands': {
+                    'serverstatus': True,  # Enabled for control channels
+                    'ss': True,  # Alias
+                    'control': True,  # Always enabled for control channels
+                    'schedule': True,  # Always enabled for control channels
+                    'info': True  # Always enabled for control channels
+                },
+                'post_initial': form_data.get(f'control_post_initial_{control_channel_count}') in ['1', 'on', True],
+                'enable_auto_refresh': form_data.get(f'control_enable_auto_refresh_{control_channel_count}') in ['1', 'on', True],
+                'update_interval_minutes': int(form_data.get(f'control_update_interval_minutes_{control_channel_count}', 1) or 1),
+                'recreate_messages_on_inactivity': form_data.get(f'control_recreate_messages_{control_channel_count}') in ['1', 'on', True],
+                'inactivity_timeout_minutes': int(form_data.get(f'control_inactivity_timeout_{control_channel_count}', 1) or 1)
+            }
+            channel_permissions[channel_id] = channel_config
+
+        control_channel_count += 1
+        if control_channel_count > 50:  # Safety limit
+            break
+
+    logger.info(f"Parsed {len(channel_permissions)} channel configurations from form")
+    return channel_permissions
+
 def process_config_form(form_data: Dict[str, Any], current_config: Dict[str, Any]) -> Tuple[Dict[str, Any], bool, str]:
     """Legacy compatibility: Process web form configuration."""
     try:
@@ -1520,12 +1609,24 @@ def process_config_form(form_data: Dict[str, Any], current_config: Dict[str, Any
         else:
             logger.warning("[PROCESS_DEBUG] No servers parsed from form data!")
 
+        # Parse channel permissions from the new two-table format
+        channel_permissions = _parse_channel_permissions_from_form(form_data)
+        if channel_permissions:
+            updated_config['channel_permissions'] = channel_permissions
+            logger.info(f"[PROCESS_DEBUG] Added {len(channel_permissions)} channel permissions to updated_config")
+
         # Process each form field
         for key, value in form_data.items():
             # Skip server-related fields (already processed above)
             if key in ['selected_servers'] or key.startswith('display_name_') or \
                key.startswith('allow_status_') or key.startswith('allow_start_') or \
                key.startswith('allow_stop_') or key.startswith('allow_restart_'):
+                continue
+
+            # Skip channel-related fields (already processed above)
+            if key.startswith('status_channel_') or key.startswith('control_channel_') or \
+               key.startswith('status_') or key.startswith('control_') or \
+               key.startswith('old_status_channel_') or key.startswith('old_control_channel_'):
                 continue
 
             if key == 'donation_disable_key':
