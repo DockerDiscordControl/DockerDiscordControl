@@ -3,9 +3,11 @@
 <!-- Status Channels Section -->
 <div class="mb-4 card p-3">
     <h4>Status Channels</h4>
-    <p class="form-text">Status channels display container status messages. Only admin users can use /task and Info functions.</p>
+    <p class="form-text">Status channels display container status messages with restricted control access.</p>
     <div class="alert alert-info small">
-        <strong>Permissions:</strong> All users can use <code>/serverstatus</code> command. Admin users additionally get access to <code>/task</code> commands and Info buttons.
+        <strong>Permissions:</strong>
+        <br>• <strong>All users:</strong> Can use <code>/serverstatus</code> command to view container status
+        <br>• <strong>Admin users:</strong> Full access to Start, Stop, Restart buttons, <code>/task</code> commands, Info system, and Admin Control Panel
     </div>
     <div class="d-flex justify-content-between mb-3">
         <button type="button" class="btn btn-success btn-sm" onclick="addStatusChannelRow()">+ Add Channel</button>
@@ -212,7 +214,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted">Admin users can access /task commands and Info functions in Status Channels, and use the Admin Control Panel (🛠️ button).</p>
+                <p class="text-muted">Admin users have full container control in Status Channels, including Start/Stop/Restart buttons, /task commands, Info system, and Admin Control Panel (🛠️ button).</p>
                 <div class="alert alert-info small">
                     <strong>Note:</strong> This only affects Status Channels. In Control Channels, ALL users have full access regardless of admin status.
                 </div>
