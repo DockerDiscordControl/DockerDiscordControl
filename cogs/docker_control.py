@@ -887,21 +887,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
     # Send helpers (remain here as they interact closely with Cog state)
     async def _send_control_panel_and_statuses(self, channel: discord.TextChannel) -> None:
-        """Send control panel and all server statuses to a channel."""
+        """Send Admin Overview to control channels."""
         try:
             current_config = load_config()
             if not current_config:
                 logger.error(f"Send Control Panel: Could not load configuration for channel {channel.id}.")
                 return
 
-            logger.info(f"Sending control panel and statuses to channel {channel.name} ({channel.id})")
-
-            # Get timezone from config
-            timezone_str = current_config.get('timezone_str', 'Europe/Berlin')
-
-            # Get current time for footer
-            now = datetime.now(timezone.utc)
-            current_time = format_datetime_with_timezone(now, timezone_str).split()[1]  # Extract only time part
+            logger.info(f"Sending admin overview to control channel {channel.name} ({channel.id})")
 
             # Get all server configurations
             servers = current_config.get('servers', [])
@@ -909,38 +902,35 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 logger.warning(f"No servers configured for channel {channel.id}")
                 return
 
-            # Send server status messages directly without setup message
+            # Sort servers by order
+            ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
+
+            # Create Admin Overview embed with CPU and RAM info
+            embed, _, has_running = await self._create_admin_overview_embed(ordered_servers, current_config, force_refresh=True)
+
+            # Import AdminOverviewView from admin_overview module
+            from .admin_overview import AdminOverviewView
+
+            # Create the Admin Overview view with buttons
+            view = AdminOverviewView(self, channel.id, has_running)
+
+            # Send the Admin Overview message
             try:
-                # Get real status data with timeout
-                success_count = 0
-                fail_count = 0
+                message = await channel.send(embed=embed, view=view)
 
-                for server in servers:  # Send all servers
-                    try:
-                        result = await asyncio.wait_for(
-                            self.status_handlers.send_server_status(
-                                channel=channel,
-                                server_conf=server,
-                                current_config=current_config,
-                                allow_toggle=True
-                            ),
-                            timeout=10.0  # 10 second timeout per server
-                        )
-                        if result:
-                            success_count += 1
-                        else:
-                            fail_count += 1
-                    except asyncio.TimeoutError:
-                        logger.warning(f"Timeout sending status for {server.get('name', 'unknown')}")
-                        fail_count += 1
-                    except Exception as e:
-                        logger.error(f"Error sending status for {server.get('name', 'unknown')}: {e}")
-                        fail_count += 1
+                # Track the message for automatic updates
+                if channel.id not in self.channel_server_message_ids:
+                    self.channel_server_message_ids[channel.id] = {}
+                self.channel_server_message_ids[channel.id]['admin_overview'] = message.id
 
-                logger.info(f"Finished sending initial statuses to {channel.name}: {success_count} success, {fail_count} failure.")
+                # Initialize update time tracking
+                if channel.id not in self.last_message_update_time:
+                    self.last_message_update_time[channel.id] = {}
+                self.last_message_update_time[channel.id]['admin_overview'] = datetime.now(timezone.utc)
 
+                logger.info(f"Successfully sent Admin Overview to control channel {channel.name}")
             except Exception as e:
-                logger.error(f"Error setting up control panel: {e}", exc_info=True)
+                logger.error(f"Error sending Admin Overview to channel: {e}")
 
         except Exception as e:
             logger.error(f"Error in _send_control_panel_and_statuses: {e}", exc_info=True)

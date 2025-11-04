@@ -1196,7 +1196,10 @@ class TaskManagementButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle task management button click."""
         try:
-            # Check spam protection first
+            # Defer immediately to avoid timeout
+            await interaction.response.defer(ephemeral=True)
+
+            # Check spam protection after deferring
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
             if spam_service.is_enabled():
@@ -1206,13 +1209,13 @@ class TaskManagementButton(discord.ui.Button):
                 user_id = str(interaction.user.id)
                 last_click = getattr(self, f'_last_click_{user_id}', 0)
                 if current_time - last_click < cooldown:
-                    await interaction.response.send_message(
+                    await interaction.followup.send(
                         f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.",
                         ephemeral=True
                     )
                     return
                 setattr(self, f'_last_click_{user_id}', current_time)
-            
+
             # Show task list directly
             await self._show_task_list(interaction)
             
@@ -1226,8 +1229,8 @@ class TaskManagementButton(discord.ui.Button):
     async def _show_task_list(self, interaction: discord.Interaction):
         """Show task list for this container."""
         try:
-            await interaction.response.defer(ephemeral=True)
-            
+            # Response already deferred in callback, no need to defer again
+
             # Get all tasks for this container
             from services.scheduling.scheduler import load_tasks, get_tasks_for_container
             
@@ -1285,7 +1288,10 @@ class TaskManagementButton(discord.ui.Button):
             
         except Exception as e:
             logger.error(f"Error showing task list: {e}", exc_info=True)
-            await interaction.followup.send("❌ Error loading task list.", ephemeral=True)
+            try:
+                await interaction.followup.send("❌ Error loading task list.", ephemeral=True)
+            except:
+                pass  # Interaction might have expired
 
 class TaskManagementView(discord.ui.View):
     """View with buttons for task management (Add Task, Delete Tasks)."""
