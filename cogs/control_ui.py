@@ -1696,33 +1696,29 @@ class AdminContainerDropdown(discord.ui.Select):
 
     def __init__(self, cog_instance: 'DockerControlCog', containers: list, channel_id: int):
         self.cog = cog_instance
-        self.containers = containers
         self.channel_id = channel_id
 
-        # Create options from containers
-        options = []
+        # CRITICAL: Re-sort containers here to ensure correct order
+        # Sort by 'order' field just like Admin Overview does
+        sorted_containers = sorted(containers, key=lambda x: x.get('order', 999))
+        self.containers = sorted_containers
 
-        # Use invisible Unicode characters to force Discord to maintain our order
-        # Discord sorts alphabetically, so we prepend invisible characters that sort correctly
-        for i, container in enumerate(containers[:25]):  # Discord limit is 25 options
+        # Debug log the sorted order
+        logger.info(f"AdminDropdown after re-sorting: {[c['display'] + '(order=' + str(c.get('order', 999)) + ')' for c in sorted_containers]}")
+
+        # Create options from sorted containers
+        options = []
+        for container in sorted_containers[:25]:  # Discord limit is 25 options
             # Remove " Server" suffix for cleaner dropdown display
             display_label = container['display']
             if display_label.endswith(' Server'):
                 display_label = display_label[:-7]
 
-            # Prepend invisible sorting characters
-            # Using Zero Width Space (U+200B) repeated to create sort order
-            # More spaces = later in alphabet sort
-            sort_prefix = '\u200B' * i
-
             option = discord.SelectOption(
-                label=sort_prefix + display_label,
+                label=display_label,
                 value=container['docker_name']
             )
             options.append(option)
-
-        # Debug: Log the final order
-        logger.info(f"AdminDropdown options created: {[opt.value for opt in options]}")
 
         super().__init__(
             placeholder="Select a container to control...",
