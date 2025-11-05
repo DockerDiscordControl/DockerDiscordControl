@@ -518,67 +518,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                     continue  # Admin overview message handled, move to next message
 
-                # SERVICE FIRST: Individual server message update decision
-                try:
-                    from services.discord.status_overview_service import get_status_overview_service
-                    service = get_status_overview_service()
+                # CRITICAL FIX: Skip individual server messages - we only use overview messages now
+                # Individual container messages are now private per architecture change
+                logger.debug(f"Skipping individual server message for '{display_name}' - only overview messages are supported")
 
-                    # Make update decision using Web UI settings
-                    last_activity = self.last_channel_activity.get(channel_id)
-                    decision = service.make_update_decision(
-                        channel_id=channel_id,
-                        global_config=self.config,
-                        last_update_time=last_update_time,
-                        reason=f"individual_server_{display_name}",
-                        force_refresh=False,
-                        force_recreate=False,
-                        last_channel_activity=last_activity
-                    )
-
-                    should_update = decision.should_update
-                    should_recreate = decision.should_recreate
-
-                    if should_update:
-                        logger.info(f"SERVICE_FIRST: Individual server message scheduled for '{display_name}' in channel {channel_id} (Message ID: {message_id}). Decision: {decision.reason}")
-                    else:
-                        logger.debug(f"SERVICE_FIRST: Individual server message skipped for '{display_name}' in channel {channel_id} (Message ID: {message_id}). Reason: {decision.skip_reason}")
-
-                except Exception as service_error:
-                    logger.warning(f"SERVICE_FIRST: Error in individual server decision service: {service_error}")
-                    # Fallback to simplified logic on service error
-                    should_update = False
-                    should_recreate = False
-                    if last_update_time is None:
-                        should_update = True
-                        logger.info(f"FALLBACK: Scheduling edit for '{display_name}' in channel {channel_id} (Message ID: {message_id}). Reason: No previous update time recorded.")
-                    elif (now_utc - last_update_time) >= update_interval_delta:
-                        should_update = True
-                        logger.info(f"FALLBACK: Scheduling edit for '{display_name}' in channel {channel_id} (Message ID: {message_id}). Reason: Interval passed.")
-
-                if should_update:
-                    # IMPROVED: Skip refresh for containers in pending state
-                    if display_name in self.pending_actions:
-                        pending_timestamp = self.pending_actions[display_name]['timestamp']
-                        pending_duration = (now_utc - pending_timestamp).total_seconds()
-                        if pending_duration < 120:  # Same timeout as in status_handlers.py
-                            logger.info(f"Direct Cog Periodic Edit Loop: Skipping edit for '{display_name}' - container is pending (duration: {pending_duration:.1f}s)")
-                            continue  # Skip this container
-                    
-                    # PERFORMANCE OPTIMIZATION: Smart offline container handling
-                    # SERVICE FIRST: Use ServerConfigService instead of direct config access
-                    server_config_service = get_server_config_service()
-                    servers = server_config_service.get_all_servers()
-                    current_server_conf = next((s for s in servers if s.get('name', s.get('docker_name')) == display_name), None)
-                    if current_server_conf:
-                        docker_name = current_server_conf.get('docker_name')
-                        if docker_name:
-                                                         # Check if container is offline from status cache
-                             cached_status = self.status_cache_service.get(docker_name)
-                             if cached_status:
-                                 try:
-                                     # Check cache age with DDC_DOCKER_MAX_CACHE_AGE
-                                     import os
-                                     max_cache_age = int(os.environ.get('DDC_DOCKER_MAX_CACHE_AGE', '300'))
+                # Clean up the phantom entry from tracking
+                if display_name not in ["overview", "admin_overview"]:
+                    logger.warning(f"Removing phantom individual server entry '{display_name}' from channel {channel_id} tracking")
+                    del server_messages_in_channel[display_name]
+                    if display_name in self.last_message_update_time.get(channel_id, {}):
+                        del self.last_message_update_time[channel_id][display_name]
                                      
                                      # Handle both cache formats: direct tuple or {'data': tuple, 'timestamp': datetime}
                                      if isinstance(cached_status, dict) and 'data' in cached_status:
@@ -1138,6 +1087,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         except Exception as e:
                             logger.error(f"Error deleting messages in {channel.name}: {e}")
                             
+                        # Clear any leftover individual server message tracking from old architecture
+                        if channel.id in self.channel_server_message_ids:
+                            old_entries = list(self.channel_server_message_ids[channel.id].keys())
+                            for entry_key in old_entries:
+                                if entry_key not in ["overview", "admin_overview"]:
+                                    logger.info(f"Clearing leftover individual server entry '{entry_key}' from channel {channel.id}")
+                                    del self.channel_server_message_ids[channel.id][entry_key]
+
                         # Send new messages using consistent logic with _regenerate_channel
                         if mode == 'control':
                             await self._send_control_panel_and_statuses(channel)
