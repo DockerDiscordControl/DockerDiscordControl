@@ -1742,15 +1742,18 @@ class AdminContainerDropdown(discord.ui.Select):
 
         # Create options from sorted containers
         options = []
-        for container in sorted_containers[:25]:  # Discord limit is 25 options
+        for i, container in enumerate(sorted_containers[:25]):  # Discord limit is 25 options
             # Remove " Server" suffix for cleaner dropdown display
             display_label = container['display']
             if display_label.endswith(' Server'):
                 display_label = display_label[:-7]
 
+            # CRITICAL FIX: Discord sorts options alphabetically UNLESS they have emoji or description!
+            # We add a minimal description to force Discord to keep our order
             option = discord.SelectOption(
                 label=display_label,
-                value=container['docker_name']
+                value=container['docker_name'],
+                description=" "  # Single space - invisible but forces Discord to keep our order
             )
             options.append(option)
 
