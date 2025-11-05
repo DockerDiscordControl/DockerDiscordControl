@@ -126,11 +126,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         self.initial_messages_sent = False
         self.last_channel_activity: Dict[int, datetime] = {}
         
-        # Cache configuration
-        self.status_cache = {}
-        # Calculate cache TTL from status update loop interval (default 30s * 2.5 = 75s)
+        # Cache configuration - SERVICE FIRST: Use StatusCacheService
+        # Initialize StatusCacheService instead of local cache
+        from services.status.status_cache_service import get_status_cache_service
+        self.status_cache_service = get_status_cache_service()
+        logger.info("StatusCacheService initialized for DockerControlCog")
+
+        # Keep cache_ttl_seconds for compatibility (some code might still reference it)
         cache_duration = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', '30'))
         self.cache_ttl_seconds = int(cache_duration * 2.5)
+
         self.pending_actions: Dict[str, Dict[str, Any]] = {}
         self.pending_actions_lock = asyncio.Lock()  # Protect concurrent access
 
@@ -568,7 +573,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         docker_name = current_server_conf.get('docker_name')
                         if docker_name:
                                                          # Check if container is offline from status cache
-                             cached_status = self.status_cache.get(docker_name)
+                             cached_status = self.status_cache_service.get(docker_name)
                              if cached_status:
                                  try:
                                      # Check cache age with DDC_DOCKER_MAX_CACHE_AGE
@@ -1200,10 +1205,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Update cache with results (same logic as status_update_loop)
                 for name, (status, data, error) in results.items():
                     if status == 'success':
-                        self.status_cache[name] = {
-                            'data': data,
-                            'timestamp': datetime.now(timezone.utc)
-                        }
+                        self.status_cache_service.set(name, data, datetime.now(timezone.utc))
                         success_count += 1
                     else:
                         logger.warning(f"Background cache population: Failed to fetch status for {name}. Error: {error}")
@@ -1891,7 +1893,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 continue
                 
             # Use cached data only (same as original)
-            cached_entry = self.status_cache.get(display_name)
+            cached_entry = self.status_cache_service.get(display_name)
             status_result = None
             
             if cached_entry and cached_entry.get('data'):
@@ -2241,7 +2243,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 continue
 
             # Use cached data
-            cached_entry = self.status_cache.get(display_name)
+            cached_entry = self.status_cache_service.get(display_name)
             status_result = None
 
             if cached_entry and cached_entry.get('data'):
@@ -2380,7 +2382,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 continue
                 
             # Use cached data only (same as original)
-            cached_entry = self.status_cache.get(display_name)
+            cached_entry = self.status_cache_service.get(display_name)
             status_result = None
             
             if cached_entry and cached_entry.get('data'):
@@ -3024,10 +3026,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # This loop is now safe and will not cause a ValueError
                 for name, (status, data, error) in results.items():
                     if status == 'success':
-                        self.status_cache[name] = {
-                            'data': data,
-                            'timestamp': datetime.now(timezone.utc)
-                        }
+                        self.status_cache_service.set(name, data, datetime.now(timezone.utc))
                         success_count += 1
                     else:
                         logger.warning(f"[STATUS_LOOP] Failed to fetch status for {name}. Error: {error}")
@@ -3414,7 +3413,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         try:
             # Thread-safe update of global status cache
             with docker_status_cache_lock:
-                docker_status_cache = self.status_cache.copy()
+                docker_status_cache = self.status_cache_service.copy()
                 logger.debug(f"Updated global docker_status_cache with {len(docker_status_cache)} entries")
         except Exception as e:
             logger.error(f"Error updating global docker_status_cache: {e}")
@@ -3422,7 +3421,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     # Accessor method to get the current status cache
     def get_status_cache(self) -> Dict[str, Any]:
         """Returns the current status cache."""
-        return self.status_cache.copy()
+        return self.status_cache_service.copy()
 
     async def _update_all_overview_messages_after_donation(self):
         """Force update all overview messages after a donation to show new mech animation."""

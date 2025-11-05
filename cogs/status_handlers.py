@@ -586,7 +586,7 @@ class StatusHandlersMixin:
                 continue
                 
             display_name = server_config.get('name', docker_name)
-            cached_entry = self.status_cache.get(display_name)
+            cached_entry = self.status_cache_service.get(display_name)
             
             # ONLY update if cache is completely missing (not just stale)
             # Background loop handles regular updates every 30s
@@ -614,19 +614,11 @@ class StatusHandlersMixin:
                 if server_config:
                     display_name = server_config.get('name', docker_name)
                     if status == 'success':
-                        self.status_cache[display_name] = {
-                            'data': data,
-                            'timestamp': now,
-                            'error': None
-                        }
+                        self.status_cache_service.set(display_name, data, now)
                         logger.debug(f"[BULK_UPDATE] Updated cache for {display_name}")
                     else:
                         # Cache error state to prevent constant retries
-                        self.status_cache[display_name] = {
-                            'data': None,
-                            'timestamp': now,
-                            'error': error
-                        }
+                        self.status_cache_service.set_error(display_name, error)
                         logger.warning(f"[BULK_UPDATE] Failed to update {display_name}: {error}")
         except Exception as e:
             logger.error(f"[BULK_UPDATE] Error during bulk update: {e}", exc_info=True)
@@ -737,7 +729,7 @@ class StatusHandlersMixin:
         view = None
         running = False # Default running state
         status_result = None
-        cached_entry = self.status_cache.get(display_name)
+        cached_entry = self.status_cache_service.get(display_name)
         now = datetime.now(timezone.utc)
 
         # --- Check for pending action first --- (Moved before status_result processing)
@@ -781,7 +773,7 @@ class StatusHandlersMixin:
                             logger.info(f"[_GEN_EMBED] '{display_name}' {pending_action} action succeeded - clearing pending state")
                             del self.pending_actions[display_name]
                             # Update cache with fresh status
-                            self.status_cache[display_name] = {'data': fresh_status, 'timestamp': now}
+                            self.status_cache_service.set(display_name, fresh_status, now)
                         else:
                             # Action might have failed or container takes very long
                             logger.warning(f"[_GEN_EMBED] '{display_name}' {pending_action} action did not succeed after {pending_duration:.1f}s timeout - clearing pending state")
