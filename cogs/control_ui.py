@@ -1645,15 +1645,29 @@ class AdminButton(Button):
                 await interaction.response.send_message("📦 No active containers found.", ephemeral=True)
                 return
 
-            # Log containers BEFORE sorting
-            logger.info(f"Admin dropdown BEFORE sorting: {[c['display'] + '(order=' + str(c.get('order', 999)) + ')' for c in active_containers]}")
+            # Log containers BEFORE sorting (with types)
+            logger.info(f"AdminButton: {len(active_containers)} containers BEFORE sorting:")
+            for c in active_containers:
+                order_val = c.get('order', 999)
+                logger.info(f"  - {c['display']}: order={order_val} (type={type(order_val).__name__})")
 
             # Sort containers by the 'order' field (same as Admin Overview)
-            # Use same sorting logic as Admin Overview (without int conversion)
-            active_containers.sort(key=lambda x: x.get('order', 999))
+            # Handle both int and string values from Web UI
+            def get_sort_key(container):
+                order = container.get('order', 999)
+                if isinstance(order, str):
+                    try:
+                        return int(order)
+                    except ValueError:
+                        return 999
+                return int(order) if order is not None else 999
+
+            active_containers.sort(key=get_sort_key)
 
             # Log the sorted order for debugging
-            logger.info(f"Admin dropdown AFTER sorting: {[c['display'] + '(order=' + str(c.get('order', 999)) + ')' for c in active_containers]}")
+            logger.info(f"AdminButton: Containers AFTER sorting:")
+            for c in active_containers:
+                logger.info(f"  - {c['display']}: order={c.get('order', 999)}")
 
             # Create view with dropdown
             from .translation_manager import _
@@ -1699,12 +1713,32 @@ class AdminContainerDropdown(discord.ui.Select):
         self.channel_id = channel_id
 
         # CRITICAL: Re-sort containers here to ensure correct order
-        # Sort by 'order' field just like Admin Overview does
-        sorted_containers = sorted(containers, key=lambda x: x.get('order', 999))
+        # Sort by 'order' field from Web UI configuration
+
+        # Debug: Show what we received
+        logger.info(f"AdminDropdown received {len(containers)} containers:")
+        for c in containers:
+            order_val = c.get('order', 999)
+            logger.info(f"  - {c['display']}: order={order_val} (type={type(order_val).__name__})")
+
+        # Sort containers by order field (handles both int and string from Web UI)
+        def get_order_key(container):
+            order = container.get('order', 999)
+            # Convert to int if it's a string from Web UI
+            if isinstance(order, str):
+                try:
+                    return int(order)
+                except ValueError:
+                    return 999
+            return int(order) if order is not None else 999
+
+        sorted_containers = sorted(containers, key=get_order_key)
         self.containers = sorted_containers
 
         # Debug log the sorted order
-        logger.info(f"AdminDropdown after re-sorting: {[c['display'] + '(order=' + str(c.get('order', 999)) + ')' for c in sorted_containers]}")
+        logger.info("AdminDropdown after sorting:")
+        for c in sorted_containers:
+            logger.info(f"  - {c['display']}: order={c.get('order', 999)}")
 
         # Create options from sorted containers
         options = []
