@@ -552,23 +552,8 @@ class ToggleButton(Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """ULTRA-OPTIMIZED toggle function mit allen 6 Performance-Optimierungen."""
-        # Check spam protection for toggle action
-        from services.infrastructure.spam_protection_service import get_spam_protection_service
-        spam_service = get_spam_protection_service()
-        
-        if spam_service.is_enabled():
-            try:
-                if spam_service.is_on_cooldown(interaction.user.id, "refresh"):
-                    remaining_time = spam_service.get_remaining_cooldown(interaction.user.id, "refresh")
-                    await interaction.response.send_message(
-                        f"⏰ Please wait {remaining_time:.1f} seconds before toggling view again.", 
-                        ephemeral=True
-                    )
-                    return
-                spam_service.add_user_cooldown(interaction.user.id, "refresh")
-            except Exception as e:
-                logger.error(f"Spam protection error for toggle button: {e}")
-        
+        # Note: Spam protection for toggle button was intentionally removed
+
         await interaction.response.defer()
         
         start_time = time.time()
@@ -1751,7 +1736,7 @@ class AdminContainerDropdown(discord.ui.Select):
             server_config_service = get_server_config_service()
 
             # Get container configuration by docker_name
-            container_config = server_config_service.get_server_by_name(selected_container)
+            container_config = server_config_service.get_server_by_docker_name(selected_container)
 
             # If not found, try searching all servers
             if not container_config:
