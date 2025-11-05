@@ -102,7 +102,7 @@ def load_container_info_for_web(container_names: list) -> Dict[str, Dict[str, An
 
 def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
     """
-    Save container configuration data (allowed_actions, display_name, etc.) to individual container JSON files.
+    SERVICE FIRST: Save container configuration data through ConfigurationSaveService.
 
     Args:
         servers_data: List of server dictionaries from processed config
@@ -110,55 +110,57 @@ def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
     Returns:
         Dict with container names as keys and success status as values
     """
-    import json
-    from pathlib import Path
+    # SERVICE FIRST: Use Container Config Save Service for all file operations
+    from services.config.container_config_save_service import get_container_config_save_service
+    from services.config.server_config_service import get_server_config_service
 
     logger.info(f"[SAVE_DEBUG] save_container_configs_from_web called with {len(servers_data)} servers")
 
     results = {}
-    containers_dir = Path('config/containers')
+    config_save_service = get_container_config_save_service()
+    server_config_service = get_server_config_service()
 
-    if not containers_dir.exists():
-        logger.error(f"Containers directory not found: {containers_dir}")
-        return results
-
-    # First, get list of active containers from servers_data
+    # Get list of active containers from servers_data
     active_containers = set()
     for server in servers_data:
         container_name = server.get('docker_name') or server.get('container_name')
         if container_name:
             active_containers.add(container_name)
 
+    # Get ALL existing containers from service (includes inactive ones)
+    all_container_configs = server_config_service.get_all_servers()
+
     # Process ALL existing containers - mark inactive and preserve their structure
-    for container_file in containers_dir.glob('*.json'):
-        try:
-            with open(container_file, 'r') as f:
-                container_config = json.load(f)
+    for container_config in all_container_configs:
+        container_name = container_config.get('container_name') or container_config.get('docker_name')
 
-            container_name = container_config.get('container_name') or container_file.stem
+        if not container_name:
+            continue
 
-            # If this container is not in the active list, mark it as inactive
-            if container_name not in active_containers:
-                container_config['active'] = False
-                # Preserve all other fields but clear info if needed
-                if 'info' not in container_config:
-                    container_config['info'] = {
-                        'enabled': False,
-                        'show_ip': False,
-                        'custom_ip': '',
-                        'custom_port': '',
-                        'custom_text': '',
-                        'protected_enabled': False,
-                        'protected_content': '',
-                        'protected_password': ''
-                    }
-                with open(container_file, 'w') as f:
-                    json.dump(container_config, f, indent=2)
-                results[container_name] = True
+        # If this container is not in the active list, mark it as inactive
+        if container_name not in active_containers:
+            container_config['active'] = False
+            # Preserve all other fields but ensure info structure exists
+            if 'info' not in container_config:
+                container_config['info'] = {
+                    'enabled': False,
+                    'show_ip': False,
+                    'custom_ip': '',
+                    'custom_port': '',
+                    'custom_text': '',
+                    'protected_enabled': False,
+                    'protected_content': '',
+                    'protected_password': ''
+                }
+
+            # Save through service
+            save_result = config_save_service.save_container_config(container_name, container_config)
+            results[container_name] = save_result
+
+            if save_result:
                 logger.info(f"[SAVE_DEBUG] Marked {container_name} as inactive and preserved config")
-        except Exception as e:
-            logger.error(f"Error updating {container_file}: {e}")
-            results[container_name] = False
+            else:
+                logger.error(f"Failed to save inactive state for {container_name}")
 
     # Now process the active containers
     for server in servers_data:
@@ -168,14 +170,9 @@ def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
             continue
 
         try:
-            container_file = containers_dir / f"{container_name}.json"
-
-            # Load existing container config or create new one
-            if container_file.exists():
-                with open(container_file, 'r') as f:
-                    container_config = json.load(f)
-            else:
-                container_config = {}
+            # Get existing config from service or create new one
+            existing_config = server_config_service.get_server_by_name(container_name)
+            container_config = existing_config if existing_config else {}
 
             # Update container config with server data
             container_config['container_name'] = container_name
@@ -221,12 +218,14 @@ def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
             if 'allow_detailed_status' in server:
                 container_config['allow_detailed_status'] = server['allow_detailed_status']
 
-            # Save updated config
-            with open(container_file, 'w') as f:
-                json.dump(container_config, f, indent=2)
+            # Save updated config through service
+            save_result = config_save_service.save_container_config(container_name, container_config)
+            results[container_name] = save_result
 
-            results[container_name] = True
-            logger.info(f"[SAVE_DEBUG] Saved container config for {container_name}: actions={container_config.get('allowed_actions')}, display={container_config.get('display_name')}")
+            if save_result:
+                logger.info(f"[SAVE_DEBUG] Saved container config for {container_name}: actions={container_config.get('allowed_actions')}, display={container_config.get('display_name')}")
+            else:
+                logger.error(f"Failed to save container config for {container_name}")
 
         except Exception as e:
             logger.error(f"Error saving container config for {container_name}: {e}")
