@@ -1638,6 +1638,12 @@ class AdminButton(Button):
 
             # Get active containers
             from pathlib import Path
+            import os
+            from services.config.config_service import load_config
+
+            # Get base directory from config
+            config = load_config()
+            base_dir = config.get('base_dir', os.getcwd() if os.path.exists('config/containers') else '/app')
             containers_dir = Path(base_dir) / 'config' / 'containers'
 
             # Collect active containers
