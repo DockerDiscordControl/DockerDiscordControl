@@ -1645,12 +1645,15 @@ class AdminButton(Button):
                 await interaction.response.send_message("📦 No active containers found.", ephemeral=True)
                 return
 
+            # Log containers BEFORE sorting
+            logger.info(f"Admin dropdown BEFORE sorting: {[c['display'] + '(order=' + str(c.get('order', 999)) + ')' for c in active_containers]}")
+
             # Sort containers by the 'order' field (same as Admin Overview)
-            # Ensure order is converted to int for proper sorting
-            active_containers.sort(key=lambda x: int(x.get('order', 999)))
+            # Use same sorting logic as Admin Overview (without int conversion)
+            active_containers.sort(key=lambda x: x.get('order', 999))
 
             # Log the sorted order for debugging
-            logger.info(f"Admin dropdown sorted order: {[c['display'] + '(' + str(c.get('order', 999)) + ')' for c in active_containers]}")
+            logger.info(f"Admin dropdown AFTER sorting: {[c['display'] + '(order=' + str(c.get('order', 999)) + ')' for c in active_containers]}")
 
             # Create view with dropdown
             from .translation_manager import _
@@ -1698,19 +1701,27 @@ class AdminContainerDropdown(discord.ui.Select):
 
         # Create options from containers
         options = []
+
+        # Log containers received for dropdown creation
+        logger.info(f"AdminContainerDropdown received containers in order: {[c['display'] for c in containers]}")
+
         for i, container in enumerate(containers[:25]):  # Discord limit is 25 options
-            # Remove " Server" suffix from display name
+            # Use display name directly from container data (as shown in Web UI)
             display_label = container['display']
-            if display_label.endswith(' Server'):
-                display_label = display_label[:-7]  # Remove last 7 characters (" Server")
+            # Note: NOT removing " Server" suffix to match Web UI display exactly
+
+            # Debug logging to track option creation order
+            logger.info(f"Creating dropdown option {i+1}: {display_label} (order={container.get('order', 999)})")
 
             option = discord.SelectOption(
                 label=display_label,
-                value=container['docker_name'],
-                emoji="🛠️",  # Admin wrench emoji for consistency
-                description=f"Container {i+1} - Admin control"  # Add description with position to maintain order
+                value=container['docker_name']
+                # No emoji or description - clean look
             )
             options.append(option)
+
+        # Log final options list
+        logger.info(f"Final dropdown options order: {[opt.label for opt in options]}")
 
         super().__init__(
             placeholder="Select a container to control...",
