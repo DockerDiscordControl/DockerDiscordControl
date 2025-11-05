@@ -1278,35 +1278,29 @@ class InfoDropdownButton(Button):
             import json
             from pathlib import Path
 
-            config = load_config()
-            base_dir = config.get('base_dir', '/app')
-            containers_dir = Path(base_dir) / 'config' / 'containers'
+            # SERVICE FIRST: Use ServerConfigService instead of direct file access
+            server_config_service = get_server_config_service()
+            all_servers = server_config_service.get_all_servers()
 
-            # Collect containers with info enabled AND active flag
+            # Collect containers with info enabled
             containers_with_info = []
-            for container_file in containers_dir.glob("*.json"):
+            for container_data in all_servers:
                 try:
-                    with open(container_file, 'r', encoding='utf-8') as f:
-                        container_data = json.load(f)
-
-                        # Check if container is active (default to True if not specified)
-                        if not container_data.get('active', True):
-                            continue
-
-                        # Check if container has info enabled or protected info
-                        info_config = container_data.get('info', {})
-                        if info_config.get('enabled', False) or info_config.get('protected_enabled', False):
-                            container_name = container_data.get('container_name', container_file.stem)
-                            display_name = container_data.get('display_name', [container_name, container_name])
-                            if isinstance(display_name, list) and len(display_name) > 0:
-                                display_name = display_name[0]
-                            containers_with_info.append({
-                                'name': container_name,
-                                'display': display_name,
-                                'protected': info_config.get('protected_enabled', False)
-                            })
+                    # Container is already active (filtered by service)
+                    # Check if container has info enabled or protected info
+                    info_config = container_data.get('info', {})
+                    if info_config.get('enabled', False) or info_config.get('protected_enabled', False):
+                        container_name = container_data.get('container_name', container_data.get('docker_name'))
+                        display_name = container_data.get('display_name', [container_name, container_name])
+                        if isinstance(display_name, list) and len(display_name) > 0:
+                            display_name = display_name[0]
+                        containers_with_info.append({
+                            'name': container_name,
+                            'display': display_name,
+                            'protected': info_config.get('protected_enabled', False)
+                        })
                 except Exception as e:
-                    logger.error(f"Error reading container file {container_file}: {e}")
+                    logger.error(f"Error processing container data: {e}")
                     continue
 
             if not containers_with_info:
@@ -1400,28 +1394,22 @@ class ContainerInfoDropdown(discord.ui.Select):
             import json
             from pathlib import Path
 
-            # Get the full container configuration from JSON file
-            config = load_config()
-            base_dir = config.get('base_dir', '/app')
-            containers_dir = Path(base_dir) / 'config' / 'containers'
-
-            # Find the container file
-            container_file = containers_dir / f"{selected_container}.json"
+            # SERVICE FIRST: Use ServerConfigService to get container configuration
+            server_config_service = get_server_config_service()
             container_data = None
 
-            if container_file.exists():
-                with open(container_file, 'r', encoding='utf-8') as f:
-                    container_data = json.load(f)
-            else:
-                # Try alternative naming patterns
-                for file in containers_dir.glob("*.json"):
-                    with open(file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                        if (data.get('container_name') == selected_container or
-                            data.get('docker_name') == selected_container or
-                            data.get('name') == selected_container):
-                            container_data = data
-                            break
+            # Try to get container by name
+            container_data = server_config_service.get_server_by_name(selected_container)
+
+            # If not found by name, try by docker_name
+            if not container_data:
+                all_servers = server_config_service.get_all_servers()
+                for server in all_servers:
+                    if (server.get('container_name') == selected_container or
+                        server.get('docker_name') == selected_container or
+                        server.get('name') == selected_container):
+                        container_data = server
+                        break
 
             if not container_data:
                 await interaction.response.edit_message(
@@ -1649,34 +1637,27 @@ class AdminButton(Button):
             import os
             from services.config.config_service import load_config
 
-            # Get base directory from config
-            config = load_config()
-            base_dir = config.get('base_dir', os.getcwd() if os.path.exists('config/containers') else '/app')
-            containers_dir = Path(base_dir) / 'config' / 'containers'
+            # SERVICE FIRST: Use ServerConfigService to get active containers
+            server_config_service = get_server_config_service()
+            all_servers = server_config_service.get_all_servers()
 
             # Collect active containers
             active_containers = []
-            for container_file in containers_dir.glob("*.json"):
+            for container_data in all_servers:
                 try:
-                    with open(container_file, 'r', encoding='utf-8') as f:
-                        container_data = json.load(f)
+                    # Container is already active (filtered by service)
+                    container_name = container_data.get('container_name', container_data.get('docker_name'))
+                    display_name = container_data.get('display_name', [container_name, container_name])
+                    if isinstance(display_name, list) and len(display_name) > 0:
+                        display_name = display_name[0]
 
-                        # Check if container is active (default to True if not specified)
-                        if not container_data.get('active', True):
-                            continue
-
-                        container_name = container_data.get('container_name', container_file.stem)
-                        display_name = container_data.get('display_name', [container_name, container_name])
-                        if isinstance(display_name, list) and len(display_name) > 0:
-                            display_name = display_name[0]
-
-                        active_containers.append({
-                            'name': container_name,
-                            'display': display_name,
-                            'docker_name': container_data.get('docker_name', container_name)
-                        })
+                    active_containers.append({
+                        'name': container_name,
+                        'display': display_name,
+                        'docker_name': container_data.get('docker_name', container_name)
+                    })
                 except Exception as e:
-                    logger.error(f"Error reading container file {container_file}: {e}")
+                    logger.error(f"Error processing container data: {e}")
                     continue
 
             if not active_containers:
@@ -1766,20 +1747,18 @@ class AdminContainerDropdown(discord.ui.Select):
             selected_container = self.values[0]
 
             # Find the container configuration
-            from services.config.config_service import load_config
-            import json
-            from pathlib import Path
+            # SERVICE FIRST: Use ServerConfigService to get container configuration
+            server_config_service = get_server_config_service()
 
-            config = load_config()
-            base_dir = config.get('base_dir', '/app')
-            containers_dir = Path(base_dir) / 'config' / 'containers'
+            # Get container configuration by docker_name
+            container_config = server_config_service.get_server_by_name(selected_container)
 
-            container_config = None
-            for container_file in containers_dir.glob("*.json"):
-                with open(container_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    if data.get('docker_name') == selected_container:
-                        container_config = data
+            # If not found, try searching all servers
+            if not container_config:
+                all_servers = server_config_service.get_all_servers()
+                for server in all_servers:
+                    if server.get('docker_name') == selected_container:
+                        container_config = server
                         break
 
             if not container_config:
