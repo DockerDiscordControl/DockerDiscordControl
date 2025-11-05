@@ -1615,6 +1615,15 @@ def process_config_form(form_data: Dict[str, Any], current_config: Dict[str, Any
             updated_config['channel_permissions'] = channel_permissions
             logger.info(f"[PROCESS_DEBUG] Added {len(channel_permissions)} channel permissions to updated_config")
 
+            # IMPORTANT: Also save to ChannelConfigService for consistency
+            try:
+                from services.config.channel_config_service import get_channel_config_service
+                channel_service = get_channel_config_service()
+                channel_service.save_all_channels(channel_permissions)
+                logger.info(f"[PROCESS_DEBUG] Saved {len(channel_permissions)} channels via ChannelConfigService")
+            except Exception as e:
+                logger.error(f"Error saving channels via ChannelConfigService: {e}")
+
         # Process each form field
         for key, value in form_data.items():
             # Skip server-related fields (already processed above)
