@@ -2,6 +2,7 @@
 """Control UI components for Discord interaction."""
 
 import asyncio
+import json
 from collections import OrderedDict
 from services.config.config_service import load_config
 from services.config.server_config_service import get_server_config_service
@@ -1288,8 +1289,8 @@ class InfoDropdownButton(Button):
                     with open(container_file, 'r', encoding='utf-8') as f:
                         container_data = json.load(f)
 
-                        # Check if container is active
-                        if not container_data.get('active', False):
+                        # Check if container is active (default to True if not specified)
+                        if not container_data.get('active', True):
                             continue
 
                         # Check if container has info enabled or protected info
@@ -1312,8 +1313,15 @@ class InfoDropdownButton(Button):
                 await interaction.response.send_message("ℹ️ No active containers have information configured.", ephemeral=True)
                 return
 
-            # Sort containers by display name
-            containers_with_info.sort(key=lambda x: x['display'])
+            # Sort containers using server_order.json
+            from services.docker_service.server_order import load_server_order
+            server_order = load_server_order()
+
+            # Create order map for sorting
+            order_map = {name: i for i, name in enumerate(server_order)}
+
+            # Sort containers based on server_order, using name (docker_name)
+            containers_with_info.sort(key=lambda x: order_map.get(x['name'], 999))
 
             # Create view with dropdown
             from .translation_manager import _
@@ -1653,8 +1661,8 @@ class AdminButton(Button):
                     with open(container_file, 'r', encoding='utf-8') as f:
                         container_data = json.load(f)
 
-                        # Check if container is active
-                        if not container_data.get('active', False):
+                        # Check if container is active (default to True if not specified)
+                        if not container_data.get('active', True):
                             continue
 
                         container_name = container_data.get('container_name', container_file.stem)
@@ -1675,8 +1683,15 @@ class AdminButton(Button):
                 await interaction.response.send_message("📦 No active containers found.", ephemeral=True)
                 return
 
-            # Sort containers by display name
-            active_containers.sort(key=lambda x: x['display'])
+            # Sort containers using server_order.json
+            from services.docker_service.server_order import load_server_order
+            server_order = load_server_order()
+
+            # Create order map for sorting
+            order_map = {name: i for i, name in enumerate(server_order)}
+
+            # Sort containers based on server_order, using docker_name
+            active_containers.sort(key=lambda x: order_map.get(x.get('docker_name', x['name']), 999))
 
             # Create view with dropdown
             from .translation_manager import _
