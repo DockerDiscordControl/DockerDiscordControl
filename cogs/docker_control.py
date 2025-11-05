@@ -528,65 +528,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     del server_messages_in_channel[display_name]
                     if display_name in self.last_message_update_time.get(channel_id, {}):
                         del self.last_message_update_time[channel_id][display_name]
-                                     
-                                     # Handle both cache formats: direct tuple or {'data': tuple, 'timestamp': datetime}
-                                     if isinstance(cached_status, dict) and 'data' in cached_status:
-                                         # Check if cache is still valid
-                                         if 'timestamp' in cached_status:
-                                             cache_age = (datetime.now(timezone.utc) - cached_status['timestamp']).total_seconds()
-                                             if cache_age > max_cache_age:
-                                                 logger.debug(f"Cache for {docker_name} expired ({cache_age:.1f}s > {max_cache_age}s)")
-                                                 cached_status = None
-                                     
-                                     if cached_status and isinstance(cached_status, dict) and 'data' in cached_status:
-                                         # New format: extract data from dict
-                                         status_data = cached_status['data']
-                                     else:
-                                         status_data = cached_status
-                                     
-                                     # Ensure status_data is subscriptable (list, tuple, etc.)
-                                     if not hasattr(status_data, '__getitem__') or not hasattr(status_data, '__len__'):
-                                         logger.debug(f"Cache data for {docker_name} is not subscriptable: {type(status_data)}")
-                                         continue
-                                     
-                                     # Handle different tuple formats: (display_name, is_running, cpu, ram, uptime, details_allowed)
-                                     if len(status_data) >= 6:
-                                         _, is_running, _, _, _, _ = status_data
-                                     elif len(status_data) >= 2:
-                                         _, is_running = status_data[:2]  # Take only first 2 values
-                                     else:
-                                         logger.debug(f"Unexpected cache data format for {docker_name}: {len(status_data)} values")
-                                         continue
-                                 except (ValueError, TypeError, KeyError, IndexError) as e:
-                                     logger.debug(f"Error unpacking cache for {docker_name}: {e}")
-                                     continue
-                                 
-                                 if not is_running:
-                                    # For offline containers, use reduced update interval (5 minutes instead of 1)
-                                    offline_interval_minutes = 5
-                                    last_offline_update = self.last_message_update_time.get(channel_id, {}).get(display_name)
-                                    if last_offline_update:
-                                        time_since_offline_update = now_utc - last_offline_update
-                                        offline_threshold = timedelta(minutes=offline_interval_minutes)
-                                        
-                                        if time_since_offline_update < offline_threshold:
-                                            logger.debug(f"Direct Cog Periodic Edit Loop: Skipping offline container '{display_name}' - last update {time_since_offline_update} ago (offline interval: {offline_interval_minutes}m)")
-                                            continue  # Skip offline container update
-                    
-                    allow_toggle_for_channel = _channel_has_permission(channel_id, 'control', self.config)
-
-                    # ULTRA-PERFORMANCE: Collect container names for bulk fetching
-                    # SERVICE FIRST: Use ServerConfigService instead of direct config access
-                    server_config_service = get_server_config_service()
-                    servers = server_config_service.get_all_servers()
-                    current_server_conf = next((s for s in servers if s.get('name', s.get('docker_name')) == display_name), None)
-                    if current_server_conf:
-                        docker_name = current_server_conf.get('docker_name')
-                        if docker_name:
-                            all_container_names.add(docker_name)
-
-                    # Regular server message (individual containers only - overview handled early)
-                    tasks_to_run.append(self._edit_single_message_wrapper(channel_id, display_name, message_id, self.config, allow_toggle_for_channel))
             
         if tasks_to_run:
             # ULTRA-PERFORMANCE: Bulk update status cache before processing tasks
