@@ -1698,7 +1698,7 @@ class AdminContainerDropdown(discord.ui.Select):
 
         # Create options from containers
         options = []
-        for container in containers[:25]:  # Discord limit is 25 options
+        for i, container in enumerate(containers[:25]):  # Discord limit is 25 options
             # Remove " Server" suffix from display name
             display_label = container['display']
             if display_label.endswith(' Server'):
