@@ -1702,26 +1702,27 @@ class AdminContainerDropdown(discord.ui.Select):
         # Create options from containers
         options = []
 
-        # Log containers received for dropdown creation
-        logger.info(f"AdminContainerDropdown received containers in order: {[c['display'] for c in containers]}")
-
+        # Use invisible Unicode characters to force Discord to maintain our order
+        # Discord sorts alphabetically, so we prepend invisible characters that sort correctly
         for i, container in enumerate(containers[:25]):  # Discord limit is 25 options
-            # Use display name directly from container data (as shown in Web UI)
+            # Remove " Server" suffix for cleaner dropdown display
             display_label = container['display']
-            # Note: NOT removing " Server" suffix to match Web UI display exactly
+            if display_label.endswith(' Server'):
+                display_label = display_label[:-7]
 
-            # Debug logging to track option creation order
-            logger.info(f"Creating dropdown option {i+1}: {display_label} (order={container.get('order', 999)})")
+            # Prepend invisible sorting characters
+            # Using Zero Width Space (U+200B) repeated to create sort order
+            # More spaces = later in alphabet sort
+            sort_prefix = '\u200B' * i
 
             option = discord.SelectOption(
-                label=display_label,
+                label=sort_prefix + display_label,
                 value=container['docker_name']
-                # No emoji or description - clean look
             )
             options.append(option)
 
-        # Log final options list
-        logger.info(f"Final dropdown options order: {[opt.label for opt in options]}")
+        # Debug: Log the final order
+        logger.info(f"AdminDropdown options created: {[opt.value for opt in options]}")
 
         super().__init__(
             placeholder="Select a container to control...",
