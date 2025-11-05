@@ -1292,14 +1292,16 @@ class InfoDropdownButton(Button):
                 await interaction.response.send_message("ℹ️ No active containers have information configured.", ephemeral=True)
                 return
 
-            # Sort containers using server_order.json
-            from services.docker_service.server_order import load_server_order
-            server_order = load_server_order()
+            # Sort containers by the 'order' field from container configurations (same as Admin Overview)
+            # SERVICE FIRST: Get server configurations to access order field
+            from services.config.server_config_service import get_server_config_service
+            server_config_service = get_server_config_service()
+            servers = server_config_service.get_all_servers()
 
-            # Create order map for sorting
-            order_map = {name: i for i, name in enumerate(server_order)}
+            # Create order map from server configurations
+            order_map = {s.get('docker_name'): s.get('order', 999) for s in servers}
 
-            # Sort containers based on server_order, using name (docker_name)
+            # Sort containers based on order field
             containers_with_info.sort(key=lambda x: order_map.get(x['name'], 999))
 
             # Create view with dropdown
@@ -1649,14 +1651,16 @@ class AdminButton(Button):
                 await interaction.response.send_message("📦 No active containers found.", ephemeral=True)
                 return
 
-            # Sort containers using server_order.json
-            from services.docker_service.server_order import load_server_order
-            server_order = load_server_order()
+            # Sort containers by the 'order' field from container configurations (same as Admin Overview)
+            # SERVICE FIRST: Get server configurations to access order field
+            from services.config.server_config_service import get_server_config_service
+            server_config_service = get_server_config_service()
+            servers = server_config_service.get_all_servers()
 
-            # Create order map for sorting
-            order_map = {name: i for i, name in enumerate(server_order)}
+            # Create order map from server configurations
+            order_map = {s.get('docker_name'): s.get('order', 999) for s in servers}
 
-            # Sort containers based on server_order, using docker_name
+            # Sort containers based on order field
             active_containers.sort(key=lambda x: order_map.get(x.get('docker_name', x['name']), 999))
 
             # Create view with dropdown
