@@ -141,6 +141,86 @@ class AdminService:
             self._cache_timestamp = None
             logger.info("Admin users cache cleared")
 
+    def get_admin_data(self, force_refresh: bool = False) -> Dict[str, Any]:
+        """Get full admin data including notes.
+
+        Args:
+            force_refresh: Force reload from disk
+
+        Returns:
+            Dict with 'discord_admin_users' and 'admin_notes'
+        """
+        try:
+            from services.config.config_service import load_config
+            config = load_config()
+            if not config:
+                return {'discord_admin_users': [], 'admin_notes': {}}
+
+            base_dir = config.get('base_dir', '/app')
+            admins_file = Path(base_dir) / 'config' / 'admins.json'
+
+            if not admins_file.exists():
+                return {'discord_admin_users': [], 'admin_notes': {}}
+
+            try:
+                with open(admins_file, 'r') as f:
+                    admin_data = json.load(f)
+                    return {
+                        'discord_admin_users': admin_data.get('discord_admin_users', []),
+                        'admin_notes': admin_data.get('admin_notes', {})
+                    }
+            except Exception as e:
+                logger.error(f"Error reading admin data: {e}")
+                return {'discord_admin_users': [], 'admin_notes': {}}
+
+        except Exception as e:
+            logger.error(f"Error in get_admin_data: {e}")
+            return {'discord_admin_users': [], 'admin_notes': {}}
+
+    def save_admin_data(self, admin_users: List[str], admin_notes: Dict[str, str] = None) -> bool:
+        """Save admin users and notes to file.
+
+        Args:
+            admin_users: List of Discord user IDs
+            admin_notes: Optional dict of user notes
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            from services.config.config_service import load_config
+            config = load_config()
+            if not config:
+                logger.error("Config unavailable, cannot save admin data")
+                return False
+
+            base_dir = config.get('base_dir', '/app')
+            admins_file = Path(base_dir) / 'config' / 'admins.json'
+
+            # Ensure directory exists
+            admins_file.parent.mkdir(parents=True, exist_ok=True)
+
+            # Prepare data
+            admin_data = {
+                'discord_admin_users': admin_users,
+                'admin_notes': admin_notes or {}
+            }
+
+            # Write to file
+            with open(admins_file, 'w') as f:
+                json.dump(admin_data, f, indent=2)
+
+            # Invalidate cache
+            self._admin_users_cache = None
+            self._cache_timestamp = None
+
+            logger.info(f"Saved {len(admin_users)} admin users to {admins_file}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error saving admin data: {e}")
+            return False
+
     async def is_user_admin_async(self, user_id: Union[str, int], force_refresh: bool = False) -> bool:
         """Async wrapper for is_user_admin.
 

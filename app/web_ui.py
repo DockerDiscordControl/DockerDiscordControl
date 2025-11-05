@@ -313,27 +313,17 @@ def create_app(test_config=None):
     @auth.login_required
     def admin_users():
         """API endpoint for managing Discord admin users."""
-        import json
-        from pathlib import Path
-
-        # Get base directory
-        config = load_config()
-        base_dir = config.get('base_dir', '/app')
-        admins_file = Path(base_dir) / 'config' / 'admins.json'
+        # SERVICE FIRST: Use AdminService instead of direct file access
+        from services.admin.admin_service import get_admin_service
+        admin_service = get_admin_service()
 
         if request.method == 'GET':
-            # Load admin users
-            admin_data = {'discord_admin_users': [], 'admin_notes': {}}
-            if admins_file.exists():
-                try:
-                    with open(admins_file, 'r') as f:
-                        admin_data = json.load(f)
-                except Exception as e:
-                    app.logger.error(f"Error loading admins.json: {e}")
+            # Load admin users via service
+            admin_data = admin_service.get_admin_data()
             return jsonify(admin_data)
 
         elif request.method == 'POST':
-            # Save admin users
+            # Save admin users via service
             try:
                 data = request.json
                 admin_users = data.get('discord_admin_users', [])
@@ -344,18 +334,16 @@ def create_app(test_config=None):
                     if not user_id.isdigit():
                         return jsonify({'success': False, 'error': f'Invalid user ID: {user_id}'})
 
-                # Save to file
-                admin_data = {
-                    'discord_admin_users': admin_users,
-                    'admin_notes': admin_notes
-                }
+                # Save via service
+                success = admin_service.save_admin_data(admin_users, admin_notes)
 
-                with open(admins_file, 'w') as f:
-                    json.dump(admin_data, f, indent=2)
+                if success:
+                    return jsonify({'success': True})
+                else:
+                    return jsonify({'success': False, 'error': 'Failed to save admin data'})
 
-                return jsonify({'success': True})
             except Exception as e:
-                app.logger.error(f"Error saving admins.json: {e}")
+                app.logger.error(f"Error saving admin data: {e}")
                 return jsonify({'success': False, 'error': str(e)})
 
     @app.route("/health")
