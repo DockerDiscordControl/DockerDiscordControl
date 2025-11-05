@@ -1706,8 +1706,9 @@ class AdminContainerDropdown(discord.ui.Select):
 
             option = discord.SelectOption(
                 label=display_label,
-                value=container['docker_name']
-                # No emoji - removed for cleaner look
+                value=container['docker_name'],
+                emoji="🛠️",  # Admin wrench emoji for consistency
+                description=f"Container {i+1} - Admin control"  # Add description with position to maintain order
             )
             options.append(option)
 
