@@ -8,6 +8,7 @@
 
 """
 from services.config.config_service import load_config
+from services.config.server_config_service import get_server_config_service
 Utility functions for schedule commands to eliminate redundancy.
 Contains common validation, error handling, and task creation logic.
 """
@@ -127,7 +128,9 @@ def check_schedule_permissions(ctx: discord.ApplicationContext, container_name: 
         Tuple of (has_permission, error_message, server_config)
     """
     config = load_config()
-    servers = config.get('servers', [])
+    # SERVICE FIRST: Use ServerConfigService instead of direct config access
+    server_config_service = get_server_config_service()
+    servers = server_config_service.get_all_servers()
     
     for server in servers:
         if server.get('docker_name') == container_name:

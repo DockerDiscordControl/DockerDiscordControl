@@ -108,7 +108,7 @@ class ConfigurationSaveService:
 
             # Check server order utilities availability
             try:
-                from services.docker.server_order import save_server_order
+                from services.docker_service.server_order import save_server_order
                 self.save_server_order_func = save_server_order
                 self.server_order_available = True
             except ImportError:
@@ -203,6 +203,8 @@ class ConfigurationSaveService:
         try:
             from services.config.config_service import save_config
             from app.utils.container_info_web_handler import save_container_info_from_web, save_container_configs_from_web
+            from pathlib import Path
+            import json
 
             # Save main configuration
             save_config(processed_data)
@@ -221,14 +223,42 @@ class ConfigurationSaveService:
             else:
                 self.logger.warning("[SAVE_DEBUG] No 'servers' key in processed_data!")
 
-            # Save container info to separate JSON files
-            container_names = []
-            if 'servers' in processed_data:
-                container_names = [server.get('docker_name') or server.get('container_name') for server in processed_data['servers'] if server.get('docker_name') or server.get('container_name')]
+            # Get ALL containers from the containers directory, not just active ones
+            containers_dir = Path('config/containers')
+            all_container_names = []
+            if containers_dir.exists():
+                for json_file in containers_dir.glob('*.json'):
+                    try:
+                        with open(json_file, 'r') as f:
+                            container_data = json.load(f)
+                            container_name = container_data.get('container_name') or json_file.stem
+                            all_container_names.append(container_name)
+                    except Exception as e:
+                        self.logger.error(f"Error reading {json_file}: {e}")
 
-            if container_names:
-                info_results = save_container_info_from_web(form_data, container_names)
-                self.logger.info(f"Container info save results: {info_results}")
+            # Get list of active containers
+            active_container_names = []
+            if 'servers' in processed_data:
+                active_container_names = [server.get('docker_name') or server.get('container_name')
+                                         for server in processed_data['servers']
+                                         if server.get('docker_name') or server.get('container_name')]
+
+            # Save container info for ALL containers
+            if all_container_names:
+                # For inactive containers, we need to clear their info fields
+                for container_name in all_container_names:
+                    if container_name not in active_container_names:
+                        # Create empty form data for inactive containers to clear their info
+                        form_data[f'info_enabled_{container_name}'] = '0'
+                        form_data[f'info_show_ip_{container_name}'] = '0'
+                        form_data[f'info_custom_ip_{container_name}'] = ''
+                        form_data[f'info_custom_port_{container_name}'] = ''
+                        form_data[f'info_custom_text_{container_name}'] = ''
+                        self.logger.info(f"[SAVE_DEBUG] Clearing info for inactive container: {container_name}")
+
+                # Save info for ALL containers (active and inactive)
+                info_results = save_container_info_from_web(form_data, all_container_names)
+                self.logger.info(f"Container info save results for {len(all_container_names)} containers: {info_results}")
 
             # Prepare file paths for display
             config_files = []

@@ -9,6 +9,7 @@ from typing import Dict, Any, Optional, List
 from pathlib import Path
 from dataclasses import dataclass
 from utils.logging_utils import get_module_logger
+from services.config.server_config_service import get_server_config_service
 
 logger = get_module_logger('container_info_service')
 
@@ -254,7 +255,9 @@ class ContainerInfoService:
                 docker_config = json.load(f)
 
             # Extract container names from servers array
-            servers = docker_config.get('servers', [])
+            # SERVICE FIRST: Use ServerConfigService instead of direct config access
+            server_config_service = get_server_config_service()
+            servers = server_config_service.get_all_servers()
             for server in servers:
                 # Use docker_name as primary, fallback to name
                 container_name = server.get('docker_name') or server.get('name')

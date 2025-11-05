@@ -17,6 +17,9 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass
 
+# SERVICE FIRST: Import ServerConfigService for server configuration access
+from services.config.server_config_service import get_server_config_service
+
 logger = logging.getLogger(__name__)
 
 # Days of week for schedule display
@@ -140,9 +143,12 @@ class ConfigurationPageService:
         docker_status = self._determine_docker_status(live_containers_list, cache_error)
 
         # Create synthetic container list if Docker is not available
-        if not live_containers_list and config.get('servers'):
+        # SERVICE FIRST: Use ServerConfigService instead of direct config access
+        server_config_service = get_server_config_service()
+        servers = server_config_service.get_all_servers()
+        if not live_containers_list and servers:
             live_containers_list = []
-            for server in config.get('servers', []):
+            for server in servers:
                 synthetic_container = {
                     'id': server.get('docker_name', 'unknown'),
                     'name': server.get('docker_name'),
@@ -230,8 +236,11 @@ class ConfigurationPageService:
         from app.utils.shared_data import load_active_containers_from_config, get_active_containers
 
         # Build configured servers mapping
+        # SERVICE FIRST: Use ServerConfigService instead of direct config access
+        server_config_service = get_server_config_service()
+        servers = server_config_service.get_all_servers()
         configured_servers = {}
-        for server in config.get('servers', []):
+        for server in servers:
             docker_name = server.get('docker_name')
             if docker_name:
                 configured_servers[docker_name] = server
@@ -389,7 +398,10 @@ class ConfigurationPageService:
 
     def _find_container_display_name(self, container_name: str, config: Dict[str, Any]) -> str:
         """Find display name for container from configuration."""
-        for server in config.get('servers', []):
+        # SERVICE FIRST: Use ServerConfigService instead of direct config access
+        server_config_service = get_server_config_service()
+        servers = server_config_service.get_all_servers()
+        for server in servers:
             if server.get('docker_name') == container_name:
                 return server.get('name', container_name)
         return container_name
@@ -411,7 +423,10 @@ class ConfigurationPageService:
         if live_containers:
             container_names = [container.get("name", "Unknown") for container in live_containers]
         else:
-            container_names = [server.get("docker_name", server.get("name", "Unknown")) for server in config.get('servers', [])]
+            # SERVICE FIRST: Use ServerConfigService instead of direct config access
+            server_config_service = get_server_config_service()
+            servers = server_config_service.get_all_servers()
+            container_names = [server.get("docker_name", server.get("name", "Unknown")) for server in servers]
 
         return load_container_info_for_web(container_names)
 

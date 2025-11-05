@@ -129,7 +129,7 @@ def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
         if container_name:
             active_containers.add(container_name)
 
-    # Mark all existing containers as inactive first
+    # Process ALL existing containers - mark inactive and preserve their structure
     for container_file in containers_dir.glob('*.json'):
         try:
             with open(container_file, 'r') as f:
@@ -140,11 +140,25 @@ def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
             # If this container is not in the active list, mark it as inactive
             if container_name not in active_containers:
                 container_config['active'] = False
+                # Preserve all other fields but clear info if needed
+                if 'info' not in container_config:
+                    container_config['info'] = {
+                        'enabled': False,
+                        'show_ip': False,
+                        'custom_ip': '',
+                        'custom_port': '',
+                        'custom_text': '',
+                        'protected_enabled': False,
+                        'protected_content': '',
+                        'protected_password': ''
+                    }
                 with open(container_file, 'w') as f:
                     json.dump(container_config, f, indent=2)
-                logger.info(f"[SAVE_DEBUG] Marked {container_name} as inactive")
+                results[container_name] = True
+                logger.info(f"[SAVE_DEBUG] Marked {container_name} as inactive and preserved config")
         except Exception as e:
             logger.error(f"Error updating {container_file}: {e}")
+            results[container_name] = False
 
     # Now process the active containers
     for server in servers_data:

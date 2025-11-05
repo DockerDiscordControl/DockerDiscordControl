@@ -58,11 +58,17 @@ def load_active_containers_from_config():
                 with open(config_file, 'r', encoding='utf-8') as f:
                     config = json.load(f)
 
+                # Check if container is active (default to True for backwards compatibility)
+                is_active = config.get('active', True)
+
                 # Extract container name from the configuration
                 container_name = config.get('container_name')
                 if container_name:
-                    containers.append(container_name)
-                    print(f"SHARED_DATA: Loaded container '{container_name}' from {os.path.basename(config_file)}")
+                    if is_active:
+                        containers.append(container_name)
+                        print(f"SHARED_DATA: Loaded ACTIVE container '{container_name}' from {os.path.basename(config_file)}")
+                    else:
+                        print(f"SHARED_DATA: Skipped INACTIVE container '{container_name}' from {os.path.basename(config_file)}")
                 else:
                     print(f"SHARED_DATA: Warning - No container_name found in {os.path.basename(config_file)}")
 
@@ -70,7 +76,8 @@ def load_active_containers_from_config():
                 print(f"SHARED_DATA: Error loading container config {os.path.basename(config_file)}: {e}")
                 continue
 
-        print(f"SHARED_DATA: {len(containers)} active containers loaded from per-container files.")
+        total_files = len(container_files)
+        print(f"SHARED_DATA: {len(containers)} ACTIVE containers loaded from {total_files} total container files.")
         set_active_containers(containers)
         return containers
 

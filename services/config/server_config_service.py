@@ -1,8 +1,10 @@
 # =============================================================================
-# SERVICE FIRST: Server Configuration Service
+# SERVICE FIRST: Server Configuration Service - SINGLE POINT OF TRUTH
 # =============================================================================
 
 import logging
+import json
+from pathlib import Path
 from typing import List, Dict, Any, Optional
 from .config_service import load_config
 
@@ -11,31 +13,100 @@ logger = logging.getLogger('ddc.server_config_service')
 class ServerConfigService:
     """Service First implementation for server configuration access.
 
-    This service provides clean access to server configurations,
-    hiding implementation details and providing validation.
+    SINGLE POINT OF TRUTH: Reads ONLY from individual container JSON files
+    in /config/containers/*.json - NOT from docker_config.json servers array!
     """
 
     def __init__(self):
         """Initialize the ServerConfigService."""
-        logger.info("ServerConfigService initialized")
+        self._cache: Optional[List[Dict[str, Any]]] = None
+        logger.info("ServerConfigService initialized - Single Point of Truth from container JSONs")
 
-    def get_all_servers(self) -> List[Dict[str, Any]]:
-        """Get all server configurations.
+    def _load_container_configs(self) -> List[Dict[str, Any]]:
+        """Load all container configurations from individual JSON files.
 
         Returns:
-            List of server configurations, empty list if none
+            List of container configurations from /config/containers/*.json
         """
-        config = load_config()
-        if not config:
-            logger.warning("Config unavailable, returning empty server list")
-            return []
+        containers = []
 
-        servers = config.get('servers', [])
-        if not isinstance(servers, list):
-            logger.error(f"Invalid servers configuration: expected list, got {type(servers)}")
-            return []
+        try:
+            # Get base directory
+            config = load_config()
+            if not config:
+                logger.warning("Config unavailable, cannot load container configs")
+                return []
 
-        return servers
+            # Use environment variable or current directory in development
+            import os
+            base_dir = os.environ.get('DDC_BASE_DIR', config.get('base_dir', os.getcwd() if os.path.exists('config/containers') else '/app'))
+            containers_dir = Path(base_dir) / 'config' / 'containers'
+
+            if not containers_dir.exists():
+                logger.warning(f"Containers directory not found: {containers_dir}")
+                return []
+
+            # Read each JSON file in containers directory
+            for json_file in containers_dir.glob('*.json'):
+                try:
+                    with open(json_file, 'r') as f:
+                        container_data = json.load(f)
+
+                        # Map container_name to docker_name for compatibility
+                        if 'container_name' in container_data:
+                            container_data['docker_name'] = container_data['container_name']
+                            # IMPORTANT: Don't overwrite 'name' if it already exists!
+                            # The 'name' field should match docker_name for status lookups
+                            if 'name' not in container_data:
+                                container_data['name'] = container_data['container_name']
+
+                        # Ensure we have essential fields
+                        if 'docker_name' not in container_data:
+                            logger.warning(f"Container config {json_file.name} missing docker_name/container_name")
+                            continue
+
+                        # Add allowed_actions if missing
+                        if 'allowed_actions' not in container_data:
+                            container_data['allowed_actions'] = ['status']
+
+                        # Add order if missing
+                        if 'order' not in container_data:
+                            container_data['order'] = 999
+
+                        # IMPORTANT: Only include active containers (default to active if field missing)
+                        is_active = container_data.get('active', True)
+                        if is_active:
+                            containers.append(container_data)
+                            logger.debug(f"Loaded ACTIVE container config: {json_file.name}")
+                        else:
+                            logger.debug(f"Skipped INACTIVE container config: {json_file.name}")
+
+                except json.JSONDecodeError as e:
+                    logger.error(f"Invalid JSON in {json_file}: {e}")
+                except Exception as e:
+                    logger.error(f"Error reading {json_file}: {e}")
+
+            # Count total containers including inactive
+            total_containers = 0
+            for json_file in containers_dir.glob('*.json'):
+                total_containers += 1
+
+            logger.info(f"Loaded {len(containers)} ACTIVE container configurations from {total_containers} total JSON files")
+
+        except Exception as e:
+            logger.error(f"Error loading container configs: {e}")
+
+        return containers
+
+    def get_all_servers(self) -> List[Dict[str, Any]]:
+        """Get all server configurations from individual container JSONs.
+
+        Returns:
+            List of server configurations from /config/containers/*.json
+        """
+        # Always reload to ensure we have latest data (Single Point of Truth)
+        self._cache = self._load_container_configs()
+        return self._cache if self._cache else []
 
     def get_valid_containers(self) -> List[Dict[str, str]]:
         """Get list of valid containers with docker_name.

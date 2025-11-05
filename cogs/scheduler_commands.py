@@ -23,6 +23,7 @@ import traceback
 from utils.logging_utils import setup_logger
 from utils.time_utils import format_datetime_with_timezone
 from services.config.config_service import load_config
+from services.config.server_config_service import get_server_config_service
 from services.infrastructure.action_logger import log_user_action
 from services.scheduling.scheduler import (
     ScheduledTask, add_task, delete_task, update_task, load_tasks,
@@ -163,7 +164,9 @@ class ScheduleCommandsMixin:
             
             # Check if the user has schedule permissions
             has_permission = False
-            servers = config.get('servers', [])
+            # SERVICE FIRST: Use ServerConfigService instead of direct config access
+            server_config_service = get_server_config_service()
+            servers = server_config_service.get_all_servers()
             target_server = None
             
             for server in servers:

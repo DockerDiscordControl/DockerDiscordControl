@@ -22,6 +22,7 @@ from utils.logging_utils import setup_logger, get_module_logger
 from services.infrastructure.container_status_service import get_docker_info_dict_service_first, get_docker_stats_service_first
 from utils.time_utils import format_datetime_with_timezone
 from services.config.config_service import load_config
+from services.config.server_config_service import get_server_config_service
 
 # Import helper functions
 from .control_helpers import _channel_has_permission, _get_pending_embed
@@ -359,7 +360,9 @@ class StatusHandlersMixin:
             error_results = {}
             for docker_name in container_names:
                 # Find server config for this container
-                servers = self.config.get('servers', [])
+                # SERVICE FIRST: Use ServerConfigService instead of direct config access
+                server_config_service = get_server_config_service()
+                servers = server_config_service.get_all_servers()
                 server_config = next((s for s in servers if s.get('docker_name') == docker_name), None)
                 display_name = server_config.get('name', docker_name) if server_config else docker_name
 
@@ -438,7 +441,9 @@ class StatusHandlersMixin:
             docker_name, info, stats = result
             
             # Find server config for this container
-            servers = self.config.get('servers', [])
+            # SERVICE FIRST: Use ServerConfigService instead of direct config access
+            server_config_service = get_server_config_service()
+            servers = server_config_service.get_all_servers()
             server_config = next((s for s in servers if s.get('docker_name') == docker_name), None)
             
             if not server_config:
@@ -570,7 +575,9 @@ class StatusHandlersMixin:
         containers_needing_update = []
         
         # Pre-process server configurations
-        servers = self.config.get('servers', [])
+        # SERVICE FIRST: Use ServerConfigService instead of direct config access
+        server_config_service = get_server_config_service()
+        servers = server_config_service.get_all_servers()
         servers_by_docker_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
         
         for docker_name in container_names:
@@ -718,7 +725,9 @@ class StatusHandlersMixin:
         lang = current_config.get('language', 'de')
         # Get timezone from config (format_datetime_with_timezone will handle fallbacks)
         timezone_str = current_config.get('timezone_str', 'Europe/Berlin')
-        all_servers_config = current_config.get('servers', [])
+        # SERVICE FIRST: Use ServerConfigService instead of direct config access
+        server_config_service = get_server_config_service()
+        all_servers_config = server_config_service.get_all_servers()
 
         logger.debug(f"[_GEN_EMBED] Generating embed for '{display_name}' in channel {channel_id}, lang={lang}, allow_toggle={allow_toggle}, force_collapse={force_collapse}")
         if not allow_toggle or force_collapse:
@@ -1166,7 +1175,10 @@ class StatusHandlersMixin:
         # Initialize conditional cache
         self._ensure_conditional_cache()
         
-        server_conf = next((s for s in current_config.get('servers', []) if s.get('name', s.get('docker_name')) == display_name), None)
+        # SERVICE FIRST: Use ServerConfigService instead of direct config access
+        server_config_service = get_server_config_service()
+        servers = server_config_service.get_all_servers()
+        server_conf = next((s for s in servers if s.get('name', s.get('docker_name')) == display_name), None)
         if not server_conf:
             logger.warning(f"[_EDIT_SINGLE] Config for '{display_name}' not found during edit.")
             if channel_id in self.channel_server_message_ids and display_name in self.channel_server_message_ids[channel_id]:

@@ -16,6 +16,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from utils.time_utils import format_datetime_with_timezone
 import logging.handlers
 from services.config.config_service import load_config, save_config
+from services.config.server_config_service import get_server_config_service
 # Import auth from .auth
 from .auth import auth, init_limiter
 from app.utils.web_helpers import (
@@ -376,7 +377,10 @@ def create_app(test_config=None):
             try:
                 config = load_config()
                 health_data["config_loaded"] = True
-                health_data["servers_configured"] = len(config.get('servers', []))
+                # SERVICE FIRST: Use ServerConfigService instead of direct config access
+                server_config_service = get_server_config_service()
+                servers = server_config_service.get_all_servers()
+                health_data["servers_configured"] = len(servers)
                 
                 # Check if first-time setup is needed
                 if config.get('web_ui_password_hash') is None:

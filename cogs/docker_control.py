@@ -28,6 +28,7 @@ from services.discord.channel_cleanup_service import get_channel_cleanup_service
 
 # Import our utility functions
 from services.config.config_service import load_config, get_config_service
+from services.config.server_config_service import get_server_config_service
 # SERVICE FIRST: docker_action moved to docker_action_service.py
 
 from utils.time_utils import format_datetime_with_timezone
@@ -157,7 +158,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 self.ordered_server_names = config.get('server_order', [])
             else:
                 logger.info("[Cog Init] No server_order found, using all server names from config")
-                self.ordered_server_names = [s.get('docker_name') for s in config.get('servers', []) if s.get('docker_name')]
+                # SERVICE FIRST: Use ServerConfigService instead of direct config access
+                server_config_service = get_server_config_service()
+                servers = server_config_service.get_all_servers()
+                self.ordered_server_names = [s.get('docker_name') for s in servers if s.get('docker_name')]
             save_server_order(self.ordered_server_names)
             logger.info(f"[Cog Init] Saved default server order: {self.ordered_server_names}")
         
@@ -556,7 +560,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                             continue  # Skip this container
                     
                     # PERFORMANCE OPTIMIZATION: Smart offline container handling
-                    current_server_conf = next((s for s in self.config.get('servers', []) if s.get('name', s.get('docker_name')) == display_name), None)
+                    # SERVICE FIRST: Use ServerConfigService instead of direct config access
+                    server_config_service = get_server_config_service()
+                    servers = server_config_service.get_all_servers()
+                    current_server_conf = next((s for s in servers if s.get('name', s.get('docker_name')) == display_name), None)
                     if current_server_conf:
                         docker_name = current_server_conf.get('docker_name')
                         if docker_name:
@@ -615,7 +622,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     allow_toggle_for_channel = _channel_has_permission(channel_id, 'control', self.config)
 
                     # ULTRA-PERFORMANCE: Collect container names for bulk fetching
-                    current_server_conf = next((s for s in self.config.get('servers', []) if s.get('name', s.get('docker_name')) == display_name), None)
+                    # SERVICE FIRST: Use ServerConfigService instead of direct config access
+                    server_config_service = get_server_config_service()
+                    servers = server_config_service.get_all_servers()
+                    current_server_conf = next((s for s in servers if s.get('name', s.get('docker_name')) == display_name), None)
                     if current_server_conf:
                         docker_name = current_server_conf.get('docker_name')
                         if docker_name:
@@ -897,7 +907,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             logger.info(f"Sending admin overview to control channel {channel.name} ({channel.id})")
 
             # Get all server configurations
-            servers = current_config.get('servers', [])
+            # SERVICE FIRST: Use ServerConfigService instead of direct config access
+            server_config_service = get_server_config_service()
+            servers = server_config_service.get_all_servers()
             if not servers:
                 logger.warning(f"No servers configured for channel {channel.id}")
                 return
@@ -943,7 +955,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 logger.error(f"Send All Statuses: Could not load configuration for channel {channel.id}.")
                 return
                 
-            servers = config.get('servers', [])
+            # SERVICE FIRST: Use ServerConfigService instead of direct config access
+            server_config_service = get_server_config_service()
+            servers = server_config_service.get_all_servers()
             if not servers:
                 logger.warning(f"No servers configured to send status in channel {channel.name}")
                 return
@@ -1160,7 +1174,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 return
 
             # Get container names from servers
-            servers = config.get('servers', [])
+            # SERVICE FIRST: Use ServerConfigService instead of direct config access
+            server_config_service = get_server_config_service()
+            servers = server_config_service.get_all_servers()
             if not servers:
                 logger.info("Background cache population: No servers configured")
                 return
@@ -1328,7 +1344,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 return
 
             # Get all servers and sort them by the 'order' field from container configurations
-            servers = config.get('servers', [])
+            # SERVICE FIRST: Use ServerConfigService instead of direct config access
+            server_config_service = get_server_config_service()
+            servers = server_config_service.get_all_servers()
             ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
             
             # Determine which embed to create based on mech expansion state
@@ -1426,7 +1444,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 return
 
             # Get all server configurations
-            servers = config.get('servers', [])
+            # SERVICE FIRST: Use ServerConfigService instead of direct config access
+            server_config_service = get_server_config_service()
+            servers = server_config_service.get_all_servers()
             if not servers:
                 await ctx.followup.send("❌ No servers configured.")
                 return
@@ -1711,7 +1731,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 return
             
             # Check if container exists in config
-            servers = config.get('servers', [])
+            # SERVICE FIRST: Use ServerConfigService instead of direct config access
+            server_config_service = get_server_config_service()
+            servers = server_config_service.get_all_servers()
             server_config = next((s for s in servers if s.get('docker_name') == container_name), None)
             if not server_config:
                 if deferred:
@@ -2706,7 +2728,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                             logger.warning(f"SERVICE_FIRST: Error in decision service for channel {channel_id}: {service_error}")
                             # Continue with original logic if service fails (safe fallback)
 
-                        servers = config.get('servers', [])
+                        # SERVICE FIRST: Use ServerConfigService instead of direct config access
+                        server_config_service = get_server_config_service()
+                        servers = server_config_service.get_all_servers()
                         ordered_servers = []
                         seen_docker_names = set()
                         
@@ -2974,7 +2998,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 logger.error(f"[STATUS_LOOP] Failed to change interval: {e}")
         
         # Configuration already loaded and validated above
-        servers = config.get('servers', [])
+        # SERVICE FIRST: Use ServerConfigService instead of direct config access
+        server_config_service = get_server_config_service()
+        servers = server_config_service.get_all_servers()
         if not servers:
             return # No servers to update
             
@@ -3427,7 +3453,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                                 if not config:
                                     continue
 
-                                servers = config.get('servers', [])
+                                # SERVICE FIRST: Use ServerConfigService instead of direct config access
+                                server_config_service = get_server_config_service()
+                                servers = server_config_service.get_all_servers()
 
                                 # Sort servers by the 'order' field from container configurations
                                 ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
@@ -3477,7 +3505,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         if not config:
                             continue
 
-                        servers = config.get('servers', [])
+                        # SERVICE FIRST: Use ServerConfigService instead of direct config access
+                        server_config_service = get_server_config_service()
+                        servers = server_config_service.get_all_servers()
                         ordered_servers = []
                         seen_docker_names = set()
 
@@ -3579,7 +3609,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
             # Get all servers
             config = self.config
-            servers = config.get('servers', [])
+            # SERVICE FIRST: Use ServerConfigService instead of direct config access
+            server_config_service = get_server_config_service()
+            servers = server_config_service.get_all_servers()
 
             # Sort servers
             ordered_docker_names = self.ordered_server_names

@@ -4,6 +4,7 @@
 import asyncio
 from collections import OrderedDict
 from services.config.config_service import load_config
+from services.config.server_config_service import get_server_config_service
 import discord
 import logging
 import time
@@ -333,7 +334,10 @@ class ActionButton(Button):
                         logger.info(f"[ACTION_BTN] Getting status for {self.display_name} (attempt {retry + 1}/{max_retries}, waited {total_waited}s total)")
 
                         # Get fresh status after Docker has updated
-                        server_config_for_update = next((s for s in config.get('servers', []) if s.get('name') == self.display_name), None)
+                        # SERVICE FIRST: Use ServerConfigService instead of direct config access
+                        server_config_service = get_server_config_service()
+                        servers = server_config_service.get_all_servers()
+                        server_config_for_update = next((s for s in servers if s.get('name') == self.display_name), None)
                         if server_config_for_update:
                             # Always invalidate cache before fetching
                             if self.display_name in self.cog.status_cache:
@@ -453,7 +457,10 @@ class ActionButton(Button):
                                 del self.cog.status_cache[self.display_name]
 
                             # Get fresh status
-                            server_config_for_update = next((s for s in config.get('servers', []) if s.get('name') == self.display_name), None)
+                            # SERVICE FIRST: Use ServerConfigService instead of direct config access
+                            server_config_service = get_server_config_service()
+                            servers = server_config_service.get_all_servers()
+                            server_config_for_update = next((s for s in servers if s.get('name') == self.display_name), None)
                             if server_config_for_update:
                                 fresh_status = await self.cog.get_status(server_config_for_update)
                                 if not isinstance(fresh_status, Exception):
@@ -1605,21 +1612,13 @@ class AdminButton(Button):
             from services.config.config_service import load_config
             config = load_config()
 
-            # Load admin users from admins.json
-            import json
-            from pathlib import Path
-            base_dir = config.get('base_dir', '/app')
-            admins_file = Path(base_dir) / 'config' / 'admins.json'
-
-            admin_users = []
-            if admins_file.exists():
-                with open(admins_file, 'r') as f:
-                    admins_data = json.load(f)
-                    admin_users = admins_data.get('discord_admin_users', [])
+            # SERVICE FIRST: Use AdminService to check permissions
+            from services.admin.admin_service import get_admin_service
+            admin_service = get_admin_service()
 
             # Check if user is admin
             user_id = str(interaction.user.id)
-            if user_id not in admin_users:
+            if not admin_service.is_user_admin(user_id):
                 await interaction.response.send_message("🛠️ You are not authorized to use admin controls.", ephemeral=True)
                 return
 
@@ -2145,7 +2144,9 @@ class MechExpandButton(Button):
             embed.description = "Error: Could not load configuration."
             return embed, None
             
-        servers = config.get('servers', [])
+        # SERVICE FIRST: Use ServerConfigService instead of direct config access
+        server_config_service = get_server_config_service()
+        servers = server_config_service.get_all_servers()
 
         # Sort servers by the 'order' field from container configurations
         ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
@@ -2241,7 +2242,9 @@ class MechCollapseButton(Button):
             embed.description = "Error: Could not load configuration."
             return embed, None
             
-        servers = config.get('servers', [])
+        # SERVICE FIRST: Use ServerConfigService instead of direct config access
+        server_config_service = get_server_config_service()
+        servers = server_config_service.get_all_servers()
 
         # Sort servers by the 'order' field from container configurations
         ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))

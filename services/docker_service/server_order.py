@@ -9,10 +9,11 @@ from typing import List, Dict, Any
 
 # Setup logger
 from utils.logging_utils import setup_logger
+from services.config.server_config_service import get_server_config_service
 logger = setup_logger('ddc.server_order', level=logging.DEBUG)
 
-# Base directory
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Base directory - should point to project root
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ORDER_FILE = os.path.join(BASE_DIR, "config", "server_order.json")
 
 def save_server_order(server_order: List[str]) -> bool:
@@ -78,7 +79,9 @@ def update_server_order_from_config(config: Dict[str, Any]) -> bool:
             server_order = config["server_order"]
         else:
             # Create order from servers list
-            servers = config.get("servers", [])
+            # SERVICE FIRST: Use ServerConfigService instead of direct config access
+            server_config_service = get_server_config_service()
+            servers = server_config_service.get_all_servers()
             server_order = [s.get("docker_name") for s in servers if s.get("docker_name")]
             
         # Save the order
