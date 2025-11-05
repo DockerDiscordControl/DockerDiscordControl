@@ -1756,6 +1756,17 @@ class AdminContainerDropdown(discord.ui.Select):
 
             # Generate control message for this container
             from .translation_manager import _
+            from services.config.config_service import load_config
+
+            # Load configuration
+            config = load_config()
+            if not config:
+                await interaction.response.edit_message(
+                    content="❌ Failed to load configuration",
+                    embed=None,
+                    view=None
+                )
+                return
 
             # Force expanded state for admin control
             display_name = container_config.get('name', selected_container)
