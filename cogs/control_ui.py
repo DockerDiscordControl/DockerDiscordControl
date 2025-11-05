@@ -1282,7 +1282,8 @@ class InfoDropdownButton(Button):
                         containers_with_info.append({
                             'name': container_name,
                             'display': display_name,
-                            'protected': info_config.get('protected_enabled', False)
+                            'protected': info_config.get('protected_enabled', False),
+                            'order': container_data.get('order', 999)  # Include order field directly
                         })
                 except Exception as e:
                     logger.error(f"Error processing container data: {e}")
@@ -1292,17 +1293,8 @@ class InfoDropdownButton(Button):
                 await interaction.response.send_message("ℹ️ No active containers have information configured.", ephemeral=True)
                 return
 
-            # Sort containers by the 'order' field from container configurations (same as Admin Overview)
-            # SERVICE FIRST: Get server configurations to access order field
-            from services.config.server_config_service import get_server_config_service
-            server_config_service = get_server_config_service()
-            servers = server_config_service.get_all_servers()
-
-            # Create order map from server configurations
-            order_map = {s.get('docker_name'): s.get('order', 999) for s in servers}
-
-            # Sort containers based on order field
-            containers_with_info.sort(key=lambda x: order_map.get(x['name'], 999))
+            # Sort containers by the 'order' field (same as Admin Overview)
+            containers_with_info.sort(key=lambda x: x.get('order', 999))
 
             # Create view with dropdown
             from .translation_manager import _
@@ -1641,7 +1633,8 @@ class AdminButton(Button):
                     active_containers.append({
                         'name': container_name,
                         'display': display_name,
-                        'docker_name': container_data.get('docker_name', container_name)
+                        'docker_name': container_data.get('docker_name', container_name),
+                        'order': container_data.get('order', 999)  # Include order field directly
                     })
                 except Exception as e:
                     logger.error(f"Error processing container data: {e}")
@@ -1651,17 +1644,8 @@ class AdminButton(Button):
                 await interaction.response.send_message("📦 No active containers found.", ephemeral=True)
                 return
 
-            # Sort containers by the 'order' field from container configurations (same as Admin Overview)
-            # SERVICE FIRST: Get server configurations to access order field
-            from services.config.server_config_service import get_server_config_service
-            server_config_service = get_server_config_service()
-            servers = server_config_service.get_all_servers()
-
-            # Create order map from server configurations
-            order_map = {s.get('docker_name'): s.get('order', 999) for s in servers}
-
-            # Sort containers based on order field
-            active_containers.sort(key=lambda x: order_map.get(x.get('docker_name', x['name']), 999))
+            # Sort containers by the 'order' field (same as Admin Overview)
+            active_containers.sort(key=lambda x: x.get('order', 999))
 
             # Create view with dropdown
             from .translation_manager import _
