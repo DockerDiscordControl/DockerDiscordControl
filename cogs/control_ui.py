@@ -1631,14 +1631,12 @@ class AdminButton(Button):
                     if isinstance(display_name, list) and len(display_name) > 0:
                         display_name = display_name[0]
 
-                    order_value = container_data.get('order', 999)
                     active_containers.append({
                         'name': container_name,
                         'display': display_name,
                         'docker_name': container_data.get('docker_name', container_name),
-                        'order': order_value  # Include order field directly
+                        'order': container_data.get('order', 999)  # Include order field directly
                     })
-                    logger.debug(f"Admin dropdown: {container_name} has order {order_value}")
                 except Exception as e:
                     logger.error(f"Error processing container data: {e}")
                     continue
@@ -1652,7 +1650,7 @@ class AdminButton(Button):
             active_containers.sort(key=lambda x: int(x.get('order', 999)))
 
             # Log the sorted order for debugging
-            logger.info(f"Admin dropdown sorted order: {[c['name'] + '(' + str(c['order']) + ')' for c in active_containers]}")
+            logger.info(f"Admin dropdown sorted order: {[c['display'] + '(' + str(c.get('order', 999)) + ')' for c in active_containers]}")
 
             # Create view with dropdown
             from .translation_manager import _
