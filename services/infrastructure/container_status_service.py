@@ -457,6 +457,22 @@ class ContainerStatusService:
         self._cache.clear()
         self.logger.info(f"Cache cleared: {cache_count} entries removed")
 
+    def invalidate_container(self, container_name: str) -> bool:
+        """
+        Invalidate cache for a specific container.
+
+        Args:
+            container_name: Name of the container to invalidate
+
+        Returns:
+            True if container was in cache and removed, False otherwise
+        """
+        if container_name in self._cache:
+            del self._cache[container_name]
+            self.logger.debug(f"Cache invalidated for container: {container_name}")
+            return True
+        return False
+
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache statistics."""
         now = time.time()

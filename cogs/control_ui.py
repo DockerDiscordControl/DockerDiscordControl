@@ -320,10 +320,17 @@ class ActionButton(Button):
                         if self.docker_name in self.cog.pending_actions:
                             del self.cog.pending_actions[self.docker_name]
 
-                    # Invalidate cache for this container to force fresh status - use docker_name as key!
+                    # Invalidate BOTH caches for this container to force fresh status - use docker_name as key!
+                    # 1. StatusCacheService (used for periodic updates)
                     if self.cog.status_cache_service.get(self.docker_name):
-                        logger.info(f"[ACTION_BTN] Invalidating cache for {self.display_name} (docker: {self.docker_name})")
+                        logger.info(f"[ACTION_BTN] Invalidating StatusCacheService cache for {self.display_name} (docker: {self.docker_name})")
                         self.cog.status_cache_service.remove(self.docker_name)
+
+                    # 2. ContainerStatusService (has its own 30s cache!)
+                    from services.infrastructure.container_status_service import get_container_status_service
+                    container_status_service = get_container_status_service()
+                    container_status_service.invalidate_container(self.docker_name)
+                    logger.info(f"[ACTION_BTN] Invalidating ContainerStatusService cache for {self.docker_name}")
 
                     # Multiple attempts to get correct status after Docker updates
                     # Some containers (like game servers) can take 15-30+ seconds to fully start
