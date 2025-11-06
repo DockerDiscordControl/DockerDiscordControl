@@ -801,6 +801,18 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
             logger.info(f"Sending admin overview to control channel {channel.name} ({channel.id})")
 
+            # CACHE WARMUP: Populate cache BEFORE creating admin overview
+            # This prevents showing 🔄 loading icons during channel regeneration
+            logger.info("Starting cache population for admin overview (blocking to ensure data availability)")
+
+            # Ensure semaphore exists
+            if not hasattr(self, '_status_update_semaphore'):
+                self._status_update_semaphore = asyncio.Semaphore(1)
+
+            # Wait for cache to be populated before creating embed
+            await self._background_cache_population()
+            logger.info("Cache population complete for admin overview - proceeding with embed creation")
+
             # Get all server configurations
             # SERVICE FIRST: Use ServerConfigService instead of direct config access
             server_config_service = get_server_config_service()
@@ -858,7 +870,19 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 return
 
             logger.info(f"Sending overview embed to status channel {channel.name} ({channel.id})")
-            
+
+            # CACHE WARMUP: Populate cache BEFORE creating overview embed
+            # This prevents showing 🔄 loading icons during channel regeneration
+            logger.info("Starting cache population for overview embed (blocking to ensure data availability)")
+
+            # Ensure semaphore exists
+            if not hasattr(self, '_status_update_semaphore'):
+                self._status_update_semaphore = asyncio.Semaphore(1)
+
+            # Wait for cache to be populated before creating embed
+            await self._background_cache_population()
+            logger.info("Cache population complete for overview embed - proceeding with embed creation")
+
             # Send ONLY the overview embed (status channels don't need individual server messages)
             try:
                 # Sort servers by the 'order' field from container configurations
