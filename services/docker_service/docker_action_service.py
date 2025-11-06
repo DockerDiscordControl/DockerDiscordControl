@@ -157,6 +157,26 @@ class DockerActionService:
                     f"completed successfully in {execution_time_ms:.1f}ms"
                 )
 
+                # Invalidate BOTH caches after successful Docker action
+                # This ensures immediate status updates for all Docker operations
+                try:
+                    # 1. StatusCacheService (used for periodic updates)
+                    from services.status.status_cache_service import get_status_cache_service
+                    status_cache_service = get_status_cache_service()
+                    if status_cache_service.get(request.container_name):
+                        status_cache_service.remove(request.container_name)
+                        self.logger.debug(f"Invalidated StatusCacheService cache for {request.container_name}")
+
+                    # 2. ContainerStatusService (has its own 30s cache!)
+                    from services.infrastructure.container_status_service import get_container_status_service
+                    container_status_service = get_container_status_service()
+                    container_status_service.invalidate_container(request.container_name)
+                    self.logger.debug(f"Invalidated ContainerStatusService cache for {request.container_name}")
+
+                except Exception as cache_error:
+                    # Don't fail the action if cache invalidation fails
+                    self.logger.warning(f"Failed to invalidate cache for {request.container_name}: {cache_error}")
+
                 return DockerActionResult(
                     success=True,
                     container_name=request.container_name,
