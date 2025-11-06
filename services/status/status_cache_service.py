@@ -1,75 +1,76 @@
 # =============================================================================
-# SERVICE FIRST: Container Status Cache Service - SINGLE POINT OF TRUTH
+# SERVICE FIRST: Container Status Cache Service - PASS-THROUGH TO SINGLE CACHE
 # =============================================================================
 
 import logging
 import os
-import threading
-from typing import Optional, Dict, Any, Tuple, List
-from datetime import datetime, timezone, timedelta
+from typing import Optional, Dict, Any, List, Tuple
+from datetime import datetime, timezone
 from copy import deepcopy
 
 logger = logging.getLogger('ddc.status_cache_service')
 
 class StatusCacheService:
-    """Service First implementation for container status cache - SINGLE POINT OF TRUTH.
+    """Pass-through service to ContainerStatusService for single cache architecture.
 
-    This service is the single source of truth for container status caching.
-    It manages the cache internally and provides thread-safe access.
+    This service maintains backward compatibility while delegating all caching
+    to ContainerStatusService, creating a single source of truth for all status data.
+
+    Migration Notes:
+    - All cache operations now route through ContainerStatusService
+    - ContainerStatusService handles both raw Docker data AND formatted status tuples
+    - No more dual-cache synchronization issues
+    - Cache invalidation is simplified
     """
 
     def __init__(self):
-        """Initialize the StatusCacheService with internal cache management."""
-        self._cache: Dict[str, Dict[str, Any]] = {}
-        self._lock = threading.Lock()
+        """Initialize the StatusCacheService as a pass-through to ContainerStatusService."""
+        # Import here to avoid circular dependencies
+        from services.infrastructure.container_status_service import get_container_status_service
+        self._container_status_service = get_container_status_service()
 
-        # Cache configuration
+        # Keep cache_ttl_seconds for compatibility, but it's now managed by ContainerStatusService
         cache_duration = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', '30'))
-        self.cache_ttl_seconds = int(cache_duration * 2.5)  # Default 75s (as int)
+        self.cache_ttl_seconds = int(cache_duration * 2.5)  # For backward compatibility only
 
-        logger.info(f"StatusCacheService initialized with {self.cache_ttl_seconds}s TTL")
+        logger.info(f"StatusCacheService initialized as pass-through to ContainerStatusService")
 
     def get(self, container_name: str) -> Optional[Dict[str, Any]]:
-        """Get cached entry for a container.
+        """Get cached entry for a container from the single cache.
 
         Args:
-            container_name: Name of the container (display_name or docker_name)
+            container_name: Name of the container
 
         Returns:
             Dict with 'data' and 'timestamp' keys, or None if not cached
         """
-        with self._lock:
-            cached_entry = self._cache.get(container_name)
-
-            if cached_entry:
-                # Check if cache is still valid
-                if self._is_cache_valid(cached_entry):
-                    # Return a deep copy to prevent external modifications
-                    return deepcopy(cached_entry)
-                else:
-                    # Remove expired entry
-                    logger.debug(f"Removing expired cache for {container_name}")
-                    del self._cache[container_name]
-
+        try:
+            # Get formatted status from ContainerStatusService
+            cached_data = self._container_status_service.get_formatted_status(container_name)
+            if cached_data:
+                return deepcopy(cached_data)
+            return None
+        except Exception as e:
+            logger.error(f"Error getting cached status for {container_name}: {e}")
             return None
 
     def set(self, container_name: str, data: Any, timestamp: datetime = None) -> None:
-        """Set cached entry for a container.
+        """Set cached entry for a container in the single cache.
 
         Args:
             container_name: Name of the container
             data: Status data to cache (typically a tuple)
             timestamp: Optional timestamp (defaults to now)
         """
-        if timestamp is None:
-            timestamp = datetime.now(timezone.utc)
+        try:
+            if timestamp is None:
+                timestamp = datetime.now(timezone.utc)
 
-        with self._lock:
-            self._cache[container_name] = {
-                'data': data,
-                'timestamp': timestamp
-            }
-            logger.debug(f"Cached status for {container_name}")
+            # Store formatted status in ContainerStatusService
+            self._container_status_service.set_formatted_status(container_name, data, timestamp)
+            logger.debug(f"Cached status for {container_name} via pass-through")
+        except Exception as e:
+            logger.error(f"Error setting cached status for {container_name}: {e}")
 
     def set_error(self, container_name: str, error_msg: str = None) -> None:
         """Cache an error state for a container.
@@ -78,189 +79,114 @@ class StatusCacheService:
             container_name: Name of the container
             error_msg: Optional error message
         """
-        with self._lock:
-            self._cache[container_name] = {
-                'data': None,
-                'timestamp': datetime.now(timezone.utc),
-                'error': error_msg or "Status check failed"
-            }
+        try:
+            self._container_status_service.set_formatted_status(
+                container_name,
+                None,
+                datetime.now(timezone.utc),
+                error=error_msg or "Status check failed"
+            )
             logger.debug(f"Cached error state for {container_name}: {error_msg}")
+        except Exception as e:
+            logger.error(f"Error setting error state for {container_name}: {e}")
 
     def copy(self) -> Dict[str, Dict[str, Any]]:
-        """Get a copy of the entire cache.
+        """Get a copy of all formatted statuses.
 
         Returns:
-            Deep copy of the cache dictionary
+            Dict of all cached formatted statuses
         """
-        with self._lock:
-            # Return deep copy to prevent external modifications
-            return deepcopy(self._cache)
+        try:
+            return self._container_status_service.get_all_formatted_statuses()
+        except Exception as e:
+            logger.error(f"Error copying cache: {e}")
+            return {}
 
     def clear(self) -> None:
         """Clear all cache entries."""
-        with self._lock:
-            self._cache.clear()
-            logger.info("Cache cleared")
+        try:
+            self._container_status_service.clear_cache()
+            logger.info("Cache cleared via pass-through")
+        except Exception as e:
+            logger.error(f"Error clearing cache: {e}")
 
     def remove(self, container_name: str) -> bool:
-        """Remove a specific entry from cache.
+        """Remove a specific container from cache.
 
         Args:
-            container_name: Name of the container
+            container_name: Name of the container to remove
 
         Returns:
-            True if entry was removed, False if not found
+            True if removed, False if not found
         """
-        with self._lock:
-            if container_name in self._cache:
-                del self._cache[container_name]
-                logger.debug(f"Removed cache for {container_name}")
-                return True
+        try:
+            result = self._container_status_service.invalidate_container(container_name)
+            if result:
+                logger.debug(f"Removed {container_name} from cache via pass-through")
+            return result
+        except Exception as e:
+            logger.error(f"Error removing {container_name} from cache: {e}")
             return False
 
     def _is_cache_valid(self, cached_entry: Dict[str, Any]) -> bool:
         """Check if a cache entry is still valid.
 
-        Args:
-            cached_entry: Cache entry to validate
-
-        Returns:
-            True if cache is valid, False if expired
-        """
-        if 'timestamp' not in cached_entry:
-            return False
-
-        cache_age = (datetime.now(timezone.utc) - cached_entry['timestamp']).total_seconds()
-        max_age = int(os.environ.get('DDC_DOCKER_MAX_CACHE_AGE', str(self.cache_ttl_seconds)))
-
-        return cache_age <= max_age
-
-    def get_container_status(self, container_name: str) -> Optional[Tuple]:
-        """Get cached status for a container.
+        This method is kept for backward compatibility but the actual
+        TTL check is now done in ContainerStatusService.
 
         Args:
-            container_name: Name of the container
+            cached_entry: Cache entry to check
 
         Returns:
-            Tuple of (display_name, is_running, cpu_str, ram_str, uptime, details_allowed)
-            or None if not cached
+            True if still valid, False if expired
         """
-        cached_entry = self.get(container_name)
-        if cached_entry and cached_entry.get('data'):
-            return cached_entry['data']
-        return None
-
-    def is_container_running(self, container_name: str) -> Optional[bool]:
-        """Check if a container is running based on cache.
-
-        Args:
-            container_name: Name of the container
-
-        Returns:
-            True if running, False if not running, None if unknown
-        """
-        status = self.get_container_status(container_name)
-        if status and isinstance(status, tuple) and len(status) >= 2:
-            return status[1]  # is_running is at index 1
-        return None
-
-    def get_container_resources(self, container_name: str) -> Optional[Dict[str, str]]:
-        """Get CPU and RAM usage for a container.
-
-        Args:
-            container_name: Name of the container
-
-        Returns:
-            Dict with 'cpu' and 'ram' keys, or None if not available
-        """
-        status = self.get_container_status(container_name)
-        if status and isinstance(status, tuple) and len(status) >= 4:
-            return {
-                'cpu': status[2],  # cpu_str at index 2
-                'ram': status[3]   # ram_str at index 3
-            }
-        return None
-
-    def get_all_running_containers(self, server_configs: List[Dict[str, Any]]) -> List[str]:
-        """Get list of all running containers.
-
-        Args:
-            server_configs: List of server configurations
-
-        Returns:
-            List of docker_names for running containers
-        """
-        running_containers = []
-
-        for server in server_configs:
-            if not isinstance(server, dict):
-                continue
-
-            docker_name = server.get('docker_name')
-            display_name = server.get('name', docker_name)
-
-            if not docker_name:
-                continue
-
-            # Check both by display_name and docker_name for compatibility
-            is_running = self.is_container_running(display_name)
-            if is_running is None and display_name != docker_name:
-                # Try with docker_name if display_name didn't work
-                is_running = self.is_container_running(docker_name)
-
-            if is_running:
-                running_containers.append(docker_name)
-
-        return running_containers
-
-    def count_running_containers(self, server_configs: List[Dict[str, Any]]) -> int:
-        """Count how many containers are currently running.
-
-        Args:
-            server_configs: List of server configurations
-
-        Returns:
-            Number of running containers
-        """
-        return len(self.get_all_running_containers(server_configs))
-
-    def has_any_running_containers(self, server_configs: List[Dict[str, Any]]) -> bool:
-        """Check if any containers are running.
-
-        Args:
-            server_configs: List of server configurations
-
-        Returns:
-            True if at least one container is running
-        """
-        return self.count_running_containers(server_configs) > 0
-
-    def validate_cache_data(self, data: Any) -> bool:
-        """Validate that cache data has the expected format.
-
-        Args:
-            data: Data from cache to validate
-
-        Returns:
-            True if data is valid, False otherwise
-        """
-        if not isinstance(data, tuple):
-            return False
-
-        if len(data) < 6:
-            return False
-
-        # Basic type checking for expected fields
-        # (display_name, is_running, cpu_str, ram_str, uptime, details_allowed)
-        if not isinstance(data[0], str):  # display_name
-            return False
-        if not isinstance(data[1], bool):  # is_running
-            return False
-        # cpu_str and ram_str can be None or str
-        # uptime can be None or str
-        # details_allowed is bool
-
+        # This is now handled by ContainerStatusService
         return True
+
+    def items(self) -> List[Tuple[str, Dict[str, Any]]]:
+        """Get all cache items.
+
+        Returns:
+            List of (container_name, cache_entry) tuples
+        """
+        cache_copy = self.copy()
+        return list(cache_copy.items())
+
+    def get_cache_age_for_display(self, timestamp: datetime) -> str:
+        """Format cache age for human-readable display.
+
+        Args:
+            timestamp: Timestamp to format
+
+        Returns:
+            Human-readable age string
+        """
+        now = datetime.now(timezone.utc)
+
+        # Ensure timestamp is timezone-aware
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+
+        age = now - timestamp
+        seconds = int(age.total_seconds())
+
+        if seconds < 60:
+            return f"{seconds}s ago"
+        elif seconds < 3600:
+            minutes = seconds // 60
+            return f"{minutes}m ago"
+        else:
+            hours = seconds // 3600
+            return f"{hours}h ago"
+
+    def bulk_set(self, entries: Dict[str, Tuple[Any, datetime]]) -> None:
+        """Set multiple cache entries at once.
+
+        Args:
+            entries: Dict mapping container_name to (data, timestamp) tuples
+        """
+        for container_name, (data, timestamp) in entries.items():
+            self.set(container_name, data, timestamp)
 
     def get_stats(self) -> Dict[str, Any]:
         """Get cache statistics.
@@ -268,42 +194,25 @@ class StatusCacheService:
         Returns:
             Dict with cache statistics
         """
-        with self._lock:
-            total_entries = len(self._cache)
-            valid_entries = sum(1 for entry in self._cache.values()
-                              if self._is_cache_valid(entry))
-            error_entries = sum(1 for entry in self._cache.values()
-                              if 'error' in entry)
-
+        try:
+            return self._container_status_service.get_cache_stats()
+        except Exception as e:
+            logger.error(f"Error getting cache stats: {e}")
             return {
-                'total_entries': total_entries,
-                'valid_entries': valid_entries,
-                'expired_entries': total_entries - valid_entries,
-                'error_entries': error_entries,
-                'cache_ttl_seconds': self.cache_ttl_seconds
+                'total_entries': 0,
+                'error': str(e)
             }
 
-# Singleton instance management
-_status_cache_service_instance = None
+# ============================================================================ #
+# SERVICE INSTANCE                                                              #
+# ============================================================================ #
+
+# Global service instance
+_status_cache_service: Optional[StatusCacheService] = None
 
 def get_status_cache_service() -> StatusCacheService:
-    """Get singleton instance of StatusCacheService.
-
-    Returns:
-        StatusCacheService instance
-    """
-    global _status_cache_service_instance
-
-    if _status_cache_service_instance is None:
-        _status_cache_service_instance = StatusCacheService()
-        logger.info("Created new StatusCacheService singleton instance")
-
-    return _status_cache_service_instance
-
-def reset_status_cache_service():
-    """Reset the singleton instance (mainly for testing)."""
-    global _status_cache_service_instance
-    if _status_cache_service_instance:
-        _status_cache_service_instance.clear()
-    _status_cache_service_instance = None
-    logger.info("StatusCacheService singleton reset")
+    """Get the global status cache service instance."""
+    global _status_cache_service
+    if _status_cache_service is None:
+        _status_cache_service = StatusCacheService()
+    return _status_cache_service

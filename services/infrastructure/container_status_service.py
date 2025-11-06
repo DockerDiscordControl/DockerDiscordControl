@@ -8,6 +8,7 @@ and proper caching for high-performance Discord status updates.
 
 import asyncio
 import logging
+import os
 import time
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List, Tuple
@@ -87,14 +88,20 @@ class ContainerStatusService:
     def __init__(self):
         self.logger = logger.getChild(self.__class__.__name__)
 
-        # Cache storage
+        # Cache storage - now handles both raw Docker data AND formatted status tuples
         self._cache: Dict[str, Dict[str, Any]] = {}
-        self._cache_ttl = 30.0  # 30 seconds TTL
+
+        # Separate cache for formatted status tuples (for StatusCacheService pass-through)
+        self._formatted_cache: Dict[str, Dict[str, Any]] = {}
+
+        # Make TTL configurable from environment
+        cache_duration = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', '30'))
+        self._cache_ttl = float(cache_duration)  # Now configurable!
 
         # Performance tracking
         self._performance_history: Dict[str, List[float]] = {}
 
-        self.logger.info("Container Status Service initialized (SERVICE FIRST)")
+        self.logger.info(f"Container Status Service initialized (SINGLE CACHE) with {self._cache_ttl}s TTL")
 
     async def get_container_status(self, request: ContainerStatusRequest) -> ContainerStatusResult:
         """
@@ -453,9 +460,13 @@ class ContainerStatusService:
 
     def clear_cache(self):
         """Clear the entire cache."""
-        cache_count = len(self._cache)
+        raw_count = len(self._cache)
+        formatted_count = len(self._formatted_cache)
+
         self._cache.clear()
-        self.logger.info(f"Cache cleared: {cache_count} entries removed")
+        self._formatted_cache.clear()
+
+        self.logger.info(f"Cache cleared: {raw_count} raw entries + {formatted_count} formatted entries removed")
 
     def invalidate_container(self, container_name: str) -> bool:
         """
@@ -467,11 +478,22 @@ class ContainerStatusService:
         Returns:
             True if container was in cache and removed, False otherwise
         """
+        removed = False
+
+        # Remove from raw Docker cache
         if container_name in self._cache:
             del self._cache[container_name]
-            self.logger.debug(f"Cache invalidated for container: {container_name}")
-            return True
-        return False
+            removed = True
+
+        # Remove from formatted status cache
+        if container_name in self._formatted_cache:
+            del self._formatted_cache[container_name]
+            removed = True
+
+        if removed:
+            self.logger.debug(f"Cache invalidated for container: {container_name} (both raw and formatted)")
+
+        return removed
 
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache statistics."""
@@ -479,13 +501,80 @@ class ContainerStatusService:
         expired_count = sum(1 for entry in self._cache.values()
                           if now - entry['timestamp'] > self._cache_ttl)
 
+        formatted_expired = sum(1 for entry in self._formatted_cache.values()
+                              if 'timestamp' in entry and
+                              now - entry['timestamp'].timestamp() > self._cache_ttl)
+
         return {
-            'total_entries': len(self._cache),
-            'expired_entries': expired_count,
-            'active_entries': len(self._cache) - expired_count,
+            'total_entries': len(self._cache) + len(self._formatted_cache),
+            'raw_cache_entries': len(self._cache),
+            'formatted_cache_entries': len(self._formatted_cache),
+            'expired_entries': expired_count + formatted_expired,
+            'active_entries': (len(self._cache) - expired_count) + (len(self._formatted_cache) - formatted_expired),
             'cache_ttl_seconds': self._cache_ttl,
             'performance_tracked_containers': len(self._performance_history)
         }
+
+    # ============================================================================
+    # NEW METHODS FOR FORMATTED STATUS CACHE (Single Cache Architecture)
+    # ============================================================================
+
+    def get_formatted_status(self, container_name: str) -> Optional[Dict[str, Any]]:
+        """Get cached formatted status for a container.
+
+        Args:
+            container_name: Name of the container
+
+        Returns:
+            Dict with 'data' and 'timestamp' keys, or None if not cached/expired
+        """
+        if container_name not in self._formatted_cache:
+            return None
+
+        cached = self._formatted_cache[container_name]
+        timestamp = cached.get('timestamp')
+
+        # Check if cache is expired
+        if timestamp:
+            # Convert datetime to timestamp for comparison
+            if hasattr(timestamp, 'timestamp'):
+                age = time.time() - timestamp.timestamp()
+            else:
+                age = time.time() - timestamp
+
+            if age > self._cache_ttl:
+                # Expired, remove it
+                del self._formatted_cache[container_name]
+                return None
+
+        return cached
+
+    def set_formatted_status(self, container_name: str, data: Any,
+                           timestamp: datetime, error: Optional[str] = None) -> None:
+        """Store formatted status in cache.
+
+        Args:
+            container_name: Name of the container
+            data: Formatted status data (typically a tuple)
+            timestamp: Timestamp of the data
+            error: Optional error message
+        """
+        self._formatted_cache[container_name] = {
+            'data': data,
+            'timestamp': timestamp,
+            'error': error
+        }
+        self.logger.debug(f"Cached formatted status for {container_name}")
+
+    def get_all_formatted_statuses(self) -> Dict[str, Dict[str, Any]]:
+        """Get all cached formatted statuses.
+
+        Returns:
+            Dict of all cached formatted statuses
+        """
+        # Return a copy to prevent external modifications
+        from copy import deepcopy
+        return deepcopy(self._formatted_cache)
 
 
 # Singleton instance
