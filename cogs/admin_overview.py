@@ -75,11 +75,40 @@ class AdminOverviewAdminButton(Button):
 
             # SERVICE FIRST: Use ServerConfigService to get containers
             server_config_service = get_server_config_service()
-            containers = server_config_service.get_valid_containers()
+            # Use get_all_servers() to get full container data including 'order' field
+            all_servers = server_config_service.get_all_servers()
+
+            if not all_servers:
+                await interaction.followup.send(
+                    "❌ No containers found in configuration.",
+                    ephemeral=True
+                )
+                return
+
+            # Sort containers by order field (from Web UI configuration)
+            containers = sorted(all_servers, key=lambda s: s.get('order', 999))
+
+            # Transform to the format expected by AdminContainerSelectView
+            formatted_containers = []
+            for server in containers:
+                docker_name = server.get('docker_name')
+                if docker_name:
+                    # Get display name from server config
+                    display_name = server.get('display_name', [docker_name, docker_name])
+                    if isinstance(display_name, list) and len(display_name) > 0:
+                        display_name = display_name[0]
+
+                    formatted_containers.append({
+                        'display': display_name,
+                        'docker_name': docker_name,
+                        'order': server.get('order', 999)  # Include order for dropdown sorting
+                    })
+
+            containers = formatted_containers
 
             if not containers:
                 await interaction.followup.send(
-                    "❌ No containers found in configuration.",
+                    "❌ No valid containers found in configuration.",
                     ephemeral=True
                 )
                 return
