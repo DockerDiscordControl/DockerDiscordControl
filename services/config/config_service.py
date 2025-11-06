@@ -472,35 +472,34 @@ class ConfigService:
     def save_config(self, config: Dict[str, Any]) -> ConfigServiceResult:
         """
         Save configuration to appropriate files.
-        
+
         Args:
             config: Configuration dictionary to save
-            
+
         Returns:
             ConfigServiceResult with success status
         """
         with self._save_lock:
             try:
-                # Split config into domain-specific files
-                bot_config = self._extract_bot_config(config)
-                docker_config = self._extract_docker_config(config)
-                web_config = self._extract_web_config(config)
-                channels_config = self._extract_channels_config(config)
-                
-                # Save each config file
-                self._save_json_file(self.bot_config_file, bot_config)
-                self._save_json_file(self.docker_config_file, docker_config)
-                self._save_json_file(self.web_config_file, web_config)
-                self._save_json_file(self.channels_config_file, channels_config)
-                
-                # Invalidate cache
+                # IMPORTANT: Do NOT save to legacy files anymore!
+                # The system now uses ONLY modular config structure:
+                # - Containers: config/containers/*.json (saved by ConfigurationSaveService)
+                # - Channels: config/channels/*.json (saved by ChannelConfigService)
+                # - Other settings: config/*.json (main_config, auth, etc.)
+
+                # Legacy files (bot_config.json, docker_config.json, web_config.json, channels_config.json)
+                # are NO LONGER USED and should NOT be created!
+
+                logger.info("save_config called - using modular structure only (no legacy files)")
+
+                # Invalidate cache to force reload from modular files
                 self._invalidate_cache()
-                
+
                 return ConfigServiceResult(
                     success=True,
-                    message="Configuration saved successfully"
+                    message="Configuration saved successfully (modular structure)"
                 )
-                
+
             except Exception as e:
                 logger.error(f"Error saving configuration: {e}")
                 return ConfigServiceResult(
@@ -1418,8 +1417,8 @@ def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
         display_name_raw = form_data.get(display_name_key, container_name)
         logger.debug(f"[FORM_DEBUG] Raw display_name for {container_name}: {repr(display_name_raw)}")
 
-        # Handle different display_name formats
-        display_names = []
+        # Handle different display_name formats - now as single string!
+        display_name = container_name  # Default to container name
 
         # If it's an array, take first element
         if isinstance(display_name_raw, list) and len(display_name_raw) > 0:
@@ -1432,29 +1431,24 @@ def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
                 try:
                     import ast
                     parsed_list = ast.literal_eval(display_name_raw)
-                    if isinstance(parsed_list, list) and len(parsed_list) >= 2:
-                        # Take the first two elements
-                        display_names = [str(parsed_list[0]), str(parsed_list[1])]
-                    elif isinstance(parsed_list, list) and len(parsed_list) == 1:
-                        display_names = [str(parsed_list[0]), str(parsed_list[0])]
+                    if isinstance(parsed_list, list) and len(parsed_list) > 0:
+                        # Take the first element
+                        display_name = str(parsed_list[0])
+                    else:
+                        # Couldn't parse, use raw value
+                        display_name = display_name_raw.strip("[]'\"")
                 except:
                     # Failed to parse, treat as regular string
-                    pass
+                    display_name = display_name_raw.strip("[]'\"")
+            else:
+                # It's a regular string, use as-is
+                display_name = display_name_raw.strip()
 
-            # If still empty, parse as comma-separated or single value
-            if not display_names:
-                if ',' in display_name_raw:
-                    display_names = [name.strip() for name in display_name_raw.split(',', 1)]
-                else:
-                    display_names = [display_name_raw, display_name_raw]
+        # Ensure we have a valid display name
+        if not display_name:
+            display_name = container_name
 
-        # Ensure we always have a list with 2 elements
-        if not display_names:
-            display_names = [container_name, container_name]
-        elif len(display_names) == 1:
-            display_names = [display_names[0], display_names[0]]
-
-        logger.debug(f"[FORM_DEBUG] Parsed display_names for {container_name}: {display_names}")
+        logger.debug(f"[FORM_DEBUG] Parsed display_name for {container_name}: {display_name}")
 
         # Extract allowed actions
         allowed_actions = []
@@ -1490,7 +1484,7 @@ def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
             'docker_name': container_name,
             'name': container_name,
             'container_name': container_name,
-            'display_name': display_names,
+            'display_name': display_name,  # Now a single string!
             'allowed_actions': allowed_actions,
             'allow_detailed_status': True,  # Default to True
             'order': order

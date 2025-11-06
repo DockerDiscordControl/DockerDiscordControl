@@ -171,7 +171,7 @@ def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
 
         try:
             # Get existing config from service or create new one
-            existing_config = server_config_service.get_server_by_name(container_name)
+            existing_config = server_config_service.get_server_by_docker_name(container_name)
             container_config = existing_config if existing_config else {}
 
             # Update container config with server data
@@ -182,20 +182,35 @@ def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
             # IMPORTANT: Mark container as active (selected in Web UI)
             container_config['active'] = True  # This container was in selected_servers
 
-            # Clean up display_name to ensure it's always a simple list of 2 strings
-            display_name_raw = server.get('display_name', [container_name, container_name])
-            if isinstance(display_name_raw, list) and len(display_name_raw) == 2:
-                # Ensure each element is a string, not a nested structure
-                display_names = [str(display_name_raw[0]), str(display_name_raw[1])]
+            # Handle display_name - should be a single string for Web UI
+            display_name_raw = server.get('display_name', container_name)
+
+            # Debug logging to see what we're getting
+            logger.info(f"[DISPLAY_NAME_DEBUG] Container: {container_name}, Raw display_name from server: {repr(display_name_raw)}, Type: {type(display_name_raw)}")
+
+            # If it's a list (legacy format), take the first element
+            if isinstance(display_name_raw, list):
+                if len(display_name_raw) > 0:
+                    display_name = str(display_name_raw[0])
+                else:
+                    display_name = container_name
             else:
-                display_names = [container_name, container_name]
-            container_config['display_name'] = display_names
+                # It's already a string or something else, ensure it's a string
+                display_name = str(display_name_raw) if display_name_raw else container_name
+
+            container_config['display_name'] = display_name
+
+            # Debug logging after setting display_name
+            logger.info(f"[DISPLAY_NAME_DEBUG] Container: {container_name}, Final display_name being saved: {repr(display_name)}, Type: {type(display_name)}")
 
             # Set allowed_actions, ensuring it has at least 'status' if empty
             allowed_actions = server.get('allowed_actions', [])
+            logger.info(f"[ALLOWED_ACTIONS_DEBUG] Container {container_name}: received allowed_actions from server data: {allowed_actions}")
             if not allowed_actions:
                 allowed_actions = ['status']
+                logger.warning(f"[ALLOWED_ACTIONS_DEBUG] Container {container_name}: allowed_actions was empty, defaulting to ['status']")
             container_config['allowed_actions'] = allowed_actions
+            logger.info(f"[ALLOWED_ACTIONS_DEBUG] Container {container_name}: SAVING allowed_actions: {container_config['allowed_actions']}")
 
             # Preserve existing info data if present
             if 'info' not in container_config:
