@@ -1378,8 +1378,8 @@ class ContainerInfoDropdown(discord.ui.Select):
             server_config_service = get_server_config_service()
             container_data = None
 
-            # Try to get container by name
-            container_data = server_config_service.get_server_by_name(selected_container)
+            # Try to get container by docker_name
+            container_data = server_config_service.get_server_by_docker_name(selected_container)
 
             # If not found by name, try by docker_name
             if not container_data:
