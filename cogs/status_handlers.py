@@ -629,7 +629,14 @@ class StatusHandlersMixin:
         Returns: (display_name, is_running, cpu, ram, uptime, details_allowed) or Exception
         """
         docker_name = server_config.get('docker_name')
-        display_name = server_config.get('name', docker_name)
+
+        # Handle display_name - could be a string or list (legacy format)
+        display_name_raw = server_config.get('display_name', docker_name)
+        if isinstance(display_name_raw, list):
+            display_name = display_name_raw[0] if len(display_name_raw) > 0 else docker_name
+        else:
+            display_name = display_name_raw if display_name_raw else docker_name
+
         details_allowed = server_config.get('allow_detailed_status', True) # Default to True if not set
 
         if not docker_name:
@@ -729,12 +736,20 @@ class StatusHandlersMixin:
         view = None
         running = False # Default running state
         status_result = None
-        cached_entry = self.status_cache_service.get(display_name)
+
+        # IMPORTANT: Use docker_name for all internal lookups (cache, pending_actions, etc.)
+        # display_name is ONLY for display purposes!
+        docker_name = server_conf.get('docker_name') or server_conf.get('name')
+        if not docker_name:
+            logger.error(f"[_GEN_EMBED] No docker_name found in server_conf for display_name '{display_name}'!")
+            docker_name = display_name  # Fallback to display_name if no docker_name available
+
+        cached_entry = self.status_cache_service.get(docker_name)
         now = datetime.now(timezone.utc)
 
         # --- Check for pending action first --- (Moved before status_result processing)
-        if display_name in self.pending_actions:
-            pending_data = self.pending_actions[display_name]
+        if docker_name in self.pending_actions:
+            pending_data = self.pending_actions[docker_name]
             pending_timestamp = pending_data['timestamp']
             pending_action = pending_data['action']
             pending_duration = (now - pending_timestamp).total_seconds()
@@ -751,7 +766,7 @@ class StatusHandlersMixin:
                 logger.info(f"[_GEN_EMBED] '{display_name}' pending timeout reached ({pending_duration:.1f}s). Checking if {pending_action} action succeeded...")
                 
                 # Try to get current container status to see if it changed
-                current_server_conf_for_check = next((s for s in all_servers_config if s.get('name', s.get('docker_name')) == display_name), None)
+                current_server_conf_for_check = next((s for s in all_servers_config if s.get('docker_name') == docker_name), None)
                 if current_server_conf_for_check:
                     fresh_status = await self.get_status(current_server_conf_for_check)
                     if not isinstance(fresh_status, Exception) and isinstance(fresh_status, tuple) and len(fresh_status) >= 2:
@@ -771,19 +786,19 @@ class StatusHandlersMixin:
                         
                         if action_succeeded:
                             logger.info(f"[_GEN_EMBED] '{display_name}' {pending_action} action succeeded - clearing pending state")
-                            del self.pending_actions[display_name]
+                            del self.pending_actions[docker_name]
                             # Update cache with fresh status
-                            self.status_cache_service.set(display_name, fresh_status, now)
+                            self.status_cache_service.set(docker_name, fresh_status, now)
                         else:
                             # Action might have failed or container takes very long
                             logger.warning(f"[_GEN_EMBED] '{display_name}' {pending_action} action did not succeed after {pending_duration:.1f}s timeout - clearing pending state")
-                            del self.pending_actions[display_name]
+                            del self.pending_actions[docker_name]
                     else:
                         logger.warning(f"[_GEN_EMBED] '{display_name}' pending timeout - could not get fresh status, clearing pending state")
-                        del self.pending_actions[display_name]
+                        del self.pending_actions[docker_name]
                 else:
                     logger.warning(f"[_GEN_EMBED] '{display_name}' pending timeout - no server config found, clearing pending state")
-                    del self.pending_actions[display_name]
+                    del self.pending_actions[docker_name]
 
         # --- Determine status_result (from cache or live) ---
         if cached_entry:
@@ -809,8 +824,8 @@ class StatusHandlersMixin:
             embed_cache_indicator = cache_age_indicator
         else:
             # ONLY fetch directly if absolutely no cache exists (rare case during startup)
-            logger.info(f"[_GEN_EMBED] No cache entry for '{display_name}'. This should be rare - background loop will populate cache...")
-            current_server_conf_for_fetch = next((s for s in all_servers_config if s.get('name', s.get('docker_name')) == display_name), None)
+            logger.info(f"[_GEN_EMBED] No cache entry for '{docker_name}' (display: '{display_name}'). This should be rare - background loop will populate cache...")
+            current_server_conf_for_fetch = next((s for s in all_servers_config if s.get('docker_name') == docker_name), None)
             if current_server_conf_for_fetch:
                 # EMERGENCY FALLBACK: Show loading status instead of blocking UI
                 logger.info(f"[_GEN_EMBED] Showing loading status for '{display_name}' while background fetches data")
