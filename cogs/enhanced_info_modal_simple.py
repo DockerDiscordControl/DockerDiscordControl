@@ -39,7 +39,7 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
 
         # Get container configuration from service
         server_config_service = get_server_config_service()
-        container_data = server_config_service.get_server_by_name(container_name)
+        container_data = server_config_service.get_server_by_docker_name(container_name)
 
         # If not found by name, search all servers
         if not container_data:
@@ -309,7 +309,7 @@ class ProtectedInfoModal(discord.ui.Modal):
 
         # Get container configuration from service
         server_config_service = get_server_config_service()
-        container_data = server_config_service.get_server_by_name(container_name)
+        container_data = server_config_service.get_server_by_docker_name(container_name)
 
         # If not found by name, search all servers
         if not container_data:
