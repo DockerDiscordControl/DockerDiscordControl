@@ -283,12 +283,13 @@ class ActionButton(Button):
 
         logger.info(f"[ACTION_BTN] {self.action.upper()} action for '{self.display_name}' triggered by {user.name}")
 
-        # Thread-safe access to pending_actions
+        # Thread-safe access to pending_actions - use docker_name as key!
         async with self.cog.pending_actions_lock:
-            self.cog.pending_actions[self.display_name] = {
+            self.cog.pending_actions[self.docker_name] = {
                 'action': self.action,
                 'timestamp': datetime.now(timezone.utc),
-                'user': str(user)
+                'user': str(user),
+                'display_name': self.display_name  # Store for display purposes
             }
 
         try:
@@ -314,15 +315,15 @@ class ActionButton(Button):
                     success = await docker_action_service_first(self.docker_name, self.action)
                     logger.info(f"[ACTION_BTN] Docker {self.action} for '{self.display_name}' completed: success={success}")
 
-                    # Thread-safe removal from pending_actions
+                    # Thread-safe removal from pending_actions - use docker_name as key!
                     async with self.cog.pending_actions_lock:
-                        if self.display_name in self.cog.pending_actions:
-                            del self.cog.pending_actions[self.display_name]
+                        if self.docker_name in self.cog.pending_actions:
+                            del self.cog.pending_actions[self.docker_name]
 
-                    # Invalidate cache for this container to force fresh status
-                    if self.display_name in self.cog.status_cache:
-                        logger.info(f"[ACTION_BTN] Invalidating cache for {self.display_name}")
-                        del self.cog.status_cache[self.display_name]
+                    # Invalidate cache for this container to force fresh status - use docker_name as key!
+                    if self.cog.status_cache_service.get(self.docker_name):
+                        logger.info(f"[ACTION_BTN] Invalidating cache for {self.display_name} (docker: {self.docker_name})")
+                        self.cog.status_cache_service.remove(self.docker_name)
 
                     # Multiple attempts to get correct status after Docker updates
                     # Some containers (like game servers) can take 15-30+ seconds to fully start
@@ -338,18 +339,20 @@ class ActionButton(Button):
                         # SERVICE FIRST: Use ServerConfigService instead of direct config access
                         server_config_service = get_server_config_service()
                         servers = server_config_service.get_all_servers()
-                        server_config_for_update = next((s for s in servers if s.get('name') == self.display_name), None)
+                        # Look up server by docker_name (stable), not display_name (can change)
+                        server_config_for_update = next((s for s in servers if s.get('docker_name') == self.docker_name), None)
                         if server_config_for_update:
-                            # Always invalidate cache before fetching
-                            if self.display_name in self.cog.status_cache:
-                                del self.cog.status_cache[self.display_name]
+                            # Always invalidate cache before fetching - use docker_name as key!
+                            if self.cog.status_cache_service.get(self.docker_name):
+                                self.cog.status_cache_service.remove(self.docker_name)
 
                             fresh_status = await self.cog.get_status(server_config_for_update)
                             if not isinstance(fresh_status, Exception):
-                                self.cog.status_cache[self.display_name] = {
-                                    'data': fresh_status,
-                                    'timestamp': datetime.now(timezone.utc)
-                                }
+                                self.cog.status_cache_service.set(
+                                    self.docker_name,
+                                    fresh_status,
+                                    datetime.now(timezone.utc)
+                                )
                                 is_running = fresh_status[1] if fresh_status else None
                                 logger.info(f"[ACTION_BTN] Status for {self.display_name}: is_running={is_running}, action was '{self.action}'")
 
@@ -383,7 +386,8 @@ class ActionButton(Button):
 
                             if is_admin_message:
                                 # For Admin Control, force expanded state
-                                self.cog.expanded_states[self.display_name] = True
+                                # Use docker_name as key for expanded state
+                                self.cog.expanded_states[self.docker_name] = True
                                 # Mark config for admin control
                                 self.server_config['_is_admin_control'] = True
                                 logger.info(f"[ACTION_BTN] Preserving Admin Control for {self.display_name}")
@@ -400,7 +404,9 @@ class ActionButton(Button):
                                 )
 
                                 # Get fresh status for running state and color
-                                fresh_status = self.cog.status_cache.get(self.display_name, {}).get('data')
+                                # Use docker_name as key for cache lookup
+                                cached_entry = self.cog.status_cache_service.get(self.docker_name)
+                                fresh_status = cached_entry.get('data') if cached_entry else None
                                 is_running = False
                                 if fresh_status and not isinstance(fresh_status, Exception):
                                     _, is_running, _, _, _, _ = fresh_status
@@ -453,22 +459,24 @@ class ActionButton(Button):
                             await asyncio.sleep(30)  # Wait 30 seconds for container to fully start/stop
                             logger.info(f"[ACTION_BTN] Updating status overview for {self.display_name}")
 
-                            # Invalidate cache again to get latest status
-                            if self.display_name in self.cog.status_cache:
-                                del self.cog.status_cache[self.display_name]
+                            # Invalidate cache again to get latest status - use docker_name!
+                            if self.cog.status_cache_service.get(self.docker_name):
+                                self.cog.status_cache_service.remove(self.docker_name)
 
                             # Get fresh status
                             # SERVICE FIRST: Use ServerConfigService instead of direct config access
                             server_config_service = get_server_config_service()
                             servers = server_config_service.get_all_servers()
-                            server_config_for_update = next((s for s in servers if s.get('name') == self.display_name), None)
+                            # Look up server by docker_name (stable), not display_name (can change)
+                            server_config_for_update = next((s for s in servers if s.get('docker_name') == self.docker_name), None)
                             if server_config_for_update:
                                 fresh_status = await self.cog.get_status(server_config_for_update)
                                 if not isinstance(fresh_status, Exception):
-                                    self.cog.status_cache[self.display_name] = {
-                                        'data': fresh_status,
-                                        'timestamp': datetime.now(timezone.utc)
-                                    }
+                                    self.cog.status_cache_service.set(
+                                        self.docker_name,
+                                        fresh_status,
+                                        datetime.now(timezone.utc)
+                                    )
 
                             # Update all status messages for this container
                             if hasattr(self.cog, 'tracked_status_messages'):
@@ -503,10 +511,10 @@ class ActionButton(Button):
 
                 except Exception as e:
                     logger.error(f"[ACTION_BTN] Error in background Docker {self.action}: {e}")
-                    # Thread-safe removal from pending_actions
+                    # Thread-safe removal from pending_actions - use docker_name as key!
                     async with self.cog.pending_actions_lock:
-                        if self.display_name in self.cog.pending_actions:
-                            del self.cog.pending_actions[self.display_name]
+                        if self.docker_name in self.cog.pending_actions:
+                            del self.cog.pending_actions[self.docker_name]
 
             # Create task and handle exceptions properly
             task = asyncio.create_task(run_docker_action())
@@ -532,7 +540,8 @@ class ToggleButton(Button):
         self.docker_name = server_config.get('docker_name')
         self.display_name = server_config.get('name', self.docker_name)
         self.server_config = server_config
-        self.is_expanded = cog_instance.expanded_states.get(self.display_name, False)
+        # Use docker_name as key for expanded state (stable identifier)
+        self.is_expanded = cog_instance.expanded_states.get(self.docker_name, False)
         
         # Use cached static data
         static_data = _get_container_static_data(self.display_name, self.docker_name)
@@ -558,7 +567,8 @@ class ToggleButton(Button):
         
         start_time = time.time()
         self.is_expanded = not self.is_expanded
-        self.cog.expanded_states[self.display_name] = self.is_expanded
+        # Use docker_name as key for expanded state (stable identifier)
+        self.cog.expanded_states[self.docker_name] = self.is_expanded
         
         # Removed debug log to reduce log spam - only log on errors
 
@@ -579,7 +589,8 @@ class ToggleButton(Button):
             
             # Check if container is in pending status (thread-safe)
             async with self.cog.pending_actions_lock:
-                is_pending = self.display_name in self.cog.pending_actions
+                # Check pending actions using docker_name as key
+                is_pending = self.docker_name in self.cog.pending_actions
 
             if is_pending:
                 logger.debug(f"[TOGGLE_BTN] '{self.display_name}' is in pending status, show pending embed")
@@ -593,7 +604,7 @@ class ToggleButton(Button):
                 return
             
             # Use cached data for ultra-fast operation
-            cached_entry = self.cog.status_cache.get(self.display_name)
+            cached_entry = self.cog.status_cache_service.get(self.display_name)
             
             if cached_entry and cached_entry.get('data'):
                 status_result = cached_entry['data']

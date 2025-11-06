@@ -1791,7 +1791,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 continue
                 
             # Use cached data only (same as original)
-            cached_entry = self.status_cache_service.get(display_name)
+            # Use docker_name as cache key (stable identifier)
+            cached_entry = self.status_cache_service.get(docker_name)
             status_result = None
             
             if cached_entry and cached_entry.get('data'):
@@ -1826,14 +1827,15 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 _, is_running, _, _, _, _ = status_result
                 
                 # Determine status icon (same logic as original)
-                if display_name in self.pending_actions:
-                    pending_timestamp = self.pending_actions[display_name]['timestamp']
+                # Check pending actions using docker_name as key
+                if docker_name in self.pending_actions:
+                    pending_timestamp = self.pending_actions[docker_name]['timestamp']
                     pending_duration = (now_utc - pending_timestamp).total_seconds()
                     if pending_duration < 120:
                         status_emoji = "🟡"
                         status_text = translate("Pending")
                     else:
-                        del self.pending_actions[display_name]
+                        del self.pending_actions[docker_name]
                         status_emoji = "🟢" if is_running else "🔴"
                 else:
                     status_emoji = "🟢" if is_running else "🔴"
@@ -2099,6 +2101,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     async def _create_admin_overview_embed(self, ordered_servers, config, force_refresh=False):
         """Creates the admin overview embed with CPU and RAM details for control channels.
 
+        NEW FORMAT: Clean grid layout using Discord fields (inline=true).
+        Each container gets a field with status emoji, name (max 14 chars), and CPU/RAM on one line.
+
         Args:
             ordered_servers: List of server configurations
             config: Application configuration
@@ -2111,37 +2116,44 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         import discord
         from datetime import datetime, timezone
 
-        # Create the admin overview embed
-        embed = discord.Embed(
-            title="Admin Overview",
-            color=discord.Color.blue()  # Blue like Status Overview
-        )
-
-        # Build server status lines with CPU and RAM
+        # Get current time in local timezone
         now_utc = datetime.now(timezone.utc)
         fresh_config = load_config()
         timezone_str = fresh_config.get('timezone') if fresh_config else config.get('timezone')
-
         current_time = format_datetime_with_timezone(now_utc, timezone_str, time_only=True)
 
-        # Start building the content
-        content_lines = [
-            f"{translate('Last update')}: {current_time}",
-            "┌── Status & Resources ─────"
-        ]
+        # Count containers by status
+        total_containers = len(ordered_servers)
+        online_count = 0
+        offline_count = 0
 
         # Track if any containers are running for bulk actions
         has_running_containers = False
 
-        # Add server statuses with resource info
-        for idx, server_conf in enumerate(ordered_servers):
+        # Create the embed with dark-mode friendly color
+        embed = discord.Embed(
+            title="Admin Overview",
+            color=0x2f3136  # Dark grey, dark-mode friendly
+        )
+
+        # Build description header (2 lines)
+        description_lines = [
+            f"Letztes Update: {current_time}",
+            f"Container: {total_containers} • Online: {{online}} • Offline: {{offline}}"
+        ]
+        # We'll format the online/offline counts after processing all containers
+        embed.description = "\n".join(description_lines)
+
+        # Process each container and add as inline field
+        for server_conf in ordered_servers:
             display_name = server_conf.get('name', server_conf.get('docker_name'))
             docker_name = server_conf.get('docker_name')
             if not display_name or not docker_name:
                 continue
 
-            # Use cached data
-            cached_entry = self.status_cache_service.get(display_name)
+            # Get cached status data
+            # Use docker_name as cache key (stable identifier)
+            cached_entry = self.status_cache_service.get(docker_name)
             status_result = None
 
             if cached_entry and cached_entry.get('data'):
@@ -2157,73 +2169,105 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 if cached_entry and cached_entry.get('data'):
                     status_result = cached_entry['data']
 
-            # Check info availability
-            info_indicator = ""
+            # Check if container has info configured
+            has_info = False
             try:
                 from services.infrastructure.container_info_service import get_container_info_service
                 info_service = get_container_info_service()
                 info_result = info_service.get_container_info(docker_name)
                 if info_result.success and info_result.data.enabled:
-                    info_indicator = " ℹ️"
+                    has_info = True
             except Exception:
                 pass
 
-            # Process status with CPU and RAM
+            # Process status and build field
             if status_result and isinstance(status_result, tuple) and len(status_result) == 6:
                 # Cache format: (display_name, is_running, cpu_str, ram_str, uptime, details_allowed)
                 _, is_running, cpu_str, ram_str, _, _ = status_result
 
-                if is_running:
-                    has_running_containers = True
-
-                # Determine status icon (same as Status Overview)
-                if display_name in self.pending_actions:
-                    pending_timestamp = self.pending_actions[display_name]['timestamp']
+                # Determine status emoji
+                # Check pending actions using docker_name as key
+                if docker_name in self.pending_actions:
+                    pending_timestamp = self.pending_actions[docker_name]['timestamp']
                     pending_duration = (now_utc - pending_timestamp).total_seconds()
                     if pending_duration < 120:
                         status_emoji = "🟡"
                     else:
-                        del self.pending_actions[display_name]
+                        del self.pending_actions[docker_name]
                         status_emoji = "🟢" if is_running else "🔴"
                 else:
                     status_emoji = "🟢" if is_running else "🔴"
 
-                # Truncate name for display (max 20 chars like Status Overview)
-                truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
-
-                # Use the pre-formatted CPU and RAM strings from cache
+                # Count online/offline
                 if is_running:
-                    # Clean up the formatted strings for display
-                    # Remove " MB" from ram string to just show number with MB
-                    if ram_str and ram_str != "N/A" and " MB" in ram_str:
-                        ram_display = ram_str.replace(" MB", "MB")
-                    else:
-                        ram_display = ram_str if ram_str else "N/A"
-
-                    cpu_display = cpu_str if cpu_str else "N/A"
-
-                    line = f"│ {status_emoji} {truncated_name}{info_indicator}"
-                    # Add resource info on next line, properly aligned with container name
-                    content_lines.append(line)
-                    content_lines.append(f"│    CPU: {cpu_display} RAM: {ram_display}")
+                    has_running_containers = True
+                    online_count += 1
                 else:
-                    line = f"│ {status_emoji} {truncated_name}{info_indicator}"
-                    content_lines.append(line)
+                    offline_count += 1
+
+                # Truncate name to max 12 characters (shorter for single-line format)
+                if len(display_name) > 12:
+                    truncated_name = display_name[:12] + "…"
+                else:
+                    truncated_name = display_name
+
+                # Build field name - EVERYTHING in one line
+                if is_running:
+                    # Format CPU: ensure 1 decimal place
+                    try:
+                        # cpu_str is like "0.4%" or "12%"
+                        if cpu_str and cpu_str != "N/A":
+                            cpu_value = float(cpu_str.replace('%', '').strip())
+                            cpu_formatted = f"{cpu_value:.1f}%"
+                        else:
+                            cpu_formatted = "—%"
+                    except (ValueError, AttributeError):
+                        cpu_formatted = "—%"
+
+                    # Format RAM: convert MB to GB with 1 decimal place
+                    try:
+                        # ram_str is like "2060 MB" or "2060MB"
+                        if ram_str and ram_str != "N/A":
+                            ram_mb = float(ram_str.replace('MB', '').replace(' ', '').strip())
+                            ram_gb = ram_mb / 1024
+                            ram_formatted = f"{ram_gb:.1f}GB"
+                        else:
+                            ram_formatted = "—GB"
+                    except (ValueError, AttributeError):
+                        ram_formatted = "—GB"
+
+                    # Build single-line name: "🟢 Name · cpu% • ramGB ⓘ"
+                    # Use middot (·) as separator, smaller info icon (ⓘ)
+                    field_name = f"{status_emoji} {truncated_name} · {cpu_formatted} • {ram_formatted}"
+                    if has_info:
+                        field_name += " ⓘ"  # Small circled i instead of blue block
+                else:
+                    # Container is stopped: "🔴 Name · offline"
+                    field_name = f"{status_emoji} {truncated_name} · offline"
+
+                # Field value is just a zero-width space (keeps all fields same height)
+                field_value = "\u200B"
+
+                # Add field (inline=true for grid layout)
+                embed.add_field(name=field_name, value=field_value, inline=True)
             else:
-                # No data available (use 🔄 like Status Overview)
-                truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
-                line = f"│ 🔄 {truncated_name}{info_indicator}"
-                content_lines.append(line)
+                # No status data available - count as offline
+                offline_count += 1
 
-            # Add separator between containers (except after the last one)
-            if idx < len(ordered_servers) - 1:
-                content_lines.append("├───────────────────────────")
+                # Truncate name to max 12 characters
+                if len(display_name) > 12:
+                    truncated_name = display_name[:12] + "…"
+                else:
+                    truncated_name = display_name
 
-        # Close the box
-        content_lines.append("└───────────────────────────")
+                # Single-line format: "🔄 Name · offline"
+                field_name = f"🔄 {truncated_name} · offline"
+                field_value = "\u200B"  # Zero-width space
 
-        # Set the description with code block (like Status Overview)
-        embed.description = "```\n" + "\n".join(content_lines) + "\n```"
+                embed.add_field(name=field_name, value=field_value, inline=True)
+
+        # Update description with actual counts
+        embed.description = f"Letztes Update: {current_time}\nContainer: {total_containers} • Online: {online_count} • Offline: {offline_count}"
 
         # Add footer
         embed.set_footer(text="https://ddc.bot")
@@ -2280,7 +2324,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 continue
                 
             # Use cached data only (same as original)
-            cached_entry = self.status_cache_service.get(display_name)
+            # Use docker_name as cache key (stable identifier)
+            cached_entry = self.status_cache_service.get(docker_name)
             status_result = None
             
             if cached_entry and cached_entry.get('data'):
@@ -2315,14 +2360,15 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 _, is_running, _, _, _, _ = status_result
                 
                 # Determine status icon (same logic as original)
-                if display_name in self.pending_actions:
-                    pending_timestamp = self.pending_actions[display_name]['timestamp']
+                # Check pending actions using docker_name as key
+                if docker_name in self.pending_actions:
+                    pending_timestamp = self.pending_actions[docker_name]['timestamp']
                     pending_duration = (now_utc - pending_timestamp).total_seconds()
                     if pending_duration < 120:
                         status_emoji = "🟡"
                         status_text = translate("Pending")
                     else:
-                        del self.pending_actions[display_name]
+                        del self.pending_actions[docker_name]
                         status_emoji = "🟢" if is_running else "🔴"
                 else:
                     status_emoji = "🟢" if is_running else "🔴"
