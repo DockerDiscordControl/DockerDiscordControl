@@ -958,17 +958,18 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         try:
             await self.bot.wait_until_ready() # Ensure bot is ready before fetching channels
             
-            # PERFORMANCE OPTIMIZATION: Skip blocking cache population for faster startup
-            logger.info("Starting background cache population (non-blocking)")
+            # CACHE WARMUP: Populate cache BEFORE sending initial messages
+            # This prevents showing 🔄 loading icons on first display
+            logger.info("Starting cache population (blocking to ensure data availability)")
 
-            # Start cache population in background - don't block initial status send
+            # Ensure semaphore exists
             if not hasattr(self, '_status_update_semaphore'):
                 self._status_update_semaphore = asyncio.Semaphore(1)
 
-            # Run cache update in background task
-            asyncio.create_task(self._background_cache_population())
+            # Wait for cache to be populated before sending messages
+            await self._background_cache_population()
 
-            logger.info("Background cache population scheduled - proceeding with status send")
+            logger.info("Cache population complete - proceeding with status send")
 
             logger.info("Proceeding with initial status send")
 
@@ -1785,7 +1786,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
         # Add server statuses (copy from original method)
         for server_conf in ordered_servers:
-            display_name = server_conf.get('name', server_conf.get('docker_name'))
+            display_name = server_conf.get('display_name', server_conf.get('docker_name'))
             docker_name = server_conf.get('docker_name')
             if not display_name or not docker_name:
                 continue
@@ -2146,7 +2147,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
         # Process each container and add as inline field
         for server_conf in ordered_servers:
-            display_name = server_conf.get('name', server_conf.get('docker_name'))
+            display_name = server_conf.get('display_name', server_conf.get('docker_name'))
             docker_name = server_conf.get('docker_name')
             if not display_name or not docker_name:
                 continue
@@ -2318,7 +2319,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
         # Add server statuses (copy from original method - same logic)
         for server_conf in ordered_servers:
-            display_name = server_conf.get('name', server_conf.get('docker_name'))
+            display_name = server_conf.get('display_name', server_conf.get('docker_name'))
             docker_name = server_conf.get('docker_name')
             if not display_name or not docker_name:
                 continue
