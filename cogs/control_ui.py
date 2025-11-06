@@ -1279,6 +1279,11 @@ class InfoDropdownButton(Button):
                         display_name = container_data.get('display_name', [container_name, container_name])
                         if isinstance(display_name, list) and len(display_name) > 0:
                             display_name = display_name[0]
+
+                        # Remove " Server" suffix if present
+                        if display_name.endswith(' Server'):
+                            display_name = display_name[:-7]  # Remove last 7 characters (" Server")
+
                         containers_with_info.append({
                             'name': container_name,
                             'display': display_name,
@@ -1345,12 +1350,9 @@ class ContainerInfoDropdown(discord.ui.Select):
         # Create options from containers
         options = []
         for container in containers[:25]:  # Discord limit is 25 options
-            icon = "🔒" if container['protected'] else "ℹ️"
             option = discord.SelectOption(
                 label=container['display'],
-                value=container['name'],
-                emoji=icon,
-                description=f"{'Protected info' if container['protected'] else 'Public info'}"
+                value=container['name']
             )
             options.append(option)
 
