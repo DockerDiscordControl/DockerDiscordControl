@@ -349,9 +349,13 @@ class ActionButton(Button):
                         # Look up server by docker_name (stable), not display_name (can change)
                         server_config_for_update = next((s for s in servers if s.get('docker_name') == self.docker_name), None)
                         if server_config_for_update:
-                            # Always invalidate cache before fetching - use docker_name as key!
+                            # Always invalidate BOTH caches before fetching - use docker_name as key!
+                            # 1. StatusCacheService
                             if self.cog.status_cache_service.get(self.docker_name):
                                 self.cog.status_cache_service.remove(self.docker_name)
+
+                            # 2. ContainerStatusService (has its own 30s cache!)
+                            container_status_service.invalidate_container(self.docker_name)
 
                             fresh_status = await self.cog.get_status(server_config_for_update)
                             if not isinstance(fresh_status, Exception):
@@ -466,9 +470,13 @@ class ActionButton(Button):
                             await asyncio.sleep(30)  # Wait 30 seconds for container to fully start/stop
                             logger.info(f"[ACTION_BTN] Updating status overview for {self.display_name}")
 
-                            # Invalidate cache again to get latest status - use docker_name!
+                            # Invalidate BOTH caches again to get latest status - use docker_name!
+                            # 1. StatusCacheService
                             if self.cog.status_cache_service.get(self.docker_name):
                                 self.cog.status_cache_service.remove(self.docker_name)
+
+                            # 2. ContainerStatusService (has its own 30s cache!)
+                            container_status_service.invalidate_container(self.docker_name)
 
                             # Get fresh status
                             # SERVICE FIRST: Use ServerConfigService instead of direct config access
