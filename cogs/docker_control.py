@@ -2210,13 +2210,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Cache format: (display_name, is_running, cpu_str, ram_str, uptime, details_allowed)
                 _, is_running, cpu_str, ram_str, _, _ = status_result
 
-                # Determine status emoji
+                # Determine status emoji (EXACTLY same logic as Server Overview)
                 # Check pending actions using docker_name as key
                 if docker_name in self.pending_actions:
                     pending_timestamp = self.pending_actions[docker_name]['timestamp']
                     pending_duration = (now_utc - pending_timestamp).total_seconds()
                     if pending_duration < 120:
                         status_emoji = "🟡"
+                        status_text = translate("Pending")
                     else:
                         del self.pending_actions[docker_name]
                         status_emoji = "🟢" if is_running else "🔴"
@@ -2276,7 +2277,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Add field (inline=true for grid layout)
                 embed.add_field(name=field_name, value=field_value, inline=True)
             else:
-                # No status data available - count as offline
+                # No status data available - show loading status (same as Server Overview)
+                status_emoji = "🔄"
                 offline_count += 1
 
                 # Truncate name to max 12 characters
@@ -2285,8 +2287,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 else:
                     truncated_name = display_name
 
-                # Single-line format: "🔄 Name · offline"
-                field_name = f"🔄 {truncated_name} · offline"
+                # Single-line format matching Server Overview: "🔄 Name"
+                field_name = f"{status_emoji} {truncated_name}"
+                if has_info:
+                    field_name += " ⓘ"  # Add info indicator if available
                 field_value = "\u200B"  # Zero-width space
 
                 embed.add_field(name=field_name, value=field_value, inline=True)
