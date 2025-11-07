@@ -3606,6 +3606,18 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
             # Create the updated embed and view based on message type
             if message_type == "admin_overview":
+                # CACHE WARMUP: Populate cache BEFORE creating admin overview
+                # This prevents showing 🔄 loading icons when updating after info changes
+                logger.debug("Starting cache population for admin overview update")
+
+                # Ensure semaphore exists
+                if not hasattr(self, '_status_update_semaphore'):
+                    self._status_update_semaphore = asyncio.Semaphore(1)
+
+                # Wait for cache to be populated before creating embed
+                await self._background_cache_population()
+                logger.debug("Cache population complete for admin overview update")
+
                 # Create Admin Overview embed
                 embed, _, has_running = await self._create_admin_overview_embed(ordered_servers, config, force_refresh=False)
                 # Create Admin Overview view
@@ -3613,6 +3625,18 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 view = AdminOverviewView(self, channel_id, has_running)
                 animation_file = None  # Admin Overview doesn't have animations
             else:
+                # CACHE WARMUP: Populate cache BEFORE creating overview embed
+                # This prevents showing 🔄 loading icons when updating
+                logger.debug("Starting cache population for overview update")
+
+                # Ensure semaphore exists
+                if not hasattr(self, '_status_update_semaphore'):
+                    self._status_update_semaphore = asyncio.Semaphore(1)
+
+                # Wait for cache to be populated before creating embed
+                await self._background_cache_population()
+                logger.debug("Cache population complete for overview update")
+
                 # Create standard overview embed based on expansion state
                 is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
                 if is_mech_expanded:
