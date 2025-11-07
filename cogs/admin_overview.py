@@ -488,7 +488,15 @@ class ConfirmRestartAllButton(Button):
                 # SERVICE FIRST: Use StatusCacheService to check if container is running
                 # IMPORTANT: Always use docker_name for cache lookups (stable identifier)
                 status_cache_service = get_status_cache_service()
-                is_running = status_cache_service.is_container_running(docker_name)
+                cached_entry = status_cache_service.get(docker_name)
+
+                # Extract is_running from cache data tuple
+                is_running = False
+                if cached_entry and cached_entry.get('data'):
+                    status_result = cached_entry['data']
+                    if isinstance(status_result, tuple) and len(status_result) >= 2:
+                        # Cache format: (display_name, is_running, cpu_str, ram_str, uptime, details_allowed)
+                        is_running = status_result[1]
 
                 if is_running:
                                 # Restart container with timeout protection
@@ -659,7 +667,15 @@ class ConfirmStopAllButton(Button):
                 # SERVICE FIRST: Use StatusCacheService to check if container is running
                 # IMPORTANT: Always use docker_name for cache lookups (stable identifier)
                 status_cache_service = get_status_cache_service()
-                is_running = status_cache_service.is_container_running(docker_name)
+                cached_entry = status_cache_service.get(docker_name)
+
+                # Extract is_running from cache data tuple
+                is_running = False
+                if cached_entry and cached_entry.get('data'):
+                    status_result = cached_entry['data']
+                    if isinstance(status_result, tuple) and len(status_result) >= 2:
+                        # Cache format: (display_name, is_running, cpu_str, ram_str, uptime, details_allowed)
+                        is_running = status_result[1]
 
                 if is_running:
                                 # Stop container with timeout protection
