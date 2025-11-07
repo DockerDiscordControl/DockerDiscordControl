@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Fix Mech Level 1 Offline Cropping
+Fix Mech Offline Cropping
 
-This script regenerates the Level 1 offline (rest) animation cache file
+This script regenerates offline (rest) animation cache files
 with the correct 60px top cropping applied.
 
 Usage:
-    python3 scripts/fix_mech1_offline_cropping.py
+    python3 scripts/fix_mech1_offline_cropping.py [level]
+
+    If no level is specified, processes all levels 1-10.
+    If level is specified, processes only that level.
 """
 
 import sys
@@ -35,13 +38,14 @@ def _deobfuscate_data(data: bytes) -> bytes:
     """Reverse XOR obfuscation (XOR is symmetric)"""
     return _obfuscate_data(data)
 
-def main():
-    logger.info("🔧 Fixing Mech Level 1 Offline Cropping")
+def fix_mech_level(level: int) -> bool:
+    """Fix offline cropping for a specific mech level."""
+    logger.info(f"🔧 Fixing Mech Level {level} Offline Cropping")
     logger.info("=" * 60)
 
     # Paths
-    cache_file = project_root / "cached_animations" / "mech_1_rest_100speed.cache"
-    backup_file = project_root / "cached_animations" / "mech_1_rest_100speed.cache.backup"
+    cache_file = project_root / "cached_animations" / f"mech_{level}_rest_100speed.cache"
+    backup_file = project_root / "cached_animations" / f"mech_{level}_rest_100speed.cache.backup"
 
     if not cache_file.exists():
         logger.error(f"Cache file not found: {cache_file}")
@@ -132,9 +136,8 @@ def main():
         logger.info(f"   💾 New cache file: {cache_file.name}")
         logger.info(f"   📊 Size change: {len(original_data)} → {len(new_cache_data)} bytes ({len(new_cache_data) - len(original_data):+d} bytes)")
         logger.info("")
-        logger.info("🚀 Level 1 offline mech will now display with correct cropping!")
 
-        return 0
+        return True
 
     except Exception as e:
         logger.error(f"❌ Error: {e}")
@@ -150,7 +153,62 @@ def main():
                 f.write(backup_data)
             logger.info(f"   ✅ Backup restored")
 
-        return 1
+        return False
+
+def main():
+    """Main function - process one or all levels."""
+    # Check for level argument
+    if len(sys.argv) > 1:
+        try:
+            level = int(sys.argv[1])
+            if level < 1 or level > 10:
+                logger.error(f"Invalid level: {level}. Must be between 1 and 10.")
+                return 1
+
+            # Process single level
+            success = fix_mech_level(level)
+            if success:
+                logger.info(f"🚀 Level {level} offline mech will now display with correct cropping!")
+                return 0
+            else:
+                return 1
+
+        except ValueError:
+            logger.error(f"Invalid level argument: {sys.argv[1]}. Must be a number between 1 and 10.")
+            return 1
+    else:
+        # Process all levels 1-10
+        logger.info("🔧 Fixing ALL Mech Offline Cropping (Levels 1-10)")
+        logger.info("=" * 60)
+        logger.info("")
+
+        results = {}
+        for level in range(1, 11):
+            success = fix_mech_level(level)
+            results[level] = success
+            logger.info("")
+
+        # Summary
+        logger.info("=" * 60)
+        logger.info("📊 SUMMARY")
+        logger.info("=" * 60)
+
+        successful = [l for l, s in results.items() if s]
+        failed = [l for l, s in results.items() if not s]
+
+        logger.info(f"✅ Successful: {len(successful)} levels")
+        if successful:
+            logger.info(f"   Levels: {', '.join(map(str, successful))}")
+
+        if failed:
+            logger.info(f"❌ Failed: {len(failed)} levels")
+            logger.info(f"   Levels: {', '.join(map(str, failed))}")
+            logger.info("")
+            return 1
+
+        logger.info("")
+        logger.info("🚀 All offline mechs will now display with correct cropping!")
+        return 0
 
 if __name__ == '__main__':
     exit(main())
