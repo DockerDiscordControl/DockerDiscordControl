@@ -2161,14 +2161,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             color=0x2f3136  # Dark grey, dark-mode friendly
         )
 
-        # Build description with header and all container lines (no Fields for tighter spacing)
-        description_lines = [
+        # Build description header
+        header_lines = [
             f"Letztes Update: {current_time}",
-            f"Container: {total_containers} • Online: {{online}} • Offline: {{offline}}",
-            ""  # Empty line separator
+            f"Container: {total_containers} • Online: {{online}} • Offline: {{offline}}"
         ]
 
-        # Process each container and add line to description
+        # Collect container lines separately (will add spacing between them later)
+        container_lines = []
+
+        # Process each container and add line to list
         for server_conf in ordered_servers:
             display_name = server_conf.get('display_name', server_conf.get('docker_name'))
             docker_name = server_conf.get('docker_name')
@@ -2270,8 +2272,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     # Container is stopped: "🔴 Name · offline"
                     container_line = f"{status_emoji} {truncated_name} · offline"
 
-                # Add to description lines instead of field (for tighter spacing)
-                description_lines.append(container_line)
+                # Add to container lines list
+                container_lines.append(container_line)
             else:
                 # No status data available - show loading status (same as Server Overview)
                 status_emoji = "🔄"
@@ -2288,14 +2290,18 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 if has_info:
                     container_line += " ⓘ"  # Small circled i
 
-                # Add to description lines instead of field (for tighter spacing)
-                description_lines.append(container_line)
+                # Add to container lines list
+                container_lines.append(container_line)
 
         # Format the counts in the header line
-        description_lines[1] = f"Container: {total_containers} • Online: {online_count} • Offline: {offline_count}"
+        header_lines[1] = f"Container: {total_containers} • Online: {online_count} • Offline: {offline_count}"
 
-        # Build final description with all lines (single \n for tight spacing)
-        embed.description = "\n".join(description_lines)
+        # Build final description with spacing between container lines to handle ⓘ height differences
+        # Join container lines with double newline for consistent spacing (fixes mobile layout issue)
+        container_section = "\n\n".join(container_lines) if container_lines else ""
+
+        # Combine header and container section
+        embed.description = "\n".join(header_lines) + "\n\n" + container_section
 
         # Add footer
         embed.set_footer(text="https://ddc.bot")
