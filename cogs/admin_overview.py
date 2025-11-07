@@ -487,7 +487,7 @@ class ConfirmRestartAllButton(Button):
 
                 # SERVICE FIRST: Use StatusCacheService to check if container is running
                 # IMPORTANT: Always use docker_name for cache lookups (stable identifier)
-                status_cache_service = get_status_cache_service(self.cog)
+                status_cache_service = get_status_cache_service()
                 is_running = status_cache_service.is_container_running(docker_name)
 
                 if is_running:
@@ -658,7 +658,7 @@ class ConfirmStopAllButton(Button):
 
                 # SERVICE FIRST: Use StatusCacheService to check if container is running
                 # IMPORTANT: Always use docker_name for cache lookups (stable identifier)
-                status_cache_service = get_status_cache_service(self.cog)
+                status_cache_service = get_status_cache_service()
                 is_running = status_cache_service.is_container_running(docker_name)
 
                 if is_running:
