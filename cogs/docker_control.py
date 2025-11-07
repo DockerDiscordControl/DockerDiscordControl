@@ -2266,7 +2266,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     # Use middot (·) as separator, smaller info icon (ⓘ)
                     field_name = f"{status_emoji} {truncated_name} · {cpu_formatted} • {ram_formatted}"
                     if has_info:
-                        field_name += " ⓘ"  # Small circled i instead of blue block
+                        field_name += " ⓘ"  # Small circled i
                 else:
                     # Container is stopped: "🔴 Name · offline"
                     field_name = f"{status_emoji} {truncated_name} · offline"
@@ -2274,8 +2274,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Field value is just a zero-width space (keeps all fields same height)
                 field_value = "\u200B"
 
-                # Add field (inline=true for grid layout)
-                embed.add_field(name=field_name, value=field_value, inline=True)
+                # Add field (inline=false for single column layout)
+                embed.add_field(name=field_name, value=field_value, inline=False)
             else:
                 # No status data available - show loading status (same as Server Overview)
                 status_emoji = "🔄"
@@ -2290,10 +2290,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Single-line format matching Server Overview: "🔄 Name"
                 field_name = f"{status_emoji} {truncated_name}"
                 if has_info:
-                    field_name += " ⓘ"  # Add info indicator if available
+                    field_name += " ⓘ"  # Small circled i
                 field_value = "\u200B"  # Zero-width space
 
-                embed.add_field(name=field_name, value=field_value, inline=True)
+                embed.add_field(name=field_name, value=field_value, inline=False)
 
         # Update description with actual counts
         embed.description = f"Letztes Update: {current_time}\nContainer: {total_containers} • Online: {online_count} • Offline: {offline_count}"
