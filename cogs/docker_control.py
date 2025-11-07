@@ -2161,15 +2161,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             color=0x2f3136  # Dark grey, dark-mode friendly
         )
 
-        # Build description header (2 lines)
+        # Build description with header and all container lines (no Fields for tighter spacing)
         description_lines = [
             f"Letztes Update: {current_time}",
-            f"Container: {total_containers} • Online: {{online}} • Offline: {{offline}}"
+            f"Container: {total_containers} • Online: {{online}} • Offline: {{offline}}",
+            ""  # Empty line separator
         ]
-        # We'll format the online/offline counts after processing all containers
-        embed.description = "\n".join(description_lines)
 
-        # Process each container and add as inline field
+        # Process each container and add line to description
         for server_conf in ordered_servers:
             display_name = server_conf.get('display_name', server_conf.get('docker_name'))
             docker_name = server_conf.get('docker_name')
@@ -2262,20 +2261,17 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     except (ValueError, AttributeError):
                         ram_formatted = "—GB"
 
-                    # Build single-line name: "🟢 Name · cpu% • ramGB ⓘ"
+                    # Build single-line: "🟢 Name · cpu% • ramGB ⓘ"
                     # Use middot (·) as separator, smaller info icon (ⓘ)
-                    field_name = f"{status_emoji} {truncated_name} · {cpu_formatted} • {ram_formatted}"
+                    container_line = f"{status_emoji} {truncated_name} · {cpu_formatted} • {ram_formatted}"
                     if has_info:
-                        field_name += " ⓘ"  # Small circled i
+                        container_line += " ⓘ"  # Small circled i
                 else:
                     # Container is stopped: "🔴 Name · offline"
-                    field_name = f"{status_emoji} {truncated_name} · offline"
+                    container_line = f"{status_emoji} {truncated_name} · offline"
 
-                # Field value is just a zero-width space (keeps all fields same height)
-                field_value = "\u200B"
-
-                # Add field (inline=false for single column layout)
-                embed.add_field(name=field_name, value=field_value, inline=False)
+                # Add to description lines instead of field (for tighter spacing)
+                description_lines.append(container_line)
             else:
                 # No status data available - show loading status (same as Server Overview)
                 status_emoji = "🔄"
@@ -2287,16 +2283,19 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 else:
                     truncated_name = display_name
 
-                # Single-line format matching Server Overview: "🔄 Name"
-                field_name = f"{status_emoji} {truncated_name}"
+                # Single-line format: "🔄 Name"
+                container_line = f"{status_emoji} {truncated_name}"
                 if has_info:
-                    field_name += " ⓘ"  # Small circled i
-                field_value = "\u200B"  # Zero-width space
+                    container_line += " ⓘ"  # Small circled i
 
-                embed.add_field(name=field_name, value=field_value, inline=False)
+                # Add to description lines instead of field (for tighter spacing)
+                description_lines.append(container_line)
 
-        # Update description with actual counts
-        embed.description = f"Letztes Update: {current_time}\nContainer: {total_containers} • Online: {online_count} • Offline: {offline_count}"
+        # Format the counts in the header line
+        description_lines[1] = f"Container: {total_containers} • Online: {online_count} • Offline: {offline_count}"
+
+        # Build final description with all lines (single \n for tight spacing)
+        embed.description = "\n".join(description_lines)
 
         # Add footer
         embed.set_footer(text="https://ddc.bot")
