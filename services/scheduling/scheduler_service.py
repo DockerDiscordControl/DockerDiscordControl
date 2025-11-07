@@ -32,9 +32,8 @@ def _get_config_value(key: str, default_value: str) -> int:
     except Exception:
         return int(os.environ.get(key, default_value))
 
-# CPU-OPTIMIZED: Increased check interval from 60 to 120 seconds (50% CPU reduction)
-# Task scheduling doesn't need to be checked every minute for most use cases
-CHECK_INTERVAL = _get_config_value('DDC_SCHEDULER_CHECK_INTERVAL', '120')  # 2 minutes default
+# Scheduler check interval - runs every minute for precise task execution
+CHECK_INTERVAL = _get_config_value('DDC_SCHEDULER_CHECK_INTERVAL', '60')  # 1 minute default
 
 # CPU-OPTIMIZED: Batch processing settings
 MAX_CONCURRENT_TASKS = _get_config_value('DDC_MAX_CONCURRENT_TASKS', '3')  # Limit concurrent task execution
@@ -239,7 +238,7 @@ class SchedulerService:
 
                     # Create a time window: task is "due" if scheduled time has passed
                     # Use CHECK_INTERVAL as the window to ensure we catch tasks even if scheduler is delayed
-                    time_window = timedelta(seconds=CHECK_INTERVAL * 1.5)  # 3 minutes for 2-minute checks
+                    time_window = timedelta(seconds=CHECK_INTERVAL * 1.5)  # 90 seconds for 1-minute checks
 
                     # Task is due if it's scheduled before now and within the time window
                     # This prevents tasks from running too early while ensuring we don't miss delayed checks
