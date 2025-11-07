@@ -157,18 +157,19 @@ class MechHighResService:
 
     def _get_cropping_adjustments(self, evolution_level: int, resolution: str) -> Dict[str, Any]:
         """Get smart cropping adjustments for the specified resolution."""
-        # Base cropping adjustments for small mechs - individualized per mech for optimal framing
+        # Base cropping adjustments for small mechs (REST/offline animations use uniform 60px in animation_cache_service)
+        # These values are for WALK animations and canvas calculations
         small_adjustments = {
-            1: {"top": 25, "bottom": 10},    # Mech 1: moderate crop
-            2: {"top": 25, "bottom": 10},    # Mech 2: moderate crop
-            3: {"top": 25, "bottom": 10},    # Mech 3: moderate crop
+            1: {"top": 60, "bottom": 10},    # Mech 1: uniform crop
+            2: {"top": 60, "bottom": 10},    # Mech 2: uniform crop
+            3: {"top": 60, "bottom": 10},    # Mech 3: uniform crop
             4: {"top": 45, "bottom": 13},    # Mech 4: enhanced pre-cropping
             5: {"top": 22, "bottom": 14},    # Mech 5: custom pre-cropping
             6: {"top": 48, "bottom": 12},    # Mech 6: custom pre-cropping
-            7: {"top": 35, "bottom": 10},    # Mech 7: moderate-high crop
-            8: {"top": 35, "bottom": 10},    # Mech 8: moderate-high crop
-            9: {"top": 40, "bottom": 12},    # Mech 9: high crop
-            10: {"top": 18, "bottom": 10},   # Mech 10: minimal crop
+            7: {"top": 60, "bottom": 10},    # Mech 7: uniform crop
+            8: {"top": 60, "bottom": 10},    # Mech 8: uniform crop
+            9: {"top": 60, "bottom": 10},    # Mech 9: uniform crop
+            10: {"top": 60, "bottom": 10},   # Mech 10: uniform crop
         }
 
         base_adjustment = small_adjustments.get(evolution_level, {"top": 0, "bottom": 0})
