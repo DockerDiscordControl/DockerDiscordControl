@@ -236,13 +236,13 @@ class SchedulerService:
                 
                 if task.next_run_ts:
                     task_time = datetime.fromtimestamp(task.next_run_ts)
-                    
-                    # Create a time window: task is "due" if it's within CHECK_INTERVAL/2 of its scheduled time
-                    # This ensures we don't miss tasks between check intervals
-                    time_window = timedelta(seconds=CHECK_INTERVAL / 2)  # 60 seconds for 2-minute checks
-                    
-                    # Task is due if it's scheduled before now but within the time window
-                    # This prevents tasks from running too early or being missed
+
+                    # Create a time window: task is "due" if scheduled time has passed
+                    # Use CHECK_INTERVAL as the window to ensure we catch tasks even if scheduler is delayed
+                    time_window = timedelta(seconds=CHECK_INTERVAL * 1.5)  # 3 minutes for 2-minute checks
+
+                    # Task is due if it's scheduled before now and within the time window
+                    # This prevents tasks from running too early while ensuring we don't miss delayed checks
                     if task_time <= current_time < (task_time + time_window):
                         # Skip if task is already running
                         if task.task_id in self.active_tasks:
