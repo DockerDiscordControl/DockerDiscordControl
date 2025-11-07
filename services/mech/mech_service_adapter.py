@@ -16,10 +16,13 @@ the new event-sourced progress service internally.
 
 import logging
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from .progress_service import get_progress_service, ProgressState
 from .mech_levels import get_level_name
+
+if TYPE_CHECKING:
+    import discord
 
 logger = logging.getLogger('ddc.mech_service_adapter')
 
@@ -38,6 +41,17 @@ class MechState:
     difficulty_tier: str
     difficulty_bin: int
     member_count: int
+
+    # Backward compatibility properties for old code
+    @property
+    def level(self) -> int:
+        """Alias for evolution_level (backward compatibility)"""
+        return self.evolution_level
+
+    @property
+    def Power(self) -> float:
+        """Alias for power_level (backward compatibility)"""
+        return self.power_level
 
 
 @dataclass
@@ -101,6 +115,11 @@ class MechServiceAdapter:
         prog_state = self.progress_service.get_state()
         return self._convert_state(prog_state)
 
+    def get_power_with_decimals(self) -> float:
+        """Get raw power value with decimal places (backward compatibility)"""
+        prog_state = self.progress_service.get_state()
+        return prog_state.power_current
+
     def add_donation(self, amount: float, donor: Optional[str] = None,
                     channel_id: Optional[str] = None) -> MechState:
         """Add donation and return updated state"""
@@ -153,6 +172,42 @@ class MechServiceAdapter:
                 speed=0.0,
                 error=str(e)
             )
+
+    def _get_evolution_mode(self) -> dict:
+        """Get evolution mode info (for backward compatibility)"""
+        # New progress service always uses dynamic evolution
+        prog_state = self.progress_service.get_state()
+        return {
+            'use_dynamic': True,
+            'difficulty_multiplier': 1.0,  # Multiplier is baked into requirements
+            'current_bin': prog_state.difficulty_bin,
+            'difficulty_tier': prog_state.difficulty_tier
+        }
+
+    async def add_donation_async(self, amount: float, donor: Optional[str] = None,
+                                channel_id: Optional[str] = None,
+                                guild: Optional['discord.Guild'] = None) -> MechState:
+        """Add donation with async member count update before level-up"""
+        # Get current state to check if level-up will happen
+        current_state = self.progress_service.get_state()
+
+        # Calculate if this donation will trigger level-up
+        amount_cents = int(amount * 100)
+        will_level_up = (current_state.level < 11 and
+                        (current_state.evo_current * 100 + amount_cents) >= current_state.evo_max * 100)
+
+        # If level-up will happen and we have a guild, update member count
+        if will_level_up and guild is not None:
+            try:
+                member_count = guild.member_count
+                logger.info(f"Updating member count before level-up: {member_count}")
+                self.progress_service.update_member_count(member_count)
+            except Exception as e:
+                logger.warning(f"Could not fetch member count from guild: {e}")
+
+        # Now add the donation
+        prog_state = self.progress_service.add_donation(amount, donor, channel_id)
+        return self._convert_state(prog_state)
 
 
 # Global instance

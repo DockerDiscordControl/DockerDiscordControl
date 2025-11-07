@@ -180,28 +180,62 @@ class UnifiedDonationService:
         """
         Process a donation asynchronously for Discord bot integration.
 
-        Handles member count updates and other async operations while
-        maintaining the same unified behavior and event emission.
+        Handles member count updates via add_donation_async which fetches
+        the member count before level-up to freeze difficulty.
         """
         try:
-            # For Discord donations with bot integration
-            if request.bot_instance and request.use_member_count:
-                # Handle async member count update if needed
-                try:
-                    await self._update_member_count_if_needed(request.bot_instance)
-                except Exception as member_error:
-                    logger.warning(f"Member count update failed (continuing): {member_error}")
+            # Validate request
+            validation_result = self._validate_donation_request(request)
+            if not validation_result.success:
+                return DonationResult(
+                    success=False,
+                    error_message=validation_result.error_message,
+                    error_code="VALIDATION_FAILED"
+                )
 
-            # Use sync processing for the actual donation
-            # This ensures consistent behavior between sync and async paths
-            result = await asyncio.get_event_loop().run_in_executor(
-                None, self.process_donation, request
+            # Get old state for comparison
+            old_state = self.mech_service.get_state()
+            old_level = old_state.level
+            old_power = float(old_state.Power)
+
+            logger.info(f"Processing {request.source} donation (async): ${request.amount} from {request.donor_name}")
+
+            # Process the donation with async method (handles member count)
+            new_state = await self._execute_donation_async(request)
+
+            # Calculate state changes
+            new_level = new_state.level
+            new_power = float(new_state.Power)
+            level_changed = old_level != new_level
+
+            # CRITICAL: Clear MechDataStore cache BEFORE event emission (prevent race condition)
+            try:
+                from services.mech.mech_data_store import get_mech_data_store
+                data_store = get_mech_data_store()
+                data_store.clear_cache()
+                logger.debug("MechDataStore cache cleared before event emission (prevents race condition)")
+            except Exception as cache_error:
+                logger.warning(f"Failed to clear MechDataStore cache: {cache_error}")
+
+            # Emit unified event (animation service will now get fresh data)
+            event_id = self._emit_donation_event(request, old_state, new_state)
+
+            logger.info(f"Donation processed successfully (async): {old_level}→{new_level}, {old_power:.2f}→{new_power:.2f}")
+
+            return DonationResult(
+                success=True,
+                new_state=new_state,
+                old_level=old_level,
+                new_level=new_level,
+                old_power=old_power,
+                new_power=new_power,
+                level_changed=level_changed,
+                event_emitted=True,
+                event_id=event_id
             )
 
-            return result
-
         except Exception as e:
-            logger.error(f"Error in async donation processing: {e}")
+            logger.error(f"Error in async donation processing: {e}", exc_info=True)
             return DonationResult(
                 success=False,
                 error_message=str(e),
@@ -301,14 +335,34 @@ class UnifiedDonationService:
 
     def _execute_donation(self, request: DonationRequest) -> MechState:
         """Execute the actual donation via MechService."""
-        # Use the basic add_donation method directly
-        # We handle events ourselves, so we don't need the SERVICE FIRST wrapper
-        timestamp = request.timestamp or datetime.now().isoformat()
-
+        # Use the adapter's add_donation method with correct parameter names
         return self.mech_service.add_donation(
-            username=request.donor_name,
-            amount=request.amount,
-            ts_iso=timestamp
+            amount=float(request.amount),
+            donor=request.donor_name,
+            channel_id=request.discord_guild_id
+        )
+
+    async def _execute_donation_async(self, request: DonationRequest) -> MechState:
+        """Execute donation asynchronously with guild member count fetch."""
+        # Use the async version with guild parameter for member count fetch
+        guild = None
+        if request.bot_instance and request.use_member_count and request.discord_guild_id:
+            try:
+                # Get the specific guild by ID
+                guild_id = int(request.discord_guild_id)
+                guild = request.bot_instance.get_guild(guild_id)
+                if guild:
+                    logger.info(f"Using guild for member count: {guild.name} ({guild.member_count} members)")
+                else:
+                    logger.warning(f"Could not find guild with ID {guild_id}")
+            except Exception as e:
+                logger.warning(f"Could not get guild from bot: {e}")
+
+        return await self.mech_service.add_donation_async(
+            amount=float(request.amount),
+            donor=request.donor_name,
+            channel_id=request.discord_guild_id,
+            guild=guild
         )
 
     def _emit_donation_event(self, request: DonationRequest, old_state: MechState, new_state: MechState) -> str:
