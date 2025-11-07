@@ -447,14 +447,19 @@ class ConfirmRestartAllButton(Button):
         try:
             # SERVICE FIRST: Use ServerConfigService to get server configurations
             server_config_service = get_server_config_service()
-            servers = server_config_service.get_all_servers()
+            all_servers = server_config_service.get_all_servers()
+
+            # CRITICAL: Filter to only ACTIVE containers (as shown in Admin Overview)
+            servers = [s for s in all_servers if s.get('active', False)]
 
             if not servers:
                 await interaction.followup.send(
-                    "❌ No servers configured.",
+                    "❌ No active servers configured.",
                     ephemeral=True
                 )
                 return
+
+            logger.info(f"Restart All: Processing {len(servers)} active containers (filtered from {len(all_servers)} total)")
 
             restarted_count = 0
             failed_count = 0
@@ -462,7 +467,7 @@ class ConfirmRestartAllButton(Button):
 
             # Import docker service with error handling
             try:
-                from services.docker.docker_action_service import docker_action_service_first
+                from services.docker_service.docker_action_service import docker_action_service_first
             except ImportError as e:
                 logger.error(f"Failed to import docker action service: {e}")
                 await interaction.followup.send(
@@ -481,13 +486,9 @@ class ConfirmRestartAllButton(Button):
                     continue
 
                 # SERVICE FIRST: Use StatusCacheService to check if container is running
+                # IMPORTANT: Always use docker_name for cache lookups (stable identifier)
                 status_cache_service = get_status_cache_service(self.cog)
-                display_name = server.get('name', docker_name)
-                is_running = status_cache_service.is_container_running(display_name)
-
-                if is_running is None and display_name != docker_name:
-                    # Try with docker_name if display_name didn't work
-                    is_running = status_cache_service.is_container_running(docker_name)
+                is_running = status_cache_service.is_container_running(docker_name)
 
                 if is_running:
                                 # Restart container with timeout protection
@@ -617,14 +618,19 @@ class ConfirmStopAllButton(Button):
         try:
             # SERVICE FIRST: Use ServerConfigService to get server configurations
             server_config_service = get_server_config_service()
-            servers = server_config_service.get_all_servers()
+            all_servers = server_config_service.get_all_servers()
+
+            # CRITICAL: Filter to only ACTIVE containers (as shown in Admin Overview)
+            servers = [s for s in all_servers if s.get('active', False)]
 
             if not servers:
                 await interaction.followup.send(
-                    "❌ No servers configured.",
+                    "❌ No active servers configured.",
                     ephemeral=True
                 )
                 return
+
+            logger.info(f"Stop All: Processing {len(servers)} active containers (filtered from {len(all_servers)} total)")
 
             stopped_count = 0
             failed_count = 0
@@ -632,7 +638,7 @@ class ConfirmStopAllButton(Button):
 
             # Import docker service with error handling
             try:
-                from services.docker.docker_action_service import docker_action_service_first
+                from services.docker_service.docker_action_service import docker_action_service_first
             except ImportError as e:
                 logger.error(f"Failed to import docker action service: {e}")
                 await interaction.followup.send(
@@ -651,13 +657,9 @@ class ConfirmStopAllButton(Button):
                     continue
 
                 # SERVICE FIRST: Use StatusCacheService to check if container is running
+                # IMPORTANT: Always use docker_name for cache lookups (stable identifier)
                 status_cache_service = get_status_cache_service(self.cog)
-                display_name = server.get('name', docker_name)
-                is_running = status_cache_service.is_container_running(display_name)
-
-                if is_running is None and display_name != docker_name:
-                    # Try with docker_name if display_name didn't work
-                    is_running = status_cache_service.is_container_running(docker_name)
+                is_running = status_cache_service.is_container_running(docker_name)
 
                 if is_running:
                                 # Stop container with timeout protection
