@@ -502,16 +502,16 @@ class AnimationCacheService:
                     # Determine if we're processing big or small resolution
                     is_big_resolution = resolution == "big" if resolution else False
 
-                    # Uniform REST pre-cropping: All offline mechs use 60px from top (from commit 448b0b5 - matches cache files)
+                    # Complete original REST pre-cropping values (from commit 3b23ada - individualized per mech)
                     rest_top_crop_small = {
-                        1: 60, 2: 60, 3: 60,     # Level 1,2,3: 60px from top
-                        4: 60,                    # Level 4: 60px from top
-                        5: 60,                    # Level 5: 60px from top
-                        6: 60,                    # Level 6: 60px from top
-                        7: 60,                    # Level 7: 60px from top
-                        8: 60,                    # Level 8: 60px from top
-                        9: 60,                    # Level 9: 60px from top
-                        10: 60                    # Level 10: 60px from top
+                        1: 25, 2: 25, 3: 25,     # Level 1,2,3: 25px from top
+                        4: 20,                    # Level 4: 20px from top
+                        5: 16,                    # Level 5: 16px from top
+                        6: 30,                    # Level 6: 30px from top
+                        7: 35,                    # Level 7: 35px from top
+                        8: 35,                    # Level 8: 35px from top
+                        9: 40,                    # Level 9: 40px from top
+                        10: 18                    # Level 10: 18px from top
                     }
 
                     small_crop_value = rest_top_crop_small.get(evolution_level, 0)
