@@ -109,23 +109,42 @@ class MechCompatibilityService:
 
     def get_store_data(self) -> Dict[str, Any]:
         """
-        Get store data using SERVICE FIRST (for gradual migration).
+        Get store data from progress service events for backward compatibility.
 
         Returns:
-            Dict with store data or empty dict on failure
+            Dict with 'donations' list converted from progress service events
         """
         try:
-            from services.mech.mech_service import get_mech_service, GetStoreDataRequest
-            mech_service = get_mech_service()
+            import json
+            from pathlib import Path
 
-            # SERVICE FIRST: Use proper Request/Result pattern
-            request = GetStoreDataRequest()
-            result = mech_service.get_store_data_service(request)
+            # Read events from progress service event log
+            event_log = Path("config/progress/events.jsonl")
+            donations = []
 
-            return result.data if result.success else {}
+            if event_log.exists():
+                with open(event_log, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        if not line.strip():
+                            continue
+                        event = json.loads(line)
+                        if event.get('type') == 'DonationAdded':
+                            payload = event.get('payload', {})
+                            donations.append({
+                                'username': payload.get('donor', 'Anonymous'),
+                                'amount': payload.get('units', 0) / 100.0,  # Convert cents to dollars
+                                'ts': event.get('ts', ''),
+                                'level_upgrade': False,  # We don't track this in events
+                                'level_reached': None,
+                                'threshold_used': None,
+                                'is_dynamic': True,
+                                'donation_id': payload.get('donation_id', '')
+                            })
+
+            return {'donations': donations}
         except Exception as e:
-            self.logger.error(f"Error loading store data: {e}")
-            return {}
+            self.logger.error(f"Error loading store data from progress service: {e}", exc_info=True)
+            return {'donations': []}
 
     def save_store_data(self, data: Dict[str, Any]) -> bool:
         """

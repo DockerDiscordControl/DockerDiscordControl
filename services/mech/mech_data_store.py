@@ -519,22 +519,28 @@ class MechDataStore:
             return {'success': False, 'error': str(e)}
 
     def _calculate_evolution_data(self, core_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Calculate evolution-related data."""
+        """Calculate evolution-related data from progress service."""
         try:
-            from services.mech.mech_evolutions import get_evolution_info
+            # Get data from progress service (NEW dynamic evolution system)
+            from services.mech.progress_service import get_progress_service
+            from services.mech.mech_levels import get_level_name
 
-            evolution_info = get_evolution_info(core_data['total_donated'])
+            prog_service = get_progress_service()
+            prog_state = prog_service.get_state()
+
+            current_level = prog_state.level
+            next_level = min(current_level + 1, 11)
 
             return {
-                'level_name': evolution_info.get('name', f"Level {core_data['level']}"),
-                'next_level': evolution_info.get('next_level', core_data['level'] + 1),
-                'next_level_name': evolution_info.get('next_name', 'Next Level'),
-                'next_threshold': evolution_info.get('next_threshold', 0),
-                'amount_needed': evolution_info.get('amount_needed', 0)
+                'level_name': get_level_name(current_level),
+                'next_level': next_level,
+                'next_level_name': get_level_name(next_level),
+                'next_threshold': prog_state.evo_max,  # Dynamic threshold from progress service
+                'amount_needed': max(0, prog_state.evo_max - prog_state.evo_current)
             }
 
         except Exception as e:
-            self.logger.error(f"Error calculating evolution data: {e}")
+            self.logger.error(f"Error calculating evolution data: {e}", exc_info=True)
             return {
                 'level_name': f"Level {core_data['level']}",
                 'next_level': core_data['level'] + 1,
@@ -753,41 +759,22 @@ class MechDataStore:
         self.logger.info("Manual cache clear performed")
 
     def _calculate_power_bars(self, core_data: dict, evolution_data: dict, progress_data: dict) -> BarsCompat:
-        """Calculate power bars with correct additional cost logic."""
+        """Calculate power bars from progress service data."""
         try:
-            # Level thresholds (total costs to reach each level) - REALISTIC PRICING
-            level_thresholds = {1: 0, 2: 10, 3: 15, 4: 20, 5: 25, 6: 30, 7: 35, 8: 40, 9: 45, 10: 50, 11: 100}
+            # Get data from progress service (NEW dynamic evolution system)
+            from services.mech.progress_service import get_progress_service
 
-            current_level = core_data.get('level', 1)
-            current_threshold = level_thresholds.get(current_level, 0)
-            next_threshold = evolution_data.get('next_threshold')
-
-            # Handle edge cases
-            if next_threshold is None or next_threshold <= current_threshold:
-                # For maximum level or invalid data, use reasonable defaults
-                if current_level >= 11:
-                    additional_cost = 100  # OMEGA MECH max power
-                else:
-                    # Calculate next level threshold as fallback
-                    next_level = current_level + 1
-                    next_threshold = level_thresholds.get(next_level, current_threshold + 10)
-                    additional_cost = next_threshold - current_threshold
-            else:
-                # Calculate additional cost for next level (not total cost)
-                additional_cost = next_threshold - current_threshold  # e.g. Level 2→3: 15-10=5$
-
-            # Ensure minimum values
-            additional_cost = max(1, additional_cost)
-            power_current = max(0.0, core_data.get('power', 0.0))
+            prog_service = get_progress_service()
+            prog_state = prog_service.get_state()
 
             return BarsCompat(
                 # Power Bar: Show current power vs. max power for CURRENT level
-                Power_current=power_current,  # Current power with decimals (e.g. 29.99)
-                Power_max_for_level=additional_cost + 1,  # Additional cost + 1 gift (e.g. 5+1=6)
+                Power_current=prog_state.power_current,
+                Power_max_for_level=prog_state.power_max,
 
                 # Evolution Bar: Show progress toward next level threshold
-                mech_progress_current=progress_data.get('progress_current', 0),
-                mech_progress_max=progress_data.get('progress_max', 100)
+                mech_progress_current=prog_state.evo_current,
+                mech_progress_max=prog_state.evo_max
             )
 
         except Exception as e:
@@ -795,7 +782,7 @@ class MechDataStore:
             # Return safe fallback values
             return BarsCompat(
                 Power_current=core_data.get('power', 0.0),
-                Power_max_for_level=10,  # Safe fallback
+                Power_max_for_level=50,  # Safe fallback
                 mech_progress_current=0,
                 mech_progress_max=100
             )
