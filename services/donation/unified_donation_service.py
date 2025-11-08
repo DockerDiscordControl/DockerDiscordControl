@@ -67,21 +67,7 @@ class DonationResult:
     error_code: Optional[str] = None
 
 
-@dataclass
-class DonationDeletionRequest:
-    """Request to delete a specific donation."""
-    donation_index: int
-    source: str = 'admin'
-
-
-@dataclass
-class DonationDeletionResult:
-    """Result of donation deletion."""
-    success: bool
-    deleted_donation: Optional[Dict[str, Any]] = None
-    new_state: Optional[MechState] = None
-    error_message: Optional[str] = None
-
+# Donation deletion classes removed - incompatible with Event Sourcing
 
 # ============================================================================
 # UNIFIED DONATION SERVICE
@@ -243,71 +229,6 @@ class UnifiedDonationService:
             )
 
     # ========================================================================
-    # DONATION DELETION
-    # ========================================================================
-
-    def delete_donation(self, request: DonationDeletionRequest) -> DonationDeletionResult:
-        """
-        Delete a specific donation with proper event emission.
-
-        Replaces the direct store manipulation in donation_management_service
-        with a proper SERVICE FIRST approach.
-        """
-        try:
-            # Get current donations
-            from services.mech.mech_compatibility_service import get_mech_compatibility_service
-            compat_service = get_mech_compatibility_service()
-
-            store_data = compat_service.get_store_data()
-            donations = store_data.get("donations", [])
-
-            if request.donation_index < 0 or request.donation_index >= len(donations):
-                return DonationDeletionResult(
-                    success=False,
-                    error_message=f"Invalid donation index: {request.donation_index}"
-                )
-
-            # Get old state
-            old_state = self.mech_service.get_state()
-
-            # Remove the donation
-            deleted_donation = donations.pop(request.donation_index)
-            store_data["donations"] = donations
-
-            # Save updated data
-            compat_service.save_store_data(store_data)
-
-            # Get new state
-            new_state = self.mech_service.get_state()
-
-            # CRITICAL: Clear MechDataStore cache BEFORE event emission (prevent race condition)
-            try:
-                from services.mech.mech_data_store import get_mech_data_store
-                data_store = get_mech_data_store()
-                data_store.clear_cache()
-                logger.debug("MechDataStore cache cleared before deletion event emission (prevents race condition)")
-            except Exception as cache_error:
-                logger.warning(f"Failed to clear MechDataStore cache: {cache_error}")
-
-            # Emit deletion event (animation service will now get fresh data)
-            self._emit_deletion_event(deleted_donation, old_state, new_state, request.source)
-
-            logger.info(f"Donation deleted: ${deleted_donation['amount']} from {deleted_donation['username']}")
-
-            return DonationDeletionResult(
-                success=True,
-                deleted_donation=deleted_donation,
-                new_state=new_state
-            )
-
-        except Exception as e:
-            logger.error(f"Error deleting donation: {e}")
-            return DonationDeletionResult(
-                success=False,
-                error_message=str(e)
-            )
-
-    # ========================================================================
     # INTERNAL HELPER METHODS
     # ========================================================================
 
@@ -399,27 +320,7 @@ class UnifiedDonationService:
         logger.debug(f"Donation event emitted: {event_id}")
         return event_id
 
-    def _emit_deletion_event(self, deleted_donation: Dict, old_state: MechState, new_state: MechState, source: str):
-        """Emit donation deletion event."""
-        event_data = {
-            'action': 'deleted',
-            'deleted_donation': deleted_donation,
-            'source': source,
-            'old_power': float(old_state.Power),
-            'new_power': float(new_state.Power),
-            'old_level': old_state.level,
-            'new_level': new_state.level,
-            'level_changed': old_state.level != new_state.level,
-            'timestamp': datetime.now().isoformat()
-        }
-
-        self.event_manager.emit_event(
-            event_type='donation_completed',
-            source_service='unified_donations',
-            data=event_data
-        )
-
-        logger.debug("Donation deletion event emitted")
+    # _emit_deletion_event removed - donation deletion not supported in Event Sourcing
 
     async def _update_member_count_if_needed(self, bot_instance):
         """DEPRECATED: No longer needed with SimpleEvolutionService (static costs)."""

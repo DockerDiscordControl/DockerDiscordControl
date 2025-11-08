@@ -149,6 +149,12 @@ def save_config_api():
 
         # Debug form data
         logger.debug(f"Form data keys count: {len(form_data.keys())}")
+
+        # Debug display_name values
+        logger.info("[DISPLAY_NAME_SAVE_DEBUG] Checking display_name values in form:")
+        for key in form_data.keys():
+            if 'display_name_' in key:
+                logger.info(f"[DISPLAY_NAME_SAVE_DEBUG] {key} = {repr(form_data[key])}")
         if 'donation_disable_key' in form_data:
             logger.debug("Found donation_disable_key in form")
 
@@ -1022,43 +1028,7 @@ def donations_api():
             'error': str(e)
         })
 
-@main_bp.route('/api/donations/delete/<int:index>', methods=['POST'])
-@auth.login_required
-def delete_donation(index):
-    """
-    API endpoint to delete a specific donation by index.
-    """
-    try:
-        from services.donation.donation_management_service import get_donation_management_service
-        donation_service = get_donation_management_service()
-        
-        # Delete the donation using service
-        result = donation_service.delete_donation(index)
-        
-        if result.success:
-            donor_name = result.data['donor_name']
-            amount = result.data['amount']
-            current_app.logger.info(f"Web UI: Deleted donation {donor_name} - ${amount:.2f}")
-            
-            return jsonify({
-                'success': True,
-                'donor_name': donor_name,
-                'amount': amount,
-                'message': f'Successfully deleted donation from {donor_name}'
-            })
-        else:
-            current_app.logger.error(f"Failed to delete donation: {result.error}")
-            return jsonify({
-                'success': False,
-                'error': result.error
-            })
-            
-    except Exception as e:
-        current_app.logger.error(f"Error deleting donation: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        })
+# Donation deletion removed - incompatible with Event Sourcing immutable events
 
 # ========================================
 # FIRST-TIME SETUP ROUTES  

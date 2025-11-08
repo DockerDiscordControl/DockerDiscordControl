@@ -10,7 +10,7 @@
             </div>
             <div class="modal-body">
                 <div class="alert alert-info" role="alert">
-                    <i class="bi bi-info-circle"></i> View and manage all donations. You can delete individual donations if needed (e.g., spam or test entries).
+                    <i class="bi bi-info-circle"></i> View all donations (read-only - Event Sourcing ensures immutable donation history).
                 </div>
                 
                 <!-- Stats Cards -->
@@ -151,7 +151,6 @@ function updateDonationTable(donations) {
                         <th>Amount</th>
                         <th>Date</th>
                         <th>Type</th>
-                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -178,13 +177,6 @@ function updateDonationTable(donations) {
                 </td>
                 <td>
                     <span class="badge bg-info">${escapeHtml(type)}</span>
-                </td>
-                <td>
-                    <button type="button" class="btn btn-sm btn-danger" 
-                            onclick="deleteDonation(${index}, '${escapeHtml(donorName)}', '${amount}')"
-                            title="Delete this donation">
-                        <i class="bi bi-trash"></i>
-                    </button>
                 </td>
             </tr>
         `;
@@ -227,37 +219,7 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-async function deleteDonation(index, donorName, amount) {
-    if (!confirm(`Are you sure you want to delete the donation from ${donorName} ($${amount})?`)) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/api/donations/delete/${index}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showSuccess(`Successfully deleted donation from ${result.donor_name} ($${result.amount})`);
-            // Refresh the data
-            loadDonationData();
-        } else {
-            showError('Failed to delete donation: ' + (result.error || 'Unknown error'));
-        }
-    } catch (error) {
-        console.error('Error deleting donation:', error);
-        showError('Error deleting donation: ' + error.message);
-    }
-}
+// Donation deletion removed - incompatible with Event Sourcing immutable events
 
 function refreshDonationData() {
     loadDonationData();

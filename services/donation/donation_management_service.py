@@ -72,13 +72,27 @@ class DonationManagementService:
                     self.level = result.level
             mech_state = MechStateCompat(mech_state_result)
 
-            # Get raw donations from mech service store
-            # Use SERVICE FIRST compatibility layer for store access
-            from services.mech.mech_compatibility_service import get_mech_compatibility_service
-            compat_service = get_mech_compatibility_service()
-            store_data = compat_service.get_store_data()
-            raw_donations = store_data.get('donations', [])
-            
+            # Get donations directly from Progress Service Event Log
+            import json
+            from pathlib import Path
+
+            raw_donations = []
+            event_log = Path("config/progress/events.jsonl")
+
+            if event_log.exists():
+                with open(event_log, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        if not line.strip():
+                            continue
+                        event = json.loads(line)
+                        if event.get('type') == 'DonationAdded':
+                            payload = event.get('payload', {})
+                            raw_donations.append({
+                                'username': payload.get('donor', 'Anonymous'),
+                                'amount': payload.get('units', 0) / 100.0,  # cents → dollars
+                                'ts': event.get('ts', '')
+                            })
+
             # Convert to format expected by frontend (limit results)
             donations = []
             for i, donation in enumerate(reversed(raw_donations[-limit:])):  # Get latest donations first
@@ -86,7 +100,7 @@ class DonationManagementService:
                     'donor_name': donation.get('username', 'Anonymous'),
                     'amount': donation.get('amount', 0.0),
                     'timestamp': donation.get('ts', ''),
-                    'donation_type': 'mech_system'
+                    'donation_type': 'progress_service'
                 })
             
             # Calculate correct stats using MechService data
@@ -115,74 +129,8 @@ class DonationManagementService:
             logger.error(error_msg, exc_info=True)
             return ServiceResult(success=False, error=error_msg)
     
-    def delete_donation(self, index: int) -> ServiceResult:
-        """Delete a donation by index using Unified Donation Service.
+    # Donation deletion removed - incompatible with Event Sourcing immutable events
 
-        Args:
-            index: Index of donation to delete (0-based, from latest to oldest)
-
-        Returns:
-            ServiceResult with deletion details
-        """
-        try:
-            # UNIFIED DONATION SERVICE: Clean deletion with automatic events
-            from services.donation.unified_donation_service import get_unified_donation_service, DonationDeletionRequest
-
-            # Get current donations to validate index and convert display order to storage order
-            from services.mech.mech_compatibility_service import get_mech_compatibility_service
-            compat_service = get_mech_compatibility_service()
-            store_data = compat_service.get_store_data()
-            raw_donations = store_data.get('donations', [])
-
-            # Convert index (we display newest first, but store is oldest first)
-            total_donations = len(raw_donations)
-            if not (0 <= index < total_donations):
-                error_msg = f"Invalid donation index: {index}"
-                logger.warning(error_msg)
-                return ServiceResult(success=False, error=error_msg)
-
-            # Convert display index to storage index
-            storage_index = total_donations - 1 - index
-
-            # Use unified service for deletion with automatic events
-            unified_service = get_unified_donation_service()
-            deletion_request = DonationDeletionRequest(
-                donation_index=storage_index,
-                source='web_ui_admin'
-            )
-
-            deletion_result = unified_service.delete_donation(deletion_request)
-
-            if not deletion_result.success:
-                return ServiceResult(success=False, error=deletion_result.error_message)
-
-            # Extract donation info for response
-            deleted_donation = deletion_result.deleted_donation
-            donor_name = deleted_donation.get('username', 'Anonymous')
-            amount = deleted_donation.get('amount', 0.0)
-
-            logger.info(f"Donation deleted via unified service: {donor_name} - ${amount:.2f}")
-
-            # Return success with donation details (Web UI compatible format)
-            result_data = {
-                'donor_name': donor_name,  # Web UI expects this
-                'amount': amount,          # Web UI expects this
-                'deleted_donation': deleted_donation,
-                'remaining_count': total_donations - 1,
-                'new_state': {
-                    'level': deletion_result.new_state.level,
-                    'power': float(deletion_result.new_state.Power)
-                },
-                'index': index  # For backwards compatibility
-            }
-
-            return ServiceResult(success=True, data=result_data)
-                
-        except Exception as e:
-            error_msg = f"Error deleting donation from MechService: {e}"
-            logger.error(error_msg, exc_info=True)
-            return ServiceResult(success=False, error=error_msg)
-    
     def get_donation_stats(self) -> ServiceResult:
         """Get donation statistics only using MechService.
         
@@ -203,11 +151,24 @@ class DonationManagementService:
                     stats=None
                 )
 
-            # Use SERVICE FIRST compatibility layer for store access
-            from services.mech.mech_compatibility_service import get_mech_compatibility_service
-            compat_service = get_mech_compatibility_service()
-            store_data = compat_service.get_store_data()
-            raw_donations = store_data.get('donations', [])
+            # Get donations directly from Progress Service Event Log
+            import json
+            from pathlib import Path
+
+            raw_donations = []
+            event_log = Path("config/progress/events.jsonl")
+
+            if event_log.exists():
+                with open(event_log, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        if not line.strip():
+                            continue
+                        event = json.loads(line)
+                        if event.get('type') == 'DonationAdded':
+                            payload = event.get('payload', {})
+                            raw_donations.append({
+                                'amount': payload.get('units', 0) / 100.0  # cents → dollars
+                            })
 
             # Calculate stats using MechService data
             total_donated = mech_state_result.total_donated
