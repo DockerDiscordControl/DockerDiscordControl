@@ -402,16 +402,39 @@ def reset_all_donations(source: str = 'admin') -> DonationResult:
         old_power = float(old_state.Power)
         old_level = old_state.level
 
-        # Reset donations via compatibility service
-        from services.mech.mech_compatibility_service import get_mech_compatibility_service
-        compat_service = get_mech_compatibility_service()
+        # Reset Progress Service directly
+        from pathlib import Path
+        import json
 
-        if not compat_service.save_store_data({"donations": []}):
-            return DonationResult(
-                success=False,
-                error_message="Failed to reset store data",
-                error_code="RESET_FAILED"
-            )
+        # Clear event log
+        event_log = Path("config/progress/events.jsonl")
+        if event_log.exists():
+            event_log.write_text("")
+
+        # Reset sequence counter
+        seq_file = Path("config/progress/last_seq.txt")
+        seq_file.write_text("0")
+
+        # Reset snapshot to Level 1
+        snapshot_file = Path("config/progress/snapshots/main.json")
+        fresh_snapshot = {
+            'mech_id': 'main',
+            'level': 1,
+            'evo_acc': 0,
+            'power_acc': 0,
+            'goal_requirement': 400,
+            'difficulty_bin': 1,
+            'goal_started_at': datetime.now().isoformat(),
+            'last_decay_day': datetime.now().date().isoformat(),
+            'power_decay_per_day': 100,
+            'version': 0,
+            'last_event_seq': 0,
+            'mech_type': 'default',
+            'last_user_count_sample': 0,
+            'cumulative_donations_cents': 0
+        }
+        with open(snapshot_file, 'w', encoding='utf-8') as f:
+            json.dump(fresh_snapshot, f, indent=2)
 
         # Get new state
         new_state = service.mech_service.get_state()

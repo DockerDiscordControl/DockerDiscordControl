@@ -160,43 +160,44 @@ class MechStatusCacheService:
             self.logger.debug(f"Stored in cache: {cache_key}")
 
     def _fetch_fresh_status(self, include_decimals: bool) -> MechStatusCacheResult:
-        """Fetch fresh mech status from services."""
+        """Fetch fresh mech status directly from progress service."""
         try:
-            # Get mech state using SERVICE FIRST
-            from services.mech.mech_compatibility_service import get_mech_compatibility_service, CompatibilityStateRequest
+            # Get mech data directly from MechDataStore
+            from services.mech.mech_data_store import get_mech_data_store, MechDataRequest
 
-            compat_service = get_mech_compatibility_service()
-            compat_request = CompatibilityStateRequest(include_decimals=include_decimals)
-            compat_result = compat_service.get_compatible_state(compat_request)
+            data_store = get_mech_data_store()
+            data_request = MechDataRequest(include_decimals=include_decimals)
+            data_result = data_store.get_comprehensive_data(data_request)
 
-            if not compat_result.success:
+            if not data_result.success:
                 return MechStatusCacheResult(
                     success=False,
-                    error_message=compat_result.error_message or "Failed to get mech state"
+                    error_message="Failed to get mech data from MechDataStore"
                 )
 
             # Get speed status info
             from services.mech.speed_levels import get_speed_info
-            speed_description, speed_color = get_speed_info(compat_result.Power)
+            speed_description, speed_color = get_speed_info(data_result.current_power)
 
             # Build cached result
             return MechStatusCacheResult(
                 success=True,
-                level=compat_result.level,
-                power=compat_result.Power,
-                total_donated=compat_result.total_donated,
-                name=compat_result.level_name,
-                threshold=compat_result.threshold,
-                speed=compat_result.speed,
-                glvl=compat_result.glvl,
-                glvl_max=compat_result.glvl_max,
-                bars=compat_result.bars,
+                level=data_result.current_level,
+                power=data_result.current_power,
+                total_donated=data_result.total_donated,
+                name=data_result.level_name,
+                threshold=data_result.next_level_threshold or 0,
+                speed=50.0,  # Default speed
+                glvl=data_result.current_level,
+                glvl_max=100,
+                bars=getattr(data_result, 'bars', None),
                 speed_description=speed_description,
-                speed_color=speed_color
+                speed_color=speed_color,
+                cached_at=datetime.now(timezone.utc)
             )
 
         except Exception as e:
-            self.logger.error(f"Error fetching fresh mech status: {e}")
+            self.logger.error(f"Error fetching fresh mech status: {e}", exc_info=True)
             return MechStatusCacheResult(
                 success=False,
                 error_message=str(e)
