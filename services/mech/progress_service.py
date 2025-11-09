@@ -563,6 +563,86 @@ class ProgressService:
             logger.info(f"Donation added: ${amount_dollars:.2f} from {donor} (id={donation_id})")
             return compute_ui_state(snap)
 
+    def add_system_donation(self, amount_dollars: float, event_name: str,
+                           description: Optional[str] = None,
+                           idempotency_key: Optional[str] = None) -> ProgressState:
+        """
+        Add a SYSTEM DONATION (Power-Only, No Evolution Progress).
+
+        System donations increase ONLY power (mech moves), NOT evolution progress.
+        Use cases: Community events, achievements, milestones, automatic rewards.
+
+        Args:
+            amount_dollars: Amount in dollars (converted to power cents)
+            event_name: Name of the event (e.g., "Server 100 Members", "Bot Birthday")
+            description: Optional description
+            idempotency_key: Optional key to prevent duplicates
+
+        Returns:
+            Updated ProgressState
+
+        Example:
+            # Community milestone
+            state = progress_service.add_system_donation(
+                amount_dollars=5.0,
+                event_name="Server 100 Members",
+                description="Milestone achievement!"
+            )
+            # Result: Power +$5, Evolution Bar unchanged
+        """
+        units_cents = int(amount_dollars * 100)
+        if units_cents <= 0:
+            raise ValueError("System donation amount must be positive")
+
+        # Generate idempotency key if not provided
+        if idempotency_key is None:
+            idempotency_key = hashlib.sha256(
+                f"{self.mech_id}|system|{event_name}|{amount_dollars}|{datetime.utcnow().isoformat()}".encode()
+            ).hexdigest()[:16]
+
+        with LOCK:
+            # Check idempotency
+            existing = [e for e in read_events()
+                       if e.mech_id == self.mech_id
+                       and e.type == "SystemDonationAdded"
+                       and e.payload.get("idempotency_key") == idempotency_key]
+            if existing:
+                logger.info(f"Idempotent system donation detected: {idempotency_key}")
+                snap = load_snapshot(self.mech_id)
+                apply_decay_on_demand(snap)
+                return compute_ui_state(snap)
+
+            # Create system donation event
+            evt = Event(
+                seq=next_seq(),
+                ts=now_utc_iso(),
+                type="SystemDonationAdded",
+                mech_id=self.mech_id,
+                payload={
+                    "idempotency_key": idempotency_key,
+                    "power_units": units_cents,  # Only affects power!
+                    "event_name": event_name,
+                    "description": description,
+                },
+            )
+            append_event(evt)
+
+            # Apply to snapshot: ONLY power, NOT evolution!
+            snap = load_snapshot(self.mech_id)
+            apply_decay_on_demand(snap)
+
+            # Add to power ONLY (not evo_acc!)
+            snap.power_acc += units_cents
+            snap.cumulative_donations_cents += units_cents  # Still counts as total donated
+
+            snap.version += 1
+            snap.last_event_seq = evt.seq
+            persist_snapshot(snap)
+
+            logger.info(f"System donation added: ${amount_dollars:.2f} for '{event_name}' "
+                       f"(Power +${amount_dollars:.2f}, Evolution unchanged)")
+            return compute_ui_state(snap)
+
     def update_member_count(self, member_count: int) -> None:
         """Update member count for difficulty calculation"""
         with LOCK:
@@ -681,6 +761,17 @@ class ProgressService:
                     # Update member count sample
                     new_count = evt.payload.get("member_count", 0)
                     snap.last_user_count_sample = new_count
+
+                elif evt.type == "SystemDonationAdded":
+                    # Apply system donation: Power ONLY, no evolution progress!
+                    power_units = evt.payload.get("power_units", 0)
+                    event_name = evt.payload.get("event_name", "Unknown Event")
+
+                    snap.power_acc += power_units  # Add to power
+                    snap.cumulative_donations_cents += power_units  # Track total
+
+                    logger.debug(f"Replayed SystemDonation: +${power_units/100:.2f} power "
+                                f"from '{event_name}' (evo unchanged)")
 
                 elif evt.type == "MonthlyGiftGranted":
                     # Apply monthly gift

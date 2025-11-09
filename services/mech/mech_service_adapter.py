@@ -155,6 +155,39 @@ class MechServiceAdapter:
             logger.info(f"Monthly gift granted via adapter: ${gift:.2f}")
         return self._convert_state(prog_state)
 
+    def add_system_donation(self, amount: float, event_name: str,
+                           description: Optional[str] = None) -> MechState:
+        """
+        Add SYSTEM DONATION (Power-Only, No Evolution Progress).
+
+        System donations increase ONLY power (mech moves), NOT evolution bar.
+        Use cases: Community events, achievements, milestones, bot birthday.
+
+        Args:
+            amount: Amount in dollars
+            event_name: Name of the event (e.g., "Server 100 Members")
+            description: Optional description
+
+        Returns:
+            Updated MechState
+
+        Example:
+            # Community milestone
+            state = mech_service.add_system_donation(
+                amount=5.0,
+                event_name="Bot Birthday 2025",
+                description="Happy 1st birthday!"
+            )
+            # Result: Power +$5, Evolution Bar unchanged
+        """
+        prog_state = self.progress_service.add_system_donation(
+            amount_dollars=amount,
+            event_name=event_name,
+            description=description
+        )
+        logger.info(f"System donation via adapter: ${amount:.2f} for '{event_name}'")
+        return self._convert_state(prog_state)
+
     def get_mech_state_service(self, request: GetMechStateRequest) -> MechStateServiceResult:
         """Get mech state in service result format (for Web UI)"""
         try:
