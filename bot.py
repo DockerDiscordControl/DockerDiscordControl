@@ -450,6 +450,30 @@ async def on_ready():
 
                             logger.info(f"🔒 FREEZING initial member count for Level 1: {initial_count} unique members")
                             progress_service.update_member_count(initial_count)
+
+                            # CRITICAL: Also recalculate goal_requirement for Level 1 with new member count
+                            # This ensures the goal is correct on bot start (not just on level-up)
+                            from pathlib import Path
+                            snap_file = Path("config/progress/snapshots/main.json")
+                            if snap_file.exists():
+                                import json
+                                snap = json.loads(snap_file.read_text())
+
+                                # Recalculate goal using member-exact formula
+                                from services.mech.progress_service import requirement_for_level_and_bin, current_bin
+                                new_goal = requirement_for_level_and_bin(
+                                    level=snap["level"],
+                                    b=current_bin(initial_count),
+                                    member_count=initial_count
+                                )
+
+                                old_goal = snap["goal_requirement"]
+                                snap["goal_requirement"] = new_goal
+                                snap["difficulty_bin"] = current_bin(initial_count)
+                                snap_file.write_text(json.dumps(snap, indent=2))
+
+                                logger.info(f"✅ Level 1 goal updated: ${old_goal/100:.2f} → ${new_goal/100:.2f} (for {initial_count} members)")
+
                             logger.info("✅ Level 1 member count initialized successfully")
                     else:
                         logger.info(f"Level 1 member count already set: {member_count} members")
