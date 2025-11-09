@@ -3012,7 +3012,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                 duration_ms = (time.time() - start_time) * 1000
                 logger.info(f"[STATUS_LOOP] Cache updated: {success_count} success, {error_count} errors in {duration_ms:.1f}ms")
-                
+
         except Exception as e:
             logger.error(f"[STATUS_LOOP] Unexpected error during status update loop: {e}", exc_info=True)
 
@@ -4053,6 +4053,7 @@ class DonationBroadcastModal(discord.ui.Modal):
                             amount=amount_dollars,
                             user_id=str(interaction.user.id),
                             guild_id=str(interaction.guild.id) if interaction.guild else None,
+                            channel_id=str(interaction.channel.id) if interaction.channel else None,
                             bot_instance=self.bot
                         )
 

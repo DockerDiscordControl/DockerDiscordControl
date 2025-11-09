@@ -38,6 +38,7 @@ class DonationRequest:
     # Optional fields
     discord_user_id: Optional[str] = None
     discord_guild_id: Optional[str] = None
+    discord_channel_id: Optional[str] = None
     timestamp: Optional[str] = None
 
     # Bot integration (for Discord)
@@ -264,23 +265,36 @@ class UnifiedDonationService:
         )
 
     async def _execute_donation_async(self, request: DonationRequest) -> MechState:
-        """Execute donation asynchronously with guild member count fetch."""
+        """Execute donation asynchronously with channel member count fetch."""
         # Use the async version with guild parameter for member count fetch
         guild = None
-        if request.bot_instance and request.use_member_count and request.discord_guild_id:
-            try:
-                # Get the specific guild by ID
-                guild_id = int(request.discord_guild_id)
-                guild = request.bot_instance.get_guild(guild_id)
-                if guild:
-                    logger.info(f"Using guild for member count: {guild.name} ({guild.member_count} members)")
+        channel = None
 
-                    # Update member count for dynamic difficulty calculation
-                    await self._update_member_count_if_needed(request.bot_instance)
-                else:
-                    logger.warning(f"Could not find guild with ID {guild_id}")
+        if request.bot_instance and request.use_member_count:
+            try:
+                # Get the specific guild and channel by ID
+                if request.discord_guild_id:
+                    guild_id = int(request.discord_guild_id)
+                    guild = request.bot_instance.get_guild(guild_id)
+
+                    if guild and request.discord_channel_id:
+                        channel_id = int(request.discord_channel_id)
+                        channel = guild.get_channel(channel_id)
+
+                        if channel:
+                            logger.info(f"Using channel for member count: #{channel.name} in {guild.name}")
+                            # Update member count for dynamic difficulty calculation (channel-specific!)
+                            await self._update_member_count_if_needed(request.bot_instance, channel)
+                        else:
+                            logger.warning(f"Could not find channel with ID {channel_id} in guild {guild.name}")
+                    elif guild:
+                        logger.warning(f"No channel_id provided, falling back to guild member count")
+                        # Fallback to guild member count if no channel specified
+                        await self._update_member_count_if_needed(request.bot_instance, None)
+                    else:
+                        logger.warning(f"Could not find guild with ID {guild_id}")
             except Exception as e:
-                logger.warning(f"Could not get guild from bot: {e}")
+                logger.warning(f"Could not get guild/channel from bot: {e}")
 
         return await self.mech_service.add_donation_async(
             amount=float(request.amount),
@@ -325,34 +339,54 @@ class UnifiedDonationService:
 
     # _emit_deletion_event removed - donation deletion not supported in Event Sourcing
 
-    async def _update_member_count_if_needed(self, bot_instance):
+    async def _update_member_count_if_needed(self, bot_instance, channel=None):
         """
         Update member count for dynamic difficulty calculation.
 
         This is called during donation processing to ensure the mech evolution
         costs reflect the current Discord community size (dynamic difficulty).
+
+        Args:
+            bot_instance: The Discord bot instance
+            channel: Optional Discord channel object - if provided, counts only members who can see this channel
+                    (requires Members Intent). If None, falls back to guild member count.
         """
         try:
             if bot_instance is None:
                 logger.debug("Bot instance not provided, skipping member count update")
                 return
 
-            # Get guild from bot instance
-            guild = None
-            if hasattr(bot_instance, 'guild'):
-                guild = bot_instance.guild
-            elif hasattr(bot_instance, 'guilds') and bot_instance.guilds:
-                guild = bot_instance.guilds[0]  # Use first guild
+            member_count = 1  # Default fallback
 
-            if guild is None:
-                logger.warning("No guild found, cannot update member count")
-                return
+            if channel is not None:
+                # CHANNEL-SPECIFIC COUNT: Only members who can see this channel
+                # This requires Members Intent to be enabled!
+                try:
+                    # Count members who can see this channel
+                    # channel.members returns members who have permissions to see the channel
+                    visible_members = [m for m in channel.members if not m.bot]  # Exclude bots
+                    member_count = len(visible_members)
+                    logger.info(f"Channel-specific member count for #{channel.name}: {member_count} members (bots excluded)")
+                except AttributeError:
+                    # Fallback if channel.members not available
+                    logger.warning(f"channel.members not available (Members Intent required), falling back to guild count")
+                    guild = channel.guild if hasattr(channel, 'guild') else None
+                    if guild:
+                        member_count = guild.member_count if guild.member_count else 1
+            else:
+                # GUILD-WIDE COUNT: All server members (fallback)
+                guild = None
+                if hasattr(bot_instance, 'guild'):
+                    guild = bot_instance.guild
+                elif hasattr(bot_instance, 'guilds') and bot_instance.guilds:
+                    guild = bot_instance.guilds[0]  # Use first guild
 
-            # Get member count from guild.member_count (works without members intent!)
-            # This includes bots, but it's the best we can do without members intent
-            member_count = guild.member_count if guild.member_count else 1
+                if guild is None:
+                    logger.warning("No guild found, cannot update member count")
+                    return
 
-            logger.info(f"Updating member count for dynamic difficulty: {member_count} members (total including bots)")
+                member_count = guild.member_count if guild.member_count else 1
+                logger.info(f"Guild-wide member count: {member_count} members (total including bots)")
 
             # Update progress service with current member count
             from services.mech.progress_service import get_progress_service
@@ -399,6 +433,7 @@ async def process_discord_donation(
     amount: int,
     user_id: str = None,
     guild_id: str = None,
+    channel_id: str = None,
     bot_instance = None
 ) -> DonationResult:
     """Convenience function for Discord donations."""
@@ -409,6 +444,7 @@ async def process_discord_donation(
         source='discord',
         discord_user_id=user_id,
         discord_guild_id=guild_id,
+        discord_channel_id=channel_id,
         bot_instance=bot_instance,
         use_member_count=True
     )
