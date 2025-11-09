@@ -265,37 +265,27 @@ class UnifiedDonationService:
         )
 
     async def _execute_donation_async(self, request: DonationRequest) -> MechState:
-        """Execute donation asynchronously with channel member count fetch."""
+        """Execute donation asynchronously with unique member count across ALL status channels."""
         # Use the async version with guild parameter for member count fetch
         guild = None
-        channel = None
         member_count = None  # Will be frozen at level-up, not at every donation!
 
         if request.bot_instance and request.use_member_count:
             try:
-                # Get the specific guild and channel by ID
+                # Get the guild to count members across ALL status channels
                 if request.discord_guild_id:
                     guild_id = int(request.discord_guild_id)
                     guild = request.bot_instance.get_guild(guild_id)
 
-                    if guild and request.discord_channel_id:
-                        channel_id = int(request.discord_channel_id)
-                        channel = guild.get_channel(channel_id)
-
-                        if channel:
-                            # OPTION B: Get member count but DON'T save it yet!
-                            # It will be frozen at level-up time only
-                            member_count = await self._get_channel_member_count(channel)
-                            logger.info(f"Channel member count fetched: #{channel.name} = {member_count} members (will freeze at level-up)")
-                        else:
-                            logger.warning(f"Could not find channel with ID {channel_id} in guild {guild.name}")
-                    elif guild:
-                        logger.warning(f"No channel_id provided, falling back to guild member count")
-                        member_count = guild.member_count if guild.member_count else 1
+                    if guild:
+                        # OPTION B: Get UNIQUE member count across ALL status channels
+                        # It will be frozen at level-up time only
+                        member_count = await self._get_all_status_channels_member_count(guild)
+                        logger.info(f"Unique member count across ALL status channels: {member_count} members (will freeze at level-up)")
                     else:
                         logger.warning(f"Could not find guild with ID {guild_id}")
             except Exception as e:
-                logger.warning(f"Could not get guild/channel from bot: {e}")
+                logger.warning(f"Could not get guild from bot: {e}")
 
         return await self.mech_service.add_donation_async(
             amount=float(request.amount),
@@ -341,28 +331,52 @@ class UnifiedDonationService:
 
     # _emit_deletion_event removed - donation deletion not supported in Event Sourcing
 
-    async def _get_channel_member_count(self, channel) -> int:
+    async def _get_all_status_channels_member_count(self, guild) -> int:
         """
-        Get member count for a specific channel (requires Members Intent).
+        Get UNIQUE member count across ALL status channels (requires Members Intent).
 
-        Returns the number of non-bot members who can see this channel.
+        Returns the number of non-bot members who can see ANY status channel.
+        Each member is counted only once, even if they can see multiple status channels.
         This count will be frozen at level-up time only.
         """
         try:
-            # Count members who can see this channel (excluding bots)
-            visible_members = [m for m in channel.members if not m.bot]
-            member_count = len(visible_members)
-            logger.debug(f"Channel #{channel.name}: {member_count} members (bots excluded)")
-            return member_count
+            from services.config.config_service import load_config
+
+            # Load config to find ALL status channels
+            config = load_config()
+            channel_perms = config.get("channel_permissions", {})
+
+            # Find ALL status channels (channels with serverstatus permission)
+            status_channels = []
+            for ch_id, ch_config in channel_perms.items():
+                if ch_config.get("commands", {}).get("serverstatus", False):
+                    channel = guild.get_channel(int(ch_id))
+                    if channel:
+                        status_channels.append(channel)
+                        logger.debug(f"Found status channel: {ch_config.get('name', 'Unknown')} (ID: {ch_id})")
+
+            if not status_channels:
+                logger.warning("No status channels found in config, using guild member count")
+                return guild.member_count if guild.member_count else 1
+
+            # Use set to collect UNIQUE member IDs across all channels
+            unique_members = set()
+            for channel in status_channels:
+                channel_members = [m.id for m in channel.members if not m.bot]
+                unique_members.update(channel_members)
+                logger.debug(f"  └─ #{channel.name}: {len(channel_members)} members")
+
+            total_unique = len(unique_members)
+            logger.debug(f"📊 Total UNIQUE members across {len(status_channels)} status channels: {total_unique} (bots excluded)")
+            return total_unique
+
         except AttributeError:
             # Fallback if channel.members not available
             logger.warning(f"channel.members not available (Members Intent required)")
-            if hasattr(channel, 'guild'):
-                return channel.guild.member_count if channel.guild.member_count else 1
-            return 1
+            return guild.member_count if guild.member_count else 1
         except Exception as e:
-            logger.error(f"Error counting channel members: {e}", exc_info=True)
-            return 1
+            logger.error(f"Error counting unique members across status channels: {e}", exc_info=True)
+            return guild.member_count if guild and guild.member_count else 1
 
     async def _update_member_count_if_needed(self, bot_instance, channel=None):
         """
