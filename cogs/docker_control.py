@@ -3921,30 +3921,21 @@ class DonationBroadcastModal(discord.ui.Modal):
         from .translation_manager import _
 
         try:
-            # Get current mech state using same logic as control_ui.py
-            from services.mech.mech_service import get_mech_service, GetMechStateRequest
-            from services.mech.mech_evolutions import get_evolution_info
+            # Get current mech state from progress_service (includes member-based dynamic costs)
+            from services.mech.progress_service import get_progress_service
 
-            mech_service = get_mech_service()
-            state_request = GetMechStateRequest(include_decimals=False)
-            state_result = mech_service.get_mech_state_service(state_request)
+            progress_service = get_progress_service()
+            state = progress_service.get_state()
 
-            if not state_result.success:
-                # Fallback if mech service is not available
-                return _("10.50 (numbers only, $ will be added automatically)")
+            # Calculate remaining amount needed for next level
+            needed_amount = state.evo_max - state.evo_current
 
-            # Use same calculation as control_ui.py MechDisplayButton
-            current_total_donations = state_result.total_donated
-            evolution_data = get_evolution_info(current_total_donations)
-            needed_amount = evolution_data['amount_needed'] if evolution_data['amount_needed'] is not None else 0
-
-            if needed_amount > 0:
-                # Same formatting logic as control_ui.py
+            if needed_amount > 0 and state.level < 11:
+                # Format amount (remove trailing zeros)
                 formatted_amount = f"{needed_amount:.2f}".rstrip('0').rstrip('.')
                 formatted_amount = formatted_amount.replace('.00', '')
 
-                current_level = evolution_data['level']
-                next_level = current_level + 1
+                next_level = state.level + 1
 
                 # Return dynamic placeholder with motivation text
                 return f"💎 Need ${formatted_amount} for Level {next_level}! (e.g. {formatted_amount})"
