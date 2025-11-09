@@ -269,6 +269,7 @@ class UnifiedDonationService:
         # Use the async version with guild parameter for member count fetch
         guild = None
         channel = None
+        member_count = None  # Will be frozen at level-up, not at every donation!
 
         if request.bot_instance and request.use_member_count:
             try:
@@ -282,15 +283,15 @@ class UnifiedDonationService:
                         channel = guild.get_channel(channel_id)
 
                         if channel:
-                            logger.info(f"Using channel for member count: #{channel.name} in {guild.name}")
-                            # Update member count for dynamic difficulty calculation (channel-specific!)
-                            await self._update_member_count_if_needed(request.bot_instance, channel)
+                            # OPTION B: Get member count but DON'T save it yet!
+                            # It will be frozen at level-up time only
+                            member_count = await self._get_channel_member_count(channel)
+                            logger.info(f"Channel member count fetched: #{channel.name} = {member_count} members (will freeze at level-up)")
                         else:
                             logger.warning(f"Could not find channel with ID {channel_id} in guild {guild.name}")
                     elif guild:
                         logger.warning(f"No channel_id provided, falling back to guild member count")
-                        # Fallback to guild member count if no channel specified
-                        await self._update_member_count_if_needed(request.bot_instance, None)
+                        member_count = guild.member_count if guild.member_count else 1
                     else:
                         logger.warning(f"Could not find guild with ID {guild_id}")
             except Exception as e:
@@ -300,7 +301,8 @@ class UnifiedDonationService:
             amount=float(request.amount),
             donor=request.donor_name,
             channel_id=request.discord_guild_id,
-            guild=guild
+            guild=guild,
+            member_count=member_count  # Pass to mech service for level-up freeze
         )
 
     def _emit_donation_event(self, request: DonationRequest, old_state: MechState, new_state: MechState) -> str:
@@ -338,6 +340,29 @@ class UnifiedDonationService:
         return event_id
 
     # _emit_deletion_event removed - donation deletion not supported in Event Sourcing
+
+    async def _get_channel_member_count(self, channel) -> int:
+        """
+        Get member count for a specific channel (requires Members Intent).
+
+        Returns the number of non-bot members who can see this channel.
+        This count will be frozen at level-up time only.
+        """
+        try:
+            # Count members who can see this channel (excluding bots)
+            visible_members = [m for m in channel.members if not m.bot]
+            member_count = len(visible_members)
+            logger.debug(f"Channel #{channel.name}: {member_count} members (bots excluded)")
+            return member_count
+        except AttributeError:
+            # Fallback if channel.members not available
+            logger.warning(f"channel.members not available (Members Intent required)")
+            if hasattr(channel, 'guild'):
+                return channel.guild.member_count if channel.guild.member_count else 1
+            return 1
+        except Exception as e:
+            logger.error(f"Error counting channel members: {e}", exc_info=True)
+            return 1
 
     async def _update_member_count_if_needed(self, bot_instance, channel=None):
         """

@@ -53,6 +53,17 @@ class MechState:
         """Alias for power_level (backward compatibility)"""
         return self.power_level
 
+    @property
+    def total_donated(self) -> float:
+        """Alias for total_donations (backward compatibility)"""
+        return self.total_donations
+
+    @property
+    def level_name(self) -> str:
+        """Get level name (backward compatibility)"""
+        from .mech_levels import get_level_name
+        return get_level_name(self.evolution_level)
+
 
 @dataclass
 class GetMechStateRequest:
@@ -186,8 +197,14 @@ class MechServiceAdapter:
 
     async def add_donation_async(self, amount: float, donor: Optional[str] = None,
                                 channel_id: Optional[str] = None,
-                                guild: Optional['discord.Guild'] = None) -> MechState:
-        """Add donation with async member count update before level-up"""
+                                guild: Optional['discord.Guild'] = None,
+                                member_count: Optional[int] = None) -> MechState:
+        """
+        Add donation with member count freeze at level-up (Option B).
+
+        The member_count is FROZEN at level-up time and used for the NEXT level's goal.
+        This ensures difficulty stays constant during a level progression.
+        """
         # Get current state to check if level-up will happen
         current_state = self.progress_service.get_state()
 
@@ -196,14 +213,19 @@ class MechServiceAdapter:
         will_level_up = (current_state.level < 11 and
                         (current_state.evo_current * 100 + amount_cents) >= current_state.evo_max * 100)
 
-        # If level-up will happen and we have a guild, update member count
-        if will_level_up and guild is not None:
-            try:
-                member_count = guild.member_count
-                logger.info(f"Updating member count before level-up: {member_count}")
+        # OPTION B: Freeze member count ONLY at level-up time
+        if will_level_up:
+            if member_count is not None:
+                # Use the provided channel-specific member count
+                logger.info(f"🔒 FREEZING member count at level-up: {member_count} members (channel-specific, bots excluded)")
                 self.progress_service.update_member_count(member_count)
-            except Exception as e:
-                logger.warning(f"Could not fetch member count from guild: {e}")
+            elif guild is not None:
+                # Fallback to guild member count if channel count not available
+                guild_member_count = guild.member_count
+                logger.info(f"🔒 FREEZING member count at level-up: {guild_member_count} members (guild-wide, bots included)")
+                self.progress_service.update_member_count(guild_member_count)
+            else:
+                logger.warning("Level-up without member count - difficulty may be incorrect")
 
         # Now add the donation
         prog_state = self.progress_service.add_donation(amount, donor, channel_id)
