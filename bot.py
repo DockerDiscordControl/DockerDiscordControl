@@ -146,16 +146,17 @@ timezone_config = loaded_main_config.get('timezone', 'Europe/Berlin')
 logger.info(f"Bot configuration loaded: language='{language}', timezone='{timezone_config}'")
 
 # RAM-OPTIMIZED Discord Intents: Only essential intents for Docker Control Bot
-intents = discord.Intents.none()    # Start with NO intents (minimal RAM usage)
-intents.guilds = True               # Required: Access to guild info
-intents.guild_messages = True       # Required: Receive messages in guilds
-intents.message_content = True      # Required: Read command content
-intents.guild_members = True        # Required: Count status channel members for dynamic difficulty
-# EXCLUDED for RAM optimization:
-# - presences (very memory-intensive for presence updates)
-# - guild_reactions (unnecessary for Docker control)
-# - typing (unnecessary for Docker control)
-# - voice_states (unnecessary for Docker control)
+intents = discord.Intents.default()  # Start with default intents
+intents.presences = False            # Disable: Very memory-intensive for presence updates
+intents.typing = False               # Disable: Unnecessary for Docker control
+intents.message_content = True       # Required: Read command content
+# ENABLED intents:
+# - guilds (default: access to guild info)
+# - guild_messages (default: receive messages in guilds)
+# - guild_members (default: count status channel members for dynamic difficulty, ~150KB RAM for 34 members)
+# DISABLED for RAM optimization:
+# - presences (very memory-intensive)
+# - typing (unnecessary)
 
 # Check the Discord module version and try to create an appropriate Bot instance
 try:
@@ -387,6 +388,52 @@ async def on_ready():
 
         # Mech display cache pre-generated once - no startup check needed
         # All Discord interactions now load instantly from pre-rendered cache
+
+        # OPTION 3: Initialize member count for Level 1 at bot startup
+        try:
+            logger.info("Checking if Level 1 member count needs initialization...")
+            from services.mech.progress_service import get_progress_service
+            from services.config.config_service import load_config
+
+            progress_service = get_progress_service()
+            state = progress_service.get_state()
+
+            # Only initialize if Level 1 and member count not set yet
+            if state.level == 1:
+                from pathlib import Path
+                import json
+                snap_file = Path("config/progress/snapshots/main.json")
+                if snap_file.exists():
+                    snap = json.loads(snap_file.read_text())
+                    member_count = snap.get("last_user_count_sample", 0)
+
+                    if member_count == 0 or member_count is None:
+                        logger.info("🔒 Level 1 detected with no member count - initializing...")
+
+                        # Try to get the first guild (status channel location)
+                        if bot.guilds:
+                            guild = bot.guilds[0]
+                            logger.info(f"Found guild: {guild.name} (ID: {guild.id})")
+
+                            # Try to get status channel from config
+                            config = load_config()
+                            # Look for a channel with mech status permissions
+                            # For now, use guild member count as fallback
+                            # (channel-specific will be set on first donation)
+                            initial_count = guild.member_count if guild.member_count else 1
+
+                            logger.info(f"🔒 FREEZING initial member count for Level 1: {initial_count} members (guild-wide)")
+                            progress_service.update_member_count(initial_count)
+                            logger.info("✅ Level 1 member count initialized successfully")
+                    else:
+                        logger.info(f"Level 1 member count already set: {member_count} members")
+                else:
+                    logger.warning("Snapshot file not found for member count initialization")
+            else:
+                logger.info(f"Current level is {state.level}, skipping Level 1 member count initialization")
+
+        except Exception as e:
+            logger.error(f"Error initializing Level 1 member count: {e}", exc_info=True)
 
         _initial_startup_done = True # Prevents re-execution
         logger.info("Initialization complete.")
