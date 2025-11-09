@@ -415,14 +415,39 @@ async def on_ready():
                             guild = bot.guilds[0]
                             logger.info(f"Found guild: {guild.name} (ID: {guild.id})")
 
-                            # Try to get status channel from config
+                            # Get status channel from config
                             config = load_config()
-                            # Look for a channel with mech status permissions
-                            # For now, use guild member count as fallback
-                            # (channel-specific will be set on first donation)
-                            initial_count = guild.member_count if guild.member_count else 1
+                            channel_perms = config.get("channel_permissions", {})
 
-                            logger.info(f"🔒 FREEZING initial member count for Level 1: {initial_count} members (guild-wide)")
+                            # Find the status channel (look for channel with serverstatus permission)
+                            status_channel_id = None
+                            for ch_id, ch_config in channel_perms.items():
+                                if ch_config.get("commands", {}).get("serverstatus", False):
+                                    status_channel_id = int(ch_id)
+                                    logger.info(f"Found status channel: {ch_config.get('name', 'Unknown')} (ID: {status_channel_id})")
+                                    break
+
+                            # Get channel-specific member count
+                            initial_count = 1  # Fallback
+                            if status_channel_id:
+                                status_channel = guild.get_channel(status_channel_id)
+                                if status_channel:
+                                    # Count members who can see this channel (excluding bots)
+                                    try:
+                                        visible_members = [m for m in status_channel.members if not m.bot]
+                                        initial_count = len(visible_members)
+                                        logger.info(f"Status channel #{status_channel.name}: {initial_count} members (bots excluded)")
+                                    except AttributeError:
+                                        logger.warning("channel.members not available (Members Intent may not be enabled)")
+                                        initial_count = guild.member_count if guild.member_count else 1
+                                else:
+                                    logger.warning(f"Could not find status channel with ID {status_channel_id}, using guild member count")
+                                    initial_count = guild.member_count if guild.member_count else 1
+                            else:
+                                logger.warning("No status channel found in config, using guild member count")
+                                initial_count = guild.member_count if guild.member_count else 1
+
+                            logger.info(f"🔒 FREEZING initial member count for Level 1: {initial_count} members (channel-specific)")
                             progress_service.update_member_count(initial_count)
                             logger.info("✅ Level 1 member count initialized successfully")
                     else:
