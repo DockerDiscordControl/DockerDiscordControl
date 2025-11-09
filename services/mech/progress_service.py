@@ -58,12 +58,44 @@ DEFAULT_CONFIG = {
         0, 25, 50, 100, 150, 200, 300, 400, 500, 750,
         1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 7500, 10000
     ],
-    # requirement per bin index (1-based) in integer units
-    "bin_to_requirement": {
-        str(i): v for i, v in enumerate([
-            None, 400, 900, 1800, 3100, 4900, 7200, 9900, 13000, 16600,
-            20700, 25300, 30400, 36000, 42100, 48700, 55800, 63400, 71500, 80100, 89200, 99000
-        ]) if i
+    # HYBRID COST SYSTEM: Base costs per level (in cents) - these are MINIMUM costs
+    # Even a 1-person channel must pay these base costs
+    "level_base_costs": {
+        "1": 1000,   # Level 1→2: $10.00 base
+        "2": 1500,   # Level 2→3: $15.00 base
+        "3": 2000,   # Level 3→4: $20.00 base
+        "4": 2500,   # Level 4→5: $25.00 base
+        "5": 3000,   # Level 5→6: $30.00 base
+        "6": 3500,   # Level 6→7: $35.00 base
+        "7": 4000,   # Level 7→8: $40.00 base
+        "8": 4500,   # Level 8→9: $45.00 base
+        "9": 5000,   # Level 9→10: $50.00 base
+        "10": 10000  # Level 10→11: $100.00 base
+    },
+    # Dynamic costs per bin (in cents) - ADDED to base cost
+    # These scale with community size
+    "bin_to_dynamic_cost": {
+        "1": 400,    # Bin 1: +$4.00
+        "2": 900,    # Bin 2: +$9.00
+        "3": 1800,   # Bin 3: +$18.00
+        "4": 3100,   # Bin 4: +$31.00
+        "5": 4900,   # Bin 5: +$49.00
+        "6": 7200,   # Bin 6: +$72.00
+        "7": 9900,   # Bin 7: +$99.00
+        "8": 13000,  # Bin 8: +$130.00
+        "9": 16600,  # Bin 9: +$166.00
+        "10": 20700, # Bin 10: +$207.00
+        "11": 25300, # Bin 11: +$253.00
+        "12": 30400, # Bin 12: +$304.00
+        "13": 36000, # Bin 13: +$360.00
+        "14": 42100, # Bin 14: +$421.00
+        "15": 48700, # Bin 15: +$487.00
+        "16": 55800, # Bin 16: +$558.00
+        "17": 63400, # Bin 17: +$634.00
+        "18": 71500, # Bin 18: +$715.00
+        "19": 80100, # Bin 19: +$801.00
+        "20": 89200, # Bin 20: +$892.00
+        "21": 99000  # Bin 21: +$990.00
     },
     # decay per day by mech_type (or default) - in cents
     "mech_power_decay_per_day": {
@@ -228,7 +260,84 @@ def current_bin(user_count: int) -> int:
 
 
 def requirement_for_bin(b: int) -> int:
-    return int(CFG["bin_to_requirement"][str(b)])
+    """DEPRECATED: Use requirement_for_level_and_bin instead"""
+    return int(CFG.get("bin_to_requirement", {}).get(str(b), 0))
+
+
+def requirement_for_level_and_bin(level: int, b: int, member_count: int = None) -> int:
+    """
+    Calculate total requirement respecting Static Difficulty Override setting.
+
+    The "Static Difficulty Override" toggle in Web UI controls the behavior:
+    - Override OFF (use_dynamic=true): Pure dynamic difficulty based on community size
+      → Cost = base + dynamic (multiplier ignored)
+    - Override ON (use_dynamic=false): Static custom difficulty from slider
+      → Cost = (base + dynamic) × multiplier
+
+    Evolution mode is stored in config/evolution_mode.json and managed by ConfigService.
+
+    Dynamic cost formula: First 10 members are FREE, then $0.10 per additional member.
+    - 0-10 members: $0 dynamic cost
+    - 11+ members: (member_count - 10) × $0.10
+    """
+    # Get base cost for this level (minimum cost even for 1-person channel)
+    base_cost = int(CFG.get("level_base_costs", {}).get(str(level), 0))
+
+    # Calculate PRECISE dynamic cost based on actual member count
+    # Formula: First 10 members FREE, then $0.10/member
+    if member_count is not None and member_count > 0:
+        # Use precise member-based calculation
+        FREEBIE_MEMBERS = 10
+        COST_PER_MEMBER_CENTS = 10  # $0.10 = 10 cents
+
+        if member_count <= FREEBIE_MEMBERS:
+            dynamic_cost = 0
+        else:
+            billable_members = member_count - FREEBIE_MEMBERS
+            dynamic_cost = billable_members * COST_PER_MEMBER_CENTS
+    else:
+        # Fallback to bin-based cost if member_count not provided
+        dynamic_cost = int(CFG.get("bin_to_dynamic_cost", {}).get(str(b), 0))
+
+    # Base calculation (always needed)
+    subtotal = base_cost + dynamic_cost
+
+    # Check evolution mode to determine if we should apply multiplier
+    try:
+        from services.config.config_service import get_config_service, GetEvolutionModeRequest
+        config_service = get_config_service()
+        mode_request = GetEvolutionModeRequest()
+        mode_result = config_service.get_evolution_mode_service(mode_request)
+
+        if mode_result.success:
+            use_dynamic = mode_result.use_dynamic
+            multiplier = mode_result.difficulty_multiplier
+
+            if use_dynamic:
+                # Static Difficulty Override OFF: Use pure dynamic difficulty (community-based)
+                total = subtotal
+                member_info = f", {member_count} members" if member_count else ""
+                logger.debug(f"Requirement for Level {level}→{level+1}, Bin {b}{member_info}: "
+                            f"${base_cost/100:.2f} base + ${dynamic_cost/100:.2f} dynamic = ${total/100:.2f} "
+                            f"(Dynamic mode - multiplier ignored)")
+            else:
+                # Static Difficulty Override ON: Apply custom multiplier
+                total = int(subtotal * multiplier)
+                member_info = f", {member_count} members" if member_count else ""
+                logger.debug(f"Requirement for Level {level}→{level+1}, Bin {b}{member_info}: "
+                            f"(${base_cost/100:.2f} base + ${dynamic_cost/100:.2f} dynamic) × {multiplier} = ${total/100:.2f} "
+                            f"(Static mode - custom multiplier)")
+        else:
+            # Fallback: Use dynamic mode if config service fails
+            logger.warning(f"Failed to get evolution mode: {mode_result.error}, using dynamic mode (no multiplier)")
+            total = subtotal
+
+    except Exception as e:
+        # Fallback: Use dynamic mode on error
+        logger.warning(f"Error checking evolution mode: {e}, using dynamic mode (no multiplier)")
+        total = subtotal
+
+    return total
 
 
 def decay_per_day(mech_type: str) -> int:
@@ -269,14 +378,26 @@ def apply_decay_on_demand(snap: Snapshot) -> None:
 
 
 def set_new_goal_for_next_level(snap: Snapshot, user_count: int) -> None:
+    """Set goal requirement using HYBRID COST SYSTEM: base cost (level) + dynamic cost (member count)"""
     b = current_bin(user_count)
-    req = requirement_for_bin(b)
+
+    # HYBRID COST: Base cost (level progression) + Dynamic cost (precise member count)
+    # Pass member_count for precise calculation: First 10 members FREE, then $0.10/member
+    req = requirement_for_level_and_bin(snap.level, b, member_count=user_count)
+
     snap.difficulty_bin = b
     snap.goal_requirement = req
     snap.goal_started_at = now_utc_iso()
     snap.power_decay_per_day = decay_per_day(snap.mech_type)
     snap.last_user_count_sample = user_count
-    logger.info(f"Set new goal for mech {snap.mech_id}: Level {snap.level} -> {snap.level + 1}, requirement={req} cents (bin={b}, users={user_count})")
+
+    # Get base and dynamic costs for logging
+    base_cost = int(CFG.get("level_base_costs", {}).get(str(snap.level), 0))
+    dynamic_cost = int(CFG.get("bin_to_dynamic_cost", {}).get(str(b), 0))
+
+    logger.info(f"Set new goal for mech {snap.mech_id}: Level {snap.level} -> {snap.level + 1}, "
+                f"requirement=${req/100:.2f} (${base_cost/100:.2f} base + ${dynamic_cost/100:.2f} dynamic, "
+                f"bin={b}, users={user_count})")
 
 
 def compute_ui_state(snap: Snapshot) -> ProgressState:
@@ -445,8 +566,19 @@ class ProgressService:
     def update_member_count(self, member_count: int) -> None:
         """Update member count for difficulty calculation"""
         with LOCK:
+            # Create MemberCountUpdated event for replay capability
+            evt = Event(
+                seq=next_seq(),
+                ts=now_utc_iso(),
+                type="MemberCountUpdated",
+                mech_id=self.mech_id,
+                payload={"member_count": max(0, member_count)}
+            )
+            append_event(evt)
+
             snap = load_snapshot(self.mech_id)
             snap.last_user_count_sample = max(0, member_count)
+            snap.last_event_seq = evt.seq
             persist_snapshot(snap)
             logger.info(f"Updated member count to {member_count}")
 
@@ -488,6 +620,147 @@ class ProgressService:
             gift_dollars = gift_cents / 100.0
             logger.info(f"Monthly gift granted: ${gift_dollars:.2f}")
             return compute_ui_state(snap), gift_dollars
+
+    def rebuild_from_events(self) -> ProgressState:
+        """
+        Rebuild snapshot from scratch by replaying all events.
+
+        This is used when donations are deleted - we replay the entire
+        event log, skipping deleted donations, and recalculate everything:
+        - Level-ups happen at different times
+        - Member counts get frozen at different moments
+        - All costs recalculate based on when level-ups actually happen
+
+        This is the EVENT SOURCING way: state is derived from events.
+        """
+        with LOCK:
+            # Read all events for this mech
+            all_events = [e for e in read_events() if e.mech_id == self.mech_id]
+
+            # Track which sequences are deleted (both donations AND deletions can be deleted!)
+            # This supports the full Event Sourcing pattern:
+            # - DonationDeleted #5 with deleted_seq=3 → Deletes DonationAdded #3
+            # - DonationDeleted #8 with deleted_seq=5 → Deletes DonationDeleted #5 → Restores DonationAdded #3!
+            deleted_seqs = set()
+            for evt in all_events:
+                if evt.type == "DonationDeleted":
+                    deleted_seq = evt.payload.get("deleted_seq")
+                    if deleted_seq:
+                        deleted_seqs.add(deleted_seq)
+                        logger.info(f"Marking event seq {deleted_seq} as deleted (type will be determined during replay)")
+
+            # Create fresh snapshot at Level 1
+            snap = Snapshot(mech_id=self.mech_id)
+            set_new_goal_for_next_level(snap, user_count=0)
+            snap.last_decay_day = today_local_str()
+
+            # Replay all events in order
+            last_seq = 0
+            for evt in sorted(all_events, key=lambda e: e.seq):
+                last_seq = max(last_seq, evt.seq)
+
+                if evt.type == "DonationAdded":
+                    # Skip if this donation was deleted
+                    if evt.seq in deleted_seqs:
+                        logger.debug(f"Skipping deleted donation seq {evt.seq}")
+                        continue
+
+                    # Apply donation
+                    units_cents = evt.payload.get("units", 0)
+
+                    # CRITICAL: Apply donation which may trigger level-up
+                    # Level-ups will freeze member count at this moment
+                    snap, lvl_evt = apply_donation_units(snap, units_cents)
+
+                elif evt.type == "LevelUpCommitted":
+                    # Level-up events are generated during apply_donation_units
+                    # We don't need to replay them separately, they're side-effects
+                    pass
+
+                elif evt.type == "MemberCountUpdated":
+                    # Update member count sample
+                    new_count = evt.payload.get("member_count", 0)
+                    snap.last_user_count_sample = new_count
+
+                elif evt.type == "MonthlyGiftGranted":
+                    # Apply monthly gift
+                    gift_cents = evt.payload.get("power_units", 0)
+                    snap.power_acc += gift_cents
+
+                elif evt.type == "DonationDeleted":
+                    # Skip if THIS deletion event itself was deleted (restoration!)
+                    if evt.seq in deleted_seqs:
+                        deleted_donation_seq = evt.payload.get("deleted_seq")
+                        logger.info(f"Skipping deleted DonationDeleted event seq {evt.seq} "
+                                   f"→ Restoring donation seq {deleted_donation_seq}")
+                        continue
+                    # Otherwise, this deletion is active (already processed above in deleted_seqs collection)
+                    pass
+
+            # Update snapshot metadata
+            snap.version += 1
+            snap.last_event_seq = last_seq
+            persist_snapshot(snap)
+
+            logger.info(f"Rebuilt snapshot from {len(all_events)} events "
+                       f"(skipped {len(deleted_seqs)} deleted donations)")
+
+            return compute_ui_state(snap)
+
+    def delete_donation(self, donation_seq: int) -> ProgressState:
+        """
+        Delete a donation by adding a DonationDeleted compensation event.
+
+        This is EVENT SOURCING COMPLIANT:
+        - We don't modify past events (immutable log)
+        - We add a new event marking the donation as deleted
+        - We rebuild the snapshot from scratch, skipping deleted donations
+        - All level-ups and costs are recalculated correctly
+
+        Args:
+            donation_seq: The sequence number of the DonationAdded event to delete
+
+        Returns:
+            Updated ProgressState after rebuilding from events
+        """
+        with LOCK:
+            # Verify the donation exists
+            all_events = [e for e in read_events() if e.mech_id == self.mech_id]
+            donation_event = next((e for e in all_events
+                                  if e.seq == donation_seq and e.type == "DonationAdded"), None)
+
+            if not donation_event:
+                raise ValueError(f"Donation with seq {donation_seq} not found")
+
+            # Check if already deleted
+            already_deleted = any(e for e in all_events
+                                 if e.type == "DonationDeleted"
+                                 and e.payload.get("deleted_seq") == donation_seq)
+
+            if already_deleted:
+                raise ValueError(f"Donation seq {donation_seq} is already deleted")
+
+            # Create DonationDeleted compensation event
+            evt = Event(
+                seq=next_seq(),
+                ts=now_utc_iso(),
+                type="DonationDeleted",
+                mech_id=self.mech_id,
+                payload={
+                    "deleted_seq": donation_seq,
+                    "donor": donation_event.payload.get("donor"),
+                    "units": donation_event.payload.get("units"),
+                    "reason": "admin_deletion"
+                }
+            )
+            append_event(evt)
+
+            logger.info(f"Donation deletion event added for seq {donation_seq} "
+                       f"(${donation_event.payload.get('units', 0)/100:.2f} from "
+                       f"{donation_event.payload.get('donor', 'Unknown')})")
+
+            # Rebuild snapshot from scratch
+            return self.rebuild_from_events()
 
 
 # ---------------------

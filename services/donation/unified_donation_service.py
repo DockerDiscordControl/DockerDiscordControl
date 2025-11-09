@@ -274,6 +274,9 @@ class UnifiedDonationService:
                 guild = request.bot_instance.get_guild(guild_id)
                 if guild:
                     logger.info(f"Using guild for member count: {guild.name} ({guild.member_count} members)")
+
+                    # Update member count for dynamic difficulty calculation
+                    await self._update_member_count_if_needed(request.bot_instance)
                 else:
                     logger.warning(f"Could not find guild with ID {guild_id}")
             except Exception as e:
@@ -323,13 +326,43 @@ class UnifiedDonationService:
     # _emit_deletion_event removed - donation deletion not supported in Event Sourcing
 
     async def _update_member_count_if_needed(self, bot_instance):
-        """DEPRECATED: No longer needed with SimpleEvolutionService (static costs)."""
+        """
+        Update member count for dynamic difficulty calculation.
+
+        This is called during donation processing to ensure the mech evolution
+        costs reflect the current Discord community size (dynamic difficulty).
+        """
         try:
-            # No member count updates needed with static evolution costs
-            logger.debug("Member count update skipped - using static evolution costs")
+            if bot_instance is None:
+                logger.debug("Bot instance not provided, skipping member count update")
+                return
+
+            # Get guild from bot instance
+            guild = None
+            if hasattr(bot_instance, 'guild'):
+                guild = bot_instance.guild
+            elif hasattr(bot_instance, 'guilds') and bot_instance.guilds:
+                guild = bot_instance.guilds[0]  # Use first guild
+
+            if guild is None:
+                logger.warning("No guild found, cannot update member count")
+                return
+
+            # Get member count from guild.member_count (works without members intent!)
+            # This includes bots, but it's the best we can do without members intent
+            member_count = guild.member_count if guild.member_count else 1
+
+            logger.info(f"Updating member count for dynamic difficulty: {member_count} members (total including bots)")
+
+            # Update progress service with current member count
+            from services.mech.progress_service import get_progress_service
+            progress_service = get_progress_service()
+            progress_service.update_member_count(member_count)
+
+            logger.debug(f"Member count updated successfully: {member_count}")
 
         except Exception as e:
-            logger.error(f"Error updating member count: {e}")
+            logger.error(f"Error updating member count: {e}", exc_info=True)
 
 
 # ============================================================================
