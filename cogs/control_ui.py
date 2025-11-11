@@ -2564,48 +2564,14 @@ class MechHistoryButton(Button):
                         logger.error(f"Failed to load shadow mech {level}: {image_result.error_message}")
                         continue
 
-                    # Calculate remaining amount using total donations (same logic as Web UI)
-                    import json
-                    from pathlib import Path
+                    # Calculate remaining amount using evolution state (same as Spenden Modal)
+                    from services.mech.progress_service import get_progress_service
 
-                    # Get total donated from all event types
-                    donations_map = {}
-                    deletions_map = {}
-                    event_log = Path("config/progress/events.jsonl")
+                    progress_service = get_progress_service()
+                    state = progress_service.get_state()
 
-                    if event_log.exists():
-                        with open(event_log, 'r', encoding='utf-8') as f:
-                            for line in f:
-                                if not line.strip():
-                                    continue
-                                event = json.loads(line)
-                                event_type = event.get('type')
-
-                                if event_type in ['DonationAdded', 'PowerGiftGranted', 'SystemDonationAdded', 'ExactHitBonusGranted']:
-                                    seq = event.get('seq')
-                                    payload = event.get('payload', {})
-                                    amount_key = 'units' if event_type == 'DonationAdded' else 'power_units'
-                                    donations_map[seq] = {
-                                        'amount': payload.get(amount_key, 0) / 100.0,
-                                        'is_deleted': False
-                                    }
-                                elif event_type == 'DonationDeleted':
-                                    deleted_seq = event.get('payload', {}).get('deleted_seq')
-                                    if deleted_seq:
-                                        deletions_map[deleted_seq] = True
-
-                    # Mark deleted donations
-                    for deleted_seq in deletions_map:
-                        if deleted_seq in donations_map:
-                            donations_map[deleted_seq]['is_deleted'] = True
-
-                    # Calculate total from all events
-                    total_donated = sum(d['amount'] for d in donations_map.values() if not d['is_deleted'])
-
-                    # Use get_evolution_info to get accurate amount needed
-                    from services.mech.mech_evolutions import get_evolution_info
-                    evolution_data = get_evolution_info(total_donated)
-                    needed_amount = evolution_data['amount_needed'] if evolution_data['amount_needed'] is not None else 0
+                    # Use evolution-based calculation (evo_max - evo_current) - same as donate modal
+                    needed_amount = state.evo_max - state.evo_current
 
                     if needed_amount > 0:
                         formatted_amount = f"{needed_amount:.2f}".rstrip('0').rstrip('.')
