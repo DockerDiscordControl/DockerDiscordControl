@@ -575,7 +575,29 @@ def apply_donation_units(snap: Snapshot, units_cents: int) -> Tuple[Snapshot, Op
     )
 
     if snap.level < 11:
-        set_new_goal_for_next_level(snap, user_count=snap.last_user_count_sample)
+        # Get current STATUS CHANNEL member count for accurate dynamic cost calculation
+        # IMPORTANT: We count ONLY members who can see status channels, NOT all server members
+        # This data is updated by the bot at startup and stored in member_count.json
+        import json
+        from pathlib import Path
+
+        member_count_file = Path("config/member_count.json")
+        if member_count_file.exists():
+            try:
+                with open(member_count_file, 'r') as f:
+                    data = json.load(f)
+                    current_member_count = data.get("count", 50)
+                    logger.info(f"Level-up: Loaded status channel member count from config: {current_member_count}")
+            except Exception as e:
+                logger.warning(f"Could not read member_count.json: {e}, using default")
+                current_member_count = 50
+        else:
+            # Use a reasonable default for testing (50 status channel members)
+            current_member_count = 50
+            logger.info(f"Level-up: member_count.json not found, using default: {current_member_count}")
+
+        logger.info(f"Level-up: Using {current_member_count} status channel members for dynamic cost calculation")
+        set_new_goal_for_next_level(snap, user_count=current_member_count)
     else:
         snap.goal_requirement = 0
 
