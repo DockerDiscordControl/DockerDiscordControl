@@ -496,7 +496,7 @@ async def on_ready():
             campaign_id = "startup_gift_v1"
 
             adapter = get_mech_service()
-            state = adapter.monthly_gift(campaign_id)
+            state = adapter.power_gift(campaign_id)
 
             # Check if gift was actually granted (power changed from 0)
             if state.power_level > 0:

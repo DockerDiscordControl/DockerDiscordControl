@@ -86,7 +86,7 @@ class DonationManagementService:
                             continue
                         event = json.loads(line)
                         # Include ALL donation types for transparency
-                        if event.get('type') in ['DonationAdded', 'DonationDeleted', 'MonthlyGiftGranted', 'SystemDonationAdded']:
+                        if event.get('type') in ['DonationAdded', 'DonationDeleted', 'PowerGiftGranted', 'SystemDonationAdded']:
                             all_events.append(event)
 
             # Build nested structure: Donations with their deletion events
@@ -108,12 +108,18 @@ class DonationManagementService:
                         'is_deleted': False,
                         'deletion_events': []  # List of deletion events for this donation
                     }
-                elif event_type == 'MonthlyGiftGranted':
+                elif event_type == 'PowerGiftGranted':
                     seq = event.get('seq')
                     payload = event.get('payload', {})
+                    campaign = payload.get('campaign_id', '')
+                    # Show appropriate name based on campaign
+                    if 'startup' in campaign.lower():
+                        gift_name = '🎁 Welcome Gift'
+                    else:
+                        gift_name = '🎁 Power Gift'
                     donations_map[seq] = {
                         'seq': seq,
-                        'donor_name': '🎁 Power Gift',
+                        'donor_name': gift_name,
                         'amount': payload.get('power_units', 0) / 100.0,  # cents → dollars
                         'timestamp': event.get('ts', ''),
                         'donation_type': 'power_gift',

@@ -850,24 +850,24 @@ class ProgressService:
             persist_snapshot(snap)
             return compute_ui_state(snap)
 
-    def monthly_gift(self, campaign_id: str) -> Tuple[ProgressState, Optional[int]]:
-        """Grant monthly gift if power is 0 AND campaign hasn't been used. Returns (state, gift_dollars or None)"""
+    def power_gift(self, campaign_id: str) -> Tuple[ProgressState, Optional[int]]:
+        """Grant power gift if power is 0 AND campaign hasn't been used. Returns (state, gift_dollars or None)"""
         with LOCK:
             snap = load_snapshot(self.mech_id)
             apply_decay_on_demand(snap)
 
             if snap.power_acc > 0:
-                logger.info(f"Monthly gift skipped: power > 0")
+                logger.info(f"Power gift skipped: power > 0")
                 persist_snapshot(snap)
                 return compute_ui_state(snap), None
 
             # CHECK FOR DUPLICATE: Search event log for this campaign_id
             all_events = read_events()
             for evt in all_events:
-                if evt.type == "MonthlyGiftGranted" and evt.mech_id == self.mech_id:
+                if evt.type == "PowerGiftGranted" and evt.mech_id == self.mech_id:
                     existing_campaign = evt.payload.get("campaign_id")
                     if existing_campaign == campaign_id:
-                        logger.info(f"Monthly gift skipped: campaign_id '{campaign_id}' already used")
+                        logger.info(f"Power gift skipped: campaign_id '{campaign_id}' already used")
                         persist_snapshot(snap)
                         return compute_ui_state(snap), None
 
@@ -876,7 +876,7 @@ class ProgressService:
             evt = Event(
                 seq=next_seq(),
                 ts=now_utc_iso(),
-                type="MonthlyGiftGranted",
+                type="PowerGiftGranted",
                 mech_id=self.mech_id,
                 payload={"campaign_id": campaign_id, "power_units": gift_cents},
             )
@@ -888,7 +888,7 @@ class ProgressService:
             persist_snapshot(snap)
 
             gift_dollars = gift_cents / 100.0
-            logger.info(f"Monthly gift granted: ${gift_dollars:.2f}")
+            logger.info(f"Power gift granted: ${gift_dollars:.2f}")
             return compute_ui_state(snap), gift_dollars
 
     def rebuild_from_events(self) -> ProgressState:
@@ -963,8 +963,8 @@ class ProgressService:
                     logger.debug(f"Replayed SystemDonation: +${power_units/100:.2f} power "
                                 f"from '{event_name}' (evo unchanged)")
 
-                elif evt.type == "MonthlyGiftGranted":
-                    # Apply monthly gift
+                elif evt.type == "PowerGiftGranted":
+                    # Apply power gift
                     gift_cents = evt.payload.get("power_units", 0)
                     snap.power_acc += gift_cents
 

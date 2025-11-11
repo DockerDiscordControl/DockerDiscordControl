@@ -148,11 +148,11 @@ class MechServiceAdapter:
         prog_state = self.progress_service.tick_decay()
         return self._convert_state(prog_state)
 
-    def monthly_gift(self, campaign_id: str) -> MechState:
-        """Grant monthly gift"""
-        prog_state, gift = self.progress_service.monthly_gift(campaign_id)
+    def power_gift(self, campaign_id: str) -> MechState:
+        """Grant power gift"""
+        prog_state, gift = self.progress_service.power_gift(campaign_id)
         if gift:
-            logger.info(f"Monthly gift granted via adapter: ${gift:.2f}")
+            logger.info(f"Power gift granted via adapter: ${gift:.2f}")
         return self._convert_state(prog_state)
 
     def add_system_donation(self, amount: float, event_name: str,
