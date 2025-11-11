@@ -280,12 +280,57 @@ def requirement_for_level_and_bin(level: int, b: int, member_count: int = None) 
     - 0-10 members: $0 dynamic cost
     - 11+ members: (member_count - 10) × $0.10
     """
+    # =========================
+    # INPUT VALIDATION & BOUNDS
+    # =========================
+
+    # Validate level (must be 1-11)
+    if not isinstance(level, int) or level < 1 or level > 11:
+        logger.error(f"Invalid level: {level} (type: {type(level)}). Must be int between 1-11. Using level 1.")
+        level = 1
+
+    # Validate bin (must be 1-21)
+    if not isinstance(b, int) or b < 1 or b > 21:
+        logger.warning(f"Invalid bin: {b} (type: {type(b)}). Must be int between 1-21. Using bin 1.")
+        b = 1
+
+    # Validate member_count if provided
+    if member_count is not None:
+        if not isinstance(member_count, int):
+            try:
+                member_count = int(member_count)
+            except (TypeError, ValueError):
+                logger.error(f"Invalid member_count type: {type(member_count)}. Using None.")
+                member_count = None
+        elif member_count < 0:
+            logger.warning(f"Negative member_count: {member_count}. Using 0.")
+            member_count = 0
+        elif member_count > 100000:  # Discord's theoretical limit
+            logger.warning(f"Member_count {member_count} exceeds Discord limit. Capping at 100000.")
+            member_count = 100000
+
+    # =========================
+    # BASE COST CALCULATION
+    # =========================
+
     # Get base cost for this level (minimum cost even for 1-person channel)
     base_cost = int(CFG.get("level_base_costs", {}).get(str(level), 0))
 
+    # Validate base cost
+    if base_cost <= 0:
+        logger.error(f"Invalid base cost for level {level}: {base_cost}. Using default $10.00")
+        base_cost = 1000  # Default $10.00
+    elif base_cost > 1000000:  # Cap at $10,000
+        logger.warning(f"Base cost {base_cost} exceeds max $10,000. Capping.")
+        base_cost = 1000000
+
+    # =========================
+    # DYNAMIC COST CALCULATION
+    # =========================
+
     # Calculate PRECISE dynamic cost based on actual member count
     # Formula: First 10 members FREE, then $0.10/member
-    if member_count is not None and member_count > 0:
+    if member_count is not None and member_count >= 0:
         # Use precise member-based calculation
         FREEBIE_MEMBERS = 10
         COST_PER_MEMBER_CENTS = 10  # $0.10 = 10 cents
@@ -294,13 +339,41 @@ def requirement_for_level_and_bin(level: int, b: int, member_count: int = None) 
             dynamic_cost = 0
         else:
             billable_members = member_count - FREEBIE_MEMBERS
-            dynamic_cost = billable_members * COST_PER_MEMBER_CENTS
+            # Check for potential overflow
+            if billable_members > 999990:  # Would exceed $100k
+                logger.warning(f"Dynamic cost would exceed $100k with {billable_members} billable members. Capping.")
+                dynamic_cost = 1000000  # Cap at $10,000
+            else:
+                dynamic_cost = billable_members * COST_PER_MEMBER_CENTS
     else:
         # Fallback to bin-based cost if member_count not provided
         dynamic_cost = int(CFG.get("bin_to_dynamic_cost", {}).get(str(b), 0))
+        if dynamic_cost < 0:
+            logger.warning(f"Negative dynamic cost for bin {b}: {dynamic_cost}. Using 0.")
+            dynamic_cost = 0
+        elif dynamic_cost > 1000000:  # Cap at $10,000
+            logger.warning(f"Dynamic cost {dynamic_cost} exceeds max $10,000. Capping.")
+            dynamic_cost = 1000000
 
-    # Base calculation (always needed)
-    subtotal = base_cost + dynamic_cost
+    # =========================
+    # TOTAL COST CALCULATION
+    # =========================
+
+    # Base calculation with overflow protection
+    try:
+        subtotal = base_cost + dynamic_cost
+
+        # Final validation: ensure total is reasonable
+        if subtotal <= 0:
+            logger.error(f"Invalid subtotal: {subtotal}. Using minimum $10.00")
+            subtotal = 1000  # Minimum $10.00
+        elif subtotal > 10000000:  # Cap at $100,000
+            logger.warning(f"Subtotal {subtotal} exceeds max $100,000. Capping.")
+            subtotal = 10000000
+
+    except (OverflowError, ValueError) as e:
+        logger.error(f"Overflow in cost calculation: base={base_cost}, dynamic={dynamic_cost}. Error: {e}")
+        subtotal = 1000  # Safe fallback to $10.00
 
     # Check evolution mode to determine if we should apply multiplier
     try:
@@ -458,8 +531,15 @@ def apply_donation_units(snap: Snapshot, units_cents: int) -> Tuple[Snapshot, Op
     exact_hit = (new_evo == snap.goal_requirement)
     lvl_from = snap.level
     snap.level = min(snap.level + 1, 11)
-    snap.evo_acc = 0
-    snap.power_acc = 100 if exact_hit else 0  # $1 if exact hit
+
+    # Carry over excess to next level
+    excess = new_evo - snap.goal_requirement
+    snap.evo_acc = excess
+
+    # Keep accumulated power and add bonus for exact hit
+    if exact_hit:
+        snap.power_acc += 100  # Add $1 bonus for exact hit
+    # Note: power_acc is already incremented at line 524, so we keep it
 
     logger.info(f"Level up! Mech {snap.mech_id}: {lvl_from} -> {snap.level} (exact_hit={exact_hit})")
 
@@ -590,17 +670,78 @@ class ProgressService:
             )
             # Result: Power +$5, Evolution Bar unchanged
         """
-        units_cents = int(amount_dollars * 100)
-        if units_cents <= 0:
-            raise ValueError("System donation amount must be positive")
+        # =========================
+        # INPUT VALIDATION
+        # =========================
+
+        # Validate amount
+        if not isinstance(amount_dollars, (int, float)):
+            raise TypeError(f"Amount must be numeric, got {type(amount_dollars)}")
+
+        if amount_dollars <= 0:
+            raise ValueError(f"Amount must be positive, got {amount_dollars}")
+
+        MAX_SYSTEM_DONATION = 1000  # $1,000 max for system donations
+        if amount_dollars > MAX_SYSTEM_DONATION:
+            raise ValueError(f"System donation ${amount_dollars} exceeds maximum ${MAX_SYSTEM_DONATION}")
+
+        # Validate event_name
+        if not event_name or not isinstance(event_name, str):
+            raise ValueError(f"Event name must be a non-empty string, got: {event_name}")
+
+        if len(event_name) > 100:
+            logger.warning(f"Event name exceeds 100 chars, truncating: {event_name[:100]}...")
+            event_name = event_name[:100]
+
+        # Validate description
+        if description is not None:
+            if not isinstance(description, str):
+                logger.warning(f"Description is not a string, converting: {description}")
+                description = str(description)[:500]
+            elif len(description) > 500:
+                logger.warning(f"Description exceeds 500 chars, truncating")
+                description = description[:500]
+
+        # Convert to cents with overflow protection
+        try:
+            # Round to nearest cent
+            units_cents = int(round(amount_dollars * 100))
+
+            # Allow amounts that round to zero (e.g., $0.001) but reject if original was <= 0
+            if units_cents < 0:
+                raise ValueError(f"Amount rounds to negative: {units_cents}")
+            elif units_cents == 0 and amount_dollars > 0:
+                # Very small positive amount rounds to zero - allow but warn
+                logger.warning(f"Amount ${amount_dollars} rounds to $0.00 - donation will have no effect")
+                units_cents = 0  # Allow it to proceed (will be a no-op)
+            elif units_cents == 0:
+                # Original amount was zero or negative
+                raise ValueError(f"Amount must be positive, got {amount_dollars}")
+
+            if units_cents > 2147483647:  # Max 32-bit int
+                raise ValueError(f"Amount too large for system: {units_cents} cents")
+
+        except (OverflowError, TypeError) as e:
+            raise ValueError(f"Invalid amount conversion: {e}")
 
         # Generate idempotency key if not provided
         if idempotency_key is None:
+            import os
+            salt = os.urandom(8).hex()  # Add randomness to prevent collisions
             idempotency_key = hashlib.sha256(
-                f"{self.mech_id}|system|{event_name}|{amount_dollars}|{datetime.utcnow().isoformat()}".encode()
+                f"{self.mech_id}|system|{event_name}|{amount_dollars}|{salt}".encode()
             ).hexdigest()[:16]
+        elif not isinstance(idempotency_key, str):
+            idempotency_key = str(idempotency_key)[:32]
 
         with LOCK:
+            # If amount rounds to zero, just return current state (no-op)
+            if units_cents == 0:
+                logger.info(f"System donation of ${amount_dollars} rounds to $0.00 - skipping (no effect)")
+                snap = load_snapshot(self.mech_id)
+                apply_decay_on_demand(snap)
+                return compute_ui_state(snap)
+
             # Check idempotency
             existing = [e for e in read_events()
                        if e.mech_id == self.mech_id
@@ -628,20 +769,55 @@ class ProgressService:
             append_event(evt)
 
             # Apply to snapshot: ONLY power, NOT evolution!
-            snap = load_snapshot(self.mech_id)
-            apply_decay_on_demand(snap)
+            try:
+                snap = load_snapshot(self.mech_id)
+                apply_decay_on_demand(snap)
 
-            # Add to power ONLY (not evo_acc!)
-            snap.power_acc += units_cents
-            snap.cumulative_donations_cents += units_cents  # Still counts as total donated
+                # Validate current state before modifying
+                if snap.power_acc < 0:
+                    logger.error(f"Corrupted power_acc before donation: {snap.power_acc}. Resetting to 0.")
+                    snap.power_acc = 0
 
-            snap.version += 1
-            snap.last_event_seq = evt.seq
-            persist_snapshot(snap)
+                if snap.cumulative_donations_cents < 0:
+                    logger.error(f"Corrupted cumulative_donations: {snap.cumulative_donations_cents}. Resetting to 0.")
+                    snap.cumulative_donations_cents = 0
 
-            logger.info(f"System donation added: ${amount_dollars:.2f} for '{event_name}' "
-                       f"(Power +${amount_dollars:.2f}, Evolution unchanged)")
-            return compute_ui_state(snap)
+                # Check for potential overflow BEFORE adding
+                MAX_POWER = 10000000  # $100,000 max power
+                if snap.power_acc > MAX_POWER - units_cents:
+                    logger.warning(f"Power would exceed ${MAX_POWER/100:.2f}. Capping at max.")
+                    snap.power_acc = MAX_POWER
+                else:
+                    # Add to power ONLY (not evo_acc!)
+                    snap.power_acc += units_cents
+
+                # Update cumulative with overflow protection
+                MAX_CUMULATIVE = 100000000  # $1,000,000 max cumulative
+                if snap.cumulative_donations_cents > MAX_CUMULATIVE - units_cents:
+                    logger.warning(f"Cumulative would exceed ${MAX_CUMULATIVE/100:.2f}. Capping.")
+                    snap.cumulative_donations_cents = MAX_CUMULATIVE
+                else:
+                    snap.cumulative_donations_cents += units_cents
+
+                # Update metadata
+                snap.version += 1
+                snap.last_event_seq = evt.seq
+
+                # Final validation before persisting
+                if snap.power_acc < 0 or snap.cumulative_donations_cents < 0:
+                    raise ValueError(f"Negative values after update: power={snap.power_acc}, cumulative={snap.cumulative_donations_cents}")
+
+                persist_snapshot(snap)
+
+                logger.info(f"System donation added: ${amount_dollars:.2f} for '{event_name}' "
+                           f"(Power +${amount_dollars:.2f}, Evolution unchanged)")
+                return compute_ui_state(snap)
+
+            except Exception as e:
+                logger.error(f"Failed to apply system donation to snapshot: {e}", exc_info=True)
+                # Event was already written, so we need to mark it as failed somehow
+                # For now, just re-raise to let caller handle
+                raise
 
     def update_member_count(self, member_count: int) -> None:
         """Update member count for difficulty calculation"""

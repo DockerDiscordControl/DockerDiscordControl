@@ -42,8 +42,8 @@ class BarsCompat:
     """Legacy compatibility object for bars data."""
     Power_current: float = 0.0  # Support decimal power values (e.g. 0.99)
     Power_max_for_level: int = 100
-    mech_progress_current: int = 0
-    mech_progress_max: int = 20
+    mech_progress_current: float = 0.0  # Changed to float for decimal values
+    mech_progress_max: float = 20.0  # Changed to float for decimal values
 
 
 # ============================================================================ #
