@@ -184,26 +184,28 @@ class DonationManagementService:
                 # Add deletion events right after the donation (indented)
                 for deletion in donation['deletion_events']:
                     donations.append(deletion)
-            
-            # Calculate correct stats using MechService data
-            total_donated = mech_state.total_donated
+
+            # Calculate total power from ALL events (including PowerGift, ExactHitBonus, etc.)
+            total_power = 0.0
+            for donation in donations_map.values():
+                if not donation.get('is_deleted', False):
+                    total_power += donation['amount']
+
             total_count = len(donations_map)  # Only count actual donations, not deletions
-            
-            # Create stats with correct calculations
-            stats = DonationStats.from_data(donations, total_donated)
-            # Override with correct total count from all donations
+
+            # Create stats with power calculated from ALL donation types
             stats = DonationStats(
-                total_power=total_donated,
+                total_power=total_power,
                 total_donations=total_count,
-                average_donation=total_donated / total_count if total_count > 0 else 0.0
+                average_donation=total_power / total_count if total_count > 0 else 0.0
             )
             
             result_data = {
                 'donations': donations,
                 'stats': stats
             }
-            
-            logger.debug(f"Retrieved {len(donations)} donations from MechService with total donated: ${total_donated:.2f}")
+
+            logger.debug(f"Retrieved {len(donations)} donations with total power: ${total_power:.2f}")
             return ServiceResult(success=True, data=result_data)
             
         except Exception as e:
@@ -338,11 +340,12 @@ class DonationManagementService:
                     stats=None
                 )
 
-            # Get donations directly from Progress Service Event Log
+            # Get ALL donations directly from Progress Service Event Log
             import json
             from pathlib import Path
 
-            raw_donations = []
+            donations_map = {}
+            deletions_map = {}
             event_log = Path("config/progress/events.jsonl")
 
             if event_log.exists():
@@ -351,20 +354,35 @@ class DonationManagementService:
                         if not line.strip():
                             continue
                         event = json.loads(line)
-                        if event.get('type') == 'DonationAdded':
-                            payload = event.get('payload', {})
-                            raw_donations.append({
-                                'amount': payload.get('units', 0) / 100.0  # cents → dollars
-                            })
+                        event_type = event.get('type')
 
-            # Calculate stats using MechService data
-            total_donated = mech_state_result.total_donated
-            total_count = len(raw_donations)
-            
+                        # Include ALL donation types
+                        if event_type in ['DonationAdded', 'PowerGiftGranted', 'SystemDonationAdded', 'ExactHitBonusGranted']:
+                            seq = event.get('seq')
+                            payload = event.get('payload', {})
+                            amount_key = 'units' if event_type == 'DonationAdded' else 'power_units'
+                            donations_map[seq] = {
+                                'amount': payload.get(amount_key, 0) / 100.0,
+                                'is_deleted': False
+                            }
+                        elif event_type == 'DonationDeleted':
+                            deleted_seq = event.get('payload', {}).get('deleted_seq')
+                            if deleted_seq:
+                                deletions_map[deleted_seq] = True
+
+            # Mark deleted donations
+            for deleted_seq in deletions_map:
+                if deleted_seq in donations_map:
+                    donations_map[deleted_seq]['is_deleted'] = True
+
+            # Calculate total power from ALL event types (excluding deleted)
+            total_power = sum(d['amount'] for d in donations_map.values() if not d['is_deleted'])
+            total_count = sum(1 for d in donations_map.values() if not d['is_deleted'])
+
             stats = DonationStats(
-                total_power=total_donated,
+                total_power=total_power,
                 total_donations=total_count,
-                average_donation=total_donated / total_count if total_count > 0 else 0.0
+                average_donation=total_power / total_count if total_count > 0 else 0.0
             )
             
             logger.debug(f"Generated MechService donation stats: {stats}")
