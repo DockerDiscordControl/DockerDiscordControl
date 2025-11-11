@@ -25,7 +25,9 @@ from app.utils.web_helpers import (
     set_initial_password_from_env,
     ACTION_LOG_FILE,
     start_background_refresh,
-    stop_background_refresh
+    stop_background_refresh,
+    start_mech_decay_background,
+    stop_mech_decay_background
 )
 from services.infrastructure.action_logger import log_user_action
 from app.utils.port_diagnostics import log_port_diagnostics
@@ -293,16 +295,37 @@ def create_app(test_config=None):
         app.logger.info("Loading active containers from config")
         active_containers = load_active_containers_from_config()
         app.logger.info(f"Loaded {len(active_containers)} active containers: {active_containers}")
-        
+
+        # Start mech decay background task (SINGLE POINT OF TRUTH: progress_service.get_state())
+        # This ensures power can decay to $0 without user interaction, enabling offline mech animations
+        if os.environ.get('DDC_ENABLE_MECH_DECAY', 'true').lower() != 'false':
+            # Start mech decay thread with delay (prioritize app initialization)
+            if HAS_GEVENT:
+                def delayed_mech_start():
+                    import gevent
+                    gevent.sleep(2.0)
+                    start_mech_decay_background(app.logger)
+                gevent.spawn(delayed_mech_start)
+            else:
+                start_mech_decay_background(app.logger)
+        else:
+            app.logger.info("Mech decay background task disabled by environment setting")
+
         # Stop thread on application teardown
         @app.teardown_appcontext
         def cleanup_background_threads(exception=None):
             try:
-                app.logger.debug("Stopping Docker cache background refresh thread on app teardown")
-                # Avoid multiple calls if thread is already stopped
+                app.logger.debug("Stopping background threads on app teardown")
+
+                # Stop Docker cache refresh thread
                 from app.utils.web_helpers import background_refresh_thread
                 if background_refresh_thread is not None:
                     stop_background_refresh(app.logger)
+
+                # Stop mech decay thread
+                from app.utils.web_helpers import mech_decay_thread
+                if mech_decay_thread is not None:
+                    stop_mech_decay_background(app.logger)
             except Exception as e:
                 # Catch errors during thread termination to avoid disrupting Flask
                 app.logger.error(f"Error during background thread cleanup: {e}")

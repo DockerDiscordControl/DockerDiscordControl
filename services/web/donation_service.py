@@ -89,6 +89,7 @@ class DonationService:
             self.logger.error(f"Error processing donation: {e}", exc_info=True)
             return DonationResult(
                 success=False,
+                message="Donation processing failed",
                 error=f"Error processing donation: {str(e)}"
             )
 

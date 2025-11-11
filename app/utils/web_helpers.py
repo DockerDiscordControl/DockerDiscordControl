@@ -116,6 +116,11 @@ last_docker_query_time = 0
 background_refresh_thread = None
 stop_background_thread = create_event()  # Use Gevent-compatible event
 
+# Mech decay background task globals
+mech_decay_thread = None
+stop_mech_decay_thread = create_event()  # Use Gevent-compatible event
+MECH_DECAY_INTERVAL = _get_advanced_setting('DDC_MECH_DECAY_INTERVAL', 30)  # 30 seconds default
+
 # Initialize the logger instance that will be configured by setup_action_logger
 action_logger = logging.getLogger('user_actions')
 
@@ -576,6 +581,139 @@ def stop_background_refresh(logger):
                 logger.error(f"Error while joining background thread: {e}")
     except Exception as e:
         logger.error(f"Error during thread cleanup: {e}")
+
+
+def mech_decay_worker(logger):
+    """
+    Background worker for mech power decay calculation.
+
+    SINGLE POINT OF TRUTH: progress_service.get_state()
+
+    This worker simply calls get_state() every 30 seconds. The actual decay
+    calculation happens in progress_service, which is the single source of truth.
+    Both Discord Bot and Web UI can call get_state() - it's idempotent!
+    """
+    logger.info("Starting mech decay background worker")
+
+    thread_name = threading.current_thread().name if hasattr(threading.current_thread(), 'name') else "Greenlet"
+    logger.debug(f"Mech decay worker running in thread '{thread_name}'")
+
+    try:
+        while not stop_mech_decay_thread.is_set():
+            try:
+                # SINGLE POINT OF TRUTH: Call progress_service.get_state()
+                # This triggers on-demand decay calculation
+                from services.mech.progress_service import get_progress_service
+                mech_service = get_progress_service()
+
+                # get_state() triggers apply_decay_on_demand()
+                mech_state = mech_service.get_state()
+
+                # Log if offline (Power = 0) for debugging
+                if mech_state.is_offline:
+                    logger.info(f"[MECH_DECAY] Mech is OFFLINE (Power: $0.00) - offline animation active")
+                else:
+                    logger.debug(f"[MECH_DECAY] Power decay calculated: ${mech_state.power_current:.2f}")
+
+                # Wait for the configured time, but check regularly for stop signal
+                check_interval = min(MECH_DECAY_INTERVAL, 5)  # Max 5 seconds without checking stop signal
+                remaining_time = MECH_DECAY_INTERVAL
+
+                while remaining_time > 0 and not stop_mech_decay_thread.is_set():
+                    wait_time = min(check_interval, remaining_time)
+                    if HAS_GEVENT:
+                        gevent.sleep(wait_time)
+                    else:
+                        time.sleep(wait_time)
+                    remaining_time -= wait_time
+
+            except Exception as e:
+                logger.error(f"Error in mech decay worker: {str(e)}", exc_info=True)
+                # In case of errors, wait briefly and try again
+                for _ in range(5):  # 5x1 second instead of once 5 seconds
+                    if stop_mech_decay_thread.is_set():
+                        break
+                    if HAS_GEVENT:
+                        gevent.sleep(1)
+                    else:
+                        time.sleep(1)
+    except Exception as e:
+        logger.error(f"Unexpected error in mech decay worker thread: {e}", exc_info=True)
+    finally:
+        logger.info("Mech decay background worker stopped")
+
+
+def start_mech_decay_background(logger):
+    """Starts the background thread for mech power decay calculation"""
+    global mech_decay_thread, stop_mech_decay_thread
+
+    # Check if thread is already running
+    if mech_decay_thread:
+        if (HAS_GEVENT and not mech_decay_thread.dead) or \
+           (not HAS_GEVENT and mech_decay_thread.is_alive()):
+            logger.debug("Mech decay background thread already running")
+            return
+
+    # Start a new thread only if the previous one is no longer running
+    stop_mech_decay_thread.clear()
+
+    # Thread creation with Gevent compatibility
+    mech_decay_thread = create_thread(
+        mech_decay_worker,
+        (logger,),
+        daemon=True,
+        name="MechDecayWorker"
+    )
+
+    # Start the thread
+    if HAS_GEVENT:
+        mech_decay_thread.start_later(0)
+    else:
+        mech_decay_thread.start()
+
+    logger.info("Started mech decay background thread")
+
+
+def stop_mech_decay_background(logger):
+    """Stops the background thread for mech power decay calculation"""
+    global mech_decay_thread, stop_mech_decay_thread
+
+    logger.info("Stopping mech decay background thread")
+
+    # Set signal to stop
+    stop_mech_decay_thread.set()
+
+    # If no thread is active, exit immediately
+    if mech_decay_thread is None:
+        logger.debug("No mech decay thread to stop")
+        return
+
+    try:
+        # Copy thread reference for safety
+        thread_to_join = mech_decay_thread
+
+        # Delete thread reference immediately to avoid assertion in gevent.threading._ForkHooks
+        mech_decay_thread = None
+
+        # In Gevent environment simply use greenlet.kill()
+        if HAS_GEVENT and not thread_to_join.dead:
+            try:
+                thread_to_join.kill(block=False)
+            except Exception as e:
+                logger.error(f"Error killing mech decay greenlet: {e}")
+        # In normal thread environment wait for thread
+        elif not HAS_GEVENT and thread_to_join.is_alive():
+            try:
+                # Max 1 second wait
+                thread_to_join.join(timeout=1.0)
+
+                # Warning if thread does not end
+                if thread_to_join.is_alive():
+                    logger.warning("Mech decay thread did not terminate within timeout")
+            except Exception as e:
+                logger.error(f"Error while joining mech decay thread: {e}")
+    except Exception as e:
+        logger.error(f"Error during mech decay thread cleanup: {e}")
 
 
 def set_initial_password_from_env():

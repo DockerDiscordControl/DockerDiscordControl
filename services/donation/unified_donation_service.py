@@ -339,44 +339,135 @@ class UnifiedDonationService:
         Each member is counted only once, even if they can see multiple status channels.
         This count will be frozen at level-up time only.
         """
+        # Validate guild object
+        if not guild:
+            logger.error("Guild object is None, returning default count of 1")
+            return 1
+
+        # Fallback to guild member count if available
+        fallback_count = max(1, guild.member_count if guild.member_count else 1)
+
         try:
             from services.config.config_service import load_config
 
             # Load config to find ALL status channels
             config = load_config()
+            if not config:
+                logger.warning("Config is None, using fallback member count")
+                return fallback_count
+
             channel_perms = config.get("channel_permissions", {})
+            if not channel_perms:
+                logger.info("No channel permissions configured, using fallback member count")
+                return fallback_count
 
             # Find ALL status channels (channels with serverstatus permission)
             status_channels = []
             for ch_id, ch_config in channel_perms.items():
-                if ch_config.get("commands", {}).get("serverstatus", False):
-                    channel = guild.get_channel(int(ch_id))
-                    if channel:
-                        status_channels.append(channel)
-                        logger.debug(f"Found status channel: {ch_config.get('name', 'Unknown')} (ID: {ch_id})")
+                try:
+                    # Validate channel config
+                    if not isinstance(ch_config, dict):
+                        logger.warning(f"Invalid channel config for {ch_id}: {type(ch_config)}")
+                        continue
+
+                    # Check for serverstatus permission
+                    commands = ch_config.get("commands", {})
+                    if not isinstance(commands, dict):
+                        continue
+
+                    if commands.get("serverstatus", False):
+                        # Safely convert channel ID to int
+                        try:
+                            channel_id = int(ch_id)
+                        except (ValueError, TypeError):
+                            logger.warning(f"Invalid channel ID: {ch_id}")
+                            continue
+
+                        # Get channel object
+                        channel = guild.get_channel(channel_id)
+                        if channel:
+                            status_channels.append(channel)
+                            logger.debug(f"Found status channel: {ch_config.get('name', 'Unknown')} (ID: {ch_id})")
+                        else:
+                            logger.debug(f"Channel {ch_id} not found in guild")
+
+                except Exception as e:
+                    logger.warning(f"Error processing channel {ch_id}: {e}")
+                    continue
 
             if not status_channels:
-                logger.warning("No status channels found in config, using guild member count")
-                return guild.member_count if guild.member_count else 1
+                logger.info("No valid status channels found, using fallback member count")
+                return fallback_count
 
             # Use set to collect UNIQUE member IDs across all channels
             unique_members = set()
+            channels_processed = 0
+
             for channel in status_channels:
-                channel_members = [m.id for m in channel.members if not m.bot]
-                unique_members.update(channel_members)
-                logger.debug(f"  └─ #{channel.name}: {len(channel_members)} members")
+                try:
+                    # Check if we have access to channel.members
+                    if not hasattr(channel, 'members'):
+                        logger.warning(f"Channel {channel.name} has no members attribute (Members Intent required)")
+                        continue
+
+                    # Count non-bot members
+                    channel_member_count = 0
+                    for member in channel.members:
+                        try:
+                            # Check for bot and system users
+                            if hasattr(member, 'bot') and not member.bot:
+                                if hasattr(member, 'system') and not member.system:
+                                    unique_members.add(member.id)
+                                    channel_member_count += 1
+                                elif not hasattr(member, 'system'):
+                                    # No system attribute, assume not a system user
+                                    unique_members.add(member.id)
+                                    channel_member_count += 1
+                        except Exception as e:
+                            logger.debug(f"Error processing member: {e}")
+                            continue
+
+                    logger.debug(f"  └─ #{channel.name}: {channel_member_count} non-bot members")
+                    channels_processed += 1
+
+                except AttributeError as e:
+                    logger.warning(f"Cannot access members for channel {channel.name}: {e}")
+                    continue
+                except Exception as e:
+                    logger.error(f"Error processing channel {channel.name}: {e}")
+                    continue
+
+            # Check if we processed any channels successfully
+            if channels_processed == 0:
+                logger.warning("Could not process any status channels, using fallback member count")
+                return fallback_count
 
             total_unique = len(unique_members)
-            logger.debug(f"📊 Total UNIQUE members across {len(status_channels)} status channels: {total_unique} (bots excluded)")
+
+            # Validate result
+            if total_unique < 0:
+                logger.error(f"Negative member count: {total_unique}, using 1")
+                return 1
+            elif total_unique == 0:
+                logger.info("No members found in status channels, using minimum of 1")
+                return 1
+            elif total_unique > 100000:  # Discord's theoretical limit
+                logger.warning(f"Member count {total_unique} exceeds Discord limit, capping at 100000")
+                return 100000
+
+            logger.info(f"📊 Total UNIQUE members across {len(status_channels)} status channels: {total_unique} (bots excluded)")
             return total_unique
 
-        except AttributeError:
-            # Fallback if channel.members not available
-            logger.warning(f"channel.members not available (Members Intent required)")
-            return guild.member_count if guild.member_count else 1
+        except ImportError as e:
+            logger.error(f"Failed to import config_service: {e}")
+            return fallback_count
+        except AttributeError as e:
+            # Fallback if channel.members not available (Members Intent not enabled)
+            logger.warning(f"Members Intent not enabled or other attribute error: {e}")
+            return fallback_count
         except Exception as e:
-            logger.error(f"Error counting unique members across status channels: {e}", exc_info=True)
-            return guild.member_count if guild and guild.member_count else 1
+            logger.error(f"Unexpected error counting unique members: {e}", exc_info=True)
+            return fallback_count
 
     async def _update_member_count_if_needed(self, bot_instance, channel=None):
         """

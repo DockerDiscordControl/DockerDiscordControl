@@ -10,7 +10,7 @@
             </div>
             <div class="modal-body">
                 <div class="alert alert-info" role="alert">
-                    <i class="bi bi-info-circle"></i> View all donations (read-only - Event Sourcing ensures immutable donation history).
+                    <i class="bi bi-info-circle"></i> <strong>Event Sourcing Donation Management:</strong> Deleting a donation adds a compensation event and recalculates all levels and costs correctly.
                 </div>
                 
                 <!-- Stats Cards -->
@@ -151,6 +151,7 @@ function updateDonationTable(donations) {
                         <th>Amount</th>
                         <th>Date</th>
                         <th>Type</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -161,22 +162,42 @@ function updateDonationTable(donations) {
         const amount = parseFloat(donation.amount || 0).toFixed(2);
         const timestamp = formatTimestamp(donation.timestamp);
         const type = donation.donation_type || 'manual';
-        
+        const isDeletion = donation.is_deletion || false;
+        const isDeleted = donation.is_deleted || false;
+
+        // Style for deletions (indented, different color)
+        const rowClass = isDeletion ? 'table-warning' : (isDeleted ? 'table-secondary text-decoration-line-through' : '');
+        const indent = isDeletion ? 'style="padding-left: 40px;"' : '';
+        const icon = isDeletion ? 'bi-arrow-return-right text-warning' : 'bi-person-fill text-primary';
+        const badge = isDeletion ? 'bg-warning' : 'bg-success';
+        const typeLabel = isDeletion ? 'deletion' : type;
+        const actionButton = isDeletion
+            ? `<button class="btn btn-sm btn-success" onclick="restoreDonation(${index}, '${escapeHtml(donorName)}', ${amount})" title="Restore donation (remove deletion event)">
+                   <i class="bi bi-arrow-counterclockwise"></i> Restore
+               </button>`
+            : `<button class="btn btn-sm btn-danger" onclick="deleteDonation(${index}, '${escapeHtml(donorName)}', ${amount})" title="Delete donation (adds compensation event)">
+                   <i class="bi bi-trash"></i>
+               </button>`;
+
         tableHTML += `
-            <tr id="donation-row-${index}">
+            <tr id="donation-row-${index}" class="${rowClass}">
                 <td>${index + 1}</td>
-                <td>
-                    <i class="bi bi-person-fill text-primary"></i>
+                <td ${indent}>
+                    <i class="bi ${icon}"></i>
                     ${escapeHtml(donorName)}
+                    ${isDeletion ? '<small class="text-muted"> (deleted)</small>' : ''}
                 </td>
                 <td>
-                    <span class="badge bg-success">$${amount}</span>
+                    <span class="badge ${badge}">$${amount}</span>
                 </td>
                 <td>
                     <small class="text-muted">${timestamp}</small>
                 </td>
                 <td>
-                    <span class="badge bg-info">${escapeHtml(type)}</span>
+                    <span class="badge bg-info">${escapeHtml(typeLabel)}</span>
+                </td>
+                <td>
+                    ${actionButton}
                 </td>
             </tr>
         `;
@@ -219,7 +240,95 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Donation deletion removed - incompatible with Event Sourcing immutable events
+async function deleteDonation(index, donorName, amount) {
+    // Confirm deletion with detailed explanation
+    const confirmed = confirm(
+        `Delete donation from ${donorName} ($${amount})?\n\n` +
+        `EVENT SOURCING MODE:\n` +
+        `• Adds a DonationDeleted compensation event\n` +
+        `• Rebuilds entire history from events\n` +
+        `• All level-ups recalculate correctly\n` +
+        `• Member counts freeze at correct moments\n\n` +
+        `This is permanent and cannot be undone!`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        const response = await fetch(`/api/donations/delete/${index}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+            showSuccess(result.message || 'Donation deleted successfully');
+
+            // Reload donation data after short delay (allow for rebuild)
+            setTimeout(() => {
+                loadDonationData();
+            }, 500);
+        } else {
+            showError('Failed to delete donation: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error deleting donation:', error);
+        showError('Error deleting donation: ' + error.message);
+    }
+}
+
+async function restoreDonation(index, donorName, amount) {
+    // Confirm restoration with detailed explanation
+    const confirmed = confirm(
+        `Restore donation from ${donorName} ($${amount})?\n\n` +
+        `EVENT SOURCING MODE:\n` +
+        `• Adds another DonationDeleted event\n` +
+        `• This deletes the previous deletion\n` +
+        `• Original donation is restored\n` +
+        `• All level-ups recalculate correctly\n\n` +
+        `Continue?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        const response = await fetch(`/api/donations/delete/${index}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+            showSuccess(result.message || 'Donation restored successfully');
+
+            // Reload donation data after short delay (allow for rebuild)
+            setTimeout(() => {
+                loadDonationData();
+            }, 500);
+        } else {
+            showError('Failed to restore donation: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error restoring donation:', error);
+        showError('Error restoring donation: ' + error.message);
+    }
+}
 
 function refreshDonationData() {
     loadDonationData();

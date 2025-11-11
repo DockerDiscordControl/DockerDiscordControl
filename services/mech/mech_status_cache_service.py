@@ -226,11 +226,35 @@ class MechStatusCacheService:
             self.logger.info("Background loop stopped")
 
     async def _background_refresh(self):
-        """Perform background cache refresh."""
+        """
+        Perform background cache refresh AND mech decay calculation.
+
+        CRITICAL: This is the SINGLE POINT OF TRUTH for mech power decay.
+        By calling get_state() here, we ensure power can decay to $0 even
+        without user interaction, enabling offline mech animations.
+        """
         try:
             self.logger.debug("Background cache refresh starting...")
 
-            # Refresh both decimal variants
+            # CRITICAL: Trigger mech decay calculation FIRST
+            # This ensures Power can decay to $0 without user interaction
+            try:
+                from services.mech.progress_service import get_progress_service
+                mech_service = get_progress_service()
+
+                # get_state() triggers apply_decay_on_demand()
+                loop = asyncio.get_running_loop()
+                mech_state = await loop.run_in_executor(None, mech_service.get_state)
+
+                # Log if offline (Power = 0) for debugging
+                if mech_state.is_offline:
+                    self.logger.info(f"[CACHE_REFRESH] Mech is OFFLINE (Power: $0.00) - offline animation active")
+                else:
+                    self.logger.debug(f"[CACHE_REFRESH] Power decay calculated: ${mech_state.power_current:.2f}")
+            except Exception as decay_error:
+                self.logger.warning(f"[CACHE_REFRESH] Failed to calculate mech decay: {decay_error}")
+
+            # Refresh both decimal variants of cache
             for include_decimals in [False, True]:
                 request = MechStatusCacheRequest(
                     include_decimals=include_decimals,

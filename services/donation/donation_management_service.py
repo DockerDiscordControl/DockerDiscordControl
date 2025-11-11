@@ -72,11 +72,11 @@ class DonationManagementService:
                     self.level = result.level
             mech_state = MechStateCompat(mech_state_result)
 
-            # Get donations directly from Progress Service Event Log
+            # Get donations AND deletions directly from Progress Service Event Log
             import json
             from pathlib import Path
 
-            raw_donations = []
+            all_events = []
             event_log = Path("config/progress/events.jsonl")
 
             if event_log.exists():
@@ -85,27 +85,62 @@ class DonationManagementService:
                         if not line.strip():
                             continue
                         event = json.loads(line)
-                        if event.get('type') == 'DonationAdded':
-                            payload = event.get('payload', {})
-                            raw_donations.append({
-                                'username': payload.get('donor', 'Anonymous'),
-                                'amount': payload.get('units', 0) / 100.0,  # cents → dollars
-                                'ts': event.get('ts', '')
-                            })
+                        if event.get('type') in ['DonationAdded', 'DonationDeleted']:
+                            all_events.append(event)
 
-            # Convert to format expected by frontend (limit results)
+            # Build nested structure: Donations with their deletion events
+            donations_map = {}  # seq -> donation data
+            deletions_map = {}  # deleted_seq -> deletion event
+
+            for event in all_events:
+                if event.get('type') == 'DonationAdded':
+                    seq = event.get('seq')
+                    payload = event.get('payload', {})
+                    donations_map[seq] = {
+                        'seq': seq,
+                        'donor_name': payload.get('donor', 'Anonymous'),
+                        'amount': payload.get('units', 0) / 100.0,  # cents → dollars
+                        'timestamp': event.get('ts', ''),
+                        'donation_type': 'manual',
+                        'is_deleted': False,
+                        'deletion_events': []  # List of deletion events for this donation
+                    }
+                elif event.get('type') == 'DonationDeleted':
+                    deleted_seq = event.get('payload', {}).get('deleted_seq')
+                    if deleted_seq:
+                        deletion_event = {
+                            'seq': event.get('seq'),
+                            'deleted_seq': deleted_seq,
+                            'donor_name': event.get('payload', {}).get('donor', 'Unknown'),
+                            'amount': event.get('payload', {}).get('units', 0) / 100.0,
+                            'timestamp': event.get('ts', ''),
+                            'reason': event.get('payload', {}).get('reason', 'admin_deletion'),
+                            'donation_type': 'deletion',
+                            'is_deletion': True
+                        }
+                        # Track deletion by deleted_seq
+                        if deleted_seq not in deletions_map:
+                            deletions_map[deleted_seq] = []
+                        deletions_map[deleted_seq].append(deletion_event)
+
+            # Mark deleted donations and attach deletion events
+            for deleted_seq, deletion_events in deletions_map.items():
+                if deleted_seq in donations_map:
+                    donations_map[deleted_seq]['is_deleted'] = True
+                    donations_map[deleted_seq]['deletion_events'] = deletion_events
+
+            # Convert to flat list for display (newest first, with nested deletions)
             donations = []
-            for i, donation in enumerate(reversed(raw_donations[-limit:])):  # Get latest donations first
-                donations.append({
-                    'donor_name': donation.get('username', 'Anonymous'),
-                    'amount': donation.get('amount', 0.0),
-                    'timestamp': donation.get('ts', ''),
-                    'donation_type': 'progress_service'
-                })
+            for seq in reversed(sorted(donations_map.keys())):  # Newest first
+                donation = donations_map[seq]
+                donations.append(donation)
+                # Add deletion events right after the donation (indented)
+                for deletion in donation['deletion_events']:
+                    donations.append(deletion)
             
             # Calculate correct stats using MechService data
             total_donated = mech_state.total_donated
-            total_count = len(raw_donations)
+            total_count = len(donations_map)  # Only count actual donations, not deletions
             
             # Create stats with correct calculations
             stats = DonationStats.from_data(donations, total_donated)
@@ -129,7 +164,112 @@ class DonationManagementService:
             logger.error(error_msg, exc_info=True)
             return ServiceResult(success=False, error=error_msg)
     
-    # Donation deletion removed - incompatible with Event Sourcing immutable events
+    def delete_donation(self, index: int) -> ServiceResult:
+        """
+        Delete a donation OR restore a deleted donation using Event Sourcing compensation events.
+
+        This is EVENT SOURCING COMPLIANT:
+        - For DonationAdded: Adds a DonationDeleted event (marks donation as deleted)
+        - For DonationDeleted: Adds another DonationDeleted event (restores original donation!)
+        - Rebuilds snapshot from scratch, applying all active events
+        - All level-ups and costs recalculate correctly
+
+        Args:
+            index: The index in the DISPLAY list (includes both donations and deletions, 0-based, newest first)
+
+        Returns:
+            ServiceResult with success status
+        """
+        try:
+            # Get ALL events from event log (same logic as list_donations to get matching indices)
+            import json
+            from pathlib import Path
+
+            all_events = []
+            event_log = Path("config/progress/events.jsonl")
+
+            if not event_log.exists():
+                return ServiceResult(success=False, error="Event log not found")
+
+            with open(event_log, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if not line.strip():
+                        continue
+                    event = json.loads(line)
+                    if event.get('type') in ['DonationAdded', 'DonationDeleted']:
+                        all_events.append(event)
+
+            # Build the same nested structure as list_donations
+            donations_map = {}
+            deletions_map = {}
+
+            for event in all_events:
+                if event.get('type') == 'DonationAdded':
+                    seq = event.get('seq')
+                    donations_map[seq] = {
+                        'seq': seq,
+                        'type': 'DonationAdded',
+                        'deletion_events': []
+                    }
+                elif event.get('type') == 'DonationDeleted':
+                    deleted_seq = event.get('payload', {}).get('deleted_seq')
+                    if deleted_seq:
+                        deletion_event = {
+                            'seq': event.get('seq'),
+                            'deleted_seq': deleted_seq,
+                            'type': 'DonationDeleted'
+                        }
+                        if deleted_seq not in deletions_map:
+                            deletions_map[deleted_seq] = []
+                        deletions_map[deleted_seq].append(deletion_event)
+
+            # Attach deletion events to donations
+            for deleted_seq, deletion_events in deletions_map.items():
+                if deleted_seq in donations_map:
+                    donations_map[deleted_seq]['deletion_events'] = deletion_events
+
+            # Build flat display list (same as UI)
+            display_list = []
+            for seq in reversed(sorted(donations_map.keys())):
+                display_list.append(donations_map[seq])
+                for deletion in donations_map[seq]['deletion_events']:
+                    display_list.append(deletion)
+
+            # Check if index is valid
+            if index < 0 or index >= len(display_list):
+                return ServiceResult(success=False, error=f"Invalid index: {index}")
+
+            item = display_list[index]
+            item_seq = item['seq']
+            item_type = item['type']
+
+            # Call progress service to delete
+            from services.mech.progress_service import get_progress_service
+            progress_service = get_progress_service()
+
+            # Delete event (adds compensation event and rebuilds)
+            progress_service.delete_donation(item_seq)
+
+            action = "Deleted" if item_type == 'DonationAdded' else "Restored"
+            logger.info(f"{action} event at index {index} (seq {item_seq}, type {item_type})")
+
+            return ServiceResult(
+                success=True,
+                data={
+                    'deleted_seq': item_seq,
+                    'action': action,
+                    'type': item_type
+                }
+            )
+
+        except ValueError as e:
+            error_msg = str(e)
+            logger.error(f"Validation error deleting donation: {error_msg}")
+            return ServiceResult(success=False, error=error_msg)
+        except Exception as e:
+            error_msg = f"Error deleting donation: {e}"
+            logger.error(error_msg, exc_info=True)
+            return ServiceResult(success=False, error=error_msg)
 
     def get_donation_stats(self) -> ServiceResult:
         """Get donation statistics only using MechService.

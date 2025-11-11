@@ -204,6 +204,11 @@ class MechStatusDetailsService:
                 percentage = (current / maximum) * 100
                 filled = int((current / maximum) * length)
 
+                # CRITICAL FIX: Ensure filled is never greater than length
+                # This prevents the bar from exceeding Discord's message limits
+                filled = min(filled, length)
+                filled = max(0, filled)  # Also ensure it's not negative
+
             # Filled blocks
             bar = "█" * filled
             # Empty blocks
