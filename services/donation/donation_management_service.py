@@ -86,7 +86,7 @@ class DonationManagementService:
                             continue
                         event = json.loads(line)
                         # Include ALL donation types for transparency
-                        if event.get('type') in ['DonationAdded', 'DonationDeleted', 'PowerGiftGranted', 'SystemDonationAdded']:
+                        if event.get('type') in ['DonationAdded', 'DonationDeleted', 'PowerGiftGranted', 'SystemDonationAdded', 'ExactHitBonusGranted']:
                             all_events.append(event)
 
             # Build nested structure: Donations with their deletion events
@@ -135,6 +135,20 @@ class DonationManagementService:
                         'amount': payload.get('power_units', 0) / 100.0,  # cents → dollars
                         'timestamp': event.get('ts', ''),
                         'donation_type': 'system',
+                        'is_deleted': False,
+                        'deletion_events': []
+                    }
+                elif event_type == 'ExactHitBonusGranted':
+                    seq = event.get('seq')
+                    payload = event.get('payload', {})
+                    from_level = payload.get('from_level', '?')
+                    to_level = payload.get('to_level', '?')
+                    donations_map[seq] = {
+                        'seq': seq,
+                        'donor_name': f"🎯 Exact Hit Bonus (Level {from_level} → {to_level})",
+                        'amount': payload.get('power_units', 0) / 100.0,  # cents → dollars
+                        'timestamp': event.get('ts', ''),
+                        'donation_type': 'exact_hit_bonus',
                         'is_deleted': False,
                         'deletion_events': []
                     }

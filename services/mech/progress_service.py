@@ -515,21 +515,21 @@ def deterministic_gift_1_3(mech_id: str, campaign_id: str) -> int:
 # Core logic
 # ---------------------
 
-def apply_donation_units(snap: Snapshot, units_cents: int) -> Tuple[Snapshot, Optional[Event]]:
-    """Apply donation units to evo & power; may trigger a LevelUpCommitted event."""
+def apply_donation_units(snap: Snapshot, units_cents: int) -> Tuple[Snapshot, Optional[Event], Optional[Event]]:
+    """Apply donation units to evo & power; may trigger LevelUpCommitted and ExactHitBonusGranted events."""
     # Track cumulative donations
     snap.cumulative_donations_cents += units_cents
 
     if snap.level >= 11:
         snap.power_acc += units_cents
-        return snap, None
+        return snap, None, None
 
     new_evo = snap.evo_acc + units_cents
     snap.power_acc += units_cents
 
     if new_evo < snap.goal_requirement:
         snap.evo_acc = new_evo
-        return snap, None
+        return snap, None, None
 
     # Commit level-up
     exact_hit = (new_evo == snap.goal_requirement)
@@ -542,8 +542,22 @@ def apply_donation_units(snap: Snapshot, units_cents: int) -> Tuple[Snapshot, Op
 
     # Reset power to excess (same as evolution) plus bonus for exact hit
     snap.power_acc = excess
+    bonus_event = None
     if exact_hit:
         snap.power_acc += 100  # Add $1 bonus for exact hit
+        # Create event for exact hit bonus (for transparency in donation history)
+        bonus_event = Event(
+            seq=0,
+            ts=now_utc_iso(),
+            type="ExactHitBonusGranted",
+            mech_id=snap.mech_id,
+            payload={
+                "power_units": 100,  # cents
+                "from_level": lvl_from,
+                "to_level": snap.level,
+                "reason": "exact_level_up"
+            },
+        )
 
     logger.info(f"Level up! Mech {snap.mech_id}: {lvl_from} -> {snap.level} (exact_hit={exact_hit})")
 
@@ -565,7 +579,8 @@ def apply_donation_units(snap: Snapshot, units_cents: int) -> Tuple[Snapshot, Op
     else:
         snap.goal_requirement = 0
 
-    return snap, lvl_evt
+    # Return both level-up event and optional bonus event
+    return snap, lvl_evt, bonus_event
 
 
 # ---------------------
@@ -633,12 +648,17 @@ class ProgressService:
             # Apply to snapshot
             snap = load_snapshot(self.mech_id)
             apply_decay_on_demand(snap)
-            snap, lvl_evt = apply_donation_units(snap, units_cents)
+            snap, lvl_evt, bonus_evt = apply_donation_units(snap, units_cents)
 
             # Append level-up event if triggered
             if lvl_evt is not None:
                 lvl_evt.seq = next_seq()
                 append_event(lvl_evt)
+
+            # Append exact-hit bonus event if triggered
+            if bonus_evt is not None:
+                bonus_evt.seq = next_seq()
+                append_event(bonus_evt)
 
             snap.version += 1
             snap.last_event_seq = evt.seq
@@ -940,7 +960,7 @@ class ProgressService:
 
                     # CRITICAL: Apply donation which may trigger level-up
                     # Level-ups will freeze member count at this moment
-                    snap, lvl_evt = apply_donation_units(snap, units_cents)
+                    snap, lvl_evt, bonus_evt = apply_donation_units(snap, units_cents)
 
                 elif evt.type == "LevelUpCommitted":
                     # Level-up events are generated during apply_donation_units
