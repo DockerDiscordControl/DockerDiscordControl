@@ -1206,13 +1206,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     async def serverstatus(self, ctx: discord.ApplicationContext):
         """Shows an overview of all server statuses in a single message."""
         try:
-            # Check spam protection first
+            # CRITICAL: Defer FIRST to prevent Discord timeout (must respond within 3 seconds)
+            await ctx.defer()
+
+            # Check spam protection after defer
             if not await self._check_spam_protection(ctx, "serverstatus"):
                 return
-                
+
             # Import translation function locally to ensure it's accessible
             from .translation_manager import _ as translate
-            
+
             # Check if the channel has serverstatus permission
             channel_has_status_perm = _channel_has_permission(ctx.channel.id, 'serverstatus', self.config)
             if not channel_has_status_perm:
@@ -1221,11 +1224,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     description=translate("You cannot use this command in this channel."),
                     color=discord.Color.red()
                 )
-                await ctx.respond(embed=embed, ephemeral=True)
+                await ctx.followup.send(embed=embed, ephemeral=True)
                 return
-
-            # Defer the response immediately to prevent timeout
-            await ctx.defer()
 
             config = load_config()
             if not config:
