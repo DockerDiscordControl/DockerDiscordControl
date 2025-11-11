@@ -2017,6 +2017,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 evolution_current = mech_cache_result.bars.mech_progress_current
                 evolution_max = mech_cache_result.bars.mech_progress_max
 
+                # CRITICAL DEBUG: Log exact bars values
+                logger.critical(f"BARS DEBUG - mech_progress_current={mech_cache_result.bars.mech_progress_current} (type: {type(mech_cache_result.bars.mech_progress_current)})")
+                logger.critical(f"BARS DEBUG - mech_progress_max={mech_cache_result.bars.mech_progress_max} (type: {type(mech_cache_result.bars.mech_progress_max)})")
                 logger.info(f"CACHE BARS: Power={Power_current}/{Power_max}, evolution={evolution_current}/{evolution_max}")
                 
                 # Calculate percentages from clean data
@@ -2029,10 +2032,15 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     Power_percentage = 0
                     logger.info(f"NEW SERVICE: Power bar 0% (max=0)")
                 
-                # Evolution bar from clean data  
+                # Evolution bar from clean data
                 if evolution_max > 0:
                     next_percentage = min(100, max(0, (evolution_current / evolution_max) * 100))
                     next_bar = self._create_progress_bar(next_percentage)
+                    # CRITICAL DEBUG: Log exact values to find 100% bug
+                    logger.critical(f"EVOLUTION DEBUG - Raw values: evolution_current={evolution_current}, evolution_max={evolution_max}")
+                    logger.critical(f"EVOLUTION DEBUG - Types: evolution_current type={type(evolution_current)}, evolution_max type={type(evolution_max)}")
+                    logger.critical(f"EVOLUTION DEBUG - Calculation: ({evolution_current}/{evolution_max})*100 = {(evolution_current/evolution_max)*100:.2f}%")
+                    logger.critical(f"EVOLUTION DEBUG - Final: next_percentage={next_percentage:.1f}%")
                     logger.info(f"NEW SERVICE: Evolution bar {next_percentage:.1f}% ({evolution_current}/{evolution_max})")
                 else:
                     next_bar = self._create_progress_bar(0) 
