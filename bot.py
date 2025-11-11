@@ -501,6 +501,12 @@ async def on_ready():
             # Check if gift was actually granted (power changed from 0)
             if state.power_level > 0:
                 logger.info(f"✅ Power gift granted: ${state.power_level:.2f} Power")
+
+                # CRITICAL: Invalidate Mech cache so Status Overview shows updated power
+                docker_cog = bot.get_cog('DockerControlCog')
+                if docker_cog and hasattr(docker_cog, '_mech_status_cache_service'):
+                    docker_cog._mech_status_cache_service.invalidate_cache()
+                    logger.info("🔄 Mech cache invalidated after power gift")
             else:
                 logger.info("Power gift not needed (power > 0 or already granted)")
 
