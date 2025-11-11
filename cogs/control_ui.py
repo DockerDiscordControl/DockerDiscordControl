@@ -1232,17 +1232,20 @@ class MechView(View):
         # Check if donations are disabled
         donations_disabled = is_donations_disabled()
 
-        # Skip mech buttons if donations are disabled
-        if not donations_disabled:
-            # Simplified: Only "Mech" and "?" buttons
-            self.add_item(MechDetailsButton(cog_instance, channel_id))
-            self.add_item(HelpButton(cog_instance, channel_id))
+        # Button order: 1. Mech, 2. Info, 3. Admin, 4. Help
 
-        # Add Info button for container information
+        # Button 1: Mech (only if donations enabled)
+        if not donations_disabled:
+            self.add_item(MechDetailsButton(cog_instance, channel_id))
+
+        # Button 2: Info button for container information
         self.add_item(InfoDropdownButton(cog_instance, channel_id))
 
-        # Add Admin button for administrative control
+        # Button 3: Admin button for administrative control
         self.add_item(AdminButton(cog_instance, channel_id))
+
+        # Button 4: Help button (always shown)
+        self.add_item(HelpButton(cog_instance, channel_id))
 
 class InfoDropdownButton(Button):
     """Button to show container info selection dropdown from /ss messages."""
