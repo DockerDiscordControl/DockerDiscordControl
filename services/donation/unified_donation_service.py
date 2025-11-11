@@ -32,7 +32,7 @@ logger = get_module_logger('unified_donation_service')
 class DonationRequest:
     """Unified donation request for all donation types."""
     donor_name: str
-    amount: int  # Dollars as integer
+    amount: float  # Dollars (supports decimals like 0.50)
     source: str  # 'web_ui', 'discord', 'test', etc.
 
     # Optional fields
@@ -241,10 +241,10 @@ class UnifiedDonationService:
                 error_message="Donor name must be between 1 and 100 characters"
             )
 
-        if not isinstance(request.amount, int) or request.amount <= 0:
+        if not isinstance(request.amount, (int, float)) or request.amount <= 0:
             return DonationResult(
                 success=False,
-                error_message="Amount must be a positive integer"
+                error_message="Amount must be a positive number"
             )
 
         if request.amount > 1000000:
@@ -547,7 +547,7 @@ def get_unified_donation_service() -> UnifiedDonationService:
 # CONVENIENCE FUNCTIONS
 # ============================================================================
 
-def process_web_ui_donation(donor_name: str, amount: int) -> DonationResult:
+def process_web_ui_donation(donor_name: str, amount: float) -> DonationResult:
     """Convenience function for Web UI donations."""
     service = get_unified_donation_service()
     request = DonationRequest(
@@ -560,7 +560,7 @@ def process_web_ui_donation(donor_name: str, amount: int) -> DonationResult:
 
 async def process_discord_donation(
     discord_username: str,
-    amount: int,
+    amount: float,
     user_id: str = None,
     guild_id: str = None,
     channel_id: str = None,

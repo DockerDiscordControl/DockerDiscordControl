@@ -4040,11 +4040,11 @@ class DonationBroadcastModal(discord.ui.Modal):
                     
                     # Record donation if amount > 0
                     if donation_amount_euros and donation_amount_euros > 0:
-                        amount_dollars = int(donation_amount_euros)
-                        
+                        amount_dollars = float(donation_amount_euros)  # Keep decimal precision
+
                         # Quick feedback to user first (store message to delete later)
                         processing_msg = await interaction.followup.send(
-                            _("💰 Processing ${amount} donation...").format(amount=amount_dollars),
+                            _("💰 Processing ${amount} donation...").format(amount=f"{amount_dollars:.2f}"),
                             ephemeral=False  # Make it visible so we can delete it
                         )
                         
@@ -4069,7 +4069,7 @@ class DonationBroadcastModal(discord.ui.Modal):
                             return
 
                         new_state = donation_result.new_state
-                        logger.info(f"Donation recorded via unified service: ${amount_dollars}")
+                        logger.info(f"Donation recorded via unified service: ${amount_dollars:.2f}")
                     else:
                         # Get current state using SERVICE FIRST
                         new_state_request = GetMechStateRequest(include_decimals=False)
