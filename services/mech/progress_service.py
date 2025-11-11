@@ -536,10 +536,10 @@ def apply_donation_units(snap: Snapshot, units_cents: int) -> Tuple[Snapshot, Op
     excess = new_evo - snap.goal_requirement
     snap.evo_acc = excess
 
-    # Keep accumulated power and add bonus for exact hit
+    # Reset power to excess (same as evolution) plus bonus for exact hit
+    snap.power_acc = excess
     if exact_hit:
         snap.power_acc += 100  # Add $1 bonus for exact hit
-    # Note: power_acc is already incremented at line 524, so we keep it
 
     logger.info(f"Level up! Mech {snap.mech_id}: {lvl_from} -> {snap.level} (exact_hit={exact_hit})")
 
