@@ -126,30 +126,12 @@ class MechStatusDetailsService:
             if next_level_info:
                 next_evolution = f"⬆️ {next_level_info['name']}"
 
-                # Create evolution progress bar using MechDataStore evolution data
-                # Calculate current progress toward next level
-                total_donated = data_result.total_donated
-                next_threshold = data_result.next_threshold
-
-                # Find current level threshold (previous level's threshold)
-                if current_level > 1:
-                    current_threshold_info = self._get_next_level_info(current_level)
-                    current_threshold = current_threshold_info.get('threshold', 0) if current_threshold_info else 0
-                else:
-                    current_threshold = 0
-
-                # Calculate progress: how much of the gap between current and next threshold is filled
-                if next_threshold is not None and next_threshold > current_threshold:
-                    progress_range = next_threshold - current_threshold
-                    progress_current = total_donated - current_threshold
-
-                    if progress_range > 0:
-                        evolution_bar = self._create_progress_bar(progress_current, progress_range)
-                    else:
-                        evolution_bar = self._create_progress_bar(100, 100)  # Full bar if at max level
-                else:
-                    # Max level reached or invalid data
-                    evolution_bar = self._create_progress_bar(100, 100)  # Full bar
+                # Create evolution progress bar using MechDataStore bars data (FIXED: Use bars like Power does!)
+                # SINGLE POINT OF TRUTH: Use mech_progress_current/max from bars (includes carried over amounts!)
+                evolution_bar = self._create_progress_bar(
+                    int(data_result.bars.mech_progress_current),  # Convert to int for bar display
+                    int(data_result.bars.mech_progress_max)
+                )
 
             # Get animation (use high resolution if requested) - use decimal power for proper animation selection
             animation_bytes, content_type = self._get_mech_animation(current_level, power_decimal, request.use_high_resolution)
