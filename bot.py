@@ -147,13 +147,14 @@ logger.info(f"Bot configuration loaded: language='{language}', timezone='{timezo
 
 # RAM-OPTIMIZED Discord Intents: Only essential intents for Docker Control Bot
 intents = discord.Intents.default()  # Start with default intents
+intents.members = True               # Enable: Required to count status channel members for dynamic difficulty
 intents.presences = False            # Disable: Very memory-intensive for presence updates
 intents.typing = False               # Disable: Unnecessary for Docker control
 intents.message_content = True       # Required: Read command content
 # ENABLED intents:
 # - guilds (default: access to guild info)
 # - guild_messages (default: receive messages in guilds)
-# - guild_members (default: count status channel members for dynamic difficulty, ~150KB RAM for 34 members)
+# - members (privileged: count status channel members for dynamic difficulty, ~150KB RAM for 34 members)
 # DISABLED for RAM optimization:
 # - presences (very memory-intensive)
 # - typing (unnecessary)
