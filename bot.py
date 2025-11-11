@@ -441,10 +441,27 @@ async def on_ready():
                                         logger.info(f"  └─ #{channel.name}: {len(channel_members)} members")
 
                                     initial_count = len(unique_members)
-                                    logger.info(f"📊 Total UNIQUE members across {len(status_channels)} status channels: {initial_count} (bots excluded)")
+
+                                    # If we got 0 members, Members Intent is likely not enabled
+                                    if initial_count == 0:
+                                        logger.warning("⚠️ Got 0 members! Members Intent may not be enabled.")
+                                        logger.warning("⚠️ Using last known member count from snapshot instead.")
+                                        # Use last known count from snapshot
+                                        if member_count > 0:
+                                            initial_count = member_count
+                                            logger.info(f"📊 Using last known count from snapshot: {initial_count} members")
+                                        else:
+                                            initial_count = 1
+                                            logger.warning("No previous member count found, using fallback: 1")
+                                    else:
+                                        logger.info(f"📊 Total UNIQUE members across {len(status_channels)} status channels: {initial_count} (bots excluded)")
                                 except AttributeError:
                                     logger.warning("channel.members not available (Members Intent may not be enabled)")
-                                    initial_count = guild.member_count if guild.member_count else 1
+                                    # Use last known count or guild count
+                                    if member_count > 0:
+                                        initial_count = member_count
+                                    else:
+                                        initial_count = guild.member_count if guild.member_count else 1
                             else:
                                 logger.warning("No status channels found in config, using guild member count")
                                 initial_count = guild.member_count if guild.member_count else 1
