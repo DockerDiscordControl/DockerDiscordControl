@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(docker exec:*)",
-      "Bash(DDC_WEB_PORT=5008 timeout 5 python3:*)"
+      "Bash(DDC_WEB_PORT=5008 timeout 5 python3:*)",
+      "Bash(git reset:*)",
+      "Bash(./reset_donations_for_testing.sh)"
     ],
     "deny": [],
     "ask": []
