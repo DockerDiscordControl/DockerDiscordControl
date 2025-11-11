@@ -31,10 +31,11 @@ cat > config/progress/snapshots/main.json << 'EOF'
 }
 EOF
 
-# 3. Clear event logs (optional)
+# 3. Clear event logs COMPLETELY
 echo "[3/5] Clearing event logs..."
-rm -f config/progress/events/*.jsonl 2>/dev/null
-echo "[]" > config/progress/events/main.jsonl
+rm -f config/progress/events.jsonl 2>/dev/null
+rm -f config/progress/last_seq.txt 2>/dev/null
+echo "0" > config/progress/last_seq.txt
 
 # 4. Clear donation history
 echo "[4/5] Clearing donation history..."

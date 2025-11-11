@@ -85,7 +85,8 @@ class DonationManagementService:
                         if not line.strip():
                             continue
                         event = json.loads(line)
-                        if event.get('type') in ['DonationAdded', 'DonationDeleted']:
+                        # Include ALL donation types for transparency
+                        if event.get('type') in ['DonationAdded', 'DonationDeleted', 'MonthlyGiftGranted', 'SystemDonationAdded']:
                             all_events.append(event)
 
             # Build nested structure: Donations with their deletion events
@@ -93,7 +94,9 @@ class DonationManagementService:
             deletions_map = {}  # deleted_seq -> deletion event
 
             for event in all_events:
-                if event.get('type') == 'DonationAdded':
+                event_type = event.get('type')
+
+                if event_type == 'DonationAdded':
                     seq = event.get('seq')
                     payload = event.get('payload', {})
                     donations_map[seq] = {
@@ -104,6 +107,30 @@ class DonationManagementService:
                         'donation_type': 'manual',
                         'is_deleted': False,
                         'deletion_events': []  # List of deletion events for this donation
+                    }
+                elif event_type == 'MonthlyGiftGranted':
+                    seq = event.get('seq')
+                    payload = event.get('payload', {})
+                    donations_map[seq] = {
+                        'seq': seq,
+                        'donor_name': '🎁 Power Gift',
+                        'amount': payload.get('power_units', 0) / 100.0,  # cents → dollars
+                        'timestamp': event.get('ts', ''),
+                        'donation_type': 'power_gift',
+                        'is_deleted': False,
+                        'deletion_events': []
+                    }
+                elif event_type == 'SystemDonationAdded':
+                    seq = event.get('seq')
+                    payload = event.get('payload', {})
+                    donations_map[seq] = {
+                        'seq': seq,
+                        'donor_name': f"🤖 {payload.get('event_name', 'System Event')}",
+                        'amount': payload.get('power_units', 0) / 100.0,  # cents → dollars
+                        'timestamp': event.get('ts', ''),
+                        'donation_type': 'system',
+                        'is_deleted': False,
+                        'deletion_events': []
                     }
                 elif event.get('type') == 'DonationDeleted':
                     deleted_seq = event.get('payload', {}).get('deleted_seq')
