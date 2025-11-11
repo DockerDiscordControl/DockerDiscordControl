@@ -1185,8 +1185,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     if current_time - last_use < cooldown_seconds:
                         remaining = int(cooldown_seconds - (current_time - last_use))
                         try:
-                            # Check if we need to use followup (for donate commands that defer)
-                            if command_name in ['donate', 'donatebroadcast']:
+                            # Check if we need to use followup (for commands that defer early)
+                            if command_name in ['donate', 'donatebroadcast', 'serverstatus', 'ss']:
                                 await ctx.followup.send(f"❌ Command on cooldown. Try again in {remaining} seconds.")
                             else:
                                 await ctx.respond(f"❌ Command on cooldown. Try again in {remaining} seconds.", ephemeral=True)
