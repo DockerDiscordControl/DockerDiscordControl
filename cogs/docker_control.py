@@ -137,7 +137,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         self.cache_ttl_seconds = int(cache_duration * 2.5)
 
         self.pending_actions: Dict[str, Dict[str, Any]] = {}
-        self.pending_actions_lock = asyncio.Lock()  # Protect concurrent access
 
         # Initialize services
         self.cleanup_service = get_channel_cleanup_service(bot)
@@ -3312,9 +3311,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     # Member count updates moved to on-demand during level-ups only
 
     # --- Final Control Command ---
-    @commands.slash_command(name="control", description=_("Displays the control panel in the control channel"), guild_ids=get_guild_id())
+    # REMOVED: Old single-message control command - replaced by Admin View version at line 1354
+    # @commands.slash_command(name="control", description=_("Displays the control panel in the control channel"), guild_ids=get_guild_id())
     async def control_command(self, ctx: discord.ApplicationContext):
-        """(Re)generates the control panel message in the current channel if permitted."""
+        """(Re)generates the control panel message in the current channel if permitted.
+
+        NOTE: This method is kept for backwards compatibility but not exposed as a slash command.
+        The new /control command at line 1354 provides the Admin View functionality.
+        """
         # Check spam protection first
         if not await self._check_spam_protection(ctx, "control"):
             return

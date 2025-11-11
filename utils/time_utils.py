@@ -6,17 +6,14 @@
 # Licensed under the MIT License                                               #
 # ============================================================================ #
 import time
-import pytz
-import logging
-from datetime import datetime, timedelta, timezone
-from typing import Union, Tuple, List, Dict, Any, Optional
-from utils.logging_utils import setup_logger
 import os
 import json
-from datetime import datetime, timezone, timedelta
 import logging
-from zoneinfo import ZoneInfo
 import pytz
+from datetime import datetime, timedelta, timezone
+from typing import Union, Tuple, List, Dict, Any, Optional
+from zoneinfo import ZoneInfo
+from utils.logging_utils import setup_logger
 
 logger = setup_logger('ddc.time_utils')
 
@@ -189,8 +186,8 @@ def format_datetime_with_timezone(dt, timezone_name=None, time_only=False):
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
 
-    # Get target timezone
-    tz_name = timezone_name or _get_timezone_safe()
+    # Get target timezone using the public API
+    tz_name = timezone_name or get_configured_timezone()
     
     try:
         # First attempt: Try zoneinfo (Python 3.9+)
@@ -228,37 +225,115 @@ def format_datetime_with_timezone(dt, timezone_name=None, time_only=False):
                 return dt.strftime("%d.%m.%Y %H:%M:%S") + " (timezone unknown)"
 
 
+# Global timezone cache for performance
+_cached_timezone = None
+_cache_timestamp = None
+_CACHE_DURATION = 300  # 5 minutes cache
+
+def get_configured_timezone() -> str:
+    """
+    Public API to get the configured timezone from the Web UI.
+    This is the SINGLE SOURCE OF TRUTH for timezone throughout the application.
+
+    Returns:
+        str: The configured timezone string (e.g., 'Europe/Berlin', 'UTC')
+    """
+    global _cached_timezone, _cache_timestamp
+
+    # Check cache first (valid for 5 minutes)
+    if _cached_timezone and _cache_timestamp:
+        if time.time() - _cache_timestamp < _CACHE_DURATION:
+            return _cached_timezone
+
+    # Get fresh timezone
+    tz = _get_timezone_safe()
+
+    # Update cache
+    _cached_timezone = tz
+    _cache_timestamp = time.time()
+
+    return tz
+
 def _get_timezone_safe():
-    """Get timezone from config with multiple fallbacks."""
+    """Get timezone from config with multiple fallbacks - SERVICE FIRST compliant."""
     try:
-        # First try: Environment variable
+        # First priority: Environment variable (for container-level override)
         tz = os.environ.get('TZ')
         if tz:
+            logger.debug(f"Using timezone from TZ environment variable: {tz}")
             return tz
-            
-        # Second try: Use ConfigManager for centralized config access
+
+        # Second priority: Service First - Use load_config from config_service
+        try:
+            from services.config.config_service import load_config
+            config = load_config()
+
+            # Look for 'timezone' (correct key name)
+            if config and config.get('timezone'):
+                tz = config['timezone']
+                logger.debug(f"Using timezone from config service: {tz}")
+                return tz
+        except ImportError:
+            logger.warning("Config service not available, trying alternate methods")
+        except Exception as e:
+            logger.debug(f"Could not get timezone from config service: {e}")
+
+        # Third priority: Use ConfigManager if available (for legacy support)
         try:
             from services.config.config_service import get_config_service as get_config_manager
             config = get_config_manager().get_config()
-            if config.get('timezone_str'):
-                return config['timezone_str']
+            if config and config.get('timezone'):
+                tz = config['timezone']
+                logger.debug(f"Using timezone from ConfigManager: {tz}")
+                return tz
         except Exception as e:
             logger.debug(f"Could not get timezone from ConfigManager: {e}")
-            
-        # Third try: Direct config file read (fallback)
-        config_path = os.path.join('/app/config', 'bot_config.json')
-        if os.path.exists(config_path):
-            with open(config_path, 'r') as f:
-                config = json.load(f)
-                if config.get('timezone_str'):
-                    return config['timezone_str']
-                
-        # Third try: Default to Europe/Berlin
-        return 'Europe/Berlin'
+
+        # Final fallback: Default to UTC (safer than hardcoded Europe/Berlin)
+        logger.warning("All timezone detection methods failed, falling back to UTC")
+        return 'UTC'
+
     except Exception as e:
-        logger.error(f"Error in _get_timezone_safe: {e}")
-        return 'Europe/Berlin'
+        logger.error(f"Critical error in _get_timezone_safe: {e}", exc_info=True)
+        return 'UTC'
             
+def clear_timezone_cache():
+    """
+    Clear the cached timezone to force a fresh load from config.
+    Call this when the timezone setting is changed in the Web UI.
+    """
+    global _cached_timezone, _cache_timestamp
+    _cached_timezone = None
+    _cache_timestamp = None
+    logger.info("Timezone cache cleared - will reload from config on next access")
+
+def get_log_timestamp(include_tz: bool = True) -> str:
+    """
+    Get a formatted timestamp string for logging purposes.
+    Uses the configured timezone from Web UI.
+
+    Args:
+        include_tz: Whether to include timezone name in the output
+
+    Returns:
+        str: Formatted timestamp (e.g., '2024-01-15 14:30:45' or '2024-01-15 14:30:45 CET')
+    """
+    tz_name = get_configured_timezone()
+
+    try:
+        tz = pytz.timezone(tz_name)
+        now = datetime.now(tz)
+
+        if include_tz:
+            return now.strftime('%Y-%m-%d %H:%M:%S %Z')
+        else:
+            return now.strftime('%Y-%m-%d %H:%M:%S')
+    except Exception as e:
+        logger.error(f"Error formatting log timestamp: {e}")
+        # Fallback to UTC
+        now = datetime.now(timezone.utc)
+        return now.strftime('%Y-%m-%d %H:%M:%S UTC')
+
 def parse_timestamp(timestamp_str: str) -> Optional[datetime]:
     """
     Parse a timestamp string into a datetime object.

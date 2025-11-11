@@ -107,36 +107,28 @@
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-4 mb-2">
-                                <label for="button_start" class="form-label">Start Button</label>
+                                <label for="button_start" class="form-label">Start Button ▶️</label>
                                 <input type="number" class="form-control form-control-sm" id="button_start" value="10" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label for="button_stop" class="form-label">Stop Button</label>
+                                <label for="button_stop" class="form-label">Stop Button ⏹️</label>
                                 <input type="number" class="form-control form-control-sm" id="button_stop" value="10" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label for="button_restart" class="form-label">Restart Button</label>
+                                <label for="button_restart" class="form-label">Restart Button 🔄</label>
                                 <input type="number" class="form-control form-control-sm" id="button_restart" value="15" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label for="button_info" class="form-label">Info Button</label>
+                                <label for="button_info" class="form-label">Info Button ℹ️</label>
                                 <input type="number" class="form-control form-control-sm" id="button_info" value="3" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label for="button_refresh" class="form-label">Toggle Button ➕➖</label>
-                                <input type="number" class="form-control form-control-sm" id="button_refresh" value="5" min="0" max="300">
-                            </div>
-                            <div class="col-md-4 mb-2">
-                                <label for="button_logs" class="form-label">Live Logs Button</label>
+                                <label for="button_logs" class="form-label">Live Logs Button 📜</label>
                                 <input type="number" class="form-control form-control-sm" id="button_logs" value="10" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label for="button_live_refresh" class="form-label">Live Logs Refresh</label>
+                                <label for="button_live_refresh" class="form-label">Live Logs Refresh 🔄</label>
                                 <input type="number" class="form-control form-control-sm" id="button_live_refresh" value="3" min="0" max="300">
-                            </div>
-                            <div class="col-md-4 mb-2">
-                                <label for="button_auto_refresh" class="form-label">Auto-refresh Toggle</label>
-                                <input type="number" class="form-control form-control-sm" id="button_auto_refresh" value="5" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
                                 <label for="button_mech_expand" class="form-label">Mech Expand</label>
@@ -239,10 +231,8 @@ function saveSpamProtection() {
             stop: parseInt(document.getElementById('button_stop').value),
             restart: parseInt(document.getElementById('button_restart').value),
             info: parseInt(document.getElementById('button_info').value),
-            refresh: parseInt(document.getElementById('button_refresh').value),
             logs: parseInt(document.getElementById('button_logs').value),
             live_refresh: parseInt(document.getElementById('button_live_refresh').value),
-            auto_refresh: parseInt(document.getElementById('button_auto_refresh').value),
             mech_expand: parseInt(document.getElementById('button_mech_expand').value),
             mech_collapse: parseInt(document.getElementById('button_mech_collapse').value),
             mech_donate: parseInt(document.getElementById('button_mech_donate').value),

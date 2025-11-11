@@ -223,7 +223,7 @@ class ActionButton(Button):
         self.action = action
         self.server_config = server_config
         self.docker_name = server_config.get('docker_name')
-        self.display_name = server_config.get('name', self.docker_name)
+        self.display_name = server_config.get('display_name', self.docker_name)
         
         # Use cached static data for custom_id
         static_data = _get_container_static_data(self.display_name, self.docker_name)

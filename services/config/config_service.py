@@ -129,9 +129,9 @@ class ConfigService:
         # Cache and locks
         self._config_cache = {}
         self._cache_timestamps = {}
-        self._cache_lock = Lock()
         self._save_lock = Lock()
-        
+        self._cache_lock = Lock()
+
         # Token encryption cache
         self._token_cache = None
         self._token_cache_hash = None
@@ -540,9 +540,10 @@ class ConfigService:
             
         # Check cache first
         cache_key = hashlib.sha256(f"{encrypted_token}{password_hash}".encode()).hexdigest()
+
         if self._token_cache_hash == cache_key and self._token_cache:
             return self._token_cache
-            
+
         try:
             # Derive decryption key - using same method as old config_manager
             kdf = PBKDF2HMAC(

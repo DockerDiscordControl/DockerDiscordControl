@@ -303,6 +303,15 @@ class ConfigurationSaveService:
             if changes.language_changed:
                 self._clear_translation_cache(changes.old_language, changes.new_language)
 
+            # Clear timezone cache if timezone changed
+            if changes.timezone_changed:
+                try:
+                    from utils.time_utils import clear_timezone_cache
+                    clear_timezone_cache()
+                    self.logger.info("Timezone cache cleared due to timezone change")
+                except Exception as e:
+                    self.logger.error(f"Error clearing timezone cache: {e}")
+
         except Exception as e:
             self.logger.error(f"Error handling critical changes: {e}")
 

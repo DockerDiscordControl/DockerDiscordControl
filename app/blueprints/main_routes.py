@@ -592,7 +592,13 @@ def add_test_power():
         amount = data.get('amount', 0)
         donation_type = data.get('type', 'test')
         user = data.get('user', 'Test')
-        
+
+        # Validate amount is numeric
+        try:
+            amount = int(amount) if not isinstance(amount, int) else amount
+        except (ValueError, TypeError):
+            return jsonify({'error': f'Invalid amount: {amount} - must be numeric'}), 400
+
         # UNIFIED DONATION SERVICE: Centralized processing with guaranteed events
         from services.donation.unified_donation_service import process_test_donation
 
@@ -600,7 +606,7 @@ def add_test_power():
             # Add donation (positive only - negative testing requires special handling)
             if amount > 0:
                 # Use unified service for positive donations with automatic events
-                donation_result = process_test_donation(user, int(amount))
+                donation_result = process_test_donation(user, amount)
 
                 if not donation_result.success:
                     raise Exception(f"Test donation failed: {donation_result.error_message}")
@@ -615,8 +621,8 @@ def add_test_power():
                 current_state = _get_cached_mech_state(include_decimals=False)
                 if not current_state:
                     current_app.logger.error("Failed to get mech state for negative donation")
-                    current_state = None
-                
+                    return jsonify({'error': 'Failed to get mech state'}), 500
+
                 # Calculate new power (ensure it doesn't go below 0)
                 new_power = max(0, current_state.Power + amount)
                 
@@ -1028,10 +1034,53 @@ def donations_api():
             'error': str(e)
         })
 
-# Donation deletion removed - incompatible with Event Sourcing immutable events
+@main_bp.route('/api/donations/delete/<int:index>', methods=['POST'])
+@auth.login_required
+def delete_donation(index):
+    """
+    Delete a donation OR restore a deleted donation using Event Sourcing compensation events.
+
+    This is EVENT SOURCING COMPLIANT:
+    - For DonationAdded: Adds a DonationDeleted event (marks donation as deleted)
+    - For DonationDeleted: Adds another DonationDeleted event (restores original donation!)
+    - Rebuilds the snapshot from scratch, applying all active events
+    - All level-ups and costs are recalculated correctly
+    - Member counts are frozen at the correct historical moments
+    """
+    try:
+        from services.donation.donation_management_service import get_donation_management_service
+
+        service = get_donation_management_service()
+        result = service.delete_donation(index)
+
+        if result.success:
+            action = result.data.get('action', 'Deleted')
+            event_type = result.data.get('type', 'Unknown')
+            seq = result.data.get('deleted_seq', 'Unknown')
+
+            current_app.logger.info(f"{action} event at index {index} (seq {seq}, type {event_type})")
+
+            message = f"Event {action.lower()} successfully (seq #{seq})"
+            return jsonify({
+                'success': True,
+                'message': message
+            })
+        else:
+            current_app.logger.error(f"Failed to delete/restore event: {result.error}")
+            return jsonify({
+                'success': False,
+                'error': result.error
+            }), 400
+
+    except Exception as e:
+        current_app.logger.error(f"Error in delete/restore donation route: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': f"Error processing request: {str(e)}"
+        }), 500
 
 # ========================================
-# FIRST-TIME SETUP ROUTES  
+# FIRST-TIME SETUP ROUTES
 # ========================================
 
 @main_bp.route('/setup', methods=['GET'])

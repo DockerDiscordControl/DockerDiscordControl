@@ -674,7 +674,7 @@ class StatusHandlersMixin:
                         if hours > 0:
                             uptime_parts.append(f"{hours}h")
                         if minutes > 0 or (days == 0 and hours == 0):
-                             uptime_parts.append(f"{minutes}m")
+                            uptime_parts.append(f"{minutes}m")
                         uptime = " ".join(uptime_parts) if uptime_parts else "< 1m"
 
                     except ValueError as e:
@@ -685,14 +685,14 @@ class StatusHandlersMixin:
                 if details_allowed:
                     stats_dict = await get_docker_stats_service_first(docker_name)
                     if stats_dict and isinstance(stats_dict, dict):
-                         cpu_percent = stats_dict.get('cpu_percent', 0.0)
-                         memory_mb = stats_dict.get('memory_usage_mb', 0.0)
-                         cpu = f"{cpu_percent:.1f}%" if cpu_percent is not None else 'N/A'
-                         ram = f"{memory_mb:.1f} MB" if memory_mb is not None else 'N/A'
+                        cpu_percent = stats_dict.get('cpu_percent', 0.0)
+                        memory_mb = stats_dict.get('memory_usage_mb', 0.0)
+                        cpu = f"{cpu_percent:.1f}%" if cpu_percent is not None else 'N/A'
+                        ram = f"{memory_mb:.1f} MB" if memory_mb is not None else 'N/A'
                     else:
-                         logger.warning(f"Could not retrieve valid stats dict for running container {docker_name}")
-                         cpu = "N/A"
-                         ram = "N/A"
+                        logger.warning(f"Could not retrieve valid stats dict for running container {docker_name}")
+                        cpu = "N/A"
+                        ram = "N/A"
                 else:
                     cpu = _("Hidden")
                     ram = _("Hidden")
