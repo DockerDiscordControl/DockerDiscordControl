@@ -196,3 +196,4 @@ app/static/mech_sprites/
 # Fuel System Documentation (internal)
 FUEL_SYSTEM_MEMO.md
 FUEL_SYSTEM_FORMULAS.md
+config.backup_*/
