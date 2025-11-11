@@ -858,9 +858,9 @@ class ProgressService:
                 return compute_ui_state(snap), None
 
             # CHECK FOR DUPLICATE: Search event log for this campaign_id
-            all_events = get_events_for_mech(self.mech_id)
+            all_events = read_events()
             for evt in all_events:
-                if evt.type == "MonthlyGiftGranted":
+                if evt.type == "MonthlyGiftGranted" and evt.mech_id == self.mech_id:
                     existing_campaign = evt.payload.get("campaign_id")
                     if existing_campaign == campaign_id:
                         logger.info(f"Monthly gift skipped: campaign_id '{campaign_id}' already used")
