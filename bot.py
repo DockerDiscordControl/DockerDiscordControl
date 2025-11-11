@@ -398,8 +398,9 @@ async def on_ready():
             progress_service = get_progress_service()
             state = progress_service.get_state()
 
-            # Only initialize if Level 1 and member count not set yet
-            if state.level == 1:
+            # Always update member count on bot start for accurate calculations
+            # This ensures dynamic cost calculations are always correct
+            if True:  # Changed from "if state.level == 1:" to always update
                 from pathlib import Path
                 import json
                 snap_file = Path("config/progress/snapshots/main.json")
@@ -407,8 +408,8 @@ async def on_ready():
                     snap = json.loads(snap_file.read_text())
                     member_count = snap.get("last_user_count_sample", 0)
 
-                    if member_count == 0 or member_count is None:
-                        logger.info("🔒 Level 1 detected with no member count - initializing...")
+                    if member_count == 0 or member_count is None or state.level > 1:
+                        logger.info(f"🔒 Updating member count for Level {state.level}...")
 
                         # Try to get the first guild (status channel location)
                         if bot.guilds:
@@ -448,10 +449,25 @@ async def on_ready():
                                 logger.warning("No status channels found in config, using guild member count")
                                 initial_count = guild.member_count if guild.member_count else 1
 
-                            logger.info(f"🔒 FREEZING initial member count for Level 1: {initial_count} unique members")
+                            logger.info(f"🔒 UPDATING member count for Level {state.level}: {initial_count} unique members")
                             progress_service.update_member_count(initial_count)
 
-                            # CRITICAL: Also recalculate goal_requirement for Level 1 with new member count
+                            # Write member_count.json for other services to use
+                            import json
+                            from pathlib import Path
+                            from datetime import datetime
+                            member_count_file = Path("config/member_count.json")
+                            member_count_data = {
+                                "count": initial_count,
+                                "last_updated": datetime.utcnow().isoformat() + "Z",
+                                "source": "status_channels",
+                                "description": "Unique members across all status channels (bots excluded)",
+                                "note": "This count includes ONLY members who can see status channels, not all server members"
+                            }
+                            member_count_file.write_text(json.dumps(member_count_data, indent=2))
+                            logger.info(f"📝 Wrote member_count.json with {initial_count} status channel members")
+
+                            # CRITICAL: Also recalculate goal_requirement with new member count
                             # This ensures the goal is correct on bot start (not just on level-up)
                             from pathlib import Path
                             snap_file = Path("config/progress/snapshots/main.json")
@@ -472,15 +488,13 @@ async def on_ready():
                                 snap["difficulty_bin"] = current_bin(initial_count)
                                 snap_file.write_text(json.dumps(snap, indent=2))
 
-                                logger.info(f"✅ Level 1 goal updated: ${old_goal/100:.2f} → ${new_goal/100:.2f} (for {initial_count} members)")
+                                logger.info(f"✅ Level {snap['level']} goal updated: ${old_goal/100:.2f} → ${new_goal/100:.2f} (for {initial_count} members)")
 
-                            logger.info("✅ Level 1 member count initialized successfully")
+                            logger.info(f"✅ Member count updated successfully for Level {state.level}")
                     else:
-                        logger.info(f"Level 1 member count already set: {member_count} members")
+                        logger.info(f"Member count already set: {member_count} members")
                 else:
                     logger.warning("Snapshot file not found for member count initialization")
-            else:
-                logger.info(f"Current level is {state.level}, skipping Level 1 member count initialization")
 
         except Exception as e:
             logger.error(f"Error initializing Level 1 member count: {e}", exc_info=True)
