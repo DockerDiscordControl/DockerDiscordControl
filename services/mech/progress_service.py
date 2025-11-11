@@ -194,6 +194,8 @@ def today_local_str() -> str:
 
 def read_events() -> List[Event]:
     evts: List[Event] = []
+    if not EVENT_LOG.exists():
+        return evts  # Return empty list if file doesn't exist
     with open(EVENT_LOG, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -205,6 +207,8 @@ def read_events() -> List[Event]:
 
 
 def append_event(evt: Event) -> None:
+    # Ensure directory exists
+    EVENT_LOG.parent.mkdir(parents=True, exist_ok=True)
     with open(EVENT_LOG, "a", encoding="utf-8") as f:
         f.write(json.dumps(evt.to_json(), separators=(",", ":")) + "\n")
 
