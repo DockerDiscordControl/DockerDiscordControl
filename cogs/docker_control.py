@@ -3935,12 +3935,50 @@ class DonationBroadcastModal(discord.ui.Modal):
         try:
             # Get current mech state from progress_service (includes member-based dynamic costs)
             from services.mech.progress_service import get_progress_service
+            import json
+            from pathlib import Path
 
             progress_service = get_progress_service()
             state = progress_service.get_state()
 
-            # Calculate remaining amount needed for next level
-            needed_amount = state.evo_max - state.evo_current
+            # Get total donated from all event types (same as Web UI)
+            donations_map = {}
+            deletions_map = {}
+            event_log = Path("config/progress/events.jsonl")
+
+            if event_log.exists():
+                with open(event_log, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        if not line.strip():
+                            continue
+                        event = json.loads(line)
+                        event_type = event.get('type')
+
+                        if event_type in ['DonationAdded', 'PowerGiftGranted', 'SystemDonationAdded', 'ExactHitBonusGranted']:
+                            seq = event.get('seq')
+                            payload = event.get('payload', {})
+                            amount_key = 'units' if event_type == 'DonationAdded' else 'power_units'
+                            donations_map[seq] = {
+                                'amount': payload.get(amount_key, 0) / 100.0,
+                                'is_deleted': False
+                            }
+                        elif event_type == 'DonationDeleted':
+                            deleted_seq = event.get('payload', {}).get('deleted_seq')
+                            if deleted_seq:
+                                deletions_map[deleted_seq] = True
+
+            # Mark deleted donations
+            for deleted_seq in deletions_map:
+                if deleted_seq in donations_map:
+                    donations_map[deleted_seq]['is_deleted'] = True
+
+            # Calculate total from all events
+            total_donated = sum(d['amount'] for d in donations_map.values() if not d['is_deleted'])
+
+            # Use get_evolution_info to get accurate amount needed
+            from services.mech.mech_evolutions import get_evolution_info
+            evolution_data = get_evolution_info(total_donated)
+            needed_amount = evolution_data['amount_needed'] if evolution_data['amount_needed'] is not None else 0
 
             if needed_amount > 0 and state.level < 11:
                 # Format amount (remove trailing zeros)
