@@ -502,11 +502,21 @@ async def on_ready():
             if state.power_level > 0:
                 logger.info(f"✅ Power gift granted: ${state.power_level:.2f} Power")
 
-                # CRITICAL: Invalidate Mech cache so Status Overview shows updated power
+                # CRITICAL: Invalidate BOTH Mech caches so Status Overview shows updated power
+                # 1. Invalidate Cog-internal cache
                 docker_cog = bot.get_cog('DockerControlCog')
                 if docker_cog and hasattr(docker_cog, '_mech_status_cache_service'):
                     docker_cog._mech_status_cache_service.invalidate_cache()
-                    logger.info("🔄 Mech cache invalidated after power gift")
+                    logger.info("🔄 Cog-internal Mech cache invalidated after power gift")
+
+                # 2. Invalidate global cache service (used by Overview Message)
+                try:
+                    from services.mech.mech_status_cache_service import get_mech_status_cache_service
+                    global_cache = get_mech_status_cache_service()
+                    global_cache.invalidate_cache()
+                    logger.info("🔄 Global Mech cache invalidated after power gift")
+                except Exception as e:
+                    logger.warning(f"Could not invalidate global mech cache: {e}")
             else:
                 logger.info("Power gift not needed (power > 0 or already granted)")
 
