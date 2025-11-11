@@ -2377,19 +2377,20 @@ class MechHistoryButton(Button):
                 import time
                 current_time = time.time()
                 user_id = str(interaction.user.id)
+                # CRITICAL: Defer IMMEDIATELY to avoid "Unknown interaction" errors
+                # This must happen within 3 seconds, so do it BEFORE any checks
+                await interaction.response.defer(ephemeral=True)
+
                 last_click = getattr(self, f'_last_click_{user_id}', 0)
                 if current_time - last_click < cooldown:
-                    await interaction.response.send_message(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
+                    await interaction.followup.send(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
                     return
                 setattr(self, f'_last_click_{user_id}', current_time)
 
-            # Check if donations are disabled
+            # Check if donations are disabled (after defer, use followup)
             if is_donations_disabled():
-                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                await interaction.followup.send("❌ Mech system is currently disabled.", ephemeral=True)
                 return
-
-            # Quick defer within 3 seconds - then we have 15 minutes for processing
-            await interaction.response.defer(ephemeral=True)
 
             # Get current mech state using SERVICE FIRST
             from services.mech.mech_service import get_mech_service, GetMechStateRequest
