@@ -485,43 +485,27 @@ async def on_ready():
         except Exception as e:
             logger.error(f"Error initializing Level 1 member count: {e}", exc_info=True)
 
-        # WELCOME BONUS: Give one-time $4.00 power bonus (no evolution impact)
-        # TEMPORARILY DISABLED - debugging startup hang
-        # try:
-        #     logger.info("Checking if welcome bonus should be granted...")
-        #     from pathlib import Path
-        #     import json
-        #     from services.mech.progress_service import get_progress_service
-        #
-        #     snap_file = Path("config/progress/snapshots/main.json")
-        #     if snap_file.exists():
-        #         snap = json.loads(snap_file.read_text())
-        #         welcome_bonus_given = snap.get("welcome_bonus_given", False)
-        #
-        #         if not welcome_bonus_given:
-        #             logger.info("🎁 First-time startup detected - granting welcome bonus...")
-        #
-        #             # Get progress service instance and add $4.00 as system donation
-        #             progress_service = get_progress_service()
-        #             progress_service.add_system_donation(
-        #                 amount_dollars=4.0,
-        #                 event_name="Welcome Bonus",
-        #                 description="One-time startup bonus - Thank you for using DDC! 🖤",
-        #                 idempotency_key="welcome_bonus_v1"
-        #             )
-        #
-        #             # Mark welcome bonus as given in snapshot
-        #             snap["welcome_bonus_given"] = True
-        #             snap_file.write_text(json.dumps(snap, indent=2))
-        #
-        #             logger.info("✅ Welcome bonus granted: +$4.00 Power (Evolution unaffected)")
-        #         else:
-        #             logger.info("Welcome bonus already granted, skipping")
-        #     else:
-        #         logger.warning("Snapshot file not found for welcome bonus check")
-        #
-        # except Exception as e:
-        #     logger.error(f"Error granting welcome bonus: {e}", exc_info=True)
+        # POWER GIFT: Grant one-time power gift (1-3$) when power is 0
+        # Uses event sourcing to ensure it's only given ONCE per campaign
+        try:
+            logger.info("Checking if power gift should be granted...")
+            from services.mech.mech_service_adapter import get_mech_service
+
+            # Use a fixed campaign_id that won't change on restart
+            # This ensures the gift is only given once EVER
+            campaign_id = "startup_gift_v1"
+
+            adapter = get_mech_service()
+            state = adapter.monthly_gift(campaign_id)
+
+            # Check if gift was actually granted (power changed from 0)
+            if state.power_level > 0:
+                logger.info(f"✅ Power gift granted: ${state.power_level:.2f} Power")
+            else:
+                logger.info("Power gift not needed (power > 0 or already granted)")
+
+        except Exception as e:
+            logger.error(f"Error checking/granting power gift: {e}", exc_info=True)
 
         _initial_startup_done = True # Prevents re-execution
         logger.info("Initialization complete.")

@@ -847,7 +847,7 @@ class ProgressService:
             return compute_ui_state(snap)
 
     def monthly_gift(self, campaign_id: str) -> Tuple[ProgressState, Optional[int]]:
-        """Grant monthly gift if power is 0. Returns (state, gift_dollars or None)"""
+        """Grant monthly gift if power is 0 AND campaign hasn't been used. Returns (state, gift_dollars or None)"""
         with LOCK:
             snap = load_snapshot(self.mech_id)
             apply_decay_on_demand(snap)
@@ -856,6 +856,16 @@ class ProgressService:
                 logger.info(f"Monthly gift skipped: power > 0")
                 persist_snapshot(snap)
                 return compute_ui_state(snap), None
+
+            # CHECK FOR DUPLICATE: Search event log for this campaign_id
+            all_events = get_events_for_mech(self.mech_id)
+            for evt in all_events:
+                if evt.type == "MonthlyGiftGranted":
+                    existing_campaign = evt.payload.get("campaign_id")
+                    if existing_campaign == campaign_id:
+                        logger.info(f"Monthly gift skipped: campaign_id '{campaign_id}' already used")
+                        persist_snapshot(snap)
+                        return compute_ui_state(snap), None
 
             gift_cents = deterministic_gift_1_3(self.mech_id, campaign_id)
 
