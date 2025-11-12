@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+from pathlib import Path
 from typing import Mapping, Optional
 
 from flask import Flask
@@ -25,7 +26,12 @@ def create_app(test_config: Optional[Mapping[str, object]] = None) -> Flask:
     bootstrap_logger = logging.getLogger("app.web.bootstrap")
     initialize_gevent(bootstrap_logger)
 
-    app = Flask(__name__)
+    # Resolve template and static folders relative to app/ directory
+    app_dir = Path(__file__).parent.parent
+    template_folder = str(app_dir / "templates")
+    static_folder = str(app_dir / "static")
+
+    app = Flask("app", template_folder=template_folder, static_folder=static_folder)
     config = build_config(os.environ, test_config)
     app.config.update(config)
 
