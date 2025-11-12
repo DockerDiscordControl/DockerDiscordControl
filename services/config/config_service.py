@@ -292,18 +292,12 @@ class ConfigService:
 
         except ValueError as e:
             logger.error(f"Token encryption failed - invalid input: {e}", exc_info=True)
-            raise TokenEncryptionError(
-                "Token encryption failed due to invalid input",
-                error_code="ENCRYPTION_INVALID_INPUT",
-                details={'error': str(e)}
-            )
+            # Return None for backward compatibility (don't raise)
+            return None
         except Exception as e:
             logger.error(f"Token encryption failed: {e}", exc_info=True)
-            raise TokenEncryptionError(
-                f"Token encryption failed: {str(e)}",
-                error_code="ENCRYPTION_FAILED",
-                details={'error_type': type(e).__name__}
-            )
+            # Return None for backward compatibility (don't raise)
+            return None
     
     def decrypt_token(self, encrypted_token: str, password_hash: str) -> Optional[str]:
         """Decrypt a Discord bot token using password hash."""
@@ -347,25 +341,16 @@ class ConfigService:
 
         except InvalidToken as e:
             logger.warning("Failed to decrypt token: Invalid token or key (password change?)")
-            raise TokenEncryptionError(
-                "Token decryption failed - invalid token or password hash",
-                error_code="DECRYPTION_INVALID_TOKEN",
-                details={'hint': 'Password may have been changed'}
-            )
+            # Return None for backward compatibility (don't raise)
+            return None
         except ValueError as e:
             logger.error(f"Token decryption failed - invalid input: {e}", exc_info=True)
-            raise TokenEncryptionError(
-                "Token decryption failed due to invalid input",
-                error_code="DECRYPTION_INVALID_INPUT",
-                details={'error': str(e)}
-            )
+            # Return None for backward compatibility (don't raise)
+            return None
         except Exception as e:
             logger.error(f"Token decryption failed: {e}", exc_info=True)
-            raise TokenEncryptionError(
-                f"Token decryption failed: {str(e)}",
-                error_code="DECRYPTION_FAILED",
-                details={'error_type': type(e).__name__}
-            )
+            # Return None for backward compatibility (don't raise)
+            return None
     
     # === Private Helper Methods ===
     
@@ -410,17 +395,10 @@ class ConfigService:
                 decrypted = self.decrypt_token(token, password_hash)
                 if decrypted and self._validation_service.looks_like_discord_token(decrypted):
                     return decrypted
-            except TokenEncryptionError as e:
-                logger.error(f"Token decryption failed: {e.message}", exc_info=True)
-                # Re-raise to propagate structured error
-                raise
             except Exception as e:
-                logger.error(f"Unexpected error during token decryption: {e}", exc_info=True)
-                raise TokenEncryptionError(
-                    f"Unexpected token decryption error: {str(e)}",
-                    error_code="DECRYPTION_UNEXPECTED_ERROR",
-                    details={'error_type': type(e).__name__}
-                )
+                logger.error(f"Token decryption failed: {e}", exc_info=True)
+                # Return None on decryption failure
+                return None
 
         # Return plaintext token as-is if it looks like a Discord token
         return token
