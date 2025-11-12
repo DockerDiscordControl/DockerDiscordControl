@@ -21,7 +21,10 @@
       "Bash(curl:*)",
       "Bash(git commit:*)",
       "Bash(cat:*)",
-      "Bash(git merge-base:*)"
+      "Bash(git merge-base:*)",
+      "Bash(git push:*)",
+      "Bash(DDC_WEB_PORT=5011 python3:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []

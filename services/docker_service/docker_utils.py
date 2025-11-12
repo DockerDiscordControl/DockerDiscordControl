@@ -149,7 +149,7 @@ def load_custom_timeout_config():
                 return _custom_timeout_config
         else:
             logger.debug(f"Custom timeout config file not found at {config_path}")
-    except Exception as e:
+    except (json.JSONDecodeError, IOError, OSError, ValueError) as e:
         logger.warning(f"Failed to load custom timeout config: {e}")
     
     return None
@@ -351,7 +351,7 @@ def get_docker_client_async(timeout: float = None, operation: str = 'default', c
             # SERVICE FIRST: Use new Docker Client Service with backward compatibility context manager
             from .docker_client_pool import get_docker_client_async
             return get_docker_client_async(timeout=timeout, operation=operation, container_name=container_name)
-        except Exception as e:
+        except (ImportError, AttributeError, RuntimeError) as e:
             logger.warning(f"Connection pool failed, falling back: {e}")
     
     # Fallback to individual client creation
@@ -367,8 +367,9 @@ def get_docker_client_async(timeout: float = None, operation: str = 'default', c
             if client:
                 try:
                     await asyncio.to_thread(client.close)
-                except:
-                    pass
+                except (OSError, RuntimeError, AttributeError) as e:
+                    # Client close errors are non-critical - just log
+                    logger.debug(f"Error closing Docker client: {e}")
     
     return individual_client
 
@@ -409,22 +410,22 @@ def get_docker_client():
         _client_last_used = current_time
         return _docker_client
 
-    except Exception as e1:
+    except (docker.errors.DockerException, OSError, RuntimeError) as e1:
         logger.warning(f"docker.from_env() failed: {e1}")
-        
+
         try:
             # Method 2: Direct socket path
             logger.info("Trying direct socket path...")
             _docker_client = docker.DockerClient(base_url='unix:///var/run/docker.sock', timeout=int(DEFAULT_CONTAINER_LIST_TIMEOUT))
-            
+
             # Quick ping test
             _docker_client.ping()
             logger.info("✅ Docker client created successfully with direct socket")
-            
+
             _client_last_used = current_time
             return _docker_client
-            
-        except Exception as e2:
+
+        except (docker.errors.DockerException, OSError, RuntimeError) as e2:
             logger.error(f"All Docker client methods failed: docker.from_env()={e1}, direct_socket={e2}")
             _docker_client = None
             return None
@@ -442,18 +443,18 @@ def release_docker_client(client=None):
             pool = get_docker_client_service()
             pool._release_client(client)
             logger.debug("Released Docker client back to connection pool")
-        except Exception as e:
+        except (AttributeError, RuntimeError, ValueError) as e:
             logger.debug(f"Error releasing client to pool: {e}")
     else:
         # Legacy client release
         global _docker_client, _client_last_used
-        
+
         if _docker_client is not None and (time.time() - _client_last_used > _CLIENT_TIMEOUT):
             try:
                 _docker_client.close()
                 logger.info("Released Docker client due to inactivity.")
                 _docker_client = None
-            except Exception as e:
+            except (OSError, RuntimeError, AttributeError) as e:
                 logger.debug(f"Error during client release: {e}")
 
 class DockerError(Exception):
@@ -517,8 +518,11 @@ async def get_docker_stats(docker_container_name: str) -> Tuple[Optional[str], O
                 elif elapsed_time > 2000:  # Over 2 seconds
                     logger.debug(f"Slow stats call for {docker_container_name}: {elapsed_time:.1f}ms")
                 
-            except Exception as e:
-                logger.warning(f"Error getting stats for {docker_container_name}: {e}")
+            except asyncio.TimeoutError:
+                logger.warning(f"Timeout getting stats for {docker_container_name}")
+                return None, None
+            except (docker.errors.DockerException, OSError, RuntimeError) as e:
+                logger.warning(f"Docker error getting stats for {docker_container_name}: {e}")
                 return None, None
 
             cpu_usage = stats.get('cpu_stats', {}).get('cpu_usage', {}).get('total_usage', 0)
@@ -553,7 +557,10 @@ async def get_docker_stats(docker_container_name: str) -> Tuple[Optional[str], O
     except docker.errors.NotFound:
         logger.warning(f"Container '{docker_container_name}' not found during stats retrieval.")
         return None, None
-    except Exception as e:
+    except asyncio.TimeoutError:
+        logger.error(f"Timeout getting Docker stats for {docker_container_name}")
+        return None, None
+    except (docker.errors.DockerException, OSError, RuntimeError, KeyError, ValueError) as e:
         logger.error(f"Error getting Docker stats for {docker_container_name}: {e}", exc_info=True)
         return None, None
 
@@ -596,8 +603,11 @@ async def get_docker_info(docker_container_name: str) -> Optional[Dict[str, Any]
     except docker.errors.NotFound:
         logger.warning(f"Container '{docker_container_name}' not found.")
         return None
-    except Exception as e:
-        logger.error(f"Unexpected error in get_docker_info for '{docker_container_name}': {e}", exc_info=True)
+    except asyncio.TimeoutError:
+        logger.error(f"Timeout getting info for '{docker_container_name}'")
+        return None
+    except (docker.errors.DockerException, OSError, RuntimeError) as e:
+        logger.error(f"Docker error in get_docker_info for '{docker_container_name}': {e}", exc_info=True)
         return None
 
 async def docker_action(docker_container_name: str, action: str) -> bool:
@@ -628,8 +638,11 @@ async def docker_action(docker_container_name: str, action: str) -> bool:
     except docker.errors.NotFound:
         logger.warning(f"Container '{docker_container_name}' not found for action '{action}'.")
         return False
-    except Exception as e:
-        logger.error(f"Unexpected error during docker action '{action}' on '{docker_container_name}': {e}", exc_info=True)
+    except asyncio.TimeoutError:
+        logger.error(f"Timeout during docker action '{action}' on '{docker_container_name}'")
+        return False
+    except (docker.errors.DockerException, docker.errors.APIError, OSError, RuntimeError) as e:
+        logger.error(f"Docker error during action '{action}' on '{docker_container_name}': {e}", exc_info=True)
         return False
 
 _containers_cache = None
@@ -643,7 +656,7 @@ def _get_cache_ttl() -> int:
         config = load_config()
         advanced_settings = config.get('advanced_settings', {})
         return int(advanced_settings.get('DDC_DOCKER_CACHE_DURATION', 30))
-    except Exception:
+    except (ConfigLoadError, KeyError, ValueError, TypeError):
         return 30  # Default fallback
 
 _CACHE_TTL = _get_cache_ttl()  # Load from Advanced Settings (typically 30s)
@@ -668,12 +681,15 @@ async def list_docker_containers() -> List[Dict[str, Any]]:
                 except docker.errors.NotFound:
                      logger.warning(f"Could not get full details for a listed container (possibly removed during listing): {container.id}")
                      continue
-                except Exception as e_inner:
+                except (AttributeError, KeyError, IndexError) as e_inner:
                      logger.warning(f"Error processing container {container.id} in list: {e_inner}")
                      continue
             return sorted(containers, key=lambda x: x.get('name', '').lower())
-    except Exception as e:
-        logger.error(f"Unexpected error listing Docker containers: {e}", exc_info=True)
+    except asyncio.TimeoutError:
+        logger.error("Timeout listing Docker containers")
+        return []
+    except (docker.errors.DockerException, OSError, RuntimeError) as e:
+        logger.error(f"Docker error listing containers: {e}", exc_info=True)
         return []
 
 async def is_container_exists(docker_container_name: str) -> bool:
