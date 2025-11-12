@@ -1091,7 +1091,7 @@ def setup_page():
     # Only allow setup if no password hash exists
     if config.get('web_ui_password_hash') is not None:
         flash('Setup is only available for first-time installation. System is already configured.', 'error')
-        return redirect(url_for('main_bp.index'))
+        return redirect(url_for('main_bp.config_page'))
     
     return render_template('setup.html')
 
