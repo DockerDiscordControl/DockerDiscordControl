@@ -10,6 +10,7 @@ Complete documentation for DockerDiscordControl.
 | [CONFIGURATION.md](CONFIGURATION.md) | Configuration guide with examples |
 | [EXAMPLES.md](EXAMPLES.md) | Practical code examples |
 | [ERROR_HANDLING.md](ERROR_HANDLING.md) | Exception handling guide |
+| [PERFORMANCE.md](PERFORMANCE.md) | Performance testing and monitoring guide |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
 | [SECURITY.md](SECURITY.md) | Security best practices |
 
@@ -27,6 +28,7 @@ Complete documentation for DockerDiscordControl.
 - **Service Architecture**: [SERVICES.md](SERVICES.md)
 - **Code Examples**: [EXAMPLES.md](EXAMPLES.md)
 - **Error Handling**: [ERROR_HANDLING.md](ERROR_HANDLING.md)
+- **Performance Testing**: [PERFORMANCE.md](PERFORMANCE.md)
 - **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Documentation Overview
@@ -85,6 +87,19 @@ Exception handling guide:
 - Migration guide
 
 **When to read**: Implementing error handling or debugging issues.
+
+### PERFORMANCE.md
+
+Performance testing and monitoring guide:
+
+- Performance tests for all critical services
+- Performance baselines and thresholds
+- CI/CD performance gates (GitHub Actions)
+- Lightweight metrics logging system
+- Running and interpreting performance tests
+- Optimization guide for slow operations
+
+**When to read**: Writing performance tests, optimizing code, or investigating slow operations.
 
 ### CONTRIBUTING.md
 
