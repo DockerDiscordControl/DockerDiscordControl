@@ -12,6 +12,7 @@ Complete documentation for DockerDiscordControl.
 | [ERROR_HANDLING.md](ERROR_HANDLING.md) | Exception handling guide |
 | [PERFORMANCE.md](PERFORMANCE.md) | Performance testing and monitoring guide |
 | [CODE_QUALITY.md](CODE_QUALITY.md) | Code quality standards and tools |
+| [DEPENDENCIES.md](DEPENDENCIES.md) | Dependency management and service hierarchy |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
 | [SECURITY.md](SECURITY.md) | Security best practices |
 
@@ -31,6 +32,7 @@ Complete documentation for DockerDiscordControl.
 - **Error Handling**: [ERROR_HANDLING.md](ERROR_HANDLING.md)
 - **Performance Testing**: [PERFORMANCE.md](PERFORMANCE.md)
 - **Code Quality**: [CODE_QUALITY.md](CODE_QUALITY.md)
+- **Dependency Management**: [DEPENDENCIES.md](DEPENDENCIES.md)
 - **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Documentation Overview
@@ -115,6 +117,19 @@ Code quality standards and tools:
 - Configuration files (.pylintrc, .flake8, mypy.ini)
 
 **When to read**: Ensuring code quality, preparing pull requests, or improving existing code.
+
+### DEPENDENCIES.md
+
+Dependency management and service hierarchy guide:
+
+- Service hierarchy and layered architecture
+- Dependency rules (allowed and prohibited patterns)
+- Circular import detection tool
+- Dependency graph generation
+- Import guidelines and best practices
+- CI/CD dependency checks
+
+**When to read**: Understanding service dependencies, checking for circular imports, or planning new services.
 
 ### CONTRIBUTING.md
 
