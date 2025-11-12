@@ -1311,24 +1311,23 @@ class ConfigService:
     def get_evolution_mode_service(self, request: GetEvolutionModeRequest) -> GetEvolutionModeResult:
         """SERVICE FIRST: Get evolution mode configuration with Request/Result pattern."""
         try:
-            # Load evolution mode from config/evolution_mode.json
+            # SERVICE FIRST: Use internal helper for consistent file loading
             config_path = Path("config/evolution_mode.json")
 
-            if config_path.exists():
-                with config_path.open('r', encoding='utf-8') as f:
-                    mode_config = json.load(f)
-                    return GetEvolutionModeResult(
-                        success=True,
-                        use_dynamic=mode_config.get('use_dynamic', True),
-                        difficulty_multiplier=mode_config.get('difficulty_multiplier', 1.0)
-                    )
-            else:
-                # Default: Dynamic evolution system active
-                return GetEvolutionModeResult(
-                    success=True,
-                    use_dynamic=True,
-                    difficulty_multiplier=1.0
-                )
+            # Default fallback
+            default_config = {
+                'use_dynamic': True,
+                'difficulty_multiplier': 1.0
+            }
+
+            # Use internal _load_json_file for consistent error handling
+            mode_config = self._load_json_file(config_path, default_config)
+
+            return GetEvolutionModeResult(
+                success=True,
+                use_dynamic=mode_config.get('use_dynamic', True),
+                difficulty_multiplier=mode_config.get('difficulty_multiplier', 1.0)
+            )
 
         except Exception as e:
             logger.error(f"Error getting evolution mode via service: {e}", exc_info=True)

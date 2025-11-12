@@ -127,6 +127,48 @@ SPEED_DESCRIPTIONS = {
     101: ("REALITY-BENDING OMNISPEED", "#ff00ff")  # OMEGA MECH at full power - THE ULTIMATE ACHIEVEMENT!
 }
 
+def _get_evolution_context(donation_amount: float) -> tuple:
+    """
+    HELPER: Get evolution level and max power for a donation amount.
+
+    Single source of truth for evolution context retrieval.
+
+    Args:
+        donation_amount: Amount in dollars
+
+    Returns:
+        Tuple of (evolution_level, max_power_for_level)
+
+    Raises:
+        ImportError: If mech_evolutions module is not available
+    """
+    from services.mech.mech_evolutions import get_evolution_level, get_evolution_level_info
+
+    evolution_level = get_evolution_level(donation_amount)
+    evolution_level_info = get_evolution_level_info(evolution_level)
+
+    if not evolution_level_info:
+        raise ValueError(f"Unknown evolution level: {evolution_level}")
+
+    return evolution_level, evolution_level_info.power_max
+
+
+def _calculate_power_ratio(power_amount: float, max_power: float) -> float:
+    """
+    HELPER: Calculate power ratio capped at 1.0.
+
+    Single source of truth for power ratio calculation.
+
+    Args:
+        power_amount: Current power amount
+        max_power: Maximum power for level
+
+    Returns:
+        Power ratio between 0.0 and 1.0
+    """
+    return min(1.0, power_amount / max_power)
+
+
 def _calculate_speed_level_from_power_ratio(current_level: int, power_amount: float, max_power_for_level: float) -> int:
     """
     HELPER: Calculate speed level based on power ratio within current evolution level.
@@ -134,7 +176,7 @@ def _calculate_speed_level_from_power_ratio(current_level: int, power_amount: fl
     This consolidates the speed calculation logic used in multiple places.
     """
     # Calculate speed level based on power ratio within current evolution level
-    power_ratio = min(1.0, power_amount / max_power_for_level)
+    power_ratio = _calculate_power_ratio(power_amount, max_power_for_level)
 
     # SPECIAL CASE: Level 11 (OMEGA MECH) can reach speed level 101!
     if current_level == 11 and power_ratio >= 1.0:
@@ -165,21 +207,10 @@ def get_speed_info(donation_amount: float) -> tuple:
         return SPEED_DESCRIPTIONS[0]
 
     try:
-        # For arbitrary power values, calculate speed level directly using evolution system
-        from services.mech.mech_evolutions import get_evolution_level, get_evolution_level_info
+        # Get evolution context using helper (DRY)
+        evolution_level, max_power_for_level = _get_evolution_context(donation_amount)
 
-        # Get evolution level from donation amount
-        evolution_level = get_evolution_level(donation_amount)
-
-        # Get evolution-specific max power
-        evolution_level_info = get_evolution_level_info(evolution_level)
-        if not evolution_level_info:
-            # Fallback for unknown levels
-            return SPEED_DESCRIPTIONS[1]
-
-        max_power_for_level = evolution_level_info.power_max
-
-        # Use consolidated speed level calculation
+        # Calculate speed level using consolidated logic
         level = _calculate_speed_level_from_power_ratio(evolution_level, donation_amount, max_power_for_level)
         return SPEED_DESCRIPTIONS.get(level, SPEED_DESCRIPTIONS[0])
 
@@ -274,23 +305,13 @@ def get_combined_mech_status(Power_amount: float, total_donations_received: floa
     # Get speed info based on POWER amount
     speed_description, speed_color = get_speed_info(Power_amount)
 
-    # Calculate speed level directly for arbitrary power values
+    # Calculate speed level using helper (DRY)
     try:
-        from services.mech.mech_evolutions import get_evolution_level, get_evolution_level_info
+        # Get evolution context using helper
+        evolution_level, max_power_for_level = _get_evolution_context(total_donations_received)
 
-        # Get evolution level from total donations
-        evolution_level = get_evolution_level(total_donations_received)
-
-        # Get evolution-specific max power
-        evolution_level_info = get_evolution_level_info(evolution_level)
-        if evolution_level_info:
-            max_power_for_level = evolution_level_info.power_max
-
-            # Use consolidated speed level calculation
-            speed_level = _calculate_speed_level_from_power_ratio(evolution_level, Power_amount, max_power_for_level)
-        else:
-            # Fallback for unknown levels
-            speed_level = min(int(Power_amount), 100)
+        # Calculate speed level using consolidated logic
+        speed_level = _calculate_speed_level_from_power_ratio(evolution_level, Power_amount, max_power_for_level)
 
     except Exception as e:
         # Fallback to simple calculation
