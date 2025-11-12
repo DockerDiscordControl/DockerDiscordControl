@@ -11,6 +11,12 @@ import os
 import json
 import threading
 
+# Import custom exceptions
+from services.exceptions import (
+    DockerServiceError, DockerConnectionError, DockerCommandTimeoutError,
+    ContainerNotFoundError, ContainerActionError, ConfigLoadError
+)
+
 # Logger for Docker utils
 logger = setup_logger('ddc.docker_utils', level=logging.INFO)
 
@@ -46,12 +52,13 @@ def _load_timeout_from_config(config_key: str, env_key: str, default: str) -> fl
                 logger.info(f"Overriding {config_key} from {config_value}s to 45s due to Docker daemon performance")
                 return 45.0
             if config_key == 'DDC_FAST_INFO_TIMEOUT' and config_value < 30:
-                logger.info(f"Overriding {config_key} from {config_value}s to 45s due to Docker daemon performance") 
+                logger.info(f"Overriding {config_key} from {config_value}s to 45s due to Docker daemon performance")
                 return 45.0
             return config_value
-    except Exception:
-        pass  # Fall back to environment variable
-    
+    except (ConfigLoadError, KeyError, ValueError, TypeError) as e:
+        # Config loading/parsing errors - fall back to environment variable
+        logger.debug(f"Config load failed for {config_key}, using env/default: {e}")
+
     return float(os.environ.get(env_key, default))
 
 # Load timeout values with Advanced Settings integration

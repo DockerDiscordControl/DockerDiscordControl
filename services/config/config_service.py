@@ -309,14 +309,11 @@ class ConfigService:
                 # Invalidate cache using cache service
                 try:
                     self._cache_service.invalidate_cache()
-                except Exception as cache_error:
+                except (ConfigCacheError, IOError, OSError) as cache_error:
                     # Cache invalidation failure is not critical
                     logger.warning(f"Cache invalidation failed (non-critical): {cache_error}")
-                    raise ConfigCacheError(
-                        "Failed to invalidate config cache",
-                        error_code="CACHE_INVALIDATION_FAILED",
-                        details={'original_error': str(cache_error)}
-                    )
+                    # Don't re-raise since this is non-critical
+                    # Original code raised but that seems wrong for "non-critical"
 
                 return ConfigServiceResult(
                     success=True,
@@ -359,12 +356,18 @@ class ConfigService:
 
         except ValueError as e:
             logger.error(f"Token encryption failed - invalid input: {e}", exc_info=True)
-            # Return None for backward compatibility (don't raise)
-            return None
-        except Exception as e:
-            logger.error(f"Token encryption failed: {e}", exc_info=True)
-            # Return None for backward compatibility (don't raise)
-            return None
+            raise TokenEncryptionError(
+                f"Invalid input for token encryption: {e}",
+                error_code="TOKEN_ENCRYPTION_INVALID_INPUT",
+                details={'error': str(e)}
+            )
+        except (TypeError, AttributeError) as e:
+            logger.error(f"Token encryption failed - type error: {e}", exc_info=True)
+            raise TokenEncryptionError(
+                f"Token encryption type error: {e}",
+                error_code="TOKEN_ENCRYPTION_TYPE_ERROR",
+                details={'error': str(e)}
+            )
     
     def decrypt_token(self, encrypted_token: str, password_hash: str) -> Optional[str]:
         """Decrypt a Discord bot token using password hash."""
@@ -378,7 +381,7 @@ class ConfigService:
             if cached_token:
                 logger.debug("Token retrieved from cache")
                 return cached_token
-        except Exception as cache_error:
+        except (ConfigCacheError, IOError, OSError, KeyError) as cache_error:
             # Cache errors are non-critical, continue with decryption
             logger.warning(f"Token cache lookup failed (non-critical): {cache_error}")
 
@@ -400,7 +403,7 @@ class ConfigService:
             # Cache successful decryption using cache service
             try:
                 self._cache_service.set_cached_token(encrypted_token, password_hash, decrypted_token)
-            except Exception as cache_error:
+            except (ConfigCacheError, IOError, OSError) as cache_error:
                 # Cache errors are non-critical
                 logger.warning(f"Token cache set failed (non-critical): {cache_error}")
 
@@ -408,16 +411,25 @@ class ConfigService:
 
         except InvalidToken as e:
             logger.warning("Failed to decrypt token: Invalid token or key (password change?)")
-            # Return None for backward compatibility (don't raise)
-            return None
+            raise TokenEncryptionError(
+                "Invalid token or encryption key",
+                error_code="TOKEN_DECRYPTION_INVALID_TOKEN",
+                details={'error': 'Token may have been encrypted with different key'}
+            )
         except ValueError as e:
             logger.error(f"Token decryption failed - invalid input: {e}", exc_info=True)
-            # Return None for backward compatibility (don't raise)
-            return None
-        except Exception as e:
-            logger.error(f"Token decryption failed: {e}", exc_info=True)
-            # Return None for backward compatibility (don't raise)
-            return None
+            raise TokenEncryptionError(
+                f"Invalid input for token decryption: {e}",
+                error_code="TOKEN_DECRYPTION_INVALID_INPUT",
+                details={'error': str(e)}
+            )
+        except (TypeError, AttributeError, UnicodeDecodeError) as e:
+            logger.error(f"Token decryption failed - type/encoding error: {e}", exc_info=True)
+            raise TokenEncryptionError(
+                f"Token decryption type/encoding error: {e}",
+                error_code="TOKEN_DECRYPTION_TYPE_ERROR",
+                details={'error': str(e)}
+            )
     
     # === Private Helper Methods ===
     
@@ -436,13 +448,13 @@ class ConfigService:
             logger.error(f"Invalid JSON in {file_path}: {e}", exc_info=True)
             # Return defaults on JSON parse errors
             return default.copy()
-        except IOError as e:
-            logger.error(f"I/O error loading {file_path}: {e}", exc_info=True)
+        except (IOError, OSError, PermissionError) as e:
+            logger.error(f"File access error loading {file_path}: {e}", exc_info=True)
             # Return defaults on I/O errors
             return default.copy()
-        except Exception as e:
-            logger.error(f"Unexpected error loading {file_path}: {e}", exc_info=True)
-            # Return defaults on unexpected errors
+        except (TypeError, AttributeError, UnicodeDecodeError) as e:
+            logger.error(f"Data format error loading {file_path}: {e}", exc_info=True)
+            # Return defaults on data format errors
             return default.copy()
     
     def _save_json_file(self, file_path: Path, data: Dict[str, Any]) -> None:
@@ -462,8 +474,8 @@ class ConfigService:
                 decrypted = self.decrypt_token(token, password_hash)
                 if decrypted and self._validation_service.looks_like_discord_token(decrypted):
                     return decrypted
-            except Exception as e:
-                logger.error(f"Token decryption failed: {e}", exc_info=True)
+            except TokenEncryptionError as e:
+                logger.error(f"Token decryption failed: {e.message}", exc_info=True)
                 # Return None on decryption failure
                 return None
 
@@ -511,11 +523,11 @@ class ConfigService:
                     success=True,
                     config=config
                 )
-            except Exception as retry_error:
-                logger.error(f"Retry after cache error failed: {retry_error}", exc_info=True)
+            except ConfigLoadError as retry_error:
+                logger.error(f"Retry after cache error failed: {retry_error.message}", exc_info=True)
                 return GetConfigResult(
                     success=False,
-                    error_message=f"Failed to load config after cache error: {str(retry_error)}"
+                    error_message=f"Failed to load config after cache error: {retry_error.message}"
                 )
         except Exception as e:
             logger.error(f"Unexpected error getting config via service: {e}", exc_info=True)
