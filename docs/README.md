@@ -1,319 +1,184 @@
-# DockerDiscordControl API Documentation
+# DDC Documentation
 
-This directory contains the complete API documentation for DockerDiscordControl, generated using Sphinx.
+Complete documentation for DockerDiscordControl.
 
-## Documentation Structure
+## Documentation Files
 
-```
-docs/
-├── source/              # Sphinx source files (RST format)
-│   ├── index.rst       # Main documentation index
-│   ├── examples.rst    # Usage examples
-│   ├── services/       # Service API documentation
-│   │   ├── index.rst
-│   │   └── config_services.rst
-│   ├── api/            # Auto-generated API docs
-│   ├── _static/        # Static files (CSS, images)
-│   └── _templates/     # Custom Sphinx templates
-├── build/              # Generated HTML documentation
-│   └── html/          # HTML output
-└── README.md           # This file
-```
+| File | Description |
+|------|-------------|
+| [SERVICES.md](SERVICES.md) | Service architecture and API reference |
+| [CONFIGURATION.md](CONFIGURATION.md) | Configuration guide with examples |
+| [EXAMPLES.md](EXAMPLES.md) | Practical code examples |
+| [ERROR_HANDLING.md](ERROR_HANDLING.md) | Exception handling guide |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
+| [SECURITY.md](SECURITY.md) | Security best practices |
 
-## Building the Documentation
+## Quick Links
 
-### Prerequisites
+### For Users
 
-Install Sphinx and required extensions:
+- **Getting Started**: See main [README.md](../README.md)
+- **Configuration**: [CONFIGURATION.md](CONFIGURATION.md)
+- **Troubleshooting**: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- **Unraid Setup**: [UNRAID.md](UNRAID.md)
 
-```bash
-pip install sphinx sphinx-rtd-theme
-```
+### For Developers
 
-### Build HTML Documentation
+- **Service Architecture**: [SERVICES.md](SERVICES.md)
+- **Code Examples**: [EXAMPLES.md](EXAMPLES.md)
+- **Error Handling**: [ERROR_HANDLING.md](ERROR_HANDLING.md)
+- **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
 
-```bash
-cd docs
-sphinx-build -b html source build/html
-```
+## Documentation Overview
 
-Or use the Makefile (if available):
+### SERVICES.md
 
-```bash
-cd docs
-make html
-```
+Complete service architecture documentation:
 
-### View Documentation
+- Service-oriented architecture overview
+- Design patterns (SRP, Request/Result, Singleton, DI)
+- Configuration Services (6 services)
+- Docker Services
+- Donation Services
+- Mech Services
+- Web Services
+- Testing guidelines
 
-Open `build/html/index.html` in your browser:
+**When to read**: Understanding DDC architecture or working with services.
 
-```bash
-# macOS
-open build/html/index.html
+### CONFIGURATION.md
 
-# Linux
-xdg-open build/html/index.html
+Complete configuration guide:
 
-# Windows
-start build/html/index.html
-```
+- Configuration file structure
+- Loading and saving configuration
+- Container configuration
+- Channel configuration
+- Token encryption/decryption
+- Advanced settings
+- Migration from v1.x
 
-## Documentation Sections
+**When to read**: Setting up DDC or modifying configuration.
 
-### 1. Introduction
-- Project overview
-- Key features
-- Architecture overview
+### EXAMPLES.md
 
-### 2. Quick Start
-- Installation guide
-- Basic usage examples
-- Configuration setup
+Practical code examples:
 
-### 3. Services API
-- **Configuration Services**: ConfigService, ConfigLoaderService, etc.
-- **Docker Services**: Docker operations and async queue
-- **Donation Services**: Ko-fi integration and power system
-- **Mech Services**: Evolution system and animations
-- **Web Services**: Flask web UI and authentication
+- Configuration loading
+- Token encryption
+- Container operations
+- Docker async operations
+- Error handling
+- Testing
+- Complete workflow examples
 
-### 4. API Reference
-- Auto-generated API documentation from docstrings
-- Complete method signatures
-- Type hints and return values
-- Exception handling
+**When to read**: Looking for code examples or learning DDC API.
 
-### 5. Usage Examples
-- Real-world code examples
-- Error handling patterns
-- Testing examples
-- Integration examples
+### ERROR_HANDLING.md
 
-### 6. Error Handling
-- Custom exception hierarchy
-- Recovery strategies
-- Best practices
+Exception handling guide:
 
-## Writing Documentation
+- Custom exception hierarchy (50+ exceptions)
+- Domain-specific exceptions
+- Error recovery strategies
+- Logging best practices
+- Migration guide
 
-### Docstring Format
+**When to read**: Implementing error handling or debugging issues.
 
-Use Google-style docstrings for all public methods:
+### CONTRIBUTING.md
+
+Contribution guidelines:
+
+- Code standards (PEP 8, type hints, docstrings)
+- Service guidelines (SRP, size limits, patterns)
+- Testing requirements
+- Pull request process
+- Commit message format
+
+**When to read**: Contributing to DDC development.
+
+## Documentation Standards
+
+### Code Documentation
+
+All public APIs must have:
+
+1. **Google-style docstrings**
+2. **Type hints** on all parameters
+3. **Usage examples**
+4. **Exception documentation**
+
+Example:
 
 ```python
-def my_method(param1: str, param2: int = 0) -> Dict[str, Any]:
-    """Short description of the method.
-
-    Longer description explaining what the method does,
-    how it works, and any important details.
+def get_config(self, force_reload: bool = False) -> Dict[str, Any]:
+    """Get unified configuration from all config files.
 
     Args:
-        param1 (str): Description of param1
-        param2 (int, optional): Description of param2. Defaults to 0.
+        force_reload (bool): If True, bypass cache and reload from disk.
 
     Returns:
-        Dict[str, Any]: Description of return value structure:
-
-            * 'key1': Description of key1
-            * 'key2': Description of key2
+        Dict[str, Any]: Complete configuration dictionary.
 
     Raises:
-        ConfigServiceError: When configuration is invalid
-        ValueError: When param1 is empty
+        ConfigLoadError: If configuration files cannot be loaded
 
     Example:
-        >>> result = my_method("test", param2=5)
-        >>> print(result['key1'])
-
-    Note:
-        Any important notes or warnings.
-
-    See Also:
-        :meth:`other_method` - Related method
-        :class:`RelatedClass` - Related class
+        >>> config = config_service.get_config()
+        >>> print(config['language'])
     """
     pass
 ```
 
-### RST Formatting
+### Markdown Documentation
 
-Common RST directives:
+Follow these guidelines:
 
-```rst
-.. code-block:: python
+1. **Clear headings** with proper hierarchy
+2. **Code blocks** with syntax highlighting
+3. **Tables** for structured data
+4. **Links** to related documentation
+5. **Examples** for all features
 
-   # Python code example
-   config = get_config_service().get_config()
+## Keeping Documentation Updated
 
-.. note::
+When adding features:
 
-   Important information for the reader.
+1. **Update relevant .md files**
+2. **Add code examples** to EXAMPLES.md
+3. **Document exceptions** in ERROR_HANDLING.md
+4. **Update service docs** in SERVICES.md
+5. **Update config guide** in CONFIGURATION.md
 
-.. warning::
+## GitHub Rendering
 
-   Critical warning that users should be aware of.
+All documentation is in **Markdown format** and automatically rendered by GitHub.
 
-.. autoclass:: services.config.config_service.ConfigService
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```
+Navigate to `docs/` in the GitHub repository to browse documentation with:
+- Automatic syntax highlighting
+- Clickable links
+- Formatted tables
+- Rendered code blocks
 
-## Documentation Coverage
+No build step required!
 
-Check documentation coverage:
+## Additional Resources
 
-```bash
-cd docs
-sphinx-build -b coverage source build/coverage
-cat build/coverage/python.txt
-```
+### Project Links
 
-## Continuous Documentation
+- **GitHub**: https://github.com/DockerDiscordControl/DockerDiscordControl
+- **Issues**: https://github.com/DockerDiscordControl/DockerDiscordControl/issues
+- **Discussions**: https://github.com/DockerDiscordControl/DockerDiscordControl/discussions
 
-### Auto-rebuild on Changes
+### External Documentation
 
-Use sphinx-autobuild for live reload during development:
+- **Discord.py**: https://discordpy.readthedocs.io/
+- **Docker SDK**: https://docker-py.readthedocs.io/
+- **Flask**: https://flask.palletsprojects.com/
 
-```bash
-pip install sphinx-autobuild
-cd docs
-sphinx-autobuild source build/html
-```
+## Questions?
 
-Then open http://127.0.0.1:8000 in your browser.
-
-### Pre-commit Hook
-
-Add a pre-commit hook to rebuild docs:
-
-```bash
-#!/bin/bash
-# .git/hooks/pre-commit
-
-cd docs
-sphinx-build -b html source build/html -W
-```
-
-## API Documentation Standards
-
-### Complete Documentation Requirements
-
-All public classes and methods must have:
-
-1. **Short description** (one line)
-2. **Long description** (detailed explanation)
-3. **Args section** (all parameters with types)
-4. **Returns section** (return type and structure)
-5. **Raises section** (all possible exceptions)
-6. **Example section** (at least one usage example)
-7. **See Also section** (related classes/methods)
-
-### Documentation Checklist
-
-- [ ] Class docstring with overview
-- [ ] All public methods documented
-- [ ] Type hints on all parameters
-- [ ] Return types specified
-- [ ] Exceptions documented
-- [ ] Usage examples provided
-- [ ] Related classes cross-referenced
-- [ ] RST formatting validated
-- [ ] Sphinx builds without warnings
-- [ ] Coverage check passes
-
-## Sphinx Configuration
-
-The `source/conf.py` file contains:
-
-- **Project information**: Name, version, author
-- **Extensions**: autodoc, napoleon, viewcode, etc.
-- **Theme**: ReadTheDocs theme
-- **Autodoc settings**: Member ordering, type hints
-- **Napoleon settings**: Google/NumPy docstring support
-
-## Publishing Documentation
-
-### GitHub Pages
-
-To publish docs to GitHub Pages:
-
-```bash
-# Build docs
-cd docs
-sphinx-build -b html source build/html
-
-# Copy to gh-pages branch
-git checkout gh-pages
-cp -r build/html/* .
-git add .
-git commit -m "Update documentation"
-git push origin gh-pages
-```
-
-### Read the Docs
-
-1. Connect repository to https://readthedocs.org
-2. Configure build in `.readthedocs.yaml`
-3. Documentation builds automatically on push
-
-## Troubleshooting
-
-### Build Errors
-
-**"No module named 'services'"**
-
-Add project root to Python path in `conf.py`:
-
-```python
-import sys
-sys.path.insert(0, os.path.abspath('../..'))
-```
-
-**"WARNING: autodoc: failed to import"**
-
-Check that all dependencies are installed:
-
-```bash
-pip install -r requirements.txt
-```
-
-**"Theme not found"**
-
-Install the theme:
-
-```bash
-pip install sphinx-rtd-theme
-```
-
-### Missing Documentation
-
-Run coverage check to find undocumented code:
-
-```bash
-sphinx-build -b coverage source build/coverage
-cat build/coverage/python.txt | grep "UNDOC"
-```
-
-## Resources
-
-- [Sphinx Documentation](https://www.sphinx-doc.org/)
-- [ReadTheDocs Theme](https://sphinx-rtd-theme.readthedocs.io/)
-- [Napoleon Extension](https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html)
-- [Google Style Docstrings](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings)
-
-## Contributing
-
-When adding new services or features:
-
-1. Write Google-style docstrings for all public APIs
-2. Add usage examples to `source/examples.rst`
-3. Create service-specific documentation in `source/services/`
-4. Build and check for warnings: `sphinx-build -b html -W source build/html`
-5. Verify examples work by running them
-6. Update this README if adding new documentation sections
-
-## License
-
-Documentation is licensed under MIT License, same as the project.
+- **For users**: See [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- **For developers**: Open an issue on GitHub
+- **For security**: See [SECURITY.md](SECURITY.md)
