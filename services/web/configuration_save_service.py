@@ -283,7 +283,7 @@ class ConfigurationSaveService:
         """Handle critical settings changes by invalidating caches."""
         try:
             # Invalidate ConfigService cache
-            self.config_service._invalidate_cache()
+            self.config_service._cache_service.invalidate_cache()
             self.logger.info("ConfigService cache invalidated due to critical settings change")
 
             # Invalidate config cache

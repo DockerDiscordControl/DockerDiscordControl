@@ -232,7 +232,7 @@ def refresh_debug_status():
         # Force cache invalidation to ensure we get the latest config
         try:
             from services.config.config_service import get_config_service as get_config_manager
-            get_config_manager()._invalidate_cache()
+            get_config_manager()._cache_service.invalidate_cache()
         except Exception as e:
             print(f"Failed to invalidate config cache: {e}")
         
