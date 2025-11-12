@@ -49,3 +49,11 @@ pytest-postgresql>=5.0.0
 
 # Load Testing
 pytest-benchmark>=4.0.0
+
+# Code Quality and Metrics
+radon>=6.0.1          # Cyclomatic complexity and maintainability index
+pylint>=3.0.0         # Code quality linting
+flake8>=7.0.0         # Style guide enforcement
+mccabe>=0.7.0         # Complexity checker for flake8
+mypy>=1.8.0           # Static type checking
+xenon>=0.9.0          # Monitoring code complexity (radon wrapper)

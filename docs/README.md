@@ -11,6 +11,7 @@ Complete documentation for DockerDiscordControl.
 | [EXAMPLES.md](EXAMPLES.md) | Practical code examples |
 | [ERROR_HANDLING.md](ERROR_HANDLING.md) | Exception handling guide |
 | [PERFORMANCE.md](PERFORMANCE.md) | Performance testing and monitoring guide |
+| [CODE_QUALITY.md](CODE_QUALITY.md) | Code quality standards and tools |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
 | [SECURITY.md](SECURITY.md) | Security best practices |
 
@@ -29,6 +30,7 @@ Complete documentation for DockerDiscordControl.
 - **Code Examples**: [EXAMPLES.md](EXAMPLES.md)
 - **Error Handling**: [ERROR_HANDLING.md](ERROR_HANDLING.md)
 - **Performance Testing**: [PERFORMANCE.md](PERFORMANCE.md)
+- **Code Quality**: [CODE_QUALITY.md](CODE_QUALITY.md)
 - **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Documentation Overview
@@ -100,6 +102,19 @@ Performance testing and monitoring guide:
 - Optimization guide for slow operations
 
 **When to read**: Writing performance tests, optimizing code, or investigating slow operations.
+
+### CODE_QUALITY.md
+
+Code quality standards and tools:
+
+- Quality standards (complexity < 10, maintainability > 80)
+- Code quality tools (Radon, Pylint, Flake8, MyPy)
+- Running quality checks locally
+- CI/CD quality gates
+- Interpreting results and improving code quality
+- Configuration files (.pylintrc, .flake8, mypy.ini)
+
+**When to read**: Ensuring code quality, preparing pull requests, or improving existing code.
 
 ### CONTRIBUTING.md
 

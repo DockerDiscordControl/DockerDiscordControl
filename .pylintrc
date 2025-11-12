@@ -1,0 +1,162 @@
+# -*- coding: utf-8 -*-
+# ============================================================================ #
+# DockerDiscordControl (DDC) - Pylint Configuration                           #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                       #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
+
+[MASTER]
+# Use multiple processes for faster checks
+jobs=0
+
+# Pickle collected data for later comparisons
+persistent=yes
+
+# List of plugins
+load-plugins=
+
+# Discover python modules and packages in the file system subtree
+recursive=yes
+
+[MESSAGES CONTROL]
+# Disable specific warnings that are not relevant for DDC
+disable=
+    # Import related
+    import-error,
+    no-name-in-module,
+    # Documentation
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    # Formatting (handled by black/flake8)
+    line-too-long,
+    bad-continuation,
+    # Too pedantic
+    too-few-public-methods,
+    too-many-arguments,
+    too-many-instance-attributes,
+    too-many-locals,
+    too-many-branches,
+    too-many-statements,
+    # Not applicable
+    fixme,
+    invalid-name,
+    # Discord.py specific
+    no-member,
+    # Handled by mypy
+    unsubscriptable-object,
+    unsupported-assignment-operation
+
+[REPORTS]
+# Output format
+output-format=text
+
+# Include message's id in output
+include-ids=yes
+
+# Reports
+reports=yes
+
+# Scoring
+score=yes
+
+[BASIC]
+# Good variable names
+good-names=i,j,k,ex,Run,_,id,x,y,z,t,db,tx,op,ip
+
+# Bad variable names
+bad-names=foo,bar,baz,toto,tutu,tata
+
+# Regular expression for variable names
+variable-rgx=[a-z_][a-z0-9_]{1,30}$
+
+# Regular expression for constant names
+const-rgx=(([A-Z_][A-Z0-9_]*)|(__.*__))$
+
+[FORMAT]
+# Maximum line length (handled by flake8, but set for consistency)
+max-line-length=100
+
+# Maximum module lines
+max-module-lines=1000
+
+# String quote consistency
+string-quote=double-avoid-escape
+
+[DESIGN]
+# Maximum number of arguments for function / method
+max-args=10
+
+# Maximum number of attributes for a class
+max-attributes=15
+
+# Minimum number of public methods for a class
+min-public-methods=1
+
+# Maximum number of public methods for a class
+max-public-methods=25
+
+# Maximum number of return statements
+max-returns=10
+
+# Maximum number of branch for function / method body
+max-branches=15
+
+# Maximum number of statements in function / method body
+max-statements=60
+
+# Maximum number of parents for a class
+max-parents=7
+
+# Maximum number of boolean expressions in an if statement
+max-bool-expr=5
+
+[SIMILARITIES]
+# Minimum lines number of a similarity
+min-similarity-lines=10
+
+# Ignore comments when computing similarities
+ignore-comments=yes
+
+# Ignore docstrings when computing similarities
+ignore-docstrings=yes
+
+# Ignore imports when computing similarities
+ignore-imports=yes
+
+[VARIABLES]
+# Tells whether we should check for unused import in __init__ files
+init-import=no
+
+# List of additional names supposed to be defined in builtins
+additional-builtins=
+
+# List of strings which can identify a callback function by name
+callbacks=cb_,_cb
+
+[CLASSES]
+# List of method names used to declare (i.e. assign) instance attributes
+defining-attr-methods=__init__,__new__,setUp,__post_init__
+
+# List of valid names for the first argument in a class method
+valid-classmethod-first-arg=cls
+
+# List of valid names for the first argument in a metaclass class method
+valid-metaclass-classmethod-first-arg=mcs
+
+[IMPORTS]
+# Deprecated modules which should not be used
+deprecated-modules=optparse,imp
+
+# Force import order to follow PEP8 guidelines
+ext-import-graph=
+int-import-graph=
+
+[EXCEPTIONS]
+# Exceptions that will emit a warning when caught
+overgeneral-exceptions=builtins.BaseException,builtins.Exception
+
+[TYPING]
+# Set to true to enable inference of precise return types
+precise-return-type=yes
