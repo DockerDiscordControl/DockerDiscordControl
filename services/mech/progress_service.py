@@ -438,20 +438,14 @@ def bin_to_tier_name(b: int) -> str:
 
 
 def apply_decay_on_demand(snap: Snapshot) -> None:
-    today_s = today_local_str()
+    """
+    DEPRECATED: Continuous decay is now calculated in compute_ui_state() based on elapsed time.
+    This function is kept for backwards compatibility but does nothing.
+    """
+    # Set last_decay_day if not set (for backwards compatibility)
     if not snap.last_decay_day:
-        snap.last_decay_day = today_s
-        return
-    last = date.fromisoformat(snap.last_decay_day)
-    today_d = date.fromisoformat(today_s)
-    days = (today_d - last).days
-    if days <= 0:
-        return
-    dpp = decay_per_day(snap.mech_type)
-    total = days * dpp
-    snap.power_acc = max(0, snap.power_acc - total)
-    snap.last_decay_day = today_s
-    logger.info(f"Applied {days} days decay ({total} cents) to mech {snap.mech_id}")
+        snap.last_decay_day = today_local_str()
+    # No actual decay application - done in compute_ui_state() instead
 
 
 def set_new_goal_for_next_level(snap: Snapshot, user_count: int) -> None:
@@ -478,8 +472,25 @@ def set_new_goal_for_next_level(snap: Snapshot, user_count: int) -> None:
 
 
 def compute_ui_state(snap: Snapshot) -> ProgressState:
+    # Calculate CONTINUOUS power decay based on elapsed time
+    # Formula: current_power = power_acc - (elapsed_seconds / 86400) * decay_per_day
+    power_acc_with_decay = snap.power_acc
+    if snap.goal_started_at:
+        try:
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+            goal_time = datetime.fromisoformat(snap.goal_started_at.replace('Z', '+00:00'))
+            now = datetime.now(ZoneInfo("UTC"))
+            elapsed_seconds = (now - goal_time).total_seconds()
+
+            dpp = decay_per_day(snap.mech_type)
+            decay_amount = (elapsed_seconds / 86400.0) * dpp
+            power_acc_with_decay = max(0, snap.power_acc - int(decay_amount))
+        except Exception as e:
+            logger.warning(f"Could not calculate continuous decay: {e}")
+
     power_max_cents = snap.goal_requirement + 100 if snap.goal_requirement > 0 else 100  # +$1
-    power_percent = int((snap.power_acc * 100) // power_max_cents)
+    power_percent = int((power_acc_with_decay * 100) // power_max_cents)
     power_percent = min(power_percent, 99 if snap.level < 11 else 100)
 
     evo_percent = 100 if snap.goal_requirement == 0 else int((snap.evo_acc * 100) // snap.goal_requirement)
@@ -490,7 +501,7 @@ def compute_ui_state(snap: Snapshot) -> ProgressState:
 
     return ProgressState(
         level=snap.level,
-        power_current=snap.power_acc / 100.0,
+        power_current=power_acc_with_decay / 100.0,
         power_max=power_max_cents / 100.0,
         power_percent=power_percent,
         evo_current=snap.evo_acc / 100.0,
