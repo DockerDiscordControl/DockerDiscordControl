@@ -7,6 +7,8 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from utils.logging_utils import get_module_logger
 
+from services.mech.progress_paths import get_progress_paths
+
 logger = get_module_logger('donation_management_service')
 
 @dataclass(frozen=True)
@@ -74,10 +76,9 @@ class DonationManagementService:
 
             # Get donations AND deletions directly from Progress Service Event Log
             import json
-            from pathlib import Path
 
             all_events = []
-            event_log = Path("config/progress/events.jsonl")
+            event_log = get_progress_paths().event_log
 
             if event_log.exists():
                 with open(event_log, 'r', encoding='utf-8') as f:
@@ -232,10 +233,9 @@ class DonationManagementService:
         try:
             # Get ALL events from event log (same logic as list_donations to get matching indices)
             import json
-            from pathlib import Path
 
             all_events = []
-            event_log = Path("config/progress/events.jsonl")
+            event_log = get_progress_paths().event_log
 
             if not event_log.exists():
                 return ServiceResult(success=False, error="Event log not found")
@@ -342,11 +342,10 @@ class DonationManagementService:
 
             # Get ALL donations directly from Progress Service Event Log
             import json
-            from pathlib import Path
 
             donations_map = {}
             deletions_map = {}
-            event_log = Path("config/progress/events.jsonl")
+            event_log = get_progress_paths().event_log
 
             if event_log.exists():
                 with open(event_log, 'r', encoding='utf-8') as f:

@@ -23,6 +23,7 @@ app_commands = get_app_commands()
 # Import utility functions
 from services.config.config_service import load_config
 from utils.logging_utils import setup_logger
+from services.docker_service.status_cache_runtime import get_docker_status_cache_runtime
 from services.scheduling.scheduler import (
     VALID_CYCLES, VALID_ACTIONS, DAYS_OF_WEEK,
     parse_time_string, parse_month_string, parse_weekday_string
@@ -79,14 +80,13 @@ async def schedule_container_select(
         logger.error(f"Error accessing Docker API or its cache in schedule_container_select: {e}")
         # Fallback to docker_status_cache from cogs.docker_control if direct/util-cached query fails
         try:
-            from cogs.docker_control import docker_status_cache
-            logger.debug("Falling back to docker_status_cache for active container names")
-            for docker_name_cached, container_item in docker_status_cache.items():
+            runtime = get_docker_status_cache_runtime()
+            logger.debug("Falling back to shared docker status cache runtime for active container names")
+            for docker_name_cached, container_item in runtime.items():
                 if docker_name_cached and container_item and isinstance(container_item, dict) and 'data' in container_item:
-                    # Assuming docker_status_cache stores names directly or can be adapted
                     active_docker_data_set.add(docker_name_cached)
         except Exception as cache_e:
-            logger.error(f"Error accessing docker_status_cache: {cache_e}")
+            logger.error(f"Error accessing docker status cache runtime: {cache_e}")
 
     # Populate choices_to_cache from configured servers
     # We present all configured servers, their actual current status (running/stopped)

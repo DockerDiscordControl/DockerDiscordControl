@@ -10,6 +10,7 @@ import asyncio
 import uuid
 import os
 import logging  # Added for logging.DEBUG constants
+from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple, Union
 import calendar
 from functools import lru_cache  # Import for caching
@@ -19,9 +20,7 @@ from utils.import_utils import import_ujson, import_uvloop, import_croniter, log
 from utils.time_utils import get_datetime_imports, get_current_time, get_utc_timestamp, timestamp_to_datetime, datetime_to_timestamp
 from utils.logging_utils import get_module_logger
 from services.config.config_service import load_config
-
-# Config directory for tasks file
-CONFIG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "config"))
+from services.scheduling.runtime import get_scheduler_runtime
 # SERVICE FIRST: Use new Docker Action Service
 from services.docker_service.docker_action_service import docker_action_service_first
 from services.infrastructure.action_logger import log_user_action, user_action_logger
@@ -32,12 +31,15 @@ datetime, timedelta, timezone, time = get_datetime_imports()
 from datetime import time as datetime_time
 import pytz
 
-# Performance optimizations with central utilities
 json, _using_ujson = import_ujson()
 uvloop, _using_uvloop = import_uvloop()
 
 # Logger for Scheduler
 logger = get_module_logger('scheduler')
+
+# Shared runtime state
+_runtime = get_scheduler_runtime()
+TASKS_FILE_PATH: Path = _runtime.tasks_file_path
 
 def initialize_logging():
     """Initialize or reinitialize the logger with the correct log level"""
@@ -85,57 +87,22 @@ DONATION_TASK_ID = f"{SYSTEM_TASK_PREFIX}DONATION_MESSAGE"
 DAYS_OF_WEEK = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
 # Scheduler file path
-TASKS_FILE_NAME = "tasks.json"
-TASKS_FILE_PATH = os.path.join(CONFIG_DIR, TASKS_FILE_NAME)
+TASKS_FILE_PATH = _runtime.tasks_file_path
 MIN_TASK_INTERVAL_SECONDS = 10 * 60  # 10 minutes
-
-# Task cache system
-_tasks_cache = {}
-_last_file_modified_time = 0
-
-# System task functions will be defined after ScheduledTask class
-
-# Timezone cache system
-_timezone_cache = {}
 
 def _get_timezone(timezone_str: str):
     """Get and cache timezone object to avoid repeated creation costs."""
-    global _timezone_cache
-    if timezone_str not in _timezone_cache:
-        try:
-            _timezone_cache[timezone_str] = pytz.timezone(timezone_str)
-        except Exception as e:
-            logger.error(f"Error loading timezone '{timezone_str}': {e}. Falling back to UTC.")
-            _timezone_cache[timezone_str] = pytz.UTC
-    return _timezone_cache[timezone_str]
+
+    return _runtime.get_timezone(timezone_str)
 
 def _is_tasks_file_modified() -> bool:
     """Check if the tasks file has been modified since last loaded."""
-    global _last_file_modified_time
-    if not os.path.exists(TASKS_FILE_PATH):
-        return _last_file_modified_time != 0  # Force reload if previously had data but file now gone
-    
+
     try:
-        # Optimize stat access for network file systems by getting all stats at once
-        file_stat = os.stat(TASKS_FILE_PATH)
-        current_mtime = file_stat.st_mtime
-        
-        # Track file size as well for more accurate change detection
-        if not hasattr(_is_tasks_file_modified, "_last_size"):
-            _is_tasks_file_modified._last_size = 0
-        
-        current_size = file_stat.st_size
-        size_changed = current_size != _is_tasks_file_modified._last_size
-        time_changed = current_mtime > _last_file_modified_time
-        
-        # Update size tracking
-        if size_changed:
-            _is_tasks_file_modified._last_size = current_size
-            
-        return size_changed or time_changed
-    except (IOError, OSError) as e:
-        logger.warning(f"Error checking file modification for {TASKS_FILE_PATH}: {e}")
-        return True  # Force reload on errors
+        return _runtime.is_tasks_file_modified()
+    except (IOError, OSError) as exc:  # pragma: no cover - defensive guard
+        logger.warning("Error checking file modification for %s: %s", TASKS_FILE_PATH, exc)
+        return True
 
 class ScheduledTask:
     """Class representing a scheduled task, compatible with Web UI and Discord bot."""
@@ -916,113 +883,119 @@ def _get_system_tasks() -> List[ScheduledTask]:
 
 def _load_raw_tasks_from_file() -> List[Dict[str, Any]]:
     """Loads raw task data directly from the TASKS_FILE_PATH."""
-    global _last_file_modified_time
     max_retries = 3
     retry_delay = 0.5  # seconds
     last_error = None
-    
+
     for attempt in range(max_retries):
         try:
-            if not os.path.exists(TASKS_FILE_PATH):
-                logger.info(f"Tasks file {TASKS_FILE_PATH} doesn't exist. Returning empty list.")
-                _last_file_modified_time = 0
+            if not TASKS_FILE_PATH.exists():
+                logger.info("Tasks file %s doesn't exist. Returning empty list.", TASKS_FILE_PATH)
+                _runtime.mark_tasks_file_missing()
                 return []
-                
-            file_stat = os.stat(TASKS_FILE_PATH)
-            _last_file_modified_time = file_stat.st_mtime
+
+            file_stat = TASKS_FILE_PATH.stat()
+            _runtime.update_tracked_file_state(
+                modified_time=file_stat.st_mtime, size=file_stat.st_size
+            )
             file_size = file_stat.st_size
-            
+
             # Empty file check - skip unnecessary JSON parsing
             if file_size == 0:
-                logger.info(f"Tasks file {TASKS_FILE_PATH} is empty.")
+                logger.info("Tasks file %s is empty.", TASKS_FILE_PATH)
                 return []
-                
-            with open(TASKS_FILE_PATH, 'r', encoding='utf-8') as f:
-                content = f.read().strip()
-                if not content: return []
-                # Use ujson which is much faster than standard json
-                return json.loads(content)
-                
-        except json.JSONDecodeError as e:
-            logger.error(f"Error decoding JSON data from {TASKS_FILE_PATH}: {e}")
+
+            content = TASKS_FILE_PATH.read_text(encoding='utf-8').strip()
+            if not content:
+                return []
+
+            # Use ujson which is much faster than standard json
+            return json.loads(content)
+
+        except json.JSONDecodeError as exc:
+            logger.error("Error decoding JSON data from %s: %s", TASKS_FILE_PATH, exc)
             return []
-        except (IOError, OSError) as e:
-            last_error = e
+        except (IOError, OSError) as exc:
+            last_error = exc
             if attempt < max_retries - 1:
-                logger.warning(f"Network/IO error reading {TASKS_FILE_PATH}, retrying ({attempt+1}/{max_retries}): {e}")
+                logger.warning(
+                    "Network/IO error reading %s, retrying (%s/%s): %s",
+                    TASKS_FILE_PATH,
+                    attempt + 1,
+                    max_retries,
+                    exc,
+                )
                 time.sleep(retry_delay * (attempt + 1))  # Exponential backoff
             else:
-                logger.error(f"Failed to read tasks file after {max_retries} attempts: {e}")
+                logger.error("Failed to read tasks file after %s attempts: %s", max_retries, exc)
                 return []
-        except Exception as e:
-            logger.error(f"Unexpected error reading tasks file {TASKS_FILE_PATH}: {e}")
+        except Exception as exc:
+            logger.error("Unexpected error reading tasks file %s: %s", TASKS_FILE_PATH, exc)
             return []
-    
+
     if last_error:
-        logger.error(f"All retries failed when reading {TASKS_FILE_PATH}: {last_error}")
+        logger.error("All retries failed when reading %s: %s", TASKS_FILE_PATH, last_error)
     return []
 
 def _save_raw_tasks_to_file(tasks_data: List[Dict[str, Any]]) -> bool:
     """Saves raw task data directly to TASKS_FILE_PATH."""
-    global _tasks_cache, _last_file_modified_time
     max_retries = 3
     retry_delay = 0.5  # seconds
-    
+
     for attempt in range(max_retries):
         try:
             # Check if file already exists and compare content to avoid unnecessary writes
-            if os.path.exists(TASKS_FILE_PATH):
+            if TASKS_FILE_PATH.exists():
                 try:
-                    with open(TASKS_FILE_PATH, 'r', encoding='utf-8') as f:
-                        current_content = f.read().strip()
-                        if current_content:
-                            current_data = json.loads(current_content)
-                            # Convert new data to JSON for comparison
-                            new_content = json.dumps(tasks_data, indent=4, ensure_ascii=False)
-                            new_data = json.loads(new_content)
-                            
-                            # Sort both data sets by ID for reliable comparison
-                            if len(current_data) == len(new_data):
-                                # Sort both lists for comparison
-                                current_sorted = sorted(current_data, key=lambda x: x.get('id', ''))
-                                new_sorted = sorted(new_data, key=lambda x: x.get('id', ''))
-                                
-                                if current_sorted == new_sorted:
-                                    logger.debug("Tasks data unchanged, skipping file write")
-                                    return True
+                    current_content = TASKS_FILE_PATH.read_text(encoding='utf-8').strip()
+                    if current_content:
+                        current_data = json.loads(current_content)
+                        # Convert new data to JSON for comparison
+                        new_content = json.dumps(tasks_data, indent=4, ensure_ascii=False)
+                        new_data = json.loads(new_content)
+
+                        # Sort both data sets by ID for reliable comparison
+                        if len(current_data) == len(new_data):
+                            # Sort both lists for comparison
+                            current_sorted = sorted(current_data, key=lambda x: x.get('id', ''))
+                            new_sorted = sorted(new_data, key=lambda x: x.get('id', ''))
+
+                            if current_sorted == new_sorted:
+                                logger.debug("Tasks data unchanged, skipping file write")
+                                return True
                 except Exception as e:
                     # If comparison fails, proceed with write
                     logger.debug(f"Error comparing task data: {e}, proceeding with write")
-                    
-            # Create directory if needed                
-            os.makedirs(os.path.dirname(TASKS_FILE_PATH), exist_ok=True)
-            
+
+            # Create directory if needed
+            _runtime.ensure_layout()
+
             # Use a proper atomic write pattern for more resilience on network file systems
             import tempfile
-            
+
             # Create temporary file in the same directory
-            temp_dir = os.path.dirname(TASKS_FILE_PATH)
+            temp_dir = str(TASKS_FILE_PATH.parent)
             fd, temp_path = tempfile.mkstemp(dir=temp_dir, text=True)
-            
+
             try:
                 with os.fdopen(fd, 'w', encoding='utf-8') as f:
                     json.dump(tasks_data, f, indent=4, ensure_ascii=False)
                     f.flush()
                     os.fsync(f.fileno())  # Ensure data is written to disk
-                
+
                 # Perform atomic rename (on Unix systems) or copy+delete (on Windows)
                 if os.name == 'posix':
                     os.rename(temp_path, TASKS_FILE_PATH)
                 else:
                     import shutil
                     shutil.move(temp_path, TASKS_FILE_PATH)
-                
+
                 # Update cache and modified time after successful save
-                _tasks_cache.clear()  # Clear cache to force reload
-                _last_file_modified_time = os.path.getmtime(TASKS_FILE_PATH)
-                logger.debug(f"Tasks successfully saved to {TASKS_FILE_PATH}.")
+                _runtime.invalidate_caches()
+                _runtime.record_current_file_state()
+                logger.debug("Tasks successfully saved to %s.", TASKS_FILE_PATH)
                 return True
-                
+
             except Exception as e:
                 # Clean up the temporary file in case of error
                 try:
@@ -1052,22 +1025,21 @@ def load_tasks() -> List[ScheduledTask]:
     tasks = []
     
     # Always ensure task file exists
-    if not os.path.exists(TASKS_FILE_PATH):
-        logger.debug(f"Tasks file {TASKS_FILE_PATH} does not exist, creating empty file")
+    if not TASKS_FILE_PATH.exists():
+        logger.debug("Tasks file %s does not exist, creating empty file", TASKS_FILE_PATH)
         # Create empty tasks file
         try:
-            os.makedirs(os.path.dirname(TASKS_FILE_PATH), exist_ok=True)
-            with open(TASKS_FILE_PATH, 'w', encoding='utf-8') as f:
-                json.dump([], f)
-            logger.info(f"Created empty tasks file at {TASKS_FILE_PATH}")
+            _runtime.ensure_layout()
+            TASKS_FILE_PATH.write_text("[]", encoding="utf-8")
+            _runtime.record_current_file_state()
+            logger.info("Created empty tasks file at %s", TASKS_FILE_PATH)
         except Exception as e:
             logger.error(f"Failed to create tasks file: {e}")
         return tasks
-    
+
     # eXecute task loading with error handling
     try:
-        with open(TASKS_FILE_PATH, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        data = json.loads(TASKS_FILE_PATH.read_text(encoding="utf-8") or "[]")
             
         # Deserialize each task from stored data
         for task_data in data:
@@ -1090,6 +1062,10 @@ def load_tasks() -> List[ScheduledTask]:
     if len(valid_tasks) != len(tasks):
         logger.info(f"Removed {len(tasks) - len(valid_tasks)} invalid tasks")
         save_tasks(valid_tasks)
+
+    # Cache the valid (user) tasks for faster lookups and drop stale container caches
+    _runtime.replace_tasks_cache({task.task_id: task for task in valid_tasks})
+    _runtime.clear_container_cache()
     
     # Add system tasks (hard-coded, always present)
     system_tasks = _get_system_tasks()
@@ -1112,12 +1088,11 @@ def _get_task_grouping_key(task):
 
 def save_tasks(tasks: List[ScheduledTask]) -> bool:
     """Save all ScheduledTask objects to tasks.json."""
-    global _tasks_cache
-    
+
     # Filter out system tasks - they should never be saved to file
     user_tasks = [task for task in tasks if not task.is_system_task()]
     logger.debug(f"Saving {len(user_tasks)} user tasks (filtered out {len(tasks) - len(user_tasks)} system tasks)")
-    
+
     # Convert all tasks to dict first, to avoid redundant to_dict calls
     tasks_data = [task.to_dict() for task in user_tasks]
     
@@ -1129,21 +1104,23 @@ def save_tasks(tasks: List[ScheduledTask]) -> bool:
     
     # Update cache if save was successful
     if success:
-        _tasks_cache = {task.task_id: task for task in tasks}
-    
+        _runtime.replace_tasks_cache({task.task_id: task for task in tasks})
+        _runtime.clear_container_cache()
+
     return success
 
 def find_task_by_id(task_id: str) -> Optional[ScheduledTask]:
     """Find a task by ID using the cache when possible."""
-    global _tasks_cache
-    
+
+    tasks_cache = _runtime.tasks_cache
+
     # Try to get from cache if file hasn't changed
-    if not _is_tasks_file_modified() and task_id in _tasks_cache:
-        return _tasks_cache[task_id]
-    
+    if not _is_tasks_file_modified() and task_id in tasks_cache:
+        return tasks_cache[task_id]
+
     # For a single task lookup, try to avoid loading all tasks if possible
     # This optimization is helpful for large task lists
-    if os.path.exists(TASKS_FILE_PATH):
+    if TASKS_FILE_PATH.exists():
         try:
             # First check if we need to reload by checking modification time
             if _is_tasks_file_modified():
@@ -1153,7 +1130,7 @@ def find_task_by_id(task_id: str) -> Optional[ScheduledTask]:
                     if task.task_id == task_id:
                         return task
             # File exists but hasn't been modified - do a targeted search
-            elif not _tasks_cache:
+            elif not tasks_cache:
                 # Cache is empty but file exists and hasn't changed
                 # Load raw data and only process the task we need
                 raw_tasks_data = _load_raw_tasks_from_file()
@@ -1164,11 +1141,11 @@ def find_task_by_id(task_id: str) -> Optional[ScheduledTask]:
                         task = ScheduledTask.from_dict(task_data)
                         if task.is_valid():
                             # Update cache with just this task
-                            _tasks_cache[task_id] = task
+                            _runtime.store_task(task_id, task)
                             return task
-        except Exception as e:
-            logger.error(f"Error during optimized task lookup: {e}")
-    
+        except Exception as exc:
+            logger.error("Error during optimized task lookup: %s", exc)
+
     # Default fallback - load all tasks and search
     tasks = load_tasks()
     for task in tasks:
@@ -1176,40 +1153,40 @@ def find_task_by_id(task_id: str) -> Optional[ScheduledTask]:
             return task
     return None
 
-# Cache for get_tasks_for_container
-_container_tasks_cache = {}
-_container_cache_timestamp = 0
 
 def get_tasks_for_container(container_name: str) -> List[ScheduledTask]:
     """Get all tasks for a specific container, efficiently using the cache."""
-    global _tasks_cache, _container_tasks_cache, _container_cache_timestamp
-    
+
+    tasks_cache = _runtime.tasks_cache
+    container_cache = _runtime.container_tasks_cache
+
     # Check if whole task cache is valid and container cache was recently updated
-    if not _is_tasks_file_modified() and _tasks_cache:
+    if not _is_tasks_file_modified() and tasks_cache:
         current_time = time.time()
         # Container cache refresh period - 5 seconds
         container_cache_ttl = 5
-        
+
         # Check if we have a recent container-specific cache
-        cache_valid = (container_name in _container_tasks_cache and 
-                       current_time - _container_cache_timestamp < container_cache_ttl)
+        cached_tasks = container_cache.get(container_name)
+        cache_valid = (
+            cached_tasks is not None
+            and current_time - _runtime.container_cache_timestamp < container_cache_ttl
+        )
         if cache_valid:
-            return _container_tasks_cache[container_name]
-        
+            return cached_tasks
+
         # Filter from main cache if available, update container cache
-        container_tasks = [task for task in _tasks_cache.values() if task.container_name == container_name]
-        _container_tasks_cache[container_name] = container_tasks
-        _container_cache_timestamp = current_time
+        container_tasks = [task for task in tasks_cache.values() if task.container_name == container_name]
+        _runtime.update_container_cache(container_name, container_tasks, timestamp=current_time)
         return container_tasks
-    
+
     # Otherwise load all tasks (will update cache) and filter
     tasks = load_tasks()
     container_tasks = [task for task in tasks if task.container_name == container_name]
-    
+
     # Update container cache
-    _container_tasks_cache[container_name] = container_tasks
-    _container_cache_timestamp = time.time()
-    
+    _runtime.update_container_cache(container_name, container_tasks)
+
     return container_tasks
 
 def check_task_time_collision(container_name: str, new_task_next_run_ts: float, 
@@ -1324,17 +1301,22 @@ def delete_task(task_id: str) -> bool:
 
 def get_tasks_in_timeframe(start_time: float, end_time: float) -> List[ScheduledTask]:
     """Get all tasks scheduled within a specific timeframe, using cache when possible."""
-    global _tasks_cache
-    
-    if not _is_tasks_file_modified() and _tasks_cache:
+
+    tasks_cache = _runtime.tasks_cache
+
+    if not _is_tasks_file_modified() and tasks_cache:
         # Filter from cache if available
-        result = [t for t in _tasks_cache.values() if t.next_run_ts and start_time <= t.next_run_ts <= end_time]
+        result = [
+            task
+            for task in tasks_cache.values()
+            if task.next_run_ts and start_time <= task.next_run_ts <= end_time
+        ]
         # Sort results by execution time for better usability
         return sorted(result, key=lambda t: t.next_run_ts)
-    
+
     # Otherwise load all tasks and filter
     tasks = load_tasks()
-    result = [t for t in tasks if t.next_run_ts and start_time <= t.next_run_ts <= end_time]
+    result = [task for task in tasks if task.next_run_ts and start_time <= task.next_run_ts <= end_time]
     return sorted(result, key=lambda t: t.next_run_ts)
 
 def get_next_week_tasks() -> List[ScheduledTask]:

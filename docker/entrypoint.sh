@@ -177,7 +177,7 @@ main() {
   fi
   chown -R "$TARGET_UID:$TARGET_GID" "/home/$APP_USER" 2>/dev/null || true
   export HOME="/home/$APP_USER"
-  export PATH="/venv/bin:$PATH"
+  export PYTHONPATH="/opt/runtime/site-packages${PYTHONPATH:+:$PYTHONPATH}"
   umask 002
   drop_privileges_and_exec "$@"
 }

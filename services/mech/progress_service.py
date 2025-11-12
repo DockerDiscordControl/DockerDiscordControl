@@ -25,31 +25,29 @@ Data layout:
   config/progress/events.jsonl                # global append-only event log
   config/progress/snapshots/{mech_id}.json    # last consolidated state per mech
   config/progress/config.json                 # service config (bins, requirements, decay)
+  config/progress/member_count.json           # cached status-channel member count
 """
 from __future__ import annotations
 
 import hashlib
 import json
 import os
-import threading
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from zoneinfo import ZoneInfo
 
 import logging
 
+from services.mech.progress import get_progress_runtime
+
 logger = logging.getLogger('ddc.progress_service')
+
+runtime = get_progress_runtime()
 
 # ---------------------
 # Config & Constants
 # ---------------------
-DATA_DIR = Path("config/progress")
-EVENT_LOG = DATA_DIR / "events.jsonl"
-SNAPSHOT_DIR = DATA_DIR / "snapshots"
-CONFIG_FILE = DATA_DIR / "config.json"
-LOCK = threading.RLock()  # coarse-grained FS lock to avoid races
 
 DEFAULT_CONFIG = {
     "timezone": "Europe/Zurich",
@@ -103,23 +101,26 @@ DEFAULT_CONFIG = {
     },
 }
 
-# Ensure data paths
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
-if not EVENT_LOG.exists():
-    EVENT_LOG.touch()
-if not CONFIG_FILE.exists():
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(DEFAULT_CONFIG, f, indent=2)
+runtime.configure_defaults(DEFAULT_CONFIG)
+
+PATHS = runtime.paths
+DATA_DIR = PATHS.data_dir
+EVENT_LOG = PATHS.event_log
+SNAPSHOT_DIR = PATHS.snapshot_dir
+CONFIG_FILE = PATHS.config_file
+SEQ_FILE = PATHS.seq_file
+MEMBER_COUNT_FILE = PATHS.member_count_file
+LOCK = runtime.lock
 
 
-def load_config() -> Dict[str, Any]:
-    with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+def load_config(refresh: bool = False) -> Dict[str, Any]:
+    """Load the persisted progress configuration."""
+
+    return runtime.load_config(refresh=refresh, default_config=DEFAULT_CONFIG)
 
 
 CFG = load_config()
-TZ = ZoneInfo(CFG.get("timezone", "Europe/Zurich"))
+TZ = runtime.timezone()
 
 # ---------------------
 # Models
@@ -214,7 +215,7 @@ def append_event(evt: Event) -> None:
 
 
 def next_seq() -> int:
-    tail_file = DATA_DIR / "last_seq.txt"
+    tail_file = SEQ_FILE
     if tail_file.exists():
         with open(tail_file, "r", encoding="utf-8") as f:
             s = int(f.read().strip() or 0)
@@ -590,9 +591,8 @@ def apply_donation_units(snap: Snapshot, units_cents: int) -> Tuple[Snapshot, Op
         # IMPORTANT: We count ONLY members who can see status channels, NOT all server members
         # This data is updated by the bot at startup and stored in member_count.json
         import json
-        from pathlib import Path
 
-        member_count_file = Path("config/member_count.json")
+        member_count_file = MEMBER_COUNT_FILE
         if member_count_file.exists():
             try:
                 with open(member_count_file, 'r') as f:

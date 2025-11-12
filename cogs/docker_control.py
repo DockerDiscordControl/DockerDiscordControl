@@ -13,7 +13,6 @@ from datetime import datetime, timedelta, timezone
 import os
 import logging
 import time
-import threading
 from typing import Dict, Any, List, Optional, Tuple, Union
 from io import BytesIO
 from pathlib import Path
@@ -34,6 +33,7 @@ from services.config.server_config_service import get_server_config_service
 from utils.time_utils import format_datetime_with_timezone
 from utils.logging_utils import setup_logger
 from services.docker_service.server_order import load_server_order, save_server_order
+from services.docker_service.status_cache_runtime import get_docker_status_cache_runtime
 
 # Import scheduler module
 from services.scheduling.scheduler import (
@@ -67,10 +67,6 @@ from services.infrastructure.action_logger import log_user_action
 
 # Configure logger for the cog using utility (INFO for release)
 logger = setup_logger('ddc.docker_control', level=logging.INFO)
-
-# Global variable for Docker status cache to allow access from other modules
-docker_status_cache = {}
-docker_status_cache_lock = threading.Lock()  # Thread safety for global status cache
 
 # DonationView will be defined in this file
 
@@ -131,6 +127,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         from services.status.status_cache_service import get_status_cache_service
         self.status_cache_service = get_status_cache_service()
         logger.info("StatusCacheService initialized for DockerControlCog")
+
+        # Share the cache snapshot through the dedicated runtime helper so other
+        # components can inspect the data without importing the cog directly.
+        self._status_cache_runtime = get_docker_status_cache_runtime()
 
         # Keep cache_ttl_seconds for compatibility (some code might still reference it)
         cache_duration = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', '30'))
@@ -3396,17 +3396,19 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         except Exception as e:
             logger.error(f"Error clearing performance caches on unload: {e}")
 
-    # Method to update global docker status cache from instance cache
+    # Method to update shared docker status cache from instance cache
     def update_global_status_cache(self):
-        """Updates the global docker_status_cache from the instance's status_cache."""
-        global docker_status_cache
+        """Publish the current status cache snapshot to the shared runtime."""
+
         try:
-            # Thread-safe update of global status cache
-            with docker_status_cache_lock:
-                docker_status_cache = self.status_cache_service.copy()
-                logger.debug(f"Updated global docker_status_cache with {len(docker_status_cache)} entries")
+            snapshot = self.status_cache_service.copy()
+            self._status_cache_runtime.publish(snapshot)
+            logger.debug(
+                "Published docker status cache runtime snapshot with %d entries",
+                len(snapshot),
+            )
         except Exception as e:
-            logger.error(f"Error updating global docker_status_cache: {e}")
+            logger.error(f"Error publishing docker status cache snapshot: {e}")
 
     # Accessor method to get the current status cache
     def get_status_cache(self) -> Dict[str, Any]:

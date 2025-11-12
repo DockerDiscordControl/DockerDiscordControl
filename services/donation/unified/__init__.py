@@ -1,8 +1,7 @@
-"""Backwards compatible wrapper for the unified donation service."""
+"""Unified donation service public API."""
 
-from services.donation.unified import (
-    DonationRequest,
-    DonationResult,
+from services.donation.unified.models import DonationRequest, DonationResult
+from services.donation.unified.service import (
     UnifiedDonationService,
     get_unified_donation_service,
     process_discord_donation,
