@@ -89,15 +89,37 @@ class ConfigServiceResult:
     message: Optional[str] = None
 
 class ConfigService:
-    """
-    Unified configuration service - single source of truth for all DDC configuration.
-    
+    """Unified configuration service - single source of truth for all DDC configuration.
+
+    This service provides centralized configuration management for DockerDiscordControl.
+    It handles loading from multiple sources, token encryption, caching, and thread-safe
+    operations.
+
     Features:
-    - Handles all config files (bot, docker, web, channels)
-    - Token encryption/decryption
-    - Thread-safe operations
-    - Caching with invalidation
-    - Legacy compatibility
+        * Modular configuration loading (containers, channels, settings)
+        * Token encryption/decryption with PBKDF2
+        * Thread-safe operations with locks
+        * Configuration caching with automatic invalidation
+        * Legacy v1.x compatibility layer
+        * Migration support for old configurations
+
+    The service is implemented as a singleton - use :func:`get_config_service` to get the
+    instance instead of creating it directly.
+
+    Example:
+        >>> from services.config.config_service import get_config_service
+        >>> config_service = get_config_service()
+        >>> config = config_service.get_config()
+        >>> print(f"Guild: {config['guild_id']}")
+        >>> print(f"Servers: {len(config['servers'])} containers")
+
+    Thread Safety:
+        All public methods are thread-safe. Internal state is protected by locks.
+
+    See Also:
+        * :class:`ConfigLoaderService` - Configuration loading operations
+        * :class:`ConfigCacheService` - Configuration caching
+        * :class:`ConfigMigrationService` - Configuration migration
     """
     
     _instance = None
@@ -177,14 +199,59 @@ class ConfigService:
     # === Core Configuration Methods ===
     
     def get_config(self, force_reload: bool = False) -> Dict[str, Any]:
-        """
-        Get unified configuration from all config files.
+        """Get unified configuration from all config files.
+
+        Loads configuration from multiple sources and combines them into a single
+        dictionary. Uses caching for performance - set force_reload=True to bypass.
+
+        The configuration is loaded from:
+            * System settings (config/config.json)
+            * Authentication (config/auth.json)
+            * Heartbeat settings (config/heartbeat.json)
+            * Web UI settings (config/web_ui.json)
+            * Docker settings (config/docker_settings.json)
+            * Containers (config/containers/*.json - only active ones)
+            * Channels (config/channels/*.json)
 
         Args:
-            force_reload: Force reload from disk, ignore cache
+            force_reload (bool): If True, bypass cache and reload from disk.
+                Defaults to False for better performance.
 
         Returns:
-            Complete configuration dictionary
+            Dict[str, Any]: Complete configuration dictionary containing all settings.
+                Key structure includes:
+
+                * 'language': Language code (e.g., 'de', 'en')
+                * 'timezone': Timezone string (e.g., 'Europe/Berlin')
+                * 'guild_id': Discord guild ID
+                * 'bot_token': Encrypted Discord bot token
+                * 'servers': List of active container configurations
+                * 'channel_permissions': Channel-specific settings
+                * 'docker_socket_path': Path to Docker socket
+                * And many more settings...
+
+        Raises:
+            ConfigLoadError: If configuration files cannot be loaded
+            ConfigCacheError: If cache operations fail (non-critical)
+
+        Example:
+            >>> config_service = get_config_service()
+            >>>
+            >>> # Normal usage with caching
+            >>> config = config_service.get_config()
+            >>> print(f"Language: {config['language']}")
+            >>> print(f"Servers: {len(config['servers'])}")
+            >>>
+            >>> # Force reload from disk
+            >>> fresh_config = config_service.get_config(force_reload=True)
+
+        Note:
+            This method automatically decrypts the bot token if a password hash is
+            available. The decrypted token is stored in 'bot_token_decrypted_for_usage'.
+
+        See Also:
+            :meth:`save_config` - Save configuration to disk
+            :class:`ConfigLoaderService` - Underlying loading implementation
         """
         cache_key = 'unified'
 
