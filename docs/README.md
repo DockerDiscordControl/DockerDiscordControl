@@ -14,6 +14,7 @@ Complete documentation for DockerDiscordControl.
 | [CODE_QUALITY.md](CODE_QUALITY.md) | Code quality standards and tools |
 | [DEPENDENCIES.md](DEPENDENCIES.md) | Dependency management and service hierarchy |
 | [OBSERVABILITY.md](OBSERVABILITY.md) | Monitoring, logging, metrics, and tracing |
+| [TESTING.md](TESTING.md) | Testing guide, coverage goals, and examples |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
 | [SECURITY.md](SECURITY.md) | Security best practices |
 
@@ -35,6 +36,7 @@ Complete documentation for DockerDiscordControl.
 - **Code Quality**: [CODE_QUALITY.md](CODE_QUALITY.md)
 - **Dependency Management**: [DEPENDENCIES.md](DEPENDENCIES.md)
 - **Observability**: [OBSERVABILITY.md](OBSERVABILITY.md)
+- **Testing**: [TESTING.md](TESTING.md)
 - **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Documentation Overview
@@ -145,6 +147,19 @@ Monitoring, logging, metrics, and tracing guide:
 - Log aggregation and querying
 
 **When to read**: Implementing monitoring, debugging production issues, analyzing service performance, or setting up observability infrastructure.
+
+### TESTING.md
+
+Complete testing guide and coverage goals:
+
+- Test structure and organization (unit, integration, E2E, performance)
+- Running tests locally and in CI/CD
+- Coverage measurement and goals (80%+ target)
+- Writing tests (unit, integration, performance templates)
+- Test priorities for critical services
+- Best practices for test development
+
+**When to read**: Writing tests, improving test coverage, setting up CI/CD, or ensuring code quality through testing.
 
 ### CONTRIBUTING.md
 
