@@ -2816,19 +2816,14 @@ class MechDisplayButton(Button):
                     await interaction.followup.send(_("❌ Error loading mech preview."), ephemeral=True)
                     return
 
-                from services.mech.mech_service import get_mech_service, GetMechStateRequest
-                mech_service = get_mech_service()
-                mech_state_request = GetMechStateRequest(include_decimals=False)
-                mech_state_result = mech_service.get_mech_state_service(mech_state_request)
-                if not mech_state_result.success:
-                    current_total_donations = 0.0  # Fallback
-                else:
-                    current_total_donations = mech_state_result.total_donated
+                # Calculate remaining amount using evolution state (same as Spenden Modal)
+                from services.mech.progress_service import get_progress_service
 
-                # Use correct evolution calculation for next level costs
-                from services.mech.mech_evolutions import get_evolution_info
-                evolution_data = get_evolution_info(current_total_donations)
-                needed_amount = evolution_data['amount_needed'] if evolution_data['amount_needed'] is not None else 0
+                progress_service = get_progress_service()
+                state = progress_service.get_state()
+
+                # Use evolution-based calculation (evo_max - evo_current) - includes dynamic member costs
+                needed_amount = state.evo_max - state.evo_current
 
                 if needed_amount > 0:
                     formatted_amount = f"{needed_amount:.2f}".rstrip('0').rstrip('.')
