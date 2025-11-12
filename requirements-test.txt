@@ -60,3 +60,10 @@ xenon>=0.9.0          # Monitoring code complexity (radon wrapper)
 
 # Dependency Management
 graphviz>=0.20.0      # Dependency graph visualization
+
+# Observability and Monitoring
+opentelemetry-api>=1.20.0                    # OpenTelemetry tracing API
+opentelemetry-sdk>=1.20.0                    # OpenTelemetry SDK
+opentelemetry-instrumentation>=0.41b0        # Auto-instrumentation
+opentelemetry-exporter-otlp>=1.20.0          # OTLP exporter for production
+opentelemetry-exporter-jaeger>=1.20.0        # Jaeger exporter (optional)

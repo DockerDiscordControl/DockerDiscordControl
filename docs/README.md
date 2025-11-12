@@ -13,6 +13,7 @@ Complete documentation for DockerDiscordControl.
 | [PERFORMANCE.md](PERFORMANCE.md) | Performance testing and monitoring guide |
 | [CODE_QUALITY.md](CODE_QUALITY.md) | Code quality standards and tools |
 | [DEPENDENCIES.md](DEPENDENCIES.md) | Dependency management and service hierarchy |
+| [OBSERVABILITY.md](OBSERVABILITY.md) | Monitoring, logging, metrics, and tracing |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
 | [SECURITY.md](SECURITY.md) | Security best practices |
 
@@ -33,6 +34,7 @@ Complete documentation for DockerDiscordControl.
 - **Performance Testing**: [PERFORMANCE.md](PERFORMANCE.md)
 - **Code Quality**: [CODE_QUALITY.md](CODE_QUALITY.md)
 - **Dependency Management**: [DEPENDENCIES.md](DEPENDENCIES.md)
+- **Observability**: [OBSERVABILITY.md](OBSERVABILITY.md)
 - **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Documentation Overview
@@ -130,6 +132,19 @@ Dependency management and service hierarchy guide:
 - CI/CD dependency checks
 
 **When to read**: Understanding service dependencies, checking for circular imports, or planning new services.
+
+### OBSERVABILITY.md
+
+Monitoring, logging, metrics, and tracing guide:
+
+- Structured JSON logging with rich context
+- Lightweight metrics collection (counters, histograms, gauges)
+- OpenTelemetry distributed tracing integration
+- Complete service integration examples
+- Metrics export and analysis
+- Log aggregation and querying
+
+**When to read**: Implementing monitoring, debugging production issues, analyzing service performance, or setting up observability infrastructure.
 
 ### CONTRIBUTING.md
 

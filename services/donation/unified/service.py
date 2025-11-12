@@ -17,9 +17,13 @@ from services.donation.unified.validation import DonationValidationError, valida
 from services.infrastructure.event_manager import get_event_manager
 from services.mech.mech_service import get_mech_service
 from utils.logging_utils import get_module_logger
+from utils.observability import metrics, tracing, get_structured_logger
+import time
 
 
 logger = get_module_logger("unified_donation_service")
+# Structured logger for enhanced observability
+structured_logger = get_structured_logger(__name__, service_name="UnifiedDonationService")
 
 
 class UnifiedDonationService:
@@ -34,94 +38,229 @@ class UnifiedDonationService:
 
     def process_donation(self, request: DonationRequest) -> DonationResult:
         """Process a donation synchronously."""
+        start_time = time.time()
 
-        try:
-            validate_request(request)
-        except DonationValidationError as exc:
-            return DonationResult.from_states(
-                success=False,
-                old_state=None,
-                new_state=None,
-                error_message=str(exc),
-                error_code="VALIDATION_FAILED",
-            )
+        # Metrics: Track donation attempt
+        metrics.increment("donations.attempts.total", tags={"source": request.source})
 
-        try:
-            old_state = self.mech_service.get_state()
-            new_state = execute_sync_donation(self.mech_service, request)
+        # Tracing: Create span for donation processing
+        with tracing.trace("donation.process", attributes={
+            "source": request.source,
+            "donor": request.donor_name,
+        }) as span:
+            try:
+                validate_request(request)
+            except DonationValidationError as exc:
+                # Metrics: Track validation failure
+                metrics.increment("donations.validation_failed.total")
 
-            clear_mech_cache()
-            event_id = events.emit_donation_event(
-                self.event_manager, request, old_state=old_state, new_state=new_state
-            )
+                # Structured logging: Log validation failure with context
+                structured_logger.warning("donation_validation_failed", extra={
+                    "donor": request.donor_name,
+                    "amount": request.amount,
+                    "source": request.source,
+                    "error": str(exc),
+                    "duration_ms": (time.time() - start_time) * 1000,
+                })
 
-            return DonationResult.from_states(
-                success=True,
-                old_state=old_state,
-                new_state=new_state,
-                event_emitted=True,
-                event_id=event_id,
-            )
-        except Exception as exc:  # pragma: no cover - defensive logging
-            logger.error("Error processing donation: %s", exc, exc_info=True)
-            return DonationResult.from_states(
-                success=False,
-                old_state=None,
-                new_state=None,
-                error_message=str(exc),
-                error_code="PROCESSING_FAILED",
-            )
+                return DonationResult.from_states(
+                    success=False,
+                    old_state=None,
+                    new_state=None,
+                    error_message=str(exc),
+                    error_code="VALIDATION_FAILED",
+                )
+
+            try:
+                old_state = self.mech_service.get_state()
+                new_state = execute_sync_donation(self.mech_service, request)
+
+                clear_mech_cache()
+                event_id = events.emit_donation_event(
+                    self.event_manager, request, old_state=old_state, new_state=new_state
+                )
+
+                # Calculate processing duration
+                duration_ms = (time.time() - start_time) * 1000
+
+                # Metrics: Track successful donation
+                metrics.increment("donations.total", tags={"source": request.source})
+                metrics.histogram("donation.amount", request.amount)
+                metrics.histogram("donation.processing_time.duration_ms", duration_ms)
+
+                # Structured logging: Log successful donation with full context
+                structured_logger.info("donation_processed", extra={
+                    "donor": request.donor_name,
+                    "amount": request.amount,
+                    "source": request.source,
+                    "old_power": old_state.current_power if old_state else None,
+                    "new_power": new_state.current_power if new_state else None,
+                    "power_gained": (new_state.current_power - old_state.current_power) if (old_state and new_state) else None,
+                    "event_id": event_id,
+                    "duration_ms": duration_ms,
+                })
+
+                # Tracing: Add success attributes to span
+                if span:
+                    span.set_attribute("success", True)
+                    span.set_attribute("amount", request.amount)
+                    span.set_attribute("duration_ms", duration_ms)
+
+                return DonationResult.from_states(
+                    success=True,
+                    old_state=old_state,
+                    new_state=new_state,
+                    event_emitted=True,
+                    event_id=event_id,
+                )
+            except Exception as exc:  # pragma: no cover - defensive logging
+                duration_ms = (time.time() - start_time) * 1000
+
+                # Metrics: Track processing failure
+                metrics.increment("donations.processing_failed.total")
+
+                # Structured logging: Log error with context
+                logger.error("Error processing donation: %s", exc, exc_info=True)
+                structured_logger.error("donation_processing_failed", extra={
+                    "donor": request.donor_name,
+                    "amount": request.amount,
+                    "source": request.source,
+                    "error": str(exc),
+                    "duration_ms": duration_ms,
+                })
+
+                # Tracing: Mark span as failed
+                if span:
+                    span.set_attribute("success", False)
+                    span.set_attribute("error", str(exc))
+
+                return DonationResult.from_states(
+                    success=False,
+                    old_state=None,
+                    new_state=None,
+                    error_message=str(exc),
+                    error_code="PROCESSING_FAILED",
+                )
 
     async def process_donation_async(self, request: DonationRequest) -> DonationResult:
         """Process a donation asynchronously (Discord entry point)."""
+        start_time = time.time()
 
-        try:
-            validate_request(request)
-        except DonationValidationError as exc:
-            return DonationResult.from_states(
-                success=False,
-                old_state=None,
-                new_state=None,
-                error_message=str(exc),
-                error_code="VALIDATION_FAILED",
-            )
+        # Metrics: Track async donation attempt
+        metrics.increment("donations.async.attempts.total", tags={"source": request.source})
 
-        try:
-            old_state = self.mech_service.get_state()
-            guild, member_count = await resolve_member_context(
-                request.bot_instance,
-                request.discord_guild_id,
-                use_member_count=request.use_member_count,
-            )
+        # Tracing: Create span for async donation processing
+        with tracing.trace("donation.process_async", attributes={
+            "source": request.source,
+            "donor": request.donor_name,
+        }) as span:
+            try:
+                validate_request(request)
+            except DonationValidationError as exc:
+                # Metrics: Track validation failure
+                metrics.increment("donations.async.validation_failed.total")
 
-            new_state = await execute_async_donation(
-                self.mech_service,
-                request,
-                guild=guild,
-                member_count=member_count,
-            )
+                # Structured logging: Log validation failure
+                structured_logger.warning("donation_async_validation_failed", extra={
+                    "donor": request.donor_name,
+                    "amount": request.amount,
+                    "source": request.source,
+                    "error": str(exc),
+                    "duration_ms": (time.time() - start_time) * 1000,
+                })
 
-            clear_mech_cache()
-            event_id = events.emit_donation_event(
-                self.event_manager, request, old_state=old_state, new_state=new_state
-            )
+                return DonationResult.from_states(
+                    success=False,
+                    old_state=None,
+                    new_state=None,
+                    error_message=str(exc),
+                    error_code="VALIDATION_FAILED",
+                )
 
-            return DonationResult.from_states(
-                success=True,
-                old_state=old_state,
-                new_state=new_state,
-                event_emitted=True,
-                event_id=event_id,
-            )
-        except Exception as exc:  # pragma: no cover - defensive logging
-            logger.error("Error in async donation processing: %s", exc, exc_info=True)
-            return DonationResult.from_states(
-                success=False,
-                old_state=None,
-                new_state=None,
-                error_message=str(exc),
-                error_code="ASYNC_PROCESSING_FAILED",
-            )
+            try:
+                old_state = self.mech_service.get_state()
+                guild, member_count = await resolve_member_context(
+                    request.bot_instance,
+                    request.discord_guild_id,
+                    use_member_count=request.use_member_count,
+                )
+
+                new_state = await execute_async_donation(
+                    self.mech_service,
+                    request,
+                    guild=guild,
+                    member_count=member_count,
+                )
+
+                clear_mech_cache()
+                event_id = events.emit_donation_event(
+                    self.event_manager, request, old_state=old_state, new_state=new_state
+                )
+
+                # Calculate processing duration
+                duration_ms = (time.time() - start_time) * 1000
+
+                # Metrics: Track successful async donation
+                metrics.increment("donations.async.total", tags={"source": request.source})
+                metrics.histogram("donation.async.amount", request.amount)
+                metrics.histogram("donation.async.processing_time.duration_ms", duration_ms)
+
+                # Structured logging: Log successful async donation
+                structured_logger.info("donation_async_processed", extra={
+                    "donor": request.donor_name,
+                    "amount": request.amount,
+                    "source": request.source,
+                    "guild_id": str(request.discord_guild_id) if request.discord_guild_id else None,
+                    "member_count": member_count,
+                    "old_power": old_state.current_power if old_state else None,
+                    "new_power": new_state.current_power if new_state else None,
+                    "power_gained": (new_state.current_power - old_state.current_power) if (old_state and new_state) else None,
+                    "event_id": event_id,
+                    "duration_ms": duration_ms,
+                })
+
+                # Tracing: Add success attributes
+                if span:
+                    span.set_attribute("success", True)
+                    span.set_attribute("amount", request.amount)
+                    span.set_attribute("duration_ms", duration_ms)
+                    span.set_attribute("member_count", member_count or 0)
+
+                return DonationResult.from_states(
+                    success=True,
+                    old_state=old_state,
+                    new_state=new_state,
+                    event_emitted=True,
+                    event_id=event_id,
+                )
+            except Exception as exc:  # pragma: no cover - defensive logging
+                duration_ms = (time.time() - start_time) * 1000
+
+                # Metrics: Track async processing failure
+                metrics.increment("donations.async.processing_failed.total")
+
+                # Structured logging: Log async error
+                logger.error("Error in async donation processing: %s", exc, exc_info=True)
+                structured_logger.error("donation_async_processing_failed", extra={
+                    "donor": request.donor_name,
+                    "amount": request.amount,
+                    "source": request.source,
+                    "error": str(exc),
+                    "duration_ms": duration_ms,
+                })
+
+                # Tracing: Mark span as failed
+                if span:
+                    span.set_attribute("success", False)
+                    span.set_attribute("error", str(exc))
+
+                return DonationResult.from_states(
+                    success=False,
+                    old_state=None,
+                    new_state=None,
+                    error_message=str(exc),
+                    error_code="ASYNC_PROCESSING_FAILED",
+                )
 
     def reset_all_donations(self, *, source: str = "admin") -> DonationResult:
         """Reset all donations via the unified donation flow."""
