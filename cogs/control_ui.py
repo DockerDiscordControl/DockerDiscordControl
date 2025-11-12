@@ -2571,22 +2571,14 @@ class MechHistoryButton(Button):
                     progress_service = get_progress_service()
                     state = progress_service.get_state()
 
-                    # DEBUG LOGGING
-                    logger.info(f"🔍 NEXT DEBUG - state.evo_max={state.evo_max} (type: {type(state.evo_max).__name__})")
-                    logger.info(f"🔍 NEXT DEBUG - state.evo_current={state.evo_current} (type: {type(state.evo_current).__name__})")
-
                     # Use evolution-based calculation (evo_max - evo_current) - same as donate modal
                     needed_amount = state.evo_max - state.evo_current
-                    logger.info(f"🔍 NEXT DEBUG - needed_amount={needed_amount} (type: {type(needed_amount).__name__})")
 
                     if needed_amount > 0:
                         formatted_amount = f"{needed_amount:.2f}".rstrip('0').rstrip('.')
-                        logger.info(f"🔍 NEXT DEBUG - after rstrip='{formatted_amount}'")
                         # Clean up trailing .00
                         formatted_amount = formatted_amount.replace('.00', '')
-                        logger.info(f"🔍 NEXT DEBUG - after replace='{formatted_amount}'")
                         needed_text = f"**{_('Need $')}{formatted_amount} {_('more to unlock')}**"
-                        logger.info(f"🔍 NEXT DEBUG - final needed_text='{needed_text}'")
                     else:
                         needed_text = f"**{_('Ready to unlock!')}**"
 
