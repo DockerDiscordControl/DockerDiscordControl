@@ -16,6 +16,13 @@ import logging
 from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass
 
+# Import custom exceptions
+from services.exceptions import (
+    ConfigServiceError, ConfigLoadError, ConfigSaveError,
+    ConfigCacheError, FormValidationError, StorageError,
+    FileStorageError
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -117,10 +124,17 @@ class ConfigurationSaveService:
 
             return ConfigurationSaveResult(success=True, message="Dependencies initialized")
 
-        except Exception as e:
+        except ImportError as e:
+            self.logger.error(f"Failed to import required dependencies: {e}", exc_info=True)
             return ConfigurationSaveResult(
                 success=False,
-                error=f"Failed to initialize dependencies: {str(e)}"
+                error=f"Failed to import dependencies: {str(e)}"
+            )
+        except Exception as e:
+            self.logger.error(f"Unexpected error initializing dependencies: {e}", exc_info=True)
+            return ConfigurationSaveResult(
+                success=False,
+                error=f"Unexpected initialization error: {str(e)}"
             )
 
     def _clean_form_data(self, form_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -283,25 +297,48 @@ class ConfigurationSaveService:
         """Handle critical settings changes by invalidating caches."""
         try:
             # Invalidate ConfigService cache
-            self.config_service._cache_service.invalidate_cache()
-            self.logger.info("ConfigService cache invalidated due to critical settings change")
+            try:
+                self.config_service._cache_service.invalidate_cache()
+                self.logger.info("ConfigService cache invalidated due to critical settings change")
+            except Exception as cache_error:
+                self.logger.error(f"Failed to invalidate ConfigService cache: {cache_error}", exc_info=True)
+                raise ConfigCacheError(
+                    "Failed to invalidate ConfigService cache",
+                    error_code="CACHE_INVALIDATION_FAILED",
+                    details={'error': str(cache_error)}
+                )
 
             # Invalidate config cache
-            from utils.config_cache import get_config_cache
-            config_cache = get_config_cache()
-            config_cache.clear()
-            self.logger.info("Config cache cleared due to critical settings change")
+            try:
+                from utils.config_cache import get_config_cache
+                config_cache = get_config_cache()
+                config_cache.clear()
+                self.logger.info("Config cache cleared due to critical settings change")
+            except Exception as cache_error:
+                self.logger.error(f"Failed to clear config cache: {cache_error}", exc_info=True)
+                # Non-critical, continue
 
             # Force reload of configuration in config cache
-            from utils.config_cache import init_config_cache
-            from services.config.config_service import load_config
-            fresh_config = load_config()
-            init_config_cache(fresh_config)
-            self.logger.info("Config cache reinitialized with fresh configuration")
+            try:
+                from utils.config_cache import init_config_cache
+                from services.config.config_service import load_config
+                fresh_config = load_config()
+                init_config_cache(fresh_config)
+                self.logger.info("Config cache reinitialized with fresh configuration")
+            except ConfigLoadError as e:
+                self.logger.error(f"Failed to reload config: {e.message}", exc_info=True)
+                raise
+            except Exception as reload_error:
+                self.logger.error(f"Failed to reinitialize config cache: {reload_error}", exc_info=True)
+                # Non-critical, continue
 
             # Clear translation manager cache if language changed
             if changes.language_changed:
-                self._clear_translation_cache(changes.old_language, changes.new_language)
+                try:
+                    self._clear_translation_cache(changes.old_language, changes.new_language)
+                except Exception as trans_error:
+                    self.logger.error(f"Failed to clear translation cache: {trans_error}", exc_info=True)
+                    # Non-critical, continue
 
             # Clear timezone cache if timezone changed
             if changes.timezone_changed:
@@ -309,11 +346,18 @@ class ConfigurationSaveService:
                     from utils.time_utils import clear_timezone_cache
                     clear_timezone_cache()
                     self.logger.info("Timezone cache cleared due to timezone change")
-                except Exception as e:
-                    self.logger.error(f"Error clearing timezone cache: {e}")
+                except ImportError:
+                    self.logger.debug("Timezone cache utilities not available")
+                except Exception as tz_error:
+                    self.logger.error(f"Error clearing timezone cache: {tz_error}", exc_info=True)
+                    # Non-critical, continue
 
+        except ConfigCacheError:
+            # Re-raise cache errors
+            raise
         except Exception as e:
-            self.logger.error(f"Error handling critical changes: {e}")
+            self.logger.error(f"Unexpected error handling critical changes: {e}", exc_info=True)
+            # Don't raise - this shouldn't block the config save
 
     def _clear_translation_cache(self, old_language: str, new_language: str) -> None:
         """Clear translation manager cache for language changes."""

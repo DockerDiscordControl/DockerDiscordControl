@@ -30,6 +30,12 @@ from .config_cache_service import ConfigCacheService
 from .config_loader_service import ConfigLoaderService
 from .config_form_parser_service import ConfigFormParserService
 
+# Import custom exceptions
+from services.exceptions import (
+    ConfigServiceError, ConfigLoadError, ConfigSaveError,
+    TokenEncryptionError, ConfigCacheError, ConfigMigrationError
+)
+
 # Token encryption constants
 _TOKEN_ENCRYPTION_SALT = b'ddc-salt-for-token-encryption-key-v1'
 _PBKDF2_ITERATIONS = 260000
@@ -234,18 +240,31 @@ class ConfigService:
                 logger.info("save_config called - using modular structure only (no legacy files)")
 
                 # Invalidate cache using cache service
-                self._cache_service.invalidate_cache()
+                try:
+                    self._cache_service.invalidate_cache()
+                except Exception as cache_error:
+                    # Cache invalidation failure is not critical
+                    logger.warning(f"Cache invalidation failed (non-critical): {cache_error}")
+                    raise ConfigCacheError(
+                        "Failed to invalidate config cache",
+                        error_code="CACHE_INVALIDATION_FAILED",
+                        details={'original_error': str(cache_error)}
+                    )
 
                 return ConfigServiceResult(
                     success=True,
                     message="Configuration saved successfully (modular structure)"
                 )
 
+            except ConfigCacheError:
+                # Re-raise cache errors
+                raise
             except Exception as e:
-                logger.error(f"Error saving configuration: {e}")
-                return ConfigServiceResult(
-                    success=False,
-                    error=str(e)
+                logger.error(f"Error saving configuration: {e}", exc_info=True)
+                raise ConfigSaveError(
+                    f"Configuration save failed: {str(e)}",
+                    error_code="CONFIG_SAVE_FAILED",
+                    details={'config_keys': list(config.keys()) if config else []}
                 )
     
     # === Token Encryption Methods ===
@@ -253,8 +272,9 @@ class ConfigService:
     def encrypt_token(self, plaintext_token: str, password_hash: str) -> Optional[str]:
         """Encrypt a Discord bot token using password hash."""
         if not plaintext_token or not password_hash:
+            logger.warning("encrypt_token called with empty token or password")
             return None
-            
+
         try:
             # Derive encryption key from password hash
             kdf = PBKDF2HMAC(
@@ -264,25 +284,42 @@ class ConfigService:
                 iterations=_PBKDF2_ITERATIONS,
             )
             key = base64.urlsafe_b64encode(kdf.derive(password_hash.encode()))
-            
+
             # Encrypt the token
             fernet = Fernet(key)
             encrypted_bytes = fernet.encrypt(plaintext_token.encode())
             return base64.urlsafe_b64encode(encrypted_bytes).decode()
-            
+
+        except ValueError as e:
+            logger.error(f"Token encryption failed - invalid input: {e}", exc_info=True)
+            raise TokenEncryptionError(
+                "Token encryption failed due to invalid input",
+                error_code="ENCRYPTION_INVALID_INPUT",
+                details={'error': str(e)}
+            )
         except Exception as e:
-            logger.error(f"Token encryption failed: {e}")
-            return None
+            logger.error(f"Token encryption failed: {e}", exc_info=True)
+            raise TokenEncryptionError(
+                f"Token encryption failed: {str(e)}",
+                error_code="ENCRYPTION_FAILED",
+                details={'error_type': type(e).__name__}
+            )
     
     def decrypt_token(self, encrypted_token: str, password_hash: str) -> Optional[str]:
         """Decrypt a Discord bot token using password hash."""
         if not encrypted_token or not password_hash:
+            logger.warning("decrypt_token called with empty token or password")
             return None
 
         # Check cache first using cache service
-        cached_token = self._cache_service.get_cached_token(encrypted_token, password_hash)
-        if cached_token:
-            return cached_token
+        try:
+            cached_token = self._cache_service.get_cached_token(encrypted_token, password_hash)
+            if cached_token:
+                logger.debug("Token retrieved from cache")
+                return cached_token
+        except Exception as cache_error:
+            # Cache errors are non-critical, continue with decryption
+            logger.warning(f"Token cache lookup failed (non-critical): {cache_error}")
 
         try:
             # Derive decryption key - using same method as old config_manager
@@ -300,16 +337,35 @@ class ConfigService:
             decrypted_token = decrypted_token_bytes.decode('utf-8')
 
             # Cache successful decryption using cache service
-            self._cache_service.set_cached_token(encrypted_token, password_hash, decrypted_token)
+            try:
+                self._cache_service.set_cached_token(encrypted_token, password_hash, decrypted_token)
+            except Exception as cache_error:
+                # Cache errors are non-critical
+                logger.warning(f"Token cache set failed (non-critical): {cache_error}")
 
             return decrypted_token
 
-        except InvalidToken:
+        except InvalidToken as e:
             logger.warning("Failed to decrypt token: Invalid token or key (password change?)")
-            return None
+            raise TokenEncryptionError(
+                "Token decryption failed - invalid token or password hash",
+                error_code="DECRYPTION_INVALID_TOKEN",
+                details={'hint': 'Password may have been changed'}
+            )
+        except ValueError as e:
+            logger.error(f"Token decryption failed - invalid input: {e}", exc_info=True)
+            raise TokenEncryptionError(
+                "Token decryption failed due to invalid input",
+                error_code="DECRYPTION_INVALID_INPUT",
+                details={'error': str(e)}
+            )
         except Exception as e:
-            logger.error(f"Token decryption failed: {e}")
-            return None
+            logger.error(f"Token decryption failed: {e}", exc_info=True)
+            raise TokenEncryptionError(
+                f"Token decryption failed: {str(e)}",
+                error_code="DECRYPTION_FAILED",
+                details={'error_type': type(e).__name__}
+            )
     
     # === Private Helper Methods ===
     
@@ -324,8 +380,17 @@ class ConfigService:
                     result.update(data)
                     return result
             return default.copy()
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON in {file_path}: {e}", exc_info=True)
+            # Return defaults on JSON parse errors
+            return default.copy()
+        except IOError as e:
+            logger.error(f"I/O error loading {file_path}: {e}", exc_info=True)
+            # Return defaults on I/O errors
+            return default.copy()
         except Exception as e:
-            logger.error(f"Error loading {file_path}: {e}")
+            logger.error(f"Unexpected error loading {file_path}: {e}", exc_info=True)
+            # Return defaults on unexpected errors
             return default.copy()
     
     def _save_json_file(self, file_path: Path, data: Dict[str, Any]) -> None:
@@ -345,9 +410,17 @@ class ConfigService:
                 decrypted = self.decrypt_token(token, password_hash)
                 if decrypted and self._validation_service.looks_like_discord_token(decrypted):
                     return decrypted
+            except TokenEncryptionError as e:
+                logger.error(f"Token decryption failed: {e.message}", exc_info=True)
+                # Re-raise to propagate structured error
+                raise
             except Exception as e:
-                logger.error(f"Token decryption failed: {e}")
-                return None
+                logger.error(f"Unexpected error during token decryption: {e}", exc_info=True)
+                raise TokenEncryptionError(
+                    f"Unexpected token decryption error: {str(e)}",
+                    error_code="DECRYPTION_UNEXPECTED_ERROR",
+                    details={'error_type': type(e).__name__}
+                )
 
         # Return plaintext token as-is if it looks like a Discord token
         return token
@@ -378,11 +451,32 @@ class ConfigService:
                 success=True,
                 config=config
             )
-        except Exception as e:
-            logger.error(f"Error getting config via service: {e}", exc_info=True)
+        except ConfigLoadError as e:
+            logger.error(f"Config load error via service: {e.message}", exc_info=True)
             return GetConfigResult(
                 success=False,
-                error_message=str(e)
+                error_message=e.message
+            )
+        except ConfigCacheError as e:
+            logger.warning(f"Config cache error (non-critical): {e.message}")
+            # Try to load without cache
+            try:
+                config = self.get_config(force_reload=True)
+                return GetConfigResult(
+                    success=True,
+                    config=config
+                )
+            except Exception as retry_error:
+                logger.error(f"Retry after cache error failed: {retry_error}", exc_info=True)
+                return GetConfigResult(
+                    success=False,
+                    error_message=f"Failed to load config after cache error: {str(retry_error)}"
+                )
+        except Exception as e:
+            logger.error(f"Unexpected error getting config via service: {e}", exc_info=True)
+            return GetConfigResult(
+                success=False,
+                error_message=f"Unexpected error: {str(e)}"
             )
 
     def validate_donation_key_service(self, request: ValidateDonationKeyRequest) -> ValidateDonationKeyResult:
@@ -403,11 +497,17 @@ class ConfigService:
                 success=True,
                 is_valid=is_valid
             )
-        except Exception as e:
-            logger.error(f"Error validating donation key via service: {e}", exc_info=True)
+        except ConfigLoadError as e:
+            logger.error(f"Failed to load config for donation key validation: {e.message}", exc_info=True)
             return ValidateDonationKeyResult(
                 success=False,
-                error_message=str(e)
+                error_message=f"Config load failed: {e.message}"
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error validating donation key: {e}", exc_info=True)
+            return ValidateDonationKeyResult(
+                success=False,
+                error_message=f"Unexpected error: {str(e)}"
             )
 
     def get_evolution_mode_service(self, request: GetEvolutionModeRequest) -> GetEvolutionModeResult:
@@ -423,6 +523,7 @@ class ConfigService:
             }
 
             # Use internal _load_json_file for consistent error handling
+            # Note: _load_json_file already handles JSON/IO errors and returns defaults
             mode_config = self._load_json_file(config_path, default_config)
 
             return GetEvolutionModeResult(
@@ -431,11 +532,21 @@ class ConfigService:
                 difficulty_multiplier=mode_config.get('difficulty_multiplier', 1.0)
             )
 
-        except Exception as e:
-            logger.error(f"Error getting evolution mode via service: {e}", exc_info=True)
+        except ConfigLoadError as e:
+            logger.error(f"Failed to load evolution mode config: {e.message}", exc_info=True)
+            # Return safe defaults on config load error
             return GetEvolutionModeResult(
                 success=False,
-                error=str(e),
+                error=e.message,
+                use_dynamic=True,  # Safe default
+                difficulty_multiplier=1.0
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error getting evolution mode: {e}", exc_info=True)
+            # Return safe defaults on unexpected error
+            return GetEvolutionModeResult(
+                success=False,
+                error=f"Unexpected error: {str(e)}",
                 use_dynamic=True,  # Safe default
                 difficulty_multiplier=1.0
             )
