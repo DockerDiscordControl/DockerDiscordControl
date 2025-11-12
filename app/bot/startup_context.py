@@ -11,7 +11,7 @@ import discord
 from .runtime import BotRuntime
 
 
-@dataclass(slots=True)
+@dataclass
 class StartupContext:
     """Lightweight view over the runtime data shared across startup steps."""
 

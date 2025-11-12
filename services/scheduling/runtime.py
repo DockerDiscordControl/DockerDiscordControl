@@ -22,7 +22,7 @@ from utils.logging_utils import get_module_logger
 logger = get_module_logger("scheduler.runtime")
 
 
-@dataclass(slots=True)
+@dataclass
 class _SchedulerRuntimeState:
     """Container for scheduler caches and file tracking metadata."""
 

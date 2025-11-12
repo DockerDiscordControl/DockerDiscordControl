@@ -20,7 +20,7 @@ from app.bootstrap import (
 from .dependencies import BotDependencies, load_dependencies
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class BotRuntime:
     """Aggregated state required by the bot entrypoint and event handlers."""
 

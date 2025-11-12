@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import sys
 
 import pytest
 
@@ -13,6 +14,7 @@ from services.mech.progress_paths import ProgressPaths
 from services.scheduling.runtime import _SchedulerRuntimeState
 
 
+@pytest.mark.skipif(sys.version_info < (3, 10), reason="slots=True requires Python 3.10+")
 @pytest.mark.parametrize(
     "cls",
     [
@@ -39,6 +41,7 @@ def test_dataclasses_use_slots(cls) -> None:
         assert slot.isidentifier()
 
 
+@pytest.mark.skipif(sys.version_info < (3, 10), reason="slots=True requires Python 3.10+")
 def test_progress_runtime_is_still_mutable() -> None:
     runtime = ProgressRuntime()
     runtime.invalidate_cache()
