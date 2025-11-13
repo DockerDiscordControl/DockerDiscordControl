@@ -116,28 +116,17 @@ class DonationStatusService:
             }
 
     def _get_evolution_information(self, mech_level: int) -> Dict[str, Any]:
-        """Get evolution-specific information like decay rate using MechDecayService."""
+        """Get evolution-specific information like decay rate directly from mech_evolutions."""
         try:
-            from services.mech.mech_decay_service import get_mech_decay_service, DecayInfoRequest
+            # SERVICE FIRST: Use unified evolution system directly
+            from services.mech.mech_evolutions import get_evolution_level_info
+            evolution_info = get_evolution_level_info(mech_level)
 
-            decay_service = get_mech_decay_service()
-            request = DecayInfoRequest(mech_level=mech_level)
-            result = decay_service.get_decay_info_for_level(request)
+            return {
+                'decay_per_day': evolution_info.decay_per_day if evolution_info else 1.0
+            }
 
-            if result.success and result.decay_info:
-                return {
-                    'decay_per_day': result.decay_info['decay_per_day']
-                }
-            else:
-                self.logger.warning(f"MechDecayService failed for level {mech_level}: {result.error}")
-                # Fallback to direct config access (SERVICE FIRST: unified evolution system)
-                from services.mech.mech_evolutions import get_evolution_level_info
-                evolution_info = get_evolution_level_info(mech_level)
-                return {
-                    'decay_per_day': evolution_info.decay_per_day if evolution_info else 1.0
-                }
-
-        except (RuntimeError) as e:
+        except (RuntimeError, ImportError, AttributeError) as e:
             self.logger.error(f"Error getting evolution information: {e}", exc_info=True)
             # Return fallback evolution info
             return {
