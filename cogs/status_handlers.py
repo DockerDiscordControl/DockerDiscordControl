@@ -77,11 +77,12 @@ class StatusHandlersMixin:
                     'retry_attempts': 3,      # Maximum retry attempts
                     'timeout_multiplier': 2.0 # Timeout = avg_time * multiplier
                 }
-                
+
+
                 logger.info(f"Adaptive performance system aligned with Docker timeouts: max={max_docker_timeout}ms")
-            except Exception as e:
+            except (ImportError, AttributeError, KeyError, TypeError) as e:
                 # Fallback to more conservative values if import fails
-                logger.warning(f"Failed to align with Docker timeouts, using conservative defaults: {e}")
+                logger.warning(f"Failed to align with Docker timeouts, using conservative defaults: {e}", exc_info=True)
                 self.performance_learning_config = {
                     'min_timeout': 5000,      # 5 seconds minimum
                     'max_timeout': 45000,     # 45 seconds maximum (conservative)
@@ -250,11 +251,11 @@ class StatusHandlersMixin:
                 if attempt < config['retry_attempts'] - 1:
                     # Short delay before retry
                     await asyncio.sleep(0.5)
-                    
-            except Exception as e:
+
+            except (RuntimeError, OSError, ValueError, TypeError) as e:
                 last_exception = e
-                logger.error(f"Error fetching {docker_name} on attempt {attempt + 1}: {e}")
-                
+                logger.error(f"Error fetching {docker_name} on attempt {attempt + 1}: {e}", exc_info=True)
+
                 if attempt < config['retry_attempts'] - 1:
                     await asyncio.sleep(0.5)
         
@@ -282,11 +283,11 @@ class StatusHandlersMixin:
             
             logger.info(f"Emergency fetch successful for {docker_name} after {emergency_time:.1f}ms")
             return docker_name, info, stats
-            
-        except Exception as e:
+
+        except (RuntimeError, OSError, asyncio.CancelledError) as e:
             # Even emergency fetch failed - update performance and return error
             self._update_container_performance(docker_name, 0, False)
-            logger.error(f"Emergency fetch failed for {docker_name}: {e}")
+            logger.error(f"Emergency fetch failed for {docker_name}: {e}", exc_info=True)
             return docker_name, last_exception, None
     
     def _get_cached_translations(self, lang: str) -> dict:
@@ -620,7 +621,7 @@ class StatusHandlersMixin:
                         # Cache error state to prevent constant retries
                         self.status_cache_service.set_error(display_name, error)
                         logger.warning(f"[BULK_UPDATE] Failed to update {display_name}: {error}")
-        except Exception as e:
+        except (RuntimeError, asyncio.CancelledError, KeyError, TypeError) as e:
             logger.error(f"[BULK_UPDATE] Error during bulk update: {e}", exc_info=True)
 
     async def get_status(self, server_config: Dict[str, Any]) -> Union[Tuple[str, bool, str, str, str, bool], Exception]:
@@ -699,7 +700,7 @@ class StatusHandlersMixin:
 
             return (display_name, is_running, cpu, ram, uptime, details_allowed)
 
-        except Exception as e:
+        except (RuntimeError, OSError, ValueError, KeyError, TypeError) as e:
             logger.error(f"Error getting status for {docker_name}: {e}", exc_info=True)
             return e # Return the exception itself
     
@@ -1082,8 +1083,8 @@ class StatusHandlersMixin:
                     except discord.NotFound:
                         logger.warning(f"[SEND_STATUS] Message {existing_msg_id} not found, sending new connectivity error message")
                         existing_msg_id = None
-                    except Exception as e:
-                        logger.error(f"[SEND_STATUS] Failed to edit connectivity error message: {e}")
+                    except (discord.HTTPException, discord.Forbidden, RuntimeError) as e:
+                        logger.error(f"[SEND_STATUS] Failed to edit connectivity error message: {e}", exc_info=True)
                         existing_msg_id = None
 
                 if not existing_msg_id:
@@ -1093,8 +1094,8 @@ class StatusHandlersMixin:
                     self.channel_server_message_ids[channel.id][display_name] = msg.id
                     logger.info(f"[SEND_STATUS] Sent new Docker connectivity error message {msg.id} for '{display_name}'")
 
-            except Exception as e:
-                logger.error(f"[SEND_STATUS] Failed to send Docker connectivity error message for '{display_name}': {e}")
+            except (discord.HTTPException, discord.Forbidden, RuntimeError, KeyError) as e:
+                logger.error(f"[SEND_STATUS] Failed to send Docker connectivity error message for '{display_name}': {e}", exc_info=True)
 
             return msg
 
@@ -1131,7 +1132,7 @@ class StatusHandlersMixin:
                          if channel.id in self.channel_server_message_ids and display_name in self.channel_server_message_ids[channel.id]:
                               del self.channel_server_message_ids[channel.id][display_name]
                          existing_msg_id = None
-                    except Exception as e:
+                    except (discord.HTTPException, discord.Forbidden, RuntimeError, KeyError) as e:
                          logger.error(f"[SEND_STATUS] Failed to edit message {existing_msg_id} for '{display_name}': {e}", exc_info=True)
                          if is_pending_check: logger.error(f"[SEND_STATUS_PENDING_CHECK] Failed to EDIT pending message for '{display_name}'. Error: {e}")
                          existing_msg_id = None
@@ -1150,13 +1151,13 @@ class StatusHandlersMixin:
                           self.last_message_update_time[channel.id][display_name] = datetime.now(timezone.utc)
                           
                           if is_pending_check: logger.debug(f"[SEND_STATUS_PENDING_CHECK] Successfully sent new pending message for '{display_name}'.")
-                     except Exception as e:
+                     except (discord.HTTPException, discord.Forbidden, RuntimeError, KeyError) as e:
                           logger.error(f"[SEND_STATUS] Failed to send new message for '{display_name}' in channel {channel.id}: {e}", exc_info=True)
                           if is_pending_check: logger.error(f"[SEND_STATUS_PENDING_CHECK] Failed to SEND new pending message for '{display_name}'. Error: {e}")
             else:
                 logger.warning(f"[SEND_STATUS] No embed generated for '{display_name}' (likely error in helper?), cannot send/edit.")
 
-        except Exception as e:
+        except (RuntimeError, asyncio.CancelledError, KeyError, TypeError) as e:
             logger.error(f"[SEND_STATUS] Outer error processing server '{display_name}' for channel {channel.id}: {e}", exc_info=True)
         return msg
 
@@ -1318,7 +1319,7 @@ class StatusHandlersMixin:
         except discord.Forbidden:
             logger.error(f"_edit_single_message: Missing permissions to fetch/edit message {message_id} in channel {channel_id}.")
             return discord.Forbidden(f"Permissions error for {message_id}")
-        except Exception as e:
+        except (discord.HTTPException, RuntimeError, asyncio.CancelledError, KeyError, TypeError, ValueError) as e:
             elapsed_time = (time.time() - start_time) * 1000
             logger.error(f"_edit_single_message: Failed to edit message {message_id} for '{display_name}' after {elapsed_time:.1f}ms: {e}", exc_info=True)
             return e 
