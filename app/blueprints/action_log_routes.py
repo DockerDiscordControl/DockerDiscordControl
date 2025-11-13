@@ -65,9 +65,14 @@ def get_action_log():
     except FileNotFoundError:
         log_content = "Action log file not found."
         logger.error(f"Action log file ({ACTION_LOG_FILE}) not found for /action-log endpoint.")
-    except Exception as e:
+    except (IOError, OSError, PermissionError) as e:
+        # File system errors (access denied, disk full, I/O errors)
         log_content = "Error reading action log. Please check the logs for details."
-        logger.error(f"Error reading action log ({ACTION_LOG_FILE}): {str(e)}", exc_info=True)
+        logger.error(f"File system error reading action log ({ACTION_LOG_FILE}): {e}", exc_info=True)
+    except (UnicodeDecodeError, ValueError) as e:
+        # Data errors (encoding issues, file content corruption)
+        log_content = "Error reading action log. Please check the logs for details."
+        logger.error(f"Data error reading action log ({ACTION_LOG_FILE}): {e}", exc_info=True)
     return Response(log_content, mimetype='text/plain')
 
 @action_log_bp.route('/download-action-log')
@@ -93,7 +98,13 @@ def clear_action_log():
         logger.info(f"Action log cleared successfully by user: {user}.")
         flash('Action log cleared successfully.', 'success')
         return jsonify({'success': True, 'message': 'Action log cleared successfully.'})
-    except Exception as e:
-        logger.error(f"Error clearing action log: {str(e)}", exc_info=True)
+    except (IOError, OSError, PermissionError) as e:
+        # File system errors (access denied, disk full, I/O errors)
+        logger.error(f"File system error clearing action log: {e}", exc_info=True)
+        flash('Error clearing action log. Please check the logs for details.', 'error')
+        return jsonify({'success': False, 'message': 'Error clearing action log. Please check the logs for details.'})
+    except (UnicodeEncodeError, ValueError, KeyError) as e:
+        # Data errors (encoding issues, timestamp formatting, session data issues)
+        logger.error(f"Data error clearing action log: {e}", exc_info=True)
         flash('Error clearing action log. Please check the logs for details.', 'error')
         return jsonify({'success': False, 'message': 'Error clearing action log. Please check the logs for details.'}) 
