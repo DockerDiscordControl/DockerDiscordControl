@@ -42,9 +42,9 @@ def get_current_time(tz_name: Optional[str] = None) -> datetime:
         try:
             tz = pytz.timezone(tz_name)
             return datetime.now(tz)
-        except Exception as e:
-            logger.warning(f"Invalid timezone '{tz_name}', falling back to UTC: {e}")
-    
+        except (pytz.exceptions.UnknownTimeZoneError, AttributeError, TypeError) as e:
+            logger.warning(f"Invalid timezone '{tz_name}', falling back to UTC: {e}", exc_info=True)
+
     return datetime.now(timezone.utc)
 
 def get_utc_timestamp() -> float:
@@ -68,9 +68,9 @@ def timestamp_to_datetime(timestamp: float, tz_name: Optional[str] = None) -> da
         try:
             target_tz = pytz.timezone(tz_name)
             return dt.astimezone(target_tz)
-        except Exception as e:
-            logger.warning(f"Invalid timezone '{tz_name}', returning UTC: {e}")
-    
+        except (pytz.exceptions.UnknownTimeZoneError, AttributeError, TypeError) as e:
+            logger.warning(f"Invalid timezone '{tz_name}', returning UTC: {e}", exc_info=True)
+
     return dt
 
 def datetime_to_timestamp(dt: datetime) -> float:
@@ -136,9 +136,9 @@ def is_same_day(dt1: datetime, dt2: datetime, tz_name: Optional[str] = None) -> 
             tz = pytz.timezone(tz_name)
             dt1 = dt1.astimezone(tz) if dt1.tzinfo else tz.localize(dt1)
             dt2 = dt2.astimezone(tz) if dt2.tzinfo else tz.localize(dt2)
-        except Exception as e:
-            logger.warning(f"Invalid timezone '{tz_name}', using UTC: {e}")
-    
+        except (pytz.exceptions.UnknownTimeZoneError, pytz.exceptions.AmbiguousTimeError, pytz.exceptions.NonExistentTimeError, AttributeError, TypeError) as e:
+            logger.warning(f"Invalid timezone '{tz_name}', using UTC: {e}", exc_info=True)
+
     return dt1.date() == dt2.date()
 
 def get_timezone_offset(tz_name: str) -> str:
@@ -155,8 +155,8 @@ def get_timezone_offset(tz_name: str) -> str:
         tz = pytz.timezone(tz_name)
         now = datetime.now(tz)
         return now.strftime('%z')
-    except Exception as e:
-        logger.warning(f"Could not get offset for timezone '{tz_name}': {e}")
+    except (pytz.exceptions.UnknownTimeZoneError, AttributeError, TypeError, ValueError) as e:
+        logger.warning(f"Could not get offset for timezone '{tz_name}': {e}", exc_info=True)
         return "+00:00"
 
 def format_datetime_with_timezone(dt, timezone_name=None, time_only=False):
@@ -195,15 +195,15 @@ def format_datetime_with_timezone(dt, timezone_name=None, time_only=False):
         local_time = dt.astimezone(target_tz)
         format_str = "%H:%M:%S" if time_only else "%d.%m.%Y %H:%M:%S"
         return local_time.strftime(format_str)
-    except Exception as e1:
-        logger.warning(f"zoneinfo conversion failed: {e1}")
+    except (ImportError, AttributeError, TypeError, ValueError, OSError) as e1:
+        logger.warning(f"zoneinfo conversion failed: {e1}", exc_info=True)
         try:
             # Second attempt: Try pytz
             target_tz = pytz.timezone(tz_name)
             local_time = dt.astimezone(target_tz)
             return local_time.strftime("%d.%m.%Y %H:%M:%S")
-        except Exception as e2:
-            logger.warning(f"pytz conversion failed: {e2}")
+        except (pytz.exceptions.UnknownTimeZoneError, AttributeError, TypeError, ValueError) as e2:
+            logger.warning(f"pytz conversion failed: {e2}", exc_info=True)
             try:
                 # Third attempt: Manual offset for Europe/Berlin
                 if tz_name == 'Europe/Berlin':
@@ -213,15 +213,15 @@ def format_datetime_with_timezone(dt, timezone_name=None, time_only=False):
                     offset = 2 if is_dst else 1
                     local_time = dt.astimezone(timezone(timedelta(hours=offset)))
                     return local_time.strftime("%d.%m.%Y %H:%M:%S")
-            except Exception as e3:
-                logger.warning(f"Manual timezone conversion failed: {e3}")
-            
+            except (AttributeError, TypeError, ValueError, OSError) as e3:
+                logger.warning(f"Manual timezone conversion failed: {e3}", exc_info=True)
+
             # Final fallback: Just use UTC
             try:
                 utc_time = dt.astimezone(timezone.utc)
                 return utc_time.strftime("%d.%m.%Y %H:%M:%S UTC")
-            except Exception as e4:
-                logger.error(f"UTC fallback failed: {e4}")
+            except (AttributeError, TypeError, ValueError) as e4:
+                logger.error(f"UTC fallback failed: {e4}", exc_info=True)
                 return dt.strftime("%d.%m.%Y %H:%M:%S") + " (timezone unknown)"
 
 
@@ -275,8 +275,8 @@ def _get_timezone_safe():
                 return tz
         except ImportError:
             logger.warning("Config service not available, trying alternate methods")
-        except Exception as e:
-            logger.debug(f"Could not get timezone from config service: {e}")
+        except (AttributeError, TypeError, KeyError, RuntimeError) as e:
+            logger.debug(f"Could not get timezone from config service: {e}", exc_info=True)
 
         # Third priority: Use ConfigManager if available (for legacy support)
         try:
@@ -286,14 +286,14 @@ def _get_timezone_safe():
                 tz = config['timezone']
                 logger.debug(f"Using timezone from ConfigManager: {tz}")
                 return tz
-        except Exception as e:
-            logger.debug(f"Could not get timezone from ConfigManager: {e}")
+        except (ImportError, AttributeError, TypeError, KeyError, RuntimeError) as e:
+            logger.debug(f"Could not get timezone from ConfigManager: {e}", exc_info=True)
 
         # Final fallback: Default to UTC (safer than hardcoded Europe/Berlin)
         logger.warning("All timezone detection methods failed, falling back to UTC")
         return 'UTC'
 
-    except Exception as e:
+    except (RuntimeError, SystemError) as e:
         logger.error(f"Critical error in _get_timezone_safe: {e}", exc_info=True)
         return 'UTC'
             
@@ -328,8 +328,8 @@ def get_log_timestamp(include_tz: bool = True) -> str:
             return now.strftime('%Y-%m-%d %H:%M:%S %Z')
         else:
             return now.strftime('%Y-%m-%d %H:%M:%S')
-    except Exception as e:
-        logger.error(f"Error formatting log timestamp: {e}")
+    except (pytz.exceptions.UnknownTimeZoneError, AttributeError, TypeError, ValueError) as e:
+        logger.error(f"Error formatting log timestamp: {e}", exc_info=True)
         # Fallback to UTC
         now = datetime.now(timezone.utc)
         return now.strftime('%Y-%m-%d %H:%M:%S UTC')
