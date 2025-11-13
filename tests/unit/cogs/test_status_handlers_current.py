@@ -19,7 +19,7 @@ from typing import Dict, Any
 
 # Import the class we're testing
 from cogs.status_handlers import StatusHandlersMixin
-from services.docker_status import get_performance_service
+from services.docker_status import get_performance_service, get_fetch_service
 from services.discord import get_conditional_cache_service
 
 
@@ -56,6 +56,14 @@ class TestStatusHandlersMixin:
         # Clear cache and reset stats for clean test state
         service.clear_cache()
         service.reset_statistics()
+        return service
+
+    @pytest.fixture
+    def fetch_service(self):
+        """Get the DockerStatusFetchService for testing"""
+        service = get_fetch_service()
+        # Clear query history for clean test state
+        service.clear_query_history()
         return service
 
 
@@ -223,19 +231,19 @@ class TestStatusHandlersMixin:
     # =====================================================================
 
     @pytest.mark.asyncio
-    async def test_fetch_container_with_retries_success_first_attempt(self, mixin):
+    async def test_fetch_container_with_retries_success_first_attempt(self, fetch_service):
         """Test successful fetch on first attempt"""
 
         # Mock the docker fetch functions
         mock_info = {'State': {'Status': 'running'}}
         mock_stats = {'cpu_stats': {}}
 
-        with patch('cogs.status_handlers.get_docker_info_dict_service_first',
+        with patch('services.docker_status.fetch_service.get_docker_info_dict_service_first',
                    new_callable=AsyncMock, return_value=mock_info):
-            with patch('cogs.status_handlers.get_docker_stats_service_first',
+            with patch('services.docker_status.fetch_service.get_docker_stats_service_first',
                        new_callable=AsyncMock, return_value=mock_stats):
 
-                container_name, info, stats = await mixin._fetch_container_with_retries('test_container')
+                container_name, info, stats = await fetch_service.fetch_with_retries('test_container')
 
                 assert container_name == 'test_container'
                 assert info == mock_info
@@ -243,7 +251,7 @@ class TestStatusHandlersMixin:
 
 
     @pytest.mark.asyncio
-    async def test_fetch_container_with_retries_timeout_then_success(self, mixin):
+    async def test_fetch_container_with_retries_timeout_then_success(self, fetch_service):
         """Test retry logic when first attempt times out"""
 
         mock_info = {'State': {'Status': 'running'}}
@@ -256,29 +264,29 @@ class TestStatusHandlersMixin:
         stats_mock = AsyncMock()
         stats_mock.side_effect = [asyncio.TimeoutError(), mock_stats]
 
-        with patch('cogs.status_handlers.get_docker_info_dict_service_first', info_mock):
-            with patch('cogs.status_handlers.get_docker_stats_service_first', stats_mock):
+        with patch('services.docker_status.fetch_service.get_docker_info_dict_service_first', info_mock):
+            with patch('services.docker_status.fetch_service.get_docker_stats_service_first', stats_mock):
 
-                container_name, info, stats = await mixin._fetch_container_with_retries('test_container')
+                container_name, info, stats = await fetch_service.fetch_with_retries('test_container')
 
                 # Should eventually succeed
                 assert container_name == 'test_container'
 
 
     @pytest.mark.asyncio
-    async def test_fetch_container_with_retries_all_fail(self, mixin):
+    async def test_fetch_container_with_retries_all_fail(self, fetch_service):
         """Test behavior when all retries fail"""
 
         # Mock that always times out
-        with patch('cogs.status_handlers.get_docker_info_dict_service_first',
+        with patch('services.docker_status.fetch_service.get_docker_info_dict_service_first',
                    new_callable=AsyncMock, side_effect=asyncio.TimeoutError()):
-            with patch('cogs.status_handlers.get_docker_stats_service_first',
+            with patch('services.docker_status.fetch_service.get_docker_stats_service_first',
                        new_callable=AsyncMock, side_effect=asyncio.TimeoutError()):
-                with patch.object(mixin, '_emergency_full_fetch',
+                with patch.object(fetch_service, '_emergency_full_fetch',
                                   new_callable=AsyncMock,
                                   return_value=('test_container', Exception('All failed'), None)):
 
-                    container_name, info, stats = await mixin._fetch_container_with_retries('test_container')
+                    container_name, info, stats = await fetch_service.fetch_with_retries('test_container')
 
                     # Should call emergency fetch after all retries fail
                     assert container_name == 'test_container'
@@ -397,9 +405,9 @@ class TestStatusHandlersMixin:
             'memory_usage_mb': 256.0
         }
 
-        with patch('cogs.status_handlers.get_docker_info_dict_service_first',
+        with patch('services.docker_status.fetch_service.get_docker_info_dict_service_first',
                    new_callable=AsyncMock, return_value=mock_info):
-            with patch('cogs.status_handlers.get_docker_stats_service_first',
+            with patch('services.docker_status.fetch_service.get_docker_stats_service_first',
                        new_callable=AsyncMock, return_value=mock_stats):
 
                 result = await mixin.get_status(server_config)
@@ -434,9 +442,9 @@ class TestStatusHandlersMixin:
             'Name': '/test_container'
         }
 
-        with patch('cogs.status_handlers.get_docker_info_dict_service_first',
+        with patch('services.docker_status.fetch_service.get_docker_info_dict_service_first',
                    new_callable=AsyncMock, return_value=mock_info):
-            with patch('cogs.status_handlers.get_docker_stats_service_first',
+            with patch('services.docker_status.fetch_service.get_docker_stats_service_first',
                        new_callable=AsyncMock, return_value=None):
 
                 result = await mixin.get_status(server_config)
@@ -460,7 +468,7 @@ class TestStatusHandlersMixin:
         }
 
         # Mock docker fetch failure
-        with patch('cogs.status_handlers.get_docker_info_dict_service_first',
+        with patch('services.docker_status.fetch_service.get_docker_info_dict_service_first',
                    new_callable=AsyncMock, side_effect=RuntimeError('Docker error')):
 
             result = await mixin.get_status(server_config)

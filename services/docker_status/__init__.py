@@ -19,6 +19,7 @@ __all__ = [
     'StatusFetchResult',
     'CachedStatus',
     'get_performance_service',
+    'get_fetch_service',
 ]
 
 from .models import (
@@ -28,3 +29,4 @@ from .models import (
     CachedStatus,
 )
 from .performance_service import get_performance_service
+from .fetch_service import get_fetch_service
