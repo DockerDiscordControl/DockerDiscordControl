@@ -81,8 +81,9 @@ class MonitorScriptService:
                 script_content=script_content
             )
 
-        except Exception as e:
-            self.logger.error(f"Error generating {request.script_type.value} monitor script: {e}", exc_info=True)
+        except (AttributeError, ValueError, TypeError) as e:
+            # Script generation errors (invalid enum, type conversion, attribute access)
+            self.logger.error(f"Script generation error for {request.script_type.value}: {e}", exc_info=True)
             return MonitorScriptResult(
                 success=False,
                 error=f"Error generating monitor script: {str(e)}"
@@ -98,7 +99,8 @@ class MonitorScriptService:
             timeout_val = int(str(request.monitor_timeout_seconds).strip() or '271')
             if timeout_val < 60:
                 timeout_val = 60
-        except Exception:
+        except (ValueError, TypeError, AttributeError):
+            # Integer parsing/conversion errors (invalid string, None, missing attribute)
             timeout_val = 271
 
         # Parse alert channel IDs
@@ -146,7 +148,8 @@ class MonitorScriptService:
             from utils.config import load_config
             cfg = load_config() or {}
             token = (cfg.get('bot_token_decrypted_for_usage') or cfg.get('bot_token') or '')
-        except Exception:
+        except (ImportError, AttributeError, KeyError, FileNotFoundError, TypeError):
+            # Config loading errors (module not found, missing attributes, missing keys, file errors, type errors)
             token = ''
 
         # Parse parameters
@@ -155,7 +158,8 @@ class MonitorScriptService:
 
         try:
             timeout_val = max(60, int(request.monitor_timeout_seconds))
-        except Exception:
+        except (ValueError, TypeError, AttributeError):
+            # Integer parsing/conversion errors (invalid string, None, missing attribute)
             timeout_val = 271
 
         return f"""#!/bin/bash
@@ -244,7 +248,8 @@ fi
             from utils.config import load_config
             cfg = load_config() or {}
             token = (cfg.get('bot_token_decrypted_for_usage') or cfg.get('bot_token') or '')
-        except Exception:
+        except (ImportError, AttributeError, KeyError, FileNotFoundError, TypeError):
+            # Config loading errors (module not found, missing attributes, missing keys, file errors, type errors)
             token = ''
 
         # Parse parameters
@@ -253,7 +258,8 @@ fi
 
         try:
             timeout_val = max(60, int(request.monitor_timeout_seconds))
-        except Exception:
+        except (ValueError, TypeError, AttributeError):
+            # Integer parsing/conversion errors (invalid string, None, missing attribute)
             timeout_val = 271
 
         return f"""@echo off
