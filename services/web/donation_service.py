@@ -85,12 +85,19 @@ class DonationService:
             # Step 5: Build response
             return self._build_donation_response(request, mech_result, discord_success)
 
-        except Exception as e:
-            self.logger.error(f"Error processing donation: {e}", exc_info=True)
+        except (ImportError, AttributeError, RuntimeError) as e:
+            self.logger.error(f"Service error processing donation: {e}", exc_info=True)
             return DonationResult(
                 success=False,
                 message="Donation processing failed",
-                error=f"Error processing donation: {str(e)}"
+                error=f"Service error: {str(e)}"
+            )
+        except (ValueError, TypeError, KeyError) as e:
+            self.logger.error(f"Data error processing donation: {e}", exc_info=True)
+            return DonationResult(
+                success=False,
+                message="Donation processing failed",
+                error=f"Data validation error: {str(e)}"
             )
 
     def _validate_and_sanitize_request(self, request: DonationRequest) -> DonationResult:
@@ -144,11 +151,17 @@ class DonationService:
                 'mech_state': result_state
             }
 
-        except Exception as e:
-            self.logger.error(f"Error adding donation to mech service: {e}")
+        except (ImportError, AttributeError) as e:
+            self.logger.error(f"Mech service import error: {e}", exc_info=True)
             return {
                 'success': False,
-                'error': 'Failed to process donation through mech system'
+                'error': f'Mech service unavailable: {str(e)}'
+            }
+        except (RuntimeError, ValueError, TypeError) as e:
+            self.logger.error(f"Mech service processing error: {e}", exc_info=True)
+            return {
+                'success': False,
+                'error': f'Failed to process donation: {str(e)}'
             }
 
     def _handle_discord_notification(self, request: DonationRequest) -> bool:
@@ -177,8 +190,11 @@ class DonationService:
 
             return True
 
-        except Exception as e:
-            self.logger.error(f"Discord notification failed: {e}")
+        except (IOError, OSError, PermissionError) as e:
+            self.logger.error(f"Discord notification file I/O error: {e}", exc_info=True)
+            return False
+        except (json.JSONDecodeError, TypeError, ValueError) as e:
+            self.logger.error(f"Discord notification JSON error: {e}", exc_info=True)
             return False
 
     def _log_donation_action(self, request: DonationRequest, discord_success: bool) -> None:
@@ -192,7 +208,9 @@ class DonationService:
                 source="Web UI Modal",
                 details=f"Amount: ${request.amount}, Donor: {request.donor_name}, Discord: {discord_success}, Source: {request.source}"
             )
-        except Exception as e:
+        except (ImportError, AttributeError) as e:
+            self.logger.warning(f"Action logger service unavailable: {e}")
+        except (RuntimeError, ValueError, TypeError) as e:
             self.logger.warning(f"Failed to log donation action: {e}")
 
     def _build_donation_response(self, request: DonationRequest, mech_result: Dict[str, Any], discord_success: bool) -> DonationResult:
