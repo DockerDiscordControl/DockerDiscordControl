@@ -83,10 +83,11 @@ def resolve_timezone(
             "Unknown timezone '%s'. Falling back to UTC for this session.", timezone_str
         )
     except (RuntimeError) as e:
-        active_logger.error(, exc_info=True
+        active_logger.error(
             "Error setting timezone '%s': %s. Falling back to UTC for this session.",
             timezone_str,
-            exc,
+            e,
+            exc_info=True
         )
 
     return pytz.timezone("UTC")

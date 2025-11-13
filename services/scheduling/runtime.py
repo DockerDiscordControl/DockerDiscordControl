@@ -149,8 +149,9 @@ class SchedulerRuntime:
             try:
                 cache[timezone_str] = pytz.timezone(timezone_str)
             except (IOError, OSError, PermissionError, RuntimeError) as e:
-                logger.error(, exc_info=True
-                    "Error loading timezone '%s': %s. Falling back to UTC.", timezone_str, exc
+                logger.error(
+                    "Error loading timezone '%s': %s. Falling back to UTC.", timezone_str, e,
+                    exc_info=True
                 )
                 cache[timezone_str] = pytz.UTC
         return cache[timezone_str]
