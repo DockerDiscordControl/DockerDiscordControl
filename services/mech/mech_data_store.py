@@ -334,11 +334,26 @@ class MechDataStore:
 
             return result
 
-        except Exception as e:
-            self.logger.error(f"Error in get_comprehensive_data: {e}", exc_info=True)
+        except (ImportError, AttributeError) as e:
+            # Service dependency errors (progress service, mech service unavailable)
+            self.logger.error(f"Service dependency error in get_comprehensive_data: {e}", exc_info=True)
             return MechDataResult(
                 success=False,
-                error=f"Failed to get comprehensive mech data: {str(e)}"
+                error=f"Service dependency error: {str(e)}"
+            )
+        except (ValueError, TypeError, KeyError) as e:
+            # Data processing errors (calculation, parsing, dictionary access)
+            self.logger.error(f"Data processing error in get_comprehensive_data: {e}", exc_info=True)
+            return MechDataResult(
+                success=False,
+                error=f"Data processing error: {str(e)}"
+            )
+        except RuntimeError as e:
+            # Runtime errors (service call failures, etc.)
+            self.logger.error(f"Runtime error in get_comprehensive_data: {e}", exc_info=True)
+            return MechDataResult(
+                success=False,
+                error=f"Runtime error: {str(e)}"
             )
 
     def get_level_info(self, request: LevelDataRequest) -> LevelDataResult:
@@ -359,7 +374,8 @@ class MechDataStore:
                 next_level_name=comprehensive_data.next_level_name
             )
 
-        except Exception as e:
+        except (ImportError, AttributeError, ValueError, TypeError, KeyError, RuntimeError) as e:
+            # Service or data errors (delegated to get_comprehensive_data)
             self.logger.error(f"Error in get_level_info: {e}", exc_info=True)
             return LevelDataResult(success=False, error=str(e))
 
@@ -384,7 +400,8 @@ class MechDataStore:
                 progress_percentage=comprehensive_data.progress_percentage
             )
 
-        except Exception as e:
+        except (ImportError, AttributeError, ValueError, TypeError, KeyError, RuntimeError) as e:
+            # Service or data errors (delegated to get_comprehensive_data)
             self.logger.error(f"Error in get_power_info: {e}", exc_info=True)
             return PowerDataResult(success=False, error=str(e))
 
@@ -411,7 +428,8 @@ class MechDataStore:
                 difficulty_multiplier=comprehensive_data.difficulty_multiplier
             )
 
-        except Exception as e:
+        except (ImportError, AttributeError, ValueError, TypeError, KeyError, RuntimeError) as e:
+            # Service or data errors (delegated to get_comprehensive_data)
             self.logger.error(f"Error in get_evolution_info: {e}", exc_info=True)
             return EvolutionDataResult(success=False, error=str(e))
 
@@ -434,7 +452,8 @@ class MechDataStore:
                 speed_color=comprehensive_data.speed_color
             )
 
-        except Exception as e:
+        except (ImportError, AttributeError, ValueError, TypeError, KeyError, RuntimeError) as e:
+            # Service or data errors (delegated to get_comprehensive_data)
             self.logger.error(f"Error in get_speed_info: {e}", exc_info=True)
             return SpeedDataResult(success=False, error=str(e))
 
@@ -460,7 +479,8 @@ class MechDataStore:
                 survival_hours=survival_hours
             )
 
-        except Exception as e:
+        except (ImportError, AttributeError, ValueError, TypeError, KeyError, RuntimeError) as e:
+            # Service or data errors (delegated to get_comprehensive_data)
             self.logger.error(f"Error in get_decay_info: {e}", exc_info=True)
             return DecayDataResult(success=False, error=str(e))
 
@@ -487,7 +507,8 @@ class MechDataStore:
                 projections=projections
             )
 
-        except Exception as e:
+        except (ImportError, AttributeError, ValueError, TypeError, KeyError, RuntimeError) as e:
+            # Service or data errors (delegated to get_comprehensive_data)
             self.logger.error(f"Error in get_projections: {e}", exc_info=True)
             return ProjectionDataResult(success=False, error=str(e))
 
@@ -514,8 +535,13 @@ class MechDataStore:
                 'total_donated': result.total_donated
             }
 
-        except Exception as e:
-            self.logger.error(f"Error getting core mech data: {e}")
+        except (ImportError, AttributeError) as e:
+            # Service dependency errors (mech service unavailable)
+            self.logger.error(f"Service dependency error getting core mech data: {e}", exc_info=True)
+            return {'success': False, 'error': str(e)}
+        except (ValueError, TypeError, KeyError) as e:
+            # Data access errors (result object access)
+            self.logger.error(f"Data access error getting core mech data: {e}", exc_info=True)
             return {'success': False, 'error': str(e)}
 
     def _calculate_evolution_data(self, core_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -539,8 +565,19 @@ class MechDataStore:
                 'amount_needed': max(0, prog_state.evo_max - prog_state.evo_current)
             }
 
-        except Exception as e:
-            self.logger.error(f"Error calculating evolution data: {e}", exc_info=True)
+        except (ImportError, AttributeError) as e:
+            # Service dependency errors (progress service, mech_levels unavailable)
+            self.logger.error(f"Service dependency error calculating evolution data: {e}", exc_info=True)
+            return {
+                'level_name': f"Level {core_data['level']}",
+                'next_level': core_data['level'] + 1,
+                'next_level_name': 'Next Level',
+                'next_threshold': 0,
+                'amount_needed': 0
+            }
+        except (ValueError, TypeError, KeyError) as e:
+            # Data access/calculation errors
+            self.logger.error(f"Data error calculating evolution data: {e}", exc_info=True)
             return {
                 'level_name': f"Level {core_data['level']}",
                 'next_level': core_data['level'] + 1,
@@ -575,8 +612,17 @@ class MechDataStore:
                 'speed_color': speed_color
             }
 
-        except Exception as e:
-            self.logger.error(f"Error calculating speed data: {e}")
+        except (ImportError, AttributeError) as e:
+            # Service dependency errors (speed_levels, mech_evolutions unavailable)
+            self.logger.error(f"Service dependency error calculating speed data: {e}", exc_info=True)
+            return {
+                'speed_level': 0,
+                'speed_description': 'OFFLINE',
+                'speed_color': '#888888'
+            }
+        except (ValueError, TypeError, KeyError) as e:
+            # Data access/calculation errors
+            self.logger.error(f"Data error calculating speed data: {e}", exc_info=True)
             return {
                 'speed_level': 0,
                 'speed_description': 'OFFLINE',
@@ -603,8 +649,17 @@ class MechDataStore:
                 'is_immortal': is_immortal
             }
 
-        except Exception as e:
-            self.logger.error(f"Error calculating decay data: {e}")
+        except (ImportError, AttributeError) as e:
+            # Service dependency errors (mech_evolutions unavailable)
+            self.logger.error(f"Service dependency error calculating decay data: {e}", exc_info=True)
+            return {
+                'decay_rate': 1.0,
+                'decay_per_hour': 0.041666,
+                'is_immortal': False
+            }
+        except (ValueError, TypeError, KeyError) as e:
+            # Data access/calculation errors
+            self.logger.error(f"Data error calculating decay data: {e}", exc_info=True)
             return {
                 'decay_rate': 1.0,
                 'decay_per_hour': 0.041666,
@@ -634,8 +689,9 @@ class MechDataStore:
                 'progress_percentage': progress_percentage
             }
 
-        except Exception as e:
-            self.logger.error(f"Error calculating progress data: {e}")
+        except (ValueError, TypeError, KeyError, ZeroDivisionError) as e:
+            # Data access/calculation errors (division by zero, etc.)
+            self.logger.error(f"Data error calculating progress data: {e}", exc_info=True)
             return {
                 'progress_current': 0,
                 'progress_max': 20,
@@ -655,8 +711,16 @@ class MechDataStore:
                 'difficulty_multiplier': evolution_mode.get('difficulty_multiplier', 1.0)
             }
 
-        except Exception as e:
-            self.logger.error(f"Error getting technical data: {e}")
+        except (ImportError, AttributeError) as e:
+            # Service dependency errors (mech service unavailable)
+            self.logger.error(f"Service dependency error getting technical data: {e}", exc_info=True)
+            return {
+                'evolution_mode': 'dynamic',
+                'difficulty_multiplier': 1.0
+            }
+        except (ValueError, TypeError, KeyError) as e:
+            # Data access errors
+            self.logger.error(f"Data error getting technical data: {e}", exc_info=True)
             return {
                 'evolution_mode': 'dynamic',
                 'difficulty_multiplier': 1.0
@@ -697,8 +761,9 @@ class MechDataStore:
                 'projection_hours': hours_ahead
             }
 
-        except Exception as e:
-            self.logger.error(f"Error calculating projections: {e}")
+        except (ValueError, TypeError, KeyError, ZeroDivisionError) as e:
+            # Data access/calculation errors (division by zero, etc.)
+            self.logger.error(f"Data error calculating projections: {e}", exc_info=True)
             return {
                 'projected_power': core_data['power'],
                 'hours_until_zero': None,
@@ -777,8 +842,19 @@ class MechDataStore:
                 mech_progress_max=prog_state.evo_max
             )
 
-        except Exception as e:
-            self.logger.error(f"Error in _calculate_power_bars: {e}", exc_info=True)
+        except (ImportError, AttributeError) as e:
+            # Service dependency errors (progress service unavailable)
+            self.logger.error(f"Service dependency error in _calculate_power_bars: {e}", exc_info=True)
+            # Return safe fallback values
+            return BarsCompat(
+                Power_current=core_data.get('power', 0.0),
+                Power_max_for_level=50,  # Safe fallback
+                mech_progress_current=0,
+                mech_progress_max=100
+            )
+        except (ValueError, TypeError, KeyError) as e:
+            # Data access errors
+            self.logger.error(f"Data error in _calculate_power_bars: {e}", exc_info=True)
             # Return safe fallback values
             return BarsCompat(
                 Power_current=core_data.get('power', 0.0),

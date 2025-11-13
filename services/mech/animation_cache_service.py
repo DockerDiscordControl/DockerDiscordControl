@@ -309,8 +309,9 @@ class AnimationCacheService:
                     filename = f"mech_{actual_level}_100speed.cache"
 
             return self.cache_dir / filename
-        except:
+        except (OSError, ValueError, AttributeError, KeyError) as e:
             # Fallback to direct evolution level if folder lookup fails
+            logger.debug(f"Folder lookup failed, using fallback path: {e}")
             return cache_path
 
     def _get_walk_scale_factor(self, evolution_level: int) -> float:
@@ -377,8 +378,14 @@ class AnimationCacheService:
 
             return scale_factor
 
-        except Exception as e:
-            logger.error(f"Error calculating walk scale factor for level {evolution_level}: {e}")
+        except (IOError, OSError) as e:
+            # File I/O errors (cannot read PNG files)
+            logger.error(f"File error calculating walk scale factor for level {evolution_level}: {e}", exc_info=True)
+            self._walk_scale_factors[evolution_level] = 1.0
+            return 1.0
+        except (ValueError, AttributeError, TypeError) as e:
+            # Image processing errors (getbbox, crop operations)
+            logger.error(f"Image processing error calculating walk scale factor for level {evolution_level}: {e}", exc_info=True)
             self._walk_scale_factors[evolution_level] = 1.0
             return 1.0
 
@@ -699,8 +706,12 @@ class AnimationCacheService:
                 f.write(obfuscated_data)
             logger.info(f"Generated {animation_type} animation ({resolution}): {cache_path} ({len(unified_webp)} bytes, obfuscated: {len(obfuscated_data)} bytes)")
 
-        except Exception as e:
-            logger.error(f"Failed to pre-generate {animation_type} animation for evolution {evolution_level} ({resolution}): {e}")
+        except (IOError, OSError) as e:
+            # File I/O errors (reading PNG frames or writing cache file)
+            logger.error(f"File I/O error pre-generating {animation_type} animation for evolution {evolution_level} ({resolution}): {e}", exc_info=True)
+        except (ValueError, TypeError, AttributeError) as e:
+            # Image processing errors (frame loading, WebP creation)
+            logger.error(f"Image processing error pre-generating {animation_type} animation for evolution {evolution_level} ({resolution}): {e}", exc_info=True)
 
     def pre_generate_all_animations(self):
         """Pre-generate walk animations for all available evolution levels"""
@@ -901,8 +912,9 @@ class AnimationCacheService:
                             img.seek(frame_count)
                     except EOFError:
                         pass
-            except Exception as e:
-                logger.error(f"Failed to parse cached big {animation_type} animation: {e}")
+            except (IOError, OSError, ValueError, TypeError) as e:
+                # Image parsing errors (PIL Image.open, seek operations)
+                logger.error(f"Failed to parse cached big {animation_type} animation: {e}", exc_info=True)
                 return animation_data  # Return original if parsing fails
 
             # Re-encode with new duration and MAXIMUM QUALITY - file size irrelevant
@@ -933,8 +945,9 @@ class AnimationCacheService:
                 logger.debug(f"Speed-adjusted big {animation_type} animation: {len(adjusted_data)} bytes")
                 return adjusted_data
 
-            except Exception as e:
-                logger.error(f"Failed to adjust big {animation_type} animation speed: {e}")
+            except (IOError, OSError, ValueError, TypeError, AttributeError) as e:
+                # WebP encoding errors (PIL save operation)
+                logger.error(f"Failed to adjust big {animation_type} animation speed: {e}", exc_info=True)
                 # Store original data in focused cache as fallback
                 if self._is_current_state(evolution_level, speed_level, power_level):
                     self._store_in_focused_cache('big', animation_data)
@@ -955,8 +968,9 @@ class AnimationCacheService:
                 with open(cache_path, 'wb') as f:
                     f.write(obfuscated_data)
                 logger.debug(f"Saved on-demand big {animation_type} animation to file cache: {cache_path}")
-            except Exception as save_error:
-                logger.error(f"Failed to save on-demand big animation to file: {save_error}")
+            except (IOError, OSError) as save_error:
+                # File I/O errors (writing cache file)
+                logger.error(f"Failed to save on-demand big animation to file: {save_error}", exc_info=True)
 
             # Store in focused cache for current state
             if self._is_current_state(evolution_level, speed_level, power_level):
@@ -1041,8 +1055,9 @@ class AnimationCacheService:
                         img.seek(frame_count)
                 except EOFError:
                     pass
-        except Exception as e:
-            logger.error(f"Failed to parse cached {animation_type} animation: {e}")
+        except (IOError, OSError, ValueError, TypeError) as e:
+            # Image parsing errors (PIL Image.open, seek operations)
+            logger.error(f"Failed to parse cached {animation_type} animation: {e}", exc_info=True)
             return animation_data  # Return original if parsing fails
 
         # Re-encode with new duration and MAXIMUM QUALITY - file size irrelevant
@@ -1072,8 +1087,9 @@ class AnimationCacheService:
                 self._store_in_focused_cache('small', adjusted_data)
             return adjusted_data
 
-        except Exception as e:
-            logger.error(f"Failed to adjust {animation_type} animation speed: {e}")
+        except (IOError, OSError, ValueError, TypeError, AttributeError) as e:
+            # WebP encoding errors (PIL save operation)
+            logger.error(f"Failed to adjust {animation_type} animation speed: {e}", exc_info=True)
             # Store original data in focused cache as fallback
             if self._is_current_state(evolution_level, speed_level, power_level):
                 self._store_in_focused_cache('small', animation_data)
@@ -1094,7 +1110,8 @@ class AnimationCacheService:
                 try:
                     cache_file.unlink()
                     logger.debug(f"Removed cache file: {cache_file.name}")
-                except Exception as e:
+                except (IOError, OSError, PermissionError) as e:
+                    # File deletion errors (permission denied, file in use, etc.)
                     logger.warning(f"Could not remove cache file {cache_file}: {e}")
             logger.info("Cleared all cached animations")
         else:
@@ -1105,7 +1122,8 @@ class AnimationCacheService:
                     if cache_file.stat().st_mtime < cutoff_time:
                         cache_file.unlink()
                         logger.debug(f"Removed old cache file: {cache_file.name}")
-                except Exception as e:
+                except (IOError, OSError, PermissionError) as e:
+                    # File deletion errors (permission denied, file in use, etc.)
                     logger.warning(f"Could not remove cache file {cache_file}: {e}")
 
     def get_animation_with_speed(self, evolution_level: int, speed_level: float) -> bytes:
@@ -1158,8 +1176,9 @@ class AnimationCacheService:
                         img.seek(frame_count)
                 except EOFError:
                     pass
-        except Exception as e:
-            logger.error(f"Failed to parse cached animation: {e}")
+        except (IOError, OSError, ValueError, TypeError) as e:
+            # Image parsing errors (PIL Image.open, seek operations)
+            logger.error(f"Failed to parse cached animation: {e}", exc_info=True)
             return animation_data  # Return original if parsing fails
 
         # Re-encode with new duration and MAXIMUM QUALITY - file size irrelevant
@@ -1186,8 +1205,9 @@ class AnimationCacheService:
             logger.debug(f"Speed-adjusted animation: {len(adjusted_data)} bytes")
             return adjusted_data
 
-        except Exception as e:
-            logger.error(f"Failed to adjust animation speed: {e}")
+        except (IOError, OSError, ValueError, TypeError, AttributeError) as e:
+            # WebP encoding errors (PIL save operation)
+            logger.error(f"Failed to adjust animation speed: {e}", exc_info=True)
             return animation_data  # Return original if adjustment fails
 
     # ========================================================================
@@ -1264,11 +1284,20 @@ class AnimationCacheService:
 
             return result
 
-        except Exception as e:
-            logger.error(f"Error in Service First animation generation: {e}")
+        except (IOError, OSError) as e:
+            # File I/O errors (reading cache files)
+            logger.error(f"File I/O error in Service First animation generation: {e}", exc_info=True)
             return MechAnimationResult(
                 success=False,
-                error_message=str(e),
+                error_message=f"File I/O error: {e}",
+                generation_time_ms=(time.time() - start_time) * 1000
+            )
+        except (ValueError, TypeError, AttributeError) as e:
+            # Image processing or data errors
+            logger.error(f"Data error in Service First animation generation: {e}", exc_info=True)
+            return MechAnimationResult(
+                success=False,
+                error_message=f"Data processing error: {e}",
                 generation_time_ms=(time.time() - start_time) * 1000
             )
 
@@ -1286,8 +1315,9 @@ class AnimationCacheService:
 
             logger.info("Event listeners registered for animation cache invalidation")
 
-        except Exception as e:
-            logger.error(f"Failed to setup event listeners: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Event manager setup errors (import failure, manager not available, etc.)
+            logger.error(f"Failed to setup event listeners: {e}", exc_info=True)
 
     def _handle_donation_event(self, event_data):
         """Handle donation completion events for cache invalidation and immediate re-caching."""
@@ -1318,11 +1348,13 @@ class AnimationCacheService:
                     logger.info("No event loop running - performing synchronous re-caching after donation event")
                     self._sync_recache_current_animations(reason="donation_event")
 
-            except Exception as recache_error:
+            except (RuntimeError, AttributeError) as recache_error:
+                # Re-caching scheduling errors (asyncio errors, etc.)
                 logger.warning(f"Could not schedule immediate re-caching: {recache_error}")
 
-        except Exception as e:
-            logger.error(f"Error handling donation event: {e}")
+        except (KeyError, ValueError, AttributeError, TypeError) as e:
+            # Event data parsing errors
+            logger.error(f"Error handling donation event: {e}", exc_info=True)
 
     def _handle_state_change_event(self, event_data):
         """Handle mech state change events for selective cache invalidation and re-caching."""
@@ -1355,13 +1387,15 @@ class AnimationCacheService:
                         logger.info("No event loop running - performing synchronous re-caching after state change")
                         self._sync_recache_current_animations(reason="state_change_event")
 
-                except Exception as recache_error:
+                except (RuntimeError, AttributeError) as recache_error:
+                    # Re-caching scheduling errors (asyncio errors, etc.)
                     logger.warning(f"Could not schedule re-caching after state change: {recache_error}")
             else:
                 logger.debug(f"Minor power change ignored: {old_power:.2f} → {new_power:.2f}")
 
-        except Exception as e:
-            logger.error(f"Error handling state change event: {e}")
+        except (KeyError, ValueError, AttributeError, TypeError) as e:
+            # Event data parsing errors
+            logger.error(f"Error handling state change event: {e}", exc_info=True)
 
     def invalidate_memory_cache_only(self, reason: str = "Event-driven invalidation"):
         """Invalidate only focused cache, keeping file cache for fast re-caching."""
@@ -1391,7 +1425,8 @@ class AnimationCacheService:
             try:
                 cache_file.unlink()
                 file_count += 1
-            except Exception as e:
+            except (IOError, OSError, PermissionError) as e:
+                # File deletion errors (permission denied, file in use, etc.)
                 logger.warning(f"Could not remove cache file {cache_file}: {e}")
 
         logger.info(f"Animation cache invalidated: {cache_count} focused entries + {file_count} file caches cleared ({reason})")
@@ -1496,13 +1531,15 @@ class AnimationCacheService:
                     logger.debug(f"Pre-caching big {animation_type} animation for level {current_level}, speed {current_speed_level}")
                     self.get_animation_with_speed_and_power_big(current_level, current_speed_level, current_power)
 
-                except Exception as cache_error:
-                    logger.error(f"Failed to pre-cache {animation_type} animation: {cache_error}")
+                except (IOError, OSError, ValueError, TypeError, AttributeError) as cache_error:
+                    # Animation caching errors (file I/O, image processing)
+                    logger.error(f"Failed to pre-cache {animation_type} animation: {cache_error}", exc_info=True)
 
             logger.info(f"Initial cache warmup complete - cached animations for speed level {current_speed_level}")
 
-        except Exception as e:
-            logger.error(f"Error during initial cache warmup: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service initialization errors (data store unavailable, etc.)
+            logger.error(f"Error during initial cache warmup: {e}", exc_info=True)
 
     def _perform_sync_cache_warmup(self):
         """Perform synchronous animation cache warmup (fallback when no event loop)."""
@@ -1551,13 +1588,15 @@ class AnimationCacheService:
                     logger.debug(f"Pre-caching big {animation_type} animation for level {current_level}, speed {current_speed_level}")
                     self.get_animation_with_speed_and_power_big(current_level, current_speed_level, current_power)
 
-                except Exception as cache_error:
-                    logger.error(f"Failed to pre-cache {animation_type} animation: {cache_error}")
+                except (IOError, OSError, ValueError, TypeError, AttributeError) as cache_error:
+                    # Animation caching errors (file I/O, image processing)
+                    logger.error(f"Failed to pre-cache {animation_type} animation: {cache_error}", exc_info=True)
 
             logger.info(f"Sync cache warmup complete - cached animations for speed level {current_speed_level}")
 
-        except Exception as e:
-            logger.error(f"Error during sync cache warmup: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service initialization errors (data store unavailable, etc.)
+            logger.error(f"Error during sync cache warmup: {e}", exc_info=True)
 
     def _sync_recache_current_animations(self, reason: str = "event_trigger"):
         """SERVICE FIRST: Synchronous animation re-caching via MechWebService (fallback when no event loop)."""
@@ -1565,8 +1604,9 @@ class AnimationCacheService:
             logger.debug(f"Starting SERVICE FIRST sync animation re-caching: {reason}")
             self._perform_service_first_sync_warmup()
             logger.info(f"SERVICE FIRST sync animation re-caching completed: {reason}")
-        except Exception as e:
-            logger.error(f"Error during SERVICE FIRST sync animation re-caching: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service call errors (web service unavailable, sync errors, etc.)
+            logger.error(f"Error during SERVICE FIRST sync animation re-caching: {e}", exc_info=True)
 
     async def _async_recache_current_animations(self, reason: str = "event_trigger"):
         """SERVICE FIRST: Async animation re-caching via MechWebService."""
@@ -1574,8 +1614,9 @@ class AnimationCacheService:
             logger.debug(f"Starting SERVICE FIRST async animation re-caching: {reason}")
             await self._perform_service_first_async_warmup()
             logger.info(f"SERVICE FIRST async animation re-caching completed: {reason}")
-        except Exception as e:
-            logger.error(f"Error during SERVICE FIRST async animation re-caching: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service call errors (web service unavailable, async errors, etc.)
+            logger.error(f"Error during SERVICE FIRST async animation re-caching: {e}", exc_info=True)
 
     def _perform_service_first_sync_warmup(self):
         """SERVICE FIRST: Synchronous animation warmup using MechWebService."""
@@ -1612,11 +1653,13 @@ class AnimationCacheService:
                     else:
                         logger.warning(f"SERVICE FIRST: Failed to cache {resolution} animation: {result.error}")
 
-                except Exception as e:
-                    logger.error(f"SERVICE FIRST sync warmup error for {resolution}: {e}")
+                except (ValueError, TypeError, AttributeError) as e:
+                    # Animation request/processing errors
+                    logger.error(f"SERVICE FIRST sync warmup error for {resolution}: {e}", exc_info=True)
 
-        except Exception as e:
-            logger.error(f"SERVICE FIRST sync warmup failed: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service initialization errors (web service unavailable, data store errors, etc.)
+            logger.error(f"SERVICE FIRST sync warmup failed: {e}", exc_info=True)
 
     async def _perform_service_first_async_warmup(self):
         """SERVICE FIRST: Async animation warmup using MechWebService."""
@@ -1654,11 +1697,13 @@ class AnimationCacheService:
                     else:
                         logger.warning(f"SERVICE FIRST: Failed to cache {resolution} animation: {result.error}")
 
-                except Exception as e:
-                    logger.error(f"SERVICE FIRST async warmup error for {resolution}: {e}")
+                except (ValueError, TypeError, AttributeError) as e:
+                    # Animation request/processing errors
+                    logger.error(f"SERVICE FIRST async warmup error for {resolution}: {e}", exc_info=True)
 
-        except Exception as e:
-            logger.error(f"SERVICE FIRST async warmup failed: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service initialization errors (web service unavailable, data store errors, etc.)
+            logger.error(f"SERVICE FIRST async warmup failed: {e}", exc_info=True)
 
     def get_status_overview_animation(self, evolution_level: int, power_level: float = 1.0) -> bytes:
         """
@@ -1774,8 +1819,9 @@ class AnimationCacheService:
             logger.info(f"Status Overview animation created: evolution {evolution_level} → {len(animation_bytes):,} bytes ({target_width}x{target_height})")
             return animation_bytes
 
-        except Exception as e:
-            logger.error(f"Error creating status overview animation: {e}")
+        except (IOError, OSError) as e:
+            # File I/O errors (reading cache files)
+            logger.error(f"File I/O error creating status overview animation: {e}", exc_info=True)
             # Fallback: create a simple transparent canvas
             try:
                 target_size = self.get_expected_canvas_size(evolution_level, "status_overview")
@@ -1783,8 +1829,21 @@ class AnimationCacheService:
                 buffer = BytesIO()
                 fallback_img.save(buffer, format='WebP', lossless=True, quality=100, dpi=(300, 300))
                 return buffer.getvalue()
-            except:
-                # Ultimate fallback
+            except (IOError, OSError, ValueError, TypeError):
+                # Ultimate fallback (fallback creation failed)
+                return b''
+        except (ValueError, TypeError, AttributeError) as e:
+            # Image processing errors (PIL operations)
+            logger.error(f"Image processing error creating status overview animation: {e}", exc_info=True)
+            # Fallback: create a simple transparent canvas
+            try:
+                target_size = self.get_expected_canvas_size(evolution_level, "status_overview")
+                fallback_img = Image.new('RGBA', target_size, (0, 0, 0, 0))
+                buffer = BytesIO()
+                fallback_img.save(buffer, format='WebP', lossless=True, quality=100, dpi=(300, 300))
+                return buffer.getvalue()
+            except (IOError, OSError, ValueError, TypeError):
+                # Ultimate fallback (fallback creation failed)
                 return b''
 
     def get_discord_optimized_animation(self, evolution_level: int, power_level: float = 1.0) -> bytes:
@@ -1830,8 +1889,9 @@ class AnimationCacheService:
             logger.info(f"Discord Zero-Scaling animation: evolution {evolution_level} → {len(full_size_bytes):,} bytes ({actual_size[0]}x{actual_size[1]})")
             return full_size_bytes
 
-        except Exception as e:
-            logger.error(f"Error creating Discord optimized animation: {e}")
+        except (IOError, OSError) as e:
+            # File I/O errors (reading cache files)
+            logger.error(f"File I/O error creating Discord optimized animation: {e}", exc_info=True)
             # Fallback: create a simple transparent canvas - 270px width, 50% height
             try:
                 original_size = self.get_expected_canvas_size(evolution_level, "walk")
@@ -1840,8 +1900,22 @@ class AnimationCacheService:
                 buffer = BytesIO()
                 fallback_img.save(buffer, format='WebP', lossless=True, quality=100, dpi=(300, 300))
                 return buffer.getvalue()
-            except:
-                # Ultimate fallback
+            except (IOError, OSError, ValueError, TypeError):
+                # Ultimate fallback (fallback creation failed)
+                return b''
+        except (ValueError, TypeError, AttributeError) as e:
+            # Image processing errors (PIL operations)
+            logger.error(f"Image processing error creating Discord optimized animation: {e}", exc_info=True)
+            # Fallback: create a simple transparent canvas - 270px width, 50% height
+            try:
+                original_size = self.get_expected_canvas_size(evolution_level, "walk")
+                target_size = (270, original_size[1] // 2)  # Keep 270px width, reduce height by 50%
+                fallback_img = Image.new('RGBA', target_size, (0, 0, 0, 0))
+                buffer = BytesIO()
+                fallback_img.save(buffer, format='WebP', lossless=True, quality=100, dpi=(300, 300))
+                return buffer.getvalue()
+            except (IOError, OSError, ValueError, TypeError):
+                # Ultimate fallback (fallback creation failed)
                 return b''
 
 # Singleton instance
