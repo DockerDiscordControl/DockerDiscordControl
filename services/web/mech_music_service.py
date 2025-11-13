@@ -144,7 +144,7 @@ class MechMusicService:
                 title=title
             )
 
-        except Exception as e:
+        except (RuntimeError) as e:
             self.logger.error(f"Error generating YouTube music URL for level {request.level}: {e}", exc_info=True)
             return MechMusicResult(
                 success=False,
@@ -195,7 +195,7 @@ class MechMusicService:
                 }
             )
 
-        except Exception as e:
+        except (RuntimeError) as e:
             self.logger.error(f"Error getting all music info: {e}", exc_info=True)
             return MechMusicResult(
                 success=False,

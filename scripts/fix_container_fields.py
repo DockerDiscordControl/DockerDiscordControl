@@ -44,7 +44,7 @@ def fix_container_files():
             else:
                 print(f'✓ {file.name} already has required fields')
 
-        except Exception as e:
+        except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, docker.errors.APIError, docker.errors.DockerException) as e:
             print(f'❌ Error processing {file.name}: {e}')
             error_count += 1
 

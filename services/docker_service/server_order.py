@@ -36,8 +36,8 @@ def save_server_order(server_order: List[str]) -> bool:
             
         logger.info(f"Server order saved: {server_order}")
         return True
-    except Exception as e:
-        logger.error(f"Error saving server order: {e}")
+    except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError) as e:
+        logger.error(f"Error saving server order: {e}", exc_info=True)
         return False
 
 def load_server_order() -> List[str]:
@@ -58,8 +58,8 @@ def load_server_order() -> List[str]:
             
         logger.info(f"Loaded server order: {server_order}")
         return server_order
-    except Exception as e:
-        logger.error(f"Error loading server order: {e}")
+    except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, json.JSONDecodeError) as e:
+        logger.error(f"Error loading server order: {e}", exc_info=True)
         return []
 
 def update_server_order_from_config(config: Dict[str, Any]) -> bool:
@@ -86,6 +86,6 @@ def update_server_order_from_config(config: Dict[str, Any]) -> bool:
             
         # Save the order
         return save_server_order(server_order)
-    except Exception as e:
-        logger.error(f"Error updating server order from config: {e}")
+    except (AttributeError, KeyError, RuntimeError, TypeError, docker.errors.APIError, docker.errors.DockerException) as e:
+        logger.error(f"Error updating server order from config: {e}", exc_info=True)
         return False 

@@ -70,7 +70,7 @@ def safe_mech_reset():
             print(f"\n⚠️  Reset may not have completed fully")
             return False
 
-    except Exception as e:
+    except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError) as e:
         print(f"\n❌ Error during safe reset: {e}")
         import traceback
         traceback.print_exc()

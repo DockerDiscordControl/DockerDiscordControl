@@ -83,8 +83,8 @@ class DynamicCooldownManager:
                 cooldown_obj = commands.Cooldown(1, float(cooldown_seconds))
                 logger.debug(f"Created Cooldown using PyCord style for {config_key}: 1/{cooldown_seconds}s")
                 return cooldown_obj
-            except Exception as e2:
-                logger.error(f"Could not create Cooldown object for {config_key} with either style: discord.py={e}, PyCord={e2}")
+            except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+                logger.error(f"Could not create Cooldown object for {config_key} with either style: discord.py={e}, PyCord={e2}", exc_info=True)
                 return None
     
     def apply_dynamic_cooldowns(self, bot):
@@ -135,7 +135,7 @@ class DynamicCooldownManager:
                             command._buckets = commands.CooldownMapping(cooldown)
                             logger.debug(f"Applied {cooldown.rate}/{cooldown.per}s cooldown to command: {command.name}")
                             applied_count += 1
-                        except Exception as e:
+                        except (RuntimeError) as e:
                             logger.debug(f"Could not apply cooldown to {command.name}: {e}")
                 else:
                     # Create empty cooldown mapping if disabled (prevents None attribute errors)
@@ -150,7 +150,7 @@ class DynamicCooldownManager:
                             empty_cooldown = commands.Cooldown(1, 0.0)
                             command._buckets = commands.CooldownMapping(empty_cooldown)
                             logger.debug(f"Applied empty cooldown (PyCord) to command: {command.name}")
-                        except Exception as e:
+                        except (RuntimeError) as e:
                             logger.debug(f"Could not apply empty cooldown to {command.name}: {e}")
                             # Fallback: Keep existing buckets if we can't create empty ones
         

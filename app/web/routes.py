@@ -45,8 +45,8 @@ def register_routes(app: Flask) -> None:
             if success:
                 return jsonify({"success": True})
             return jsonify({"success": False, "error": "Failed to save admin data"})
-        except Exception as exc:  # pragma: no cover - defensive logging
-            app.logger.error("Error saving admin data: %s", exc)
+        except (RuntimeError) as e:
+            app.logger.error("Error saving admin data: %s", exc, exc_info=True)
             return jsonify({"success": False, "error": str(exc)})
 
     @app.route("/health")
@@ -72,13 +72,13 @@ def register_routes(app: Flask) -> None:
                     health_data["setup_url"] = "/setup"
                 else:
                     health_data["first_time_setup_needed"] = False
-            except Exception:
+            except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError):
                 health_data["config_loaded"] = False
                 health_data["servers_configured"] = 0
 
             return jsonify(health_data), 200
-        except Exception as exc:  # pragma: no cover - defensive logging
-            app.logger.error("Health check failed: %s", exc)
+        except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException, json.JSONDecodeError) as e:
+            app.logger.error("Health check failed: %s", exc, exc_info=True)
             error_data = {
                 "status": "error",
                 "service": "DockerDiscordControl",

@@ -87,7 +87,7 @@ class DockerConnectivityService:
                 technical_details=f"Timeout after {request.timeout_seconds} seconds"
             )
 
-        except Exception as e:
+        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
             # Analyze the exception to determine error type
             error_str = str(e).lower()
 
@@ -206,7 +206,7 @@ class DockerConnectivityService:
                 footer_text=footer_text
             )
 
-        except Exception as e:
+        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
             error_msg = f"Error creating Docker connectivity embed: {e}"
             self.logger.error(error_msg)
             return DockerErrorEmbedResult(

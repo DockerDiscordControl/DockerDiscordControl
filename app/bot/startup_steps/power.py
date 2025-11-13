@@ -26,5 +26,5 @@ async def grant_power_gift_step(context: StartupContext) -> None:
                 logger.warning("Could not access DockerControlCog for cache invalidation")
         else:
             logger.info("Power gift not needed (power > 0 or already granted)")
-    except Exception as exc:  # pragma: no cover - defensive logging
+    except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
         logger.error("Error checking/granting power gift: %s", exc, exc_info=True)

@@ -18,5 +18,5 @@ async def apply_dynamic_cooldowns_step(context: StartupContext) -> None:
         logger.info("Applying dynamic cooldowns from spam protection settings...")
         applicator(context.bot)
         logger.info("Dynamic cooldowns applied successfully")
-    except Exception as exc:  # pragma: no cover - defensive logging
+    except (RuntimeError) as e:
         logger.error("Error applying dynamic cooldowns: %s", exc, exc_info=True)

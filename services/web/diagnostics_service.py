@@ -96,7 +96,7 @@ class DiagnosticsService:
                     status_code=500
                 )
 
-        except Exception as e:
+        except (RuntimeError) as e:
             self.logger.error(f"Error enabling temporary debug mode: {e}", exc_info=True)
             return DiagnosticsResult(
                 success=False,
@@ -136,7 +136,7 @@ class DiagnosticsService:
                     status_code=500
                 )
 
-        except Exception as e:
+        except (RuntimeError) as e:
             self.logger.error(f"Error disabling temporary debug mode: {e}", exc_info=True)
             return DiagnosticsResult(
                 success=False,
@@ -167,7 +167,7 @@ class DiagnosticsService:
                 data=status_info
             )
 
-        except Exception as e:
+        except (RuntimeError) as e:
             self.logger.error(f"Error getting temporary debug status: {e}", exc_info=True)
             return DiagnosticsResult(
                 success=False,
@@ -197,7 +197,7 @@ class DiagnosticsService:
                 data={'diagnostics': diagnostics_report}
             )
 
-        except Exception as e:
+        except (RuntimeError) as e:
             self.logger.error(f"Error running port diagnostics: {e}", exc_info=True)
             return DiagnosticsResult(
                 success=False,
@@ -247,7 +247,7 @@ class DiagnosticsService:
         try:
             from services.infrastructure.action_logger import log_user_action
             log_user_action(action=action, target=target, source="Web UI")
-        except Exception as e:
+        except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError) as e:
             self.logger.warning(f"Could not log debug action: {e}")
 
 

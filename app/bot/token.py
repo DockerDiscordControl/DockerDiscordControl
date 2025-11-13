@@ -34,7 +34,7 @@ def get_decrypted_bot_token(runtime: BotRuntime) -> Optional[str]:
             if plaintext_token and not str(plaintext_token).startswith("gAAAAA"):
                 logger.info("Using plaintext bot token from bot_config.json")
                 return str(plaintext_token)
-    except Exception as exc:
+    except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, json.JSONDecodeError) as e:
         logger.debug("Could not read plaintext token: %s", exc)
 
     token = config.get("bot_token_decrypted_for_usage")
@@ -61,7 +61,7 @@ def get_decrypted_bot_token(runtime: BotRuntime) -> Optional[str]:
                 if decrypted:
                     logger.info("Successfully decrypted token using ConfigService")
                     return str(decrypted)
-        except Exception as exc:
+        except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError) as e:
             logger.warning("Error using ConfigManager: %s", exc)
 
     try:
@@ -81,8 +81,8 @@ def get_decrypted_bot_token(runtime: BotRuntime) -> Optional[str]:
                 if decrypted:
                     logger.info("Successfully performed direct token decryption")
                     return str(decrypted)
-    except Exception as exc:
-        logger.error("Manual token decryption failed: %s", exc)
+    except (RuntimeError) as e:
+        logger.error("Manual token decryption failed: %s", exc, exc_info=True)
 
     logger.error("All token decryption methods failed")
     return None

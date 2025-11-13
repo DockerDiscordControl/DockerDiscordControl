@@ -27,8 +27,8 @@ def encrypt_image_to_base64(image_path: Path) -> str:
             img_data = img_file.read()
             base64_data = base64.b64encode(img_data).decode('utf-8')
             return base64_data
-    except Exception as e:
-        logger.error(f"Error encrypting {image_path}: {e}")
+    except (IOError, OSError, PermissionError, RuntimeError) as e:
+        logger.error(f"Error encrypting {image_path}: {e}", exc_info=True)
         return ""
 
 def analyze_image(image_path: Path) -> dict:
@@ -42,8 +42,8 @@ def analyze_image(image_path: Path) -> dict:
                 "format": img.format,
                 "has_transparency": img.mode in ('RGBA', 'LA') or 'transparency' in img.info
             }
-    except Exception as e:
-        logger.error(f"Error analyzing {image_path}: {e}")
+    except (RuntimeError) as e:
+        logger.error(f"Error analyzing {image_path}: {e}", exc_info=True)
         return {}
 
 def process_mech_folder(mech_folder: Path, level: int, delete_originals: bool = True) -> dict:
@@ -96,8 +96,8 @@ def process_mech_folder(mech_folder: Path, level: int, delete_originals: bool = 
             try:
                 file_to_delete.unlink()
                 logger.info(f"  ❌ Deleted: {file_to_delete.name}")
-            except Exception as e:
-                logger.error(f"  ⚠️  Failed to delete {file_to_delete.name}: {e}")
+            except (RuntimeError) as e:
+                logger.error(f"  ⚠️  Failed to delete {file_to_delete.name}: {e}", exc_info=True)
     
     logger.info(f"Level {level} complete: {len(frames_data)} frames, total {total_size/1024:.1f}KB")
     
@@ -196,8 +196,8 @@ def get_mech_image(level: int, frame: int) -> Optional[Image.Image]:
             
         return img
         
-    except Exception as e:
-        logger.error(f"Error loading mech image L{level}F{frame}: {e}")
+    except (IOError, OSError, PermissionError, RuntimeError) as e:
+        logger.error(f"Error loading mech image L{level}F{frame}: {e}", exc_info=True)
         return None
 
 def get_mech_frames(level: int) -> List[Image.Image]:

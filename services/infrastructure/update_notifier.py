@@ -51,8 +51,8 @@ class UpdateNotifier:
             with open(self.status_file, 'w', encoding='utf-8') as f:
                 json.dump(status, f, indent=2, ensure_ascii=False)
             return True
-        except Exception as e:
-            logger.error(f"Error saving update status: {e}")
+        except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError) as e:
+            logger.error(f"Error saving update status: {e}", exc_info=True)
             return False
     
     def should_show_update_notification(self) -> bool:
@@ -164,8 +164,8 @@ class UpdateNotifier:
                         logger.info(f"Update notification sent to channel {channel_id}")
                     else:
                         logger.warning(f"Could not find channel {channel_id}")
-                except Exception as e:
-                    logger.error(f"Error sending update notification to channel {channel_id}: {e}")
+                except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+                    logger.error(f"Error sending update notification to channel {channel_id}: {e}", exc_info=True)
             
             if sent_count > 0:
                 # Mark as shown only if at least one message was sent
@@ -176,8 +176,8 @@ class UpdateNotifier:
                 logger.error("Failed to send update notification to any channel")
                 return False
                 
-        except Exception as e:
-            logger.error(f"Error in send_update_notification: {e}")
+        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+            logger.error(f"Error in send_update_notification: {e}", exc_info=True)
             return False
 
 # Global instance

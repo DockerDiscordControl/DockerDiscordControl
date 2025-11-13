@@ -87,8 +87,8 @@ class TokenSecurityManager:
                 logger.error("Failed to encrypt bot token")
                 return False
                 
-        except Exception as e:
-            logger.error(f"Error during token encryption migration: {e}")
+        except (RuntimeError) as e:
+            logger.error(f"Error during token encryption migration: {e}", exc_info=True)
             return False
     
     def verify_token_encryption_status(self) -> Dict[str, Any]:
@@ -150,8 +150,8 @@ class TokenSecurityManager:
             if not status['environment_token_used']:
                 status['recommendations'].append("💡 Consider using DISCORD_BOT_TOKEN environment variable")
             
-        except Exception as e:
-            logger.error(f"Error checking token encryption status: {e}")
+        except (AttributeError, KeyError, RuntimeError, TypeError) as e:
+            logger.error(f"Error checking token encryption status: {e}", exc_info=True)
             status['recommendations'].append("❌ Error checking token status")
         
         return status
@@ -198,7 +198,7 @@ class TokenSecurityManager:
                     "- Corrupted token data"
                 ]
         
-        except Exception as e:
+        except (AttributeError, KeyError, RuntimeError, TypeError) as e:
             result['error'] = str(e)
         
         return result
@@ -231,8 +231,8 @@ def auto_encrypt_token_on_startup():
         
         return status
         
-    except Exception as e:
-        logger.error(f"Error during token auto-encryption: {e}")
+    except (RuntimeError) as e:
+        logger.error(f"Error during token auto-encryption: {e}", exc_info=True)
         return None
 
 

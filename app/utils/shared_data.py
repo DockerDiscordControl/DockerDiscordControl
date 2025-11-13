@@ -72,7 +72,7 @@ def load_active_containers_from_config():
                 else:
                     print(f"SHARED_DATA: Warning - No container_name found in {os.path.basename(config_file)}")
 
-            except Exception as e:
+            except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
                 print(f"SHARED_DATA: Error loading container config {os.path.basename(config_file)}: {e}")
                 continue
 
@@ -81,7 +81,7 @@ def load_active_containers_from_config():
         set_active_containers(containers)
         return containers
 
-    except Exception as e:
+    except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
         print(f"SHARED_DATA: Error loading active containers: {e}")
         return []
 

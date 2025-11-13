@@ -132,7 +132,7 @@ def auth_error(status):
                     }
                 }
             }), 401
-    except Exception:
+    except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound):
         pass  # Continue with normal auth error
     
     return jsonify(message="Authentication Required"), status 

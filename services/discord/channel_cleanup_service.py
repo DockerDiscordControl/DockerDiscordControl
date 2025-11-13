@@ -224,7 +224,7 @@ class ChannelCleanupService:
                            f"Deleted {result.messages_deleted}/{result.messages_found} messages "
                            f"(Bulk: {result.bulk_deleted}, Individual: {result.individually_deleted})")
 
-        except Exception as e:
+        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
             result.error = str(e)
             logger.error(f"❌ CLEANUP FAILED: Channel {request.channel.id} - {e}", exc_info=True)
 
@@ -314,7 +314,7 @@ class ChannelCleanupService:
             # Fallback to individual deletion
             await self._individual_delete_messages(request, messages, result)
 
-        except Exception as e:
+        except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
             logger.warning(f"⚠️ CLEANUP: Bulk delete failed, trying individual deletion: {e}")
             # Fallback to individual deletion
             await self._individual_delete_messages(request, messages, result)
@@ -339,7 +339,7 @@ class ChannelCleanupService:
             except discord.Forbidden:
                 result.permission_errors += 1
                 logger.debug(f"No permission to delete message {message.id}")
-            except Exception as e:
+            except (IOError, OSError, PermissionError, RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
                 logger.debug(f"Failed to delete message {message.id}: {e}")
 
         result.individually_deleted += deleted_count
@@ -396,7 +396,7 @@ class ChannelCleanupService:
             result.method_used = "purge forbidden -> no action"
             logger.warning(f"⚠️ CLEANUP: Missing 'Manage Messages' permission for purge in channel {request.channel.id}")
 
-        except Exception as e:
+        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
             result.method_used = f"purge error -> {str(e)[:50]}"
             logger.warning(f"⚠️ CLEANUP: Purge failed with error: {e}")
             raise  # Re-raise to be handled by main cleanup method

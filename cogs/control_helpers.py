@@ -49,8 +49,8 @@ async def container_select(original_ctx, original_current):
         try:
             search_text = original_current.value or ""
             logger.info(f"  Search text from original_current.value: '{search_text}'")
-        except Exception as e:
-            logger.error(f"  Error accessing original_current.value: {e}. Defaulting search_text.")
+        except (RuntimeError) as e:
+            logger.error(f"  Error accessing original_current.value: {e}. Defaulting search_text.", exc_info=True)
             search_text = ""
     elif hasattr(original_ctx, 'value') and not isinstance(original_ctx, str):
         # Fallback if original_ctx is an AutocompleteContext (e.g. PyCord standard)
@@ -58,8 +58,8 @@ async def container_select(original_ctx, original_current):
         try:
             search_text = original_ctx.value or ""
             logger.info(f"  Search text from original_ctx.value: '{search_text}'")
-        except Exception as e:
-            logger.error(f"  Error accessing original_ctx.value: {e}. Defaulting search_text.")
+        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+            logger.error(f"  Error accessing original_ctx.value: {e}. Defaulting search_text.", exc_info=True)
             search_text = ""
     elif isinstance(original_current, str):
         # Standard discord.py: original_current is the string value, original_ctx is Interaction

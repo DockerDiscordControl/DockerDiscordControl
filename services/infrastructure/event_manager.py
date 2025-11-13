@@ -75,8 +75,8 @@ class EventManager:
             for callback in self._listeners[event_type]:
                 try:
                     callback(event_data)
-                except Exception as e:
-                    self.logger.error(f"Error in event listener for {event_type}: {e}")
+                except (RuntimeError) as e:
+                    self.logger.error(f"Error in event listener for {event_type}: {e}", exc_info=True)
 
         self.logger.debug(f"Event emitted: {event_type} from {source_service}")
 

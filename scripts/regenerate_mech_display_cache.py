@@ -51,7 +51,7 @@ def main():
             print(f'❌ ERROR: {result.message}')
             return 1
 
-    except Exception as e:
+    except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
         print(f'❌ CRITICAL ERROR: {e}')
         import traceback
         traceback.print_exc()

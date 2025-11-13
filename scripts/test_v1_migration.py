@@ -103,7 +103,7 @@ def test_migration():
         with open(test_config_file, 'w', encoding='utf-8') as f:
             json.dump(v1_config, f, indent=2)
         print(f"✅ Created test config: {test_config_file}")
-    except Exception as e:
+    except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError) as e:
         print(f"❌ Could not create test config: {e}")
         return False
     
@@ -172,7 +172,7 @@ def test_migration():
         
         return True
         
-    except Exception as e:
+    except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError) as e:
         print(f"❌ Migration failed: {e}")
         import traceback
         traceback.print_exc()

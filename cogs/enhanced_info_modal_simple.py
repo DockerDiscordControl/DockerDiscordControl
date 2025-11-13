@@ -278,7 +278,7 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
                 safe_error_name = re.sub(r'[^\w\-_.@]', '', str(self.container_name))[:50]
                 logger.error(f"Failed to save container info for {safe_error_name}")
                 
-        except Exception as e:
+        except (IOError, OSError, PermissionError, RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound, docker.errors.APIError, docker.errors.DockerException) as e:
             logger.error(f"Error in container info modal submission: {e}", exc_info=True)
             logger.error(f"Container: {self.container_name}, Display: {self.display_name}")
             
@@ -470,7 +470,7 @@ class ProtectedInfoModal(discord.ui.Modal):
                     ephemeral=True
                 )
                 
-        except Exception as e:
+        except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
             logger.error(f"Error in protected info modal submission: {e}", exc_info=True)
             
             if not interaction.response.is_done():
@@ -578,7 +578,7 @@ class PasswordValidationModal(discord.ui.Modal):
             await interaction.response.send_message(embed=embed, ephemeral=True)
             logger.info(f"Protected info accessed for {self.container_name} by {interaction.user}")
             
-        except Exception as e:
+        except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound, docker.errors.APIError, docker.errors.DockerException) as e:
             logger.error(f"Error in password validation modal: {e}", exc_info=True)
             
             if not interaction.response.is_done():

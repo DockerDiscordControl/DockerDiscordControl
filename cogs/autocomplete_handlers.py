@@ -76,8 +76,8 @@ async def schedule_container_select(
         else:
             logger.debug("No active container names found via Docker API/utils cache")
             
-    except Exception as e:
-        logger.error(f"Error accessing Docker API or its cache in schedule_container_select: {e}")
+    except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+        logger.error(f"Error accessing Docker API or its cache in schedule_container_select: {e}", exc_info=True)
         # Fallback to docker_status_cache from cogs.docker_control if direct/util-cached query fails
         try:
             runtime = get_docker_status_cache_runtime()
@@ -85,7 +85,7 @@ async def schedule_container_select(
             for docker_name_cached, container_item in runtime.items():
                 if docker_name_cached and container_item and isinstance(container_item, dict) and 'data' in container_item:
                     active_docker_data_set.add(docker_name_cached)
-        except Exception as cache_e:
+        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException):
             logger.error(f"Error accessing docker status cache runtime: {cache_e}")
 
     # Populate choices_to_cache from configured servers
@@ -396,12 +396,12 @@ async def schedule_task_id_select(
                     value_being_typed.lower() in display_name.lower()):
                     choices.append(task.task_id)
                     
-            except Exception as e:
+            except (RuntimeError) as e:
                 logger.debug(f"Error formatting task {task.task_id}: {e}")
                 continue
         
         return choices[:25]
         
-    except Exception as e:
-        logger.error(f"Error in schedule_task_id_select: {e}")
+    except (RuntimeError) as e:
+        logger.error(f"Error in schedule_task_id_select: {e}", exc_info=True)
         return [] 

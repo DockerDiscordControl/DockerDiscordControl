@@ -45,7 +45,7 @@ def test_manual_save():
         with open(container_file, 'w') as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
         print(f"   ✅ Save successful!")
-    except Exception as e:
+    except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException, json.JSONDecodeError) as e:
         print(f"   ❌ Save failed: {e}")
         return
 

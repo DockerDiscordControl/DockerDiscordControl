@@ -54,8 +54,8 @@ def save_container_info_from_web(form_data: Dict[str, Any], container_names: lis
             else:
                 logger.error(f"Failed to save container info for {container_name} from Web UI: {result.error}")
                 
-        except Exception as e:
-            logger.error(f"Error processing container info for {container_name}: {e}")
+        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+            logger.error(f"Error processing container info for {container_name}: {e}", exc_info=True)
             results[container_name] = False
     
     return results
@@ -88,8 +88,8 @@ def load_container_info_for_web(container_names: list) -> Dict[str, Dict[str, An
                 }
             results[container_name] = info_data
             logger.debug(f"Loaded container info for {container_name}: {info_data}")
-        except Exception as e:
-            logger.error(f"Error loading container info for {container_name}: {e}")
+        except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+            logger.error(f"Error loading container info for {container_name}: {e}", exc_info=True)
             results[container_name] = {
                 'enabled': False,
                 'show_ip': False,
@@ -242,8 +242,8 @@ def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
             else:
                 logger.error(f"Failed to save container config for {container_name}")
 
-        except Exception as e:
-            logger.error(f"Error saving container config for {container_name}: {e}")
+        except (AttributeError, KeyError, RuntimeError, TypeError, docker.errors.APIError, docker.errors.DockerException) as e:
+            logger.error(f"Error saving container config for {container_name}: {e}", exc_info=True)
             results[container_name] = False
 
     return results

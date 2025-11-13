@@ -98,7 +98,7 @@ def import_uvloop() -> Tuple[Any, bool]:
         try:
             uvloop.install()
             logger.info("uvloop installed for better async performance")
-        except Exception as e:
+        except (RuntimeError) as e:
             logger.warning(f"Failed to install uvloop: {e}")
             success = False
     return uvloop, success

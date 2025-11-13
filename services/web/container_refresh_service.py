@@ -88,7 +88,7 @@ class ContainerRefreshService:
                 formatted_time=timestamp_info['formatted_time']
             )
 
-        except Exception as e:
+        except (AttributeError, KeyError, RuntimeError, TypeError, docker.errors.APIError, docker.errors.DockerException) as e:
             self.logger.error(f"Error refreshing containers: {e}", exc_info=True)
             return ContainerRefreshResult(
                 success=False,
@@ -110,7 +110,7 @@ class ContainerRefreshService:
                 'log_user_action': log_user_action
             }
 
-        except Exception as e:
+        except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
             return {
                 'success': False,
                 'error': f"Failed to initialize dependencies: {str(e)}"
@@ -139,8 +139,8 @@ class ContainerRefreshService:
                 'container_count': len(containers)
             }
 
-        except Exception as e:
-            self.logger.error(f"Error performing Docker refresh: {e}")
+        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+            self.logger.error(f"Error performing Docker refresh: {e}", exc_info=True)
             return {
                 'success': False,
                 'error': f"Error performing Docker refresh: {str(e)}"
@@ -151,7 +151,7 @@ class ContainerRefreshService:
         try:
             from services.infrastructure.action_logger import log_user_action
             log_user_action("REFRESH", "Docker Container List", source="Web UI ContainerRefreshService")
-        except Exception as e:
+        except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError, docker.errors.APIError, docker.errors.DockerException) as e:
             self.logger.warning(f"Failed to log refresh action: {e}")
 
     def _get_formatted_timestamp(self, dependencies: dict) -> dict:
@@ -169,8 +169,8 @@ class ContainerRefreshService:
                 tz = pytz.timezone(timezone_str)
                 dt = datetime.fromtimestamp(timestamp, tz=tz)
                 formatted_time = dt.strftime('%Y-%m-%d %H:%M:%S %Z')
-            except Exception as e:
-                self.logger.error(f"Error formatting timestamp with timezone: {e}")
+            except (RuntimeError) as e:
+                self.logger.error(f"Error formatting timestamp with timezone: {e}", exc_info=True)
                 # Fallback to system timezone
                 formatted_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
@@ -179,8 +179,8 @@ class ContainerRefreshService:
                 'formatted_time': formatted_time
             }
 
-        except Exception as e:
-            self.logger.error(f"Error getting formatted timestamp: {e}")
+        except (RuntimeError) as e:
+            self.logger.error(f"Error getting formatted timestamp: {e}", exc_info=True)
             # Return basic timestamp as fallback
             return {
                 'timestamp': time.time(),

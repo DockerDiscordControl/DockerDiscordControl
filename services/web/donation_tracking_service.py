@@ -78,7 +78,7 @@ class DonationTrackingService:
                 timestamp=current_timestamp
             )
 
-        except Exception as e:
+        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
             self.logger.error(f"Error recording donation click: {e}", exc_info=True)
             return DonationClickResult(
                 success=False,
@@ -138,7 +138,7 @@ class DonationTrackingService:
                 source="Web UI DonationTrackingService",
                 details=f"Donation button clicked by: {user_identifier}"
             )
-        except Exception as e:
+        except (RuntimeError) as e:
             self.logger.warning(f"Failed to log donation action: {e}")
 
     def _log_matrix_server_action(self, donation_type: str, user_identifier: str, timestamp: str) -> None:
@@ -147,7 +147,7 @@ class DonationTrackingService:
             self.logger.info(
                 f"💰 [MATRIX-SERVER] Donation button ({donation_type}) clicked by {user_identifier} - timestamp: {timestamp}"
             )
-        except Exception as e:
+        except (RuntimeError) as e:
             self.logger.warning(f"Failed to log Matrix server action: {e}")
 
 

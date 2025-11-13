@@ -30,7 +30,7 @@ async def load_extensions_step(context: StartupContext) -> None:
             logger.info(
                 "Successfully loaded extension: cogs.docker_control (PyCord sync)"
             )
-    except Exception as exc:
+    except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
         logger.error("Failed to load extension 'cogs.docker_control': %s", exc, exc_info=True)
         raise
 
@@ -80,7 +80,7 @@ async def synchronize_commands_step(context: StartupContext) -> None:
             logger.info("Commands synchronized successfully")
         else:
             logger.info("Bot implementation does not provide sync_commands; skipping.")
-    except Exception as sync_error:  # pragma: no cover - depends on Discord API
+    except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound):
         logger.error("Error syncing commands: %s", sync_error)
         await _fallback_register_commands(bot, logger, guild_id)
 
@@ -98,7 +98,7 @@ async def _fallback_register_commands(bot, logger, guild_id: int) -> None:
             try:
                 await bot.register_commands(guild_id=guild_id, commands=[cmd])
                 logger.info("Successfully registered command: %s", cmd.name)
-            except Exception as cmd_error:  # pragma: no cover - depends on Discord API
+            except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound):
                 logger.error("Error registering command %s: %s", cmd.name, cmd_error)
-    except Exception as fallback_error:  # pragma: no cover - defensive logging
+    except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound):
         logger.error("Fallback registration failed: %s", fallback_error)

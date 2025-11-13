@@ -15,11 +15,11 @@ def run_startup_diagnostics(app: Flask) -> None:
 
             debug_status = refresh_debug_status()
             app.logger.info("Application startup: Debug mode is %s", "ENABLED" if debug_status else "DISABLED")
-        except Exception as exc:  # pragma: no cover - defensive logging
-            app.logger.error("Error refreshing debug status on application startup: %s", exc)
+        except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError) as e:
+            app.logger.error("Error refreshing debug status on application startup: %s", exc, exc_info=True)
 
         try:
             app.logger.info("Running port diagnostics...")
             log_port_diagnostics()
-        except Exception as exc:  # pragma: no cover - defensive logging
-            app.logger.error("Error running port diagnostics: %s", exc)
+        except (RuntimeError) as e:
+            app.logger.error("Error running port diagnostics: %s", exc, exc_info=True)

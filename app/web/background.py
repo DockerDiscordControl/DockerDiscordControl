@@ -60,5 +60,5 @@ def register_background_services(app: Flask) -> None:
 
                 if mech_decay_thread is not None:
                     stop_mech_decay_background(app.logger)
-            except Exception as exc:  # pragma: no cover - defensive logging
-                app.logger.error("Error during background thread cleanup: %s", exc)
+            except (IOError, OSError, PermissionError, RuntimeError) as e:
+                app.logger.error("Error during background thread cleanup: %s", exc, exc_info=True)

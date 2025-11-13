@@ -78,7 +78,7 @@ class DonationStatusService:
                 status_data=status_data
             )
 
-        except Exception as e:
+        except (RuntimeError) as e:
             self.logger.error(f"Error getting donation status: {e}", exc_info=True)
             return DonationStatusResult(
                 success=False,
@@ -104,8 +104,8 @@ class DonationStatusService:
                 'formatted_status': f"{emoji} {description}"
             }
 
-        except Exception as e:
-            self.logger.error(f"Error calculating speed information: {e}")
+        except (RuntimeError) as e:
+            self.logger.error(f"Error calculating speed information: {e}", exc_info=True)
             # Return fallback speed info
             return {
                 'level': 0,
@@ -137,8 +137,8 @@ class DonationStatusService:
                     'decay_per_day': evolution_info.decay_per_day if evolution_info else 1.0
                 }
 
-        except Exception as e:
-            self.logger.error(f"Error getting evolution information: {e}")
+        except (RuntimeError) as e:
+            self.logger.error(f"Error getting evolution information: {e}", exc_info=True)
             # Return fallback evolution info
             return {
                 'decay_per_day': 1.0
@@ -170,8 +170,8 @@ class DonationStatusService:
 
             return status_data
 
-        except Exception as e:
-            self.logger.error(f"Error building status data from cache: {e}")
+        except (RuntimeError) as e:
+            self.logger.error(f"Error building status data from cache: {e}", exc_info=True)
             # Return minimal fallback status
             return {
                 'total_amount': 0,

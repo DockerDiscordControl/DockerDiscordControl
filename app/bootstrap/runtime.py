@@ -82,8 +82,8 @@ def resolve_timezone(
         active_logger.warning(
             "Unknown timezone '%s'. Falling back to UTC for this session.", timezone_str
         )
-    except Exception as exc:  # pragma: no cover - extremely defensive fallback
-        active_logger.error(
+    except (RuntimeError) as e:
+        active_logger.error(, exc_info=True
             "Error setting timezone '%s': %s. Falling back to UTC for this session.",
             timezone_str,
             exc,
@@ -142,6 +142,6 @@ def ensure_token_security(logger: logging.Logger) -> bool:
         auto_encrypt_token_on_startup()
         logger.debug("Token auto-encryption check completed")
         return True
-    except Exception as exc:  # pragma: no cover - dependent on runtime env
+    except (RuntimeError) as e:
         logger.warning("Token auto-encryption failed: %s", exc)
         return False

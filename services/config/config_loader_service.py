@@ -122,8 +122,8 @@ class ConfigLoaderService:
                     logger.debug(f"Loading active container: {container_config.get('container_name', container_file.stem)}")
                 else:
                     logger.debug(f"Skipping inactive container: {container_config.get('container_name', container_file.stem)}")
-            except Exception as e:
-                logger.error(f"Error loading container {container_file}: {e}")
+            except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, docker.errors.APIError, docker.errors.DockerException) as e:
+                logger.error(f"Error loading container {container_file}: {e}", exc_info=True)
 
         # Sort by order if available
         servers.sort(key=lambda x: x.get('order', 999))
@@ -155,8 +155,8 @@ class ConfigLoaderService:
                     channel_id = channel_config.get('channel_id', channel_file.stem)
                     channel_data['channel_permissions'][channel_id] = channel_config
 
-            except Exception as e:
-                logger.error(f"Error loading channel {channel_file}: {e}")
+            except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+                logger.error(f"Error loading channel {channel_file}: {e}", exc_info=True)
 
         return channel_data
 

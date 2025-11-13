@@ -24,7 +24,16 @@
       "Bash(git merge-base:*)",
       "Bash(git push:*)",
       "Bash(DDC_WEB_PORT=5011 python3:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(find:*)",
+      "Bash(for file in services/mech/*.py)",
+      "Bash(done)",
+      "Bash(while read f)",
+      "Bash(for line in 76 102 126 186 208 233 261)",
+      "Bash(do echo \"=== Line $line ===\")",
+      "Bash(for line in 65 113 155 197 225 266 288 363)",
+      "Bash(sort:*)",
+      "Bash(for file in /Volumes/appdata/dockerdiscordcontrol/services/web/monitor_script_service.py /Volumes/appdata/dockerdiscordcontrol/services/status/status_cache_service.py /Volumes/appdata/dockerdiscordcontrol/services/discord/status_overview_service.py /Volumes/appdata/dockerdiscordcontrol/services/web/performance_stats_service.py /Volumes/appdata/dockerdiscordcontrol/services/web/mech_status_details_service.py)"
     ],
     "deny": [],
     "ask": []

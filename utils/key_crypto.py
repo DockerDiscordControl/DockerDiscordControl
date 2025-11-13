@@ -34,7 +34,7 @@ def decrypt_key(encrypted_key: str, crypto_key: str = "NothingToEncrypt") -> str
             decrypted.append(byte ^ key_byte)
         
         return bytes(decrypted).decode()
-    except Exception:
+    except (RuntimeError):
         # If decryption fails, return empty string (invalid key)
         return ""
 

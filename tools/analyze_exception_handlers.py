@@ -104,7 +104,7 @@ def analyze_file(file_path: Path) -> List[Dict]:
 
         return visitor.handlers
 
-    except Exception as e:
+    except (SyntaxError, OSError, IOError, PermissionError, UnicodeDecodeError) as e:
         print(f"Warning: Could not parse {file_path}: {e}", file=sys.stderr)
         return []
 

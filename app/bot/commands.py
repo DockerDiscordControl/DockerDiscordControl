@@ -29,7 +29,7 @@ def setup_schedule_commands(bot: discord.Bot, logger: logging.Logger) -> bool:
         if not bot.get_cog("DockerControlCog"):
             logger.error("Could not retrieve DockerControlCog instance for setting up schedule commands")
             return False
-    except Exception as exc:  # pragma: no cover - defensive catch
+    except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
         logger.error("Error checking DockerControlCog presence: %s", exc, exc_info=True)
         return False
 

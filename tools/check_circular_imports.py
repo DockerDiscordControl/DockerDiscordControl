@@ -81,7 +81,7 @@ def get_module_imports(file_path: Path, base_path: Path) -> Tuple[str, List[str]
 
         return module_name, internal_imports
 
-    except Exception as e:
+    except (AttributeError, KeyError, RuntimeError, TypeError) as e:
         print(f"Warning: Could not parse {file_path}: {e}", file=sys.stderr)
         return "", []
 

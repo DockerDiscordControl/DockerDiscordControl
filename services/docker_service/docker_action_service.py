@@ -173,7 +173,7 @@ class DockerActionService:
                     container_status_service.invalidate_container(request.container_name)
                     self.logger.debug(f"Invalidated ContainerStatusService cache for {request.container_name}")
 
-                except Exception as cache_error:
+                except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError, docker.errors.APIError, docker.errors.DockerException):
                     # Don't fail the action if cache invalidation fails
                     self.logger.warning(f"Failed to invalidate cache for {request.container_name}: {cache_error}")
 
@@ -184,7 +184,7 @@ class DockerActionService:
                     execution_time_ms=execution_time_ms
                 )
 
-        except Exception as e:
+        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
             execution_time_ms = (time.time() - start_time) * 1000
 
             self.logger.error(

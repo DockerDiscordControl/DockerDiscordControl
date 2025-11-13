@@ -52,7 +52,7 @@ def set_active_containers(mark_all_active=False):
                     if container_name:
                         active_containers.add(container_name)
                 print(f"📝 Found {len(active_containers)} active containers in config")
-            except Exception as e:
+            except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, docker.errors.APIError, docker.errors.DockerException, json.JSONDecodeError) as e:
                 print(f"❌ Error loading config: {e}")
                 return False
         else:
@@ -90,7 +90,7 @@ def set_active_containers(mark_all_active=False):
                 status = "✓ " if should_be_active else "○ "
                 print(f'{status} {file.name} already correct: active={should_be_active}')
 
-        except Exception as e:
+        except (IOError, OSError, PermissionError, RuntimeError) as e:
             print(f'❌ Error processing {file.name}: {e}')
             error_count += 1
 

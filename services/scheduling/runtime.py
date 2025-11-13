@@ -148,8 +148,8 @@ class SchedulerRuntime:
         if timezone_str not in cache:
             try:
                 cache[timezone_str] = pytz.timezone(timezone_str)
-            except Exception as exc:  # pragma: no cover - defensive logging
-                logger.error(
+            except (IOError, OSError, PermissionError, RuntimeError) as e:
+                logger.error(, exc_info=True
                     "Error loading timezone '%s': %s. Falling back to UTC.", timezone_str, exc
                 )
                 cache[timezone_str] = pytz.UTC

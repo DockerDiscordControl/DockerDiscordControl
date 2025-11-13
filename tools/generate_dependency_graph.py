@@ -79,7 +79,7 @@ def get_module_imports(file_path: Path, base_path: Path) -> Tuple[str, List[str]
 
         return module_name, internal_imports
 
-    except Exception as e:
+    except (AttributeError, KeyError, RuntimeError, TypeError) as e:
         return "", []
 
 
@@ -385,7 +385,7 @@ def main():
     try:
         dot.render(str(output_path), format=args.format, cleanup=True)
         print(f"✅ Graph saved to: {output_path}.{args.format}")
-    except Exception as e:
+    except (RuntimeError) as e:
         print(f"Error: Could not save graph: {e}", file=sys.stderr)
         print("Make sure Graphviz is installed: apt-get install graphviz", file=sys.stderr)
         sys.exit(1)

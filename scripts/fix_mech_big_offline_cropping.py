@@ -139,8 +139,8 @@ def fix_mech_level_big(level: int) -> bool:
 
         return True
 
-    except Exception as e:
-        logger.error(f"❌ Error: {e}")
+    except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError) as e:
+        logger.error(f"❌ Error: {e}", exc_info=True)
         import traceback
         traceback.print_exc()
 

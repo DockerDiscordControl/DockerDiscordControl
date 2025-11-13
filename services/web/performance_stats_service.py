@@ -60,7 +60,7 @@ class PerformanceStatsService:
                 performance_data=performance_data
             )
 
-        except Exception as e:
+        except (RuntimeError) as e:
             self.logger.error(f"Error collecting performance statistics: {e}", exc_info=True)
             return PerformanceStatsResult(
                 success=False,
@@ -72,7 +72,7 @@ class PerformanceStatsService:
         try:
             from utils.config_cache import get_cache_memory_stats
             return get_cache_memory_stats()
-        except Exception as e:
+        except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError, docker.errors.APIError, docker.errors.DockerException) as e:
             self.logger.warning(f"Could not get config cache stats: {e}")
             return {'error': str(e)}
 
@@ -106,7 +106,7 @@ class PerformanceStatsService:
                     ).strftime('%Y-%m-%d %H:%M:%S')
 
             return cache_stats
-        except Exception as e:
+        except (AttributeError, KeyError, RuntimeError, TypeError, docker.errors.APIError, docker.errors.DockerException) as e:
             self.logger.warning(f"Could not get Docker cache stats: {e}")
             return {'error': str(e)}
 
@@ -115,7 +115,7 @@ class PerformanceStatsService:
         try:
             from services.scheduling.scheduler_service import get_scheduler_stats
             return get_scheduler_stats()
-        except Exception as e:
+        except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError) as e:
             self.logger.warning(f"Could not get scheduler stats: {e}")
             return {'error': str(e)}
 
@@ -130,7 +130,7 @@ class PerformanceStatsService:
                 'percent_used': memory.percent,
                 'free_mb': round(memory.free / (1024 * 1024), 2)
             }
-        except Exception as e:
+        except (RuntimeError) as e:
             self.logger.warning(f"Could not get system memory stats: {e}")
             return {'error': str(e)}
 
@@ -147,7 +147,7 @@ class PerformanceStatsService:
                 'percent': round(process.memory_percent(), 2),
                 'num_threads': process.num_threads()
             }
-        except Exception as e:
+        except (IOError, OSError, PermissionError, RuntimeError) as e:
             self.logger.warning(f"Could not get process memory stats: {e}")
             return {'error': str(e)}
 

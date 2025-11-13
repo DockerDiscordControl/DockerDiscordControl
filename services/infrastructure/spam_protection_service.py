@@ -100,7 +100,7 @@ class SpamProtectionService:
             config = SpamProtectionConfig.from_dict(spam_data)
             return ServiceResult(success=True, data=config)
             
-        except Exception as e:
+        except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, discord.Forbidden, discord.HTTPException, discord.NotFound, json.JSONDecodeError) as e:
             error_msg = f"Error loading spam protection config: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
@@ -134,7 +134,7 @@ class SpamProtectionService:
             logger.info("Saved spam protection configuration to channels_config.json")
             return ServiceResult(success=True, data=config)
             
-        except Exception as e:
+        except (IOError, OSError, PermissionError, RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound, json.JSONDecodeError) as e:
             error_msg = f"Error saving spam protection config: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)

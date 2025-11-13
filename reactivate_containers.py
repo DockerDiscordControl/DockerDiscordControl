@@ -44,7 +44,7 @@ def reactivate_all_containers():
                 print(f"✅ {container_name:<30} Reactivated!")
                 updated_count += 1
 
-        except Exception as e:
+        except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException, json.JSONDecodeError) as e:
             print(f"❌ Error processing {container_file.name}: {e}")
 
     print(f"\n📊 Summary:")

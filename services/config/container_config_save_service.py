@@ -48,8 +48,8 @@ class ContainerConfigSaveService:
             logger.info(f"Saved container config for {container_name} to {config_file}")
             return True
 
-        except Exception as e:
-            logger.error(f"Error saving container config for {container_name}: {e}")
+        except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException, json.JSONDecodeError) as e:
+            logger.error(f"Error saving container config for {container_name}: {e}", exc_info=True)
             return False
 
     def delete_container_config(self, container_name: str) -> bool:
@@ -72,8 +72,8 @@ class ContainerConfigSaveService:
 
             return True
 
-        except Exception as e:
-            logger.error(f"Error deleting container config for {container_name}: {e}")
+        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+            logger.error(f"Error deleting container config for {container_name}: {e}", exc_info=True)
             return False
 
 # Singleton instance management

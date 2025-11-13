@@ -122,7 +122,7 @@ class ContainerInfoService:
             logger.debug(f"Loaded info for container {container_name} from {container_file.name}: enabled={container_info.enabled}")
             return ServiceResult(success=True, data=container_info)
 
-        except Exception as e:
+        except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, docker.errors.APIError, docker.errors.DockerException) as e:
             error_msg = f"Error loading info for {container_name}: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
@@ -174,7 +174,7 @@ class ContainerInfoService:
             logger.info(f"Saved container info to {container_file.name}: {container_name}")
             return ServiceResult(success=True, data=container_info)
 
-        except Exception as e:
+        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
             error_msg = f"Error saving info for {container_name}: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
@@ -233,7 +233,7 @@ class ContainerInfoService:
             logger.info(f"Reset container info to defaults: {container_name}")
             return ServiceResult(success=True)
 
-        except Exception as e:
+        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
             error_msg = f"Error resetting info for {container_name}: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
@@ -267,7 +267,7 @@ class ContainerInfoService:
             logger.debug(f"Found {len(container_names)} containers in docker config")
             return ServiceResult(success=True, data=container_names)
 
-        except Exception as e:
+        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
             error_msg = f"Error listing containers from docker config: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)

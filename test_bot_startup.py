@@ -12,7 +12,7 @@ print("\n1. Testing basic imports...")
 try:
     import discord
     print("   ✓ discord imported")
-except Exception as e:
+except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError) as e:
     print(f"   ✗ discord import failed: {e}")
     sys.exit(1)
 
@@ -20,7 +20,7 @@ print("\n2. Testing progress_service import...")
 try:
     from services.mech.progress_service import get_progress_service
     print("   ✓ progress_service imported")
-except Exception as e:
+except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError) as e:
     print(f"   ✗ progress_service import failed: {e}")
     traceback.print_exc()
     sys.exit(1)
@@ -29,7 +29,7 @@ print("\n3. Testing get_progress_service()...")
 try:
     progress_service = get_progress_service()
     print(f"   ✓ progress_service instance created: {type(progress_service)}")
-except Exception as e:
+except (RuntimeError) as e:
     print(f"   ✗ get_progress_service() failed: {e}")
     traceback.print_exc()
     sys.exit(1)
@@ -39,7 +39,7 @@ try:
     import inspect
     sig = inspect.signature(progress_service.add_system_donation)
     print(f"   ✓ Method signature: {sig}")
-except Exception as e:
+except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError) as e:
     print(f"   ✗ Method check failed: {e}")
     traceback.print_exc()
     sys.exit(1)
@@ -58,7 +58,7 @@ try:
         print(f"     - welcome_bonus_given: {snap.get('welcome_bonus_given', False)}")
     else:
         print(f"   ✗ Snapshot file not found: {snap_file}")
-except Exception as e:
+except (AttributeError, KeyError, RuntimeError, TypeError) as e:
     print(f"   ✗ Snapshot access failed: {e}")
     traceback.print_exc()
 
@@ -82,7 +82,7 @@ try:
     from services.mech.mech_service_adapter import get_mech_service
     print("   ✓ mech_service_adapter loads")
 
-except Exception as e:
+except (AttributeError, IOError, ImportError, KeyError, ModuleNotFoundError, OSError, PermissionError, RuntimeError, TypeError) as e:
     print(f"   ✗ Import check failed: {e}")
     traceback.print_exc()
 

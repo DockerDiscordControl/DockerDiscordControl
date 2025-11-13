@@ -83,8 +83,8 @@ class ServerConfigService:
 
                 except json.JSONDecodeError as e:
                     logger.error(f"Invalid JSON in {json_file}: {e}")
-                except Exception as e:
-                    logger.error(f"Error reading {json_file}: {e}")
+                except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException, json.JSONDecodeError) as e:
+                    logger.error(f"Error reading {json_file}: {e}", exc_info=True)
 
             # Count total containers including inactive
             total_containers = 0
@@ -93,8 +93,8 @@ class ServerConfigService:
 
             logger.info(f"Loaded {len(containers)} ACTIVE container configurations from {total_containers} total JSON files")
 
-        except Exception as e:
-            logger.error(f"Error loading container configs: {e}")
+        except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException, json.JSONDecodeError) as e:
+            logger.error(f"Error loading container configs: {e}", exc_info=True)
 
         return containers
 

@@ -133,7 +133,7 @@ def fix_container_files():
                     print(f'✅ Fixed {file.name}: display_name={[container_name, container_name]} (fallback)')
                     fixed_count += 1
 
-        except Exception as e:
+        except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException, json.JSONDecodeError) as e:
             print(f'❌ Error processing {file.name}: {e}')
             error_count += 1
 

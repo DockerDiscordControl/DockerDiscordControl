@@ -141,8 +141,8 @@ class StatusOverviewService:
                 next_check_time=self._calculate_next_check_time(datetime.now(timezone.utc), config)
             )
 
-        except Exception as e:
-            self.logger.error(f"Error in make_update_decision: {e}")
+        except (RuntimeError) as e:
+            self.logger.error(f"Error in make_update_decision: {e}", exc_info=True)
             # SAFE FALLBACK: Always allow updates on error to prevent stale data
             return UpdateDecision(
                 should_update=True,
@@ -193,8 +193,8 @@ class StatusOverviewService:
 
             return False
 
-        except Exception as e:
-            self.logger.error(f"Error checking recreate requirements: {e}")
+        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+            self.logger.error(f"Error checking recreate requirements: {e}", exc_info=True)
             # Safe fallback: don't recreate on error
             return False
 
@@ -207,8 +207,8 @@ class StatusOverviewService:
         try:
             next_time = last_update + timedelta(minutes=config.update_interval_minutes)
             return next_time
-        except Exception as e:
-            self.logger.error(f"Error calculating next check time: {e}")
+        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+            self.logger.error(f"Error calculating next check time: {e}", exc_info=True)
             return None
 
     def _get_channel_update_config(self, channel_id: int, global_config: Dict[str, Any]) -> StatusOverviewUpdateConfig:
@@ -248,8 +248,8 @@ class StatusOverviewService:
 
             return config
 
-        except Exception as e:
-            self.logger.error(f"Error parsing channel config: {e}")
+        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+            self.logger.error(f"Error parsing channel config: {e}", exc_info=True)
             # Return safe defaults
             return StatusOverviewUpdateConfig()
 
@@ -270,7 +270,7 @@ class StatusOverviewService:
                 'inactivity_timeout_minutes': config.inactivity_timeout_minutes,
                 'config_source': 'cached' if channel_id in self._config_cache else 'fresh'
             }
-        except Exception as e:
+        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
             return {
                 'channel_id': channel_id,
                 'error': str(e),
@@ -314,8 +314,8 @@ def should_update_channel_overview(channel_id: int, global_config: Dict[str, Any
             force_recreate=False
         )
         return decision.should_update, decision.reason
-    except Exception as e:
-        logger.error(f"Error in should_update_channel_overview: {e}")
+    except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+        logger.error(f"Error in should_update_channel_overview: {e}", exc_info=True)
         # Safe fallback: allow updates
         return True, f"error_fallback_{e}"
 
@@ -351,5 +351,5 @@ def log_channel_update_decision(channel_id: int, global_config: Dict[str, Any],
         if decision.next_check_time:
             logger.info(f"  Next Check: {decision.next_check_time}")
 
-    except Exception as e:
-        logger.error(f"Error logging update decision: {e}")
+    except (RuntimeError) as e:
+        logger.error(f"Error logging update decision: {e}", exc_info=True)

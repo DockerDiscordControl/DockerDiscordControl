@@ -412,7 +412,7 @@ class TracingManager:
             # Get tracer
             self.tracer = trace.get_tracer(__name__)
 
-        except Exception as e:
+        except (RuntimeError) as e:
             print(f"Warning: Failed to setup OpenTelemetry tracing: {e}")
             self.enabled = False
 
@@ -446,7 +446,7 @@ class TracingManager:
 
             try:
                 yield span
-            except Exception as e:
+            except (RuntimeError) as e:
                 # Record exception in span
                 span.set_status(Status(StatusCode.ERROR))
                 span.record_exception(e)

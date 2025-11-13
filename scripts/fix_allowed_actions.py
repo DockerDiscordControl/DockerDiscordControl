@@ -55,7 +55,7 @@ def fix_container_actions():
                 print(f'✅ Added allowed_actions to {file.name}: {data["allowed_actions"]}')
                 fixed_count += 1
 
-        except Exception as e:
+        except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError) as e:
             print(f'❌ Error processing {file.name}: {e}')
             error_count += 1
 

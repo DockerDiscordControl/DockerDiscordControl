@@ -44,7 +44,7 @@ def check_container_status():
             else:
                 inactive_containers.append(container_info)
 
-        except Exception as e:
+        except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
             print(f"❌ Error reading {container_file.name}: {e}")
 
     # Display active containers

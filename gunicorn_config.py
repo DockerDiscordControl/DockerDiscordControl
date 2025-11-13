@@ -10,7 +10,7 @@ if os.getenv("GUNICORN_WORKER_CLASS", "sync") == "gevent":
         print("Gevent monkey patches applied.") # Use print for early feedback
     except ImportError:
         print("Gevent not installed, cannot apply monkey patches.")
-    except Exception as e:
+    except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError) as e:
         print(f"Error applying Gevent monkey patches: {e}")
 # -----------------------------
 
@@ -83,7 +83,7 @@ def when_ready(server):
         get_docker_containers_live(logger) # Pass the logger
         logger.info(f"[Gunicorn Master {os.getpid()}] Initial cache update complete.")
 
-    except Exception as e:
+    except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
         logger.error(f"[Gunicorn Master {os.getpid()}] Error during initial cache population: {e}", exc_info=True)
 
 # --- RAM-OPTIMIZED Gunicorn Server Configuration ---

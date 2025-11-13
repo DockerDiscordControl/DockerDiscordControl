@@ -96,7 +96,7 @@ def reset_password():
         print(f"❌ Import error: {e}")
         print("Make sure you're running this from the DDC project directory.")
         return False
-    except Exception as e:
+    except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError) as e:
         print(f"❌ Error: {e}")
         return False
 

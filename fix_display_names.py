@@ -70,7 +70,7 @@ def fix_display_name(config_dir='config/containers'):
                 print(f"ℹ️  {json_file.name}: No display_name field")
                 skipped_count += 1
 
-        except Exception as e:
+        except (RuntimeError) as e:
             print(f"❌ Error processing {json_file.name}: {e}")
 
     print(f"\n📊 Summary:")

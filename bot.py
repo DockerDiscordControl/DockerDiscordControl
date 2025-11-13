@@ -71,7 +71,7 @@ def _ensure_timezone(runtime_logger: logging.Logger) -> None:
         try:
             tz = pytz.timezone(timezone_name)
             runtime_logger.info("Successfully set timezone to %s using pytz", timezone_name)
-        except Exception as exc:
+        except (RuntimeError) as e:
             runtime_logger.warning("Could not set timezone %s: %s", timezone_name, exc)
             runtime_logger.info("Using UTC as fallback")
             tz = timezone.utc
@@ -111,7 +111,7 @@ def _shutdown_scheduler(logger: logging.Logger) -> None:
             logger.info("Scheduler Service stopped successfully.")
         else:
             logger.warning("Scheduler Service could not be stopped or was not running.")
-    except Exception as exc:  # pragma: no cover - defensive shutdown guard
+    except (RuntimeError) as e:
         logger.error("Error stopping Scheduler Service: %s", exc, exc_info=True)
 
 
@@ -148,7 +148,7 @@ if __name__ == "__main__":
             "FATAL: Necessary Privileged Intents are missing in the Discord Developer Portal!"
         )
         sys.exit(1)
-    except Exception as exc:
+    except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
         logging.getLogger("ddc.bot").error(
             "FATAL: An unexpected error occurred during bot execution: %s", exc, exc_info=True
         )

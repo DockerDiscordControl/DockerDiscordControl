@@ -149,7 +149,7 @@ class MechStatusDetailsService:
                 content_type=content_type
             )
 
-        except Exception as e:
+        except (RuntimeError) as e:
             logger.error(f"Error getting mech status details: {e}", exc_info=True)
             return MechStatusDetailsResult(
                 success=False,
@@ -172,7 +172,7 @@ class MechStatusDetailsService:
 
             return SPEED_DESCRIPTIONS.get(speed_level, ("Motionless", "#4a4a4a"))[0]
 
-        except Exception as e:
+        except (AttributeError, KeyError, RuntimeError, TypeError) as e:
             logger.debug(f"Error getting speed description: {e}")
             return "Motionless"
 
@@ -198,7 +198,7 @@ class MechStatusDetailsService:
 
             return f"{bar} {percentage:.1f}%"
 
-        except Exception as e:
+        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
             logger.debug(f"Error creating progress bar: {e}")
             return "░" * length + " 0.0%"
 
@@ -239,7 +239,7 @@ class MechStatusDetailsService:
             }
             return fallback_messages.get(language, fallback_messages['en'])
 
-        except Exception as e:
+        except (AttributeError, KeyError, RuntimeError, TypeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
             logger.debug(f"Error getting infinity message: {e}")
             # Fallback to German (current default)
             return "∞ Unendlichkeit erreicht, Danke! 🖤"
@@ -308,7 +308,7 @@ class MechStatusDetailsService:
 
             return None
 
-        except Exception as e:
+        except (RuntimeError) as e:
             logger.debug(f"Error getting next level info: {e}")
             return None
 
@@ -337,7 +337,7 @@ class MechStatusDetailsService:
                 logger.debug(f"Animation service error: {result.error}")
                 return None, None
 
-        except Exception as e:
+        except (RuntimeError) as e:
             logger.debug(f"Error getting mech animation: {e}")
             return None, None
 

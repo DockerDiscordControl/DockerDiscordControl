@@ -111,7 +111,7 @@ def create_and_save_task(task: ScheduledTask, ctx: discord.ApplicationContext) -
             
     except ScheduleValidationError as e:
         return False, str(e)
-    except Exception as e:
+    except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound, docker.errors.APIError, docker.errors.DockerException) as e:
         logger.error(f"Unexpected error creating task: {e}", exc_info=True)
         return False, _("An unexpected error occurred while creating the task.")
 

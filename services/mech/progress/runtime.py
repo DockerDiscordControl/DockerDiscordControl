@@ -120,7 +120,7 @@ class ProgressRuntime:
             tz_name = config.get("timezone", default_tz)
             try:
                 self._timezone = ZoneInfo(str(tz_name))
-            except Exception:  # pragma: no cover - only triggers on invalid tz data
+            except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError):
                 logger.warning("Unknown timezone '%s'; falling back to %s", tz_name, default_tz)
                 self._timezone = ZoneInfo(default_tz)
         return self._timezone

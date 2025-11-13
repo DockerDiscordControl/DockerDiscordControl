@@ -80,8 +80,8 @@ class SecurityService:
                 data=status
             )
 
-        except Exception as e:
-            self.logger.error(f"Error getting token security status: {e}")
+        except (RuntimeError) as e:
+            self.logger.error(f"Error getting token security status: {e}", exc_info=True)
             return SecurityResult(
                 success=False,
                 error=str(e),
@@ -131,8 +131,8 @@ class SecurityService:
                     status_code=400
                 )
 
-        except Exception as e:
-            self.logger.error(f"Error encrypting token: {e}")
+        except (RuntimeError) as e:
+            self.logger.error(f"Error encrypting token: {e}", exc_info=True)
             return SecurityResult(
                 success=False,
                 error=str(e),
@@ -179,8 +179,8 @@ class SecurityService:
                 data=response_data
             )
 
-        except Exception as e:
-            self.logger.error(f"Error getting migration help: {e}")
+        except (RuntimeError) as e:
+            self.logger.error(f"Error getting migration help: {e}", exc_info=True)
             return SecurityResult(
                 success=False,
                 error=str(e),
@@ -218,8 +218,8 @@ class SecurityService:
                 data=audit_results
             )
 
-        except Exception as e:
-            self.logger.error(f"Error performing security audit: {e}")
+        except (RuntimeError) as e:
+            self.logger.error(f"Error performing security audit: {e}", exc_info=True)
             return SecurityResult(
                 success=False,
                 error=str(e),
@@ -323,7 +323,7 @@ class SecurityService:
                 source="Web UI - Security",
                 details=details
             )
-        except Exception as e:
+        except (RuntimeError) as e:
             self.logger.warning(f"Could not log security action: {e}")
 
 

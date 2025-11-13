@@ -327,7 +327,7 @@ def resolve_ddc_bot_user_id() -> int:
         resp.raise_for_status()
         data = resp.json()
         return int(data.get('id', 0))
-    except Exception as e:
+    except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, json.JSONDecodeError) as e:
         logger.warning(f'Failed to resolve bot user ID: {e}')
         return 0
 
@@ -341,7 +341,7 @@ def _parse_discord_timestamp(iso_ts: str) -> datetime:
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
         return dt.astimezone(timezone.utc)
-    except Exception:
+    except (AttributeError, KeyError, RuntimeError, TypeError, discord.Forbidden, discord.HTTPException, discord.NotFound):
         return datetime.now(timezone.utc)
 
 def fetch_recent_messages(channel_id: int, limit: int = 20):
@@ -357,7 +357,7 @@ def find_last_heartbeat_timestamp(messages):
             content = msg.get('content') or ''
             if author == DDC_BOT_USER_ID and '❤️' in content:
                 return _parse_discord_timestamp(msg.get('timestamp'))
-        except Exception:
+        except (AttributeError, KeyError, RuntimeError, TypeError, discord.Forbidden, discord.HTTPException, discord.NotFound):
             continue
     return None
 
@@ -367,14 +367,14 @@ def send_alert_message(content: str):
             session.post(ALERT_WEBHOOK_URL, json={'content': content}, timeout=10)
             logger.info('Alert sent via webhook')
             return
-        except Exception as e:
+        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
             logger.warning(f'Webhook alert failed: {e}')
     for channel_id in ALERT_CHANNEL_IDS:
         try:
             url = f"{API_BASE}/channels/{channel_id}/messages"
             session.post(url, json={'content': content}, timeout=15)
             logger.info(f'Alert sent to channel {channel_id}')
-        except Exception as e:
+        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
             logger.warning(f'Failed to send alert to channel {channel_id}: {e}')
 
 def main():
@@ -406,7 +406,7 @@ def main():
             logger.info(f'Initialized last heartbeat from history: {last_heartbeat.isoformat()}')
         else:
             logger.info('No heartbeat found in recent history during initialization')
-    except Exception as e:
+    except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
         logger.warning(f'Initialization failed: {e}')
 
     while True:
@@ -434,7 +434,7 @@ def main():
 
         except requests.HTTPError as http_err:
             logger.warning(f'HTTP error: {http_err}')
-        except Exception as e:
+        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
             logger.warning(f'Unexpected error: {e}')
         finally:
             time.sleep(30)

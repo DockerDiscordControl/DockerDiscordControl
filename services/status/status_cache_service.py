@@ -50,8 +50,8 @@ class StatusCacheService:
             if cached_data:
                 return deepcopy(cached_data)
             return None
-        except Exception as e:
-            logger.error(f"Error getting cached status for {container_name}: {e}")
+        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+            logger.error(f"Error getting cached status for {container_name}: {e}", exc_info=True)
             return None
 
     def set(self, container_name: str, data: Any, timestamp: datetime = None) -> None:
@@ -69,8 +69,8 @@ class StatusCacheService:
             # Store formatted status in ContainerStatusService
             self._container_status_service.set_formatted_status(container_name, data, timestamp)
             logger.debug(f"Cached status for {container_name} via pass-through")
-        except Exception as e:
-            logger.error(f"Error setting cached status for {container_name}: {e}")
+        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+            logger.error(f"Error setting cached status for {container_name}: {e}", exc_info=True)
 
     def set_error(self, container_name: str, error_msg: str = None) -> None:
         """Cache an error state for a container.
@@ -87,8 +87,8 @@ class StatusCacheService:
                 error=error_msg or "Status check failed"
             )
             logger.debug(f"Cached error state for {container_name}: {error_msg}")
-        except Exception as e:
-            logger.error(f"Error setting error state for {container_name}: {e}")
+        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+            logger.error(f"Error setting error state for {container_name}: {e}", exc_info=True)
 
     def copy(self) -> Dict[str, Dict[str, Any]]:
         """Get a copy of all formatted statuses.
@@ -98,8 +98,8 @@ class StatusCacheService:
         """
         try:
             return self._container_status_service.get_all_formatted_statuses()
-        except Exception as e:
-            logger.error(f"Error copying cache: {e}")
+        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+            logger.error(f"Error copying cache: {e}", exc_info=True)
             return {}
 
     def clear(self) -> None:
@@ -107,8 +107,8 @@ class StatusCacheService:
         try:
             self._container_status_service.clear_cache()
             logger.info("Cache cleared via pass-through")
-        except Exception as e:
-            logger.error(f"Error clearing cache: {e}")
+        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+            logger.error(f"Error clearing cache: {e}", exc_info=True)
 
     def remove(self, container_name: str) -> bool:
         """Remove a specific container from cache.
@@ -124,8 +124,8 @@ class StatusCacheService:
             if result:
                 logger.debug(f"Removed {container_name} from cache via pass-through")
             return result
-        except Exception as e:
-            logger.error(f"Error removing {container_name} from cache: {e}")
+        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+            logger.error(f"Error removing {container_name} from cache: {e}", exc_info=True)
             return False
 
     def _is_cache_valid(self, cached_entry: Dict[str, Any]) -> bool:
@@ -196,8 +196,8 @@ class StatusCacheService:
         """
         try:
             return self._container_status_service.get_cache_stats()
-        except Exception as e:
-            logger.error(f"Error getting cache stats: {e}")
+        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+            logger.error(f"Error getting cache stats: {e}", exc_info=True)
             return {
                 'total_entries': 0,
                 'error': str(e)

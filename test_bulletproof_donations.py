@@ -68,7 +68,7 @@ def test_requirement_calculation():
                     print(f"❌ {test_name}: ${result/100:.2f} (out of bounds)")
                     failed += 1
 
-        except Exception as e:
+        except (RuntimeError) as e:
             print(f"❌ {test_name}: EXCEPTION: {e}")
             failed += 1
 
@@ -143,7 +143,7 @@ def test_system_donations():
             else:
                 print(f"❌ {test_name}: Unexpected failure: {e}")
                 failed += 1
-        except Exception as e:
+        except (RuntimeError) as e:
             print(f"❌ {test_name}: Unexpected exception: {e}")
             failed += 1
 
@@ -192,7 +192,7 @@ def test_overflow_protection():
         except OverflowError as e:
             print(f"❌ {test_name}: OverflowError not caught: {e}")
             failed += 1
-        except Exception as e:
+        except (RuntimeError) as e:
             # Some exceptions are expected and handled
             print(f"✅ {test_name}: Handled exception gracefully: {type(e).__name__}")
             passed += 1
@@ -226,7 +226,7 @@ def test_concurrent_safety():
         try:
             state = ps.add_system_donation(amount, event_name)
             results.append((event_name, state.power_current))
-        except Exception as e:
+        except (IOError, OSError, PermissionError, RuntimeError) as e:
             errors.append((event_name, str(e)))
 
     # Create multiple threads trying to add donations simultaneously

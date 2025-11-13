@@ -37,7 +37,7 @@ for module_name in modules_to_reload:
     try:
         print(f"  - Importing {module_name}")
         importlib.import_module(module_name)
-    except Exception as e:
+    except (AttributeError, IOError, ImportError, KeyError, ModuleNotFoundError, OSError, PermissionError, RuntimeError, TypeError) as e:
         print(f"    WARNING: Could not import {module_name}: {e}")
 
 print("\nStep 3: Verify BarsCompat has float types...")

@@ -13,7 +13,7 @@ try:
     sig = inspect.signature(add_system_donation)
     print(f"Function signature: {sig}")
 
-except Exception as e:
+except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError) as e:
     print(f"✗ Import failed: {e}")
     import traceback
     traceback.print_exc()

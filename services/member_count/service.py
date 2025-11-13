@@ -121,7 +121,7 @@ class MemberCountService:
 
             self._logger.info("Unique member count across status channels: %s", unique_count)
             return unique_count
-        except Exception as exc:  # pragma: no cover - defensive logging
+        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
             self._logger.error("Error updating member count: %s", exc, exc_info=True)
             return fallback_count
 
@@ -134,7 +134,7 @@ class MemberCountService:
             progress_service = get_progress_service()
             progress_service.update_member_count(member_count)
             self._logger.debug("Member count updated successfully: %s", member_count)
-        except Exception as exc:  # pragma: no cover - defensive logging
+        except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError) as e:
             self._logger.error("Error updating member count: %s", exc, exc_info=True)
 
     def persist_member_count_snapshot(
@@ -184,7 +184,7 @@ class MemberCountService:
                 )
                 channel_perms = {}
             self._channel_perms = _ChannelPermissionsCache(channel_perms, True)
-        except Exception as exc:  # pragma: no cover - defensive logging
+        except (IOError, OSError, PermissionError, RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
             self._logger.error("Error loading channel permissions: %s", exc, exc_info=True)
             self._channel_perms = _ChannelPermissionsCache({}, True)
 
@@ -240,7 +240,7 @@ class MemberCountService:
 
                 unique_members.add(member.id)
                 member_count += 1
-            except Exception as exc:  # pragma: no cover - defensive logging
+            except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
                 self._logger.debug("Error processing member: %s", exc)
 
         self._logger.debug("  └─ #%s: %s non-bot members", getattr(channel, "name", "?"), member_count)

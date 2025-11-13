@@ -74,12 +74,12 @@ class AdminService:
             except json.JSONDecodeError as e:
                 logger.error(f"Invalid JSON in admins.json: {e}")
                 return []
-            except Exception as e:
-                logger.error(f"Error reading admins.json: {e}")
+            except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError) as e:
+                logger.error(f"Error reading admins.json: {e}", exc_info=True)
                 return []
 
-        except Exception as e:
-            logger.error(f"Error in _load_admin_users: {e}")
+        except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError) as e:
+            logger.error(f"Error in _load_admin_users: {e}", exc_info=True)
             return []
 
     def _is_cache_valid(self) -> bool:
@@ -169,12 +169,12 @@ class AdminService:
                         'discord_admin_users': admin_data.get('discord_admin_users', []),
                         'admin_notes': admin_data.get('admin_notes', {})
                     }
-            except Exception as e:
-                logger.error(f"Error reading admin data: {e}")
+            except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, json.JSONDecodeError) as e:
+                logger.error(f"Error reading admin data: {e}", exc_info=True)
                 return {'discord_admin_users': [], 'admin_notes': {}}
 
-        except Exception as e:
-            logger.error(f"Error in get_admin_data: {e}")
+        except (IOError, OSError, PermissionError, RuntimeError) as e:
+            logger.error(f"Error in get_admin_data: {e}", exc_info=True)
             return {'discord_admin_users': [], 'admin_notes': {}}
 
     def save_admin_data(self, admin_users: List[str], admin_notes: Dict[str, str] = None) -> bool:
@@ -217,8 +217,8 @@ class AdminService:
             logger.info(f"Saved {len(admin_users)} admin users to {admins_file}")
             return True
 
-        except Exception as e:
-            logger.error(f"Error saving admin data: {e}")
+        except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError) as e:
+            logger.error(f"Error saving admin data: {e}", exc_info=True)
             return False
 
     async def is_user_admin_async(self, user_id: Union[str, int], force_refresh: bool = False) -> bool:

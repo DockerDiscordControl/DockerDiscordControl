@@ -55,7 +55,7 @@ for container_name, new_order in correct_orders.items():
             print(f"  ✓ {container_name}: {old_order} → {new_order}")
         except PermissionError:
             print(f"  ⚠️  {container_name}: Permission denied (order should be {new_order})")
-    except Exception as e:
+    except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException, json.JSONDecodeError) as e:
         print(f"  ❌ {container_name}: Error - {e}")
 
 print("\n" + "=" * 50)
