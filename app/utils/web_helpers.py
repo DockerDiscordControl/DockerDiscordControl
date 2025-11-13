@@ -68,7 +68,14 @@ def _get_advanced_setting(key: str, default_value, value_type=int):
                 return value
             return str(value).lower() in ('true', '1', 'yes', 'on')
         return value_type(value)
-    except Exception:
+    except (ImportError, AttributeError, RuntimeError):
+        # Service dependency errors (config service unavailable)
+        fallback = os.environ.get(key, default_value)
+        if value_type == bool:
+            return str(fallback).lower() in ('true', '1', 'yes', 'on')
+        return value_type(fallback)
+    except (ValueError, TypeError, KeyError):
+        # Data errors (invalid config values, type conversion failures)
         fallback = os.environ.get(key, default_value)
         if value_type == bool:
             return str(fallback).lower() in ('true', '1', 'yes', 'on')
@@ -142,10 +149,12 @@ def setup_action_logger(app_instance):
             
         return user_action_logger
     except ImportError as e:
-        app_instance.logger.error(f"Failed to import user_action_logger from services.infrastructure.action_logger: {e}")
+        # Import errors (action_logger module unavailable)
+        app_instance.logger.error(f"Import error loading user_action_logger: {e}", exc_info=True)
         return logging.getLogger('user_actions')  # Fallback
-    except Exception as e:
-        app_instance.logger.error(f"Unexpected error checking action logger: {e}")
+    except (AttributeError, RuntimeError) as e:
+        # Service errors (logger configuration issues)
+        app_instance.logger.error(f"Service error checking action logger: {e}", exc_info=True)
         return logging.getLogger('user_actions')  # Fallback
 
 
@@ -155,7 +164,8 @@ def hash_container_data(container_data):
         # Create a hash from relevant fields
         hash_input = f"{container_data.get('id', '')}-{container_data.get('status', '')}-{container_data.get('image', '')}"
         return hash(hash_input)
-    except Exception:
+    except (TypeError, AttributeError, KeyError):
+        # Data errors (invalid container data structure, missing methods/attributes)
         # In case of errors, return a random hash, which leads to reevaluation
         return time.time()
 
@@ -356,8 +366,9 @@ def update_docker_cache(logger):
         with cache_lock:
             docker_cache['error'] = f"🚨 DOCKER CONNECTIVITY LOST: {str(e_outer)}"
 
-    except Exception as e_general:
-        error_msg = f"Unexpected error during live query: {str(e_general)}"
+    except (ValueError, TypeError, KeyError, AttributeError) as e_general:
+        # Data errors (unexpected container data structure, invalid attributes)
+        error_msg = f"Data error during live query: {str(e_general)}"
         logger.error(error_msg, exc_info=True)
 
         # Enhanced general error logging
@@ -372,7 +383,8 @@ def update_docker_cache(logger):
         if client:
             try:
                 client.close()
-            except Exception as close_err:
+            except (AttributeError, RuntimeError) as close_err:
+                # Service errors (client close failures, invalid client state)
                 logger.debug(f"Error closing Docker client after live query: {close_err}")
 
 def _cleanup_docker_cache(logger, current_time):
@@ -438,9 +450,10 @@ def background_refresh_worker(logger):
                     else:
                         time.sleep(wait_time)
                     remaining_time -= wait_time
-                    
-            except Exception as e:
-                logger.error(f"Error in background refresh worker: {str(e)}", exc_info=True)
+
+            except (ImportError, AttributeError, RuntimeError) as e:
+                # Service dependency errors (docker service unavailable, cache update failures)
+                logger.error(f"Service error in background refresh worker: {str(e)}", exc_info=True)
                 # In case of errors, wait briefly and try again
                 # Also use smaller interval here for better response to stop signal
                 for _ in range(5): # 5x1 second instead of once 5 seconds
@@ -450,8 +463,21 @@ def background_refresh_worker(logger):
                         gevent.sleep(1)
                     else:
                         time.sleep(1)
-    except Exception as e:
-        logger.error(f"Unexpected error in background worker thread: {e}", exc_info=True)
+            except (ValueError, TypeError, KeyError) as e:
+                # Data errors (invalid cache data, unexpected data structures)
+                logger.error(f"Data error in background refresh worker: {str(e)}", exc_info=True)
+                # In case of errors, wait briefly and try again
+                # Also use smaller interval here for better response to stop signal
+                for _ in range(5): # 5x1 second instead of once 5 seconds
+                    if stop_background_thread.is_set():
+                        break
+                    if HAS_GEVENT:
+                        gevent.sleep(1)
+                    else:
+                        time.sleep(1)
+    except (AttributeError, RuntimeError) as e:
+        # Service/runtime errors (thread/event errors, gevent issues)
+        logger.error(f"Runtime error in background worker thread: {e}", exc_info=True)
     finally:
         with cache_lock:
             docker_cache['bg_refresh_running'] = False
@@ -502,8 +528,13 @@ def start_background_refresh(logger):
     import asyncio
     try:
         connectivity_ok = asyncio.get_event_loop().run_until_complete(check_docker_connectivity(logger))
-    except Exception as e:
-        logger.error(f"Error during Docker connectivity check: {e}")
+    except (RuntimeError, AttributeError) as e:
+        # Runtime errors (event loop issues, asyncio problems)
+        logger.error(f"Runtime error during Docker connectivity check: {e}", exc_info=True)
+        connectivity_ok = False
+    except (ImportError, ValueError) as e:
+        # Import/data errors (service unavailable, invalid parameters)
+        logger.error(f"Service error during Docker connectivity check: {e}", exc_info=True)
         connectivity_ok = False
 
     if not connectivity_ok:
@@ -566,8 +597,9 @@ def stop_background_refresh(logger):
         if HAS_GEVENT and not thread_to_join.dead:
             try:
                 thread_to_join.kill(block=False)
-            except Exception as e:
-                logger.error(f"Error killing greenlet: {e}")
+            except (AttributeError, RuntimeError) as e:
+                # Runtime errors (greenlet kill failures, invalid greenlet state)
+                logger.error(f"Runtime error killing greenlet: {e}", exc_info=True)
         # In normal thread environment wait for thread
         elif not HAS_GEVENT and thread_to_join.is_alive():
             try:
@@ -577,10 +609,12 @@ def stop_background_refresh(logger):
                 # Warning if thread does not end
                 if thread_to_join.is_alive():
                     logger.warning("Background thread did not terminate within timeout")
-            except Exception as e:
-                logger.error(f"Error while joining background thread: {e}")
-    except Exception as e:
-        logger.error(f"Error during thread cleanup: {e}")
+            except (RuntimeError, AttributeError) as e:
+                # Runtime errors (thread join failures, invalid thread state)
+                logger.error(f"Runtime error while joining background thread: {e}", exc_info=True)
+    except (AttributeError, RuntimeError, TypeError) as e:
+        # Runtime/data errors (thread cleanup failures, invalid thread attributes)
+        logger.error(f"Error during thread cleanup: {e}", exc_info=True)
 
 
 def mech_decay_worker(logger):
@@ -627,8 +661,9 @@ def mech_decay_worker(logger):
                         time.sleep(wait_time)
                     remaining_time -= wait_time
 
-            except Exception as e:
-                logger.error(f"Error in mech decay worker: {str(e)}", exc_info=True)
+            except (ImportError, AttributeError, RuntimeError) as e:
+                # Service dependency errors (mech service unavailable, tick_decay failures)
+                logger.error(f"Service error in mech decay worker: {str(e)}", exc_info=True)
                 # In case of errors, wait briefly and try again
                 for _ in range(5):  # 5x1 second instead of once 5 seconds
                     if stop_mech_decay_thread.is_set():
@@ -637,8 +672,9 @@ def mech_decay_worker(logger):
                         gevent.sleep(1)
                     else:
                         time.sleep(1)
-    except Exception as e:
-        logger.error(f"Unexpected error in mech decay worker thread: {e}", exc_info=True)
+    except (AttributeError, RuntimeError) as e:
+        # Runtime errors (thread/event errors, gevent issues)
+        logger.error(f"Runtime error in mech decay worker thread: {e}", exc_info=True)
     finally:
         logger.info("Mech decay background worker stopped")
 
@@ -699,8 +735,9 @@ def stop_mech_decay_background(logger):
         if HAS_GEVENT and not thread_to_join.dead:
             try:
                 thread_to_join.kill(block=False)
-            except Exception as e:
-                logger.error(f"Error killing mech decay greenlet: {e}")
+            except (AttributeError, RuntimeError) as e:
+                # Runtime errors (greenlet kill failures, invalid greenlet state)
+                logger.error(f"Runtime error killing mech decay greenlet: {e}", exc_info=True)
         # In normal thread environment wait for thread
         elif not HAS_GEVENT and thread_to_join.is_alive():
             try:
@@ -710,10 +747,12 @@ def stop_mech_decay_background(logger):
                 # Warning if thread does not end
                 if thread_to_join.is_alive():
                     logger.warning("Mech decay thread did not terminate within timeout")
-            except Exception as e:
-                logger.error(f"Error while joining mech decay thread: {e}")
-    except Exception as e:
-        logger.error(f"Error during mech decay thread cleanup: {e}")
+            except (RuntimeError, AttributeError) as e:
+                # Runtime errors (thread join failures, invalid thread state)
+                logger.error(f"Runtime error while joining mech decay thread: {e}", exc_info=True)
+    except (AttributeError, RuntimeError, TypeError) as e:
+        # Runtime/data errors (thread cleanup failures, invalid thread attributes)
+        logger.error(f"Error during mech decay thread cleanup: {e}", exc_info=True)
 
 
 def set_initial_password_from_env():
@@ -752,8 +791,9 @@ def set_initial_password_from_env():
             try:
                 if check_password_hash(current_hash, 'admin'):
                     is_default_or_unset = True
-            except Exception as e_hash_check: # Handle cases where hash might be malformed
-                init_pass_logger.warning(f"Could not check current password hash (possibly malformed): {e_hash_check}. Assuming it needs to be reset if env var is present.")
+            except (ValueError, TypeError) as e_hash_check:
+                # Data errors (malformed hash, invalid hash format)
+                init_pass_logger.warning(f"Data error checking password hash (possibly malformed): {e_hash_check}. Assuming it needs to be reset if env var is present.")
                 is_default_or_unset = True # Opt to reset if unsure
 
         if is_default_or_unset:
@@ -765,8 +805,11 @@ def set_initial_password_from_env():
             init_pass_logger.debug("Web UI password already set to a non-default value. Skipping update from env var.")
             
     except ImportError as e_imp:
-        init_pass_logger.error(f"Could not import config_loader for initial password set: {e_imp}")
+        # Import errors (config service unavailable)
+        init_pass_logger.error(f"Import error loading config service for initial password set: {e_imp}", exc_info=True)
     except FileNotFoundError as e_fnf:
-        init_pass_logger.error(f"Config file not found during initial password set: {e_fnf}")
-    except Exception as e:
+        # File I/O errors (config file not found)
+        init_pass_logger.error(f"Config file not found during initial password set: {e_fnf}", exc_info=True)
+    except (ValueError, TypeError, KeyError, AttributeError, RuntimeError) as e:
+        # Data/service errors (invalid config data, hash generation failures, save failures)
         init_pass_logger.error(f"Error setting initial password: {e}", exc_info=True) 
