@@ -132,8 +132,9 @@ class ContainerLogService:
                 content=logs_content
             )
 
-        except Exception as e:
-            self.logger.error(f"Error retrieving container logs for {request.container_name}: {e}", exc_info=True)
+        except (ImportError, AttributeError, TypeError, ValueError, RuntimeError) as e:
+            # Service/async errors (missing services, invalid types, runtime/event loop errors)
+            self.logger.error(f"Service error retrieving container logs for {request.container_name}: {e}", exc_info=True)
             return LogResult(
                 success=False,
                 error="An unexpected error occurred",
@@ -166,8 +167,9 @@ class ContainerLogService:
                     status_code=400
                 )
 
-        except Exception as e:
-            self.logger.error(f"Error retrieving {request.log_type.value} logs: {e}", exc_info=True)
+        except (AttributeError, TypeError, ValueError, RuntimeError) as e:
+            # Data/service errors (invalid enum, type errors, runtime errors)
+            self.logger.error(f"Service error retrieving {request.log_type.value} logs: {e}", exc_info=True)
             return LogResult(
                 success=False,
                 error=f"Error fetching {request.log_type.value} logs",
@@ -190,8 +192,9 @@ class ContainerLogService:
             else:
                 return self._get_action_logs_text(request.limit)
 
-        except Exception as e:
-            self.logger.error(f"Error retrieving action logs: {e}", exc_info=True)
+        except (AttributeError, TypeError, ValueError, RuntimeError) as e:
+            # Data/service errors (invalid format type, type errors, runtime errors)
+            self.logger.error(f"Service error retrieving action logs: {e}", exc_info=True)
             return LogResult(
                 success=False,
                 error="Error fetching action logs",
@@ -221,7 +224,8 @@ class ContainerLogService:
                 }
             )
 
-        except Exception as e:
+        except (AttributeError, TypeError, ValueError) as e:
+            # Data/operation errors (invalid attributes, type errors, value errors)
             self.logger.error(f"Error clearing logs: {e}", exc_info=True)
             return LogResult(
                 success=False,
@@ -249,8 +253,9 @@ class ContainerLogService:
             # SERVICE FIRST: Use Docker Client Service
             from services.docker_service.docker_client_pool import get_docker_client_async
             return get_docker_client_async(operation='logs', timeout=30.0)
-        except Exception as e:
-            self.logger.error(f"Failed to get Docker client: {e}")
+        except (ImportError, AttributeError, TypeError, RuntimeError) as e:
+            # Service/import errors (missing docker service, attribute errors, runtime errors)
+            self.logger.error(f"Failed to get Docker client: {e}", exc_info=True)
             return None
 
     async def _fetch_container_logs_async(self, client, container_name: str, max_lines: int) -> Optional[str]:
@@ -272,8 +277,9 @@ class ContainerLogService:
         except docker.errors.APIError as e:
             self.logger.error(f"Docker API error when fetching logs for {container_name}: {e}")
             raise Exception("Could not retrieve logs due to a Docker API error")
-        except Exception as e:
-            self.logger.error(f"Error fetching container logs: {e}")
+        except (ImportError, AttributeError, TypeError, UnicodeDecodeError, RuntimeError) as e:
+            # Import/decode/async errors (missing modules, attribute errors, decode errors, runtime errors)
+            self.logger.error(f"Error fetching container logs: {e}", exc_info=True)
             raise
 
     async def _get_container_logs_service_first(self, container_name: str, max_lines: int) -> Optional[str]:
@@ -288,8 +294,9 @@ class ContainerLogService:
             async with client_context as client:
                 return await self._fetch_container_logs_async(client, container_name, max_lines)
 
-        except Exception as e:
-            self.logger.error(f"Error in SERVICE FIRST container logs: {e}")
+        except (AttributeError, TypeError, RuntimeError) as e:
+            # Async/context errors (missing attributes, type errors, runtime errors)
+            self.logger.error(f"Error in SERVICE FIRST container logs: {e}", exc_info=True)
             return None
 
     def _get_bot_logs(self, max_lines: int) -> LogResult:
@@ -392,8 +399,9 @@ class ContainerLogService:
 
             return LogResult(success=True, content=filtered_logs)
 
-        except Exception as e:
-            self.logger.error(f"Error getting filtered container logs: {e}")
+        except (AttributeError, TypeError, RuntimeError, ValueError) as e:
+            # Async/data errors (attribute errors, type errors, runtime/async errors, value errors)
+            self.logger.error(f"Error getting filtered container logs: {e}", exc_info=True)
             raise
 
     def _read_log_file(self, file_path: str, max_lines: int) -> Optional[str]:
@@ -408,8 +416,9 @@ class ContainerLogService:
                 recent_lines = lines[-max_lines:] if len(lines) > max_lines else lines
                 return ''.join(recent_lines)
 
-        except Exception as e:
-            self.logger.error(f"Error reading log file {file_path}: {e}")
+        except (IOError, OSError, PermissionError, UnicodeDecodeError) as e:
+            # File I/O errors (read errors, permissions, decode errors)
+            self.logger.error(f"File error reading log file {file_path}: {e}", exc_info=True)
             return None
 
     def _get_action_logs_text(self, limit: int) -> LogResult:
@@ -423,8 +432,9 @@ class ContainerLogService:
             else:
                 return LogResult(success=True, content="No action logs available")
 
-        except Exception as e:
-            self.logger.error(f"Error getting action logs text: {e}")
+        except (ImportError, AttributeError, OSError, TypeError) as e:
+            # Service/file errors (missing modules, attribute errors, I/O errors, type errors)
+            self.logger.error(f"Error getting action logs text: {e}", exc_info=True)
             raise
 
     def _get_action_logs_json(self, limit: int) -> LogResult:
@@ -442,8 +452,9 @@ class ContainerLogService:
                 }
             )
 
-        except Exception as e:
-            self.logger.error(f"Error getting action logs JSON: {e}")
+        except (ImportError, AttributeError, OSError, TypeError, ValueError) as e:
+            # Service/data errors (missing modules, attribute errors, I/O errors, type/value errors)
+            self.logger.error(f"Error getting action logs JSON: {e}", exc_info=True)
             raise
 
 
