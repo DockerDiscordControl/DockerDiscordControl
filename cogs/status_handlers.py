@@ -42,7 +42,7 @@ class StatusHandlersMixin:
     Handles retrieving, processing, and displaying Docker container statuses.
     """
 
-    async def bulk_fetch_container_status(self, container_names: List[str]) -> Dict[str, Tuple]:
+    async def bulk_fetch_container_status(self, container_names: List[str]) -> Dict[str, ContainerStatusResult]:
         """
         Intelligent bulk fetch with adaptive performance learning and complete data collection.
         Uses performance history to optimize timeouts and batching while always collecting full details.
@@ -51,7 +51,7 @@ class StatusHandlersMixin:
             container_names: List of Docker container names to fetch
 
         Returns:
-            Dict mapping container_name -> (display_name, is_running, cpu, ram, uptime, details_allowed)
+            Dict mapping container_name -> ContainerStatusResult
         """
         if not container_names:
             return {}
@@ -70,9 +70,12 @@ class StatusHandlersMixin:
             error_results = {}
             for docker_name in container_names:
                 # Create an exception with the connectivity error details
-                # Use consistent tuple format: (docker_name, exception, None)
                 error_exception = RuntimeError(f"Docker connectivity error: {connectivity_result.error_message}")
-                error_results[docker_name] = (docker_name, error_exception, None)
+                error_results[docker_name] = ContainerStatusResult.error_result(
+                    docker_name=docker_name,
+                    error=error_exception,
+                    error_type='connectivity'
+                )
 
             return error_results
 
@@ -165,7 +168,11 @@ class StatusHandlersMixin:
             if isinstance(info, Exception) or info is None:
                 # Container offline or error - still provide complete status structure
                 logger.debug(f"[INTELLIGENT_BULK_FETCH] {docker_name} appears offline or error: {info}")
-                status_results[docker_name] = (display_name, False, 'N/A', 'N/A', 'N/A', details_allowed)
+                status_results[docker_name] = ContainerStatusResult.offline_result(
+                    docker_name=docker_name,
+                    display_name=display_name,
+                    details_allowed=details_allowed
+                )
                 successful_fetches += 1  # Still a successful status determination
                 continue
             
@@ -232,8 +239,16 @@ class StatusHandlersMixin:
                     cpu = _("Hidden")
                     ram = _("Hidden")
                 # If details allowed but stats failed, keep N/A (we tried!)
-            
-            status_results[docker_name] = (display_name, is_running, cpu, ram, uptime, details_allowed)
+
+            status_results[docker_name] = ContainerStatusResult.success_result(
+                docker_name=docker_name,
+                display_name=display_name,
+                is_running=is_running,
+                cpu=cpu,
+                ram=ram,
+                uptime=uptime,
+                details_allowed=details_allowed
+            )
             successful_fetches += 1
         
         total_elapsed = (time.time() - start_time) * 1000
@@ -316,17 +331,18 @@ class StatusHandlersMixin:
             bulk_results = await self.bulk_fetch_container_status(containers_needing_update)
             
             # Update cache with results
-            for docker_name, (status, data, error) in bulk_results.items():
+            for docker_name, result in bulk_results.items():
                 server_config = servers_by_docker_name.get(docker_name)
                 if server_config:
                     display_name = server_config.get('name', docker_name)
-                    if status == 'success':
-                        self.status_cache_service.set(display_name, data, now)
+                    if result.success:
+                        # Cache as tuple for backwards compatibility
+                        self.status_cache_service.set(display_name, result.as_tuple(), now)
                         logger.debug(f"[BULK_UPDATE] Updated cache for {display_name}")
                     else:
                         # Cache error state to prevent constant retries
-                        self.status_cache_service.set_error(display_name, error)
-                        logger.warning(f"[BULK_UPDATE] Failed to update {display_name}: {error}")
+                        self.status_cache_service.set_error(display_name, result.error or Exception(result.error_message))
+                        logger.warning(f"[BULK_UPDATE] Failed to update {display_name}: {result.error_message}")
         except (RuntimeError, asyncio.CancelledError, KeyError, TypeError) as e:
             logger.error(f"[BULK_UPDATE] Error during bulk update: {e}", exc_info=True)
 

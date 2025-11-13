@@ -1125,12 +1125,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 error_count = 0
 
                 # Update cache with results (same logic as status_update_loop)
-                for name, (status, data, error) in results.items():
-                    if status == 'success':
-                        self.status_cache_service.set(name, data, datetime.now(timezone.utc))
+                for name, result in results.items():
+                    if result.success:
+                        # Cache as tuple for backwards compatibility
+                        self.status_cache_service.set(name, result.as_tuple(), datetime.now(timezone.utc))
                         success_count += 1
                     else:
-                        logger.warning(f"Background cache population: Failed to fetch status for {name}. Error: {error}")
+                        logger.warning(f"Background cache population: Failed to fetch status for {name}. Error: {result.error_message}")
                         error_count += 1
 
                 duration_ms = (time.time() - start_time) * 1000
@@ -3002,19 +3003,20 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 self._status_update_semaphore = asyncio.Semaphore(1)
 
             async with self._status_update_semaphore:
-                # This function now guarantees a dict with 3-element tuples as values
+                # Bulk fetch returns ContainerStatusResult objects
                 results = await self.bulk_fetch_container_status(container_names)
 
                 success_count = 0
                 error_count = 0
 
-                # This loop is now safe and will not cause a ValueError
-                for name, (status, data, error) in results.items():
-                    if status == 'success':
-                        self.status_cache_service.set(name, data, datetime.now(timezone.utc))
+                # Process ContainerStatusResult objects
+                for name, result in results.items():
+                    if result.success:
+                        # Cache as tuple for backwards compatibility
+                        self.status_cache_service.set(name, result.as_tuple(), datetime.now(timezone.utc))
                         success_count += 1
                     else:
-                        logger.warning(f"[STATUS_LOOP] Failed to fetch status for {name}. Error: {error}")
+                        logger.warning(f"[STATUS_LOOP] Failed to fetch status for {name}. Error: {result.error_message}")
                         error_count += 1
 
                 duration_ms = (time.time() - start_time) * 1000
