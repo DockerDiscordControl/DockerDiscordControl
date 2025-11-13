@@ -137,24 +137,26 @@ class StatusHandlersMixin:
             slow_time = (time.time() - phase2_start) * 1000
             logger.info(f"[INTELLIGENT_BULK_FETCH] Phase 2 completed: {len(slow_containers)} slow containers in {slow_time:.1f}ms")
         
+        # PERFORMANCE: Cache server configs before processing - avoid repeated lookups
+        server_config_service = get_server_config_service()
+        servers = server_config_service.get_all_servers()
+        servers_by_docker_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
+
         # Process all results into status tuples - ALWAYS WITH COMPLETE DATA
         status_results = {}
         successful_fetches = 0
         failed_fetches = 0
-        
+
         for result in all_results:
             if isinstance(result, Exception):
                 logger.error(f"[INTELLIGENT_BULK_FETCH] Exception in fetch result: {result}")
                 failed_fetches += 1
                 continue
-                
+
             docker_name, info, stats = result
-            
-            # Find server config for this container
-            # SERVICE FIRST: Use ServerConfigService instead of direct config access
-            server_config_service = get_server_config_service()
-            servers = server_config_service.get_all_servers()
-            server_config = next((s for s in servers if s.get('docker_name') == docker_name), None)
+
+            # Find server config for this container (cached lookup)
+            server_config = servers_by_docker_name.get(docker_name)
             
             if not server_config:
                 logger.warning(f"[INTELLIGENT_BULK_FETCH] No server config found for {docker_name}")
