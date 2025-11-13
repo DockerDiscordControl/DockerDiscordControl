@@ -33,9 +33,14 @@ def get_container_logs(container_name):
             current_app.logger.warning(f"Container log request failed: {result.error}")
             return Response(result.error, status=result.status_code, mimetype='text/plain')
 
-    except Exception as e:
-        current_app.logger.error(f"Error in get_container_logs route: {e}", exc_info=True)
-        return Response("An unexpected error occurred.", status=500, mimetype='text/plain')
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (container_log_service unavailable, service method failures)
+        current_app.logger.error(f"Service error in get_container_logs route: {e}", exc_info=True)
+        return Response("Service error occurred.", status=500, mimetype='text/plain')
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (invalid request parameters, response processing failures)
+        current_app.logger.error(f"Data error in get_container_logs route: {e}", exc_info=True)
+        return Response("Data error occurred.", status=500, mimetype='text/plain')
 
 @log_bp.route('/bot_logs')
 @auth.login_required
@@ -60,9 +65,14 @@ def get_bot_logs():
             current_app.logger.error(f"Bot log request failed: {result.error}")
             return Response(result.error, status=result.status_code, mimetype='text/plain')
 
-    except Exception as e:
-        current_app.logger.error(f"Error in get_bot_logs route: {e}", exc_info=True)
-        return Response("Error fetching bot logs", status=500, mimetype='text/plain')
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (container_log_service unavailable, service method failures)
+        current_app.logger.error(f"Service error in get_bot_logs route: {e}", exc_info=True)
+        return Response("Service error fetching bot logs", status=500, mimetype='text/plain')
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (invalid request parameters, response processing failures)
+        current_app.logger.error(f"Data error in get_bot_logs route: {e}", exc_info=True)
+        return Response("Data error fetching bot logs", status=500, mimetype='text/plain')
 
 @log_bp.route('/discord_logs')
 @auth.login_required
@@ -87,9 +97,14 @@ def get_discord_logs():
             current_app.logger.error(f"Discord log request failed: {result.error}")
             return Response(result.error, status=result.status_code, mimetype='text/plain')
 
-    except Exception as e:
-        current_app.logger.error(f"Error in get_discord_logs route: {e}", exc_info=True)
-        return Response("Error fetching Discord logs", status=500, mimetype='text/plain')
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (container_log_service unavailable, service method failures)
+        current_app.logger.error(f"Service error in get_discord_logs route: {e}", exc_info=True)
+        return Response("Service error fetching Discord logs", status=500, mimetype='text/plain')
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (invalid request parameters, response processing failures)
+        current_app.logger.error(f"Data error in get_discord_logs route: {e}", exc_info=True)
+        return Response("Data error fetching Discord logs", status=500, mimetype='text/plain')
 
 @log_bp.route('/webui_logs')
 @auth.login_required
@@ -114,9 +129,14 @@ def get_webui_logs():
             current_app.logger.error(f"Web UI log request failed: {result.error}")
             return Response(result.error, status=result.status_code, mimetype='text/plain')
 
-    except Exception as e:
-        current_app.logger.error(f"Error in get_webui_logs route: {e}", exc_info=True)
-        return Response("Error fetching Web UI logs", status=500, mimetype='text/plain')
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (container_log_service unavailable, service method failures)
+        current_app.logger.error(f"Service error in get_webui_logs route: {e}", exc_info=True)
+        return Response("Service error fetching Web UI logs", status=500, mimetype='text/plain')
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (invalid request parameters, response processing failures)
+        current_app.logger.error(f"Data error in get_webui_logs route: {e}", exc_info=True)
+        return Response("Data error fetching Web UI logs", status=500, mimetype='text/plain')
 
 @log_bp.route('/application_logs')
 @auth.login_required
@@ -141,9 +161,14 @@ def get_application_logs():
             current_app.logger.error(f"Application log request failed: {result.error}")
             return Response(result.error, status=result.status_code, mimetype='text/plain')
 
-    except Exception as e:
-        current_app.logger.error(f"Error in get_application_logs route: {e}", exc_info=True)
-        return Response("Error fetching application logs", status=500, mimetype='text/plain')
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (container_log_service unavailable, service method failures)
+        current_app.logger.error(f"Service error in get_application_logs route: {e}", exc_info=True)
+        return Response("Service error fetching application logs", status=500, mimetype='text/plain')
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (invalid request parameters, response processing failures)
+        current_app.logger.error(f"Data error in get_application_logs route: {e}", exc_info=True)
+        return Response("Data error fetching application logs", status=500, mimetype='text/plain')
 
 @log_bp.route('/action_logs')
 @auth.login_required
@@ -168,9 +193,14 @@ def get_action_logs():
             current_app.logger.error(f"Action log request failed: {result.error}")
             return Response(result.error, status=result.status_code, mimetype='text/plain')
 
-    except Exception as e:
-        current_app.logger.error(f"Error in get_action_logs route: {e}", exc_info=True)
-        return Response("Error fetching action logs", status=500, mimetype='text/plain')
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (container_log_service unavailable, service method failures)
+        current_app.logger.error(f"Service error in get_action_logs route: {e}", exc_info=True)
+        return Response("Service error fetching action logs", status=500, mimetype='text/plain')
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (invalid request parameters, response processing failures)
+        current_app.logger.error(f"Data error in get_action_logs route: {e}", exc_info=True)
+        return Response("Data error fetching action logs", status=500, mimetype='text/plain')
 
 @log_bp.route('/action_logs_json')
 @auth.login_required
@@ -195,9 +225,14 @@ def get_action_logs_json():
             current_app.logger.error(f"Action log JSON request failed: {result.error}")
             return jsonify({'success': False, 'error': result.error}), result.status_code
 
-    except Exception as e:
-        current_app.logger.error(f"Error in get_action_logs_json route: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (container_log_service unavailable, service method failures)
+        current_app.logger.error(f"Service error in get_action_logs_json route: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Service error occurred'}), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (invalid request parameters, response processing failures, JSON serialization)
+        current_app.logger.error(f"Data error in get_action_logs_json route: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Data error occurred'}), 500
 
 @log_bp.route('/clear_logs', methods=['POST'])
 @auth.login_required
@@ -221,6 +256,11 @@ def clear_logs():
             current_app.logger.error(f"Clear logs request failed: {result.error}")
             return jsonify({'success': False, 'message': result.error}), result.status_code
 
-    except Exception as e:
-        current_app.logger.error(f"Error in clear_logs route: {e}", exc_info=True)
-        return jsonify({'success': False, 'message': str(e)}), 500 
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (container_log_service unavailable, service method failures)
+        current_app.logger.error(f"Service error in clear_logs route: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Service error occurred'}), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (invalid request parameters, response processing failures, JSON parsing)
+        current_app.logger.error(f"Data error in clear_logs route: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Data error occurred'}), 500 
