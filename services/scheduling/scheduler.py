@@ -296,9 +296,10 @@ class ScheduledTask:
             else:
                 logger.warning(f"Task {self.task_id}: Unknown cycle type: {self.cycle}")
                 return False
-                
-        except Exception as e:
-            logger.error(f"Unexpected error validating task {self.task_id}: {e}")
+
+        except (ValueError, TypeError, AttributeError) as e:
+            # Data errors (cycle validation, method calls)
+            logger.error(f"Data error validating task {self.task_id}: {e}", exc_info=True)
             return False
     
     def _validate_once_or_yearly(self) -> bool:
@@ -493,8 +494,9 @@ class ScheduledTask:
             except ImportError:
                 logger.warning("Cron functionality requires croniter package. Run 'pip install croniter' to enable.")
                 return None
-            except Exception as e:
-                logger.error(f"Error calculating cron next run for task {self.task_id}: {e}")
+            except (ValueError, TypeError, AttributeError) as e:
+                # Data errors (cron expression parsing, datetime operations)
+                logger.error(f"Data error calculating cron next run for task {self.task_id}: {e}", exc_info=True)
                 return None
 
         try:
@@ -704,7 +706,8 @@ class ScheduledTask:
                 
                 return self.next_run_ts
             return None
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError, OSError) as e:
+            # Data/time errors (datetime calculations, timezone operations, timestamp conversion)
             logger.error(f"Error calculating next run for task {self.task_id} (cycle: {self.cycle}): {e}", exc_info=True)
             return None
 
@@ -717,11 +720,12 @@ class ScheduledTask:
             local_dt = utc_dt.astimezone(tz)
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"get_next_run_datetime for Task {self.task_id}: " 
-                           f"UTC={utc_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}, " 
+                           f"UTC={utc_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}, "
                            f"Local={local_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
             return local_dt
-        except Exception as e:
-            logger.error(f"Error converting timestamp {self.next_run_ts} to datetime: {e}")
+        except (ValueError, OSError, AttributeError) as e:
+            # Data/time errors (timestamp conversion, timezone operations)
+            logger.error(f"Error converting timestamp {self.next_run_ts} to datetime: {e}", exc_info=True)
             return None
             
     def should_run(self) -> bool:
@@ -788,9 +792,10 @@ class ScheduledTask:
             
             self.next_run_ts = next_run.timestamp()
             logger.debug(f"Donation task scheduled for 2nd Sunday: {next_run.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-            
-        except Exception as e:
-            logger.error(f"Error calculating next donation run: {e}")
+
+        except (ValueError, AttributeError, OSError) as e:
+            # Data/time errors (datetime operations, timezone, timestamp conversion)
+            logger.error(f"Error calculating next donation run: {e}", exc_info=True)
             # Fallback - set to next month's 10th at 13:37
             try:
                 if now.month == 12:
@@ -799,8 +804,9 @@ class ScheduledTask:
                     fallback_naive = datetime(now.year, now.month + 1, 10, 13, 37)
                 fallback = tz.localize(fallback_naive)
                 self.next_run_ts = fallback.timestamp()
-            except Exception as fallback_error:
-                logger.error(f"Even fallback calculation failed: {fallback_error}")
+            except (ValueError, AttributeError, OSError) as fallback_error:
+                # Data/time errors (fallback datetime operations)
+                logger.error(f"Even fallback calculation failed: {fallback_error}", exc_info=True)
                 # Ultimate fallback - 30 days from now
                 self.next_run_ts = (now + timedelta(days=30)).timestamp()
     
@@ -812,7 +818,9 @@ class ScheduledTask:
         try:
             last_run_dt = datetime.fromtimestamp(self.last_run_ts, tz=now.tzinfo)
             return last_run_dt.year == now.year and last_run_dt.month == now.month
-        except Exception:
+        except (ValueError, OSError, AttributeError) as e:
+            # Data/time errors (timestamp conversion, timezone access)
+            logger.debug(f"Error checking if donation was run this month: {e}", exc_info=True)
             return False
 
 # --- System Task Management Functions ---
@@ -830,7 +838,9 @@ def create_donation_system_task() -> ScheduledTask:
         try:
             config = load_config()
             timezone_str = config.get('timezone', 'Europe/Berlin')
-        except Exception:
+        except (ImportError, AttributeError, IOError, OSError) as e:
+            # Service/file errors (config loading failed)
+            logger.debug(f"Error loading timezone config: {e}", exc_info=True)
             timezone_str = 'Europe/Berlin'
         
         # Create task with simple configuration
@@ -852,10 +862,15 @@ def create_donation_system_task() -> ScheduledTask:
         
         # Use our special donation calculation
         task._calculate_next_donation_run()
-        
+
         return task
-    except Exception as e:
-        logger.error(f"Error creating donation system task: {e}")
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (donation_utils, ScheduledTask class unavailable)
+        logger.error(f"Service dependency error creating donation system task: {e}", exc_info=True)
+        return None
+    except (ValueError, TypeError) as e:
+        # Data errors (task initialization)
+        logger.error(f"Data error creating donation system task: {e}", exc_info=True)
         return None
 
 def _get_system_tasks() -> List[ScheduledTask]:
@@ -872,11 +887,15 @@ def _get_system_tasks() -> List[ScheduledTask]:
         # maintenance_task = create_maintenance_system_task()
         # if maintenance_task:
         #     system_tasks.append(maintenance_task)
-        
-    except Exception as e:
-        logger.error(f"Error creating system tasks: {e}")
+
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (system task creation failed)
+        logger.error(f"Service dependency error creating system tasks: {e}", exc_info=True)
         # Return empty list if system task creation fails - don't break the whole system
-    
+    except (ValueError, TypeError) as e:
+        # Data errors (task list operations)
+        logger.error(f"Data error creating system tasks: {e}", exc_info=True)
+
     return system_tasks
 
 # --- Scheduler File I/O Functions --- (Now operating on TASKS_FILE_PATH)
@@ -929,8 +948,9 @@ def _load_raw_tasks_from_file() -> List[Dict[str, Any]]:
             else:
                 logger.error("Failed to read tasks file after %s attempts: %s", max_retries, exc)
                 return []
-        except Exception as exc:
-            logger.error("Unexpected error reading tasks file %s: %s", TASKS_FILE_PATH, exc)
+        except (ValueError, TypeError, AttributeError) as exc:
+            # Data errors (unexpected data structure)
+            logger.error("Data error reading tasks file %s: %s", TASKS_FILE_PATH, exc, exc_info=True)
             return []
 
     if last_error:
@@ -963,9 +983,9 @@ def _save_raw_tasks_to_file(tasks_data: List[Dict[str, Any]]) -> bool:
                             if current_sorted == new_sorted:
                                 logger.debug("Tasks data unchanged, skipping file write")
                                 return True
-                except Exception as e:
-                    # If comparison fails, proceed with write
-                    logger.debug(f"Error comparing task data: {e}, proceeding with write")
+                except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
+                    # JSON/data errors (comparison failed)
+                    logger.debug(f"Data error comparing task data: {e}, proceeding with write", exc_info=True)
 
             # Create directory if needed
             _runtime.ensure_layout()
@@ -996,7 +1016,9 @@ def _save_raw_tasks_to_file(tasks_data: List[Dict[str, Any]]) -> bool:
                 logger.debug("Tasks successfully saved to %s.", TASKS_FILE_PATH)
                 return True
 
-            except Exception as e:
+            except (json.JSONDecodeError, ValueError, TypeError, UnicodeEncodeError) as e:
+                # JSON/data/encoding errors (JSON dump failed, file encoding issues)
+                logger.error(f"Data/encoding error writing tasks file: {e}", exc_info=True)
                 # Clean up the temporary file in case of error
                 try:
                     os.unlink(temp_path)
@@ -1011,8 +1033,9 @@ def _save_raw_tasks_to_file(tasks_data: List[Dict[str, Any]]) -> bool:
             else:
                 logger.error(f"Failed to save tasks after {max_retries} attempts: {e}")
                 return False
-        except Exception as e:
-            logger.error(f"Error saving tasks to {TASKS_FILE_PATH}: {e}")
+        except (ValueError, TypeError, AttributeError) as e:
+            # Data errors (unexpected runtime errors during save process)
+            logger.error(f"Data error saving tasks to {TASKS_FILE_PATH}: {e}", exc_info=True)
             return False
     
     return False
@@ -1033,8 +1056,9 @@ def load_tasks() -> List[ScheduledTask]:
             TASKS_FILE_PATH.write_text("[]", encoding="utf-8")
             _runtime.record_current_file_state()
             logger.info("Created empty tasks file at %s", TASKS_FILE_PATH)
-        except Exception as e:
-            logger.error(f"Failed to create tasks file: {e}")
+        except (IOError, OSError, PermissionError) as e:
+            # File I/O errors (cannot create file, permission denied)
+            logger.error(f"File I/O error creating tasks file: {e}", exc_info=True)
         return tasks
 
     # eXecute task loading with error handling
@@ -1047,15 +1071,20 @@ def load_tasks() -> List[ScheduledTask]:
                 task = ScheduledTask.from_dict(task_data)
                 tasks.append(task)
                 logger.debug(f"Loaded task: {task.task_id}")
-            except Exception as e:
-                logger.error(f"Error creating ScheduledTask object from data: {e}")
+            except (ValueError, TypeError, KeyError, AttributeError) as e:
+                # Data errors (invalid task data structure, missing fields, type mismatches)
+                logger.error(f"Data error creating ScheduledTask from data: {e}", exc_info=True)
                 continue
                 
         # Display successful loading information only on debug level to reduce log spam
         logger.debug(f"Loaded {len(tasks)} scheduled tasks")
-        
-    except Exception as e:
-        logger.error(f"Error loading tasks from {TASKS_FILE_PATH}: {e}")
+
+    except (json.JSONDecodeError, ValueError, TypeError) as e:
+        # JSON/data errors (malformed JSON, unexpected data types)
+        logger.error(f"JSON/data error loading tasks from {TASKS_FILE_PATH}: {e}", exc_info=True)
+    except (IOError, OSError, UnicodeDecodeError) as e:
+        # File I/O errors (cannot read file, encoding issues)
+        logger.error(f"File I/O error loading tasks from {TASKS_FILE_PATH}: {e}", exc_info=True)
         
     # Cleanup any invalid or expired tasks
     valid_tasks = [task for task in tasks if task.is_valid()]
@@ -1143,8 +1172,12 @@ def find_task_by_id(task_id: str) -> Optional[ScheduledTask]:
                             # Update cache with just this task
                             _runtime.store_task(task_id, task)
                             return task
-        except Exception as exc:
-            logger.error("Error during optimized task lookup: %s", exc)
+        except (ValueError, TypeError, KeyError, AttributeError) as exc:
+            # Data errors (task deserialization, dict access, validation failures)
+            logger.error("Data error during optimized task lookup: %s", exc, exc_info=True)
+        except (IOError, OSError, json.JSONDecodeError) as exc:
+            # File I/O or JSON errors (file read failures, malformed JSON)
+            logger.error("File/JSON error during optimized task lookup: %s", exc, exc_info=True)
 
     # Default fallback - load all tasks and search
     tasks = load_tasks()
@@ -1429,9 +1462,32 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
             task.update_after_execution()
             update_task(task)
             return False
-    except Exception as e:
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (docker service unavailable, action execution failures)
         execution_time = time.time() - execution_start
-        error_msg = f"Unexpected error executing task {task.task_id}: {e}"
+        error_msg = f"Service error executing task {task.task_id}: {e}"
+        logger.error(error_msg, exc_info=True)
+
+        # Save error
+        task.last_run_success = False
+        task.last_run_error = str(e)
+
+        # Log in User Action Log (also for errors)
+        log_user_action(
+            action=f"{task.action.upper()}_ERROR",
+            target=task.container_name,
+            user="Scheduled Task",
+            source="Scheduled Task",
+            details=f"Task ID: {task.task_id}, Cycle: {task.cycle}, Duration: {execution_time:.2f}s, Error: {str(e)}"
+        )
+
+        task.update_after_execution()
+        update_task(task)
+        return False
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (invalid task parameters, type mismatches, missing attributes)
+        execution_time = time.time() - execution_start
+        error_msg = f"Data error executing task {task.task_id}: {e}"
         logger.error(error_msg, exc_info=True)
         
         # Save error
@@ -1567,8 +1623,9 @@ def parse_time_string(time_str: str) -> Tuple[Optional[int], Optional[int]]:
                 return dt.hour, dt.minute
             except ValueError:
                 continue
-    except Exception as e:
-        logger.warning(f"Error parsing time string '{time_str}': {e}")
+    except (ValueError, TypeError, AttributeError) as e:
+        # Data errors (invalid time format, type mismatches, datetime operations)
+        logger.warning(f"Data error parsing time string '{time_str}': {e}")
     
     # Fallback: Try simple number as hour (e.g. "14" -> 14:00)
     if time_str.isdigit():
@@ -1599,7 +1656,9 @@ def parse_month_string(month_str: str) -> Optional[int]:
             month = int(month_str)
             return month if 1 <= month <= 12 else None
         return month_map.get(month_str)
-    except Exception: return None
+    except (ValueError, TypeError, AttributeError):
+        # Data errors (invalid month string, type mismatches, string operations)
+        return None
 
 @lru_cache(maxsize=32)
 def parse_weekday_string(weekday_str: str) -> Optional[int]:
