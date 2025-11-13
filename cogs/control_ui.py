@@ -613,7 +613,8 @@ class ToggleButton(Button):
                 return
             
             # Use cached data for ultra-fast operation
-            cached_entry = self.cog.status_cache_service.get(self.display_name)
+            # CRITICAL: Use docker_name as cache key (not display_name!)
+            cached_entry = self.cog.status_cache_service.get(self.docker_name)
             
             if cached_entry and cached_entry.get('data'):
                 status_result = cached_entry['data']

@@ -289,10 +289,10 @@ class StatusHandlersMixin:
             server_config = servers_by_docker_name.get(docker_name)
             if not server_config:
                 continue
-                
-            display_name = server_config.get('name', docker_name)
-            cached_entry = self.status_cache_service.get(display_name)
-            
+
+            # CRITICAL: Use docker_name as cache key (not display_name!)
+            cached_entry = self.status_cache_service.get(docker_name)
+
             # ONLY update if cache is completely missing (not just stale)
             # Background loop handles regular updates every 30s
             if not cached_entry:
@@ -314,11 +314,11 @@ class StatusHandlersMixin:
                 if server_config:
                     display_name = server_config.get('name', docker_name)
                     if result.success:
-                        # Cache ContainerStatusResult directly
-                        self.status_cache_service.set(display_name, result, now)
+                        # CRITICAL: Cache with docker_name as key (not display_name!)
+                        self.status_cache_service.set(docker_name, result, now)
                     else:
-                        # Cache error state to prevent constant retries
-                        self.status_cache_service.set_error(display_name, result.error or Exception(result.error_message))
+                        # CRITICAL: Cache error with docker_name as key (not display_name!)
+                        self.status_cache_service.set_error(docker_name, result.error or Exception(result.error_message))
                         logger.warning(f"[BULK_UPDATE] Failed to update {display_name}: {result.error_message}")
         except (RuntimeError, asyncio.CancelledError, KeyError, TypeError) as e:
             logger.error(f"[BULK_UPDATE] Error during bulk update: {e}", exc_info=True)
