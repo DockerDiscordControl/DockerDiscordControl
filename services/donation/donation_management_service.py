@@ -5,6 +5,7 @@ Donation Management Service - Clean service architecture for donation administra
 
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
+import json
 from utils.logging_utils import get_module_logger
 
 from services.mech.progress_paths import get_progress_paths
@@ -75,8 +76,6 @@ class DonationManagementService:
             mech_state = MechStateCompat(mech_state_result)
 
             # Get donations AND deletions directly from Progress Service Event Log
-            import json
-
             all_events = []
             event_log = get_progress_paths().event_log
 
@@ -208,9 +207,20 @@ class DonationManagementService:
 
             logger.debug(f"Retrieved {len(donations)} donations with total power: ${total_power:.2f}")
             return ServiceResult(success=True, data=result_data)
-            
-        except Exception as e:
-            error_msg = f"Error retrieving donation history from MechService: {e}"
+
+        except (IOError, OSError) as e:
+            # File I/O errors (event log access)
+            error_msg = f"Error reading donation event log: {e}"
+            logger.error(error_msg, exc_info=True)
+            return ServiceResult(success=False, error=error_msg)
+        except json.JSONDecodeError as e:
+            # JSON parsing errors
+            error_msg = f"Error parsing donation event log JSON: {e}"
+            logger.error(error_msg, exc_info=True)
+            return ServiceResult(success=False, error=error_msg)
+        except (KeyError, ValueError, AttributeError) as e:
+            # Data access/structure errors
+            error_msg = f"Error processing donation data: {e}"
             logger.error(error_msg, exc_info=True)
             return ServiceResult(success=False, error=error_msg)
     
@@ -232,8 +242,6 @@ class DonationManagementService:
         """
         try:
             # Get ALL events from event log (same logic as list_donations to get matching indices)
-            import json
-
             all_events = []
             event_log = get_progress_paths().event_log
 
@@ -312,11 +320,28 @@ class DonationManagementService:
             )
 
         except ValueError as e:
+            # Validation errors (invalid index, etc.)
             error_msg = str(e)
             logger.error(f"Validation error deleting donation: {error_msg}")
             return ServiceResult(success=False, error=error_msg)
-        except Exception as e:
-            error_msg = f"Error deleting donation: {e}"
+        except (IOError, OSError) as e:
+            # File I/O errors (event log access)
+            error_msg = f"Error reading donation event log: {e}"
+            logger.error(error_msg, exc_info=True)
+            return ServiceResult(success=False, error=error_msg)
+        except json.JSONDecodeError as e:
+            # JSON parsing errors
+            error_msg = f"Error parsing donation event log JSON: {e}"
+            logger.error(error_msg, exc_info=True)
+            return ServiceResult(success=False, error=error_msg)
+        except (KeyError, AttributeError) as e:
+            # Data access/structure errors
+            error_msg = f"Error processing donation deletion data: {e}"
+            logger.error(error_msg, exc_info=True)
+            return ServiceResult(success=False, error=error_msg)
+        except RuntimeError as e:
+            # Service call errors (progress_service.delete_donation)
+            error_msg = f"Error calling progress service: {e}"
             logger.error(error_msg, exc_info=True)
             return ServiceResult(success=False, error=error_msg)
 
@@ -341,8 +366,6 @@ class DonationManagementService:
                 )
 
             # Get ALL donations directly from Progress Service Event Log
-            import json
-
             donations_map = {}
             deletions_map = {}
             event_log = get_progress_paths().event_log
@@ -386,9 +409,20 @@ class DonationManagementService:
             
             logger.debug(f"Generated MechService donation stats: {stats}")
             return ServiceResult(success=True, data=stats)
-            
-        except Exception as e:
-            error_msg = f"Error getting donation stats from MechService: {e}"
+
+        except (IOError, OSError) as e:
+            # File I/O errors (event log access)
+            error_msg = f"Error reading donation event log: {e}"
+            logger.error(error_msg, exc_info=True)
+            return ServiceResult(success=False, error=error_msg)
+        except json.JSONDecodeError as e:
+            # JSON parsing errors
+            error_msg = f"Error parsing donation event log JSON: {e}"
+            logger.error(error_msg, exc_info=True)
+            return ServiceResult(success=False, error=error_msg)
+        except (KeyError, ValueError, AttributeError) as e:
+            # Data access/calculation errors
+            error_msg = f"Error calculating donation stats: {e}"
             logger.error(error_msg, exc_info=True)
             return ServiceResult(success=False, error=error_msg)
 

@@ -10,6 +10,7 @@ from services.donation.unified.models import DonationResult
 from services.donation.unified.processors import clear_mech_cache
 from services.donation.unified import events
 from services.mech.progress_paths import ProgressPaths, get_progress_paths
+from services.exceptions import MechServiceError
 
 
 def reset_donations(
@@ -41,7 +42,35 @@ def reset_donations(
             new_state=new_state,
             event_emitted=True,
         )
-    except Exception as exc:  # pragma: no cover - defensive logging
+    except MechServiceError as exc:  # pragma: no cover - defensive logging
+        # Mech service errors (get_state failures)
+        return DonationResult.from_states(
+            success=False,
+            old_state=None,
+            new_state=None,
+            error_message=f"Mech service error: {exc}",
+            error_code="MECH_SERVICE_ERROR",
+        )
+    except (IOError, OSError) as exc:  # pragma: no cover - defensive logging
+        # File I/O errors (event log, sequence counter, snapshot)
+        return DonationResult.from_states(
+            success=False,
+            old_state=None,
+            new_state=None,
+            error_message=f"File I/O error: {exc}",
+            error_code="FILE_ERROR",
+        )
+    except json.JSONDecodeError as exc:  # pragma: no cover - defensive logging
+        # JSON errors (unlikely but possible)
+        return DonationResult.from_states(
+            success=False,
+            old_state=None,
+            new_state=None,
+            error_message=f"JSON error: {exc}",
+            error_code="JSON_ERROR",
+        )
+    except (RuntimeError, AttributeError) as exc:  # pragma: no cover - defensive logging
+        # Event emission or other runtime errors
         return DonationResult.from_states(
             success=False,
             old_state=None,

@@ -20,6 +20,9 @@ from utils.logging_utils import get_module_logger
 from utils.observability import metrics, tracing, get_structured_logger
 import time
 
+# Import specific exceptions for better error handling
+from services.exceptions import MechServiceError, DonationServiceError
+
 
 logger = get_module_logger("unified_donation_service")
 # Structured logger for enhanced observability
@@ -113,25 +116,78 @@ class UnifiedDonationService:
                     event_emitted=True,
                     event_id=event_id,
                 )
-            except Exception as exc:  # pragma: no cover - defensive logging
+            except MechServiceError as exc:
+                # Mech service errors (state save/load, power calculations)
                 duration_ms = (time.time() - start_time) * 1000
+                metrics.increment("donations.mech_error.total")
 
-                # Metrics: Track processing failure
-                metrics.increment("donations.processing_failed.total")
-
-                # Structured logging: Log error with context
-                logger.error("Error processing donation: %s", exc, exc_info=True)
-                structured_logger.error("donation_processing_failed", extra={
+                logger.error("Mech service error during donation: %s", exc, exc_info=True)
+                structured_logger.error("donation_mech_error", extra={
                     "donor": request.donor_name,
                     "amount": request.amount,
                     "source": request.source,
                     "error": str(exc),
+                    "error_code": getattr(exc, 'error_code', 'MECH_ERROR'),
                     "duration_ms": duration_ms,
                 })
 
-                # Tracing: Mark span as failed
                 if span:
                     span.set_attribute("success", False)
+                    span.set_attribute("error_type", "MechServiceError")
+                    span.set_attribute("error", str(exc))
+
+                return DonationResult.from_states(
+                    success=False,
+                    old_state=None,
+                    new_state=None,
+                    error_message=f"Mech service error: {exc}",
+                    error_code="MECH_SERVICE_ERROR",
+                )
+            except (ValueError, TypeError, AttributeError, KeyError) as exc:
+                # Data format/structure errors
+                duration_ms = (time.time() - start_time) * 1000
+                metrics.increment("donations.data_error.total")
+
+                logger.error("Data error during donation: %s", exc, exc_info=True)
+                structured_logger.error("donation_data_error", extra={
+                    "donor": request.donor_name,
+                    "amount": request.amount,
+                    "source": request.source,
+                    "error": str(exc),
+                    "error_type": type(exc).__name__,
+                    "duration_ms": duration_ms,
+                })
+
+                if span:
+                    span.set_attribute("success", False)
+                    span.set_attribute("error_type", type(exc).__name__)
+                    span.set_attribute("error", str(exc))
+
+                return DonationResult.from_states(
+                    success=False,
+                    old_state=None,
+                    new_state=None,
+                    error_message=f"Data processing error: {exc}",
+                    error_code="DATA_ERROR",
+                )
+            except (RuntimeError, OSError) as exc:  # pragma: no cover - defensive logging
+                # System/runtime errors (file I/O, event emission)
+                duration_ms = (time.time() - start_time) * 1000
+                metrics.increment("donations.system_error.total")
+
+                logger.error("System error during donation: %s", exc, exc_info=True)
+                structured_logger.error("donation_system_error", extra={
+                    "donor": request.donor_name,
+                    "amount": request.amount,
+                    "source": request.source,
+                    "error": str(exc),
+                    "error_type": type(exc).__name__,
+                    "duration_ms": duration_ms,
+                })
+
+                if span:
+                    span.set_attribute("success", False)
+                    span.set_attribute("error_type", type(exc).__name__)
                     span.set_attribute("error", str(exc))
 
                 return DonationResult.from_states(
@@ -233,25 +289,78 @@ class UnifiedDonationService:
                     event_emitted=True,
                     event_id=event_id,
                 )
-            except Exception as exc:  # pragma: no cover - defensive logging
+            except MechServiceError as exc:
+                # Mech service errors (state save/load, power calculations)
                 duration_ms = (time.time() - start_time) * 1000
+                metrics.increment("donations.async.mech_error.total")
 
-                # Metrics: Track async processing failure
-                metrics.increment("donations.async.processing_failed.total")
-
-                # Structured logging: Log async error
-                logger.error("Error in async donation processing: %s", exc, exc_info=True)
-                structured_logger.error("donation_async_processing_failed", extra={
+                logger.error("Mech service error during async donation: %s", exc, exc_info=True)
+                structured_logger.error("donation_async_mech_error", extra={
                     "donor": request.donor_name,
                     "amount": request.amount,
                     "source": request.source,
                     "error": str(exc),
+                    "error_code": getattr(exc, 'error_code', 'MECH_ERROR'),
                     "duration_ms": duration_ms,
                 })
 
-                # Tracing: Mark span as failed
                 if span:
                     span.set_attribute("success", False)
+                    span.set_attribute("error_type", "MechServiceError")
+                    span.set_attribute("error", str(exc))
+
+                return DonationResult.from_states(
+                    success=False,
+                    old_state=None,
+                    new_state=None,
+                    error_message=f"Mech service error: {exc}",
+                    error_code="MECH_SERVICE_ERROR",
+                )
+            except (ValueError, TypeError, AttributeError, KeyError) as exc:
+                # Data format/structure errors
+                duration_ms = (time.time() - start_time) * 1000
+                metrics.increment("donations.async.data_error.total")
+
+                logger.error("Data error during async donation: %s", exc, exc_info=True)
+                structured_logger.error("donation_async_data_error", extra={
+                    "donor": request.donor_name,
+                    "amount": request.amount,
+                    "source": request.source,
+                    "error": str(exc),
+                    "error_type": type(exc).__name__,
+                    "duration_ms": duration_ms,
+                })
+
+                if span:
+                    span.set_attribute("success", False)
+                    span.set_attribute("error_type", type(exc).__name__)
+                    span.set_attribute("error", str(exc))
+
+                return DonationResult.from_states(
+                    success=False,
+                    old_state=None,
+                    new_state=None,
+                    error_message=f"Data processing error: {exc}",
+                    error_code="DATA_ERROR",
+                )
+            except (RuntimeError, OSError) as exc:  # pragma: no cover - defensive logging
+                # System/runtime errors (file I/O, event emission)
+                duration_ms = (time.time() - start_time) * 1000
+                metrics.increment("donations.async.system_error.total")
+
+                logger.error("System error during async donation: %s", exc, exc_info=True)
+                structured_logger.error("donation_async_system_error", extra={
+                    "donor": request.donor_name,
+                    "amount": request.amount,
+                    "source": request.source,
+                    "error": str(exc),
+                    "error_type": type(exc).__name__,
+                    "duration_ms": duration_ms,
+                })
+
+                if span:
+                    span.set_attribute("success", False)
+                    span.set_attribute("error_type", type(exc).__name__)
                     span.set_attribute("error", str(exc))
 
                 return DonationResult.from_states(

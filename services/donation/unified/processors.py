@@ -18,7 +18,8 @@ def clear_mech_cache() -> None:
         data_store = get_mech_data_store()
         data_store.clear_cache()
         logger.debug("MechDataStore cache cleared before event emission")
-    except Exception as exc:  # pragma: no cover - defensive logging
+    except (ImportError, AttributeError, RuntimeError) as exc:  # pragma: no cover - defensive logging
+        # Non-critical: Cache clear failures are logged but don't fail the operation
         logger.warning("Failed to clear MechDataStore cache: %s", exc)
 
 

@@ -17,7 +17,8 @@ def is_donations_disabled() -> bool:
             return bool(config_result.config.get('donation_disable_key'))
         else:
             return False
-    except:
+    except (ValueError, TypeError, AttributeError, RuntimeError) as e:
+        # Service or data access errors - return False for compatibility
         return False
 
 def validate_donation_key(key: str) -> bool:
@@ -33,5 +34,6 @@ def validate_donation_key(key: str) -> bool:
             return validation_result.is_valid
         else:
             return False
-    except:
+    except (ValueError, TypeError, AttributeError, RuntimeError) as e:
+        # Service or validation errors - return False for compatibility
         return False
