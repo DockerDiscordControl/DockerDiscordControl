@@ -18,7 +18,7 @@ from typing import Dict, Any, List, Optional, Tuple, Union
 import discord
 
 # Import necessary utilities
-from utils.logging_utils import setup_logger, get_module_logger
+from utils.logging_utils import get_module_logger
 from services.infrastructure.container_status_service import get_docker_info_dict_service_first, get_docker_stats_service_first
 from utils.time_utils import format_datetime_with_timezone
 from services.config.config_service import load_config
