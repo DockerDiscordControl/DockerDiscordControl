@@ -54,7 +54,7 @@ def is_debug_mode_enabled() -> bool:
         try:
             from services.config.config_service import get_config_service as get_config_manager
             config = get_config_manager().get_config(force_reload=False)
-        except Exception as config_error:
+        except (ImportError, AttributeError, RuntimeError, KeyError) as config_error:
             # During service initialization, config may not be available yet
             if _debug_mode_enabled is None:
                 _debug_mode_enabled = False  # Safe default
@@ -70,8 +70,8 @@ def is_debug_mode_enabled() -> bool:
             if previous_value != _debug_mode_enabled or _last_debug_status_log is None:
                 print(f"Debug status loaded from configuration: {_debug_mode_enabled}")
             _last_debug_status_log = current_time
-            
-    except Exception as e:
+
+    except (RuntimeError, TypeError, ValueError) as e:
         # Fallback on errors
         print(f"Error loading debug status: {e}")
         if _debug_mode_enabled is None:  # Only set to False if currently None
@@ -137,7 +137,7 @@ class TimezoneFormatter(logging.Formatter):
                 from services.config.config_service import load_config
                 config = load_config()
                 timezone_str = config.get('timezone', 'Europe/Berlin')
-            except Exception:
+            except (ImportError, AttributeError, KeyError, RuntimeError, TypeError):
                 # During initialization, use safe default
                 timezone_str = 'Europe/Berlin'
             
@@ -148,7 +148,7 @@ class TimezoneFormatter(logging.Formatter):
             # Format with the correct timezone
             formatted_time = dt.strftime(datefmt) + f" {dt.tzname()}"
             return formatted_time
-        except Exception as e:
+        except (ImportError, AttributeError, TypeError, KeyError, ValueError) as e:
             # Fall back to standard formatting on errors
             return super().formatTime(record, datefmt)
 
@@ -211,9 +211,9 @@ def setup_logger(name: str, level=logging.INFO, log_to_console=True, log_to_file
             # This is optional - remove this line if you want debug messages
             # to always be written to the log file
             file_handler.addFilter(DebugModeFilter())
-            
+
             logger.addHandler(file_handler)
-        except Exception as e:
+        except (OSError, IOError, PermissionError) as e:
             print(f"Failed to set up file logging for {name}: {e}")
     
     return logger
@@ -233,7 +233,7 @@ def refresh_debug_status():
         try:
             from services.config.config_service import get_config_service as get_config_manager
             get_config_manager()._cache_service.invalidate_cache()
-        except Exception as e:
+        except (ImportError, AttributeError, RuntimeError) as e:
             print(f"Failed to invalidate config cache: {e}")
         
         # Reload the debug status
@@ -247,10 +247,10 @@ def refresh_debug_status():
             logger.info("Debug mode has been ENABLED - DEBUG messages will be displayed")
         else:
             logger.info("Debug mode has been DISABLED - DEBUG messages will be suppressed")
-        
+
         return debug_enabled
-            
-    except Exception as e:
+
+    except (RuntimeError, TypeError, ValueError) as e:
         print(f"Error refreshing debug status: {e}")
         return False
 
@@ -295,7 +295,7 @@ def enable_temporary_debug(duration_minutes=10):
         try:
             logger = logging.getLogger('ddc.config')
             logger.info(f"Temporary debug mode ENABLED for {duration_minutes} minutes (until {expiry_time})")
-        except Exception as e:
+        except (AttributeError, RuntimeError) as e:
             print(f"Note: Could not use regular logger to log debug mode activation: {e}")
         
         # Forcibly refresh all filters to recognize debug mode
@@ -307,11 +307,11 @@ def enable_temporary_debug(duration_minutes=10):
                         if isinstance(filter_instance, DebugModeFilter):
                             handler.removeFilter(filter_instance)
                             handler.addFilter(DebugModeFilter())
-        except Exception as e:
+        except (AttributeError, RuntimeError, TypeError) as e:
             print(f"Error refreshing log filters: {e}")
-        
+
         return True, _temp_debug_expiry
-    except Exception as e:
+    except (RuntimeError, ValueError, TypeError) as e:
         print(f"Error enabling temporary debug mode: {e}")
         return False, 0
 
@@ -331,9 +331,9 @@ def disable_temporary_debug():
         # Log the change
         logger = logging.getLogger('ddc.config')
         logger.info("Temporary debug mode DISABLED manually")
-        
+
         return True
-    except Exception as e:
+    except (RuntimeError, ValueError) as e:
         print(f"Error disabling temporary debug mode: {e}")
         return False
 
