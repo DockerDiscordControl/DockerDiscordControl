@@ -20,6 +20,7 @@ from typing import Dict, Any
 # Import the class we're testing
 from cogs.status_handlers import StatusHandlersMixin
 from services.docker_status import get_performance_service
+from services.discord import get_conditional_cache_service
 
 
 class MockBot:
@@ -46,6 +47,15 @@ class TestStatusHandlersMixin:
         service = get_performance_service()
         # Clear any existing profiles for clean test state
         service._profiles.clear()
+        return service
+
+    @pytest.fixture
+    def cache_service(self):
+        """Get the ConditionalUpdateCacheService for testing"""
+        service = get_conditional_cache_service()
+        # Clear cache and reset stats for clean test state
+        service.clear_cache()
+        service.reset_statistics()
         return service
 
 
@@ -279,20 +289,19 @@ class TestStatusHandlersMixin:
     # SECTION 3: Cache Management Tests
     # =====================================================================
 
-    def test_ensure_conditional_cache_initialization(self, mixin):
-        """Test that conditional cache is properly initialized"""
-        mixin._ensure_conditional_cache()
+    def test_conditional_cache_service_initialization(self, cache_service):
+        """Test that conditional cache service is properly initialized"""
+        stats = cache_service.get_statistics()
 
-        assert hasattr(mixin, 'last_sent_content')
-        assert isinstance(mixin.last_sent_content, dict)
-        assert hasattr(mixin, 'update_stats')
-        assert isinstance(mixin.update_stats, dict)
+        assert stats['skipped'] == 0
+        assert stats['sent'] == 0
+        assert stats['total'] == 0
+        assert stats['cache_size'] == 0
 
 
     @pytest.mark.asyncio
     async def test_bulk_update_status_cache(self, mixin):
         """Test bulk cache update operation"""
-        mixin._ensure_conditional_cache()
 
         # Mock status_cache_service
         mock_cache_service = Mock()
@@ -365,7 +374,6 @@ class TestStatusHandlersMixin:
     @pytest.mark.asyncio
     async def test_get_status_online_container(self, mixin):
         """Test get_status for an online container"""
-        mixin._ensure_conditional_cache()
 
         server_config = {
             'name': 'Test Server',
@@ -408,7 +416,6 @@ class TestStatusHandlersMixin:
     @pytest.mark.asyncio
     async def test_get_status_offline_container(self, mixin):
         """Test get_status for an offline container"""
-        mixin._ensure_conditional_cache()
 
         server_config = {
             'name': 'Test Server',
@@ -444,7 +451,6 @@ class TestStatusHandlersMixin:
     @pytest.mark.asyncio
     async def test_get_status_error_handling(self, mixin):
         """Test get_status error handling when docker fails"""
-        mixin._ensure_conditional_cache()
 
         server_config = {
             'name': 'Test Server',

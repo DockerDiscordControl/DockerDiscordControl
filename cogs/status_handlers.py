@@ -24,6 +24,7 @@ from utils.time_utils import format_datetime_with_timezone
 from services.config.config_service import load_config
 from services.config.server_config_service import get_server_config_service
 from services.docker_status import get_performance_service
+from services.discord import get_conditional_cache_service
 
 # Import helper functions
 from .control_helpers import _channel_has_permission, _get_pending_embed
@@ -40,15 +41,6 @@ class StatusHandlersMixin:
     Mixin class containing status handler functionality for DockerControlCog.
     Handles retrieving, processing, and displaying Docker container statuses.
     """
-    
-    def _ensure_conditional_cache(self):
-        """Ensure conditional update cache is initialized."""
-        if not hasattr(self, 'last_sent_content'):
-            self.last_sent_content = {}  # Track last sent embed content for conditional updates
-            logger.debug("Initialized conditional update cache")
-        if not hasattr(self, 'update_stats'):
-            self.update_stats = {'skipped': 0, 'sent': 0, 'last_reset': datetime.now(timezone.utc)}
-            logger.debug("Initialized update statistics")
     
 
     
@@ -1059,9 +1051,9 @@ class StatusHandlersMixin:
     async def _edit_single_message(self, channel_id: int, display_name: str, message_id: int, current_config: dict) -> Union[bool, Exception, None]:
         """Edits a single status message based on cache and Pending-Status with conditional updates."""
         start_time = time.time()
-        
-        # Initialize conditional cache
-        self._ensure_conditional_cache()
+
+        # Get conditional cache service
+        cache_service = get_conditional_cache_service()
         
         # SERVICE FIRST: Use ServerConfigService instead of direct config access
         server_config_service = get_server_config_service()
@@ -1088,7 +1080,7 @@ class StatusHandlersMixin:
 
             # ✨ CONDITIONAL UPDATE CHECK - Only edit if content changed
             cache_key = f"{channel_id}:{display_name}"
-            
+
             # Create a comparable content hash from embed + view
             current_content = {
                 'description': embed.description,
@@ -1096,12 +1088,10 @@ class StatusHandlersMixin:
                 'footer': embed.footer.text if embed.footer else None,
                 'view_children_count': len(view.children) if view else 0
             }
-            
+
             # Check if content actually changed
-            last_content = self.last_sent_content.get(cache_key)
-            if last_content and last_content == current_content:
+            if not cache_service.has_content_changed(cache_key, current_content):
                 # Content unchanged - skip Discord API call
-                self.update_stats['skipped'] += 1
                 elapsed_time = (time.time() - start_time) * 1000
                 # Enhanced logging for offline containers
                 cached_status = getattr(self, 'status_cache', {}).get(server_conf.get('docker_name'))
@@ -1113,22 +1103,16 @@ class StatusHandlersMixin:
                             status_data = cached_status['data']
                         else:
                             status_data = cached_status
-                        
+
                         # Check if status_data is valid and has enough elements
-                        if (hasattr(status_data, '__getitem__') and hasattr(status_data, '__len__') and 
+                        if (hasattr(status_data, '__getitem__') and hasattr(status_data, '__len__') and
                             len(status_data) >= 2):
                             is_offline = not status_data[1]  # Second value is is_running
                     except (TypeError, IndexError, KeyError):
                         pass  # Ignore cache format issues for logging
                 status_info = " [OFFLINE]" if is_offline else ""
                 logger.debug(f"_edit_single_message: SKIPPED edit for '{display_name}'{status_info} - content unchanged ({elapsed_time:.1f}ms)")
-                
-                # Log performance stats every 50 skipped updates
-                if self.update_stats['skipped'] % 50 == 0:
-                    total_operations = self.update_stats['skipped'] + self.update_stats['sent']
-                    skip_percentage = (self.update_stats['skipped'] / total_operations * 100) if total_operations > 0 else 0
-                    logger.info(f"UPDATE_STATS: Skipped {self.update_stats['skipped']} / Sent {self.update_stats['sent']} ({skip_percentage:.1f}% saved)")
-                
+
                 return True  # Return success without actual edit
             
             # Content changed or first time - proceed with edit
@@ -1159,21 +1143,11 @@ class StatusHandlersMixin:
                 elapsed_time = (time.time() - start_time) * 1000
                 logger.error(f"_edit_single_message: TIMEOUT for '{display_name}' after 5000ms (total time: {elapsed_time:.1f}ms)")
                 # For timeout cases, still update the cache to prevent immediate retry
-                self.last_sent_content[cache_key] = current_content
-                self.update_stats['sent'] += 1  # Count as attempt even if timeout
+                cache_service.update_content(cache_key, current_content)
                 return False  # Return failure but don't crash
-            
+
             # Store the new content for future comparison
-            self.last_sent_content[cache_key] = current_content
-            self.update_stats['sent'] += 1
-            
-            # Prevent cache from growing too large (cleanup every 100 operations)
-            total_ops = self.update_stats['skipped'] + self.update_stats['sent']
-            if total_ops % 100 == 0 and len(self.last_sent_content) > 50:
-                # Keep only the most recent 25 entries
-                sorted_items = list(self.last_sent_content.items())[-25:]
-                self.last_sent_content = dict(sorted_items)
-                logger.debug(f"Cleaned conditional update cache: kept {len(self.last_sent_content)} entries")
+            cache_service.update_content(cache_key, current_content)
             
             elapsed_time = (time.time() - start_time) * 1000
             
