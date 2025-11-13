@@ -7,6 +7,7 @@ and proper caching for high-performance Discord status updates.
 """
 
 import asyncio
+import docker.errors
 import logging
 import os
 import time
@@ -456,6 +457,23 @@ class ContainerStatusService:
                     cache_age_seconds=0.0
                 )
 
+        except docker.errors.NotFound as e:
+            # Container not found - expected for connectivity tests
+            duration_ms = (time.time() - start_time) * 1000
+
+            # Only log as DEBUG for connectivity test, ERROR for real containers
+            if request.container_name == "__ddc_connectivity_test__":
+                self.logger.debug(f"Connectivity test container not found (expected): {request.container_name}")
+            else:
+                self.logger.error(f"Container not found: {request.container_name}: {e}", exc_info=True)
+
+            return ContainerStatusResult(
+                success=False,
+                container_name=request.container_name,
+                error_message=f"Container not found: {str(e)}",
+                error_type="container_not_found",
+                query_duration_ms=duration_ms
+            )
         except (ImportError, AttributeError) as e:
             duration_ms = (time.time() - start_time) * 1000
             self.logger.error(f"Docker service import error for {request.container_name}: {e}", exc_info=True)
