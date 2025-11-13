@@ -235,8 +235,8 @@ class ScheduleCommandsMixin:
             else:
                 await ctx.respond(_("Error adding the task. Please check the logs."), ephemeral=True)
                 return False
-                
-        except Exception as e:
+
+        except (ValueError, KeyError, RuntimeError, ImportError) as e:
             logger.error(f"Error creating a scheduled task: {e}", exc_info=True)
             await ctx.respond(_("An error occurred: {error}").format(error=str(e)), ephemeral=True)
             return False
@@ -322,8 +322,8 @@ class ScheduleCommandsMixin:
                 await ctx.respond(message, ephemeral=True)
             else:
                 await ctx.respond(result, ephemeral=True)
-                
-        except Exception as e:
+
+        except (ValueError, KeyError, RuntimeError, discord.errors.DiscordException) as e:
             await handle_schedule_command_error(ctx, e, "schedule_once")
     
     # Implementation for daily tasks
@@ -375,8 +375,8 @@ class ScheduleCommandsMixin:
                 await ctx.respond(message, ephemeral=True)
             else:
                 await ctx.respond(result, ephemeral=True)
-                
-        except Exception as e:
+
+        except (ValueError, KeyError, RuntimeError, discord.errors.DiscordException) as e:
             await handle_schedule_command_error(ctx, e, "schedule_daily")
     
     # Implementation for weekly tasks
@@ -446,8 +446,8 @@ class ScheduleCommandsMixin:
                 await ctx.respond(message, ephemeral=True)
             else:
                 await ctx.respond(result, ephemeral=True)
-                
-        except Exception as e:
+
+        except (ValueError, KeyError, RuntimeError, discord.errors.DiscordException) as e:
             await handle_schedule_command_error(ctx, e, "schedule_weekly")
     
     # Implementation for monthly tasks
@@ -511,8 +511,8 @@ class ScheduleCommandsMixin:
                 await ctx.respond(message, ephemeral=True)
             else:
                 await ctx.respond(result, ephemeral=True)
-                
-        except Exception as e:
+
+        except (ValueError, KeyError, RuntimeError, discord.errors.DiscordException) as e:
             await handle_schedule_command_error(ctx, e, "schedule_monthly")
     
     # Implementation for schedule command (help)
@@ -551,12 +551,12 @@ class ScheduleCommandsMixin:
         try:
             # Defer immediately to prevent timeout - even before other checks
             await ctx.defer()
-        except Exception as defer_error:
-            logger.error(f"Failed to defer task_info interaction: {defer_error}")
+        except (discord.errors.HTTPException, discord.errors.NotFound, discord.errors.DiscordException) as defer_error:
+            logger.error(f"Failed to defer task_info interaction: {defer_error}", exc_info=True)
             # Try to respond with error if defer failed
             try:
                 await ctx.respond(_("Command timeout. Please try again."), ephemeral=True)
-            except Exception as respond_error:
+            except (discord.errors.HTTPException, discord.errors.NotFound) as respond_error:
                 # Log the error but don't crash - this is last resort error handling
                 logger.warning(f"Failed to send error response after defer failed: {respond_error}")
             return
@@ -708,13 +708,13 @@ class ScheduleCommandsMixin:
                 
             embed = await self._format_schedule_embed(filtered_tasks, title)
             await ctx.followup.send(embed=embed)
-            
-        except Exception as e:
-            logger.error(f"Error executing schedule_info command: {e}")
+
+        except (KeyError, ValueError, RuntimeError, ImportError) as e:
+            logger.error(f"Error executing schedule_info command: {e}", exc_info=True)
             logger.error(traceback.format_exc())
             try:
                 await ctx.followup.send(_("An error occurred while fetching scheduled tasks. Please check the logs."))
-            except Exception as followup_error:
+            except (discord.errors.HTTPException, discord.errors.NotFound) as followup_error:
                 # Log the error but don't crash - interaction might be dead or timed out
                 logger.debug(f"Failed to send error followup (interaction might be dead): {followup_error}")
 
@@ -790,6 +790,6 @@ class ScheduleCommandsMixin:
                 await ctx.respond(message, ephemeral=True)
             else:
                 await ctx.respond(result, ephemeral=True)
-                
-        except Exception as e:
+
+        except (ValueError, KeyError, RuntimeError, discord.errors.DiscordException) as e:
             await handle_schedule_command_error(ctx, e, "schedule_yearly") 
