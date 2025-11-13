@@ -13,6 +13,8 @@ Services:
 
 __all__ = [
     'get_conditional_cache_service',
+    'get_embed_helper_service',
 ]
 
 from .conditional_update_cache_service import get_conditional_cache_service
+from .embed_helper_service import get_embed_helper_service

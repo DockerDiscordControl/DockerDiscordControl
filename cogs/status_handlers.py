@@ -24,7 +24,7 @@ from utils.time_utils import format_datetime_with_timezone
 from services.config.config_service import load_config
 from services.config.server_config_service import get_server_config_service
 from services.docker_status import get_performance_service, get_fetch_service
-from services.discord import get_conditional_cache_service
+from services.discord import get_conditional_cache_service, get_embed_helper_service
 
 # Import helper functions
 from .control_helpers import _channel_has_permission, _get_pending_embed
@@ -42,49 +42,6 @@ class StatusHandlersMixin:
     Handles retrieving, processing, and displaying Docker container statuses.
     """
 
-    def _get_cached_translations(self, lang: str) -> dict:
-        """Cached translations for better performance."""
-        if not hasattr(self, 'cached_translations'):
-            self.cached_translations = {}
-        
-        cache_key = f"translations_{lang}"
-        
-        if cache_key not in self.cached_translations:
-            self.cached_translations[cache_key] = {
-                'online_text': _("**Online**"),
-                'offline_text': _("**Offline**"),
-                'cpu_text': _("CPU"),
-                'ram_text': _("RAM"),
-                'uptime_text': _("Uptime"),
-                'detail_denied_text': _("Detailed status not allowed."),
-                'last_update_text': _("Last update")
-            }
-            logger.debug(f"Cached translations for language: {lang}")
-        
-        return self.cached_translations[cache_key]
-    
-    def _get_cached_box_elements(self, display_name: str, BOX_WIDTH: int = 28) -> dict:
-        """Cached box elements for better performance."""
-        if not hasattr(self, 'cached_box_elements'):
-            self.cached_box_elements = {}
-            
-        cache_key = f"box_{display_name}_{BOX_WIDTH}"
-        
-        if cache_key not in self.cached_box_elements:
-            header_text = f"── {display_name} "
-            max_name_len = BOX_WIDTH - 4
-            if len(header_text) > max_name_len:
-                header_text = header_text[:max_name_len-1] + "… "
-            padding_width = max(1, BOX_WIDTH - 1 - len(header_text))
-            
-            self.cached_box_elements[cache_key] = {
-                'header_line': f"┌{header_text}{'─' * padding_width}",
-                'footer_line': f"└{'─' * (BOX_WIDTH - 1)}"
-            }
-            logger.debug(f"Cached box elements for: {display_name}")
-        
-        return self.cached_box_elements[cache_key]
-    
     async def bulk_fetch_container_status(self, container_names: List[str]) -> Dict[str, Tuple]:
         """
         Intelligent bulk fetch with adaptive performance learning and complete data collection.
@@ -623,7 +580,8 @@ class StatusHandlersMixin:
             status_color = 0x00b300 if running else 0xe74c3c
             
             # PERFORMANCE OPTIMIZATION: Use cached translations
-            cached_translations = self._get_cached_translations(lang)
+            embed_helper = get_embed_helper_service()
+            cached_translations = embed_helper.get_translations(lang)
             online_text = cached_translations['online_text']
             offline_text = cached_translations['offline_text']
             status_text = online_text if running else offline_text
@@ -640,7 +598,8 @@ class StatusHandlersMixin:
             
             # PERFORMANCE OPTIMIZATION: Use cached box elements
             BOX_WIDTH = 28
-            cached_box = self._get_cached_box_elements(display_name, BOX_WIDTH)
+            embed_helper = get_embed_helper_service()
+            cached_box = embed_helper.get_box_elements(display_name, BOX_WIDTH)
             header_line = cached_box['header_line']
             footer_line = cached_box['footer_line']
             

@@ -20,7 +20,7 @@ from typing import Dict, Any
 # Import the class we're testing
 from cogs.status_handlers import StatusHandlersMixin
 from services.docker_status import get_performance_service, get_fetch_service
-from services.discord import get_conditional_cache_service
+from services.discord import get_conditional_cache_service, get_embed_helper_service
 
 
 class MockBot:
@@ -64,6 +64,14 @@ class TestStatusHandlersMixin:
         service = get_fetch_service()
         # Clear query history for clean test state
         service.clear_query_history()
+        return service
+
+    @pytest.fixture
+    def embed_helper_service(self):
+        """Get the EmbedHelperService for testing"""
+        service = get_embed_helper_service()
+        # Clear caches for clean test state
+        service.clear_all_caches()
         return service
 
 
@@ -347,10 +355,10 @@ class TestStatusHandlersMixin:
     # SECTION 4: Embed Building Tests
     # =====================================================================
 
-    def test_get_cached_translations(self, mixin):
+    def test_get_cached_translations(self, embed_helper_service):
         """Test translation caching"""
-        translations_de = mixin._get_cached_translations('de')
-        translations_en = mixin._get_cached_translations('en')
+        translations_de = embed_helper_service.get_translations('de')
+        translations_en = embed_helper_service.get_translations('en')
 
         assert isinstance(translations_de, dict)
         assert isinstance(translations_en, dict)
@@ -361,13 +369,13 @@ class TestStatusHandlersMixin:
         assert 'ram_text' in translations_de
 
         # Calling again should return cached version (same object)
-        translations_de_2 = mixin._get_cached_translations('de')
+        translations_de_2 = embed_helper_service.get_translations('de')
         assert translations_de is translations_de_2
 
 
-    def test_get_cached_box_elements(self, mixin):
+    def test_get_cached_box_elements(self, embed_helper_service):
         """Test box elements caching for status display"""
-        box_elements = mixin._get_cached_box_elements('test_container', BOX_WIDTH=28)
+        box_elements = embed_helper_service.get_box_elements('test_container', box_width=28)
 
         assert isinstance(box_elements, dict)
         # Should have common box drawing elements (actual keys from implementation)
