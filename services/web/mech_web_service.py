@@ -169,8 +169,9 @@ class MechWebService:
                 self.logger.warning(f"Cache animation failed for level {evolution_level}, using fallback")
                 return self._create_fallback_animation(current_power)
 
-        except Exception as e:
-            self.logger.error(f"Error in get_live_animation: {e}", exc_info=True)
+        except (ImportError, AttributeError, TypeError, ValueError, KeyError) as e:
+            # Service/data errors (missing services, invalid types, missing attributes/keys)
+            self.logger.error(f"Service error in get_live_animation: {e}", exc_info=True)
             return self._create_error_animation(current_power if 'current_power' in locals() else 0.0, str(e))
 
     def get_test_animation(self, request: MechTestAnimationRequest) -> MechAnimationResult:
@@ -207,8 +208,9 @@ class MechWebService:
             else:
                 return self._create_fallback_animation(request.total_donations)
 
-        except Exception as e:
-            self.logger.error(f"Error in get_test_animation: {e}", exc_info=True)
+        except (ImportError, AttributeError, TypeError, ValueError, KeyError) as e:
+            # Service/data errors (missing services, invalid types, missing attributes/keys)
+            self.logger.error(f"Service error in get_test_animation: {e}", exc_info=True)
             return self._create_error_animation(request.total_donations, str(e))
 
     def get_speed_config(self, request: MechSpeedConfigRequest) -> MechConfigResult:
@@ -249,8 +251,9 @@ class MechWebService:
                 data=config
             )
 
-        except Exception as e:
-            self.logger.error(f"Error in get_speed_config: {e}", exc_info=True)
+        except (ImportError, AttributeError, TypeError, ValueError, ZeroDivisionError) as e:
+            # Service/calculation errors (missing services, invalid types, missing attributes, division errors)
+            self.logger.error(f"Service error in get_speed_config: {e}", exc_info=True)
             return MechConfigResult(
                 success=False,
                 error=str(e),
@@ -281,8 +284,9 @@ class MechWebService:
                     status_code=400
                 )
 
-        except Exception as e:
-            self.logger.error(f"Error in manage_difficulty: {e}", exc_info=True)
+        except (ImportError, AttributeError, TypeError, ValueError, KeyError) as e:
+            # Service/data errors (missing services, invalid types, missing attributes/keys)
+            self.logger.error(f"Service error in manage_difficulty: {e}", exc_info=True)
             return MechConfigResult(
                 success=False,
                 error=str(e),
@@ -299,7 +303,8 @@ class MechWebService:
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             if project_root not in sys.path:
                 sys.path.insert(0, project_root)
-        except Exception as e:
+        except (AttributeError, TypeError, IndexError, OSError) as e:
+            # Path manipulation errors (missing attributes, invalid types, path errors)
             self.logger.warning(f"Could not set Python path: {e}")
 
     def _get_total_donations(self, force_power: Optional[float] = None) -> float:
@@ -322,8 +327,9 @@ class MechWebService:
             self.logger.debug(f"Got total donations from MechDataStore: {total_donations}")
             return total_donations
 
-        except Exception as e:
-            self.logger.error(f"Error getting donation status from MechDataStore: {e}")
+        except (ImportError, AttributeError, TypeError, ValueError, KeyError) as e:
+            # Service/data errors (missing services, invalid types, missing attributes/keys)
+            self.logger.error(f"Service error getting donation status from MechDataStore: {e}", exc_info=True)
             return 20.0  # Fallback default
 
     def _create_donation_animation(self, total_donations: float, donor_name: str, amount: str) -> Optional[bytes]:
@@ -356,8 +362,9 @@ class MechWebService:
 
             return animation_bytes
 
-        except Exception as e:
-            self.logger.error(f"Error creating donation animation: {e}")
+        except (ImportError, AttributeError, TypeError, ValueError, KeyError) as e:
+            # Service/data errors (missing services, invalid types, missing attributes/keys)
+            self.logger.error(f"Service error creating donation animation: {e}", exc_info=True)
             return None
 
     def _create_fallback_animation(self, total_donations: float) -> MechAnimationResult:
@@ -380,8 +387,9 @@ class MechWebService:
                 content_type='image/png'
             )
 
-        except Exception as e:
-            self.logger.error(f"Error creating fallback animation: {e}")
+        except (ImportError, OSError, AttributeError, TypeError, ValueError) as e:
+            # Image generation errors (PIL import, I/O errors, attribute/type/value errors)
+            self.logger.error(f"Image generation error in fallback animation: {e}", exc_info=True)
             return MechAnimationResult(
                 success=False,
                 error="Could not create fallback animation",
@@ -410,8 +418,9 @@ class MechWebService:
                 status_code=500
             )
 
-        except Exception as e:
-            self.logger.error(f"Error creating error animation: {e}")
+        except (ImportError, OSError, AttributeError, TypeError, ValueError) as e:
+            # Image generation errors (PIL import, I/O errors, attribute/type/value errors)
+            self.logger.error(f"Image generation error in error animation: {e}", exc_info=True)
             return MechAnimationResult(
                 success=False,
                 error=f"Animation system offline: {error_msg}",
@@ -468,8 +477,9 @@ class MechWebService:
                 }
             )
 
-        except Exception as e:
-            self.logger.error(f"Error getting difficulty: {e}")
+        except (ImportError, AttributeError, TypeError, ValueError, KeyError) as e:
+            # Service/data errors (missing services, invalid types, missing attributes/keys)
+            self.logger.error(f"Service error getting difficulty: {e}", exc_info=True)
             return MechConfigResult(
                 success=False,
                 error=str(e),
@@ -529,8 +539,9 @@ class MechWebService:
                 }
             )
 
-        except Exception as e:
-            self.logger.error(f"Error setting difficulty: {e}")
+        except (ImportError, AttributeError, TypeError, ValueError, KeyError) as e:
+            # Service/data errors (missing services, invalid types, missing attributes/keys)
+            self.logger.error(f"Service error setting difficulty: {e}", exc_info=True)
             return MechConfigResult(
                 success=False,
                 error=str(e),
@@ -564,8 +575,9 @@ class MechWebService:
                 }
             )
 
-        except Exception as e:
-            self.logger.error(f"Error resetting difficulty: {e}")
+        except (ImportError, AttributeError, TypeError, ValueError, KeyError) as e:
+            # Service/data errors (missing services, invalid types, missing attributes/keys)
+            self.logger.error(f"Service error resetting difficulty: {e}", exc_info=True)
             return MechConfigResult(
                 success=False,
                 error=str(e),
@@ -577,7 +589,8 @@ class MechWebService:
         try:
             from services.infrastructure.action_logger import log_user_action
             log_user_action(action=action, target=target, source=source)
-        except Exception as e:
+        except (ImportError, AttributeError, OSError, TypeError) as e:
+            # Logging errors (missing module, missing attributes, I/O errors, type errors)
             self.logger.warning(f"Could not log user action: {e}")
 
 
