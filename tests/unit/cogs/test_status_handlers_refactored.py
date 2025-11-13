@@ -549,13 +549,15 @@ class TestStatusHandlersRefactored:
 
                 await mixin.bulk_update_status_cache(['container1', 'container2'])
 
-                # Successful result should call set()
+                # Successful result should call set() with docker_name (not display_name!)
                 success_call = [call for call in mixin.status_cache_service.set.call_args_list
-                               if call[0][0] == 'Server 1']
+                               if call[0][0] == 'container1']  # CRITICAL: Uses docker_name as key
                 assert len(success_call) == 1
 
-                # Error result should call set_error()
-                mixin.status_cache_service.set_error.assert_called_once()
+                # Error result should call set_error() with docker_name
+                error_calls = [call for call in mixin.status_cache_service.set_error.call_args_list
+                              if call[0][0] == 'container2']  # CRITICAL: Uses docker_name as key
+                assert len(error_calls) == 1
 
 
 # =========================================================================
