@@ -148,8 +148,8 @@ class PerformanceMetrics:
         try:
             with open(self.metrics_file, 'a') as f:
                 f.write(json.dumps(entry.to_dict()) + '\n')
-        except Exception as e:
-            logger.error(f"Failed to write metric: {e}")
+        except (IOError, OSError, PermissionError, json.JSONEncodeError) as e:
+            logger.error(f"Failed to write metric: {e}", exc_info=True)
 
     @contextmanager
     def track(self, operation: str, metadata: Optional[Dict[str, Any]] = None):
@@ -164,7 +164,7 @@ class PerformanceMetrics:
         success = True
         try:
             yield
-        except Exception as e:
+        except BaseException as e:
             success = False
             if metadata is None:
                 metadata = {}
@@ -207,10 +207,10 @@ class PerformanceMetrics:
                             metrics[op] = []
 
                         metrics[op].append(MetricEntry(**data))
-                    except Exception as e:
-                        logger.warning(f"Failed to parse metric line: {e}")
-        except Exception as e:
-            logger.error(f"Failed to read metrics file: {e}")
+                    except (json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+                        logger.warning(f"Failed to parse metric line: {e}", exc_info=True)
+        except (IOError, OSError, PermissionError) as e:
+            logger.error(f"Failed to read metrics file: {e}", exc_info=True)
             return {}
 
         # Calculate statistics
@@ -299,10 +299,10 @@ class PerformanceMetrics:
 
                         if len(entries) >= limit:
                             break
-                    except Exception as e:
-                        logger.warning(f"Failed to parse metric line: {e}")
-        except Exception as e:
-            logger.error(f"Failed to read metrics file: {e}")
+                    except (json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+                        logger.warning(f"Failed to parse metric line: {e}", exc_info=True)
+        except (IOError, OSError, PermissionError) as e:
+            logger.error(f"Failed to read metrics file: {e}", exc_info=True)
 
         return entries
 
@@ -334,16 +334,16 @@ class PerformanceMetrics:
                             kept_count += 1
                         else:
                             removed_count += 1
-                    except Exception as e:
-                        logger.warning(f"Failed to parse metric line during cleanup: {e}")
+                    except (json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+                        logger.warning(f"Failed to parse metric line during cleanup: {e}", exc_info=True)
 
             # Replace original file
             temp_file.replace(self.metrics_file)
             logger.info(f"Cleaned up {removed_count} old metrics, kept {kept_count}")
             return removed_count
 
-        except Exception as e:
-            logger.error(f"Failed to cleanup old metrics: {e}")
+        except (IOError, OSError, PermissionError) as e:
+            logger.error(f"Failed to cleanup old metrics: {e}", exc_info=True)
             if temp_file.exists():
                 temp_file.unlink()
             return 0
@@ -372,8 +372,8 @@ class PerformanceMetrics:
                 json.dump(export_data, f, indent=2)
             logger.info(f"Exported metrics to {output_file}")
             return True
-        except Exception as e:
-            logger.error(f"Failed to export metrics: {e}")
+        except (IOError, OSError, PermissionError, json.JSONEncodeError) as e:
+            logger.error(f"Failed to export metrics: {e}", exc_info=True)
             return False
 
 
