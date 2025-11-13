@@ -247,8 +247,8 @@ class ActionButton(Button):
                     )
                     return
                 spam_service.add_user_cooldown(interaction.user.id, self.action)
-            except Exception as e:
-                logger.error(f"Spam protection error for button '{self.action}': {e}")
+            except (RuntimeError, AttributeError, KeyError) as e:
+                logger.error(f"Spam protection error for button '{self.action}': {e}", exc_info=True)
         
         config = load_config()
         if not config:
@@ -390,8 +390,8 @@ class ActionButton(Button):
                                     embed_title = original_message.embeds[0].title if original_message.embeds else ""
                                     is_admin_message = "Admin Control" in str(embed_title)
                                     logger.debug(f"[ACTION_BTN] Is admin message check: {is_admin_message}, title: {embed_title}")
-                            except Exception as e:
-                                logger.error(f"[ACTION_BTN] Error checking admin status: {e}")
+                            except (discord.errors.DiscordException, AttributeError, KeyError) as e:
+                                logger.error(f"[ACTION_BTN] Error checking admin status: {e}", exc_info=True)
 
                             if is_admin_message:
                                 # For Admin Control, force expanded state
@@ -459,8 +459,8 @@ class ActionButton(Button):
                                     await interaction.edit_original_response(embed=embed, view=view)
                                 except (discord.NotFound, discord.HTTPException) as e:
                                     logger.warning(f"[ACTION_BTN] Interaction expired during update for {self.display_name}: {e}")
-                    except Exception as e:
-                        logger.error(f"[ACTION_BTN] Error updating message after {self.action}: {e}")
+                    except (discord.errors.DiscordException, RuntimeError) as e:
+                        logger.error(f"[ACTION_BTN] Error updating message after {self.action}: {e}", exc_info=True)
 
                     # Schedule status overview update after container has time to fully transition
                     async def update_status_overview():
@@ -513,17 +513,17 @@ class ActionButton(Button):
                                                         if embed:
                                                             await message.edit(embed=embed, view=view)
                                                             logger.info(f"[ACTION_BTN] Updated status overview message for {self.display_name} in channel {channel_id}")
-                                            except Exception as e:
-                                                logger.error(f"[ACTION_BTN] Failed to update status message: {e}")
-                        except Exception as e:
-                            logger.error(f"[ACTION_BTN] Error in status overview update: {e}")
+                                            except (discord.errors.DiscordException, RuntimeError) as e:
+                                                logger.error(f"[ACTION_BTN] Failed to update status message: {e}", exc_info=True)
+                        except (discord.errors.DiscordException, RuntimeError) as e:
+                            logger.error(f"[ACTION_BTN] Error in status overview update: {e}", exc_info=True)
 
                     # Create task for status overview update
                     overview_task = asyncio.create_task(update_status_overview())
                     overview_task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
 
-                except Exception as e:
-                    logger.error(f"[ACTION_BTN] Error in background Docker {self.action}: {e}")
+                except (RuntimeError, OSError, asyncio.TimeoutError) as e:
+                    logger.error(f"[ACTION_BTN] Error in background Docker {self.action}: {e}", exc_info=True)
                     # Remove from pending_actions - use docker_name as key!
                     if self.docker_name in self.cog.pending_actions:
                         del self.cog.pending_actions[self.docker_name]
@@ -532,8 +532,8 @@ class ActionButton(Button):
             task = asyncio.create_task(run_docker_action())
             task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
             
-        except Exception as e:
-            logger.error(f"[ACTION_BTN] Error handling {self.action} for '{self.display_name}': {e}")
+        except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+            logger.error(f"[ACTION_BTN] Error handling {self.action} for '{self.display_name}': {e}", exc_info=True)
             # Remove from pending_actions - use docker_name as key!
             if self.docker_name in self.cog.pending_actions:
                 del self.cog.pending_actions[self.docker_name]
@@ -653,7 +653,7 @@ class ToggleButton(Button):
                 if elapsed_time > 100:
                     logger.warning(f"[TOGGLE_BTN] Loading message for '{self.display_name}' took {elapsed_time:.1f}ms (slow)")
             
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"[TOGGLE_BTN] Error toggling '{self.display_name}': {e}", exc_info=True)
         
         # Update channel activity timestamp
@@ -729,7 +729,7 @@ class ToggleButton(Button):
             
             return embed, view
             
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"[ULTRA_FAST_TOGGLE] Error in ultra-fast toggle generation for '{self.display_name}': {e}", exc_info=True)
             return None, None
 
@@ -864,8 +864,8 @@ class InfoButton(Button):
                     )
                     return
                 spam_service.add_user_cooldown(interaction.user.id, "info")
-            except Exception as e:
-                logger.error(f"Spam protection error for info button: {e}")
+            except (RuntimeError, AttributeError, KeyError) as e:
+                logger.error(f"Spam protection error for info button: {e}", exc_info=True)
         try:
             await interaction.response.defer(ephemeral=True)
             
@@ -965,8 +965,8 @@ class InfoButton(Button):
                 logger.warning(f"InfoButton (ControlView) no control permission for {docker_name} in channel {channel_id}")
                 await interaction.followup.send(embed=embed, ephemeral=True)
             
-        except Exception as e:
-            logger.error(f"[INFO_BTN] Error showing info for '{self.display_name}': {e}")
+        except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+            logger.error(f"[INFO_BTN] Error showing info for '{self.display_name}': {e}", exc_info=True)
             await interaction.followup.send(
                 "❌ An error occurred while loading container info.",
                 ephemeral=True
@@ -1036,7 +1036,7 @@ class InfoButton(Button):
                 if custom_port and custom_port.isdigit():
                     address = f"{wan_ip}:{custom_port}"
                 return f"**Public IP:** {address}"
-        except Exception as e:
+        except (OSError, RuntimeError, ValueError) as e:
             logger.debug(f"Could not get WAN IP: {e}")
         
         return "**IP:** Auto-detection failed"
@@ -1120,8 +1120,8 @@ class TaskDeleteButton(Button):
                     )
                     return
                 spam_service.add_user_cooldown(interaction.user.id, "task_delete")
-            except Exception as e:
-                logger.error(f"Spam protection error for task delete button: {e}")
+            except (RuntimeError, AttributeError, KeyError) as e:
+                logger.error(f"Spam protection error for task delete button: {e}", exc_info=True)
         
         user = interaction.user
         logger.info(f"[TASK_DELETE_BTN] Task deletion '{self.task_id}' triggered by {user.name}")
@@ -1162,7 +1162,7 @@ class TaskDeleteButton(Button):
                 )
                 logger.warning(f"[TASK_DELETE_BTN] Failed to delete task '{self.task_id}' for {user.name}")
                 
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, KeyError) as e:
             logger.error(f"[TASK_DELETE_BTN] Error deleting task '{self.task_id}': {e}", exc_info=True)
             await interaction.followup.send(_("An error occurred while deleting the task."), ephemeral=True)
 
@@ -1313,8 +1313,8 @@ class InfoDropdownButton(Button):
                             'protected': info_config.get('protected_enabled', False),
                             'order': container_data.get('order', 999)  # Include order field directly
                         })
-                except Exception as e:
-                    logger.error(f"Error processing container data: {e}")
+                except (RuntimeError, ValueError, KeyError) as e:
+                    logger.error(f"Error processing container data: {e}", exc_info=True)
                     continue
 
             if not containers_with_info:
@@ -1340,7 +1340,7 @@ class InfoDropdownButton(Button):
 
             logger.info(f"Info selection shown for user {interaction.user.name} in channel {self.channel_id}")
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing info selection: {e}", exc_info=True)
             try:
                 # Check if interaction has already been responded to (avoid double response error)
@@ -1349,7 +1349,7 @@ class InfoDropdownButton(Button):
                 else:
                     # Use followup if interaction already responded
                     await interaction.followup.send("❌ Error showing container selection.", ephemeral=True)
-            except Exception:
+            except (discord.errors.DiscordException, RuntimeError):
                 # Interaction may have already been responded to or expired
                 pass
 
@@ -1520,7 +1520,7 @@ class ContainerInfoDropdown(discord.ui.Select):
 
             logger.info(f"Container info shown for {selected_container} to user {interaction.user.name}")
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error handling container selection: {e}", exc_info=True)
             try:
                 if not interaction.response.is_done():
@@ -1531,7 +1531,7 @@ class ContainerInfoDropdown(discord.ui.Select):
                     )
                 else:
                     await interaction.followup.send("❌ Error showing container information.", ephemeral=True)
-            except Exception:
+            except (discord.errors.DiscordException, RuntimeError):
                 pass
 
 class PasswordProtectedView(View):
@@ -1581,14 +1581,14 @@ class PasswordButton(Button):
             )
             await interaction.response.send_modal(modal)
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing password modal: {e}", exc_info=True)
             try:
                 if not interaction.response.is_done():
                     await interaction.response.send_message("❌ Error showing password modal.", ephemeral=True)
                 else:
                     await interaction.followup.send("❌ Error showing password modal.", ephemeral=True)
-            except Exception:
+            except (discord.errors.DiscordException, RuntimeError):
                 pass
 
 class AdminButton(Button):
@@ -1662,8 +1662,8 @@ class AdminButton(Button):
                         'docker_name': container_data.get('docker_name', container_name),
                         'order': container_data.get('order', 999)  # Include order field directly
                     })
-                except Exception as e:
-                    logger.error(f"Error processing container data: {e}")
+                except (RuntimeError, ValueError, KeyError) as e:
+                    logger.error(f"Error processing container data: {e}", exc_info=True)
                     continue
 
             if not active_containers:
@@ -1709,14 +1709,14 @@ class AdminButton(Button):
 
             logger.info(f"Admin panel shown for user {interaction.user.name} in channel {self.channel_id}")
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing admin panel: {e}", exc_info=True)
             try:
                 if not interaction.response.is_done():
                     await interaction.response.send_message("❌ Error showing admin panel.", ephemeral=True)
                 else:
                     await interaction.followup.send("❌ Error showing admin panel.", ephemeral=True)
-            except Exception:
+            except (discord.errors.DiscordException, RuntimeError):
                 pass
 
 class AdminContainerSelectView(View):
@@ -1897,7 +1897,7 @@ class AdminContainerDropdown(discord.ui.Select):
 
             logger.info(f"Admin control panel shown for {selected_container} to user {interaction.user.name}")
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error handling admin container selection: {e}", exc_info=True)
             try:
                 if not interaction.response.is_done():
@@ -1908,7 +1908,7 @@ class AdminContainerDropdown(discord.ui.Select):
                     )
                 else:
                     await interaction.followup.send("❌ Error showing container control panel.", ephemeral=True)
-            except Exception:
+            except (discord.errors.DiscordException, RuntimeError):
                 pass
 
 class HelpButton(Button):
@@ -1974,7 +1974,7 @@ class HelpButton(Button):
             
             logger.info(f"Help shown for user {interaction.user.name} in channel {self.channel_id}")
             
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing help: {e}", exc_info=True)
             try:
                 # Check if interaction has already been responded to (avoid double response error)
@@ -1983,7 +1983,7 @@ class HelpButton(Button):
                 else:
                     # Use followup if interaction already responded
                     await interaction.followup.send("❌ Error showing help information.", ephemeral=True)
-            except Exception:
+            except (discord.errors.DiscordException, RuntimeError):
                 # Interaction may have already been responded to or expired
                 pass
 
@@ -2099,7 +2099,7 @@ class MechDetailsButton(Button):
 
             logger.info(f"Mech details sent to user {interaction.user.name}")
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing mech details: {e}", exc_info=True)
             try:
                 if interaction.response.is_done():
@@ -2112,7 +2112,7 @@ class MechDetailsButton(Button):
                         "❌ Error retrieving mech details. Please try again later.",
                         ephemeral=True
                     )
-            except Exception:
+            except (discord.errors.DiscordException, RuntimeError):
                 # Interaction may have already been responded to or expired
                 pass
 
@@ -2186,11 +2186,11 @@ class MechExpandButton(Button):
                 # Always end interaction tracking
                 await self.cog._end_interaction(self.channel_id)
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error expanding mech status: {e}", exc_info=True)
             try:
                 await interaction.followup.send("❌ Error expanding mech status.", ephemeral=True)
-            except Exception:
+            except (discord.errors.HTTPException, discord.errors.NotFound):
                 # Interaction may have already expired
                 pass
     
@@ -2284,11 +2284,11 @@ class MechCollapseButton(Button):
                 # Always end interaction tracking
                 await self.cog._end_interaction(self.channel_id)
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error collapsing mech status: {e}", exc_info=True)
             try:
                 await interaction.followup.send("❌ Error collapsing mech status.", ephemeral=True)
-            except Exception:
+            except (discord.errors.HTTPException, discord.errors.NotFound):
                 # Interaction may have already expired
                 pass
     
@@ -2332,7 +2332,7 @@ class MechDonateButton(Button):
             # Call the existing donate interaction handler
             await self.cog._handle_donate_interaction(interaction)
             
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in mech donate button: {e}", exc_info=True)
             try:
                 # Smart error response - check if interaction was already handled by _handle_donate_interaction
@@ -2342,7 +2342,7 @@ class MechDonateButton(Button):
                     await interaction.response.send_message("❌ Error processing donation. Please try `/donate` directly.", ephemeral=True)
             except discord.errors.NotFound:
                 logger.warning("Cannot send error message - interaction expired")
-            except Exception:
+            except (discord.errors.DiscordException, RuntimeError):
                 pass
 
 # DonationView has been moved back to docker_control.py where it belongs
@@ -2405,7 +2405,7 @@ class MechHistoryButton(Button):
             # Create mech selection view
             await self._show_mech_selection(interaction, current_level)
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in mech history button: {e}", exc_info=True)
             # After defer(), we have 15 minutes - use followup for error messages
             try:
@@ -2413,8 +2413,8 @@ class MechHistoryButton(Button):
             except discord.errors.NotFound:
                 # Interaction expired - log but don't crash (should not happen within 15 min)
                 logger.warning(f"Interaction expired unexpectedly: {e}")
-            except Exception as error_ex:
-                logger.error(f"Failed to send error message: {error_ex}")
+            except (discord.errors.HTTPException, discord.errors.DiscordException) as error_ex:
+                logger.error(f"Failed to send error message: {error_ex}", exc_info=True)
 
     async def _show_mech_selection(self, interaction: discord.Interaction, current_level: int):
         """Show buttons for each unlocked mech + next shadow mech."""
@@ -2541,8 +2541,8 @@ class MechHistoryButton(Button):
                         file = discord.File(io.BytesIO(image_result.image_bytes), filename=image_result.filename)
                         await channel.send(embed=embed, file=file, ephemeral=True)
 
-                    except Exception as e:
-                        logger.error(f"Error creating animation for level {level}: {e}")
+                    except (RuntimeError, ValueError, KeyError) as e:
+                        logger.error(f"Error creating animation for level {level}: {e}", exc_info=True)
                         embed = discord.Embed(
                             title=f"❌ **Level {level}: {_(evolution_info.name)}**",
                             description="*Animation could not be loaded*",
@@ -2594,8 +2594,8 @@ class MechHistoryButton(Button):
                 # Small delay to avoid rate limits
                 await asyncio.sleep(0.5)
 
-            except Exception as e:
-                logger.error(f"Error processing level {level}: {e}")
+            except (RuntimeError, ValueError, KeyError) as e:
+                logger.error(f"Error processing level {level}: {e}", exc_info=True)
 
         # Epilogue now handled by normal level flow (before Level 11 mech display)
 
@@ -2614,8 +2614,8 @@ class MechHistoryButton(Button):
                 # Small delay for dramatic effect
                 await asyncio.sleep(0.5)
 
-            except Exception as e:
-                logger.error(f"Error sending corrupted Level 11 preview: {e}")
+            except (RuntimeError, ValueError, KeyError) as e:
+                logger.error(f"Error sending corrupted Level 11 preview: {e}", exc_info=True)
 
         # History display complete
 
@@ -2836,7 +2836,7 @@ class MechDisplayButton(Button):
                 view = MechStoryView(self.cog, self.level, unlocked=False)
                 await interaction.followup.send(embed=embed, file=file, view=view, ephemeral=True)
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error displaying mech {self.level}: {e}", exc_info=True)
             # After defer(), always use followup for error messages
             await interaction.followup.send(_("❌ Error loading mech."), ephemeral=True)
@@ -2900,7 +2900,7 @@ And those who dare… sp34k its ████ do s0 only once.
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing epilogue: {e}", exc_info=True)
             await interaction.response.send_message(_("❌ Error loading epilogue."), ephemeral=True)
 
@@ -2993,7 +2993,7 @@ class ReadStoryButton(Button):
             else:
                 await interaction.followup.send(_("📖 No story chapter available for this mech yet."), ephemeral=True)
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing story for level {self.level}: {e}", exc_info=True)
             # After defer(), always use followup for error messages
             await interaction.followup.send(_("❌ Error loading story."), ephemeral=True)
@@ -3046,7 +3046,7 @@ class PlaySongButton(Button):
                     ephemeral=True
                 )
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error generating music URL for level {self.level}: {e}", exc_info=True)
             # After defer(), always use followup for error messages
             await interaction.followup.send(_("❌ Error loading music."), ephemeral=True)
@@ -3088,7 +3088,7 @@ class MechPrivateDonateButton(Button):
             donate_button = MechDonateButton(self.cog, self.channel_id)
             await donate_button.callback(interaction)
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in private donate button: {e}", exc_info=True)
             try:
                 # Smart error response - check if interaction was already deferred by child button
@@ -3104,7 +3104,7 @@ class MechPrivateDonateButton(Button):
                     )
             except discord.errors.NotFound:
                 logger.warning("Cannot send error message - interaction expired")
-            except Exception:
+            except (discord.errors.DiscordException, RuntimeError):
                 pass
 
 
@@ -3127,7 +3127,7 @@ class MechPrivateHistoryButton(Button):
             history_button = MechHistoryButton(self.cog, self.channel_id)
             await history_button.callback(interaction)
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in private history button: {e}", exc_info=True)
             try:
                 # Smart error response - check if interaction was already deferred by child button
@@ -3143,7 +3143,7 @@ class MechPrivateHistoryButton(Button):
                     )
             except discord.errors.NotFound:
                 logger.warning("Cannot send error message - interaction expired")
-            except Exception:
+            except (discord.errors.DiscordException, RuntimeError):
                 pass
 
 
