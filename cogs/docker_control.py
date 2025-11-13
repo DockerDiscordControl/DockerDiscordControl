@@ -99,7 +99,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         # Member count updates moved to on-demand (during donations with level-ups)
         
         # Load persisted states
-        state_data = self.mech_state_manager.load_state()
+        logger.info("[DEBUG INIT] Step 1: Loading mech state...")
+        try:
+            state_data = self.mech_state_manager.load_state()
+            logger.info("[DEBUG INIT] Step 1a: Mech state loaded successfully")
+        except Exception as e:
+            logger.error(f"[DEBUG INIT] Step 1 FAILED: {e}", exc_info=True)
+            raise
+
         # Safe int conversion with error handling
         self.mech_expanded_states = {}
         for k, v in state_data.get("mech_expanded_states", {}).items():
@@ -124,13 +131,24 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         
         # Cache configuration - SERVICE FIRST: Use StatusCacheService
         # Initialize StatusCacheService instead of local cache
-        from services.status.status_cache_service import get_status_cache_service
-        self.status_cache_service = get_status_cache_service()
-        logger.info("StatusCacheService initialized for DockerControlCog")
+        logger.info("[DEBUG INIT] Step 2: Initializing StatusCacheService...")
+        try:
+            from services.status.status_cache_service import get_status_cache_service
+            self.status_cache_service = get_status_cache_service()
+            logger.info("[DEBUG INIT] Step 2 complete: StatusCacheService initialized for DockerControlCog")
+        except Exception as e:
+            logger.error(f"[DEBUG INIT] Step 2 FAILED: {e}", exc_info=True)
+            raise
 
         # Share the cache snapshot through the dedicated runtime helper so other
         # components can inspect the data without importing the cog directly.
-        self._status_cache_runtime = get_docker_status_cache_runtime()
+        logger.info("[DEBUG INIT] Step 3: Getting docker status cache runtime...")
+        try:
+            self._status_cache_runtime = get_docker_status_cache_runtime()
+            logger.info("[DEBUG INIT] Step 3 complete: Docker status cache runtime initialized")
+        except Exception as e:
+            logger.error(f"[DEBUG INIT] Step 3 FAILED: {e}", exc_info=True)
+            raise
 
         # Keep cache_ttl_seconds for compatibility (some code might still reference it)
         cache_duration = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', '30'))
@@ -139,41 +157,76 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         self.pending_actions: Dict[str, Dict[str, Any]] = {}
 
         # Initialize services
-        self.cleanup_service = get_channel_cleanup_service(bot)
+        logger.info("[DEBUG INIT] Step 4: Initializing cleanup service...")
+        try:
+            self.cleanup_service = get_channel_cleanup_service(bot)
+            logger.info("[DEBUG INIT] Step 4 complete: Cleanup service initialized")
+        except Exception as e:
+            logger.error(f"[DEBUG INIT] Step 4 FAILED: {e}", exc_info=True)
+            raise
 
         # Initialize Mech Status Cache Service
-        from services.mech.mech_status_cache_service import get_mech_status_cache_service
-        self.mech_status_cache_service = get_mech_status_cache_service()
-        logger.info("MechStatusCacheService initialized")
+        logger.info("[DEBUG INIT] Step 5: Initializing MechStatusCacheService...")
+        try:
+            from services.mech.mech_status_cache_service import get_mech_status_cache_service
+            self.mech_status_cache_service = get_mech_status_cache_service()
+            logger.info("[DEBUG INIT] Step 5 complete: MechStatusCacheService initialized")
+        except Exception as e:
+            logger.error(f"[DEBUG INIT] Step 5 FAILED: {e}", exc_info=True)
+            raise
 
         # Setup event listeners for Discord updates
-        self._setup_discord_event_listeners()
+        logger.info("[DEBUG INIT] Step 6: Setting up Discord event listeners...")
+        try:
+            self._setup_discord_event_listeners()
+            logger.info("[DEBUG INIT] Step 6 complete: Discord event listeners setup")
+        except Exception as e:
+            logger.error(f"[DEBUG INIT] Step 6 FAILED: {e}", exc_info=True)
+            raise
 
         # Docker query cooldown tracking
         self.last_docker_query = {}  # Track last query time per container
         self.docker_query_cooldown = int(os.environ.get('DDC_DOCKER_QUERY_COOLDOWN', '2'))
         
         # Load server order
-        self.ordered_server_names = load_server_order()
-        logger.info(f"[Cog Init] Loaded server order from persistent file: {self.ordered_server_names}")
-        if not self.ordered_server_names:
-            if 'server_order' in config:
-                logger.info("[Cog Init] Using server_order from config")
-                self.ordered_server_names = config.get('server_order', [])
-            else:
-                logger.info("[Cog Init] No server_order found, using all server names from config")
-                # SERVICE FIRST: Use ServerConfigService instead of direct config access
-                server_config_service = get_server_config_service()
-                servers = server_config_service.get_all_servers()
-                self.ordered_server_names = [s.get('docker_name') for s in servers if s.get('docker_name')]
-            save_server_order(self.ordered_server_names)
-            logger.info(f"[Cog Init] Saved default server order: {self.ordered_server_names}")
+        logger.info("[DEBUG INIT] Step 7: Loading server order...")
+        try:
+            self.ordered_server_names = load_server_order()
+            logger.info(f"[DEBUG INIT] Step 7a: Loaded server order from persistent file: {self.ordered_server_names}")
+            if not self.ordered_server_names:
+                if 'server_order' in config:
+                    logger.info("[DEBUG INIT] Step 7b: Using server_order from config")
+                    self.ordered_server_names = config.get('server_order', [])
+                else:
+                    logger.info("[DEBUG INIT] Step 7c: No server_order found, using all server names from config")
+                    # SERVICE FIRST: Use ServerConfigService instead of direct config access
+                    server_config_service = get_server_config_service()
+                    servers = server_config_service.get_all_servers()
+                    self.ordered_server_names = [s.get('docker_name') for s in servers if s.get('docker_name')]
+                save_server_order(self.ordered_server_names)
+                logger.info(f"[DEBUG INIT] Step 7d: Saved default server order: {self.ordered_server_names}")
+            logger.info("[DEBUG INIT] Step 7 complete: Server order loaded")
+        except Exception as e:
+            logger.error(f"[DEBUG INIT] Step 7 FAILED: {e}", exc_info=True)
+            raise
         
         # Register persistent views for mech buttons
-        self._register_persistent_mech_views()
+        logger.info("[DEBUG INIT] Step 8: Registering persistent mech views...")
+        try:
+            self._register_persistent_mech_views()
+            logger.info("[DEBUG INIT] Step 8 complete: Persistent mech views registered")
+        except Exception as e:
+            logger.error(f"[DEBUG INIT] Step 8 FAILED: {e}", exc_info=True)
+            raise
             
         # Initialize translations
-        self.translations = get_translations()
+        logger.info("[DEBUG INIT] Step 9: Initializing translations...")
+        try:
+            self.translations = get_translations()
+            logger.info("[DEBUG INIT] Step 9 complete: Translations initialized")
+        except Exception as e:
+            logger.error(f"[DEBUG INIT] Step 9 FAILED: {e}", exc_info=True)
+            raise
         
         # Initialize self as status handler
         self.status_handlers = self
@@ -188,12 +241,18 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         }
         
         # Initialize task tracking
-        self._active_tasks = set()
-        self._task_lock = asyncio.Lock()
+        logger.info("[DEBUG INIT] Step 10: Initializing asyncio locks...")
+        try:
+            self._active_tasks = set()
+            self._task_lock = asyncio.Lock()
 
-        # Initialize interaction lock to prevent race conditions between button clicks and auto-updates
-        self._interaction_lock = asyncio.Lock()
-        self._active_interactions = set()  # Track active button interactions per channel
+            # Initialize interaction lock to prevent race conditions between button clicks and auto-updates
+            self._interaction_lock = asyncio.Lock()
+            self._active_interactions = set()  # Track active button interactions per channel
+            logger.info("[DEBUG INIT] Step 10 complete: Asyncio locks initialized")
+        except Exception as e:
+            logger.error(f"[DEBUG INIT] Step 10 FAILED: {e}", exc_info=True)
+            raise
         
         # NOTE: Background loops are started in cog_load() hook, not in __init__
         # This is because __init__ runs before bot.loop is available
