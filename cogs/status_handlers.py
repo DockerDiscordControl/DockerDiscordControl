@@ -223,36 +223,52 @@ class StatusHandlersMixin:
                 timeout_seconds = current_timeout / 1000.0  # Convert ms to seconds
                 info_task = asyncio.create_task(get_docker_info_dict_service_first(docker_name, timeout_seconds))
                 stats_task = asyncio.create_task(get_docker_stats_service_first(docker_name, timeout_seconds))
-                
-                info, stats = await asyncio.wait_for(
-                    asyncio.gather(info_task, stats_task, return_exceptions=True),
-                    timeout=current_timeout / 1000.0  # Convert to seconds
-                )
-                
-                attempt_time = (time.time() - attempt_start) * 1000
-                
-                # Update performance history
-                self._update_container_performance(docker_name, attempt_time, True)
-                
-                total_time = (time.time() - start_time) * 1000
-                if attempt > 0:
-                    logger.info(f"Successfully fetched {docker_name} on attempt {attempt + 1} "
-                              f"(attempt: {attempt_time:.1f}ms, total: {total_time:.1f}ms)")
-                
-                return docker_name, info, stats
-                
-            except asyncio.TimeoutError as e:
-                last_exception = e
-                attempt_time = (time.time() - attempt_start) * 1000 if 'attempt_start' in locals() else current_timeout
-                
-                logger.warning(f"Timeout for {docker_name} on attempt {attempt + 1}/{config['retry_attempts']} "
-                             f"after {attempt_time:.1f}ms")
-                
-                if attempt < config['retry_attempts'] - 1:
-                    # Short delay before retry
-                    await asyncio.sleep(0.5)
+
+                try:
+                    info, stats = await asyncio.wait_for(
+                        asyncio.gather(info_task, stats_task, return_exceptions=True),
+                        timeout=current_timeout / 1000.0  # Convert to seconds
+                    )
+
+                    attempt_time = (time.time() - attempt_start) * 1000
+
+                    # Update performance history
+                    self._update_container_performance(docker_name, attempt_time, True)
+
+                    total_time = (time.time() - start_time) * 1000
+                    if attempt > 0:
+                        logger.info(f"Successfully fetched {docker_name} on attempt {attempt + 1} "
+                                  f"(attempt: {attempt_time:.1f}ms, total: {total_time:.1f}ms)")
+
+                    return docker_name, info, stats
+
+                except asyncio.TimeoutError as e:
+                    # Cancel running tasks to prevent event loop leaks
+                    info_task.cancel()
+                    stats_task.cancel()
+                    # Wait for cancellation to complete
+                    await asyncio.gather(info_task, stats_task, return_exceptions=True)
+
+                    last_exception = e
+                    attempt_time = (time.time() - attempt_start) * 1000 if 'attempt_start' in locals() else current_timeout
+
+                    logger.warning(f"Timeout for {docker_name} on attempt {attempt + 1}/{config['retry_attempts']} "
+                                 f"after {attempt_time:.1f}ms")
+
+                    if attempt < config['retry_attempts'] - 1:
+                        # Short delay before retry
+                        await asyncio.sleep(0.5)
 
             except (RuntimeError, OSError, ValueError, TypeError) as e:
+                # Cancel running tasks on error
+                if 'info_task' in locals():
+                    info_task.cancel()
+                if 'stats_task' in locals():
+                    stats_task.cancel()
+                # Wait for cancellation to complete
+                if 'info_task' in locals() and 'stats_task' in locals():
+                    await asyncio.gather(info_task, stats_task, return_exceptions=True)
+
                 last_exception = e
                 logger.error(f"Error fetching {docker_name} on attempt {attempt + 1}: {e}", exc_info=True)
 
@@ -360,15 +376,10 @@ class StatusHandlersMixin:
             # Return error status for all requested containers
             error_results = {}
             for docker_name in container_names:
-                # Find server config for this container
-                # SERVICE FIRST: Use ServerConfigService instead of direct config access
-                server_config_service = get_server_config_service()
-                servers = server_config_service.get_all_servers()
-                server_config = next((s for s in servers if s.get('docker_name') == docker_name), None)
-                display_name = server_config.get('name', docker_name) if server_config else docker_name
-
-                # Return a special error tuple indicating Docker connectivity failure
-                error_results[docker_name] = ('docker_connectivity_error', connectivity_result.error_message, display_name)
+                # Create an exception with the connectivity error details
+                # Use consistent tuple format: (docker_name, exception, None)
+                error_exception = RuntimeError(f"Docker connectivity error: {connectivity_result.error_message}")
+                error_results[docker_name] = (docker_name, error_exception, None)
 
             return error_results
 
