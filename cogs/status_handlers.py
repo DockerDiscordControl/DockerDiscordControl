@@ -21,7 +21,6 @@ import discord
 from utils.logging_utils import get_module_logger
 from services.infrastructure.container_status_service import get_docker_info_dict_service_first, get_docker_stats_service_first
 from utils.time_utils import format_datetime_with_timezone
-from services.config.config_service import load_config
 from services.config.server_config_service import get_server_config_service
 from services.docker_status import get_performance_service, get_fetch_service, ContainerStatusResult
 from services.discord import get_conditional_cache_service, get_embed_helper_service
