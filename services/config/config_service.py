@@ -323,11 +323,18 @@ class ConfigService:
             except ConfigCacheError:
                 # Re-raise cache errors
                 raise
-            except Exception as e:
-                logger.error(f"Error saving configuration: {e}", exc_info=True)
+            except (IOError, OSError, PermissionError) as e:
+                logger.error(f"File I/O error saving configuration: {e}", exc_info=True)
                 raise ConfigSaveError(
-                    f"Configuration save failed: {str(e)}",
-                    error_code="CONFIG_SAVE_FAILED",
+                    f"Configuration save failed (I/O error): {str(e)}",
+                    error_code="CONFIG_SAVE_IO_ERROR",
+                    details={'config_keys': list(config.keys()) if config else []}
+                )
+            except (ValueError, TypeError, KeyError) as e:
+                logger.error(f"Data format error saving configuration: {e}", exc_info=True)
+                raise ConfigSaveError(
+                    f"Configuration save failed (data error): {str(e)}",
+                    error_code="CONFIG_SAVE_DATA_ERROR",
                     details={'config_keys': list(config.keys()) if config else []}
                 )
     
@@ -529,11 +536,17 @@ class ConfigService:
                     success=False,
                     error_message=f"Failed to load config after cache error: {retry_error.message}"
                 )
-        except Exception as e:
-            logger.error(f"Unexpected error getting config via service: {e}", exc_info=True)
+        except (ImportError, AttributeError, RuntimeError) as e:
+            logger.error(f"Service error getting config via service: {e}", exc_info=True)
             return GetConfigResult(
                 success=False,
-                error_message=f"Unexpected error: {str(e)}"
+                error_message=f"Service error: {str(e)}"
+            )
+        except (IOError, OSError, PermissionError) as e:
+            logger.error(f"File I/O error getting config via service: {e}", exc_info=True)
+            return GetConfigResult(
+                success=False,
+                error_message=f"File access error: {str(e)}"
             )
 
     def validate_donation_key_service(self, request: ValidateDonationKeyRequest) -> ValidateDonationKeyResult:
@@ -560,11 +573,11 @@ class ConfigService:
                 success=False,
                 error_message=f"Config load failed: {e.message}"
             )
-        except Exception as e:
-            logger.error(f"Unexpected error validating donation key: {e}", exc_info=True)
+        except (ValueError, TypeError, KeyError, AttributeError) as e:
+            logger.error(f"Data error validating donation key: {e}", exc_info=True)
             return ValidateDonationKeyResult(
                 success=False,
-                error_message=f"Unexpected error: {str(e)}"
+                error_message=f"Data validation error: {str(e)}"
             )
 
     def get_evolution_mode_service(self, request: GetEvolutionModeRequest) -> GetEvolutionModeResult:
@@ -598,12 +611,21 @@ class ConfigService:
                 use_dynamic=True,  # Safe default
                 difficulty_multiplier=1.0
             )
-        except Exception as e:
-            logger.error(f"Unexpected error getting evolution mode: {e}", exc_info=True)
-            # Return safe defaults on unexpected error
+        except (ValueError, TypeError, KeyError) as e:
+            logger.error(f"Data error getting evolution mode: {e}", exc_info=True)
+            # Return safe defaults on data error
             return GetEvolutionModeResult(
                 success=False,
-                error=f"Unexpected error: {str(e)}",
+                error=f"Data format error: {str(e)}",
+                use_dynamic=True,  # Safe default
+                difficulty_multiplier=1.0
+            )
+        except (IOError, OSError, PermissionError) as e:
+            logger.error(f"File access error getting evolution mode: {e}", exc_info=True)
+            # Return safe defaults on file error
+            return GetEvolutionModeResult(
+                success=False,
+                error=f"File access error: {str(e)}",
                 use_dynamic=True,  # Safe default
                 difficulty_multiplier=1.0
             )
