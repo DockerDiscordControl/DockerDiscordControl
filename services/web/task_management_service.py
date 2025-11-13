@@ -174,11 +174,19 @@ class TaskManagementService:
                 message="Task added successfully"
             )
 
-        except Exception as e:
-            self.logger.error(f"Error in add_task: {e}", exc_info=True)
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (scheduler service, config service unavailable)
+            self.logger.error(f"Service dependency error in add_task: {e}", exc_info=True)
             return AddTaskResult(
                 success=False,
-                error=f"Internal error adding task: {str(e)}"
+                error=f"Service error adding task: {str(e)}"
+            )
+        except (ValueError, TypeError, KeyError) as e:
+            # Data processing errors (task validation, timezone conversion, dict access)
+            self.logger.error(f"Data processing error in add_task: {e}", exc_info=True)
+            return AddTaskResult(
+                success=False,
+                error=f"Data error adding task: {str(e)}"
             )
 
     def list_tasks(self, request: ListTasksRequest) -> ListTasksResult:
@@ -219,11 +227,19 @@ class TaskManagementService:
                 tasks=tasks_list
             )
 
-        except Exception as e:
-            self.logger.error(f"Error in list_tasks: {e}", exc_info=True)
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (scheduler service unavailable)
+            self.logger.error(f"Service dependency error in list_tasks: {e}", exc_info=True)
             return ListTasksResult(
                 success=False,
-                error=f"Error listing tasks: {str(e)}"
+                error=f"Service error listing tasks: {str(e)}"
+            )
+        except (ValueError, TypeError, KeyError) as e:
+            # Data processing errors (task data parsing, timezone conversion)
+            self.logger.error(f"Data processing error in list_tasks: {e}", exc_info=True)
+            return ListTasksResult(
+                success=False,
+                error=f"Data error listing tasks: {str(e)}"
             )
 
     def update_task_status(self, request: UpdateTaskStatusRequest) -> UpdateTaskStatusResult:
@@ -270,11 +286,19 @@ class TaskManagementService:
                     error="Failed to update task status"
                 )
 
-        except Exception as e:
-            self.logger.error(f"Error in update_task_status: {e}", exc_info=True)
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (scheduler service unavailable)
+            self.logger.error(f"Service dependency error in update_task_status: {e}", exc_info=True)
             return UpdateTaskStatusResult(
                 success=False,
-                error=f"Error updating task status: {str(e)}"
+                error=f"Service error updating task status: {str(e)}"
+            )
+        except (ValueError, TypeError) as e:
+            # Data processing errors (task ID validation, status conversion)
+            self.logger.error(f"Data processing error in update_task_status: {e}", exc_info=True)
+            return UpdateTaskStatusResult(
+                success=False,
+                error=f"Data error updating task status: {str(e)}"
             )
 
     def delete_task(self, request: DeleteTaskRequest) -> DeleteTaskResult:
@@ -320,11 +344,19 @@ class TaskManagementService:
                     error="Failed to delete task"
                 )
 
-        except Exception as e:
-            self.logger.error(f"Error in delete_task: {e}", exc_info=True)
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (scheduler service, action log service unavailable)
+            self.logger.error(f"Service dependency error in delete_task: {e}", exc_info=True)
             return DeleteTaskResult(
                 success=False,
-                error=f"Error deleting task: {str(e)}"
+                error=f"Service error deleting task: {str(e)}"
+            )
+        except (ValueError, KeyError) as e:
+            # Data processing errors (task details access)
+            self.logger.error(f"Data processing error in delete_task: {e}", exc_info=True)
+            return DeleteTaskResult(
+                success=False,
+                error=f"Data error deleting task: {str(e)}"
             )
 
     def edit_task(self, request: EditTaskRequest) -> EditTaskResult:
@@ -360,11 +392,19 @@ class TaskManagementService:
                     error=f"Invalid operation: {request.operation}"
                 )
 
-        except Exception as e:
-            self.logger.error(f"Error in edit_task: {e}", exc_info=True)
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (scheduler service unavailable)
+            self.logger.error(f"Service dependency error in edit_task: {e}", exc_info=True)
             return EditTaskResult(
                 success=False,
-                error=f"Error editing task: {str(e)}"
+                error=f"Service error editing task: {str(e)}"
+            )
+        except (ValueError, TypeError, KeyError) as e:
+            # Data processing errors (task data validation, operation type)
+            self.logger.error(f"Data processing error in edit_task: {e}", exc_info=True)
+            return EditTaskResult(
+                success=False,
+                error=f"Data error editing task: {str(e)}"
             )
 
     def get_task_form_data(self, request: TaskFormRequest) -> TaskFormResult:
@@ -400,11 +440,19 @@ class TaskManagementService:
                 }
             )
 
-        except Exception as e:
-            self.logger.error(f"Error in get_task_form_data: {e}", exc_info=True)
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (config service, shared_data unavailable)
+            self.logger.error(f"Service dependency error in get_task_form_data: {e}", exc_info=True)
             return TaskFormResult(
                 success=False,
-                error=f"Error loading form data: {str(e)}"
+                error=f"Service error loading form data: {str(e)}"
+            )
+        except (ValueError, KeyError) as e:
+            # Data processing errors (config access, dict operations)
+            self.logger.error(f"Data processing error in get_task_form_data: {e}", exc_info=True)
+            return TaskFormResult(
+                success=False,
+                error=f"Data error loading form data: {str(e)}"
             )
 
     # ========================================================================
@@ -441,8 +489,12 @@ class TaskManagementService:
                 self.logger.debug(f"Time test: Local={local_time.strftime('%Y-%m-%d %H:%M:%S %Z')}, "
                                 f"UTC={utc_time.strftime('%Y-%m-%d %H:%M:%S %Z')}, "
                                 f"Back to local={local_time_back.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-        except Exception as e:
-            self.logger.error(f"Error testing time conversion: {e}")
+        except (ImportError, AttributeError) as e:
+            # Import errors (pytz unavailable)
+            self.logger.error(f"Import error testing time conversion: {e}", exc_info=True)
+        except (ValueError, IndexError) as e:
+            # Data parsing errors (time format invalid)
+            self.logger.error(f"Data error testing time conversion: {e}", exc_info=True)
 
     def _create_scheduled_task(self, request: AddTaskRequest, timezone_str: str):
         """Create ScheduledTask object from request data."""
@@ -470,8 +522,13 @@ class TaskManagementService:
 
             return scheduled_task
 
-        except Exception as e:
-            self.logger.error(f"Error creating ScheduledTask instance: {e}", exc_info=True)
+        except (ImportError, AttributeError) as e:
+            # Import errors (ScheduledTask class unavailable)
+            self.logger.error(f"Import error creating ScheduledTask instance: {e}", exc_info=True)
+            return None
+        except (ValueError, TypeError, KeyError) as e:
+            # Data errors (task initialization failed)
+            self.logger.error(f"Data error creating ScheduledTask instance: {e}", exc_info=True)
             return None
 
     def _validate_and_calculate_next_run(self, task, timezone_str: str) -> bool:
@@ -503,8 +560,13 @@ class TaskManagementService:
 
             return True
 
-        except Exception as e:
-            self.logger.error(f"Error validating and calculating next run: {e}", exc_info=True)
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Import/service errors (CYCLE_ONCE constant, scheduler unavailable)
+            self.logger.error(f"Service error validating and calculating next run: {e}", exc_info=True)
+            return False
+        except (ValueError, TypeError) as e:
+            # Data errors (time calculation failed)
+            self.logger.error(f"Data error validating and calculating next run: {e}", exc_info=True)
             return False
 
     def _debug_time_parsing(self, time_str: str, timezone_str: str):
@@ -520,8 +582,12 @@ class TaskManagementService:
                 now = datetime.now(tz)
                 dt_with_time = now.replace(hour=hours, minute=minutes, second=0, microsecond=0)
                 self.logger.debug(f"Parsed time in {timezone_str}: {dt_with_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-        except Exception as e:
-            self.logger.error(f"Error parsing time: {e}")
+        except (ImportError, AttributeError) as e:
+            # Import errors (pytz unavailable)
+            self.logger.error(f"Import error parsing time: {e}", exc_info=True)
+        except (ValueError, IndexError) as e:
+            # Data parsing errors (time format invalid)
+            self.logger.error(f"Data error parsing time: {e}", exc_info=True)
 
     def _debug_calculated_time(self, task, timezone_str: str):
         """Debug calculated execution time."""
@@ -543,8 +609,12 @@ class TaskManagementService:
                     if local_dt.hour != input_hour or local_dt.minute != input_minute:
                         self.logger.warning(f"TIME DIFFERENCE detected! Input: {input_hour}:{input_minute}, "
                                           f"Calculated: {local_dt.hour}:{local_dt.minute}")
-        except Exception as e:
-            self.logger.error(f"Error comparing input and calculated time: {e}")
+        except (ImportError, AttributeError) as e:
+            # Import errors (pytz unavailable)
+            self.logger.error(f"Import error comparing input and calculated time: {e}", exc_info=True)
+        except (ValueError, IndexError, TypeError) as e:
+            # Data errors (timestamp conversion, time parsing)
+            self.logger.error(f"Data error comparing input and calculated time: {e}", exc_info=True)
 
     def _save_task_via_scheduler(self, task) -> Dict[str, Any]:
         """Save task using scheduler service."""
@@ -559,9 +629,14 @@ class TaskManagementService:
                 self.logger.error(error_msg)
                 return {'success': False, 'error': error_msg}
 
-        except Exception as e:
-            self.logger.error(f"Error saving task via scheduler: {e}", exc_info=True)
-            return {'success': False, 'error': f"Internal error saving task: {str(e)}"}
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (scheduler service unavailable)
+            self.logger.error(f"Service dependency error saving task via scheduler: {e}", exc_info=True)
+            return {'success': False, 'error': f"Service error saving task: {str(e)}"}
+        except (ValueError, TypeError) as e:
+            # Data errors (task validation)
+            self.logger.error(f"Data error saving task via scheduler: {e}", exc_info=True)
+            return {'success': False, 'error': f"Data error saving task: {str(e)}"}
 
     def _log_task_creation(self, task):
         """Log task creation for audit trail."""
@@ -573,8 +648,12 @@ class TaskManagementService:
                 source="Web UI",
                 details=f"Task ID: {task.task_id}, Cycle: {task.cycle}"
             )
-        except Exception as e:
-            self.logger.error(f"Error logging task creation: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (action logger unavailable)
+            self.logger.error(f"Service dependency error logging task creation: {e}", exc_info=True)
+        except (ValueError, TypeError) as e:
+            # Data errors (task attribute access)
+            self.logger.error(f"Data error logging task creation: {e}", exc_info=True)
 
     def _load_tasks_from_scheduler(self):
         """Load all tasks from scheduler."""
@@ -655,8 +734,13 @@ class TaskManagementService:
             tz = pytz.timezone(timezone_str)
             local_dt = datetime.utcfromtimestamp(timestamp).replace(tzinfo=pytz.UTC).astimezone(tz)
             return local_dt.strftime("%Y-%m-%d %H:%M:%S %Z")
-        except Exception as e:
-            self.logger.error(f"Error formatting timestamp: {e}")
+        except (ImportError, AttributeError) as e:
+            # Import errors (pytz unavailable)
+            self.logger.error(f"Import error formatting timestamp: {e}", exc_info=True)
+            return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+        except (ValueError, OSError) as e:
+            # Data/OS errors (invalid timestamp)
+            self.logger.error(f"Error formatting timestamp: {e}", exc_info=True)
             return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
 
     def _save_updated_tasks(self, tasks_to_update: List):
@@ -669,16 +753,25 @@ class TaskManagementService:
             for task in tasks_to_update:
                 update_task(task)
                 self.logger.info(f"Task {task.task_id} was marked as expired and deactivated. Changes saved.")
-        except Exception as e:
-            self.logger.error(f"Error saving updated tasks: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (scheduler update_task unavailable)
+            self.logger.error(f"Service dependency error saving updated tasks: {e}", exc_info=True)
+        except (ValueError, TypeError) as e:
+            # Data errors (task update failed)
+            self.logger.error(f"Data error saving updated tasks: {e}", exc_info=True)
 
     def _find_task_by_id(self, task_id: str):
         """Find task by ID using scheduler."""
         try:
             from services.scheduling.scheduler import find_task_by_id
             return find_task_by_id(task_id)
-        except Exception as e:
-            self.logger.error(f"Error finding task by ID {task_id}: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (scheduler find_task_by_id unavailable)
+            self.logger.error(f"Service dependency error finding task by ID {task_id}: {e}", exc_info=True)
+            return None
+        except (ValueError, TypeError) as e:
+            # Data errors (invalid task ID)
+            self.logger.error(f"Data error finding task by ID {task_id}: {e}", exc_info=True)
             return None
 
     def _is_task_expired(self, task) -> bool:
@@ -691,8 +784,13 @@ class TaskManagementService:
         try:
             from services.scheduling.scheduler import update_task
             return update_task(task)
-        except Exception as e:
-            self.logger.error(f"Error updating task via scheduler: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (scheduler update_task unavailable)
+            self.logger.error(f"Service dependency error updating task via scheduler: {e}", exc_info=True)
+            return False
+        except (ValueError, TypeError) as e:
+            # Data errors (task validation failed)
+            self.logger.error(f"Data error updating task via scheduler: {e}", exc_info=True)
             return False
 
     def _delete_task_via_scheduler(self, task_id: str) -> bool:
@@ -700,8 +798,13 @@ class TaskManagementService:
         try:
             from services.scheduling.scheduler import delete_task
             return delete_task(task_id)
-        except Exception as e:
-            self.logger.error(f"Error deleting task via scheduler: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (scheduler delete_task unavailable)
+            self.logger.error(f"Service dependency error deleting task via scheduler: {e}", exc_info=True)
+            return False
+        except (ValueError, TypeError) as e:
+            # Data errors (invalid task ID)
+            self.logger.error(f"Data error deleting task via scheduler: {e}", exc_info=True)
             return False
 
     def _log_task_deletion(self, task_id: str, task_details: Dict[str, str]):
@@ -714,8 +817,12 @@ class TaskManagementService:
                 source="Web UI",
                 details=f"Task ID: {task_id}, Cycle: {task_details['cycle']}"
             )
-        except Exception as e:
-            self.logger.error(f"Error logging task deletion: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (action logger unavailable)
+            self.logger.error(f"Service dependency error logging task deletion: {e}", exc_info=True)
+        except (ValueError, KeyError) as e:
+            # Data errors (task_details access)
+            self.logger.error(f"Data error logging task deletion: {e}", exc_info=True)
 
     def _get_task_for_editing(self, task, timezone_str: Optional[str]) -> EditTaskResult:
         """Get task data formatted for editing."""
@@ -733,11 +840,19 @@ class TaskManagementService:
                 success=True,
                 task_data=task_dict
             )
-        except Exception as e:
-            self.logger.error(f"Error getting task for editing: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (timezone service unavailable)
+            self.logger.error(f"Service dependency error getting task for editing: {e}", exc_info=True)
             return EditTaskResult(
                 success=False,
-                error=f"Error preparing task for editing: {str(e)}"
+                error=f"Service error preparing task for editing: {str(e)}"
+            )
+        except (ValueError, TypeError, KeyError) as e:
+            # Data errors (task data access, dict operations)
+            self.logger.error(f"Data error getting task for editing: {e}", exc_info=True)
+            return EditTaskResult(
+                success=False,
+                error=f"Data error preparing task for editing: {str(e)}"
             )
 
     def _update_task_with_data(self, task, data: Dict[str, Any], timezone_str: Optional[str]) -> EditTaskResult:
@@ -803,11 +918,19 @@ class TaskManagementService:
                     error="Failed to save updated task"
                 )
 
-        except Exception as e:
-            self.logger.error(f"Error updating task with data: {e}", exc_info=True)
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (scheduler service unavailable)
+            self.logger.error(f"Service dependency error updating task with data: {e}", exc_info=True)
             return EditTaskResult(
                 success=False,
-                error=f"Internal error updating task: {str(e)}"
+                error=f"Service error updating task: {str(e)}"
+            )
+        except (ValueError, TypeError, KeyError) as e:
+            # Data errors (task data validation, dict access)
+            self.logger.error(f"Data error updating task with data: {e}", exc_info=True)
+            return EditTaskResult(
+                success=False,
+                error=f"Data error updating task: {str(e)}"
             )
 
     def _update_basic_task_fields(self, task, data: Dict[str, Any]):
@@ -873,8 +996,12 @@ class TaskManagementService:
                 source="Web UI",
                 details=f"Task ID: {task.task_id}, Cycle: {task.cycle}, Updated from: {original_values['container']} ({original_values['action']}, {original_values['cycle']})"
             )
-        except Exception as e:
-            self.logger.error(f"Error logging task update: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (action logger unavailable)
+            self.logger.error(f"Service dependency error logging task update: {e}", exc_info=True)
+        except (ValueError, KeyError, TypeError) as e:
+            # Data errors (task data access, dict operations)
+            self.logger.error(f"Data error logging task update: {e}", exc_info=True)
 
     def _get_timezone_abbreviation(self, timezone_str: str) -> str:
         """Get timezone abbreviation for display."""
@@ -883,8 +1010,13 @@ class TaskManagementService:
             tz = pytz.timezone(timezone_str)
             now = datetime.now(tz)
             return now.strftime("%Z")  # Returns abbreviation like CEST
-        except Exception as e:
-            self.logger.error(f"Error getting timezone abbreviation: {e}")
+        except (ImportError, AttributeError) as e:
+            # Import errors (pytz unavailable)
+            self.logger.error(f"Import error getting timezone abbreviation: {e}", exc_info=True)
+            return timezone_str  # Fallback to timezone identifier
+        except (ValueError, TypeError) as e:
+            # Data errors (invalid timezone string)
+            self.logger.error(f"Data error getting timezone abbreviation: {e}", exc_info=True)
             return timezone_str  # Fallback to timezone identifier
 
 
