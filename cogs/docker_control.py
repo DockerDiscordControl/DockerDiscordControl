@@ -1936,10 +1936,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             except (RuntimeError, ValueError, KeyError, OSError) as e:
                 logger.debug(f"Could not check info status for {docker_name}: {e}")
             
-            # Process status result (same as original)
-            if status_result and isinstance(status_result, tuple) and len(status_result) == 6:
-                _, is_running, _, _, _, _ = status_result
-                
+            # Process status result - NOW USING ContainerStatusResult Objects (not tuples)
+            # Check if we have a successful ContainerStatusResult
+            from services.docker_status.models import ContainerStatusResult
+
+            if status_result and isinstance(status_result, ContainerStatusResult) and status_result.success:
+                is_running = status_result.is_running
+
                 # Determine status icon (same logic as original)
                 # Check pending actions using docker_name as key
                 if docker_name in self.pending_actions:
@@ -1953,7 +1956,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         status_emoji = "🟢" if is_running else "🔴"
                 else:
                     status_emoji = "🟢" if is_running else "🔴"
-                
+
                 # Truncate display name for mobile (max 20 chars)
                 truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
                 # Add status line with proper spacing and info indicator (match original format)
@@ -2486,10 +2489,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             except (RuntimeError, ValueError, KeyError, OSError) as e:
                 logger.debug(f"Could not check info status for {docker_name}: {e}")
             
-            # Process status result (same as original)
-            if status_result and isinstance(status_result, tuple) and len(status_result) == 6:
-                _, is_running, _, _, _, _ = status_result
-                
+            # Process status result - NOW USING ContainerStatusResult Objects (not tuples)
+            # Check if we have a successful ContainerStatusResult
+            from services.docker_status.models import ContainerStatusResult
+
+            if status_result and isinstance(status_result, ContainerStatusResult) and status_result.success:
+                is_running = status_result.is_running
+
                 # Determine status icon (same logic as original)
                 # Check pending actions using docker_name as key
                 if docker_name in self.pending_actions:
@@ -2503,7 +2509,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         status_emoji = "🟢" if is_running else "🔴"
                 else:
                     status_emoji = "🟢" if is_running else "🔴"
-                
+
                 # Truncate display name for mobile (max 20 chars)
                 truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
                 # Add status line with proper spacing and info indicator (match original format)
