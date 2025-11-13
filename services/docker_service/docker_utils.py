@@ -572,11 +572,7 @@ async def get_docker_info(docker_container_name: str) -> Optional[Dict[str, Any]
     # 🔒 SECURITY: Validate container name format before Docker API call
     from utils.common_helpers import validate_container_name
     if not validate_container_name(docker_container_name):
-        # Special case: Don't spam logs for connectivity test
-        if docker_container_name == "__ddc_connectivity_test__":
-            logger.debug(f"get_docker_info: Connectivity test with invalid name (expected): {docker_container_name}")
-        else:
-            logger.error(f"get_docker_info: Invalid container name format: {docker_container_name}")
+        logger.error(f"get_docker_info: Invalid container name format: {docker_container_name}")
         return None
         
     try:

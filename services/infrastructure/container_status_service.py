@@ -458,14 +458,9 @@ class ContainerStatusService:
                 )
 
         except docker.errors.NotFound as e:
-            # Container not found - expected for connectivity tests
+            # Container not found error
             duration_ms = (time.time() - start_time) * 1000
-
-            # Only log as DEBUG for connectivity test, ERROR for real containers
-            if request.container_name == "__ddc_connectivity_test__":
-                self.logger.debug(f"Connectivity test container not found (expected): {request.container_name}")
-            else:
-                self.logger.error(f"Container not found: {request.container_name}: {e}", exc_info=True)
+            self.logger.error(f"Container not found: {request.container_name}: {e}", exc_info=True)
 
             return ContainerStatusResult(
                 success=False,
