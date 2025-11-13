@@ -86,7 +86,13 @@ class StatusHandlersMixin:
         classification = perf_service.classify_containers(container_names)
         fast_containers = classification.fast_containers
         slow_containers = classification.slow_containers
-        
+        unknown_containers = classification.unknown_containers
+
+        # Treat unknown containers as fast (parallel processing) since we don't have perf data yet
+        if unknown_containers:
+            logger.info(f"[INTELLIGENT_BULK_FETCH] {len(unknown_containers)} containers have no performance history - treating as fast")
+            fast_containers.extend(unknown_containers)
+
         if fast_containers and slow_containers:
             logger.info(f"[INTELLIGENT_BULK_FETCH] Smart batching: {len(fast_containers)} fast, {len(slow_containers)} slow containers")
         elif slow_containers:
