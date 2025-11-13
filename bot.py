@@ -72,7 +72,7 @@ def _ensure_timezone(runtime_logger: logging.Logger) -> None:
             tz = pytz.timezone(timezone_name)
             runtime_logger.info("Successfully set timezone to %s using pytz", timezone_name)
         except (RuntimeError) as e:
-            runtime_logger.warning("Could not set timezone %s: %s", timezone_name, exc)
+            runtime_logger.warning("Could not set timezone %s: %s", timezone_name, e)
             runtime_logger.info("Using UTC as fallback")
             tz = timezone.utc
 
@@ -112,7 +112,7 @@ def _shutdown_scheduler(logger: logging.Logger) -> None:
         else:
             logger.warning("Scheduler Service could not be stopped or was not running.")
     except (RuntimeError) as e:
-        logger.error("Error stopping Scheduler Service: %s", exc, exc_info=True)
+        logger.error("Error stopping Scheduler Service: %s", e, exc_info=True)
 
 
 if __name__ == "__main__":
@@ -150,7 +150,7 @@ if __name__ == "__main__":
         sys.exit(1)
     except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
         logging.getLogger("ddc.bot").error(
-            "FATAL: An unexpected error occurred during bot execution: %s", exc, exc_info=True
+            "FATAL: An unexpected error occurred during bot execution: %s", e, exc_info=True
         )
         sys.exit(1)
     finally:

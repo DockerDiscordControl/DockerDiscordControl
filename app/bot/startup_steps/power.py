@@ -18,13 +18,10 @@ async def grant_power_gift_step(context: StartupContext) -> None:
 
         if state.power_level > 0:
             logger.info("✅ Power gift granted: $%.2f Power", state.power_level)
-            docker_cog = context.bot.get_cog("DockerControlCog")
-            if docker_cog and hasattr(docker_cog, "mech_status_cache_service"):
-                docker_cog.mech_status_cache_service.clear_cache()
-                logger.info("🔄 Mech cache cleared after power gift")
-            else:
-                logger.warning("Could not access DockerControlCog for cache invalidation")
+            # REMOVED: Cache clear not needed - MechStatusCacheService reads from DB
+            # The background loop will pick up the new value automatically on next refresh
+            # Clearing the cache causes Web UI to show "OFFLINE" until loop refreshes
         else:
             logger.info("Power gift not needed (power > 0 or already granted)")
     except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
-        logger.error("Error checking/granting power gift: %s", exc, exc_info=True)
+        logger.error("Error checking/granting power gift: %s", e, exc_info=True)
