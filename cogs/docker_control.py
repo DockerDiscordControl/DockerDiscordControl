@@ -70,6 +70,11 @@ logger = setup_logger('ddc.docker_control', level=logging.INFO)
 
 # DonationView will be defined in this file
 
+# CRITICAL DEBUG: Log at module load time to verify new code is being executed
+logger.info("=" * 80)
+logger.info("[MODULE LOAD DEBUG] docker_control.py module is being loaded - NEW CODE VERSION e214386")
+logger.info("=" * 80)
+
 class DockerControlCog(commands.Cog, StatusHandlersMixin):
     """Cog for DockerDiscordControl container management via Discord."""
 
@@ -4288,10 +4293,14 @@ class DonationBroadcastModal(discord.ui.Modal):
 # Setup function required for extension loading
 async def setup(bot):
     """Setup function to add the cog to the bot when loaded as an extension."""
+    logger.info("[SETUP DEBUG] setup() function called - NEW CODE VERSION e214386")
+    logger.info("[SETUP DEBUG] About to load config...")
     from services.config.config_service import get_config_service
     config_manager = get_config_service()
     config = config_manager.get_config()
+    logger.info("[SETUP DEBUG] Config loaded, about to instantiate DockerControlCog...")
     cog = DockerControlCog(bot, config)
+    logger.info("[SETUP DEBUG] DockerControlCog instantiated successfully!")
     
     # Remove donation commands if donations are disabled
     try:
