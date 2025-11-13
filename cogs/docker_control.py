@@ -2313,8 +2313,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             if status_result and isinstance(status_result, ContainerStatusResult) and status_result.success:
                 # Extract data from ContainerStatusResult object
                 is_running = status_result.is_running
-                cpu_str = status_result.cpu_usage
-                ram_str = status_result.memory_usage
+                cpu_str = status_result.cpu
+                ram_str = status_result.ram
 
                 # Determine status emoji (EXACTLY same logic as Server Overview)
                 # Check pending actions using docker_name as key
