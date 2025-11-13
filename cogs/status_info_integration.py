@@ -70,10 +70,10 @@ class ContainerInfoAdminView(discord.ui.View):
                     await self.message.delete()
                 except discord.NotFound:
                     logger.debug("Message already deleted")
-                except Exception as e:
-                    logger.error(f"Error deleting info message on timeout: {e}")
-        except Exception as e:
-            logger.error(f"Error in ContainerInfoAdminView.on_timeout: {e}")
+                except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+                    logger.error(f"Error deleting info message on timeout: {e}", exc_info=True)
+        except (RuntimeError, ValueError, KeyError) as e:
+            logger.error(f"Error in ContainerInfoAdminView.on_timeout: {e}", exc_info=True)
     
     async def start_auto_delete_timer(self):
         """Start the auto-delete timer that runs shortly before timeout."""
@@ -87,12 +87,12 @@ class ContainerInfoAdminView(discord.ui.View):
                     await self.message.delete()
                 except discord.NotFound:
                     logger.debug("Message already deleted")
-                except Exception as e:
-                    logger.error(f"Error auto-deleting info message: {e}")
+                except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+                    logger.error(f"Error auto-deleting info message: {e}", exc_info=True)
         except asyncio.CancelledError:
             logger.debug("Auto-delete timer cancelled")
-        except Exception as e:
-            logger.error(f"Error in auto-delete timer: {e}")
+        except (RuntimeError, ValueError, KeyError) as e:
+            logger.error(f"Error in auto-delete timer: {e}", exc_info=True)
         
 
 class ProtectedInfoEditButton(discord.ui.Button):
@@ -153,7 +153,7 @@ class ProtectedInfoEditButton(discord.ui.Button):
             await interaction.response.send_modal(modal)
             logger.info(f"Opened protected info edit modal for {self.container_name} for user {interaction.user.id}")
             
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error opening protected info edit modal for {self.container_name}: {e}", exc_info=True)
             try:
                 await interaction.response.send_message(
@@ -221,7 +221,7 @@ class EditInfoButton(discord.ui.Button):
             await interaction.response.send_modal(modal)
             logger.info(f"Opened edit info modal for {self.container_name} for user {interaction.user.id}")
             
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error opening edit info modal for {self.container_name}: {e}", exc_info=True)
             try:
                 await interaction.response.send_message(
@@ -308,8 +308,8 @@ class LiveLogView(discord.ui.View):
                 
         except asyncio.CancelledError:
             logger.debug("Auto-recreation cancelled")
-        except Exception as e:
-            logger.error(f"Auto-recreation error: {e}")
+        except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+            logger.error(f"Auto-recreation error: {e}", exc_info=True)
     
     async def _recreate_view(self):
         """Recreate the Live Logs message with a fresh view."""
@@ -368,8 +368,8 @@ class LiveLogView(discord.ui.View):
                 
             logger.info(f"Successfully recreated Live Logs view for container {self.container_name}")
             
-        except Exception as e:
-            logger.error(f"Failed to recreate Live Logs view for {self.container_name}: {e}")
+        except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+            logger.error(f"Failed to recreate Live Logs view for {self.container_name}: {e}", exc_info=True)
     
     async def start_auto_refresh(self, message):
         """Start auto-refresh task for live updates."""
@@ -420,8 +420,8 @@ class LiveLogView(discord.ui.View):
                     try:
                         logger.debug(f"Auto-refresh updating message {self.message_ref.id} for container {self.container_name}")
                         await self.message_ref.edit(embed=embed, view=self)
-                    except Exception as e:
-                        logger.error(f"Auto-refresh update failed for message {self.message_ref.id}: {e}")
+                    except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+                        logger.error(f"Auto-refresh update failed for message {self.message_ref.id}: {e}", exc_info=True)
                         break
             
             # Ensure cleanup after loop ends
@@ -433,13 +433,13 @@ class LiveLogView(discord.ui.View):
                 if self.message_ref:
                     try:
                         await self.message_ref.edit(view=self)
-                    except Exception as e:
+                    except (discord.errors.HTTPException, discord.errors.NotFound) as e:
                         logger.debug(f"Failed to update buttons after auto-refresh end: {e}")
                         
         except asyncio.CancelledError:
             logger.debug("Auto-refresh cancelled")
-        except Exception as e:
-            logger.error(f"Auto-refresh error: {e}")
+        except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+            logger.error(f"Auto-refresh error: {e}", exc_info=True)
     
     async def manual_refresh(self, interaction: discord.Interaction):
         """Manual refresh button."""
@@ -489,13 +489,13 @@ class LiveLogView(discord.ui.View):
                 try:
                     await self.message_ref.edit(embed=embed, view=self)
                     # Log refresh is visible in the message update, no additional confirmation needed
-                except Exception as edit_error:
+                except (discord.errors.HTTPException, discord.errors.NotFound) as edit_error:
                     logger.debug(f"Manual refresh edit failed: {edit_error}")
             else:
                 logger.warning("Manual refresh failed - no logs retrieved")
                 
-        except Exception as e:
-            logger.error(f"Manual refresh error: {e}")
+        except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+            logger.error(f"Manual refresh error: {e}", exc_info=True)
     
     async def toggle_updates(self, interaction: discord.Interaction):
         """Toggle auto-refresh updates - stop or start based on current state."""
@@ -525,7 +525,7 @@ class LiveLogView(discord.ui.View):
                     
                     try:
                         await self.message_ref.edit(embed=embed, view=self)
-                    except Exception as e:
+                    except (discord.errors.HTTPException, discord.errors.NotFound) as e:
                         logger.debug(f"Failed to update message after stop: {e}")
                 else:
                     logger.debug("Auto-refresh stopped but no message reference")
@@ -559,13 +559,13 @@ class LiveLogView(discord.ui.View):
                         )
                         
                         pass  # Successful restart is visible in the message update
-                    except Exception as e:
+                    except (discord.errors.HTTPException, discord.errors.NotFound) as e:
                         logger.debug(f"Failed to update message after restart: {e}")
                 else:
                     logger.debug("Auto-refresh restarted but no message reference")
             
-        except Exception as e:
-            logger.error(f"Toggle updates error: {e}")
+        except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+            logger.error(f"Toggle updates error: {e}", exc_info=True)
     
     
     async def on_timeout(self):
@@ -595,10 +595,10 @@ class LiveLogView(discord.ui.View):
                         current_embed.color = 0x808080  # Gray color
                         await self.message_ref.edit(embed=current_embed, view=self)
                     logger.info(f"Live Logs view timed out for container {self.container_name}")
-                except Exception as e:
+                except (discord.errors.HTTPException, discord.errors.NotFound) as e:
                     logger.debug(f"Failed to update message on timeout: {e}")
-        except Exception as e:
-            logger.error(f"Error in on_timeout: {e}")
+        except (RuntimeError, ValueError, KeyError) as e:
+            logger.error(f"Error in on_timeout: {e}", exc_info=True)
     
     async def _get_container_logs(self) -> str:
         """Get the last 50 log lines for the container."""
@@ -634,7 +634,7 @@ class LiveLogView(discord.ui.View):
 
         except docker.errors.NotFound:
             return f"Container '{self.container_name}' not found."
-        except Exception as e:
+        except (docker.errors.DockerException, RuntimeError, OSError) as e:
             logger.debug(f"Error getting logs for {self.container_name}: {e}")
             return f"Error retrieving logs: {str(e)[:100]}"
 
@@ -661,8 +661,8 @@ class DebugLogsButton(discord.ui.Button):
             except discord.errors.NotFound:
                 logger.warning(f"Debug logs interaction expired for {self.container_name}")
                 return
-            except Exception as e:
-                logger.error(f"Error deferring debug logs interaction: {e}")
+            except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+                logger.error(f"Error deferring debug logs interaction: {e}", exc_info=True)
                 return
 
             # Check button cooldown after deferring
@@ -751,7 +751,7 @@ class DebugLogsButton(discord.ui.Button):
                     ephemeral=True
                 )
             
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error getting live debug logs for {self.container_name}: {e}", exc_info=True)
             try:
                 if interaction.response.is_done():
@@ -801,7 +801,7 @@ class DebugLogsButton(discord.ui.Button):
 
         except docker.errors.NotFound:
             return f"Container '{self.container_name}' not found."
-        except Exception as e:
+        except (docker.errors.DockerException, RuntimeError, OSError) as e:
             logger.debug(f"Error getting logs for {self.container_name}: {e}")
             return f"Error retrieving logs: {str(e)[:100]}"
 
@@ -908,7 +908,7 @@ class StatusInfoButton(discord.ui.Button):
                 await interaction.followup.send(embed=embed, ephemeral=True)
             logger.info(f"Displayed container info for {self.container_name} to user {interaction.user.id} (control: {has_control})")
             
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in status info callback for {self.container_name}: {e}", exc_info=True)
             try:
                 error_embed = discord.Embed(
@@ -1000,7 +1000,7 @@ class StatusInfoButton(discord.ui.Button):
                 if custom_port and custom_port.isdigit():
                     address = f"{wan_ip}:{custom_port}"
                 return f"**Public IP:** {address}"
-        except Exception as e:
+        except (OSError, RuntimeError, ValueError) as e:
             logger.debug(f"Could not get WAN IP for {self.container_name}: {e}")
         
         return "**IP:** Auto-detection failed"
@@ -1101,7 +1101,7 @@ class ProtectedInfoButton(discord.ui.Button):
             await interaction.response.send_modal(modal)
             logger.info(f"Opened password validation modal for {self.container_name} for user {interaction.user.id}")
             
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error opening password validation modal for {self.container_name}: {e}", exc_info=True)
             try:
                 await interaction.response.send_message(
@@ -1181,7 +1181,7 @@ def create_enhanced_status_embed(
         
         logger.debug(f"Enhanced status embed with info indicator for {container_name}")
         
-    except Exception as e:
+    except (KeyError, ValueError, RuntimeError) as e:
         logger.error(f"Error enhancing status embed: {e}", exc_info=True)
     
     return original_embed
@@ -1211,8 +1211,8 @@ class TaskManagementButton(discord.ui.Button):
                 # Interaction has already expired (>3 seconds)
                 logger.warning(f"Task management interaction expired for {self.container_name}")
                 return  # Can't send any response if interaction expired
-            except Exception as e:
-                logger.error(f"Error deferring task management interaction: {e}")
+            except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+                logger.error(f"Error deferring task management interaction: {e}", exc_info=True)
                 return
 
             # Check spam protection after deferring
@@ -1235,7 +1235,7 @@ class TaskManagementButton(discord.ui.Button):
             # Show task list directly
             await self._show_task_list(interaction)
             
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in task management button: {e}", exc_info=True)
             try:
                 await interaction.followup.send("❌ Error opening task management.", ephemeral=True)
@@ -1302,7 +1302,7 @@ class TaskManagementButton(discord.ui.Button):
             view = TaskManagementView(self.cog, self.container_name)
             await interaction.followup.send(embed=embed, view=view, ephemeral=True)
             
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing task list: {e}", exc_info=True)
             try:
                 await interaction.followup.send("❌ Error loading task list.", ephemeral=True)
@@ -1361,7 +1361,7 @@ class AddTaskButton(discord.ui.Button):
                 ephemeral=True
             )
             
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in add task button: {e}", exc_info=True)
             await interaction.response.send_message(f"❌ {_('Error showing task help.')}", ephemeral=True)
 
@@ -1419,7 +1419,7 @@ class DeleteTasksButton(discord.ui.Button):
             
             await interaction.followup.send(embed=embed, view=view, ephemeral=True)
             
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in delete tasks button: {e}", exc_info=True)
             await interaction.followup.send(f"❌ {_('Error opening task delete panel.')}", ephemeral=True)
 
@@ -2070,7 +2070,7 @@ class ConfirmDateButton(discord.ui.Button):
                     ephemeral=True
                 )
                 return
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError) as e:
             await interaction.response.send_message(
                 f"❌ Invalid date: {str(e)}",
                 ephemeral=True
@@ -2268,7 +2268,7 @@ class CreateTaskButton(discord.ui.Button):
                     ephemeral=True
                 )
                 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error creating task: {e}", exc_info=True)
             error_msg = str(e)
             if "collision" in error_msg.lower():
@@ -2454,7 +2454,7 @@ class ContainerTaskDeleteButton(discord.ui.Button):
                     ephemeral=True
                 )
                 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error deleting task {self.task_id}: {e}", exc_info=True)
             await interaction.followup.send(
                 f"❌ {_('Error occurred while deleting task.')}",
