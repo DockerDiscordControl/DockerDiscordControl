@@ -4437,4 +4437,18 @@ def setup(bot):
     logger.info("Initial Animation Cache Warmup startup task initiated")
 
     bot.add_cog(cog)
-    logger.info("[SETUP DEBUG] DockerControlCog added to bot - cog_load() will be called automatically")
+    logger.info("[SETUP DEBUG] DockerControlCog added to bot")
+
+    # Start background loops NOW (in setup(), after cog is added)
+    # NOTE: Cannot use on_ready() because bot is already ready when cog loads
+    # NOTE: Cannot use cog_load() because PyCord 2.x doesn't support it
+    logger.info("[SETUP DEBUG] Starting background loops directly from setup()...")
+    try:
+        # Ensure clean loop state
+        cog._cancel_existing_loops()
+        # Start all background loops
+        cog._setup_background_loops()
+        cog._background_loops_started = True
+        logger.info("[SETUP DEBUG] Background loops started successfully!")
+    except Exception as e:
+        logger.error(f"[SETUP DEBUG] Failed to start background loops: {e}", exc_info=True)
