@@ -53,9 +53,14 @@ def add_task():
         else:
             return jsonify({"error": result.error}), 400
 
-    except Exception as e:
-        current_app.logger.error(f"Error in add_task route: {e}", exc_info=True)
-        return jsonify({"error": "Internal error handling add_task request. Please check the logs for details."}), 500
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (task_management_service unavailable, service method failures)
+        current_app.logger.error(f"Service error in add_task route: {e}", exc_info=True)
+        return jsonify({"error": "Service error handling add_task request."}), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (invalid request data, JSON parsing, missing fields)
+        current_app.logger.error(f"Data error in add_task route: {e}", exc_info=True)
+        return jsonify({"error": "Data error handling add_task request."}), 500
 
 @tasks_bp.route('/list', methods=['GET'])
 def list_tasks():
@@ -76,9 +81,14 @@ def list_tasks():
             current_app.logger.error(f"Failed to list tasks: {result.error}")
             return jsonify({"error": result.error}), 500
 
-    except Exception as e:
-        current_app.logger.error(f"Error in list_tasks route: {e}", exc_info=True)
-        return jsonify({"error": "Internal error listing tasks. Please check the logs for details."}), 500
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (task_management_service unavailable, service method failures)
+        current_app.logger.error(f"Service error in list_tasks route: {e}", exc_info=True)
+        return jsonify({"error": "Service error listing tasks."}), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (task serialization, JSON encoding failures)
+        current_app.logger.error(f"Data error in list_tasks route: {e}", exc_info=True)
+        return jsonify({"error": "Data error listing tasks."}), 500
 
 @tasks_bp.route('/form', methods=['GET'])
 def show_task_form():
@@ -103,13 +113,22 @@ def show_task_form():
                                  timezone_name='CEST',
                                  error_message=result.error)
 
-    except Exception as e:
-        current_app.logger.error(f"Error in show_task_form route: {e}", exc_info=True)
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (task_management_service unavailable, service method failures)
+        current_app.logger.error(f"Service error in show_task_form route: {e}", exc_info=True)
         return render_template('tasks/form.html',
                              active_containers=[],
                              timezone_str='Europe/Berlin',
                              timezone_name='CEST',
-                             error_message="Error loading form data")
+                             error_message="Service error loading form data")
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (form data processing, template rendering)
+        current_app.logger.error(f"Data error in show_task_form route: {e}", exc_info=True)
+        return render_template('tasks/form.html',
+                             active_containers=[],
+                             timezone_str='Europe/Berlin',
+                             timezone_name='CEST',
+                             error_message="Data error loading form data")
 
 
 @tasks_bp.route('/update_status', methods=['POST'])
@@ -151,9 +170,14 @@ def update_task_status():
             status_code = 404 if "not found" in result.error.lower() else 400
             return jsonify({"success": False, "error": result.error}), status_code
 
-    except Exception as e:
-        current_app.logger.error(f"Error in update_task_status route: {e}", exc_info=True)
-        return jsonify({"success": False, "error": "Internal error updating task status"}), 500 
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (task_management_service unavailable, service method failures)
+        current_app.logger.error(f"Service error in update_task_status route: {e}", exc_info=True)
+        return jsonify({"success": False, "error": "Service error updating task status"}), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (invalid request data, JSON parsing, task data processing)
+        current_app.logger.error(f"Data error in update_task_status route: {e}", exc_info=True)
+        return jsonify({"success": False, "error": "Data error updating task status"}), 500 
 
 @tasks_bp.route('/delete/<task_id>', methods=['DELETE'])
 def delete_task_route(task_id):
@@ -180,9 +204,14 @@ def delete_task_route(task_id):
             status_code = 404 if "not found" in result.error.lower() else 500
             return jsonify({"success": False, "error": result.error}), status_code
 
-    except Exception as e:
-        current_app.logger.error(f"Error in delete_task_route: {e}", exc_info=True)
-        return jsonify({"success": False, "error": "Internal error deleting task"}), 500
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (task_management_service unavailable, service method failures)
+        current_app.logger.error(f"Service error in delete_task_route: {e}", exc_info=True)
+        return jsonify({"success": False, "error": "Service error deleting task"}), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (invalid task_id, task processing failures)
+        current_app.logger.error(f"Data error in delete_task_route: {e}", exc_info=True)
+        return jsonify({"success": False, "error": "Data error deleting task"}), 500
 
 @tasks_bp.route('/edit/<task_id>', methods=['GET', 'PUT'])
 def edit_task_route(task_id):
@@ -239,6 +268,11 @@ def edit_task_route(task_id):
                 status_code = 404 if "not found" in result.error.lower() else 400
                 return jsonify({"success": False, "error": result.error}), status_code
 
-    except Exception as e:
-        current_app.logger.error(f"Error in edit_task_route: {e}", exc_info=True)
-        return jsonify({"success": False, "error": "Internal error editing task"}), 500 
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (task_management_service unavailable, service method failures)
+        current_app.logger.error(f"Service error in edit_task_route: {e}", exc_info=True)
+        return jsonify({"success": False, "error": "Service error editing task"}), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (invalid request data, JSON parsing, task data processing)
+        current_app.logger.error(f"Data error in edit_task_route: {e}", exc_info=True)
+        return jsonify({"success": False, "error": "Data error editing task"}), 500 
