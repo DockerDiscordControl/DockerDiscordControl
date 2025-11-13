@@ -195,13 +195,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         self._interaction_lock = asyncio.Lock()
         self._active_interactions = set()  # Track active button interactions per channel
         
-        # Ensure clean loop state
-        logger.info("Ensuring clean loop state...")
-        self._cancel_existing_loops()
-        
-        # Initialize background loops with proper error handling
-        logger.info("Setting up background loops...")
-        self._setup_background_loops()
+        # NOTE: Background loops are started in cog_load() hook, not in __init__
+        # This is because __init__ runs before bot.loop is available
+        logger.info("DockerControlCog __init__ phase 1 complete. Background loops will start in cog_load().")
 
         # PERFORMANCE OPTIMIZATION: Initialize embed cache for StatusHandlersMixin
         self._embed_cache = {
@@ -215,6 +211,23 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         if hasattr(self, 'heartbeat_send_loop') and self.heartbeat_send_loop.is_running(): self.heartbeat_send_loop.cancel()
         if hasattr(self, 'status_update_loop') and self.status_update_loop.is_running(): self.status_update_loop.cancel()
         if hasattr(self, 'inactivity_check_loop') and self.inactivity_check_loop.is_running(): self.inactivity_check_loop.cancel()
+
+    async def cog_load(self):
+        """
+        Called after the cog is loaded. This is the correct place to start background loops.
+        This runs AFTER __init__ and AFTER the bot's event loop is available.
+        """
+        logger.info("=== cog_load() called - Starting background loops ===")
+
+        # Ensure clean loop state
+        logger.info("Ensuring clean loop state...")
+        self._cancel_existing_loops()
+
+        # Initialize background loops with proper error handling
+        logger.info("Setting up background loops...")
+        self._setup_background_loops()
+
+        logger.info("=== cog_load() complete - Background loops started ===")
 
     def _setup_discord_event_listeners(self):
         """Set up event listeners for Discord status message updates."""
@@ -393,8 +406,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
         # Initialize global status cache
         self.update_global_status_cache()
-        
-        logger.info("DockerControlCog __init__ complete. Background loops and initial status send scheduled.")
+
+        logger.info("Background loops setup complete. Initial status send scheduled.")
 
     # --- PERIODIC MESSAGE EDIT LOOP (FULL LOGIC, MOVED DIRECTLY INTO COG) ---
     @tasks.loop(minutes=1, reconnect=True)
