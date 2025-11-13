@@ -1127,8 +1127,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Update cache with results (same logic as status_update_loop)
                 for name, result in results.items():
                     if result.success:
-                        # Cache as tuple for backwards compatibility
-                        self.status_cache_service.set(name, result.as_tuple(), datetime.now(timezone.utc))
+                        # Cache ContainerStatusResult directly
+                        self.status_cache_service.set(name, result, datetime.now(timezone.utc))
                         success_count += 1
                     else:
                         logger.warning(f"Background cache population: Failed to fetch status for {name}. Error: {result.error_message}")
@@ -3012,8 +3012,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Process ContainerStatusResult objects
                 for name, result in results.items():
                     if result.success:
-                        # Cache as tuple for backwards compatibility
-                        self.status_cache_service.set(name, result.as_tuple(), datetime.now(timezone.utc))
+                        # Cache ContainerStatusResult directly
+                        self.status_cache_service.set(name, result, datetime.now(timezone.utc))
                         success_count += 1
                     else:
                         logger.warning(f"[STATUS_LOOP] Failed to fetch status for {name}. Error: {result.error_message}")

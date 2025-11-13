@@ -359,7 +359,7 @@ class ActionButton(Button):
                             if fresh_status.success:
                                 self.cog.status_cache_service.set(
                                     self.docker_name,
-                                    fresh_status.as_tuple(),  # Cache as tuple for backwards compatibility
+                                    fresh_status,  # Cache ContainerStatusResult directly
                                     datetime.now(timezone.utc)
                                 )
                                 is_running = fresh_status.is_running
@@ -487,7 +487,7 @@ class ActionButton(Button):
                                 if fresh_status.success:
                                     self.cog.status_cache_service.set(
                                         self.docker_name,
-                                        fresh_status.as_tuple(),  # Cache as tuple for backwards compatibility
+                                        fresh_status,  # Cache ContainerStatusResult directly
                                         datetime.now(timezone.utc)
                                     )
 

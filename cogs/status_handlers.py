@@ -336,8 +336,8 @@ class StatusHandlersMixin:
                 if server_config:
                     display_name = server_config.get('name', docker_name)
                     if result.success:
-                        # Cache as tuple for backwards compatibility
-                        self.status_cache_service.set(display_name, result.as_tuple(), now)
+                        # Cache ContainerStatusResult directly
+                        self.status_cache_service.set(display_name, result, now)
                         logger.debug(f"[BULK_UPDATE] Updated cache for {display_name}")
                     else:
                         # Cache error state to prevent constant retries
@@ -530,7 +530,7 @@ class StatusHandlersMixin:
                         if action_succeeded:
                             logger.info(f"[_GEN_EMBED] '{display_name}' {pending_action} action succeeded - clearing pending state")
                             del self.pending_actions[docker_name]
-                            # Update cache with fresh status
+                            # Update cache with fresh status (ContainerStatusResult)
                             self.status_cache_service.set(docker_name, fresh_status, now)
                         else:
                             # Action might have failed or container takes very long
@@ -581,17 +581,8 @@ class StatusHandlersMixin:
                 embed_cache_age = 0
                 embed_cache_indicator = " (config error)"
 
-        # --- Normalize status_result ---
-        # Convert ContainerStatusResult to tuple for backwards compatibility
-        if isinstance(status_result, ContainerStatusResult):
-            if not status_result.success:
-                # Treat failed result as Exception
-                status_result = status_result.error or Exception(status_result.error_message or "Unknown error")
-            else:
-                # Convert to tuple format
-                status_result = status_result.as_tuple()
-
         # --- Process status_result and generate embed ---
+        # Cache now stores ContainerStatusResult objects
         if status_result is None:
             logger.debug(f"[_GEN_EMBED] Status result for '{display_name}' is None. Showing loading or error status.")
             # Check if we have cache age indicator to determine type of message
@@ -610,6 +601,99 @@ class StatusHandlersMixin:
                     color=discord.Color.red()
                 )
             # running remains False, view remains None
+
+        elif isinstance(status_result, ContainerStatusResult):
+            # --- Handle ContainerStatusResult objects (new cache format) ---
+            if not status_result.success:
+                logger.error(f"[_GEN_EMBED] Status for '{display_name}' failed: {status_result.error_message}", exc_info=False)
+                embed = discord.Embed(
+                    title=f"⚠️ {display_name}",
+                    description=_("Error: An exception occurred while fetching status. Background process will retry."),
+                    color=discord.Color.red()
+                )
+                # running remains False, view remains None
+            else:
+                # Successful result - extract fields for embed generation
+                display_name_from_status = status_result.display_name
+                running = status_result.is_running
+                cpu = status_result.cpu
+                ram = status_result.ram
+                uptime = status_result.uptime
+                details_allowed = status_result.details_allowed
+                status_color = 0x00b300 if running else 0xe74c3c
+
+                # Continue with box embed generation (same as tuple case)
+                # PERFORMANCE OPTIMIZATION: Use cached translations
+                embed_helper = get_embed_helper_service()
+                cached_translations = embed_helper.get_translations(lang)
+                online_text = cached_translations['online_text']
+                offline_text = cached_translations['offline_text']
+                status_text = online_text if running else offline_text
+                current_emoji = "🟢" if running else "🔴"
+
+                # Check if we should always collapse
+                is_expanded = self.expanded_states.get(display_name, False) and not force_collapse
+
+                # PERFORMANCE OPTIMIZATION: Use cached translations
+                cpu_text = cached_translations['cpu_text']
+                ram_text = cached_translations['ram_text']
+                uptime_text = cached_translations['uptime_text']
+                detail_denied_text = cached_translations['detail_denied_text']
+
+                # PERFORMANCE OPTIMIZATION: Use cached box elements
+                BOX_WIDTH = 28
+                embed_helper = get_embed_helper_service()
+                cached_box = embed_helper.get_box_elements(display_name, BOX_WIDTH)
+                header_line = cached_box['header_line']
+                footer_line = cached_box['footer_line']
+
+                # String builder for description - more efficient than multiple concatenations
+                description_parts = [
+                    "```\n",
+                    header_line,
+                    f"\n│ {current_emoji} {status_text}"
+                ]
+
+                # Add cache age indicator if data is older (only if show_cache_age is True)
+                if show_cache_age and 'embed_cache_indicator' in locals() and embed_cache_indicator:
+                    description_parts.append(embed_cache_indicator)
+
+                description_parts.append("\n")
+
+                # Build status box content
+                if running and details_allowed:
+                    if is_expanded:
+                        description_parts.extend([
+                            f"│ {cpu_text}: {cpu}\n",
+                            f"│ {ram_text}: {ram}\n",
+                            f"│ {uptime_text}: {uptime}\n"
+                        ])
+                    else:
+                        description_parts.append(f"│ \u2022 ▼ Expand for details\n")
+                elif running and not details_allowed:
+                    description_parts.append(f"│ {detail_denied_text}\n")
+                elif not running:
+                    description_parts.append(f"│ {uptime_text}: N/A\n")
+
+                description_parts.extend([
+                    footer_line,
+                    "\n```"
+                ])
+
+                embed = discord.Embed(
+                    description="".join(description_parts),
+                    color=status_color
+                )
+                embed.set_footer(text="https://ddc.bot")
+
+                # Create view with toggle button only if allowed and container is running and has details
+                if allow_toggle and running and details_allowed:
+                    view = ControlView(
+                        self, server_conf, is_running=running,
+                        channel_has_control_permission=_channel_has_permission(channel_id, server_conf)
+                    )
+                else:
+                    view = None
 
         elif isinstance(status_result, Exception):
             logger.error(f"[_GEN_EMBED] Status for '{display_name}' is an exception: {status_result}", exc_info=False)
