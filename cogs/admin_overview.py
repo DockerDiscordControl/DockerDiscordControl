@@ -55,8 +55,8 @@ class AdminOverviewAdminButton(Button):
         except discord.errors.NotFound:
             logger.warning(f"Admin button interaction expired for channel {self.channel_id}")
             return
-        except Exception as e:
-            logger.error(f"Error deferring admin button interaction: {e}")
+        except (discord.errors.HTTPException, discord.errors.DiscordException) as e:
+            logger.error(f"Error deferring admin button interaction: {e}", exc_info=True)
             return
 
         try:
@@ -132,7 +132,7 @@ class AdminOverviewAdminButton(Button):
                 ephemeral=True
             )
 
-        except Exception as e:
+        except (discord.errors.DiscordException, ImportError, AttributeError, KeyError) as e:
             logger.error(f"Error in admin overview admin button: {e}", exc_info=True)
             try:
                 if not interaction.response.is_done():
@@ -140,7 +140,7 @@ class AdminOverviewAdminButton(Button):
                         "❌ Error accessing admin controls.",
                         ephemeral=True
                     )
-            except Exception:
+            except (discord.errors.NotFound, discord.errors.HTTPException):
                 pass
 
 class AdminOverviewRestartAllButton(Button):
@@ -167,8 +167,8 @@ class AdminOverviewRestartAllButton(Button):
         except discord.errors.NotFound:
             logger.warning(f"Restart all interaction expired for channel {self.channel_id}")
             return
-        except Exception as e:
-            logger.error(f"Error deferring restart all interaction: {e}")
+        except (discord.errors.HTTPException, discord.errors.DiscordException) as e:
+            logger.error(f"Error deferring restart all interaction: {e}", exc_info=True)
             return
 
         try:
@@ -206,7 +206,7 @@ class AdminOverviewRestartAllButton(Button):
                 ephemeral=True
             )
 
-        except Exception as e:
+        except (discord.errors.DiscordException, ImportError, KeyError, RuntimeError) as e:
             logger.error(f"Error in restart all button: {e}", exc_info=True)
             try:
                 if not interaction.response.is_done():
@@ -214,7 +214,7 @@ class AdminOverviewRestartAllButton(Button):
                         "❌ Error processing restart all request.",
                         ephemeral=True
                     )
-            except Exception:
+            except (discord.errors.NotFound, discord.errors.HTTPException):
                 pass
 
 class AdminOverviewStopAllButton(Button):
@@ -241,8 +241,8 @@ class AdminOverviewStopAllButton(Button):
         except discord.errors.NotFound:
             logger.warning(f"Stop all interaction expired for channel {self.channel_id}")
             return
-        except Exception as e:
-            logger.error(f"Error deferring stop all interaction: {e}")
+        except (discord.errors.HTTPException, discord.errors.DiscordException) as e:
+            logger.error(f"Error deferring stop all interaction: {e}", exc_info=True)
             return
 
         try:
@@ -280,7 +280,7 @@ class AdminOverviewStopAllButton(Button):
                 ephemeral=True
             )
 
-        except Exception as e:
+        except (discord.errors.DiscordException, ImportError, KeyError, RuntimeError) as e:
             logger.error(f"Error in stop all button: {e}", exc_info=True)
             try:
                 if not interaction.response.is_done():
@@ -288,7 +288,7 @@ class AdminOverviewStopAllButton(Button):
                         "❌ Error processing stop all request.",
                         ephemeral=True
                     )
-            except Exception:
+            except (discord.errors.NotFound, discord.errors.HTTPException):
                 pass
 
 class AdminOverviewDonateButton(Button):
@@ -314,8 +314,8 @@ class AdminOverviewDonateButton(Button):
         except discord.errors.NotFound:
             logger.warning(f"Donate button interaction expired for channel {self.channel_id}")
             return
-        except Exception as e:
-            logger.error(f"Error deferring donate button interaction: {e}")
+        except (discord.errors.HTTPException, discord.errors.DiscordException) as e:
+            logger.error(f"Error deferring donate button interaction: {e}", exc_info=True)
             return
 
         try:
@@ -326,12 +326,12 @@ class AdminOverviewDonateButton(Button):
                     # Donations disabled, send minimal response
                     try:
                         await interaction.followup.send(".", delete_after=0.1)
-                    except Exception as e:
+                    except (discord.errors.HTTPException, discord.errors.NotFound) as e:
                         logger.debug(f"Failed to send donation disabled response: {e}")
                     return
             except ImportError as e:
                 logger.warning(f"Donation utils not available: {e}")
-            except Exception as e:
+            except (AttributeError, RuntimeError) as e:
                 logger.debug(f"Donation check failed: {e}")
 
             # Create donation embed (matching the /donate command)
@@ -368,7 +368,7 @@ class AdminOverviewDonateButton(Button):
             # Send the donation embed with buttons
             await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
-        except Exception as e:
+        except (discord.errors.DiscordException, ImportError, AttributeError) as e:
             logger.error(f"Error in donate button: {e}", exc_info=True)
             try:
                 if not interaction.response.is_done():
@@ -376,7 +376,7 @@ class AdminOverviewDonateButton(Button):
                         "❌ Error processing donate request.",
                         ephemeral=True
                     )
-            except Exception:
+            except (discord.errors.NotFound, discord.errors.HTTPException):
                 pass
 
 # =============================================================================
@@ -428,8 +428,8 @@ class ConfirmRestartAllButton(Button):
         except discord.errors.NotFound:
             logger.warning("Restart all confirmation interaction expired")
             return
-        except Exception as e:
-            logger.error(f"Error deferring restart all confirmation: {e}")
+        except (discord.errors.HTTPException, discord.errors.DiscordException) as e:
+            logger.error(f"Error deferring restart all confirmation: {e}", exc_info=True)
             return
 
         # Edge case: Prevent concurrent bulk operations
@@ -519,8 +519,8 @@ class ConfirmRestartAllButton(Button):
                                 except asyncio.TimeoutError:
                                     logger.error(f"Timeout restarting {docker_name}")
                                     failed_count += 1
-                                except Exception as e:
-                                    logger.error(f"Error restarting {docker_name}: {e}")
+                                except (RuntimeError, OSError) as e:
+                                    logger.error(f"Error restarting {docker_name}: {e}", exc_info=True)
                                     failed_count += 1
                 else:
                     skipped_count += 1
@@ -542,14 +542,14 @@ class ConfirmRestartAllButton(Button):
             # Update admin overview after a delay (but don't wait for it)
             asyncio.create_task(self._delayed_overview_update())
 
-        except Exception as e:
+        except (ImportError, KeyError, RuntimeError, asyncio.TimeoutError) as e:
             logger.error(f"Critical error in restart all: {e}", exc_info=True)
             try:
                 await interaction.followup.send(
                     "❌ An error occurred during the restart operation.",
                     ephemeral=True
                 )
-            except:
+            except (discord.errors.NotFound, discord.errors.HTTPException):
                 pass
         finally:
             # Always release the lock
@@ -560,8 +560,8 @@ class ConfirmRestartAllButton(Button):
         try:
             await asyncio.sleep(5)
             await self._update_admin_overview()
-        except Exception as e:
-            logger.error(f"Error updating admin overview after restart: {e}")
+        except (asyncio.CancelledError, RuntimeError) as e:
+            logger.error(f"Error updating admin overview after restart: {e}", exc_info=True)
 
     async def _update_admin_overview(self):
         """Update admin overview message after bulk action."""
@@ -583,8 +583,8 @@ class ConfirmRestartAllButton(Button):
 
                             await message.edit(embed=new_embed, view=new_view)
                             break
-        except Exception as e:
-            logger.error(f"Error updating admin overview: {e}")
+        except (discord.errors.DiscordException, ImportError, AttributeError) as e:
+            logger.error(f"Error updating admin overview: {e}", exc_info=True)
 
 class ConfirmStopAllButton(Button):
     """Button to confirm stop all action."""
@@ -607,8 +607,8 @@ class ConfirmStopAllButton(Button):
         except discord.errors.NotFound:
             logger.warning("Stop all confirmation interaction expired")
             return
-        except Exception as e:
-            logger.error(f"Error deferring stop all confirmation: {e}")
+        except (discord.errors.HTTPException, discord.errors.DiscordException) as e:
+            logger.error(f"Error deferring stop all confirmation: {e}", exc_info=True)
             return
 
         # Edge case: Prevent concurrent bulk operations
@@ -698,8 +698,8 @@ class ConfirmStopAllButton(Button):
                                 except asyncio.TimeoutError:
                                     logger.error(f"Timeout stopping {docker_name}")
                                     failed_count += 1
-                                except Exception as e:
-                                    logger.error(f"Error stopping {docker_name}: {e}")
+                                except (RuntimeError, OSError) as e:
+                                    logger.error(f"Error stopping {docker_name}: {e}", exc_info=True)
                                     failed_count += 1
                 else:
                     skipped_count += 1
@@ -721,14 +721,14 @@ class ConfirmStopAllButton(Button):
             # Update admin overview after a delay (but don't wait for it)
             asyncio.create_task(self._delayed_overview_update())
 
-        except Exception as e:
+        except (ImportError, KeyError, RuntimeError, asyncio.TimeoutError) as e:
             logger.error(f"Critical error in stop all: {e}", exc_info=True)
             try:
                 await interaction.followup.send(
                     "❌ An error occurred during the stop operation.",
                     ephemeral=True
                 )
-            except:
+            except (discord.errors.NotFound, discord.errors.HTTPException):
                 pass
         finally:
             # Always release the lock
@@ -739,8 +739,8 @@ class ConfirmStopAllButton(Button):
         try:
             await asyncio.sleep(5)
             await self._update_admin_overview()
-        except Exception as e:
-            logger.error(f"Error updating admin overview after stop: {e}")
+        except (asyncio.CancelledError, RuntimeError) as e:
+            logger.error(f"Error updating admin overview after stop: {e}", exc_info=True)
 
     async def _update_admin_overview(self):
         """Update admin overview message after bulk action."""
@@ -762,8 +762,8 @@ class ConfirmStopAllButton(Button):
 
                             await message.edit(embed=new_embed, view=new_view)
                             break
-        except Exception as e:
-            logger.error(f"Error updating admin overview: {e}")
+        except (discord.errors.DiscordException, ImportError, AttributeError) as e:
+            logger.error(f"Error updating admin overview: {e}", exc_info=True)
 
 class CancelBulkActionButton(Button):
     """Button to cancel bulk action."""
@@ -785,5 +785,5 @@ class CancelBulkActionButton(Button):
             )
         except discord.errors.NotFound:
             logger.warning("Cancel button interaction expired")
-        except Exception as e:
-            logger.error(f"Error in cancel button: {e}")
+        except (discord.errors.HTTPException, discord.errors.DiscordException) as e:
+            logger.error(f"Error in cancel button: {e}", exc_info=True)
