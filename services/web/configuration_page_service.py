@@ -109,8 +109,9 @@ class ConfigurationPageService:
                 template_data=template_data
             )
 
-        except Exception as e:
-            self.logger.error(f"Error preparing configuration page data: {e}", exc_info=True)
+        except (ImportError, AttributeError, TypeError, ValueError, KeyError, RuntimeError) as e:
+            # Service/data errors (missing services, invalid types, missing attributes/keys, runtime errors)
+            self.logger.error(f"Service error preparing configuration page data: {e}", exc_info=True)
             return ConfigurationPageResult(
                 success=False,
                 error=f"Error preparing page data: {str(e)}"
@@ -173,7 +174,8 @@ class ConfigurationPageService:
                         container_name = container_data.get('container_name', container_file.stem)
                         container_order = container_data.get('order', 999)
                         container_orders[container_name] = container_order
-                except Exception as e:
+                except (IOError, OSError, json.JSONDecodeError, KeyError, ValueError) as e:
+                    # File/JSON errors (read errors, invalid JSON, missing keys, value errors)
                     self.logger.debug(f"Could not load order for {container_file.name}: {e}")
 
         # Sort containers by order value
@@ -270,12 +272,14 @@ class ConfigurationPageService:
             # Validate timezone using zoneinfo first
             from zoneinfo import ZoneInfo
             ZoneInfo(timezone_str)
-        except Exception as e:
+        except (ImportError, KeyError, ValueError, OSError) as e:
+            # Timezone validation errors (missing module, invalid zone, value errors, file errors)
             try:
                 # Fallback to pytz
                 import pytz
                 pytz.timezone(timezone_str)
-            except Exception as e2:
+            except (ImportError, KeyError, ValueError) as e2:
+                # Fallback timezone validation errors
                 self.logger.error(f"Invalid timezone {timezone_str}: {e2}")
                 timezone_str = 'Europe/Berlin'
 
@@ -297,7 +301,8 @@ class ConfigurationPageService:
                 tz = pytz.timezone(timezone_str)
                 dt = datetime.fromtimestamp(last_cache_update, tz=tz)
                 formatted_timestamp = dt.strftime('%Y-%m-%d %H:%M:%S %Z')
-            except Exception as e:
+            except (ImportError, KeyError, ValueError, OSError, OverflowError) as e:
+                # Timestamp/timezone errors (missing modules, invalid zone/value, overflow errors)
                 self.logger.error(f"Error formatting timestamp with timezone: {e}")
                 formatted_timestamp = datetime.fromtimestamp(last_cache_update).strftime('%Y-%m-%d %H:%M:%S')
 
@@ -309,7 +314,8 @@ class ConfigurationPageService:
                 dt = datetime.fromtimestamp(docker_cache['global_timestamp'], tz=tz)
                 formatted_timestamp = dt.strftime('%Y-%m-%d %H:%M:%S %Z')
                 self.logger.debug(f"Using global_timestamp for container list update time: {formatted_timestamp}")
-            except Exception as e:
+            except (ImportError, KeyError, ValueError, OSError, OverflowError) as e:
+                # Timestamp/timezone errors (missing modules, invalid zone/value, overflow errors)
                 self.logger.error(f"Error formatting global_timestamp: {e}")
                 formatted_timestamp = datetime.fromtimestamp(docker_cache['global_timestamp']).strftime('%Y-%m-%d %H:%M:%S')
 
@@ -370,7 +376,8 @@ class ConfigurationPageService:
                 tz = pytz.timezone(timezone_str)
                 dt = dt.replace(tzinfo=pytz.UTC).astimezone(tz)
             return dt.strftime("%Y-%m-%d %H:%M %Z")
-        except Exception as e:
+        except (ImportError, KeyError, ValueError, OSError, AttributeError) as e:
+            # Timestamp/timezone errors (missing modules, invalid zone/value, attribute errors)
             self.logger.error(f"Error formatting task timestamp: {e}")
             return None
 
@@ -474,7 +481,8 @@ class ConfigurationPageService:
                 'donations_disabled': is_donations_disabled(),
                 'current_donation_key': get_donation_disable_key() or ''
             }
-        except Exception as e:
+        except (ImportError, AttributeError, TypeError, OSError, RuntimeError) as e:
+            # Donation service errors (missing functions, attribute errors, file/runtime errors)
             self.logger.warning(f"Could not load donation settings: {e}")
             return {
                 'donations_disabled': False,
@@ -489,7 +497,8 @@ class ConfigurationPageService:
             return {
                 'default_channel_permissions': config_service._get_default_channels_config()['default_channel_permissions']
             }
-        except Exception as e:
+        except (ImportError, AttributeError, TypeError, KeyError, RuntimeError) as e:
+            # Config service errors (missing service, attribute/type/key errors, runtime errors)
             self.logger.warning(f"Could not get default configuration: {e}")
             return {'default_channel_permissions': {}}
 
