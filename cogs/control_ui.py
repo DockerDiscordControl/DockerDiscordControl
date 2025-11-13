@@ -356,13 +356,13 @@ class ActionButton(Button):
                             container_status_service.invalidate_container(self.docker_name)
 
                             fresh_status = await self.cog.get_status(server_config_for_update)
-                            if not isinstance(fresh_status, Exception):
+                            if fresh_status.success:
                                 self.cog.status_cache_service.set(
                                     self.docker_name,
-                                    fresh_status,
+                                    fresh_status.as_tuple(),  # Cache as tuple for backwards compatibility
                                     datetime.now(timezone.utc)
                                 )
-                                is_running = fresh_status[1] if fresh_status else None
+                                is_running = fresh_status.is_running
                                 logger.info(f"[ACTION_BTN] Status for {self.display_name}: is_running={is_running}, action was '{self.action}'")
 
                                 # Check if status matches expected state
@@ -484,10 +484,10 @@ class ActionButton(Button):
                             server_config_for_update = next((s for s in servers if s.get('docker_name') == self.docker_name), None)
                             if server_config_for_update:
                                 fresh_status = await self.cog.get_status(server_config_for_update)
-                                if not isinstance(fresh_status, Exception):
+                                if fresh_status.success:
                                     self.cog.status_cache_service.set(
                                         self.docker_name,
-                                        fresh_status,
+                                        fresh_status.as_tuple(),  # Cache as tuple for backwards compatibility
                                         datetime.now(timezone.utc)
                                     )
 
@@ -1855,12 +1855,12 @@ class AdminContainerDropdown(discord.ui.Select):
                 is_running = False
                 status_known = True
 
-                if isinstance(status_result, Exception):
+                if not status_result.success:
                     # Status unknown (error)
                     status_known = False
                 else:
-                    # status_result is tuple: (status, is_running, uptime, cpu, memory, disabled)
-                    _, is_running, _, _, _, _ = status_result
+                    # status_result is ContainerStatusResult
+                    is_running = status_result.is_running
 
                 # Create control view with buttons
                 control_view = ControlView(

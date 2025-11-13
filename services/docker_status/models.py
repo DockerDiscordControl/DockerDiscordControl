@@ -153,6 +153,120 @@ class CachedStatus:
 
 
 # =========================================================================
+# Container Status Result Models
+# =========================================================================
+
+@dataclass
+class ContainerStatusResult:
+    """
+    Result of a container status query with complete information.
+
+    Replaces the inconsistent tuple returns from get_status() and bulk_fetch_container_status().
+    Provides a clean, typed interface with both success and error states.
+
+    Usage:
+        # Success case
+        result = ContainerStatusResult.success_result(
+            docker_name="nginx", display_name="Web Server",
+            is_running=True, cpu="5.2%", ram="128MB", uptime="2d 5h",
+            details_allowed=True
+        )
+
+        # Error case
+        result = ContainerStatusResult.error_result(
+            docker_name="nginx", error=RuntimeError("Connection failed"),
+            error_type="connectivity"
+        )
+
+        # Offline case
+        result = ContainerStatusResult.offline_result(
+            docker_name="nginx", display_name="Web Server"
+        )
+    """
+    docker_name: str
+    success: bool
+
+    # Success fields (populated when success=True)
+    display_name: Optional[str] = None
+    is_running: bool = False
+    cpu: str = "N/A"
+    ram: str = "N/A"
+    uptime: str = "N/A"
+    details_allowed: bool = True
+
+    # Error fields (populated when success=False)
+    error: Optional[Exception] = None
+    error_message: Optional[str] = None
+    error_type: Optional[str] = None  # 'connectivity', 'not_found', 'timeout', etc.
+
+    @property
+    def is_online(self) -> bool:
+        """Convenience property: container successfully queried AND running"""
+        return self.success and self.is_running
+
+    @property
+    def is_offline(self) -> bool:
+        """Convenience property: container successfully queried but NOT running"""
+        return self.success and not self.is_running
+
+    def as_tuple(self):
+        """
+        Legacy tuple format for backwards compatibility during migration.
+
+        Returns: (display_name, is_running, cpu, ram, uptime, details_allowed)
+        """
+        from typing import Tuple
+        return (
+            self.display_name or self.docker_name,
+            self.is_running,
+            self.cpu,
+            self.ram,
+            self.uptime,
+            self.details_allowed
+        )
+
+    @classmethod
+    def success_result(cls, docker_name: str, display_name: str, is_running: bool,
+                      cpu: str, ram: str, uptime: str, details_allowed: bool) -> 'ContainerStatusResult':
+        """Factory method for successful status fetch"""
+        return cls(
+            docker_name=docker_name,
+            success=True,
+            display_name=display_name,
+            is_running=is_running,
+            cpu=cpu,
+            ram=ram,
+            uptime=uptime,
+            details_allowed=details_allowed
+        )
+
+    @classmethod
+    def error_result(cls, docker_name: str, error: Exception,
+                     error_type: str = 'unknown') -> 'ContainerStatusResult':
+        """Factory method for failed status fetch"""
+        return cls(
+            docker_name=docker_name,
+            success=False,
+            display_name=docker_name,  # Fallback to docker_name
+            error=error,
+            error_message=str(error),
+            error_type=error_type
+        )
+
+    @classmethod
+    def offline_result(cls, docker_name: str, display_name: str,
+                       details_allowed: bool = True) -> 'ContainerStatusResult':
+        """Factory method for offline container (successfully queried but not running)"""
+        return cls(
+            docker_name=docker_name,
+            success=True,
+            display_name=display_name,
+            is_running=False,
+            details_allowed=details_allowed
+        )
+
+
+# =========================================================================
 # Embed Building Models
 # =========================================================================
 

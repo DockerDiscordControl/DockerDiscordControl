@@ -23,7 +23,7 @@ from services.infrastructure.container_status_service import get_docker_info_dic
 from utils.time_utils import format_datetime_with_timezone
 from services.config.config_service import load_config
 from services.config.server_config_service import get_server_config_service
-from services.docker_status import get_performance_service, get_fetch_service
+from services.docker_status import get_performance_service, get_fetch_service, ContainerStatusResult
 from services.discord import get_conditional_cache_service, get_embed_helper_service
 
 # Import helper functions
@@ -330,10 +330,10 @@ class StatusHandlersMixin:
         except (RuntimeError, asyncio.CancelledError, KeyError, TypeError) as e:
             logger.error(f"[BULK_UPDATE] Error during bulk update: {e}", exc_info=True)
 
-    async def get_status(self, server_config: Dict[str, Any]) -> Union[Tuple[str, bool, str, str, str, bool], Exception]:
+    async def get_status(self, server_config: Dict[str, Any]) -> ContainerStatusResult:
         """
         Gets the status of a server.
-        Returns: (display_name, is_running, cpu, ram, uptime, details_allowed) or Exception
+        Returns: ContainerStatusResult object with all status information
         """
         docker_name = server_config.get('docker_name')
 
@@ -347,7 +347,11 @@ class StatusHandlersMixin:
         details_allowed = server_config.get('allow_detailed_status', True) # Default to True if not set
 
         if not docker_name:
-            return ValueError(_("Missing docker_name in server configuration"))
+            return ContainerStatusResult.error_result(
+                docker_name="unknown",
+                error=ValueError(_("Missing docker_name in server configuration")),
+                error_type='config_error'
+            )
 
         try:
             info = await get_docker_info_dict_service_first(docker_name)
@@ -355,7 +359,11 @@ class StatusHandlersMixin:
             if not info:
                 # Container does not exist or Docker daemon is unreachable
                 logger.warning(f"Container info not found for {docker_name}. Assuming offline.")
-                return (display_name, False, 'N/A', 'N/A', 'N/A', details_allowed)
+                return ContainerStatusResult.offline_result(
+                    docker_name=docker_name,
+                    display_name=display_name,
+                    details_allowed=details_allowed
+                )
 
             is_running = info.get('State', {}).get('Running', False)
             uptime = "N/A"
@@ -404,11 +412,23 @@ class StatusHandlersMixin:
                     cpu = _("Hidden")
                     ram = _("Hidden")
 
-            return (display_name, is_running, cpu, ram, uptime, details_allowed)
+            return ContainerStatusResult.success_result(
+                docker_name=docker_name,
+                display_name=display_name,
+                is_running=is_running,
+                cpu=cpu,
+                ram=ram,
+                uptime=uptime,
+                details_allowed=details_allowed
+            )
 
         except (RuntimeError, OSError, ValueError, KeyError, TypeError) as e:
             logger.error(f"Error getting status for {docker_name}: {e}", exc_info=True)
-            return e # Return the exception itself
+            return ContainerStatusResult.error_result(
+                docker_name=docker_name,
+                error=e,
+                error_type=type(e).__name__.lower()
+            )
     
     async def _generate_status_embed_and_view(self, channel_id: int, display_name: str,
                                        server_conf: Dict[str, Any], current_config: Dict[str, Any],
@@ -476,8 +496,8 @@ class StatusHandlersMixin:
                 current_server_conf_for_check = next((s for s in all_servers_config if s.get('docker_name') == docker_name), None)
                 if current_server_conf_for_check:
                     fresh_status = await self.get_status(current_server_conf_for_check)
-                    if not isinstance(fresh_status, Exception) and isinstance(fresh_status, tuple) and len(fresh_status) >= 2:
-                        current_running_state = fresh_status[1]  # is_running is second element
+                    if fresh_status.success:
+                        current_running_state = fresh_status.is_running
                         
                         # ACTION-AWARE SUCCESS DETECTION
                         action_succeeded = False
@@ -545,6 +565,16 @@ class StatusHandlersMixin:
                 embed_cache_age = 0
                 embed_cache_indicator = " (config error)"
 
+        # --- Normalize status_result ---
+        # Convert ContainerStatusResult to tuple for backwards compatibility
+        if isinstance(status_result, ContainerStatusResult):
+            if not status_result.success:
+                # Treat failed result as Exception
+                status_result = status_result.error or Exception(status_result.error_message or "Unknown error")
+            else:
+                # Convert to tuple format
+                status_result = status_result.as_tuple()
+
         # --- Process status_result and generate embed ---
         if status_result is None:
             logger.debug(f"[_GEN_EMBED] Status result for '{display_name}' is None. Showing loading or error status.")
@@ -566,10 +596,10 @@ class StatusHandlersMixin:
             # running remains False, view remains None
 
         elif isinstance(status_result, Exception):
-            logger.error(f"[_GEN_EMBED] Status for '{display_name}' is an exception: {status_result}", exc_info=False) 
+            logger.error(f"[_GEN_EMBED] Status for '{display_name}' is an exception: {status_result}", exc_info=False)
             embed = discord.Embed(
-                title=f"⚠️ {display_name}", 
-                description=_("Error: An exception occurred while fetching status. Background process will retry."), 
+                title=f"⚠️ {display_name}",
+                description=_("Error: An exception occurred while fetching status. Background process will retry."),
                 color=discord.Color.red()
             )
             # running remains False, view remains None
