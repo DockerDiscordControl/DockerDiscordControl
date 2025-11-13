@@ -62,8 +62,9 @@ class ConfigMigrationService:
                 self.perform_real_modular_migration(load_json_func, save_json_func)
             else:
                 logger.debug("Modular structure already exists or no migration needed")
-        except Exception as e:
-            logger.error(f"Error ensuring modular structure: {e}")
+        except (OSError, IOError, PermissionError, AttributeError) as e:
+            # File/directory errors (path operations, permissions, attribute errors)
+            logger.error(f"File/directory error ensuring modular structure: {e}")
             logger.info("Falling back to virtual modular structure")
 
     def needs_real_modular_migration(self) -> bool:
@@ -110,7 +111,8 @@ class ConfigMigrationService:
             # Clean up old JSON files after successful migration
             self.cleanup_legacy_files_after_migration()
 
-        except Exception as e:
+        except (OSError, IOError, PermissionError, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+            # Migration errors (file I/O, permissions, JSON parsing/serialization, data errors)
             logger.error(f"❌ Error during automatic migration: {e}")
             raise
 
@@ -152,8 +154,9 @@ class ConfigMigrationService:
             else:
                 logger.debug("No legacy files found to clean up")
 
-        except Exception as e:
-            logger.warning(f"Error during cleanup: {e}")
+        except (OSError, PermissionError) as e:
+            # File operation errors (deletion errors, permissions)
+            logger.warning(f"File error during cleanup: {e}")
 
     def create_modular_directories(self) -> None:
         """Create the modular directory structure."""
@@ -194,8 +197,9 @@ class ConfigMigrationService:
 
             logger.info(f"✅ Migrated {len(channel_permissions)} channels + default config")
 
-        except Exception as e:
-            logger.error(f"Error migrating channels to files: {e}")
+        except (OSError, IOError, PermissionError, TypeError, ValueError, KeyError) as e:
+            # Migration errors (file I/O, permissions, JSON serialization, data errors)
+            logger.error(f"Migration error for channels to files: {e}")
             raise
 
     def migrate_containers_to_files(self, load_json_func, save_json_func) -> None:
@@ -222,8 +226,9 @@ class ConfigMigrationService:
 
             logger.info(f"✅ Migrated {len(servers)} containers + docker settings")
 
-        except Exception as e:
-            logger.error(f"Error migrating containers to files: {e}")
+        except (OSError, IOError, PermissionError, TypeError, ValueError, KeyError) as e:
+            # Migration errors (file I/O, permissions, JSON serialization, data errors)
+            logger.error(f"Migration error for containers to files: {e}")
             raise
 
     def migrate_system_configs_to_files(self, load_json_func, save_json_func) -> None:
@@ -263,8 +268,9 @@ class ConfigMigrationService:
 
             logger.info("✅ Migrated system configs (config.json, heartbeat.json, auth.json)")
 
-        except Exception as e:
-            logger.error(f"Error migrating system configs to files: {e}")
+        except (OSError, IOError, PermissionError, TypeError, ValueError, KeyError) as e:
+            # Migration errors (file I/O, permissions, JSON serialization, data errors)
+            logger.error(f"Migration error for system configs to files: {e}")
             raise
 
     def migrate_web_configs_to_files(self, load_json_func, save_json_func) -> None:
@@ -285,8 +291,9 @@ class ConfigMigrationService:
 
             logger.info("✅ Migrated web configs (web_ui.json) - advanced_settings kept in web_config.json")
 
-        except Exception as e:
-            logger.error(f"Error migrating web configs to files: {e}")
+        except (OSError, IOError, PermissionError, TypeError, ValueError, KeyError) as e:
+            # Migration errors (file I/O, permissions, JSON serialization, data errors)
+            logger.error(f"Migration error for web configs to files: {e}")
             raise
 
     def migrate_legacy_v1_config_if_needed(self, load_json_func, save_json_func,
@@ -360,6 +367,7 @@ class ConfigMigrationService:
                 logger.warning("   - No web UI password found in legacy config")
                 logger.warning("   - Use /setup or set DDC_ADMIN_PASSWORD for first login")
 
-        except Exception as e:
+        except (IOError, OSError, PermissionError, json.JSONDecodeError, UnicodeDecodeError, TypeError, ValueError, KeyError, AttributeError) as e:
+            # Migration errors (file I/O, permissions, JSON parsing, encoding, data errors, function calls)
             logger.error(f"❌ Migration failed: {e}")
             logger.error("Manual migration may be required")
