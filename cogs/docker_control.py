@@ -2307,9 +2307,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 pass
 
             # Process status and build field
-            if status_result and isinstance(status_result, tuple) and len(status_result) == 6:
-                # Cache format: (display_name, is_running, cpu_str, ram_str, uptime, details_allowed)
-                _, is_running, cpu_str, ram_str, _, _ = status_result
+            # NOW USING ContainerStatusResult Objects (not tuples)
+            from services.docker_status.models import ContainerStatusResult
+
+            if status_result and isinstance(status_result, ContainerStatusResult) and status_result.success:
+                # Extract data from ContainerStatusResult object
+                is_running = status_result.is_running
+                cpu_str = status_result.cpu_usage
+                ram_str = status_result.memory_usage
 
                 # Determine status emoji (EXACTLY same logic as Server Overview)
                 # Check pending actions using docker_name as key
