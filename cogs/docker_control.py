@@ -88,7 +88,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 logger.info("Donations are disabled - removing donation commands")
                 # Remove donate and donatebroadcast commands after cog is initialized
                 self.donations_disabled = True
-        except Exception as e:
+        except (ImportError, AttributeError, RuntimeError) as e:
             logger.debug(f"Error checking donation status: {e}")
             self.donations_disabled = False
         
@@ -227,8 +227,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
             logger.info("Discord update event listener registered")
 
-        except Exception as e:
-            logger.error(f"Failed to setup Discord event listeners: {e}")
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
+            logger.error(f"Failed to setup Discord event listeners: {e}", exc_info=True)
 
     def _handle_discord_update_event(self, event_data):
         """Handle discord_update_needed events for automatic status message refresh."""
@@ -256,8 +256,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             else:
                 logger.warning("Cannot schedule Discord updates: bot loop not available")
 
-        except Exception as e:
-            logger.error(f"Error handling Discord update event: {e}")
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
+            logger.error(f"Error handling Discord update event: {e}", exc_info=True)
 
     def _cancel_existing_loops(self):
         """Cancel any existing background loops."""
@@ -284,7 +284,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             await task
         except asyncio.CancelledError:
             pass
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"Task error: {e}", exc_info=True)
         finally:
             async with self._task_lock:
@@ -350,7 +350,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             try:
                 # Prefer latest cached config (reflects Web UI changes)
                 latest_config = load_config() or {}
-            except Exception:
+            except (OSError, KeyError, ValueError):
                 latest_config = {}
 
             # New format
@@ -382,12 +382,12 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     logger.info("Starting initial status send")
                     await self.send_initial_status()
                     logger.info("Initial status send completed")
-                except Exception as e:
+                except (discord.errors.DiscordException, RuntimeError, OSError) as e:
                     logger.error(f"Error in initial status send: {e}", exc_info=True)
             
             self.bot.loop.create_task(send_initial_after_delay())
             
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"Error setting up background loops: {e}", exc_info=True)
             raise
 
@@ -480,7 +480,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         else:
                             logger.debug(f"SERVICE_FIRST: Overview update skipped - {decision.skip_reason}")
 
-                    except Exception as service_error:
+                    except (ImportError, AttributeError, RuntimeError) as service_error:
                         logger.warning(f"SERVICE_FIRST: Error in overview decision service: {service_error}")
                         # Fallback to original logic on service error
                         tasks_to_run.append(self._update_overview_message(channel_id, message_id, "overview"))
@@ -509,7 +509,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         else:
                             logger.debug(f"SERVICE_FIRST: Admin Overview update skipped - {decision.skip_reason}")
 
-                    except Exception as service_error:
+                    except (ImportError, AttributeError, RuntimeError) as service_error:
                         logger.warning(f"SERVICE_FIRST: Error in admin overview decision service: {service_error}")
                         # Fallback to simple update interval check
                         if last_update_time is None or (now_utc - last_update_time) >= update_interval_delta:
@@ -569,7 +569,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                                 slow_tasks.append(task)
                             else:
                                 fast_tasks.append(task)
-                        except Exception as frame_error:
+                        except (AttributeError, ValueError, KeyError) as frame_error:
                             # Default to fast if we can't determine container type from frame inspection
                             logger.debug(f"Failed to extract container name from task frame, defaulting to fast batch: {frame_error}")
                             fast_tasks.append(task)
@@ -638,7 +638,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 else:  # Over 8 seconds - needs investigation
                     logger.warning(f"Direct Cog Periodic Edit Loop: SLOW batched processing took {batch_time:.1f}ms")
                 
-            except Exception as e:
+            except (discord.errors.DiscordException, RuntimeError, OSError, KeyError) as e:
                 logger.error(f"Critical error during batched message edit processing: {e}", exc_info=True)
                 error_count = total_tasks  # Assume all failed
 
@@ -720,7 +720,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 if not loop_task.is_running():
                     loop_task.start()
                     logger.info(f"{loop_name} re-started successfully via _start_loop_safely after check.")
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"Error starting {loop_name} via _start_loop_safely: {e}", exc_info=True)
 
     async def _start_periodic_message_edit_loop_safely(self):
@@ -742,7 +742,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 logger.warning(f"⚠️ CLEAN SWEEP PARTIAL: Cleaned {result.messages_deleted}/{result.messages_found} "
                               f"messages from channel {channel.id} (error: {result.error})")
 
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"❌ CLEAN SWEEP FAILED for channel {channel.id}: {e}", exc_info=True)
             # Don't raise - clean sweep failure shouldn't stop recovery
 
@@ -754,7 +754,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             await asyncio.sleep(delay_seconds)
             logger.info(f"Executing send_initial_status from __init__ after delay.")
             await self.send_initial_status()
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.error(f"Error in send_initial_status_after_delay_and_ready: {e}", exc_info=True)
 
     @commands.Cog.listener()
@@ -847,10 +847,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 self.last_message_update_time[channel.id]['admin_overview'] = datetime.now(timezone.utc)
 
                 logger.info(f"Successfully sent Admin Overview to control channel {channel.name}")
-            except Exception as e:
-                logger.error(f"Error sending Admin Overview to channel: {e}")
+            except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+                logger.error(f"Error sending Admin Overview to channel: {e}", exc_info=True)
 
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.error(f"Error in _send_control_panel_and_statuses: {e}", exc_info=True)
 
     async def _send_all_server_statuses(self, channel: discord.TextChannel, allow_toggle: bool = True, force_collapse: bool = False):
@@ -928,13 +928,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 
                 logger.info(f"✅ Successfully sent overview embed to status channel {channel.name}")
                 
-            except Exception as e:
+            except (discord.errors.DiscordException, RuntimeError, OSError) as e:
                 logger.error(f"Error sending overview embed to {channel.name}: {e}", exc_info=True)
             
             # NOTE: Individual server status messages removed for status channels
             # Status channels only show the overview embed with all servers
             
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.error(f"Error in _send_all_server_statuses: {e}", exc_info=True)
 
     async def _regenerate_channel(self, channel: discord.TextChannel, mode: str, config: dict):
@@ -955,8 +955,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             await self.delete_bot_messages(channel, limit=300) # Limit adjustable
             await asyncio.sleep(1.0) # Short pause after deleting
             logger.info(f"Finished deleting messages in {channel.name}.")
-        except Exception as e_delete:
-            logger.error(f"Error deleting messages in {channel.name}: {e_delete}")
+        except (discord.errors.HTTPException, discord.errors.NotFound) as e_delete:
+            logger.error(f"Error deleting messages in {channel.name}: {e_delete}", exc_info=True)
             # Continue even if deletion fails - regeneration might still work
 
         # --- Send new messages based on mode ---
@@ -970,7 +970,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
             logger.info(f"✅ Regeneration for channel {channel.name} completed successfully.")
 
-        except Exception as e_send:
+        except (discord.errors.HTTPException, discord.errors.Forbidden) as e_send:
             logger.error(f"❌ Error sending new messages to {channel.name} in mode '{mode}': {e_send}", exc_info=True)
             raise RuntimeError(f"Failed to send new messages during regeneration: {e_send}") from e_send
 
@@ -1049,8 +1049,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         try:
                             await self.delete_bot_messages(channel)
                             await asyncio.sleep(1)  # Short pause after deletion
-                        except Exception as e:
-                            logger.error(f"Error deleting messages in {channel.name}: {e}")
+                        except (discord.errors.DiscordException, RuntimeError) as e:
+                            logger.error(f"Error deleting messages in {channel.name}: {e}", exc_info=True)
                             
                         # Clear any leftover individual server message tracking from old architecture
                         if channel.id in self.channel_server_message_ids:
@@ -1077,13 +1077,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         logger.warning(f"Channel {channel_id} not found")
                     except discord.Forbidden:
                         logger.warning(f"Missing permissions for channel {channel_id}")
-                    except Exception as e:
-                        logger.error(f"Error processing channel {channel_id}: {e}")
+                    except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+                        logger.error(f"Error processing channel {channel_id}: {e}", exc_info=True)
                         
-                except Exception as e:
-                    logger.error(f"Error processing channel config {channel_id_str}: {e}")
+                except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+                    logger.error(f"Error processing channel config {channel_id_str}: {e}", exc_info=True)
 
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"Critical error during send_initial_status: {e}", exc_info=True)
         finally:
             self.initial_messages_sent = True
@@ -1136,7 +1136,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 duration_ms = (time.time() - start_time) * 1000
                 logger.info(f"Background cache population completed: {success_count} success, {error_count} errors in {duration_ms:.1f}ms")
 
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"Error during background cache population: {e}", exc_info=True)
 
     # _update_single_message WAS REMOVED
@@ -1163,7 +1163,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 logger.warning(f"⚠️ CLEANUP PARTIAL: Deleted {result.messages_deleted} messages in {channel.name} "
                               f"(error: {result.error})")
 
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"❌ CLEANUP FAILED for channel {channel.name}: {e}", exc_info=True)
 
     # --- Slash Commands ---
@@ -1190,7 +1190,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                                 await ctx.followup.send(f"❌ Command on cooldown. Try again in {remaining} seconds.")
                             else:
                                 await ctx.respond(f"❌ Command on cooldown. Try again in {remaining} seconds.", ephemeral=True)
-                        except Exception:
+                        except (discord.errors.HTTPException, discord.errors.NotFound):
                             # If response fails, still prevent command execution
                             pass
                         return False
@@ -1252,7 +1252,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 embed_result = connectivity_service.create_error_embed_data(embed_request)
 
                 if not embed_result.success:
-                    logger.error(f"Failed to create Docker connectivity error embed: {embed_result.error}")
+                    logger.error(f"Failed to create Docker connectivity error embed: {embed_result.error}", exc_info=True)
                     await ctx.followup.send(_("Error creating connectivity status message."), ephemeral=True)
                     return
 
@@ -1286,7 +1286,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     last_update_time=None,  # Manual commands ignore timing
                     reason="manual_serverstatus_command"
                 )
-            except Exception as service_error:
+            except (ImportError, AttributeError, RuntimeError) as service_error:
                 logger.warning(f"SERVICE_FIRST: Error logging decision for manual /ss command: {service_error}")
 
             if is_mech_expanded:
@@ -1312,11 +1312,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     logger.warning("No animation file attached, sending embed only")
                     message = await ctx.followup.send(embed=embed, view=view)
             except discord.HTTPException as e:
-                logger.error(f"Discord error sending animation: {e}")
+                logger.error(f"Discord error sending animation: {e}", exc_info=True)
                 # Fallback: Send without animation but with button
                 try:
                     message = await ctx.followup.send(embed=embed, view=view)
-                except Exception as fallback_error:
+                except (RuntimeError, OSError, ValueError) as fallback_error:
                     logger.error(f"Critical: Could not send embed at all: {fallback_error}")
                     await ctx.followup.send(_("Error generating server status overview."), ephemeral=True)
                     return
@@ -1337,12 +1337,12 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # Set last channel activity
             self.last_channel_activity[ctx.channel.id] = now_utc
             
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.error(f"Error in serverstatus command: {e}", exc_info=True)
             try:
                 await ctx.followup.send(_("An error occurred while generating the overview."), ephemeral=True)
-            except Exception as e:
-                logger.error(f"Error generating overview: {e}")
+            except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+                logger.error(f"Error generating overview: {e}", exc_info=True)
 
     @commands.slash_command(name="ss", description=_("Shortcut: Shows the status of all containers"), guild_ids=get_guild_id())
     async def ss(self, ctx):
@@ -1398,14 +1398,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
             logger.info(f"Control command used by {ctx.author} in {ctx.channel.name}")
 
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.error(f"Error in control command: {e}", exc_info=True)
             try:
                 if not ctx.response.is_done():
                     await ctx.respond("❌ Error showing control overview.")
                 else:
                     await ctx.followup.send("❌ Error showing control overview.")
-            except Exception:
+            except (discord.errors.DiscordException, RuntimeError):
                 pass
 
     # Legacy command methods removed - all container control and info editing
@@ -1464,8 +1464,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
         try:
             await ctx.followup.send(embed=embed, ephemeral=True)
-        except Exception as e:
-            logger.error(f"Failed to send help message: {e}")
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
+            logger.error(f"Failed to send help message: {e}", exc_info=True)
             # Fallback - try to send minimal message
             try:
                 await ctx.followup.send(_("Help information is temporarily unavailable."), ephemeral=True)
@@ -1499,10 +1499,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Send minimal response via followup since we deferred
                 try:
                     await ctx.followup.send(".", delete_after=0.1)
-                except Exception as e:
+                except (RuntimeError, ValueError, KeyError, OSError) as e:
                     logger.debug(f"Followup cleanup failed: {e}")
                 return
-        except Exception as e:
+        except (ImportError, AttributeError, RuntimeError) as e:
             logger.debug(f"Donation check failed: {e}")
         
         # Check spam protection
@@ -1546,7 +1546,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             except:
                 await ctx.followup.send(embed=embed)
                 
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.error(f"Error in donate command: {e}", exc_info=True)
 
     async def _handle_donate_interaction(self, interaction: discord.Interaction):
@@ -1603,7 +1603,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         except discord.NotFound:
             # Interaction expired - silently ignore
             pass
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError) as e:
             # Only log unexpected errors, not Discord timing issues
             if "Unknown interaction" not in str(e):
                 logger.error(f"Unexpected error in donate interaction: {e}", exc_info=True)
@@ -1638,7 +1638,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Interaction already timed out, but we can still try to respond
                 logger.debug(f"Interaction already timed out for /info command, attempting direct response")
                 deferred = False
-            except Exception as e:
+            except (discord.errors.DiscordException, RuntimeError) as e:
                 logger.warning(f"Failed to defer /info command: {e}")
                 deferred = False
             
@@ -1748,13 +1748,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 logger.warning(f"Interaction expired for /info {container_name}, cannot send response")
                 return
             except discord.errors.HTTPException as e:
-                logger.error(f"HTTP error sending /info response for {container_name}: {e}")
+                logger.error(f"HTTP error sending /info response for {container_name}: {e}", exc_info=True)
                 return
             
             logger.info(f"INFO COMMAND COMPLETED: call_id={call_id}, container={container_name}, user={ctx.author.id}, channel={ctx.channel_id}, info={has_info_permission}, control={has_control}, deferred={deferred}, timestamp={time.time()}")
             return  # Important: Return here to prevent fall-through to error handling
             
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.error(f"Error in info command for {container_name}: {e}", exc_info=True)
             # Try to send error message if possible
             try:
@@ -1843,7 +1843,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 info_result = info_service.get_container_info(docker_name)
                 if info_result.success and info_result.data.enabled:
                     info_indicator = " ℹ️"
-            except Exception as e:
+            except (RuntimeError, ValueError, KeyError, OSError) as e:
                 logger.debug(f"Could not check info status for {docker_name}: {e}")
             
             # Process status result (same as original)
@@ -1895,7 +1895,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     if info_result.success and info_result.data.enabled:
                         has_any_info = True
                         break
-        except Exception as e:
+        except (KeyError, AttributeError, ValueError) as e:
             logger.debug(f"Could not check info availability: {e}")
         
         # Help text removed - replaced with Help button in MechView
@@ -1998,7 +1998,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     # Convert to Discord File
                     buffer = BytesIO(animation_bytes)
                     animation_file = discord.File(buffer, filename=f"mech_status_expanded_{int(time.time())}.webp", spoiler=False)
-                except Exception as e:
+                except (RuntimeError, ValueError, KeyError, OSError) as e:
                     logger.warning(f"Animation service failed (graceful degradation): {e}")
                     animation_file = None
                     # Add fallback visual indicator in embed
@@ -2117,7 +2117,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     # For refreshes without animation file, reference existing with correct extension
                     embed.set_image(url="attachment://mech_animation.webp")  # Assume WebP for new system
                     
-            except Exception as e:
+            except (discord.errors.DiscordException, RuntimeError, OSError, KeyError) as e:
                 logger.error(f"Could not load expanded mech status for /ss: {e}", exc_info=True)
         else:
             # Donations disabled - no mech components
@@ -2210,7 +2210,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 info_result = info_service.get_container_info(docker_name)
                 if info_result.success and info_result.data.enabled:
                     has_info = True
-            except Exception:
+            except (discord.errors.DiscordException, RuntimeError):
                 pass
 
             # Process status and build field
@@ -2393,7 +2393,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 info_result = info_service.get_container_info(docker_name)
                 if info_result.success and info_result.data.enabled:
                     info_indicator = " ℹ️"
-            except Exception as e:
+            except (RuntimeError, ValueError, KeyError, OSError) as e:
                 logger.debug(f"Could not check info status for {docker_name}: {e}")
             
             # Process status result (same as original)
@@ -2445,7 +2445,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     if info_result.success and info_result.data.enabled:
                         has_any_info = True
                         break
-        except Exception as e:
+        except (KeyError, AttributeError, ValueError) as e:
             logger.debug(f"Could not check info availability: {e}")
         
         # Help text removed - replaced with Help button in MechView
@@ -2506,7 +2506,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     # Convert to Discord File
                     buffer = BytesIO(animation_bytes)
                     animation_file = discord.File(buffer, filename=f"mech_status_collapsed_{int(time.time())}.webp", spoiler=False)
-                except Exception as e:
+                except (RuntimeError, ValueError, KeyError, OSError) as e:
                     logger.warning(f"Animation service failed (graceful degradation): {e}")
                     animation_file = None
                     # Add fallback visual indicator in embed
@@ -2529,7 +2529,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     # For refreshes without animation file, reference existing with correct extension
                     embed.set_image(url="attachment://mech_animation.webp")  # Assume WebP for new system
                 
-            except Exception as e:
+            except (discord.errors.DiscordException, RuntimeError, OSError, KeyError) as e:
                 logger.error(f"Could not load collapsed mech status for /ss: {e}", exc_info=True)
         else:
             # Donations disabled - no mech components
@@ -2580,7 +2580,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 mech_service = get_mech_service()
                 mech_service_available = True
                 logger.info("MechService is available for donations")
-            except Exception as e:
+            except (ImportError, AttributeError, RuntimeError) as e:
                 mech_service_available = False
                 logger.warning(f"MechService not available: {e}")
             
@@ -2624,12 +2624,12 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Note: Ephemeral messages don't need auto-delete as they're private
                 await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
                 logger.info(f"Mechonate button used by user {interaction.user.name} ({interaction.user.id})")
-            except Exception as view_error:
-                logger.error(f"Error creating DonationView: {view_error}")
+            except (ImportError, AttributeError, RuntimeError) as view_error:
+                logger.error(f"Error creating DonationView: {view_error}", exc_info=True)
                 # Fallback without view
                 await interaction.response.send_message(embed=embed, ephemeral=True)
                 
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.error(f"Error in _handle_donate_interaction: {e}", exc_info=True)
             try:
                 error_embed = discord.Embed(
@@ -2711,7 +2711,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                             logger.debug(f"SERVICE_FIRST: Updating channel {channel_id} - {decision.reason}")
 
-                        except Exception as service_error:
+                        except (ImportError, AttributeError, RuntimeError) as service_error:
                             logger.warning(f"SERVICE_FIRST: Error in decision service for channel {channel_id}: {service_error}")
                             # Continue with original logic if service fails (safe fallback)
 
@@ -2756,7 +2756,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                             else:
                                 current_glvl = 0
                                 current_Power = 0.0
-                        except Exception as e:
+                        except (KeyError, ValueError, AttributeError) as e:
                             logger.debug(f"Could not get current Glvl: {e}")
                             # BUGFIX: Set fallback values if cache fails
                             current_glvl = 0
@@ -2837,7 +2837,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         
                         updated_count += 1
                         
-                    except Exception as e:
+                    except (discord.errors.DiscordException, RuntimeError, OSError) as e:
                         logger.error(f"AUTO-UPDATE ERROR: Could not update /ss message in channel {channel_id}: {e}", exc_info=True)
             
             if updated_count > 0:
@@ -2845,8 +2845,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             else:
                 logger.debug("No /ss messages found to update")
                 
-        except Exception as e:
-            logger.error(f"Error in _auto_update_ss_messages: {e}")
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
+            logger.error(f"Error in _auto_update_ss_messages: {e}", exc_info=True)
     
     async def _edit_only_ss_messages(self, reason: str):
         """Edit-only update for /ss messages (used for expand/collapse)"""
@@ -2903,8 +2903,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 try:
                     self.heartbeat_send_loop.change_interval(minutes=interval_minutes)
                     logger.info(f"[BETA] Heartbeat interval updated to {interval_minutes} minutes.")
-                except Exception as e:
-                    logger.error(f"[BETA] Failed to update heartbeat interval: {e}")
+                except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+                    logger.error(f"[BETA] Failed to update heartbeat interval: {e}", exc_info=True)
     
             logger.debug("[BETA] Heartbeat loop running.")
             
@@ -2941,14 +2941,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     logger.error(f"[BETA] Missing permissions to send heartbeat message to channel {channel_id}.")
                 except discord.HTTPException as http_err:
                     logger.error(f"[BETA] HTTP error sending heartbeat to channel {channel_id}: {http_err}")
-                except Exception as e:
-                    logger.error(f"[BETA] Error sending heartbeat to channel {channel_id}: {e}")
+                except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+                    logger.error(f"[BETA] Error sending heartbeat to channel {channel_id}: {e}", exc_info=True)
             elif method == 'api':
                 # API method is not implemented yet
                 logger.warning("[BETA] API heartbeat method is not yet implemented.")
             else:
                 logger.warning(f"[BETA] Unknown heartbeat method specified in config: '{method}'. Supported methods: 'channel'")
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"[BETA] Error in heartbeat_send_loop: {e}", exc_info=True)
 
     @heartbeat_send_loop.before_loop
@@ -2981,8 +2981,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             try:
                 self.status_update_loop.change_interval(seconds=cache_duration)
                 logger.info(f"[STATUS_LOOP] Cache update interval changed to {cache_duration} seconds")
-            except Exception as e:
-                logger.error(f"[STATUS_LOOP] Failed to change interval: {e}")
+            except (discord.errors.DiscordException, RuntimeError, OSError, KeyError) as e:
+                logger.error(f"[STATUS_LOOP] Failed to change interval: {e}", exc_info=True)
         
         # Configuration already loaded and validated above
         # SERVICE FIRST: Use ServerConfigService instead of direct config access
@@ -3020,7 +3020,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 duration_ms = (time.time() - start_time) * 1000
                 logger.info(f"[STATUS_LOOP] Cache updated: {success_count} success, {error_count} errors in {duration_ms:.1f}ms")
 
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"[STATUS_LOOP] Unexpected error during status update loop: {e}", exc_info=True)
 
     @status_update_loop.before_loop
@@ -3036,7 +3036,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             logger.info("Starting MechStatusCacheService background loop...")
             await self.mech_status_cache_service.start_background_loop()
             logger.info("MechStatusCacheService background loop started successfully")
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"Failed to start MechStatusCacheService background loop: {e}", exc_info=True)
 
     @start_mech_cache_loop.before_loop
@@ -3067,7 +3067,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             await self._perform_optimized_cache_warmup(animation_cache)
 
             logger.info("Background animation cache warmup completed successfully")
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"Failed to perform background animation cache warmup: {e}", exc_info=True)
 
     async def _perform_optimized_cache_warmup(self, animation_cache):
@@ -3110,8 +3110,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # Wait for both to complete in parallel (much faster than serial)
             await asyncio.gather(small_task, big_task, return_exceptions=True)
 
-        except Exception as e:
-            logger.error(f"Error in optimized cache warmup: {e}")
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
+            logger.error(f"Error in optimized cache warmup: {e}", exc_info=True)
             # Fallback to original implementation
             await animation_cache.perform_initial_cache_warmup()
 
@@ -3124,7 +3124,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 animation_cache.get_animation_with_speed_and_power, level, speed_level, power
             )
             logger.debug(f"Completed: Small animation Level {level}")
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.warning(f"Failed to cache small animation: {e}")
 
     async def _cache_big_animation_async(self, animation_cache, level, speed_level, power):
@@ -3136,7 +3136,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 animation_cache.get_animation_with_speed_and_power_big, level, speed_level, power
             )
             logger.debug(f"Completed: Big animation Level {level}")
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.warning(f"Failed to cache big animation: {e}")
 
     @initial_animation_cache_warmup.before_loop
@@ -3259,7 +3259,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                             self.last_channel_activity[channel_id] = now_utc
                             logger.info(f"✅ Channel {channel.name} ({channel_id}) successfully regenerated due to inactivity. Mode: {regeneration_mode}")
 
-                        except Exception as regen_error:
+                        except (discord.errors.DiscordException, RuntimeError, OSError) as regen_error:
                             logger.error(f"❌ Failed to regenerate channel {channel.name} ({channel_id}) due to inactivity: {regen_error}", exc_info=True)
                             # Don't reset activity timer on failure - try again next cycle
                             # But prevent infinite retries by adding a small delay
@@ -3272,11 +3272,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         del self.last_channel_activity[channel_id]
                     except discord.Forbidden:
                         logger.error(f"Cannot access channel {channel_id} (forbidden). Continuing tracking but regeneration not possible")
-                    except Exception as e:
+                    except (discord.errors.DiscordException, RuntimeError, OSError) as e:
                         logger.error(f"Error during inactivity check for channel {channel_id}: {e}", exc_info=True)
                 else:
                     logger.debug(f"Channel {channel_id} - Inactivity threshold not reached yet")
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.error(f"Error in inactivity_check_loop: {e}", exc_info=True)
 
     @inactivity_check_loop.before_loop
@@ -3308,7 +3308,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             
             logger.debug("Performance cache clear completed")
             
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.error(f"Error in performance_cache_clear_loop: {e}", exc_info=True)
 
     @performance_cache_clear_loop.before_loop
@@ -3345,8 +3345,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
         try:
             await ctx.followup.send(_("Regenerating control panel... Please wait."), ephemeral=True)
-        except Exception as e_followup:
-            logger.error(f"Error sending initial followup for /control command: {e_followup}")
+        except (discord.errors.HTTPException, discord.errors.Forbidden) as e_followup:
+            logger.error(f"Error sending initial followup for /control command: {e_followup}", exc_info=True)
 
         # Run regeneration directly instead of as background task for better user experience
         try:
@@ -3357,8 +3357,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 await ctx.followup.send(_("✅ Control panel regenerated successfully!"), ephemeral=True)
             except:
                 pass  # Followup might have already been used or expired
-        except Exception as e_regen:
-            logger.error(f"Error during control panel regeneration: {e_regen}")
+        except (discord.errors.DiscordException, RuntimeError, OSError) as e_regen:
+            logger.error(f"Error during control panel regeneration: {e_regen}", exc_info=True)
             try:
                 await ctx.followup.send(_("❌ Error regenerating control panel. Check logs for details."), ephemeral=True)
             except:
@@ -3393,8 +3393,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             from .control_ui import _clear_caches
             _clear_caches()
             logger.info("Performance caches cleared on cog unload")
-        except Exception as e:
-            logger.error(f"Error clearing performance caches on unload: {e}")
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
+            logger.error(f"Error clearing performance caches on unload: {e}", exc_info=True)
 
     # Method to update shared docker status cache from instance cache
     def update_global_status_cache(self):
@@ -3407,8 +3407,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 "Published docker status cache runtime snapshot with %d entries",
                 len(snapshot),
             )
-        except Exception as e:
-            logger.error(f"Error publishing docker status cache snapshot: {e}")
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
+            logger.error(f"Error publishing docker status cache snapshot: {e}", exc_info=True)
 
     # Accessor method to get the current status cache
     def get_status_cache(self) -> Dict[str, Any]:
@@ -3484,8 +3484,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                                 logger.info(f"✅ RECOVERY SUCCESS: Generated new overview message {new_message.id} to replace missing {message_id} in channel {channel_id}")
                                 continue
 
-                            except Exception as recovery_error:
-                                logger.error(f"❌ RECOVERY FAILED: Could not regenerate overview message for channel {channel_id}: {recovery_error}")
+                            except (discord.errors.DiscordException, RuntimeError) as recovery_error:
+                                logger.error(f"❌ RECOVERY FAILED: Could not regenerate overview message for channel {channel_id}: {recovery_error}", exc_info=True)
                                 # Remove from tracking since we can't recover
                                 if channel_id in self.channel_server_message_ids and 'overview' in self.channel_server_message_ids[channel_id]:
                                     del self.channel_server_message_ids[channel_id]['overview']
@@ -3560,13 +3560,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                         updated_count += 1
                         logger.info(f"Updated overview message in channel {channel_id} after donation")
-                    except Exception as e:
-                        logger.error(f"Failed to update overview in channel {channel_id}: {e}")
+                    except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+                        logger.error(f"Failed to update overview in channel {channel_id}: {e}", exc_info=True)
 
             logger.info(f"Successfully updated {updated_count} overview messages after donation")
 
-        except Exception as e:
-            logger.error(f"Error updating overview messages after donation: {e}")
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
+            logger.error(f"Error updating overview messages after donation: {e}", exc_info=True)
 
     async def _update_overview_message(self, channel_id: int, message_id: int, message_type: str = "overview") -> bool:
         """
@@ -3728,14 +3728,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 logger.info(f"✅ RECOVERY SUCCESS: Auto-recreated overview message {new_message.id} to replace deleted {message_id} in channel {channel_id}")
                 return True  # Recovery successful
 
-            except Exception as recovery_error:
-                logger.error(f"❌ RECOVERY FAILED: Could not auto-recreate overview message for channel {channel_id}: {recovery_error}")
+            except (discord.errors.DiscordException, RuntimeError) as recovery_error:
+                logger.error(f"❌ RECOVERY FAILED: Could not auto-recreate overview message for channel {channel_id}: {recovery_error}", exc_info=True)
                 # Remove from tracking since we can't recover
                 if channel_id in self.channel_server_message_ids and 'overview' in self.channel_server_message_ids[channel_id]:
                     del self.channel_server_message_ids[channel_id]['overview']
                 return False
             
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"Error updating overview message in channel {channel_id}: {e}", exc_info=True)
             return False
     
@@ -3797,7 +3797,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             self.bot.add_view(PersistentMechStoryView(self))
             
             logger.info("✅ Registered persistent mech views for button persistence")
-        except Exception as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.warning(f"⚠️ Could not register persistent mech views: {e}")
 
 class DonationView(discord.ui.View):
@@ -3853,10 +3853,10 @@ class DonationView(discord.ui.View):
                     await self.message.delete()
                 except discord.NotFound:
                     logger.debug("Message already deleted")
-                except Exception as e:
-                    logger.error(f"Error deleting donation message on timeout: {e}")
-        except Exception as e:
-            logger.error(f"Error in DonationView.on_timeout: {e}")
+                except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+                    logger.error(f"Error deleting donation message on timeout: {e}", exc_info=True)
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
+            logger.error(f"Error in DonationView.on_timeout: {e}", exc_info=True)
     
     async def start_auto_delete_timer(self):
         """Start the auto-delete timer that runs shortly before timeout."""
@@ -3870,12 +3870,12 @@ class DonationView(discord.ui.View):
                     await self.message.delete()
                 except discord.NotFound:
                     logger.debug("Message already deleted")
-                except Exception as e:
-                    logger.error(f"Error auto-deleting donation message: {e}")
+                except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+                    logger.error(f"Error auto-deleting donation message: {e}", exc_info=True)
         except asyncio.CancelledError:
             logger.debug("Auto-delete timer cancelled")
-        except Exception as e:
-            logger.error(f"Error in auto-delete timer: {e}")
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
+            logger.error(f"Error in auto-delete timer: {e}", exc_info=True)
     
     async def broadcast_clicked(self, interaction: discord.Interaction):
         """Handle Broadcast Donation button click."""
@@ -3883,8 +3883,8 @@ class DonationView(discord.ui.View):
             # Show modal for donation details
             modal = DonationBroadcastModal(self.donation_manager_available, interaction.user.name, self.bot)
             await interaction.response.send_modal(modal)
-        except Exception as e:
-            logger.error(f"Error in broadcast_clicked: {e}")
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
+            logger.error(f"Error in broadcast_clicked: {e}", exc_info=True)
 
 class DonationBroadcastModal(discord.ui.Modal):
     """Modal for donation broadcast details."""
@@ -3957,8 +3957,8 @@ class DonationBroadcastModal(discord.ui.Modal):
                 # At max level or no next level info
                 return _("🎯 Support DDC development! (e.g. 10.50)")
 
-        except Exception as e:
-            logger.error(f"Error getting dynamic amount placeholder: {e}")
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
+            logger.error(f"Error getting dynamic amount placeholder: {e}", exc_info=True)
             # Fallback to default placeholder
             return _("10.50 (numbers only, $ will be added automatically)")
 
@@ -4116,8 +4116,8 @@ class DonationBroadcastModal(discord.ui.Modal):
                         # Manual update here caused double-updates and race conditions
                         logger.info("Donation event will trigger automatic overview updates via event system")
 
-                except Exception as e:
-                    logger.error(f"Error processing donation: {e}")
+                except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+                    logger.error(f"Error processing donation: {e}", exc_info=True)
                     evolution_occurred = False
             
             # Create broadcast message
@@ -4168,9 +4168,9 @@ class DonationBroadcastModal(discord.ui.Modal):
                         else:
                             failed_count += 1
                             
-                    except Exception as channel_error:
+                    except (discord.errors.DiscordException, RuntimeError) as channel_error:
                         failed_count += 1
-                        logger.error(f"Error sending to channel {channel_id_str}: {channel_error}")
+                        logger.error(f"Error sending to channel {channel_id_str}: {channel_error}", exc_info=True)
             
             # Respond to user
             if should_share_publicly:
@@ -4194,8 +4194,8 @@ class DonationBroadcastModal(discord.ui.Modal):
                 except:
                     pass  # Ignore if already deleted or expired
 
-        except Exception as e:
-            logger.error(f"Error in donation broadcast modal: {e}")
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
+            logger.error(f"Error in donation broadcast modal: {e}", exc_info=True)
 
             # Clean up processing message even if error occurred
             if processing_msg:
@@ -4208,8 +4208,8 @@ class DonationBroadcastModal(discord.ui.Modal):
                 await interaction.edit_original_response(
                     content=_("❌ Error sending donation broadcast. Please try again later.")
                 )
-            except Exception as edit_error:
-                logger.error(f"Could not send error response: {edit_error}")
+            except (discord.errors.HTTPException, discord.errors.Forbidden) as edit_error:
+                logger.error(f"Could not send error response: {edit_error}", exc_info=True)
 
 # Setup function required for extension loading
 def setup(bot):
@@ -4229,7 +4229,7 @@ def setup(bot):
                 if cmd_name in bot.application_commands:
                     del bot.application_commands[cmd_name]
                     logger.info(f"Removed /{cmd_name} command - donations disabled")
-    except Exception as e:
+    except (KeyError, AttributeError, RuntimeError) as e:
         logger.debug(f"Could not remove donation commands: {e}")
     
     # Add simple donation notification task
@@ -4311,18 +4311,18 @@ def setup(bot):
                                         logger.debug(f"🔔 Channel {channel_id_str} not found")
                                     elif not donation_broadcasts:
                                         logger.debug(f"🔔 Donation broadcasts disabled for {channel_id_str}")
-                            except Exception as channel_error:
-                                logger.error(f"🔔 Error sending to channel {channel_id_str}: {channel_error}")
+                            except (discord.errors.DiscordException, RuntimeError) as channel_error:
+                                logger.error(f"🔔 Error sending to channel {channel_id_str}: {channel_error}", exc_info=True)
                         
                         logger.info(f"🔔 Processed Web UI donation: {donor_name} ${amount} - sent to {sent_count} channels")
                         
-                    except Exception as embed_error:
+                    except (discord.errors.DiscordException, RuntimeError, ValueError) as embed_error:
                         logger.error(f"🔔 Error creating/sending donation embed: {embed_error}", exc_info=True)
                 
                 # Delete file after processing
                 os.remove(notification_file)
                 
-        except Exception as e:
+        except (OSError, ValueError, RuntimeError) as e:
             logger.debug(f"Error checking donation notifications: {e}")
     
     # Start the task and add to cog
