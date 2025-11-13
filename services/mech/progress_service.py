@@ -535,102 +535,118 @@ def deterministic_gift_1_3(mech_id: str, campaign_id: str) -> int:
 # Core logic
 # ---------------------
 
-def apply_donation_units(snap: Snapshot, units_cents: int) -> Tuple[Snapshot, Optional[Event], Optional[Event]]:
-    """Apply donation units to evo & power; may trigger LevelUpCommitted and ExactHitBonusGranted events."""
+def apply_donation_units(snap: Snapshot, units_cents: int) -> Tuple[Snapshot, List[Event], Optional[Event]]:
+    """Apply donation units to evo & power; may trigger multiple LevelUpCommitted and ExactHitBonusGranted events."""
     # Track cumulative donations
     snap.cumulative_donations_cents += units_cents
 
     if snap.level >= 11:
         snap.power_acc += units_cents
-        return snap, None, None
+        return snap, [], None
 
     new_evo = snap.evo_acc + units_cents
     snap.power_acc += units_cents
 
     if new_evo < snap.goal_requirement:
         snap.evo_acc = new_evo
-        return snap, None, None
+        return snap, [], None
 
-    # Commit level-up
-    exact_hit = (new_evo == snap.goal_requirement)
-    lvl_from = snap.level
-    snap.level = min(snap.level + 1, 11)
+    # Process multiple level-ups if donation is large enough
+    level_up_events = []
+    bonus_event = None  # Only for the LAST exact hit
 
-    # Carry over excess to next level
-    excess = new_evo - snap.goal_requirement
-    snap.evo_acc = excess
+    while new_evo >= snap.goal_requirement and snap.level < 11:
+        # Check for exact hit
+        exact_hit = (new_evo == snap.goal_requirement)
+        lvl_from = snap.level
+        old_goal = snap.goal_requirement
 
-    # Reset power to excess (same as evolution) plus bonus for exact hit
-    snap.power_acc = excess
-    bonus_event = None
-    if exact_hit:
-        snap.power_acc += 100  # Add $1 bonus for exact hit
-        # Create event for exact hit bonus (for transparency in donation history)
-        bonus_event = Event(
+        # Commit level-up
+        snap.level = min(snap.level + 1, 11)
+
+        # Carry over excess to next level
+        excess = new_evo - old_goal
+        snap.evo_acc = excess
+
+        # Reset power to excess (same as evolution)
+        snap.power_acc = excess
+
+        # Add bonus for exact hit (only for last exact hit)
+        if exact_hit:
+            snap.power_acc += 100  # Add $1 bonus for exact hit
+            # Store bonus event (will be returned for last exact hit only)
+            bonus_event = Event(
+                seq=0,
+                ts=now_utc_iso(),
+                type="ExactHitBonusGranted",
+                mech_id=snap.mech_id,
+                payload={
+                    "power_units": 100,  # cents
+                    "from_level": lvl_from,
+                    "to_level": snap.level,
+                    "reason": "exact_level_up"
+                },
+            )
+
+        logger.info(f"Level up! Mech {snap.mech_id}: {lvl_from} -> {snap.level} (exact_hit={exact_hit})")
+
+        # Create level-up event
+        lvl_evt = Event(
             seq=0,
             ts=now_utc_iso(),
-            type="ExactHitBonusGranted",
+            type="LevelUpCommitted",
             mech_id=snap.mech_id,
             payload={
-                "power_units": 100,  # cents
                 "from_level": lvl_from,
                 "to_level": snap.level,
-                "reason": "exact_level_up"
+                "old_goal_requirement": old_goal,
+                "exact_hit": exact_hit,
             },
         )
+        level_up_events.append(lvl_evt)
 
-    logger.info(f"Level up! Mech {snap.mech_id}: {lvl_from} -> {snap.level} (exact_hit={exact_hit})")
+        # Calculate new goal for next level
+        if snap.level < 11:
+            # Get current STATUS CHANNEL member count for accurate dynamic cost calculation
+            # IMPORTANT: We count ONLY members who can see status channels, NOT all server members
+            # This data is updated by the bot at startup and stored in member_count.json
+            import json
 
-    lvl_evt = Event(
-        seq=0,
-        ts=now_utc_iso(),
-        type="LevelUpCommitted",
-        mech_id=snap.mech_id,
-        payload={
-            "from_level": lvl_from,
-            "to_level": snap.level,
-            "old_goal_requirement": snap.goal_requirement,
-            "exact_hit": exact_hit,
-        },
-    )
-
-    if snap.level < 11:
-        # Get current STATUS CHANNEL member count for accurate dynamic cost calculation
-        # IMPORTANT: We count ONLY members who can see status channels, NOT all server members
-        # This data is updated by the bot at startup and stored in member_count.json
-        import json
-
-        member_count_file = MEMBER_COUNT_FILE
-        if member_count_file.exists():
-            try:
-                with open(member_count_file, 'r') as f:
-                    data = json.load(f)
-                    current_member_count = data.get("count", 50)
-                    logger.info(f"Level-up: Loaded status channel member count from config: {current_member_count}")
-            except (IOError, OSError) as e:
-                # File I/O errors (read errors, permissions)
-                logger.warning(f"File I/O error reading member_count.json: {e}, using default")
+            member_count_file = MEMBER_COUNT_FILE
+            if member_count_file.exists():
+                try:
+                    with open(member_count_file, 'r') as f:
+                        data = json.load(f)
+                        current_member_count = data.get("count", 50)
+                        logger.info(f"Level-up: Loaded status channel member count from config: {current_member_count}")
+                except (IOError, OSError) as e:
+                    # File I/O errors (read errors, permissions)
+                    logger.warning(f"File I/O error reading member_count.json: {e}, using default")
+                    current_member_count = 50
+                except json.JSONDecodeError as e:
+                    # JSON parsing errors (corrupted file)
+                    logger.warning(f"JSON parsing error reading member_count.json: {e}, using default")
+                    current_member_count = 50
+                except (KeyError, ValueError, TypeError) as e:
+                    # Data access/structure errors (missing 'count' key, invalid values)
+                    logger.warning(f"Data error reading member_count.json: {e}, using default")
+                    current_member_count = 50
+            else:
+                # Use a reasonable default for testing (50 status channel members)
                 current_member_count = 50
-            except json.JSONDecodeError as e:
-                # JSON parsing errors (corrupted file)
-                logger.warning(f"JSON parsing error reading member_count.json: {e}, using default")
-                current_member_count = 50
-            except (KeyError, ValueError, TypeError) as e:
-                # Data access/structure errors (missing 'count' key, invalid values)
-                logger.warning(f"Data error reading member_count.json: {e}, using default")
-                current_member_count = 50
+                logger.info(f"Level-up: member_count.json not found, using default: {current_member_count}")
+
+            logger.info(f"Level-up: Using {current_member_count} status channel members for dynamic cost calculation")
+            set_new_goal_for_next_level(snap, user_count=current_member_count)
         else:
-            # Use a reasonable default for testing (50 status channel members)
-            current_member_count = 50
-            logger.info(f"Level-up: member_count.json not found, using default: {current_member_count}")
+            snap.goal_requirement = 0
+            break  # Max level reached
 
-        logger.info(f"Level-up: Using {current_member_count} status channel members for dynamic cost calculation")
-        set_new_goal_for_next_level(snap, user_count=current_member_count)
-    else:
-        snap.goal_requirement = 0
+        # Update new_evo for next iteration
+        new_evo = excess
 
-    # Return both level-up event and optional bonus event
-    return snap, lvl_evt, bonus_event
+    # Return list of level-up events and optional bonus event (for last exact hit)
+    return snap, level_up_events, bonus_event
 
 
 # ---------------------
@@ -698,10 +714,10 @@ class ProgressService:
             # Apply to snapshot
             snap = load_snapshot(self.mech_id)
             apply_decay_on_demand(snap)
-            snap, lvl_evt, bonus_evt = apply_donation_units(snap, units_cents)
+            snap, lvl_events, bonus_evt = apply_donation_units(snap, units_cents)
 
-            # Append level-up event if triggered
-            if lvl_evt is not None:
+            # Append all level-up events (may be multiple for large donations)
+            for lvl_evt in lvl_events:
                 lvl_evt.seq = next_seq()
                 append_event(lvl_evt)
 
