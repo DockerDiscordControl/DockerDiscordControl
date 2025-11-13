@@ -90,8 +90,13 @@ def _get_cached_mech_state(include_decimals=False):
                 current_app.logger.error("Failed to get mech state from service")
                 return None
 
-    except Exception as e:
-        current_app.logger.error(f"Error getting cached mech state: {e}")
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (cache service, mech service unavailable)
+        current_app.logger.error(f"Service dependency error getting cached mech state: {e}", exc_info=True)
+        return None
+    except (ValueError, TypeError, KeyError) as e:
+        # Data processing errors (state conversion, attribute access)
+        current_app.logger.error(f"Data error getting cached mech state: {e}", exc_info=True)
         return None
 
 
@@ -125,12 +130,18 @@ def config_page():
                                  config={},
                                  error_message="Failed to load configuration data. Please check the logs.")
 
-    except Exception as e:
-        logger.error(f"Error in config_page route: {e}", exc_info=True)
-        # Fallback: render with minimal data
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (configuration page service unavailable)
+        logger.error(f"Service dependency error in config_page route: {e}", exc_info=True)
         return render_template('config.html',
                              config={},
-                             error_message="An error occurred while loading the configuration page.")
+                             error_message="Service error: Unable to load configuration services.")
+    except (ValueError, TypeError, KeyError) as e:
+        # Data processing errors (request parsing, template data)
+        logger.error(f"Data error in config_page route: {e}", exc_info=True)
+        return render_template('config.html',
+                             config={},
+                             error_message="Data error: Failed to process configuration data.")
 
 @main_bp.route('/save_config_api', methods=['POST'])
 # Use direct auth decorator
@@ -185,13 +196,22 @@ def save_config_api():
             flash(result['message'], 'error')
             logger.warning(f"Failed to save configuration via ConfigurationSaveService: {result['message']}")
 
-    except Exception as e:
-        logger.error(f"Unexpected error in save_config_api: {str(e)}", exc_info=True)
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (configuration save service unavailable)
+        logger.error(f"Service dependency error in save_config_api: {str(e)}", exc_info=True)
         result = {
             'success': False,
-            'message': "An error occurred while saving the configuration. Please check the logs for details."
+            'message': "Service error: Unable to access configuration services."
         }
-        flash("Error saving configuration. Please check the logs for details.", 'danger')
+        flash("Service error: Unable to save configuration.", 'danger')
+    except (ValueError, TypeError, KeyError) as e:
+        # Data processing errors (request data parsing, validation)
+        logger.error(f"Data error in save_config_api: {str(e)}", exc_info=True)
+        result = {
+            'success': False,
+            'message': "Data error: Invalid configuration data provided."
+        }
+        flash("Data error: Invalid configuration data.", 'danger')
 
     # Check if it's an AJAX request (has the X-Requested-With header)
     is_ajax_request = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
@@ -307,9 +327,15 @@ def download_monitor_script():
             mimetype=props['mime_type']
         )
 
-    except Exception as e:
-        logger.error(f"Error generating monitor script: {e}", exc_info=True)
-        flash("Error generating monitor script. Please check the logs for details.", "danger")
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (monitor script service unavailable)
+        logger.error(f"Service dependency error generating monitor script: {e}", exc_info=True)
+        flash("Service error: Unable to generate monitor script.", "danger")
+        return redirect(url_for('.config_page'))
+    except (ValueError, TypeError, KeyError) as e:
+        # Data processing errors (script type validation, template rendering)
+        logger.error(f"Data error generating monitor script: {e}", exc_info=True)
+        flash("Data error: Invalid script configuration.", "danger")
         return redirect(url_for('.config_page'))
 
 @main_bp.route('/refresh_containers', methods=['POST'])
@@ -339,11 +365,19 @@ def refresh_containers():
                 'message': result.error or "Container refresh failed"
             })
 
-    except Exception as e:
-        current_app.logger.error(f"Error in refresh_containers route: {e}", exc_info=True)
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (container refresh service unavailable)
+        current_app.logger.error(f"Service dependency error in refresh_containers route: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'message': "Unexpected error refreshing containers. Please check the logs for details."
+            'message': "Service error: Unable to access container refresh service."
+        })
+    except (ValueError, TypeError, KeyError) as e:
+        # Data processing errors (result processing, timestamp formatting)
+        current_app.logger.error(f"Data error in refresh_containers route: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': "Data error: Failed to process container data."
         })
 
 @main_bp.route('/enable_temp_debug', methods=['POST'])
@@ -374,12 +408,20 @@ def enable_temp_debug():
                 'message': result.error
             }), result.status_code
 
-    except Exception as e:
-        current_app.logger.error(f"Error in enable_temp_debug route: {e}", exc_info=True)
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (diagnostics service unavailable)
+        current_app.logger.error(f"Service dependency error in enable_temp_debug route: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'message': "Error enabling temporary debug mode. Please check the logs for details."
+            'message': "Service error: Unable to access diagnostics service."
         }), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data processing errors (duration parsing, request validation)
+        current_app.logger.error(f"Data error in enable_temp_debug route: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': "Data error: Invalid debug mode configuration."
+        }), 400
 
 @main_bp.route('/disable_temp_debug', methods=['POST'])
 @auth.login_required
@@ -406,11 +448,12 @@ def disable_temp_debug():
                 'message': result.error
             }), result.status_code
 
-    except Exception as e:
-        current_app.logger.error(f"Error in disable_temp_debug route: {e}", exc_info=True)
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (diagnostics service unavailable)
+        current_app.logger.error(f"Service dependency error in disable_temp_debug route: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'message': "Error disabling temporary debug mode. Please check the logs for details."
+            'message': "Service error: Unable to access diagnostics service."
         }), 500
 
 @main_bp.route('/temp_debug_status', methods=['GET'])
@@ -439,11 +482,12 @@ def temp_debug_status():
                 **result.data
             }), result.status_code
 
-    except Exception as e:
-        current_app.logger.error(f"Error in temp_debug_status route: {e}", exc_info=True)
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (diagnostics service unavailable)
+        current_app.logger.error(f"Service dependency error in temp_debug_status route: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'message': "Error getting temporary debug status. Please check the logs for details.",
+            'message': "Service error: Unable to access diagnostics service.",
             'is_enabled': False
         }), 500
 
@@ -472,11 +516,12 @@ def performance_stats():
                 'message': result.error or "Error getting performance statistics. Please check the logs for details."
             })
 
-    except Exception as e:
-        current_app.logger.error(f"Error in performance_stats endpoint: {e}", exc_info=True)
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (performance stats service unavailable)
+        current_app.logger.error(f"Service dependency error in performance_stats endpoint: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'message': "Error getting performance statistics. Please check the logs for details."
+            'message': "Service error: Unable to access performance statistics service."
         })
 
 @main_bp.route('/api/spam-protection', methods=['GET'])
@@ -488,9 +533,10 @@ def get_spam_protection():
         result = spam_service.get_config()
         settings = result.data.to_dict() if result.success else {}
         return jsonify(settings)
-    except Exception as e:
-        current_app.logger.error(f"Error getting spam protection settings: {e}")
-        return jsonify({'error': 'Failed to load spam protection settings'}), 500
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (spam protection service unavailable)
+        current_app.logger.error(f"Service dependency error getting spam protection settings: {e}", exc_info=True)
+        return jsonify({'error': 'Service error: Unable to access spam protection service'}), 500
 
 @main_bp.route('/api/spam-protection', methods=['POST'])
 @auth.login_required
@@ -519,9 +565,14 @@ def save_spam_protection():
         else:
             return jsonify({'success': False, 'error': 'Failed to save settings'}), 500
             
-    except Exception as e:
-        current_app.logger.error(f"Error saving spam protection settings: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (spam protection service unavailable)
+        current_app.logger.error(f"Service dependency error saving spam protection settings: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Service error: Unable to save spam protection settings'}), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data processing errors (config validation, dict conversion)
+        current_app.logger.error(f"Data error saving spam protection settings: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Data error: Invalid spam protection configuration'}), 400
 
 @main_bp.route('/api/donation/status', methods=['GET'])
 def get_donation_status():
@@ -542,9 +593,14 @@ def get_donation_status():
             current_app.logger.error(f"Failed to get donation status: {result.error}")
             return jsonify({'error': result.error or 'Failed to get donation status'}), 500
 
-    except Exception as e:
-        current_app.logger.error(f"Error in get_donation_status route: {e}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (donation status service unavailable)
+        current_app.logger.error(f"Service dependency error in get_donation_status route: {e}", exc_info=True)
+        return jsonify({'error': 'Service error: Unable to access donation status service'}), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data processing errors (status data formatting)
+        current_app.logger.error(f"Data error in get_donation_status route: {e}", exc_info=True)
+        return jsonify({'error': 'Data error: Failed to process donation status'}), 500
 
 @main_bp.route('/api/donation/click', methods=['POST'])
 def record_donation_click():
@@ -578,9 +634,14 @@ def record_donation_click():
                 'error': result.error
             }), 400
 
-    except Exception as e:
-        current_app.logger.error(f"Error in record_donation_click route: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (donation tracking service unavailable)
+        current_app.logger.error(f"Service dependency error in record_donation_click route: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Service error: Unable to record donation click'}), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data processing errors (request parsing, validation)
+        current_app.logger.error(f"Data error in record_donation_click route: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Data error: Invalid click data'}), 400
 
 
 @main_bp.route('/api/donation/add-power', methods=['POST'])
@@ -654,9 +715,14 @@ def add_test_power():
         else:
             return jsonify({'success': False, 'error': 'Amount must be non-zero'}), 400
             
-    except Exception as e:
-        current_app.logger.error(f"Error adding test Power with new service: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (unified donation service unavailable)
+        current_app.logger.error(f"Service dependency error adding test Power: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Service error: Unable to process test donation'}), 500
+    except (ValueError, TypeError) as e:
+        # Data processing errors (amount validation, state calculations)
+        current_app.logger.error(f"Data error adding test Power: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Data error: Invalid donation amount'}), 400
 
 @main_bp.route('/api/donation/reset-power', methods=['POST'])
 @auth.login_required  
@@ -689,9 +755,10 @@ def reset_power():
             'Power': reset_state.Power,
             'total_donated': reset_state.total_donated
         })
-    except Exception as e:
-        current_app.logger.error(f"Error resetting Power with new service: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (unified donation service unavailable)
+        current_app.logger.error(f"Service dependency error resetting Power: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Service error: Unable to reset donations'}), 500
 
 @main_bp.route('/api/donation/consume-power', methods=['POST'])
 @auth.login_required
@@ -714,9 +781,10 @@ def consume_Power():
             'message': 'Power decay calculated automatically by new service'
         })
         
-    except Exception as e:
-        current_app.logger.error(f"Error consuming Power: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except (RuntimeError, AttributeError) as e:
+        # Service/cache errors (mech state retrieval failures)
+        current_app.logger.error(f"Service error consuming Power: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Service error: Unable to get Power state'}), 500
 
 
 @main_bp.route('/api/donation/submit', methods=['POST'])
@@ -752,9 +820,14 @@ def submit_donation():
         else:
             return jsonify({'success': False, 'error': result.error}), 400
 
-    except Exception as e:
-        current_app.logger.error(f"Error processing manual donation: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': f'Error processing donation: {str(e)}'}), 500
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (donation service unavailable)
+        current_app.logger.error(f"Service dependency error processing manual donation: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Service error: Unable to process donation'}), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data processing errors (amount validation, request parsing)
+        current_app.logger.error(f"Data error processing manual donation: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Data error: Invalid donation data'}), 400
 
 @main_bp.route('/mech_animation')
 def mech_animation():
@@ -783,9 +856,14 @@ def mech_animation():
                 status=result.status_code
             )
 
-    except Exception as e:
-        current_app.logger.error(f"Error in mech_animation route: {e}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (mech web service unavailable)
+        current_app.logger.error(f"Service dependency error in mech_animation route: {e}", exc_info=True)
+        return jsonify({'error': 'Service error: Unable to generate animation'}), 500
+    except (ValueError, TypeError) as e:
+        # Data processing errors (animation generation, response formatting)
+        current_app.logger.error(f"Data error in mech_animation route: {e}", exc_info=True)
+        return jsonify({'error': 'Data error: Animation generation failed'}), 500
 
 @main_bp.route('/api/test-mech-animation', methods=['POST'])
 @auth.login_required
@@ -826,9 +904,14 @@ def test_mech_animation():
                 status=result.status_code
             )
 
-    except Exception as e:
-        current_app.logger.error(f"Error in test_mech_animation route: {e}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (mech web service unavailable)
+        current_app.logger.error(f"Service dependency error in test_mech_animation route: {e}", exc_info=True)
+        return jsonify({'error': 'Service error: Unable to generate test animation'}), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data processing errors (request parsing, animation generation)
+        current_app.logger.error(f"Data error in test_mech_animation route: {e}", exc_info=True)
+        return jsonify({'error': 'Data error: Invalid test animation parameters'}), 400
 
 @main_bp.route('/api/simulate-donation-broadcast', methods=['POST'])
 @auth.login_required
@@ -840,9 +923,10 @@ def simulate_donation_broadcast():
             'success': True,
             'message': 'Donation broadcast simulation not yet implemented'
         })
-    except Exception as e:
-        current_app.logger.error(f"Error simulating donation broadcast: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except RuntimeError as e:
+        # Runtime errors (simulation failures)
+        current_app.logger.error(f"Runtime error simulating donation broadcast: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Runtime error in simulation'}), 500
 
 @main_bp.route('/api/mech-speed-config', methods=['POST'])
 @auth.login_required
@@ -867,9 +951,14 @@ def get_mech_speed_config():
             current_app.logger.error(f"Speed config request failed: {result.error}")
             return jsonify({'error': result.error}), result.status_code
 
-    except Exception as e:
-        current_app.logger.error(f"Error in get_mech_speed_config route: {e}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (mech web service unavailable)
+        current_app.logger.error(f"Service dependency error in get_mech_speed_config route: {e}", exc_info=True)
+        return jsonify({'error': 'Service error: Unable to get speed config'}), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data processing errors (donation amount parsing, config formatting)
+        current_app.logger.error(f"Data error in get_mech_speed_config route: {e}", exc_info=True)
+        return jsonify({'error': 'Data error: Invalid speed configuration'}), 400
 
 @main_bp.route('/port_diagnostics', methods=['GET'])
 @auth.login_required
@@ -896,11 +985,12 @@ def port_diagnostics():
                 'message': result.error
             }), result.status_code
 
-    except Exception as e:
-        current_app.logger.error(f"Error in port_diagnostics route: {e}", exc_info=True)
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (diagnostics service unavailable)
+        current_app.logger.error(f"Service dependency error in port_diagnostics route: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'message': "Error running port diagnostics. Please check the logs for details."
+            'message': "Service error: Unable to run port diagnostics."
         }), 500
 
 @main_bp.route('/api/mech/difficulty', methods=['GET'])
@@ -923,9 +1013,10 @@ def get_mech_difficulty():
             current_app.logger.error(f"Difficulty get request failed: {result.error}")
             return jsonify({'success': False, 'error': result.error}), result.status_code
 
-    except Exception as e:
-        current_app.logger.error(f"Error in get_mech_difficulty route: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (mech web service unavailable)
+        current_app.logger.error(f"Service dependency error in get_mech_difficulty route: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Service error: Unable to get difficulty'}), 500
 
 @main_bp.route('/api/mech/difficulty', methods=['POST'])
 @auth.login_required
@@ -966,9 +1057,10 @@ def set_mech_difficulty():
 
     except ValueError:
         return jsonify({'success': False, 'error': 'Invalid difficulty multiplier value'}), 400
-    except Exception as e:
-        current_app.logger.error(f"Error in set_mech_difficulty route: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (mech web service unavailable)
+        current_app.logger.error(f"Service dependency error in set_mech_difficulty route: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Service error: Unable to set difficulty'}), 500
 
 @main_bp.route('/api/mech/difficulty/reset', methods=['POST'])
 @auth.login_required
@@ -990,9 +1082,10 @@ def reset_mech_difficulty():
             current_app.logger.error(f"Difficulty reset request failed: {result.error}")
             return jsonify({'success': False, 'error': result.error}), result.status_code
 
-    except Exception as e:
-        current_app.logger.error(f"Error in reset_mech_difficulty route: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (mech web service unavailable)
+        current_app.logger.error(f"Service dependency error in reset_mech_difficulty route: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Service error: Unable to reset difficulty'}), 500
 
 @main_bp.route('/api/donations/list')
 @auth.login_required
@@ -1027,11 +1120,19 @@ def donations_api():
             }
         })
         
-    except Exception as e:
-        current_app.logger.error(f"Error loading donations API: {e}", exc_info=True)
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (donation management service unavailable)
+        current_app.logger.error(f"Service dependency error loading donations API: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Service error: Unable to load donations'
+        })
+    except (ValueError, TypeError, KeyError) as e:
+        # Data processing errors (stats formatting, data access)
+        current_app.logger.error(f"Data error loading donations API: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Data error: Failed to process donation data'
         })
 
 @main_bp.route('/api/donations/delete/<int:index>', methods=['POST'])
@@ -1072,12 +1173,20 @@ def delete_donation(index):
                 'error': result.error
             }), 400
 
-    except Exception as e:
-        current_app.logger.error(f"Error in delete/restore donation route: {e}", exc_info=True)
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (donation management service unavailable)
+        current_app.logger.error(f"Service dependency error in delete/restore donation route: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': f"Error processing request: {str(e)}"
+            'error': "Service error: Unable to process donation deletion/restoration"
         }), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data processing errors (index validation, result parsing)
+        current_app.logger.error(f"Data error in delete/restore donation route: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': "Data error: Invalid deletion request"
+        }), 400
 
 # ========================================
 # FIRST-TIME SETUP ROUTES
@@ -1158,11 +1267,26 @@ def setup_save():
                 'error': 'Failed to save configuration'
             })
             
-    except Exception as e:
-        current_app.logger.error(f"Setup error: {e}", exc_info=True)
+    except (ImportError, AttributeError) as e:
+        # Dependency errors (werkzeug unavailable)
+        current_app.logger.error(f"Dependency error in setup: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': 'Setup failed due to internal error'
+            'error': 'Setup failed: Missing required dependencies'
+        })
+    except (ValueError, TypeError) as e:
+        # Data processing errors (password validation, hash generation)
+        current_app.logger.error(f"Data error in setup: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Setup failed: Invalid configuration data'
+        })
+    except (IOError, OSError) as e:
+        # File I/O errors (config save failure)
+        current_app.logger.error(f"File I/O error in setup: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Setup failed: Unable to save configuration'
         })
 
 # ========================================
@@ -1199,12 +1323,20 @@ def get_mech_music_url(level):
                 'error': result.error or f'YouTube URL not found for Mech Level {level}'
             }), result.status_code
 
-    except Exception as e:
-        current_app.logger.error(f"Error in get_mech_music_url route: {e}", exc_info=True)
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (mech music service unavailable)
+        current_app.logger.error(f"Service dependency error in get_mech_music_url route: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': 'Error getting YouTube music URL'
+            'error': 'Service error: Unable to get YouTube music URL'
         }), 500
+    except (ValueError, TypeError) as e:
+        # Data processing errors (level validation, URL formatting)
+        current_app.logger.error(f"Data error in get_mech_music_url route: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Data error: Invalid music level'
+        }), 400
 
 @main_bp.route('/api/mech/music/info')
 def get_mech_music_info():
@@ -1230,11 +1362,12 @@ def get_mech_music_info():
                 'error': result.error
             }), result.status_code
 
-    except Exception as e:
-        current_app.logger.error(f"Error in get_mech_music_info route: {e}", exc_info=True)
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (mech music service unavailable)
+        current_app.logger.error(f"Service dependency error in get_mech_music_info route: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': 'Error getting mech music information'
+            'error': 'Service error: Unable to get mech music information'
         }), 500
 
 
@@ -1288,9 +1421,14 @@ def get_mech_display_image(level: int, image_type: str):
         current_app.logger.info(f"Served mech display image: Level {level} {image_type} ({len(image_result.image_bytes)} bytes)")
         return response
 
-    except Exception as e:
-        current_app.logger.error(f"Error serving mech display image: {e}", exc_info=True)
-        return jsonify({'error': 'Internal server error'}), 500
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (display cache service unavailable)
+        current_app.logger.error(f"Service dependency error serving mech display image: {e}", exc_info=True)
+        return jsonify({'error': 'Service error: Unable to serve display image'}), 500
+    except (ValueError, TypeError, IOError, OSError) as e:
+        # Data/file errors (validation, image access)
+        current_app.logger.error(f"Data/file error serving mech display image: {e}", exc_info=True)
+        return jsonify({'error': 'Error: Invalid image request or file access failed'}), 400
 
 
 @main_bp.route('/api/mech/display/info')
@@ -1338,11 +1476,26 @@ def get_mech_display_info():
             'cache_directory': str(display_cache_service.cache_dir)
         })
 
-    except Exception as e:
-        current_app.logger.error(f"Error getting mech display info: {e}", exc_info=True)
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (display cache service unavailable)
+        current_app.logger.error(f"Service dependency error getting mech display info: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': 'Error getting display information'
+            'error': 'Service error: Unable to get display information'
+        }), 500
+    except (IOError, OSError) as e:
+        # File system errors (cache directory access, file stat)
+        current_app.logger.error(f"File system error getting mech display info: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'File system error: Unable to access cache directory'
+        }), 500
+    except (ValueError, TypeError) as e:
+        # Data processing errors (filename parsing, stat operations)
+        current_app.logger.error(f"Data error getting mech display info: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Data error: Failed to process cache information'
         }), 500
 
 @main_bp.route('/api/mech/reset', methods=['POST'])
@@ -1371,7 +1524,8 @@ def reset_mech_to_level_1():
                 source="Web UI",
                 details=f"Reset to Level 1 - Previous: Level {current_status.get('current_level', 'Unknown')}"
             )
-        except Exception as log_error:
+        except (ImportError, AttributeError, RuntimeError) as log_error:
+            # Non-critical: Action logger errors (logging service unavailable)
             current_app.logger.warning(f"Failed to log mech reset action: {log_error}")
 
         # Return result
@@ -1392,12 +1546,21 @@ def reset_mech_to_level_1():
             current_app.logger.error(f"Mech reset failed: {result.message}")
             return jsonify(response_data), 400
 
-    except Exception as e:
-        error_msg = f"Error during mech reset: {e}"
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (mech reset service unavailable)
+        error_msg = f"Service dependency error during mech reset: {e}"
         current_app.logger.error(error_msg, exc_info=True)
         return jsonify({
             'success': False,
-            'error': error_msg
+            'error': 'Service error: Unable to reset mech system'
+        }), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data processing errors (status parsing, result formatting)
+        error_msg = f"Data error during mech reset: {e}"
+        current_app.logger.error(error_msg, exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Data error: Failed to process reset operation'
         }), 500
 
 @main_bp.route('/api/mech/status', methods=['GET'])
@@ -1417,10 +1580,19 @@ def get_mech_status():
             'timestamp': datetime.now().isoformat()
         })
 
-    except Exception as e:
-        error_msg = f"Error getting mech status: {e}"
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (mech reset service unavailable)
+        error_msg = f"Service dependency error getting mech status: {e}"
         current_app.logger.error(error_msg, exc_info=True)
         return jsonify({
             'success': False,
-            'error': error_msg
+            'error': 'Service error: Unable to get mech status'
+        }), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data processing errors (status formatting, datetime operations)
+        error_msg = f"Data error getting mech status: {e}"
+        current_app.logger.error(error_msg, exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Data error: Failed to format status'
         }), 500
