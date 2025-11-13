@@ -100,11 +100,19 @@ class ConfigurationSaveService:
             # Step 10: Build response
             return self._build_save_response(message, save_result.config_files, critical_changes.changed, critical_changes.message)
 
-        except Exception as e:
-            self.logger.error(f"Error saving configuration: {e}", exc_info=True)
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (config service unavailable, service method failures)
+            self.logger.error(f"Service dependency error saving configuration: {e}", exc_info=True)
             return ConfigurationSaveResult(
                 success=False,
-                error=f"Error saving configuration: {str(e)}"
+                error=f"Service error saving configuration: {str(e)}"
+            )
+        except (ValueError, TypeError, KeyError) as e:
+            # Data errors (invalid form data, type mismatches, missing required fields)
+            self.logger.error(f"Data error saving configuration: {e}", exc_info=True)
+            return ConfigurationSaveResult(
+                success=False,
+                error=f"Data error saving configuration: {str(e)}"
             )
 
     def _initialize_dependencies(self) -> ConfigurationSaveResult:
@@ -125,16 +133,18 @@ class ConfigurationSaveService:
             return ConfigurationSaveResult(success=True, message="Dependencies initialized")
 
         except ImportError as e:
-            self.logger.error(f"Failed to import required dependencies: {e}", exc_info=True)
+            # Import errors (config service module unavailable)
+            self.logger.error(f"Import error loading required dependencies: {e}", exc_info=True)
             return ConfigurationSaveResult(
                 success=False,
                 error=f"Failed to import dependencies: {str(e)}"
             )
-        except Exception as e:
-            self.logger.error(f"Unexpected error initializing dependencies: {e}", exc_info=True)
+        except (AttributeError, RuntimeError) as e:
+            # Service errors (service initialization failures, invalid service state)
+            self.logger.error(f"Service error initializing dependencies: {e}", exc_info=True)
             return ConfigurationSaveResult(
                 success=False,
-                error=f"Unexpected initialization error: {str(e)}"
+                error=f"Service initialization error: {str(e)}"
             )
 
     def _clean_form_data(self, form_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -155,9 +165,14 @@ class ConfigurationSaveService:
             current_config = load_config()
             return process_config_form(form_data, current_config)
 
-        except Exception as e:
-            self.logger.error(f"Configuration processing failed: {e}")
-            return {}, False, f"Configuration processing failed: {str(e)}"
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (config service unavailable, processing function failures)
+            self.logger.error(f"Service error processing configuration: {e}", exc_info=True)
+            return {}, False, f"Service error processing configuration: {str(e)}"
+        except (ValueError, TypeError, KeyError) as e:
+            # Data errors (invalid form data, type mismatches, missing required fields)
+            self.logger.error(f"Data error processing configuration: {e}", exc_info=True)
+            return {}, False, f"Data error processing configuration: {str(e)}"
 
     def _check_critical_changes(self, processed_data: Dict[str, Any]) -> 'CriticalChanges':
         """Check for critical settings that require cache invalidation."""
@@ -189,8 +204,13 @@ class ConfigurationSaveService:
 
             return changes
 
-        except Exception as e:
-            self.logger.error(f"Error checking critical changes: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (config service unavailable, load_config failures)
+            self.logger.error(f"Service error checking critical changes: {e}", exc_info=True)
+            return CriticalChanges()
+        except (ValueError, TypeError, KeyError) as e:
+            # Data errors (invalid config data, type mismatches, missing keys)
+            self.logger.error(f"Data error checking critical changes: {e}", exc_info=True)
             return CriticalChanges()
 
     def _save_server_order(self, processed_data: Dict[str, Any]) -> None:
@@ -209,8 +229,12 @@ class ConfigurationSaveService:
                 self.save_server_order_func(server_order)
                 self.logger.info(f"Server order saved separately: {server_order}")
 
-        except Exception as e:
-            self.logger.error(f"Error saving server order: {e}")
+        except (AttributeError, RuntimeError) as e:
+            # Service errors (save_server_order function failures, file write errors)
+            self.logger.error(f"Service error saving server order: {e}", exc_info=True)
+        except (ValueError, TypeError) as e:
+            # Data errors (invalid server_order format, string processing failures)
+            self.logger.error(f"Data error saving server order: {e}", exc_info=True)
 
     def _save_configuration_files(self, processed_data: Dict[str, Any], form_data: Dict[str, Any], config_split_enabled: bool) -> 'SaveFilesResult':
         """Save main configuration and container info files."""
@@ -247,8 +271,12 @@ class ConfigurationSaveService:
                             container_data = json.load(f)
                             container_name = container_data.get('container_name') or json_file.stem
                             all_container_names.append(container_name)
-                    except Exception as e:
-                        self.logger.error(f"Error reading {json_file}: {e}")
+                    except (json.JSONDecodeError, ValueError) as e:
+                        # JSON/data errors (malformed JSON, invalid container data)
+                        self.logger.error(f"JSON/data error reading {json_file}: {e}", exc_info=True)
+                    except (IOError, OSError) as e:
+                        # File I/O errors (cannot read file, permission denied)
+                        self.logger.error(f"File I/O error reading {json_file}: {e}", exc_info=True)
 
             # Get list of active containers
             active_container_names = []
@@ -286,11 +314,26 @@ class ConfigurationSaveService:
 
             return SaveFilesResult(success=True, config_files=config_files)
 
-        except Exception as e:
-            self.logger.error(f"Error saving configuration files: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (config service unavailable, save functions unavailable)
+            self.logger.error(f"Service error saving configuration files: {e}", exc_info=True)
             return SaveFilesResult(
                 success=False,
-                error=f"Error saving configuration files: {str(e)}"
+                error=f"Service error saving configuration files: {str(e)}"
+            )
+        except (IOError, OSError, json.JSONDecodeError) as e:
+            # File I/O or JSON errors (cannot write files, JSON encoding failures)
+            self.logger.error(f"File/JSON error saving configuration files: {e}", exc_info=True)
+            return SaveFilesResult(
+                success=False,
+                error=f"File error saving configuration files: {str(e)}"
+            )
+        except (ValueError, TypeError, KeyError) as e:
+            # Data errors (invalid processed_data, type mismatches, missing required keys)
+            self.logger.error(f"Data error saving configuration files: {e}", exc_info=True)
+            return SaveFilesResult(
+                success=False,
+                error=f"Data error saving configuration files: {str(e)}"
             )
 
     def _handle_critical_changes(self, changes: 'CriticalChanges') -> None:
@@ -300,8 +343,9 @@ class ConfigurationSaveService:
             try:
                 self.config_service._cache_service.invalidate_cache()
                 self.logger.info("ConfigService cache invalidated due to critical settings change")
-            except Exception as cache_error:
-                self.logger.error(f"Failed to invalidate ConfigService cache: {cache_error}", exc_info=True)
+            except (AttributeError, RuntimeError) as cache_error:
+                # Service errors (cache service unavailable, invalidation failures)
+                self.logger.error(f"Service error invalidating ConfigService cache: {cache_error}", exc_info=True)
                 raise ConfigCacheError(
                     "Failed to invalidate ConfigService cache",
                     error_code="CACHE_INVALIDATION_FAILED",
@@ -314,8 +358,9 @@ class ConfigurationSaveService:
                 config_cache = get_config_cache()
                 config_cache.clear()
                 self.logger.info("Config cache cleared due to critical settings change")
-            except Exception as cache_error:
-                self.logger.error(f"Failed to clear config cache: {cache_error}", exc_info=True)
+            except (ImportError, AttributeError, RuntimeError) as cache_error:
+                # Service errors (config_cache module unavailable, cache clear failures)
+                self.logger.error(f"Service error clearing config cache: {cache_error}", exc_info=True)
                 # Non-critical, continue
 
             # Force reload of configuration in config cache
@@ -328,16 +373,18 @@ class ConfigurationSaveService:
             except ConfigLoadError as e:
                 self.logger.error(f"Failed to reload config: {e.message}", exc_info=True)
                 raise
-            except Exception as reload_error:
-                self.logger.error(f"Failed to reinitialize config cache: {reload_error}", exc_info=True)
+            except (ImportError, AttributeError, RuntimeError) as reload_error:
+                # Service errors (config cache init unavailable, reinitialization failures)
+                self.logger.error(f"Service error reinitializing config cache: {reload_error}", exc_info=True)
                 # Non-critical, continue
 
             # Clear translation manager cache if language changed
             if changes.language_changed:
                 try:
                     self._clear_translation_cache(changes.old_language, changes.new_language)
-                except Exception as trans_error:
-                    self.logger.error(f"Failed to clear translation cache: {trans_error}", exc_info=True)
+                except (AttributeError, RuntimeError) as trans_error:
+                    # Service errors (translation cache clear failures)
+                    self.logger.error(f"Service error clearing translation cache: {trans_error}", exc_info=True)
                     # Non-critical, continue
 
             # Clear timezone cache if timezone changed
@@ -347,16 +394,19 @@ class ConfigurationSaveService:
                     clear_timezone_cache()
                     self.logger.info("Timezone cache cleared due to timezone change")
                 except ImportError:
+                    # Import errors (time_utils module unavailable)
                     self.logger.debug("Timezone cache utilities not available")
-                except Exception as tz_error:
-                    self.logger.error(f"Error clearing timezone cache: {tz_error}", exc_info=True)
+                except (AttributeError, RuntimeError) as tz_error:
+                    # Service errors (timezone cache clear failures)
+                    self.logger.error(f"Service error clearing timezone cache: {tz_error}", exc_info=True)
                     # Non-critical, continue
 
         except ConfigCacheError:
             # Re-raise cache errors
             raise
-        except Exception as e:
-            self.logger.error(f"Unexpected error handling critical changes: {e}", exc_info=True)
+        except (AttributeError, RuntimeError, TypeError) as e:
+            # Service/runtime errors (unexpected cache operation failures, invalid states)
+            self.logger.error(f"Runtime error handling critical changes: {e}", exc_info=True)
             # Don't raise - this shouldn't block the config save
 
     def _clear_translation_cache(self, old_language: str, new_language: str) -> None:
@@ -374,8 +424,9 @@ class ConfigurationSaveService:
 
             self.logger.info(f"Translation manager cache cleared for language change: {old_language} -> {new_language}")
 
-        except Exception as e:
-            self.logger.warning(f"Could not clear translation manager cache: {e}")
+        except (ImportError, AttributeError) as e:
+            # Import/service errors (translation_manager unavailable, cache operations not supported)
+            self.logger.warning(f"Service error clearing translation manager cache: {e}")
 
     def _update_logging_settings(self) -> None:
         """Update logging level settings based on new configuration."""
@@ -409,16 +460,18 @@ class ConfigurationSaveService:
             except ImportError:
                 self.logger.debug("Scheduler module not available for logging update")
 
-        except Exception as e:
-            self.logger.warning(f"Failed to update logging settings: {str(e)}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service errors (config service unavailable, logging module errors)
+            self.logger.warning(f"Service error updating logging settings: {str(e)}")
 
     def _log_save_action(self) -> None:
         """Log the configuration save action."""
         try:
             from services.infrastructure.action_logger import log_user_action
             log_user_action("SAVE", "Configuration", source="Web UI ConfigurationSaveService")
-        except Exception as e:
-            self.logger.warning(f"Failed to log save action: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service errors (action_logger unavailable, logging failures)
+            self.logger.warning(f"Service error logging save action: {e}")
 
     def _build_save_response(self, message: str, config_files: List[str], critical_changed: bool, critical_message: str) -> ConfigurationSaveResult:
         """Build the final save response."""
