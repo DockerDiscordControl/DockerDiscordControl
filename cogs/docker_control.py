@@ -276,12 +276,23 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         if hasattr(self, 'status_update_loop') and self.status_update_loop.is_running(): self.status_update_loop.cancel()
         if hasattr(self, 'inactivity_check_loop') and self.inactivity_check_loop.is_running(): self.inactivity_check_loop.cancel()
 
-    async def cog_load(self):
+        # Track if background loops have been started (to avoid double-start on reconnect)
+        self._background_loops_started = False
+
+    @commands.Cog.listener()
+    async def on_ready(self):
         """
-        Called after the cog is loaded. This is the correct place to start background loops.
-        This runs AFTER __init__ and AFTER the bot's event loop is available.
+        Called when the bot is ready. This is the correct place to start background loops in PyCord.
+
+        NOTE: PyCord 2.x does NOT support cog_load() hook (only discord.py 2.0+).
+        on_ready() is called after bot connects and event loop is available.
         """
-        logger.info("=== cog_load() called - Starting background loops ===")
+        # Only start loops once (on_ready can be called multiple times on reconnect)
+        if self._background_loops_started:
+            logger.info("[on_ready] Background loops already started, skipping")
+            return
+
+        logger.info("=== on_ready() called - Starting background loops ===")
 
         # Ensure clean loop state
         logger.info("Ensuring clean loop state...")
@@ -291,7 +302,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         logger.info("Setting up background loops...")
         self._setup_background_loops()
 
-        logger.info("=== cog_load() complete - Background loops started ===")
+        self._background_loops_started = True
+        logger.info("=== on_ready() complete - Background loops started ===")
 
     def _setup_discord_event_listeners(self):
         """Set up event listeners for Discord status message updates."""
