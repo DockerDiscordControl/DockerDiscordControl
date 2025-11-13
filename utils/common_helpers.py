@@ -39,7 +39,8 @@ def hash_container_data(container_data: Dict[str, Any]) -> Union[int, float]:
         # Create a hash from relevant fields
         hash_input = f"{container_data.get('id', '')}-{container_data.get('status', '')}-{container_data.get('image', '')}"
         return hash(hash_input)
-    except Exception:
+    except (TypeError, AttributeError, KeyError):
+        # Hash creation errors (type errors, missing attributes/keys)
         # In case of errors, return a timestamp, which leads to reevaluation
         return time.time()
 
@@ -282,11 +283,13 @@ async def get_wan_ip_async() -> Optional[str]:
                             ip = (await response.text()).strip()
                             if is_valid_ip(ip):
                                 return ip
-                except Exception as e:
+                except (OSError, RuntimeError, AttributeError, TypeError, ValueError) as e:
+                    # Service connection errors (network I/O, runtime issues, attribute/type/value errors)
                     logger.debug(f"Service {service} failed: {e}")
                     continue
-                    
-    except Exception as e:
+
+    except (OSError, ImportError, RuntimeError, AttributeError) as e:
+        # WAN IP detection errors (network I/O, import failures, runtime issues, attribute errors)
         logger.debug(f"WAN IP detection failed: {e}")
         
     return None
@@ -366,7 +369,8 @@ def retry_on_exception(max_retries: int = 3, delay: float = 1.0, backoff: float 
             for attempt in range(max_retries + 1):
                 try:
                     return func(*args, **kwargs)
-                except Exception as e:
+                except (OSError, ImportError, RuntimeError, AttributeError, TypeError, ValueError, KeyError) as e:
+                    # Function execution errors (I/O, import failures, runtime issues, attribute/type/value/key errors)
                     last_exception = e
                     if attempt < max_retries:
                         logger.warning(f"Attempt {attempt + 1} failed for {func.__name__}: {e}. Retrying in {current_delay}s...")
@@ -399,7 +403,8 @@ def async_retry_with_backoff(max_retries=3, initial_delay=1.0, backoff=2.0):
                         return await func(*args, **kwargs)
                     else:
                         return func(*args, **kwargs)
-                except Exception as e:
+                except (OSError, ImportError, RuntimeError, AttributeError, TypeError, ValueError, KeyError) as e:
+                    # Async function execution errors (I/O, import failures, runtime issues, attribute/type/value/key errors)
                     last_exception = e
                     if attempt < max_retries:
                         logger.warning(f"Attempt {attempt + 1} failed for {func.__name__}: {e}. Retrying in {current_delay}s...")
@@ -439,14 +444,16 @@ def get_public_ip() -> Optional[str]:
                 finally:
                     # Ensure response is properly closed to prevent resource leaks
                     response.close()
-            except Exception as e:
+            except (OSError, requests.RequestException, AttributeError, TypeError, ValueError) as e:
+                # Service request errors (network I/O, HTTP errors, attribute/type/value errors)
                 logger.debug(f"Failed to get IP from {service}: {e}")
                 continue
-                
+
         logger.warning("Failed to detect public IP from all services")
         return None
-        
-    except Exception as e:
+
+    except (OSError, ImportError, AttributeError) as e:
+        # Public IP detection errors (network I/O, import failures, attribute errors)
         logger.error(f"Error detecting public IP: {e}")
         return None
 
