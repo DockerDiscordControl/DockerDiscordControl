@@ -47,12 +47,14 @@ class ChannelConfigService:
 
                 except json.JSONDecodeError as e:
                     logger.error(f"Invalid JSON in {json_file}: {e}")
-                except Exception as e:
-                    logger.error(f"Error reading {json_file}: {e}")
+                except (IOError, OSError, PermissionError, UnicodeDecodeError, KeyError, ValueError) as e:
+                    # File I/O errors (read errors, permissions, decode errors, data errors)
+                    logger.error(f"File error reading {json_file}: {e}")
 
             logger.info(f"Loaded {len(channels)} channel configurations")
 
-        except Exception as e:
+        except (OSError, AttributeError, TypeError) as e:
+            # Directory/path errors (path operations, attribute/type errors)
             logger.error(f"Error loading channel configs: {e}")
 
         return channels
@@ -71,8 +73,9 @@ class ChannelConfigService:
             if config_file.exists():
                 with open(config_file, 'r') as f:
                     return json.load(f)
-        except Exception as e:
-            logger.error(f"Error loading channel {channel_id}: {e}")
+        except (IOError, OSError, PermissionError, json.JSONDecodeError, KeyError) as e:
+            # File/JSON errors (I/O errors, permissions, invalid JSON, missing keys)
+            logger.error(f"File/JSON error loading channel {channel_id}: {e}")
         return None
 
     def save_channel(self, channel_id: str, config: Dict[str, Any]) -> bool:
@@ -97,8 +100,9 @@ class ChannelConfigService:
 
             return True
 
-        except Exception as e:
-            logger.error(f"Error saving channel {channel_id}: {e}")
+        except (IOError, OSError, PermissionError, TypeError, ValueError) as e:
+            # File/JSON errors (I/O errors, permissions, JSON serialization errors)
+            logger.error(f"File/JSON error saving channel {channel_id}: {e}")
             return False
 
     def delete_channel(self, channel_id: str) -> bool:
@@ -121,8 +125,9 @@ class ChannelConfigService:
 
             return True
 
-        except Exception as e:
-            logger.error(f"Error deleting channel {channel_id}: {e}")
+        except (OSError, PermissionError, AttributeError) as e:
+            # File operation errors (unlink errors, permissions, attribute errors)
+            logger.error(f"File error deleting channel {channel_id}: {e}")
             return False
 
     def save_all_channels(self, channels: Dict[str, Dict[str, Any]]) -> bool:
@@ -181,8 +186,9 @@ class ChannelConfigService:
 
             logger.debug(f"Updated main config with channel {channel_id}")
 
-        except Exception as e:
-            logger.error(f"Error updating main config for channel {channel_id}: {e}")
+        except (IOError, OSError, PermissionError, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+            # File/JSON/data errors (I/O, permissions, JSON parsing/serialization, data errors)
+            logger.error(f"File/JSON error updating main config for channel {channel_id}: {e}")
 
     def _remove_from_main_config(self, channel_id: str) -> None:
         """Remove a channel from the main config.json.
@@ -203,8 +209,9 @@ class ChannelConfigService:
 
                     logger.debug(f"Removed channel {channel_id} from main config")
 
-        except Exception as e:
-            logger.error(f"Error removing channel {channel_id} from main config: {e}")
+        except (IOError, OSError, PermissionError, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+            # File/JSON/data errors (I/O, permissions, JSON parsing/serialization, data errors)
+            logger.error(f"File/JSON error removing channel {channel_id} from main config: {e}")
 
     def _update_main_config_bulk(self, channels: Dict[str, Dict[str, Any]]) -> None:
         """Update the main config.json with all channel configurations at once.
@@ -228,8 +235,9 @@ class ChannelConfigService:
 
             logger.info(f"Updated main config with {len(channels)} channels")
 
-        except Exception as e:
-            logger.error(f"Error updating main config bulk: {e}")
+        except (IOError, OSError, PermissionError, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+            # File/JSON/data errors (I/O, permissions, JSON parsing/serialization, data errors)
+            logger.error(f"File/JSON error updating main config bulk: {e}")
 
     def sync_from_main_config(self) -> bool:
         """Sync channel configs FROM main config.json to individual files.
@@ -256,8 +264,9 @@ class ChannelConfigService:
                 logger.info("No channel permissions in main config to sync")
                 return True
 
-        except Exception as e:
-            logger.error(f"Error syncing from main config: {e}")
+        except (IOError, OSError, PermissionError, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+            # File/JSON/data errors (I/O, permissions, JSON parsing/serialization, data errors)
+            logger.error(f"File/JSON error syncing from main config: {e}")
             return False
 
 # Singleton instance management
