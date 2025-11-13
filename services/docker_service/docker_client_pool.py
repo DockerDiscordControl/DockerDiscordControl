@@ -19,6 +19,12 @@ from typing import Optional
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
+# Import custom exceptions
+from services.exceptions import (
+    DockerServiceError, DockerConnectionError, DockerCommandTimeoutError,
+    DockerClientPoolExhausted
+)
+
 logger = logging.getLogger('ddc.docker_client_service')
 
 
@@ -174,7 +180,8 @@ class DockerClientService:
                         active_connections=len(self._in_use),
                         queue_depth=queue_size
                     )
-            except Exception as e:
+            except (RuntimeError, ValueError, AttributeError) as e:
+                # Fast path failed (pool empty, lock issues, etc.) - fall back to queue
                 logger.debug(f"[SERVICE] Request {request_id}: Fast path failed: {e}. Using queue.")
 
             # Queue the request (slow path)
@@ -224,10 +231,11 @@ class DockerClientService:
                     queue_depth=self._queue.qsize()
                 )
 
-        except Exception as e:
+        except (RuntimeError, ValueError, AttributeError, OSError) as e:
+            # Queue/async operation errors, pool state errors
             total_time = (time.time() - start_time) * 1000
-            error_msg = f"Unexpected error getting Docker client: {e}"
-            logger.error(f"[SERVICE] Request {request_id}: ERROR - {error_msg}")
+            error_msg = f"Docker client service error: {e}"
+            logger.error(f"[SERVICE] Request {request_id}: ERROR - {error_msg}", exc_info=True)
 
             return DockerClientResult(
                 success=False,
@@ -252,8 +260,8 @@ class DockerClientService:
         try:
             await self._release_client_async(client)
             return True
-        except Exception as e:
-            logger.error(f"Error releasing Docker client: {e}")
+        except (RuntimeError, ValueError, AttributeError, OSError) as e:
+            logger.error(f"Error releasing Docker client: {e}", exc_info=True)
             return False
 
     async def get_pool_stats_service(self, request: DockerPoolStatsRequest) -> DockerPoolStatsResult:
@@ -291,7 +299,8 @@ class DockerClientService:
 
             return result
 
-        except Exception as e:
+        except (KeyError, ValueError, AttributeError, TypeError) as e:
+            logger.error(f"Error getting pool stats: {e}", exc_info=True)
             return DockerPoolStatsResult(
                 success=False,
                 error_message=str(e)
@@ -347,7 +356,8 @@ class DockerClientService:
                                 request.future.set_exception(asyncio.TimeoutError(f"Request timed out in queue after {queue_timeout}s"))
                                 self._queue.task_done()
                                 break
-                    except Exception as e:
+                    except (RuntimeError, ValueError, AttributeError) as e:
+                        # Queue state errors, event errors
                         request.future.set_exception(e)
                         self._queue.task_done()
                         break
@@ -367,8 +377,8 @@ class DockerClientService:
             except asyncio.CancelledError:
                 logger.debug("Queue processor cancelled")
                 break
-            except Exception as e:
-                logger.error(f"Error in queue processor: {e}")
+            except (RuntimeError, ValueError, AttributeError, OSError) as e:
+                logger.error(f"Error in queue processor: {e}", exc_info=True)
                 await asyncio.sleep(1)  # Brief pause before retrying
     
     @asynccontextmanager
@@ -409,7 +419,7 @@ class DockerClientService:
                 finally:
                     await self._release_client_async(client)
                 return
-        except Exception as e:
+        except (RuntimeError, ValueError, AttributeError) as e:
             logger.debug(f"[POOL] Request {request_id}: Fast path failed: {e}. Using queue.")
             pass  # Fall back to queue
         
@@ -454,7 +464,7 @@ class DockerClientService:
                     # Quick ping to verify connection is alive
                     await asyncio.to_thread(client.ping)
                     return client
-                except Exception as e:
+                except (docker.errors.DockerException, OSError, RuntimeError) as e:
                     # Connection is dead, remove and try creating new one
                     logger.debug(f"Dead connection detected: {e}")
                     self._in_use.remove(client)
@@ -478,7 +488,7 @@ class DockerClientService:
                 try:
                     await asyncio.to_thread(client.ping)
                     return client
-                except Exception as e:
+                except (docker.errors.DockerException, OSError, RuntimeError) as e:
                     logger.debug(f"Dead connection in queue acquisition: {e}")
                     self._in_use.remove(client)
                     # Continue to try creating a new client
@@ -513,7 +523,7 @@ class DockerClientService:
             logger.debug(f"Created Docker client with socket: {socket_path}")
             return client
 
-        except Exception as e:
+        except (docker.errors.DockerException, OSError, RuntimeError) as e:
             logger.warning(f"Failed to create Docker client with config socket: {e}")
             # Fallback to docker.from_env (original behavior)
             try:
@@ -522,9 +532,13 @@ class DockerClientService:
                 self._in_use.append(client)
                 logger.debug("Created Docker client with docker.from_env fallback")
                 return client
-            except Exception as e2:
+            except (docker.errors.DockerException, OSError, RuntimeError) as e2:
                 logger.error(f"All Docker client creation methods failed: config={e}, from_env={e2}")
-                raise e2
+                raise DockerConnectionError(
+                    "Failed to create Docker client",
+                    error_code="DOCKER_CLIENT_CREATION_FAILED",
+                    details={'config_error': str(e), 'from_env_error': str(e2)}
+                )
     
     async def _release_client_async(self, client: docker.DockerClient):
         """Release a client back to the pool async."""
@@ -560,7 +574,7 @@ class DockerClientService:
             try:
                 await asyncio.to_thread(client.ping)
                 alive_clients.append(client)
-            except Exception as e:
+            except (docker.errors.DockerException, OSError, RuntimeError) as e:
                 logger.debug(f"Discarding dead connection during cleanup: {e}")  # Dead connection, discard
         
         self._pool = alive_clients
@@ -582,7 +596,7 @@ class DockerClientService:
             for client in self._pool + self._in_use:
                 try:
                     await asyncio.to_thread(client.close)
-                except Exception as e:
+                except (OSError, RuntimeError, AttributeError) as e:
                     logger.debug(f"Error closing client during pool shutdown: {e}")
             self._pool.clear()
             self._in_use.clear()
@@ -668,7 +682,7 @@ async def get_docker_client_async(timeout: float = 30.0, operation: str = 'defau
             await asyncio.to_thread(client.ping)
             logger.debug(f"Docker client created with configured socket: {socket_path}")
 
-        except Exception as e1:
+        except (docker.errors.DockerException, OSError, RuntimeError) as e1:
             logger.debug(f"Configured socket failed ({socket_path}): {e1}")
             try:
                 # Method 2: Fallback to docker.from_env
@@ -676,9 +690,13 @@ async def get_docker_client_async(timeout: float = 30.0, operation: str = 'defau
                 await asyncio.to_thread(client.ping)
                 logger.debug("Docker client created with docker.from_env fallback")
 
-            except Exception as e2:
+            except (docker.errors.DockerException, OSError, RuntimeError) as e2:
                 logger.error(f"All Docker client methods failed: config={e1}, from_env={e2}")
-                raise RuntimeError(f"Docker connection failed: {e2}")
+                raise DockerConnectionError(
+                    "Docker connection failed",
+                    error_code="DOCKER_CONNECTION_FAILED",
+                    details={'config_error': str(e1), 'from_env_error': str(e2)}
+                )
 
         yield client
 
@@ -686,5 +704,6 @@ async def get_docker_client_async(timeout: float = 30.0, operation: str = 'defau
         if client:
             try:
                 await asyncio.to_thread(client.close)
-            except:
+            except (OSError, RuntimeError, AttributeError):
+                # Client close errors in finally block are non-critical
                 pass
