@@ -50,7 +50,7 @@ class DockerConnectivityService:
 
     async def check_connectivity(self, request: DockerConnectivityRequest) -> DockerConnectivityResult:
         """
-        Check if Docker daemon is accessible.
+        Check if Docker daemon is accessible using native Docker ping.
 
         Args:
             request: DockerConnectivityRequest with check parameters
@@ -59,23 +59,30 @@ class DockerConnectivityService:
             DockerConnectivityResult with connectivity status and error details
         """
         try:
-            # Use SERVICE FIRST container status service for connectivity test
-            from services.infrastructure.container_status_service import get_docker_info_dict_service_first
+            from services.docker_service.docker_client_pool import get_docker_client_async
 
             self.logger.debug(f"Checking Docker connectivity with {request.timeout_seconds}s timeout")
 
-            # Try a lightweight Docker API call
-            # Use a non-existent container name - if Docker is accessible, this will fail gracefully
-            # If Docker is not accessible, this will fail with connectivity errors
-            test_result = await asyncio.wait_for(
-                get_docker_info_dict_service_first("__ddc_connectivity_test__", request.timeout_seconds),
-                timeout=request.timeout_seconds
-            )
+            # Use native Docker ping() for clean health check
+            async with get_docker_client_async(
+                timeout=request.timeout_seconds,
+                operation='ping',
+                container_name='connectivity_check'
+            ) as client:
+                # Docker.ping() returns True if daemon is reachable
+                ping_result = client.ping()
 
-            # If we get here without exception, Docker is reachable
-            # (even if the test container doesn't exist, that's expected)
-            self.logger.debug("Docker connectivity check successful")
-            return DockerConnectivityResult(is_connected=True)
+                if ping_result:
+                    self.logger.debug("Docker connectivity check successful (ping: OK)")
+                    return DockerConnectivityResult(is_connected=True)
+                else:
+                    # Ping returned False/None - unusual but handle it
+                    self.logger.warning("Docker ping returned unexpected result")
+                    return DockerConnectivityResult(
+                        is_connected=False,
+                        error_message="Docker ping failed",
+                        error_type="ping_failed"
+                    )
 
         except asyncio.TimeoutError:
             error_msg = f"Docker daemon timeout after {request.timeout_seconds}s - system overloaded or unresponsive"
@@ -87,7 +94,7 @@ class DockerConnectivityService:
                 technical_details=f"Timeout after {request.timeout_seconds} seconds"
             )
 
-        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+        except (OSError, IOError) as e:
             # Analyze the exception to determine error type
             error_str = str(e).lower()
 
@@ -104,16 +111,27 @@ class DockerConnectivityService:
                 error_message = "Docker socket permissions issue"
                 technical_details = "User lacks permissions to access Docker socket"
             else:
-                error_type = "unknown_error"
+                error_type = "connection_error"
                 error_message = f"Docker connectivity error: {str(e)}"
                 technical_details = str(e)
 
-            self.logger.warning(f"[DOCKER_CONNECTIVITY] {error_message}")
+            self.logger.warning(f"[DOCKER_CONNECTIVITY] {error_message}", exc_info=True)
             return DockerConnectivityResult(
                 is_connected=False,
                 error_message=error_message,
                 error_type=error_type,
                 technical_details=technical_details
+            )
+
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service or import errors
+            error_msg = f"Docker service error: {str(e)}"
+            self.logger.error(f"[DOCKER_CONNECTIVITY] {error_msg}", exc_info=True)
+            return DockerConnectivityResult(
+                is_connected=False,
+                error_message=error_msg,
+                error_type="service_error",
+                technical_details=str(e)
             )
 
     def create_error_embed_data(self, request: DockerErrorEmbedRequest) -> DockerErrorEmbedResult:
@@ -206,9 +224,10 @@ class DockerConnectivityService:
                 footer_text=footer_text
             )
 
-        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+        except (RuntimeError, TypeError, ValueError, KeyError) as e:
+            # Error creating embed (runtime errors, type/value errors, missing keys)
             error_msg = f"Error creating Docker connectivity embed: {e}"
-            self.logger.error(error_msg)
+            self.logger.error(error_msg, exc_info=True)
             return DockerErrorEmbedResult(
                 success=False,
                 title="Error",
