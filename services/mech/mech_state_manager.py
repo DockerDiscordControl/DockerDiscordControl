@@ -38,8 +38,9 @@ class MechStateManager:
             with open(self.state_file, 'w') as f:
                 json.dump(state, f, indent=2)
             self.state_cache = state
-        except Exception as e:
-            logger.error(f"Error saving state: {e}")
+        except (IOError, OSError) as e:
+            # File I/O errors (file write)
+            logger.error(f"File I/O error saving state: {e}", exc_info=True)
     
     def get_state(self, key: str, default=None):
         """Get specific state value"""

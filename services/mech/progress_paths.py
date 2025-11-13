@@ -92,8 +92,9 @@ def _config_base_dir() -> Optional[Path]:
     try:
         service = ConfigService()
         result = service.get_config_service(GetConfigRequest())
-    except Exception as exc:  # pragma: no cover - defensive logging
-        logger.debug("Failed to load configuration while resolving progress paths: %s", exc, exc_info=True)
+    except (ImportError, AttributeError, RuntimeError) as exc:  # pragma: no cover - defensive logging
+        # Service dependency errors (config service unavailable)
+        logger.debug("Service dependency error loading configuration while resolving progress paths: %s", exc, exc_info=True)
         return None
 
     if not result.success or not result.config:

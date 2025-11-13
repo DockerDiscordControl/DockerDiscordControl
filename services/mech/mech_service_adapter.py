@@ -204,8 +204,9 @@ class MechServiceAdapter:
                 speed=min(100, (prog_state.power_current / prog_state.power_max) * 100) if prog_state.power_max > 0 else 0,
                 error=None
             )
-        except Exception as e:
-            logger.error(f"Error getting mech state service: {e}", exc_info=True)
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (progress service unavailable, service call failures)
+            logger.error(f"Service dependency error getting mech state: {e}", exc_info=True)
             return MechStateServiceResult(
                 success=False,
                 level=1,
@@ -214,7 +215,20 @@ class MechServiceAdapter:
                 name="Error",
                 threshold=0.0,
                 speed=0.0,
-                error=str(e)
+                error=f"Service dependency error: {str(e)}"
+            )
+        except (ValueError, TypeError, KeyError, ZeroDivisionError) as e:
+            # Data processing errors (calculations, attribute access)
+            logger.error(f"Data processing error getting mech state: {e}", exc_info=True)
+            return MechStateServiceResult(
+                success=False,
+                level=1,
+                power=0.0,
+                total_donated=0.0,
+                name="Error",
+                threshold=0.0,
+                speed=0.0,
+                error=f"Data processing error: {str(e)}"
             )
 
     def _get_evolution_mode(self) -> dict:

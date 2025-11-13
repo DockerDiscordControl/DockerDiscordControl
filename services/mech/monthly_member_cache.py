@@ -28,8 +28,17 @@ class MonthlyMemberCache:
                     self._cache_data = json.load(f)
             else:
                 self._cache_data = {"member_count": 50, "timestamp": "2025-09-12T13:56:30", "month_year": "2025-09"}
-        except Exception as e:
-            logger.error(f"Error loading monthly member cache: {e}")
+        except (IOError, OSError) as e:
+            # File I/O errors (cache file access)
+            logger.error(f"File I/O error loading monthly member cache: {e}", exc_info=True)
+            self._cache_data = {"member_count": 50, "timestamp": "2025-09-12T13:56:30", "month_year": "2025-09"}
+        except json.JSONDecodeError as e:
+            # JSON parsing errors (corrupted cache file)
+            logger.error(f"JSON parsing error loading monthly member cache: {e}", exc_info=True)
+            self._cache_data = {"member_count": 50, "timestamp": "2025-09-12T13:56:30", "month_year": "2025-09"}
+        except (KeyError, ValueError, TypeError) as e:
+            # Data structure errors (missing keys, invalid values)
+            logger.error(f"Data error loading monthly member cache: {e}", exc_info=True)
             self._cache_data = {"member_count": 50, "timestamp": "2025-09-12T13:56:30", "month_year": "2025-09"}
 
         return self._cache_data

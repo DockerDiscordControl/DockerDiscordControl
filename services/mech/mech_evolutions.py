@@ -43,8 +43,17 @@ class EvolutionConfigService:
             )
             logger.debug(f"Evolution config loaded via central ConfigService: {self.config_path}")
             return config
-        except Exception as e:
-            logger.error(f"Error loading evolution config via central service: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service dependency errors (config service unavailable)
+            logger.error(f"Service dependency error loading evolution config: {e}", exc_info=True)
+            return self._get_fallback_config()
+        except (IOError, OSError) as e:
+            # File I/O errors (config file access)
+            logger.error(f"File I/O error loading evolution config: {e}", exc_info=True)
+            return self._get_fallback_config()
+        except json.JSONDecodeError as e:
+            # JSON parsing errors (corrupted config)
+            logger.error(f"JSON parsing error loading evolution config: {e}", exc_info=True)
             return self._get_fallback_config()
 
     def _get_fallback_config(self) -> Dict[str, Any]:
@@ -96,8 +105,13 @@ class EvolutionConfigService:
             logger.info(f"Evolution config saved via central ConfigService: {self.config_path}")
             return True
 
-        except Exception as e:
-            logger.error(f"Error saving evolution config via central service: {e}")
+        except (IOError, OSError) as e:
+            # File I/O errors (file write, directory creation)
+            logger.error(f"File I/O error saving evolution config: {e}", exc_info=True)
+            return False
+        except RuntimeError as e:
+            # Service operation errors (config service save failure)
+            logger.error(f"Service error saving evolution config: {e}", exc_info=True)
             return False
 
     def get_difficulty_multiplier(self) -> float:
