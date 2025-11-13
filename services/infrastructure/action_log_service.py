@@ -136,10 +136,11 @@ class ActionLogService:
                 return ServiceResult(success=True, data=entry)
             else:
                 return ServiceResult(success=False, error="Failed to save to both JSON and text formats")
-                
-        except Exception as e:
+
+        except (ImportError, OSError, AttributeError, TypeError, ValueError, KeyError) as e:
+            # Action logging errors (import failures, I/O errors, attribute/type/value/key errors)
             error_msg = f"Error logging action {action} for {target}: {e}"
-            logger.error(error_msg)
+            logger.error(error_msg, exc_info=True)
             return ServiceResult(success=False, error=error_msg)
     
     def get_logs(self, limit: int = 500, format: str = "json") -> ServiceResult:
@@ -157,10 +158,11 @@ class ActionLogService:
                 return self._get_logs_json(limit)
             else:
                 return self._get_logs_text(limit)
-                
-        except Exception as e:
+
+        except (OSError, AttributeError, TypeError, ValueError) as e:
+            # Log retrieval errors (I/O errors, attribute/type/value errors)
             error_msg = f"Error retrieving logs: {e}"
-            logger.error(error_msg)
+            logger.error(error_msg, exc_info=True)
             return ServiceResult(success=False, error=error_msg)
     
     def _save_to_json(self, entry: ActionLogEntry) -> ServiceResult:
@@ -189,10 +191,11 @@ class ActionLogService:
             with open(temp_file, 'w', encoding='utf-8') as f:
                 json.dump(actions, f, indent=2, ensure_ascii=False)
             temp_file.replace(self.json_log_file)
-            
+
             return ServiceResult(success=True)
-            
-        except Exception as e:
+
+        except (IOError, OSError, PermissionError, json.JSONDecodeError, UnicodeDecodeError, UnicodeEncodeError, TypeError, ValueError) as e:
+            # JSON save errors (file I/O, permissions, JSON parsing/serialization, encoding, type/value errors)
             return ServiceResult(success=False, error=str(e))
     
     def _save_to_text(self, entry: ActionLogEntry) -> ServiceResult:
@@ -204,10 +207,11 @@ class ActionLogService:
             # Append to text file
             with open(self.text_log_file, 'a', encoding='utf-8') as f:
                 f.write(text_line)
-            
+
             return ServiceResult(success=True)
-            
-        except Exception as e:
+
+        except (IOError, OSError, PermissionError, UnicodeEncodeError, TypeError, AttributeError) as e:
+            # Text save errors (file I/O, permissions, encoding, type/attribute errors)
             return ServiceResult(success=False, error=str(e))
     
     def _get_logs_json(self, limit: int) -> ServiceResult:
@@ -226,10 +230,11 @@ class ActionLogService:
                 # Sort by timestamp (newest first) and limit results
                 actions.sort(key=lambda x: x.get('timestamp_unix', 0), reverse=True)
                 entries = [ActionLogEntry.from_dict(action) for action in actions[:limit]]
-                
+
                 return ServiceResult(success=True, data=entries)
-                
-        except Exception as e:
+
+        except (IOError, OSError, PermissionError, json.JSONDecodeError, UnicodeDecodeError, TypeError, ValueError, KeyError, AttributeError) as e:
+            # JSON log reading errors (file I/O, permissions, JSON parsing, encoding, data/type/key/attribute errors)
             return ServiceResult(success=False, error=str(e))
     
     def _get_logs_text(self, limit: int) -> ServiceResult:
@@ -244,7 +249,8 @@ class ActionLogService:
                     try:
                         dt = datetime.fromisoformat(entry.timestamp.replace('Z', '+00:00'))
                         timestamp_str = dt.strftime('%Y-%m-%d %H:%M:%S %Z')
-                    except:
+                    except (ValueError, AttributeError, TypeError):
+                        # Timestamp conversion errors (invalid format, attribute/type errors)
                         timestamp_str = entry.timestamp
                     
                     line = f"{timestamp_str} - {entry.action}|{entry.target}|{entry.user}|{entry.source}|{entry.details}"
@@ -258,10 +264,11 @@ class ActionLogService:
                     lines = f.readlines()
                     lines = lines[-limit:] if len(lines) > limit else lines
                     return ServiceResult(success=True, data=''.join(lines).strip())
-            
+
             return ServiceResult(success=True, data="No action logs available")
-            
-        except Exception as e:
+
+        except (IOError, OSError, PermissionError, UnicodeDecodeError, TypeError, ValueError, AttributeError) as e:
+            # Text log reading errors (file I/O, permissions, encoding, type/value/attribute errors)
             return ServiceResult(success=False, error=str(e))
     
     def _get_timezone(self) -> tuple[str, pytz.BaseTzInfo]:
@@ -272,7 +279,8 @@ class ActionLogService:
             timezone_str = config.get('timezone', 'Europe/Berlin')
             tz = pytz.timezone(timezone_str)
             return timezone_str, tz
-        except Exception:
+        except (ImportError, AttributeError, KeyError, pytz.UnknownTimeZoneError, TypeError):
+            # Timezone loading errors (import failures, attribute/key errors, unknown timezone, type errors)
             return 'UTC', pytz.UTC
 
 # Singleton instance
