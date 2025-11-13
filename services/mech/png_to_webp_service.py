@@ -48,8 +48,13 @@ class PngToWebpService:
             else:
                 return self._create_fallback_animation()
 
-        except Exception as e:
-            logger.error(f"Error creating donation animation: {e}")
+        except (ImportError, AttributeError) as e:
+            # Service dependency errors (MechWebService unavailable)
+            logger.error(f"Service dependency error creating donation animation: {e}", exc_info=True)
+            return self._create_fallback_animation()
+        except (RuntimeError, ValueError, TypeError) as e:
+            # Service operation errors (animation generation, result processing)
+            logger.error(f"Operation error creating donation animation: {e}", exc_info=True)
             return self._create_fallback_animation()
 
     def create_donation_animation_sync(self, donor_name: str, amount: str, total_donations: float) -> bytes:
@@ -71,8 +76,12 @@ class PngToWebpService:
             else:
                 raise Exception("Failed to get animation from MechWebService")
 
-        except Exception as e:
-            logger.error(f"Error creating sync animation: {e}")
+        except (ImportError, AttributeError) as e:
+            # Service dependency errors (MechWebService, mech_evolutions unavailable)
+            logger.error(f"Service dependency error creating sync animation: {e}", exc_info=True)
+        except (RuntimeError, ValueError, TypeError) as e:
+            # Service operation errors (animation generation, result processing)
+            logger.error(f"Operation error creating sync animation: {e}", exc_info=True)
             # Simple fallback - use smart canvas size if possible
             try:
                 from services.mech.mech_evolutions import get_evolution_level

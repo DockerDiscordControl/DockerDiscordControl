@@ -107,8 +107,9 @@ class MechStoryService:
                         content = f.read()
                         logger.info(f"Using English fallback for language: {language}")
                         return content
-                except Exception as fallback_error:
-                    logger.error(f"Failed to load English fallback: {fallback_error}")
+                except (IOError, OSError) as fallback_error:
+                    # File I/O errors (fallback file access)
+                    logger.error(f"File I/O error loading English fallback: {fallback_error}", exc_info=True)
 
             # Ultimate fallback
             return "Error: Story content could not be loaded."
@@ -191,8 +192,9 @@ class MechStoryService:
         try:
             from cogs.translation_manager import translation_manager
             return translation_manager.get_current_language()
-        except Exception as e:
-            logger.warning(f"Could not get current language: {e}")
+        except (ImportError, AttributeError) as e:
+            # Translation manager errors (import failure, manager unavailable)
+            logger.warning(f"Translation manager error getting current language: {e}")
             return 'en'  # Default to English
 
 

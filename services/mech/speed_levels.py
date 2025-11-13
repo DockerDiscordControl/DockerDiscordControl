@@ -16,8 +16,13 @@ def load_speed_translations():
         translations_file = Path(__file__).parent / "speed_translations.json"
         with open(translations_file, 'r', encoding='utf-8') as f:
             return json.load(f)
-    except Exception as e:
-        print(f"Warning: Could not load speed translations: {e}")
+    except (IOError, OSError) as e:
+        # File I/O errors (file not found, read errors)
+        print(f"Warning: File I/O error loading speed translations: {e}")
+        return None
+    except json.JSONDecodeError as e:
+        # JSON parsing errors (corrupted file)
+        print(f"Warning: JSON parsing error loading speed translations: {e}")
         return None
 
 SPEED_TRANSLATIONS = load_speed_translations()
@@ -214,9 +219,13 @@ def get_speed_info(donation_amount: float) -> tuple:
         level = _calculate_speed_level_from_power_ratio(evolution_level, donation_amount, max_power_for_level)
         return SPEED_DESCRIPTIONS.get(level, SPEED_DESCRIPTIONS[0])
 
-    except Exception as e:
-        # Fallback to safe values
-        print(f"Error in get_speed_info: {e}")
+    except (ImportError, AttributeError) as e:
+        # Service dependency errors (mech_evolutions not available)
+        print(f"Service dependency error in get_speed_info: {e}")
+        return SPEED_DESCRIPTIONS[1]
+    except (ValueError, TypeError, KeyError, ZeroDivisionError) as e:
+        # Calculation/data access errors (evolution level, power ratio)
+        print(f"Calculation error in get_speed_info: {e}")
         return SPEED_DESCRIPTIONS[1]
 
 def get_speed_emoji(level: int) -> str:
@@ -244,8 +253,9 @@ def get_translated_speed_description(level: int, language: str = "en") -> str:
                 translations = SPEED_TRANSLATIONS["speed_descriptions"][level_str]
                 if language in translations:
                     return translations[language]
-        except Exception as e:
-            print(f"Error getting translation for level {level}, language {language}: {e}")
+        except (KeyError, ValueError, TypeError) as e:
+            # Dictionary access/data errors (missing translations, invalid keys)
+            print(f"Data error getting translation for level {level}, language {language}: {e}")
     
     # Fallback to English from SPEED_DESCRIPTIONS
     return SPEED_DESCRIPTIONS.get(level, SPEED_DESCRIPTIONS[0])[0]
@@ -299,7 +309,9 @@ def get_combined_mech_status(Power_amount: float, total_donations_received: floa
                     language = 'en'
             else:
                 language = 'en'
-        except:
+        except (ImportError, AttributeError, RuntimeError, KeyError) as e:
+            # Service/config access errors (config service unavailable, get failures)
+            print(f"Error accessing config for language: {e}")
             language = 'en'
     
     # Get speed info based on POWER amount
@@ -313,9 +325,13 @@ def get_combined_mech_status(Power_amount: float, total_donations_received: floa
         # Calculate speed level using consolidated logic
         speed_level = _calculate_speed_level_from_power_ratio(evolution_level, Power_amount, max_power_for_level)
 
-    except Exception as e:
-        # Fallback to simple calculation
-        print(f"Error calculating speed level: {e}")
+    except (ImportError, AttributeError) as e:
+        # Service dependency errors (mech_evolutions not available)
+        print(f"Service dependency error calculating speed level: {e}")
+        speed_level = min(int(Power_amount), 100)
+    except (ValueError, TypeError, ZeroDivisionError) as e:
+        # Calculation errors (power ratio, type conversion)
+        print(f"Calculation error calculating speed level: {e}")
         speed_level = min(int(Power_amount), 100)
     
     # Get translated speed description

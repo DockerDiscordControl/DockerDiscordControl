@@ -104,11 +104,19 @@ class MechHighResService:
                 cropping_adjustments=cropping_adjustments
             )
 
-        except Exception as e:
-            logger.error(f"Error getting mech resolution info for level {request.evolution_level}: {e}", exc_info=True)
+        except (IOError, OSError) as e:
+            # File system errors (folder access, path operations)
+            logger.error(f"File system error getting mech resolution info for level {request.evolution_level}: {e}", exc_info=True)
             return MechResolutionResult(
                 success=False,
-                error=str(e)
+                error=f"File system error: {str(e)}"
+            )
+        except (ValueError, TypeError, KeyError) as e:
+            # Data processing errors (calculations, dictionary access)
+            logger.error(f"Data error getting mech resolution info for level {request.evolution_level}: {e}", exc_info=True)
+            return MechResolutionResult(
+                success=False,
+                error=f"Data processing error: {str(e)}"
             )
 
     def _has_big_version(self, evolution_level: int) -> bool:
@@ -122,8 +130,13 @@ class MechHighResService:
             walk_files = list(big_folder.glob(f"{evolution_level}_walk_*.png"))
             return len(walk_files) > 0
 
-        except Exception as e:
-            logger.debug(f"Error checking big version for level {evolution_level}: {e}")
+        except (IOError, OSError, PermissionError) as e:
+            # File system errors (folder access, path operations, permissions)
+            logger.debug(f"File system error checking big version for level {evolution_level}: {e}")
+            return False
+        except (ValueError, TypeError) as e:
+            # Data processing errors (path operations, list operations)
+            logger.debug(f"Data error checking big version for level {evolution_level}: {e}")
             return False
 
     def _get_size_ratio(self, evolution_level: int) -> float:
@@ -151,8 +164,13 @@ class MechHighResService:
             logger.debug(f"Mech level {evolution_level} size ratio: {ratio:.2f}x")
             return ratio
 
-        except Exception as e:
-            logger.debug(f"Error calculating size ratio for level {evolution_level}: {e}")
+        except (IOError, OSError) as e:
+            # File I/O errors (image file access)
+            logger.debug(f"File I/O error calculating size ratio for level {evolution_level}: {e}")
+            return 1.0
+        except (ValueError, TypeError, ZeroDivisionError) as e:
+            # Calculation errors (PIL operations, ratio calculations)
+            logger.debug(f"Calculation error calculating size ratio for level {evolution_level}: {e}")
             return 1.0
 
     def _get_cropping_adjustments(self, evolution_level: int, resolution: str) -> Dict[str, Any]:

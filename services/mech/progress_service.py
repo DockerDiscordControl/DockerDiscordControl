@@ -410,9 +410,13 @@ def requirement_for_level_and_bin(level: int, b: int, member_count: int = None) 
             logger.warning(f"Failed to get evolution mode: {mode_result.error}, using dynamic mode (no multiplier)")
             total = subtotal
 
-    except Exception as e:
-        # Fallback: Use dynamic mode on error
-        logger.warning(f"Error checking evolution mode: {e}, using dynamic mode (no multiplier)")
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (config service unavailable)
+        logger.warning(f"Service dependency error checking evolution mode: {e}, using dynamic mode (no multiplier)")
+        total = subtotal
+    except (KeyError, ValueError, TypeError) as e:
+        # Data access/processing errors (config structure, value types)
+        logger.warning(f"Data error checking evolution mode: {e}, using dynamic mode (no multiplier)")
         total = subtotal
 
     return total
@@ -487,8 +491,12 @@ def compute_ui_state(snap: Snapshot) -> ProgressState:
             dpp = decay_per_day(snap.mech_type)
             decay_amount = (elapsed_seconds / 86400.0) * dpp
             power_acc_with_decay = max(0, snap.power_acc - int(decay_amount))
-        except Exception as e:
-            logger.warning(f"Could not calculate continuous decay: {e}")
+        except ImportError as e:
+            # Import errors (zoneinfo module not available)
+            logger.warning(f"Import error calculating continuous decay: {e}")
+        except (ValueError, TypeError, KeyError) as e:
+            # Data processing errors (datetime parsing, attribute access, calculations)
+            logger.warning(f"Data error calculating continuous decay: {e}")
 
     power_max_cents = snap.goal_requirement + 100 if snap.goal_requirement > 0 else 100  # +$1
     power_percent = int((power_acc_with_decay * 100) // power_max_cents)
@@ -599,8 +607,17 @@ def apply_donation_units(snap: Snapshot, units_cents: int) -> Tuple[Snapshot, Op
                     data = json.load(f)
                     current_member_count = data.get("count", 50)
                     logger.info(f"Level-up: Loaded status channel member count from config: {current_member_count}")
-            except Exception as e:
-                logger.warning(f"Could not read member_count.json: {e}, using default")
+            except (IOError, OSError) as e:
+                # File I/O errors (read errors, permissions)
+                logger.warning(f"File I/O error reading member_count.json: {e}, using default")
+                current_member_count = 50
+            except json.JSONDecodeError as e:
+                # JSON parsing errors (corrupted file)
+                logger.warning(f"JSON parsing error reading member_count.json: {e}, using default")
+                current_member_count = 50
+            except (KeyError, ValueError, TypeError) as e:
+                # Data access/structure errors (missing 'count' key, invalid values)
+                logger.warning(f"Data error reading member_count.json: {e}, using default")
                 current_member_count = 50
         else:
             # Use a reasonable default for testing (50 status channel members)
@@ -870,7 +887,8 @@ class ProgressService:
                            f"(Power +${amount_dollars:.2f}, Evolution unchanged)")
                 return compute_ui_state(snap)
 
-            except Exception as e:
+            except (RuntimeError, ValueError, TypeError, AttributeError) as e:
+                # Snapshot operation errors (state updates, attribute access, calculations)
                 logger.error(f"Failed to apply system donation to snapshot: {e}", exc_info=True)
                 # Event was already written, so we need to mark it as failed somehow
                 # For now, just re-raise to let caller handle
