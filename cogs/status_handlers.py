@@ -122,17 +122,12 @@ class StatusHandlersMixin:
         if slow_containers:
             phase2_start = time.time()
             logger.debug(f"[INTELLIGENT_BULK_FETCH] Phase 2: Processing {len(slow_containers)} slow containers individually")
-            
-            for i, container_name in enumerate(slow_containers):
-                container_start = time.time()
-                logger.debug(f"[INTELLIGENT_BULK_FETCH] Processing slow container {i+1}/{len(slow_containers)}: {container_name}")
 
+            for i, container_name in enumerate(slow_containers):
                 fetch_service = get_fetch_service()
                 result = await fetch_service.fetch_with_retries(container_name)
                 all_results.append(result)
-                
-                container_time = (time.time() - container_start) * 1000
-                logger.debug(f"[INTELLIGENT_BULK_FETCH] Slow container {container_name} completed in {container_time:.1f}ms")
+                # No per-container logging - only log phase completion to avoid spam
             
             slow_time = (time.time() - phase2_start) * 1000
             logger.info(f"[INTELLIGENT_BULK_FETCH] Phase 2 completed: {len(slow_containers)} slow containers in {slow_time:.1f}ms")
@@ -302,14 +297,9 @@ class StatusHandlersMixin:
             # Background loop handles regular updates every 30s
             if not cached_entry:
                 containers_needing_update.append(docker_name)
-                logger.debug(f"[BULK_UPDATE] {display_name} has no cache entry, scheduling update")
-            else:
-                # Cache exists - let background loop handle updates
-                cache_age = (now - cached_entry['timestamp']).total_seconds()
-                logger.debug(f"[BULK_UPDATE] {display_name} has cache (age: {cache_age:.1f}s), background loop handles updates")
-        
+
         if not containers_needing_update:
-            logger.debug(f"[BULK_UPDATE] All {len(container_names)} containers have cache entries - background loop provides updates")
+            # All containers cached - silent return (this is the expected happy path)
             return
         
         logger.info(f"[BULK_UPDATE] Updating cache for {len(containers_needing_update)}/{len(container_names)} containers with missing cache")
@@ -326,7 +316,6 @@ class StatusHandlersMixin:
                     if result.success:
                         # Cache ContainerStatusResult directly
                         self.status_cache_service.set(display_name, result, now)
-                        logger.debug(f"[BULK_UPDATE] Updated cache for {display_name}")
                     else:
                         # Cache error state to prevent constant retries
                         self.status_cache_service.set_error(display_name, result.error or Exception(result.error_message))
@@ -459,10 +448,7 @@ class StatusHandlersMixin:
         server_config_service = get_server_config_service()
         all_servers_config = server_config_service.get_all_servers()
 
-        logger.debug(f"[_GEN_EMBED] Generating embed for '{display_name}' in channel {channel_id}, lang={lang}, allow_toggle={allow_toggle}, force_collapse={force_collapse}")
-        if not allow_toggle or force_collapse:
-             logger.debug(f"[_GEN_EMBED_FLAGS] '{display_name}': allow_toggle={allow_toggle}, force_collapse={force_collapse}. ToggleButton/Expanded view should be suppressed.")
-            
+        # Silent embed generation - this is called very frequently
         embed = None
         view = None
         running = False # Default running state
@@ -484,12 +470,12 @@ class StatusHandlersMixin:
             pending_timestamp = pending_data['timestamp']
             pending_action = pending_data['action']
             pending_duration = (now - pending_timestamp).total_seconds()
-            
+
             # IMPROVED: Longer timeout and smarter pending logic
             PENDING_TIMEOUT_SECONDS = 120  # 2 minutes timeout instead of 15 seconds
-            
+
             if pending_duration < PENDING_TIMEOUT_SECONDS:
-                logger.debug(f"[_GEN_EMBED] '{display_name}' is in pending state (action: {pending_action} at {pending_timestamp}, duration: {pending_duration:.1f}s)")
+                # Silent pending state - this is expected behavior
                 embed = _get_pending_embed(display_name) # Uses a standardized pending embed
                 return embed, None, False # No view, running status is effectively false for pending display
             else:
@@ -537,10 +523,8 @@ class StatusHandlersMixin:
             # PATIENT APPROACH: ALWAYS use cache if available - background collects fresh data
             # Show cache age when data is older so user knows freshness
             if cache_age < self.cache_ttl_seconds:
-                logger.debug(f"[_GEN_EMBED] Using fresh cached status for '{display_name}' (age: {cache_age:.1f}s)")
                 cache_age_indicator = ""  # No indicator for fresh data
             else:
-                logger.debug(f"[_GEN_EMBED] Using cached status for '{display_name}' (age: {cache_age:.1f}s) - background updating...")
                 # Add age indicator for older data
                 if cache_age < 120:  # Less than 2 minutes
                     cache_age_indicator = f" ({int(cache_age)}s ago)"
@@ -572,7 +556,6 @@ class StatusHandlersMixin:
         # --- Process status_result and generate embed ---
         # Cache now stores ContainerStatusResult objects
         if status_result is None:
-            logger.debug(f"[_GEN_EMBED] Status result for '{display_name}' is None. Showing loading or error status.")
             # Check if we have cache age indicator to determine type of message
             if 'embed_cache_indicator' in locals() and 'loading' in embed_cache_indicator:
                 # Loading status
@@ -824,7 +807,6 @@ class StatusHandlersMixin:
 
             if show_info_integration and not channel_has_control:
                 # STATUS-ONLY CHANNEL: Use StatusInfoView and enhance embed
-                logger.debug(f"[_GEN_EMBED] Using StatusInfoView for status-only channel {channel_id}")
                 view = StatusInfoView(self, server_conf, running)
 
                 # Enhance embed with info indicators if info is available
@@ -832,7 +814,6 @@ class StatusHandlersMixin:
 
             else:
                 # CONTROL CHANNEL: Use standard ControlView
-                logger.debug(f"[_GEN_EMBED] Using ControlView for control channel {channel_id}")
                 view = ControlView(self, server_conf, running, channel_has_control_permission=channel_has_control, allow_toggle=allow_toggle)
         else:
             view = None # Ensure view is None if server_conf is missing or critical error
@@ -858,7 +839,6 @@ class StatusHandlersMixin:
         if not display_name:
              logger.error("[SEND_STATUS] Server config missing name or docker_name.")
              return None
-        logger.debug(f"[SEND_STATUS] Processing server '{display_name}' for channel {channel.id}, allow_toggle={allow_toggle}, force_collapse={force_collapse}")
 
         # DOCKER CONNECTIVITY CHECK: Check before attempting to get/send status
         from services.infrastructure.docker_connectivity_service import get_docker_connectivity_service, DockerConnectivityRequest, DockerErrorEmbedRequest
@@ -935,24 +915,17 @@ class StatusHandlersMixin:
                      existing_msg_id = self.channel_server_message_ids[channel.id].get(display_name)
                 should_edit = existing_msg_id is not None
 
-                is_pending_check = display_name in self.pending_actions
-                if is_pending_check:
-                    logger.debug(f"[SEND_STATUS_PENDING_CHECK] Server '{display_name}' is marked as pending. Trying to { 'edit' if should_edit else 'send' } message.")
-
                 if should_edit:
                     try:
                         # PERFORMANCE OPTIMIZATION: Use partial message instead of fetch
                         existing_message = channel.get_partial_message(existing_msg_id)  # No API call
                         await existing_message.edit(embed=embed, view=view if view and view.children else None)
                         msg = existing_message
-                        logger.debug(f"[SEND_STATUS] Edited message {existing_msg_id} for '{display_name}' in channel {channel.id}")
-                        
+
                         # Update last edit time
                         if channel.id not in self.last_message_update_time:
                             self.last_message_update_time[channel.id] = {}
                         self.last_message_update_time[channel.id][display_name] = datetime.now(timezone.utc)
-                        
-                        if is_pending_check: logger.debug(f"[SEND_STATUS_PENDING_CHECK] Successfully edited pending message for '{display_name}'.")
                     except discord.NotFound:
                          logger.warning(f"[SEND_STATUS] Message {existing_msg_id} for '{display_name}' not found. Will send new.")
                          if channel.id in self.channel_server_message_ids and display_name in self.channel_server_message_ids[channel.id]:
@@ -960,7 +933,6 @@ class StatusHandlersMixin:
                          existing_msg_id = None
                     except (discord.HTTPException, discord.Forbidden, RuntimeError, KeyError) as e:
                          logger.error(f"[SEND_STATUS] Failed to edit message {existing_msg_id} for '{display_name}': {e}", exc_info=True)
-                         if is_pending_check: logger.error(f"[SEND_STATUS_PENDING_CHECK] Failed to EDIT pending message for '{display_name}'. Error: {e}")
                          existing_msg_id = None
 
                 if not existing_msg_id:
@@ -975,11 +947,8 @@ class StatusHandlersMixin:
                           if channel.id not in self.last_message_update_time:
                               self.last_message_update_time[channel.id] = {}
                           self.last_message_update_time[channel.id][display_name] = datetime.now(timezone.utc)
-                          
-                          if is_pending_check: logger.debug(f"[SEND_STATUS_PENDING_CHECK] Successfully sent new pending message for '{display_name}'.")
                      except (discord.HTTPException, discord.Forbidden, RuntimeError, KeyError) as e:
                           logger.error(f"[SEND_STATUS] Failed to send new message for '{display_name}' in channel {channel.id}: {e}", exc_info=True)
-                          if is_pending_check: logger.error(f"[SEND_STATUS_PENDING_CHECK] Failed to SEND new pending message for '{display_name}'. Error: {e}")
             else:
                 logger.warning(f"[SEND_STATUS] No embed generated for '{display_name}' (likely error in helper?), cannot send/edit.")
 
@@ -995,7 +964,6 @@ class StatusHandlersMixin:
             if channel_id not in self.last_message_update_time:
                 self.last_message_update_time[channel_id] = {}
             self.last_message_update_time[channel_id][display_name] = now
-            logger.debug(f"Updated last_message_update_time for '{display_name}' in {channel_id} to {now}")
         return result
 
     # =============================================================================
@@ -1045,36 +1013,15 @@ class StatusHandlersMixin:
 
             # Check if content actually changed
             if not cache_service.has_content_changed(cache_key, current_content):
-                # Content unchanged - skip Discord API call
-                elapsed_time = (time.time() - start_time) * 1000
-                # Enhanced logging for offline containers
-                cached_status = getattr(self, 'status_cache', {}).get(server_conf.get('docker_name'))
-                is_offline = False
-                if cached_status:
-                    try:
-                        # Handle both cache formats: direct tuple or {'data': tuple, 'timestamp': datetime}
-                        if isinstance(cached_status, dict) and 'data' in cached_status:
-                            status_data = cached_status['data']
-                        else:
-                            status_data = cached_status
-
-                        # Check if status_data is valid and has enough elements
-                        if (hasattr(status_data, '__getitem__') and hasattr(status_data, '__len__') and
-                            len(status_data) >= 2):
-                            is_offline = not status_data[1]  # Second value is is_running
-                    except (TypeError, IndexError, KeyError):
-                        pass  # Ignore cache format issues for logging
-                status_info = " [OFFLINE]" if is_offline else ""
-                logger.debug(f"_edit_single_message: SKIPPED edit for '{display_name}'{status_info} - content unchanged ({elapsed_time:.1f}ms)")
-
+                # Content unchanged - skip Discord API call (silent skip, no logging)
+                # This is the HAPPY PATH and happens very frequently - don't spam logs
                 return True  # Return success without actual edit
             
             # Content changed or first time - proceed with edit
             # PERFORMANCE OPTIMIZATION: Use cached channel object instead of fetch
             channel = self.bot.get_channel(channel_id)  # Uses bot's internal cache, no API call
             if not channel:
-                # Fallback to fetch if not in cache (rare case)
-                logger.debug(f"_edit_single_message: Channel {channel_id} not in cache, fetching...")
+                # Fallback to fetch if not in cache (rare case - no logging needed)
                 channel = await self.bot.fetch_channel(channel_id)
             
             if not isinstance(channel, discord.TextChannel):
@@ -1102,18 +1049,14 @@ class StatusHandlersMixin:
 
             # Store the new content for future comparison
             cache_service.update_content(cache_key, current_content)
-            
+
+            # Performance logging - only log slow operations to avoid spam
             elapsed_time = (time.time() - start_time) * 1000
-            
-            # Smart performance logging
             if elapsed_time > 1000:  # Over 1 second - critical
                 logger.error(f"_edit_single_message: CRITICAL SLOW edit for '{display_name}' took {elapsed_time:.1f}ms")
             elif elapsed_time > 500:  # Over 500ms - warning
                 logger.warning(f"_edit_single_message: SLOW edit for '{display_name}' took {elapsed_time:.1f}ms")
-            elif elapsed_time < 100:  # Under 100ms - excellent
-                logger.info(f"_edit_single_message: FAST edit for '{display_name}' in {elapsed_time:.1f}ms")
-            else:
-                logger.info(f"_edit_single_message: Updated '{display_name}' in {elapsed_time:.1f}ms")
+            # Fast/normal operations (<500ms) are silent - this is the expected behavior
             
             # REMOVED: await asyncio.sleep(0.2) - This was blocking true parallelization
             # Discord API rate limiting is handled by py-cord internally
