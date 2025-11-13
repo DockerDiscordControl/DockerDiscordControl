@@ -4291,9 +4291,13 @@ class DonationBroadcastModal(discord.ui.Modal):
                 logger.error(f"Could not send error response: {edit_error}", exc_info=True)
 
 # Setup function required for extension loading
-async def setup(bot):
-    """Setup function to add the cog to the bot when loaded as an extension."""
-    logger.info("[SETUP DEBUG] setup() function called - NEW CODE VERSION e214386")
+def setup(bot):
+    """Setup function to add the cog to the bot when loaded as an extension.
+
+    IMPORTANT: In PyCord 2.x, setup() must be synchronous (def, not async def).
+    Only discord.py 2.0+ supports async setup functions.
+    """
+    logger.info("[SETUP DEBUG] setup() function called - NEW CODE VERSION 0f3d5cb")
     logger.info("[SETUP DEBUG] About to load config...")
     from services.config.config_service import get_config_service
     config_manager = get_config_service()
@@ -4420,5 +4424,5 @@ async def setup(bot):
     cog.initial_animation_cache_warmup.start()
     logger.info("Initial Animation Cache Warmup startup task initiated")
 
-    await bot.add_cog(cog)
-    logger.info("DockerControlCog added to bot - cog_load() will be called automatically")
+    bot.add_cog(cog)
+    logger.info("[SETUP DEBUG] DockerControlCog added to bot - cog_load() will be called automatically")
