@@ -45,17 +45,31 @@ def get_token_security_status():
                 **result.data
             }), result.status_code
 
-    except Exception as e:
-        logger.error(f"Error in get_token_security_status route: {e}")
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (security_service unavailable, service method failures)
+        logger.error(f"Service error in get_token_security_status route: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e),
+            'error': 'Service error checking security status',
             'token_exists': False,
             'is_encrypted': False,
             'can_encrypt': False,
             'password_hash_available': False,
             'environment_token_used': False,
-            'recommendations': ['❌ Error checking security status']
+            'recommendations': ['❌ Service error checking security status']
+        }), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (invalid response data, JSON serialization)
+        logger.error(f"Data error in get_token_security_status route: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Data error checking security status',
+            'token_exists': False,
+            'is_encrypted': False,
+            'can_encrypt': False,
+            'password_hash_available': False,
+            'environment_token_used': False,
+            'recommendations': ['❌ Data error checking security status']
         }), 500
 
 @security_bp.route('/encrypt-token', methods=['POST'])
@@ -83,11 +97,19 @@ def encrypt_token():
                 'error': result.error
             }), result.status_code
 
-    except Exception as e:
-        logger.error(f"Error in encrypt_token route: {e}")
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (security_service unavailable, service method failures)
+        logger.error(f"Service error in encrypt_token route: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Service error encrypting token'
+        }), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (encryption failures, response processing)
+        logger.error(f"Data error in encrypt_token route: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Data error encrypting token'
         }), 500
 
 @security_bp.route('/migration-help', methods=['GET'])
@@ -113,11 +135,20 @@ def get_migration_help():
                 **result.data
             }), result.status_code
 
-    except Exception as e:
-        logger.error(f"Error in get_migration_help route: {e}")
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (security_service unavailable, service method failures)
+        logger.error(f"Service error in get_migration_help route: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e),
+            'error': 'Service error retrieving migration help',
+            'instructions': []
+        }), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (response processing failures, JSON serialization)
+        logger.error(f"Data error in get_migration_help route: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Data error retrieving migration help',
             'instructions': []
         }), 500
 
@@ -146,9 +177,17 @@ def get_security_audit():
                 'error': result.error
             }), result.status_code
 
-    except Exception as e:
-        logger.error(f"Error in get_security_audit route: {e}")
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (security_service unavailable, service method failures)
+        logger.error(f"Service error in get_security_audit route: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Service error performing security audit'
+        }), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (audit data processing, JSON serialization)
+        logger.error(f"Data error in get_security_audit route: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Data error performing security audit'
         }), 500
