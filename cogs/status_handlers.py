@@ -268,22 +268,8 @@ class StatusHandlersMixin:
         else:
             logger.info(f"[INTELLIGENT_BULK_FETCH] Fast adaptive fetch completed in {total_elapsed:.1f}ms: "
                        f"{successful_fetches}/{len(container_names)} containers with complete data")
-        
-        # CRITICAL FIX: The function must return a dictionary where the value is a tuple of 3 elements.
-        # The previous implementation sometimes returned a tuple of 6 elements.
-        final_results = {}
-        for name, data_tuple in status_results.items():
-            if isinstance(data_tuple, tuple) and len(data_tuple) == 6:
-                # This is the full status tuple, wrap it properly for the loop
-                final_results[name] = ('success', data_tuple, None)
-            elif isinstance(data_tuple, tuple) and len(data_tuple) == 3:
-                # Already in the correct format
-                final_results[name] = data_tuple
-            else:
-                # Handle unexpected format, maybe an error
-                final_results[name] = ('error', None, data_tuple)
 
-        return final_results
+        return status_results
 
     async def bulk_update_status_cache(self, container_names: List[str]):
         """
