@@ -4227,7 +4227,7 @@ class DonationBroadcastModal(discord.ui.Modal):
                 logger.error(f"Could not send error response: {edit_error}", exc_info=True)
 
 # Setup function required for extension loading
-def setup(bot):
+async def setup(bot):
     """Setup function to add the cog to the bot when loaded as an extension."""
     from services.config.config_service import get_config_service
     config_manager = get_config_service()
@@ -4352,4 +4352,5 @@ def setup(bot):
     cog.initial_animation_cache_warmup.start()
     logger.info("Initial Animation Cache Warmup startup task initiated")
 
-    bot.add_cog(cog)
+    await bot.add_cog(cog)
+    logger.info("DockerControlCog added to bot - cog_load() will be called automatically")
