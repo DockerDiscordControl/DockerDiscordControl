@@ -48,8 +48,13 @@ class PortDiagnostics:
             
             # Fall back to hostname or default name
             return hostname if hostname else "dockerdiscordcontrol"
-        except Exception as e:
-            logger.debug(f"Could not detect container name: {e}")
+        except (IOError, OSError) as e:
+            # File I/O errors (reading /etc/hostname)
+            logger.debug(f"File I/O error detecting container name: {e}", exc_info=True)
+            return "dockerdiscordcontrol"
+        except (subprocess.SubprocessError, FileNotFoundError) as e:
+            # Subprocess errors (docker inspect command failures)
+            logger.debug(f"Subprocess error detecting container name: {e}", exc_info=True)
             return "dockerdiscordcontrol"
     
     def _get_host_info(self) -> Dict:
@@ -86,7 +91,13 @@ class PortDiagnostics:
                         info['container_uptime'] = f"{hours}h {minutes}m"
                     else:
                         info['container_uptime'] = f"{minutes}m"
-            except Exception:
+            except (IOError, OSError) as e:
+                # File I/O errors (reading /proc/uptime)
+                logger.debug(f"File I/O error reading uptime: {e}", exc_info=True)
+                info['container_uptime'] = 'unknown'
+            except (ValueError, TypeError, IndexError) as e:
+                # Data parsing errors (uptime calculation)
+                logger.debug(f"Data parsing error calculating uptime: {e}", exc_info=True)
                 info['container_uptime'] = 'unknown'
             
             # Get memory usage
@@ -98,7 +109,13 @@ class PortDiagnostics:
                     mem_used = mem_total - mem_available
                     mem_percent = (mem_used / mem_total) * 100
                     info['memory_usage'] = f"{mem_used // 1024 // 1024}MB / {mem_total // 1024 // 1024}MB ({mem_percent:.1f}%)"
-            except Exception:
+            except (IOError, OSError) as e:
+                # File I/O errors (reading /proc/meminfo)
+                logger.debug(f"File I/O error reading memory info: {e}", exc_info=True)
+                info['memory_usage'] = 'unknown'
+            except (ValueError, TypeError, IndexError, ZeroDivisionError) as e:
+                # Data parsing errors (memory calculation)
+                logger.debug(f"Data parsing error calculating memory usage: {e}", exc_info=True)
                 info['memory_usage'] = 'unknown'
             
             # Get disk usage for /app
@@ -107,7 +124,13 @@ class PortDiagnostics:
                 total, used, free = shutil.disk_usage('/app')
                 used_percent = (used / total) * 100
                 info['disk_usage'] = f"{used // 1024 // 1024}MB / {total // 1024 // 1024}MB ({used_percent:.1f}%)"
-            except Exception:
+            except (ImportError, AttributeError) as e:
+                # Import errors (shutil module unavailable)
+                logger.debug(f"Import error getting disk usage: {e}", exc_info=True)
+                info['disk_usage'] = 'unknown'
+            except (OSError, ValueError, ZeroDivisionError) as e:
+                # File system errors or calculation errors
+                logger.debug(f"Error calculating disk usage: {e}", exc_info=True)
                 info['disk_usage'] = 'unknown'
             
             # Get supervisord process status
@@ -124,13 +147,21 @@ class PortDiagnostics:
                                 status = parts[1]
                                 processes[name] = status
                     info['supervisord_status'] = processes
-            except Exception:
+            except (subprocess.SubprocessError, FileNotFoundError) as e:
+                # Subprocess errors (supervisorctl command not found or failed)
+                logger.debug(f"Subprocess error getting supervisord status: {e}", exc_info=True)
                 info['supervisord_status'] = {'error': 'supervisorctl not available'}
+            except (ValueError, IndexError) as e:
+                # Data parsing errors (status output parsing)
+                logger.debug(f"Data parsing error parsing supervisord status: {e}", exc_info=True)
+                info['supervisord_status'] = {'error': 'parse error'}
             
             # Check Docker socket availability
             try:
                 info['docker_socket_available'] = os.path.exists('/var/run/docker.sock')
-            except Exception:
+            except (OSError, PermissionError) as e:
+                # File system errors (socket check failed)
+                logger.debug(f"Error checking Docker socket: {e}", exc_info=True)
                 info['docker_socket_available'] = False
             
             # Get DDC container-specific memory usage and image size
@@ -149,8 +180,13 @@ class PortDiagnostics:
                             info['ddc_memory_usage'] = mem_usage
                     else:
                         info['ddc_memory_usage'] = 'unknown'
-                except Exception as e:
-                    logger.debug(f"Could not get container memory stats: {e}")
+                except (subprocess.SubprocessError, FileNotFoundError) as e:
+                    # Subprocess errors (docker stats command failed)
+                    logger.debug(f"Subprocess error getting container memory stats: {e}", exc_info=True)
+                    info['ddc_memory_usage'] = 'unknown'
+                except (ValueError, IndexError) as e:
+                    # Data parsing errors (stats output parsing)
+                    logger.debug(f"Data parsing error parsing memory stats: {e}", exc_info=True)
                     info['ddc_memory_usage'] = 'unknown'
                 
                 try:
@@ -195,9 +231,14 @@ class PortDiagnostics:
                     
                     if not info['ddc_image_size']:
                         info['ddc_image_size'] = 'unknown'
-                        
-                except Exception as e:
-                    logger.debug(f"Could not get image size: {e}")
+
+                except (subprocess.SubprocessError, FileNotFoundError) as e:
+                    # Subprocess errors (docker images command failed)
+                    logger.debug(f"Subprocess error getting image size: {e}", exc_info=True)
+                    info['ddc_image_size'] = 'unknown'
+                except (ValueError, IndexError) as e:
+                    # Data parsing errors (image size parsing)
+                    logger.debug(f"Data parsing error parsing image size: {e}", exc_info=True)
                     info['ddc_image_size'] = 'unknown'
                 
             # Check if running on Unraid
@@ -216,9 +257,13 @@ class PortDiagnostics:
                         info['platform'] = 'debian'
                     elif 'alpine' in content:
                         info['platform'] = 'alpine'
-        except Exception as e:
-            logger.debug(f"Could not detect host platform: {e}")
-        
+        except (IOError, OSError) as e:
+            # File I/O errors (reading system files)
+            logger.debug(f"File I/O error detecting host platform: {e}", exc_info=True)
+        except (ValueError, AttributeError) as e:
+            # Data processing errors (string parsing)
+            logger.debug(f"Data processing error detecting host platform: {e}", exc_info=True)
+
         return info
     
     def check_port_binding(self) -> Dict:
@@ -274,7 +319,9 @@ class PortDiagnostics:
                 sock.settimeout(1)
                 result = sock.connect_ex(('127.0.0.1', port))
                 return result == 0
-        except Exception:
+        except (socket.error, OSError) as e:
+            # Socket errors (connection failed)
+            logger.debug(f"Socket error checking port {port}: {e}", exc_info=True)
             return False
     
     def _is_external_port_accessible(self, port: int) -> bool:
@@ -320,8 +367,13 @@ class PortDiagnostics:
                 # Docker command not available - this is normal inside containers
                 logger.debug("Docker command not available for port mapping detection")
                 return {}
-        except Exception as e:
-            logger.debug(f"Could not get Docker port mappings: {e}")
+        except (subprocess.SubprocessError, FileNotFoundError) as e:
+            # Subprocess errors (docker port command failed)
+            logger.debug(f"Subprocess error getting Docker port mappings: {e}", exc_info=True)
+            return {}
+        except (ValueError, IndexError, AttributeError) as e:
+            # Data parsing errors (port mapping parsing)
+            logger.debug(f"Data parsing error parsing port mappings: {e}", exc_info=True)
             return {}
     
     def _get_unraid_solutions(self) -> List[str]:
@@ -491,11 +543,19 @@ class PortDiagnostics:
                                         if hop_num == '2' and not hop_ip.startswith('172.17.'):
                                             logger.info(f"✅ Found host IP via tracepath: {hop_ip}")
                                             return hop_ip
-                    except Exception as e:
-                        logger.debug(f"tracepath also failed: {e}")
-                
-            except Exception as e:
-                logger.debug(f"Traceroute method failed: {e}")
+                    except (subprocess.SubprocessError, FileNotFoundError) as e:
+                        # Subprocess errors (tracepath command failed)
+                        logger.debug(f"Subprocess error with tracepath: {e}", exc_info=True)
+                    except (ValueError, IndexError) as e:
+                        # Data parsing errors (tracepath output parsing)
+                        logger.debug(f"Data parsing error with tracepath: {e}", exc_info=True)
+
+            except (subprocess.SubprocessError, FileNotFoundError) as e:
+                # Subprocess errors (traceroute command failed)
+                logger.debug(f"Subprocess error with traceroute method: {e}", exc_info=True)
+            except (ValueError, IndexError) as e:
+                # Data parsing errors (traceroute output parsing)
+                logger.debug(f"Data parsing error with traceroute method: {e}", exc_info=True)
             
             # Method 2: Standard Docker host detection methods
             try:
@@ -521,8 +581,12 @@ class PortDiagnostics:
                                             logger.info("Host is Docker bridge, need real external IP...")
                                         else:
                                             return host_ip
-                except Exception as e:
-                    logger.debug(f"Could not read /etc/hosts: {e}")
+                except (IOError, OSError) as e:
+                    # File I/O errors (reading /etc/hosts)
+                    logger.debug(f"File I/O error reading /etc/hosts: {e}", exc_info=True)
+                except (ValueError, IndexError) as e:
+                    # Data parsing errors (/etc/hosts parsing)
+                    logger.debug(f"Data parsing error parsing /etc/hosts: {e}", exc_info=True)
                 
                 # Method 2: Get the host IP via route (works on Linux)
                 # The host is accessible via the default gateway in bridge mode
@@ -566,12 +630,17 @@ class PortDiagnostics:
                                                                     if s.connect_ex((host_ip, 8374)) == 0:
                                                                         logger.info(f"✅ Found Unraid host at {host_ip}")
                                                                         return host_ip
-                                                            except:
+                                                            except (socket.error, OSError):
+                                                                # Socket errors (host unreachable)
                                                                 continue
                                                     break
-                                            
-            except Exception as e:
-                logger.debug(f"Method 1 (gateway probe) failed: {e}")
+
+            except (subprocess.SubprocessError, FileNotFoundError) as e:
+                # Subprocess errors (ip route command failed)
+                logger.debug(f"Subprocess error in gateway probe: {e}", exc_info=True)
+            except (ValueError, IndexError, socket.error) as e:
+                # Data parsing or socket errors
+                logger.debug(f"Error in gateway probe method: {e}", exc_info=True)
             
             # Method 2: Smart ARP/neighbor table scanning (might work on host network mode)
             try:
@@ -587,8 +656,12 @@ class PortDiagnostics:
                         logger.info(f"Got neighbor table via 'ip neigh': {len(result.stdout)} bytes")
                         # Debug: show what's in the table
                         logger.debug(f"Neighbor table content: {result.stdout[:200]}")
-                except Exception:
-                    pass
+                except (subprocess.SubprocessError, FileNotFoundError) as e:
+                    # Subprocess errors (ip neigh command failed)
+                    logger.debug(f"Subprocess error with ip neigh: {e}", exc_info=True)
+                except (ValueError, AttributeError) as e:
+                    # Data processing errors
+                    logger.debug(f"Data error with ip neigh: {e}", exc_info=True)
                 
                 # Fallback to arp -a
                 if not arp_result:
@@ -597,8 +670,12 @@ class PortDiagnostics:
                         if result.returncode == 0 and result.stdout:
                             arp_result = result.stdout
                             logger.info(f"Got ARP table via 'arp -a': {len(result.stdout)} bytes")
-                    except Exception:
-                        pass
+                    except (subprocess.SubprocessError, FileNotFoundError) as e:
+                        # Subprocess errors (arp command failed)
+                        logger.debug(f"Subprocess error with arp -a: {e}", exc_info=True)
+                    except (ValueError, AttributeError) as e:
+                        # Data processing errors
+                        logger.debug(f"Data error with arp -a: {e}", exc_info=True)
                 
                 if arp_result:
                     logger.info(f"Parsing ARP/neighbor entries...")
@@ -644,9 +721,13 @@ class PortDiagnostics:
                         return host_candidates[0]
                 else:
                     logger.warning("No ARP/neighbor table data available")
-                        
-            except Exception as e:
-                logger.debug(f"Method 2 (ARP scan) failed: {e}")
+
+            except (subprocess.SubprocessError, FileNotFoundError) as e:
+                # Subprocess errors (ip/arp commands failed)
+                logger.debug(f"Subprocess error in ARP scan: {e}", exc_info=True)
+            except (ValueError, AttributeError, ImportError) as e:
+                # Data parsing or import errors (regex module)
+                logger.debug(f"Error in ARP scan method: {e}", exc_info=True)
             
             # Method 3: Docker gateway detection with network scanning
             try:
@@ -678,9 +759,13 @@ class PortDiagnostics:
                                         ip = ip_match.group(1)
                                         if ip.startswith(('192.168.', '10.0.')):
                                             return ip
-                                            
-            except Exception as e:
-                logger.debug(f"Method 3 (gateway scan) failed: {e}")
+
+            except (subprocess.SubprocessError, FileNotFoundError) as e:
+                # Subprocess errors (ip commands failed)
+                logger.debug(f"Subprocess error in gateway scan: {e}", exc_info=True)
+            except (ValueError, IndexError, ImportError, AttributeError) as e:
+                # Data parsing or import errors
+                logger.debug(f"Error in gateway scan method: {e}", exc_info=True)
             
             # Method 2: Try to get the Docker host IP via gateway, but validate it's external
             try:
@@ -693,8 +778,12 @@ class PortDiagnostics:
                             # Only return if it's not a Docker internal network
                             if not gateway_ip.startswith(('172.17.', '172.18.')):
                                 return gateway_ip
-            except Exception:
-                pass
+            except (subprocess.SubprocessError, FileNotFoundError) as e:
+                # Subprocess errors (ip route command failed)
+                logger.debug(f"Subprocess error getting default route: {e}", exc_info=True)
+            except (ValueError, IndexError) as e:
+                # Data parsing errors
+                logger.debug(f"Data parsing error with default route: {e}", exc_info=True)
             
             # Method 3: Try to connect to a known external service to determine our IP
             try:
@@ -705,8 +794,12 @@ class PortDiagnostics:
                     # Don't return localhost or Docker internal IPs
                     if not local_ip.startswith(('127.', '172.17.', '172.18.', '10.')):
                         return local_ip
-            except Exception:
-                pass
+            except (socket.error, OSError) as e:
+                # Socket errors (connection failed)
+                logger.debug(f"Socket error connecting to determine local IP: {e}", exc_info=True)
+            except (ValueError, IndexError) as e:
+                # Data errors (IP parsing)
+                logger.debug(f"Data error determining local IP: {e}", exc_info=True)
             
             # Method 4: For Unraid, try to get the actual server IP from host network
             if self.host_info['is_unraid']:
@@ -724,8 +817,12 @@ class PortDiagnostics:
                                     if 'inet ' in lines[j] and '192.168.' in lines[j]:
                                         ip = lines[j].strip().split()[1].split('/')[0]
                                         return ip
-                except Exception:
-                    pass
+                except (subprocess.SubprocessError, FileNotFoundError) as e:
+                    # Subprocess errors (ip addr command failed)
+                    logger.debug(f"Subprocess error getting Unraid network config: {e}", exc_info=True)
+                except (ValueError, IndexError) as e:
+                    # Data parsing errors
+                    logger.debug(f"Data parsing error with Unraid network config: {e}", exc_info=True)
                 
                 try:
                     # Check /etc/hosts for unraid entries
@@ -735,8 +832,12 @@ class PortDiagnostics:
                                 ip = line.split()[0]
                                 if not ip.startswith('127.'):
                                     return ip
-                except Exception:
-                    pass
+                except (IOError, OSError) as e:
+                    # File I/O errors (reading /etc/hosts)
+                    logger.debug(f"File I/O error reading /etc/hosts for Unraid: {e}", exc_info=True)
+                except (ValueError, IndexError) as e:
+                    # Data parsing errors
+                    logger.debug(f"Data parsing error with /etc/hosts Unraid entries: {e}", exc_info=True)
             
             # Method 5: Check environment variables that might contain the IP  
             import os
@@ -755,8 +856,12 @@ class PortDiagnostics:
                             ip = f.read().strip()
                             if ip and not ip.startswith('127.'):
                                 return ip
-                    except Exception:
-                        pass
+                    except (IOError, OSError) as e:
+                        # File I/O errors (config file not found)
+                        logger.debug(f"File I/O error reading config file {config_path}: {e}", exc_info=True)
+                    except (ValueError, AttributeError) as e:
+                        # Data errors (IP parsing)
+                        logger.debug(f"Data error reading IP from {config_path}: {e}", exc_info=True)
                         
                 # For Unraid systems, we can make an educated guess based on common networks
                 # This is a fallback for when we can't detect the actual IP
@@ -764,12 +869,16 @@ class PortDiagnostics:
                 for potential_ip in common_unraid_ips:
                     try:
                         # Quick test if this IP might be reachable
-                        result = subprocess.run(['ping', '-c', '1', '-W', '1', potential_ip], 
+                        result = subprocess.run(['ping', '-c', '1', '-W', '1', potential_ip],
                                               capture_output=True, text=True, timeout=2)
                         if result.returncode == 0:
                             return potential_ip
-                    except Exception:
-                        pass
+                    except (subprocess.SubprocessError, FileNotFoundError) as e:
+                        # Subprocess errors (ping command failed)
+                        logger.debug(f"Subprocess error pinging {potential_ip}: {e}", exc_info=True)
+                    except (ValueError, OSError) as e:
+                        # Network or data errors
+                        logger.debug(f"Error pinging {potential_ip}: {e}", exc_info=True)
             
             # Method 7: Last resort - try hostname resolution
             try:
@@ -777,11 +886,19 @@ class PortDiagnostics:
                 host_ip = socket.gethostbyname(hostname)
                 if not host_ip.startswith('127.'):
                     return host_ip
-            except Exception:
-                pass
-                
-        except Exception as e:
-            logger.debug(f"Error getting host IP: {e}")
+            except (socket.error, socket.gaierror, OSError) as e:
+                # Socket errors (hostname resolution failed)
+                logger.debug(f"Socket error resolving hostname: {e}", exc_info=True)
+            except (ValueError, AttributeError) as e:
+                # Data errors
+                logger.debug(f"Data error with hostname resolution: {e}", exc_info=True)
+
+        except (ImportError, AttributeError) as e:
+            # Import errors (socket, subprocess modules unavailable)
+            logger.debug(f"Import error getting host IP: {e}", exc_info=True)
+        except (ValueError, TypeError) as e:
+            # Data processing errors
+            logger.debug(f"Data error getting host IP: {e}", exc_info=True)
         
         return None
     
@@ -798,22 +915,28 @@ class PortDiagnostics:
                         result = s.connect_ex((ip, port))
                         if result == 0:
                             return True
-                    except Exception:
+                    except (socket.error, OSError):
+                        # Socket errors (connection failed)
                         continue
                         
             # Alternative: Try to see if this IP responds to HTTP on our expected ports
             import subprocess
             try:
                 # Quick HTTP check without full request
-                result = subprocess.run(['timeout', '2', 'nc', '-z', ip, '8374'], 
+                result = subprocess.run(['timeout', '2', 'nc', '-z', ip, '8374'],
                                       capture_output=True, timeout=3)
                 if result.returncode == 0:
                     return True
-            except Exception:
-                pass
-                
-        except Exception:
-            pass
+            except (subprocess.SubprocessError, FileNotFoundError) as e:
+                # Subprocess errors (nc command failed)
+                logger.debug(f"Subprocess error testing host with nc: {e}", exc_info=True)
+            except (ValueError, OSError) as e:
+                # Network or data errors
+                logger.debug(f"Error testing host with nc: {e}", exc_info=True)
+
+        except (ImportError, socket.error, OSError) as e:
+            # Import or socket errors
+            logger.debug(f"Error testing if {ip} is our host: {e}", exc_info=True)
         return False
 
 
