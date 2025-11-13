@@ -23,6 +23,7 @@ from services.infrastructure.container_status_service import get_docker_info_dic
 from utils.time_utils import format_datetime_with_timezone
 from services.config.config_service import load_config
 from services.config.server_config_service import get_server_config_service
+from services.docker_status import get_performance_service
 
 # Import helper functions
 from .control_helpers import _channel_has_permission, _get_pending_embed
@@ -49,138 +50,6 @@ class StatusHandlersMixin:
             self.update_stats = {'skipped': 0, 'sent': 0, 'last_reset': datetime.now(timezone.utc)}
             logger.debug("Initialized update statistics")
     
-    def _ensure_performance_system(self):
-        """Initialize the adaptive performance learning system."""
-        if not hasattr(self, 'container_performance_history'):
-            self.container_performance_history = {}
-            logger.debug("Initialized adaptive performance system")
-        if not hasattr(self, 'performance_learning_config'):
-            # Import here to avoid circular imports
-            try:
-                # SERVICE FIRST: Use direct timeout values instead of old docker_utils
-                # These values come from DDC_FAST_STATS_TIMEOUT and DDC_FAST_INFO_TIMEOUT (both default to 45.0s)
-                stats_timeout_ms = 45.0 * 1000  # 45 seconds in milliseconds
-                info_timeout_ms = 45.0 * 1000   # 45 seconds in milliseconds
-
-                # Get Docker timeouts for alignment
-                max_docker_timeout = max(
-                    stats_timeout_ms,
-                    info_timeout_ms
-                )
-                
-                self.performance_learning_config = {
-                    'min_timeout': 5000,      # 5 seconds minimum
-                    'max_timeout': max_docker_timeout,  # Match Docker config timeouts
-                    'default_timeout': min(30000, max_docker_timeout * 0.8), # 30s or 80% of max Docker timeout
-                    'slow_threshold': 8000,   # 8+ seconds = slow container
-                    'history_window': 20,     # Keep last 20 measurements
-                    'retry_attempts': 3,      # Maximum retry attempts
-                    'timeout_multiplier': 2.0 # Timeout = avg_time * multiplier
-                }
-
-
-                logger.info(f"Adaptive performance system aligned with Docker timeouts: max={max_docker_timeout}ms")
-            except (ImportError, AttributeError, KeyError, TypeError) as e:
-                # Fallback to more conservative values if import fails
-                logger.warning(f"Failed to align with Docker timeouts, using conservative defaults: {e}", exc_info=True)
-                self.performance_learning_config = {
-                    'min_timeout': 5000,      # 5 seconds minimum
-                    'max_timeout': 45000,     # 45 seconds maximum (conservative)
-                    'default_timeout': 30000, # 30 seconds default
-                    'slow_threshold': 8000,   # 8+ seconds = slow container
-                    'history_window': 20,     # Keep last 20 measurements
-                    'retry_attempts': 3,      # Maximum retry attempts
-                    'timeout_multiplier': 2.0 # Timeout = avg_time * multiplier
-                }
-            logger.debug("Initialized performance learning configuration")
-    
-    def _get_container_performance_profile(self, container_name: str) -> dict:
-        """Get or create performance profile for a container."""
-        self._ensure_performance_system()
-        
-        if container_name not in self.container_performance_history:
-            self.container_performance_history[container_name] = {
-                'response_times': [],
-                'avg_response_time': self.performance_learning_config['default_timeout'],
-                'max_response_time': self.performance_learning_config['default_timeout'],
-                'min_response_time': 1000,
-                'success_rate': 1.0,
-                'total_attempts': 0,
-                'successful_attempts': 0,
-                'is_slow': False,
-                'last_updated': datetime.now(timezone.utc)
-            }
-            logger.debug(f"Created new performance profile for container: {container_name}")
-        
-        return self.container_performance_history[container_name]
-    
-    def _update_container_performance(self, container_name: str, response_time: float, success: bool):
-        """Update container performance history with new measurement."""
-        profile = self._get_container_performance_profile(container_name)
-        config = self.performance_learning_config
-        
-        # Update attempt counters
-        profile['total_attempts'] += 1
-        if success:
-            profile['successful_attempts'] += 1
-            profile['response_times'].append(response_time)
-        
-        # Maintain sliding window
-        if len(profile['response_times']) > config['history_window']:
-            profile['response_times'] = profile['response_times'][-config['history_window']:]
-        
-        # Calculate new statistics
-        if profile['response_times']:
-            profile['avg_response_time'] = sum(profile['response_times']) / len(profile['response_times'])
-            profile['max_response_time'] = max(profile['response_times'])
-            profile['min_response_time'] = min(profile['response_times'])
-        
-        profile['success_rate'] = profile['successful_attempts'] / profile['total_attempts']
-        profile['is_slow'] = profile['avg_response_time'] > config['slow_threshold']
-        profile['last_updated'] = datetime.now(timezone.utc)
-        
-        if success:
-            logger.debug(f"Performance update for {container_name}: avg={profile['avg_response_time']:.0f}ms, "
-                        f"success_rate={profile['success_rate']:.2f}, is_slow={profile['is_slow']}")
-    
-    def _get_adaptive_timeout(self, container_name: str) -> float:
-        """Calculate adaptive timeout based on container performance history."""
-        profile = self._get_container_performance_profile(container_name)
-        config = self.performance_learning_config
-        
-        # Base timeout on average response time with safety margin
-        adaptive_timeout = max(
-            profile['avg_response_time'] * config['timeout_multiplier'],
-            profile['max_response_time'] * 1.5,  # 1.5x worst recorded time
-            config['min_timeout']  # Never go below minimum
-        )
-        
-        # Cap at maximum timeout
-        adaptive_timeout = min(adaptive_timeout, config['max_timeout'])
-        
-        # Add extra time for containers with poor success rate
-        if profile['success_rate'] < 0.8:
-            adaptive_timeout *= 1.5
-            logger.debug(f"Increased timeout for {container_name} due to low success rate: {profile['success_rate']:.2f}")
-        
-        return adaptive_timeout
-    
-    def _classify_containers_by_performance(self, container_names: List[str]) -> Tuple[List[str], List[str]]:
-        """Classify containers into fast and slow based on performance history."""
-        fast_containers = []
-        slow_containers = []
-
-        for container_name in container_names:
-            profile = self._get_container_performance_profile(container_name)
-
-            if profile['is_slow'] or profile['success_rate'] < 0.8:
-                slow_containers.append(container_name)
-                logger.debug(f"Classified {container_name} as slow: avg={profile['avg_response_time']:.0f}ms, "
-                           f"success_rate={profile['success_rate']:.2f}")
-            else:
-                fast_containers.append(container_name)
-
-        return fast_containers, slow_containers
 
     
     async def _fetch_container_with_retries(self, docker_name: str) -> Tuple[str, Any, Any]:
@@ -203,18 +72,18 @@ class StatusHandlersMixin:
             self.last_docker_query[docker_name] = time.time()
         
         start_time = time.time()
-        profile = self._get_container_performance_profile(docker_name)
-        config = self.performance_learning_config
-        
+        perf_service = get_performance_service()
+        config = perf_service.get_config()
+
         last_exception = None
-        
-        for attempt in range(config['retry_attempts']):
+
+        for attempt in range(config.retry_attempts):
             try:
                 # Calculate timeout for this attempt (increases with each retry)
-                base_timeout = self._get_adaptive_timeout(docker_name)
+                base_timeout = perf_service.get_adaptive_timeout(docker_name)
                 current_timeout = base_timeout * (1.5 ** attempt)  # Exponential backoff
-                
-                logger.debug(f"Fetching {docker_name} - attempt {attempt + 1}/{config['retry_attempts']}, "
+
+                logger.debug(f"Fetching {docker_name} - attempt {attempt + 1}/{config.retry_attempts}, "
                            f"timeout: {current_timeout:.0f}ms")
                 
                 attempt_start = time.time()
@@ -233,7 +102,7 @@ class StatusHandlersMixin:
                     attempt_time = (time.time() - attempt_start) * 1000
 
                     # Update performance history
-                    self._update_container_performance(docker_name, attempt_time, True)
+                    perf_service.update_performance(docker_name, attempt_time, True)
 
                     total_time = (time.time() - start_time) * 1000
                     if attempt > 0:
@@ -252,10 +121,10 @@ class StatusHandlersMixin:
                     last_exception = e
                     attempt_time = (time.time() - attempt_start) * 1000 if 'attempt_start' in locals() else current_timeout
 
-                    logger.warning(f"Timeout for {docker_name} on attempt {attempt + 1}/{config['retry_attempts']} "
+                    logger.warning(f"Timeout for {docker_name} on attempt {attempt + 1}/{config.retry_attempts} "
                                  f"after {attempt_time:.1f}ms")
 
-                    if attempt < config['retry_attempts'] - 1:
+                    if attempt < config.retry_attempts - 1:
                         # Short delay before retry
                         await asyncio.sleep(0.5)
 
@@ -272,7 +141,7 @@ class StatusHandlersMixin:
                 last_exception = e
                 logger.error(f"Error fetching {docker_name} on attempt {attempt + 1}: {e}", exc_info=True)
 
-                if attempt < config['retry_attempts'] - 1:
+                if attempt < config.retry_attempts - 1:
                     await asyncio.sleep(0.5)
         
         # All retries failed - try emergency fetch without timeout
@@ -291,18 +160,18 @@ class StatusHandlersMixin:
             start_emergency = time.time()
             info, stats = await asyncio.gather(info_task, stats_task, return_exceptions=True)
             emergency_time = (time.time() - start_emergency) * 1000
-            
+
             # Mark as slow container for future reference
-            profile = self._get_container_performance_profile(docker_name)
-            profile['is_slow'] = True
-            self._update_container_performance(docker_name, emergency_time, True)
+            perf_service = get_performance_service()
+            perf_service.update_performance(docker_name, emergency_time, True)
             
             logger.info(f"Emergency fetch successful for {docker_name} after {emergency_time:.1f}ms")
             return docker_name, info, stats
 
         except (RuntimeError, OSError, asyncio.CancelledError) as e:
             # Even emergency fetch failed - update performance and return error
-            self._update_container_performance(docker_name, 0, False)
+            perf_service = get_performance_service()
+            perf_service.update_performance(docker_name, 0, False)
             logger.error(f"Emergency fetch failed for {docker_name}: {e}", exc_info=True)
             return docker_name, last_exception, None
     
@@ -386,11 +255,11 @@ class StatusHandlersMixin:
         start_time = time.time()
         logger.info(f"[INTELLIGENT_BULK_FETCH] Starting adaptive bulk fetch for {len(container_names)} containers")
 
-        # Initialize performance system
-        self._ensure_performance_system()
-        
         # Classify containers by performance history for intelligent batching
-        fast_containers, slow_containers = self._classify_containers_by_performance(container_names)
+        perf_service = get_performance_service()
+        classification = perf_service.classify_containers(container_names)
+        fast_containers = classification.fast_containers
+        slow_containers = classification.slow_containers
         
         if fast_containers and slow_containers:
             logger.info(f"[INTELLIGENT_BULK_FETCH] Smart batching: {len(fast_containers)} fast, {len(slow_containers)} slow containers")

@@ -3,8 +3,8 @@
 """
 Unit tests for StatusHandlersMixin - Current Implementation
 
-Tests cover the 5 main responsibilities before refactoring:
-1. Performance Learning System
+Tests cover the 5 main responsibilities during refactoring:
+1. Performance Learning System (via PerformanceProfileService)
 2. Docker Status Fetching (Retry Logic)
 3. Cache Management
 4. Embed Building
@@ -19,6 +19,7 @@ from typing import Dict, Any
 
 # Import the class we're testing
 from cogs.status_handlers import StatusHandlersMixin
+from services.docker_status import get_performance_service
 
 
 class MockBot:
@@ -39,230 +40,172 @@ class TestStatusHandlersMixin:
         mixin.bot = bot
         return mixin
 
+    @pytest.fixture
+    def perf_service(self):
+        """Get the PerformanceProfileService for testing"""
+        service = get_performance_service()
+        # Clear any existing profiles for clean test state
+        service._profiles.clear()
+        return service
+
 
     # =====================================================================
     # SECTION 1: Performance Learning System Tests
     # =====================================================================
 
-    def test_ensure_performance_system_initialization(self, mixin):
-        """Test that performance system is properly initialized"""
-        mixin._ensure_performance_system()
+    def test_performance_service_initialization(self, perf_service):
+        """Test that performance service is properly initialized"""
+        config = perf_service.get_config()
 
-        assert hasattr(mixin, 'container_performance_history')
-        assert hasattr(mixin, 'performance_learning_config')
-        assert isinstance(mixin.container_performance_history, dict)
-        assert isinstance(mixin.performance_learning_config, dict)
-
-        # Check default config values
-        config = mixin.performance_learning_config
-        assert 'retry_attempts' in config
-        assert 'default_timeout' in config
-        assert 'slow_threshold' in config
+        # Check config values exist and are correct types
+        assert config.retry_attempts > 0
+        assert config.default_timeout > 0
+        assert config.slow_threshold > 0
+        assert config.min_timeout > 0
+        assert config.max_timeout > config.min_timeout
+        assert config.history_window > 0
+        assert config.timeout_multiplier > 0
 
 
-    def test_get_container_performance_profile_new_container(self, mixin):
+    def test_get_container_performance_profile_new_container(self, perf_service):
         """Test getting profile for a container that doesn't have history"""
-        mixin._ensure_performance_system()
+        profile = perf_service.get_profile('test_container')
 
-        profile = mixin._get_container_performance_profile('test_container')
-
-        assert isinstance(profile, dict)
-        assert 'response_times' in profile
-        assert 'avg_response_time' in profile
-        assert 'max_response_time' in profile
-        assert 'min_response_time' in profile
-        assert 'success_rate' in profile
-        assert 'total_attempts' in profile
-        assert 'successful_attempts' in profile
-        assert 'is_slow' in profile
-        assert 'last_updated' in profile
-        assert profile['avg_response_time'] == mixin.performance_learning_config['default_timeout']
-        assert profile['success_rate'] == 1.0
-        assert profile['is_slow'] is False
+        assert profile.container_name == 'test_container'
+        assert isinstance(profile.response_times, list)
+        assert len(profile.response_times) == 0
+        assert profile.avg_response_time == perf_service.get_config().default_timeout
+        assert profile.success_rate == 1.0
+        assert profile.is_slow is False
+        assert profile.total_attempts == 0
+        assert profile.successful_attempts == 0
 
 
-    def test_get_container_performance_profile_existing_container(self, mixin):
+    def test_get_container_performance_profile_existing_container(self, perf_service):
         """Test getting profile for a container with existing history"""
-        mixin._ensure_performance_system()
+        # Create existing profile by updating performance
+        perf_service.update_performance('existing_container', 100, True)
+        perf_service.update_performance('existing_container', 200, True)
+        perf_service.update_performance('existing_container', 150, True)
+        perf_service.update_performance('existing_container', 0, False)  # One failure
+        perf_service.update_performance('existing_container', 0, False)  # Another failure
 
-        # Create existing profile with correct structure
-        mixin.container_performance_history['existing_container'] = {
-            'response_times': [100, 200, 150],
-            'avg_response_time': 150,
-            'max_response_time': 200,
-            'min_response_time': 100,
-            'success_rate': 0.8,
-            'total_attempts': 5,
-            'successful_attempts': 4,
-            'is_slow': False,
-            'last_updated': None
-        }
+        profile = perf_service.get_profile('existing_container')
 
-        profile = mixin._get_container_performance_profile('existing_container')
-
-        assert profile['avg_response_time'] == 150
-        assert profile['success_rate'] == 0.8
-        assert len(profile['response_times']) == 3
+        assert profile.avg_response_time == 150  # (100 + 200 + 150) / 3
+        assert profile.success_rate == 0.6  # 3 success / 5 total
+        assert len(profile.response_times) == 3
 
 
-    def test_update_container_performance_success(self, mixin):
+    def test_update_container_performance_success(self, perf_service):
         """Test updating performance history with successful fetch"""
-        mixin._ensure_performance_system()
-
         # Update with successful fetch
-        mixin._update_container_performance('test_container', 100.0, True)
+        perf_service.update_performance('test_container', 100.0, True)
 
-        profile = mixin.container_performance_history['test_container']
-        assert len(profile['response_times']) == 1
-        assert profile['response_times'][0] == 100.0
-        assert profile['avg_response_time'] == 100.0
-        assert profile['success_rate'] == 1.0
-        assert profile['total_attempts'] == 1
-        assert profile['successful_attempts'] == 1
+        profile = perf_service.get_profile('test_container')
+        assert len(profile.response_times) == 1
+        assert profile.response_times[0] == 100.0
+        assert profile.avg_response_time == 100.0
+        assert profile.success_rate == 1.0
+        assert profile.total_attempts == 1
+        assert profile.successful_attempts == 1
 
 
-    def test_update_container_performance_failure(self, mixin):
+    def test_update_container_performance_failure(self, perf_service):
         """Test updating performance history with failed fetch"""
-        mixin._ensure_performance_system()
-
         # First successful fetch
-        mixin._update_container_performance('test_container', 100.0, True)
+        perf_service.update_performance('test_container', 100.0, True)
         # Then failed fetch
-        mixin._update_container_performance('test_container', 0, False)
+        perf_service.update_performance('test_container', 0, False)
 
-        profile = mixin.container_performance_history['test_container']
+        profile = perf_service.get_profile('test_container')
         # Failed fetch should not add to response_times
-        assert len(profile['response_times']) == 1
+        assert len(profile.response_times) == 1
         # But should affect success rate
-        assert profile['success_rate'] < 1.0
-        assert profile['total_attempts'] == 2
-        assert profile['successful_attempts'] == 1
+        assert profile.success_rate < 1.0
+        assert profile.total_attempts == 2
+        assert profile.successful_attempts == 1
 
 
-    def test_update_container_performance_history_limit(self, mixin):
+    def test_update_container_performance_history_limit(self, perf_service):
         """Test that performance history is limited to history_window"""
-        mixin._ensure_performance_system()
-        history_window = mixin.performance_learning_config['history_window']
+        history_window = perf_service.get_config().history_window
 
         # Add more entries than history_window
         for i in range(history_window + 10):
-            mixin._update_container_performance('test_container', float(i * 10), True)
+            perf_service.update_performance('test_container', float(i * 10), True)
 
-        profile = mixin.container_performance_history['test_container']
+        profile = perf_service.get_profile('test_container')
         # History should not exceed history_window
-        assert len(profile['response_times']) <= history_window
+        assert len(profile.response_times) <= history_window
 
 
-    def test_get_adaptive_timeout_fast_container(self, mixin):
+    def test_get_adaptive_timeout_fast_container(self, perf_service):
         """Test adaptive timeout calculation for fast containers"""
-        mixin._ensure_performance_system()
+        # Add measurements to build fast container profile (100ms average)
+        for time_val in [80, 90, 100, 110, 120]:
+            perf_service.update_performance('fast_container', time_val, True)
 
-        # Simulate fast container (100ms average)
-        mixin.container_performance_history['fast_container'] = {
-            'response_times': [80, 90, 100, 110, 120],
-            'avg_response_time': 100,
-            'max_response_time': 120,
-            'min_response_time': 80,
-            'success_rate': 1.0,
-            'total_attempts': 5,
-            'successful_attempts': 5,
-            'is_slow': False,
-            'last_updated': None
-        }
-
-        timeout = mixin._get_adaptive_timeout('fast_container')
+        timeout = perf_service.get_adaptive_timeout('fast_container')
 
         # Timeout should be reasonable for fast container
         assert timeout > 100  # Should be higher than avg
-        assert timeout <= mixin.performance_learning_config['max_timeout']  # Should not exceed max
+        assert timeout <= perf_service.get_config().max_timeout  # Should not exceed max
 
 
-    def test_get_adaptive_timeout_slow_container(self, mixin):
+    def test_get_adaptive_timeout_slow_container(self, perf_service):
         """Test adaptive timeout calculation for slow containers"""
-        mixin._ensure_performance_system()
+        # Add measurements to build slow container profile (3000ms average with some failures)
+        for time_val in [2800, 2900, 3000, 3100, 3200]:
+            perf_service.update_performance('slow_container', time_val, True)
+        # Add two failures to reduce success rate to 0.8 (8/10)
+        perf_service.update_performance('slow_container', 0, False)
+        perf_service.update_performance('slow_container', 0, False)
 
-        # Simulate slow container (3000ms average)
-        mixin.container_performance_history['slow_container'] = {
-            'response_times': [2800, 2900, 3000, 3100, 3200],
-            'avg_response_time': 3000,
-            'max_response_time': 3200,
-            'min_response_time': 2800,
-            'success_rate': 0.8,
-            'total_attempts': 10,
-            'successful_attempts': 8,
-            'is_slow': True,
-            'last_updated': None
-        }
-
-        timeout = mixin._get_adaptive_timeout('slow_container')
+        timeout = perf_service.get_adaptive_timeout('slow_container')
 
         # Timeout should be higher for slow container
         assert timeout > 3000
 
 
-    def test_get_adaptive_timeout_new_container(self, mixin):
+    def test_get_adaptive_timeout_new_container(self, perf_service):
         """Test adaptive timeout for container without history"""
-        mixin._ensure_performance_system()
-
-        timeout = mixin._get_adaptive_timeout('new_container')
+        timeout = perf_service.get_adaptive_timeout('new_container')
 
         # Should return default timeout from config (new containers use default_timeout)
-        default_timeout = mixin.performance_learning_config['default_timeout']
+        default_timeout = perf_service.get_config().default_timeout
         # Timeout should be based on default_timeout with multiplier
         assert timeout >= default_timeout
 
 
-    def test_classify_containers_by_performance(self, mixin):
+    def test_classify_containers_by_performance(self, perf_service):
         """Test container classification into fast/slow categories"""
-        mixin._ensure_performance_system()
+        # Build fast container profiles
+        for time_val in [100, 120, 110]:
+            perf_service.update_performance('fast1', time_val, True)
 
-        # Create mix of fast and slow containers
-        mixin.container_performance_history['fast1'] = {
-            'response_times': [100, 120, 110],
-            'avg_response_time': 110,
-            'max_response_time': 120,
-            'min_response_time': 100,
-            'success_rate': 1.0,
-            'total_attempts': 3,
-            'successful_attempts': 3,
-            'is_slow': False,
-            'last_updated': None
-        }
-        mixin.container_performance_history['fast2'] = {
-            'response_times': [90, 95, 100],
-            'avg_response_time': 95,
-            'max_response_time': 100,
-            'min_response_time': 90,
-            'success_rate': 1.0,
-            'total_attempts': 3,
-            'successful_attempts': 3,
-            'is_slow': False,
-            'last_updated': None
-        }
-        mixin.container_performance_history['slow1'] = {
-            'response_times': [3000, 3100, 2900],
-            'avg_response_time': 3000,
-            'max_response_time': 3100,
-            'min_response_time': 2900,
-            'success_rate': 0.7,
-            'total_attempts': 10,
-            'successful_attempts': 7,
-            'is_slow': True,
-            'last_updated': None
-        }
+        for time_val in [90, 95, 100]:
+            perf_service.update_performance('fast2', time_val, True)
+
+        # Build slow container profile
+        for time_val in [3000, 3100, 2900]:
+            perf_service.update_performance('slow1', time_val, True)
+        # Add failures to reduce success rate to 0.7 (7/10)
+        for _ in range(3):
+            perf_service.update_performance('slow1', 0, False)
 
         container_names = ['fast1', 'fast2', 'slow1', 'new_container']
-        fast, slow = mixin._classify_containers_by_performance(container_names)
+        classification = perf_service.classify_containers(container_names)
 
         # Fast containers should be identified
-        assert 'fast1' in fast
-        assert 'fast2' in fast
+        assert 'fast1' in classification.fast_containers
+        assert 'fast2' in classification.fast_containers
 
         # Slow containers should be identified
-        assert 'slow1' in slow
+        assert 'slow1' in classification.slow_containers
 
-        # New container should default to fast
-        assert 'new_container' in fast
+        # New container should be in unknown (no history yet)
+        assert 'new_container' in classification.unknown_containers
 
 
     # =====================================================================
@@ -272,7 +215,6 @@ class TestStatusHandlersMixin:
     @pytest.mark.asyncio
     async def test_fetch_container_with_retries_success_first_attempt(self, mixin):
         """Test successful fetch on first attempt"""
-        mixin._ensure_performance_system()
 
         # Mock the docker fetch functions
         mock_info = {'State': {'Status': 'running'}}
@@ -293,7 +235,6 @@ class TestStatusHandlersMixin:
     @pytest.mark.asyncio
     async def test_fetch_container_with_retries_timeout_then_success(self, mixin):
         """Test retry logic when first attempt times out"""
-        mixin._ensure_performance_system()
 
         mock_info = {'State': {'Status': 'running'}}
         mock_stats = {'cpu_stats': {}}
@@ -317,7 +258,6 @@ class TestStatusHandlersMixin:
     @pytest.mark.asyncio
     async def test_fetch_container_with_retries_all_fail(self, mixin):
         """Test behavior when all retries fail"""
-        mixin._ensure_performance_system()
 
         # Mock that always times out
         with patch('cogs.status_handlers.get_docker_info_dict_service_first',
@@ -353,7 +293,6 @@ class TestStatusHandlersMixin:
     async def test_bulk_update_status_cache(self, mixin):
         """Test bulk cache update operation"""
         mixin._ensure_conditional_cache()
-        mixin._ensure_performance_system()
 
         # Mock status_cache_service
         mock_cache_service = Mock()
@@ -427,7 +366,6 @@ class TestStatusHandlersMixin:
     async def test_get_status_online_container(self, mixin):
         """Test get_status for an online container"""
         mixin._ensure_conditional_cache()
-        mixin._ensure_performance_system()
 
         server_config = {
             'name': 'Test Server',
@@ -471,7 +409,6 @@ class TestStatusHandlersMixin:
     async def test_get_status_offline_container(self, mixin):
         """Test get_status for an offline container"""
         mixin._ensure_conditional_cache()
-        mixin._ensure_performance_system()
 
         server_config = {
             'name': 'Test Server',
@@ -508,7 +445,6 @@ class TestStatusHandlersMixin:
     async def test_get_status_error_handling(self, mixin):
         """Test get_status error handling when docker fails"""
         mixin._ensure_conditional_cache()
-        mixin._ensure_performance_system()
 
         server_config = {
             'name': 'Test Server',
