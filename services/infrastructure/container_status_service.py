@@ -143,15 +143,26 @@ class ContainerStatusService:
 
             return result
 
-        except Exception as e:
+        except (AttributeError, ImportError, RuntimeError) as e:
             duration_ms = (time.time() - start_time) * 1000
-            self.logger.error(f"Error getting container status for {request.container_name}: {e}")
+            self.logger.error(f"Service error getting container status for {request.container_name}: {e}", exc_info=True)
 
             return ContainerStatusResult(
                 success=False,
                 container_name=request.container_name,
                 error_message=str(e),
                 error_type="service_error",
+                query_duration_ms=duration_ms
+            )
+        except (ValueError, TypeError, KeyError) as e:
+            duration_ms = (time.time() - start_time) * 1000
+            self.logger.error(f"Data error getting container status for {request.container_name}: {e}", exc_info=True)
+
+            return ContainerStatusResult(
+                success=False,
+                container_name=request.container_name,
+                error_message=str(e),
+                error_type="data_error",
                 query_duration_ms=duration_ms
             )
 
@@ -224,15 +235,25 @@ class ContainerStatusService:
                 failed_containers=failed
             )
 
-        except Exception as e:
+        except (AttributeError, ImportError, RuntimeError) as e:
             total_duration_ms = (time.time() - start_time) * 1000
-            self.logger.error(f"Error in bulk container status query: {e}")
+            self.logger.error(f"Service error in bulk container status query: {e}", exc_info=True)
 
             return ContainerBulkStatusResult(
                 success=False,
                 results={},
                 total_duration_ms=total_duration_ms,
-                error_message=str(e)
+                error_message=f"Service error: {str(e)}"
+            )
+        except (ValueError, TypeError, KeyError) as e:
+            total_duration_ms = (time.time() - start_time) * 1000
+            self.logger.error(f"Data error in bulk container status query: {e}", exc_info=True)
+
+            return ContainerBulkStatusResult(
+                success=False,
+                results={},
+                total_duration_ms=total_duration_ms,
+                error_message=f"Data error: {str(e)}"
             )
 
     async def _fetch_container_status(self, request: ContainerStatusRequest) -> ContainerStatusResult:
@@ -269,14 +290,26 @@ class ContainerStatusService:
                     # Get ports info
                     ports = container.attrs.get('NetworkSettings', {}).get('Ports', {}) if request.include_details else {}
 
-                except Exception as e:
-                    # Container not found or other error
+                except (AttributeError, KeyError, IndexError) as e:
+                    # Container not found or data access error
                     duration_ms = (time.time() - start_time) * 1000
+                    self.logger.warning(f"Container data access error for {request.container_name}: {e}")
                     return ContainerStatusResult(
                         success=False,
                         container_name=request.container_name,
                         error_message=f"Container not found or inaccessible: {e}",
                         error_type="container_not_found",
+                        query_duration_ms=duration_ms
+                    )
+                except (ValueError, TypeError) as e:
+                    # Container data format error
+                    duration_ms = (time.time() - start_time) * 1000
+                    self.logger.error(f"Container data format error for {request.container_name}: {e}", exc_info=True)
+                    return ContainerStatusResult(
+                        success=False,
+                        container_name=request.container_name,
+                        error_message=f"Container data format error: {e}",
+                        error_type="data_format_error",
                         query_duration_ms=duration_ms
                     )
 
@@ -392,8 +425,14 @@ class ContainerStatusService:
                         if memory_usage_mb <= 0.0:
                             memory_usage_mb = 2.0
 
-                    except Exception as e:
+                    except (StopIteration, KeyError, AttributeError) as e:
                         self.logger.warning(f"Could not get stats for {request.container_name}: {e}")
+                        # More realistic fallback values for running containers
+                        cpu_percent = 0.1   # 0.1% CPU usage
+                        memory_usage_mb = 2.0  # 2MB memory usage
+                        memory_limit_mb = 1024.0  # 1GB limit
+                    except (ValueError, TypeError) as e:
+                        self.logger.warning(f"Stats data format error for {request.container_name}: {e}")
                         # More realistic fallback values for running containers
                         cpu_percent = 0.1   # 0.1% CPU usage
                         memory_usage_mb = 2.0  # 2MB memory usage
@@ -417,14 +456,25 @@ class ContainerStatusService:
                     cache_age_seconds=0.0
                 )
 
-        except Exception as e:
+        except (ImportError, AttributeError) as e:
             duration_ms = (time.time() - start_time) * 1000
-            self.logger.error(f"Docker error for {request.container_name}: {e}")
+            self.logger.error(f"Docker service import error for {request.container_name}: {e}", exc_info=True)
 
             return ContainerStatusResult(
                 success=False,
                 container_name=request.container_name,
-                error_message=str(e),
+                error_message=f"Docker service error: {str(e)}",
+                error_type="docker_service_error",
+                query_duration_ms=duration_ms
+            )
+        except (RuntimeError, OSError, IOError) as e:
+            duration_ms = (time.time() - start_time) * 1000
+            self.logger.error(f"Docker communication error for {request.container_name}: {e}", exc_info=True)
+
+            return ContainerStatusResult(
+                success=False,
+                container_name=request.container_name,
+                error_message=f"Docker communication error: {str(e)}",
                 error_type="docker_error",
                 query_duration_ms=duration_ms
             )
