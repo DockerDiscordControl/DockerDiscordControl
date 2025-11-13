@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import asyncio
+import json
 import logging
 import time
 import sys
@@ -29,7 +30,8 @@ def _get_config_value(key: str, default_value: str) -> int:
         config = get_config_service().get_config()
         advanced_settings = config.get('advanced_settings', {})
         return int(advanced_settings.get(key, os.environ.get(key, default_value)))
-    except Exception:
+    except (ImportError, AttributeError, KeyError, ValueError, TypeError) as e:
+        # Config service errors (import failures, missing attributes/keys, type conversion)
         return int(os.environ.get(key, default_value))
 
 # Scheduler check interval - runs every minute for precise task execution
@@ -125,8 +127,9 @@ class SchedulerService:
             try:
                 # Start the loop
                 self.event_loop.run_until_complete(self._service_loop())
-            except Exception as e:
-                logger.error(f"Error in Scheduler Service loop: {e}")
+            except (RuntimeError, OSError, AttributeError, TypeError) as e:
+                # Event loop errors (runtime issues, I/O errors, attribute/type errors)
+                logger.error(f"Error in Scheduler Service loop: {e}", exc_info=True)
                 logger.error(traceback.format_exc())
             finally:
                 # Clean up tasks
@@ -139,21 +142,24 @@ class SchedulerService:
                         self.event_loop.run_until_complete(
                             asyncio.gather(*pending, return_exceptions=True)
                         )
-                except Exception as e:
-                    logger.error(f"Error cleaning up scheduler tasks: {e}")
+                except (RuntimeError, OSError, AttributeError) as e:
+                    # Task cleanup errors (runtime/event loop issues, I/O errors, attribute errors)
+                    logger.error(f"Error cleaning up scheduler tasks: {e}", exc_info=True)
                 
                 # Close the loop
                 try:
                     self.event_loop.close()
-                except Exception as e:
-                    logger.error(f"Error closing scheduler event loop: {e}")
+                except (RuntimeError, OSError, AttributeError) as e:
+                    # Event loop closing errors (runtime issues, I/O errors, attribute errors)
+                    logger.error(f"Error closing scheduler event loop: {e}", exc_info=True)
                 
                 self.event_loop = None
                 asyncio.set_event_loop(None)
                 self.running = False
                 logger.info("Scheduler Service loop ended cleanly.")
-                
-        except Exception as e:
+
+        except (ImportError, RuntimeError, OSError, AttributeError, TypeError) as e:
+            # Critical scheduler errors (import failures, runtime issues, I/O errors, attribute/type errors)
             logger.error(f"Critical error in scheduler service: {e}", exc_info=True)
             self.running = False
     
@@ -177,10 +183,11 @@ class SchedulerService:
                 # CPU-OPTIMIZED: Dynamic sleep interval based on load
                 sleep_interval = self._calculate_optimal_sleep_interval(execution_time)
                 logger.debug(f"Scheduler check completed in {execution_time:.2f}s, sleeping for {sleep_interval}s")
-                
+
                 await asyncio.sleep(sleep_interval)
-            except Exception as e:
-                logger.error(f"Error checking or executing tasks: {e}")
+            except (ImportError, RuntimeError, OSError, AttributeError, TypeError, ValueError, KeyError) as e:
+                # Task execution errors (import failures, runtime issues, I/O errors, attribute/type/value/key errors)
+                logger.error(f"Error checking or executing tasks: {e}", exc_info=True)
                 logger.error(traceback.format_exc())
                 # CPU-OPTIMIZED: Longer sleep on error to prevent error loops
                 await asyncio.sleep(min(CHECK_INTERVAL * 2, 300))  # Max 5 minutes
@@ -212,8 +219,9 @@ class SchedulerService:
         try:
             # System tasks can be added here as needed
             pass
-        except Exception as e:
-            logger.error(f"Error in system tasks check: {e}")
+        except (ImportError, RuntimeError, AttributeError, TypeError, ValueError) as e:
+            # System task errors (import failures, runtime issues, attribute/type/value errors)
+            logger.error(f"Error in system tasks check: {e}", exc_info=True)
     
     async def _check_and_execute_tasks(self):
         """Checks all tasks and executes those that are due with CPU optimization."""
@@ -278,9 +286,10 @@ class SchedulerService:
                 # Small delay between batches to prevent system overload
                 if i + TASK_BATCH_SIZE < len(due_tasks):
                     await asyncio.sleep(1.0)
-            
-        except Exception as e:
-            logger.error(f"Error in _check_and_execute_tasks: {e}")
+
+        except (ImportError, RuntimeError, OSError, AttributeError, TypeError, ValueError, KeyError) as e:
+            # Task checking errors (import failures, runtime issues, I/O errors, attribute/type/value/key errors)
+            logger.error(f"Error in _check_and_execute_tasks: {e}", exc_info=True)
             logger.error(traceback.format_exc())
     
     async def _execute_task_batch(self, tasks: List[ScheduledTask]):
@@ -302,15 +311,17 @@ class SchedulerService:
                 # Update task's next run time after successful execution
                 try:
                     update_task(task)  # Use the imported function instead of task.update_next_run()
-                except Exception as update_error:
-                    logger.warning(f"Failed to update next run time for task {task.task_id}: {update_error}")
+                except (IOError, OSError, PermissionError, json.JSONDecodeError, ValueError, TypeError, KeyError, AttributeError) as update_error:
+                    # Task update errors (file I/O, permissions, JSON, data errors, attribute errors)
+                    logger.warning(f"Failed to update next run time for task {task.task_id}: {update_error}", exc_info=True)
                 
                 self.task_execution_stats['total_executed'] += 1
                 execution_time = time.time() - task_start_time
                 logger.info(f"Task {task.container_name} completed successfully in {execution_time:.2f}s")
-                
-            except Exception as e:
-                logger.error(f"Error executing task {task.container_name} (ID: {task.task_id}): {e}")
+
+            except (ImportError, RuntimeError, OSError, AttributeError, TypeError, ValueError, KeyError) as e:
+                # Task execution errors (import failures, runtime issues, I/O errors, attribute/type/value/key errors)
+                logger.error(f"Error executing task {task.container_name} (ID: {task.task_id}): {e}", exc_info=True)
                 logger.error(traceback.format_exc())
             finally:
                 self.active_tasks.discard(task.task_id)
