@@ -116,11 +116,19 @@ class MechStatusCacheService:
 
             return fresh_result
 
-        except Exception as e:
-            self.logger.error(f"Error getting cached mech status: {e}")
+        except (ImportError, AttributeError) as e:
+            # Service dependency errors (data store unavailable)
+            self.logger.error(f"Service dependency error getting cached mech status: {e}", exc_info=True)
             return MechStatusCacheResult(
                 success=False,
-                error_message=str(e)
+                error_message=f"Service dependency error: {str(e)}"
+            )
+        except (ValueError, TypeError, KeyError) as e:
+            # Data access/processing errors
+            self.logger.error(f"Data error getting cached mech status: {e}", exc_info=True)
+            return MechStatusCacheResult(
+                success=False,
+                error_message=f"Data processing error: {str(e)}"
             )
 
     def _get_from_cache(self, include_decimals: bool) -> Optional[MechStatusCacheResult]:
@@ -196,11 +204,19 @@ class MechStatusCacheService:
                 cached_at=datetime.now(timezone.utc)
             )
 
-        except Exception as e:
-            self.logger.error(f"Error fetching fresh mech status: {e}", exc_info=True)
+        except (ImportError, AttributeError) as e:
+            # Service dependency errors (data store, speed_levels unavailable)
+            self.logger.error(f"Service dependency error fetching fresh mech status: {e}", exc_info=True)
             return MechStatusCacheResult(
                 success=False,
-                error_message=str(e)
+                error_message=f"Service dependency error: {str(e)}"
+            )
+        except (ValueError, TypeError, KeyError) as e:
+            # Data access/processing errors
+            self.logger.error(f"Data error fetching fresh mech status: {e}", exc_info=True)
+            return MechStatusCacheResult(
+                success=False,
+                error_message=f"Data processing error: {str(e)}"
             )
 
     async def start_background_loop(self):
@@ -219,8 +235,9 @@ class MechStatusCacheService:
 
         except asyncio.CancelledError:
             self.logger.info("Background loop cancelled")
-        except Exception as e:
-            self.logger.error(f"Background loop error: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Service errors or asyncio runtime errors
+            self.logger.error(f"Background loop error: {e}", exc_info=True)
         finally:
             self._loop_running = False
             self.logger.info("Background loop stopped")
@@ -251,7 +268,8 @@ class MechStatusCacheService:
                     self.logger.info(f"[CACHE_REFRESH] Mech is OFFLINE (Power: $0.00) - offline animation active")
                 else:
                     self.logger.debug(f"[CACHE_REFRESH] Power decay calculated: ${mech_state.power_current:.2f}")
-            except Exception as decay_error:
+            except (ImportError, AttributeError, RuntimeError) as decay_error:
+                # Service errors (progress service unavailable, asyncio errors)
                 self.logger.warning(f"[CACHE_REFRESH] Failed to calculate mech decay: {decay_error}")
 
             # Refresh both decimal variants of cache
@@ -267,8 +285,9 @@ class MechStatusCacheService:
 
             self.logger.debug("Background cache refresh completed")
 
-        except Exception as e:
-            self.logger.error(f"Background refresh error: {e}")
+        except (ImportError, AttributeError, RuntimeError, asyncio.CancelledError) as e:
+            # Service errors, asyncio errors
+            self.logger.error(f"Background refresh error: {e}", exc_info=True)
 
     def stop_background_loop(self):
         """Stop the background cache refresh loop."""
@@ -292,8 +311,9 @@ class MechStatusCacheService:
 
             self.logger.info("Event listeners registered for mech status cache invalidation")
 
-        except Exception as e:
-            self.logger.error(f"Failed to setup event listeners: {e}")
+        except (ImportError, AttributeError, RuntimeError) as e:
+            # Event manager setup errors (import failure, manager unavailable)
+            self.logger.error(f"Failed to setup event listeners: {e}", exc_info=True)
 
     def _handle_donation_event(self, event_data):
         """Handle donation completion events for immediate cache invalidation."""
@@ -323,11 +343,13 @@ class MechStatusCacheService:
                     }
                 )
                 self.logger.info("Discord update event emitted for automatic status message refresh")
-            except Exception as discord_event_error:
-                self.logger.error(f"Failed to emit Discord update event: {discord_event_error}")
+            except (ImportError, AttributeError, RuntimeError) as discord_event_error:
+                # Event emission errors
+                self.logger.error(f"Failed to emit Discord update event: {discord_event_error}", exc_info=True)
 
-        except Exception as e:
-            self.logger.error(f"Error handling donation event: {e}")
+        except (KeyError, ValueError, AttributeError, TypeError) as e:
+            # Event data parsing errors
+            self.logger.error(f"Error handling donation event: {e}", exc_info=True)
 
     def _handle_state_change_event(self, event_data):
         """Handle mech state change events for cache invalidation."""
@@ -342,8 +364,9 @@ class MechStatusCacheService:
             reason = f"State change: {old_power:.2f} → {new_power:.2f}"
             self.logger.info(f"Mech status cache invalidated due to state change: {reason}")
 
-        except Exception as e:
-            self.logger.error(f"Error handling state change event: {e}")
+        except (KeyError, ValueError, AttributeError, TypeError) as e:
+            # Event data parsing errors
+            self.logger.error(f"Error handling state change event: {e}", exc_info=True)
 
     def clear_cache(self):
         """Clear all cached data."""

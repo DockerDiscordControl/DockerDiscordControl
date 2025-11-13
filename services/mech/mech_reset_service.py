@@ -100,9 +100,10 @@ class MechResetService:
                 }
             )
 
-        except Exception as e:
+        except (RuntimeError, AttributeError) as e:
+            # Orchestration errors (method call failures, attribute access)
             error_msg = f"❌ Error during full Mech reset: {e}"
-            logger.error(error_msg)
+            logger.error(error_msg, exc_info=True)
             return ResetResult(success=False, message=error_msg)
 
     def clear_all_donations(self) -> ResetResult:
@@ -122,9 +123,10 @@ class MechResetService:
             logger.info("Cleared all Mech donations")
             return ResetResult(success=True, message="All donations cleared")
 
-        except Exception as e:
+        except (IOError, OSError) as e:
+            # File I/O errors (writing donations file)
             error_msg = f"Error clearing donations: {e}"
-            logger.error(error_msg)
+            logger.error(error_msg, exc_info=True)
             return ResetResult(success=False, message=error_msg)
 
     def cleanup_deprecated_files(self) -> ResetResult:
@@ -152,9 +154,10 @@ class MechResetService:
 
             return ResetResult(success=True, message=message)
 
-        except Exception as e:
+        except (IOError, OSError, PermissionError) as e:
+            # File system errors (file deletion, permissions)
             error_msg = f"Error cleaning up deprecated files: {e}"
-            logger.error(error_msg)
+            logger.error(error_msg, exc_info=True)
             return ResetResult(success=False, message=error_msg)
 
     def reset_mech_state(self) -> ResetResult:
@@ -189,9 +192,20 @@ class MechResetService:
             logger.info("Reset Mech state to Level 1")
             return ResetResult(success=True, message="Mech state reset to Level 1")
 
-        except Exception as e:
+        except (IOError, OSError) as e:
+            # File I/O errors (reading/writing state file)
             error_msg = f"Error resetting Mech state: {e}"
-            logger.error(error_msg)
+            logger.error(error_msg, exc_info=True)
+            return ResetResult(success=False, message=error_msg)
+        except json.JSONDecodeError as e:
+            # JSON parsing errors (corrupted state file)
+            error_msg = f"Error parsing Mech state JSON: {e}"
+            logger.error(error_msg, exc_info=True)
+            return ResetResult(success=False, message=error_msg)
+        except (KeyError, ValueError, TypeError) as e:
+            # Data access/structure errors (unexpected JSON structure)
+            error_msg = f"Error processing Mech state data: {e}"
+            logger.error(error_msg, exc_info=True)
             return ResetResult(success=False, message=error_msg)
 
     def reset_evolution_mode(self) -> ResetResult:
@@ -216,9 +230,10 @@ class MechResetService:
             logger.info("Reset evolution mode to defaults")
             return ResetResult(success=True, message="Evolution mode reset to defaults")
 
-        except Exception as e:
+        except (IOError, OSError) as e:
+            # File I/O errors (reading/writing evolution mode file)
             error_msg = f"Error resetting evolution mode: {e}"
-            logger.error(error_msg)
+            logger.error(error_msg, exc_info=True)
             return ResetResult(success=False, message=error_msg)
 
     def get_current_status(self) -> Dict[str, Any]:
@@ -299,9 +314,22 @@ class MechResetService:
 
             return status
 
-        except Exception as e:
-            logger.error(f"Error getting Mech status: {e}")
-            return {"error": str(e)}
+        except (IOError, OSError) as e:
+            # File I/O errors (reading donations, state files)
+            logger.error(f"File I/O error getting Mech status: {e}", exc_info=True)
+            return {"error": f"File I/O error: {str(e)}"}
+        except json.JSONDecodeError as e:
+            # JSON parsing errors (corrupted files)
+            logger.error(f"JSON parsing error getting Mech status: {e}", exc_info=True)
+            return {"error": f"JSON parsing error: {str(e)}"}
+        except (ImportError, AttributeError) as e:
+            # Service dependency errors (mech_service import)
+            logger.error(f"Service dependency error getting Mech status: {e}", exc_info=True)
+            return {"error": f"Service dependency error: {str(e)}"}
+        except (ValueError, TypeError, KeyError) as e:
+            # Data calculation/access errors (sum, dict access)
+            logger.error(f"Data processing error getting Mech status: {e}", exc_info=True)
+            return {"error": f"Data processing error: {str(e)}"}
 
 
 # Singleton instance

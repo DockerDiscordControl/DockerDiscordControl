@@ -112,8 +112,17 @@ class MechDisplayCacheService:
                 levels_processed=processed_count
             )
 
-        except Exception as e:
+        except (RuntimeError, AttributeError) as e:
+            # Orchestration errors (method call failures, service access)
             error_msg = f"Error pre-rendering mech display images: {e}"
+            logger.error(error_msg, exc_info=True)
+            return MechDisplayCacheResult(
+                success=False,
+                message=error_msg
+            )
+        except (ValueError, TypeError) as e:
+            # Data validation errors (invalid level, type errors)
+            error_msg = f"Data error pre-rendering mech display images: {e}"
             logger.error(error_msg, exc_info=True)
             return MechDisplayCacheResult(
                 success=False,
@@ -153,8 +162,15 @@ class MechDisplayCacheService:
                     if newest_png_time > cache_time:
                         logger.debug(f"Pre-rendering needed for Level {evolution_level} {image_type}: source files newer")
                         return True
-        except Exception as e:
-            logger.debug(f"Could not check source file timestamps: {e}")
+        except (IOError, OSError) as e:
+            # File system errors (stat, path access)
+            logger.debug(f"File system error checking source file timestamps: {e}")
+        except (ImportError, AttributeError) as e:
+            # Service dependency errors (animation cache service unavailable)
+            logger.debug(f"Service dependency error checking source file timestamps: {e}")
+        except (ValueError, TypeError) as e:
+            # Data processing errors (timestamp comparison)
+            logger.debug(f"Data error checking source file timestamps: {e}")
 
         return False
 
@@ -211,8 +227,17 @@ class MechDisplayCacheService:
                 logger.debug(f"Pre-rendered shadow image: {shadow_path}")
                 return True
 
-        except Exception as e:
-            logger.error(f"Error pre-rendering shadow for Level {evolution_level}: {e}", exc_info=True)
+        except (ImportError, AttributeError) as e:
+            # Service dependency errors (PIL, animation cache service unavailable)
+            logger.error(f"Service dependency error pre-rendering shadow for Level {evolution_level}: {e}", exc_info=True)
+            return False
+        except (IOError, OSError) as e:
+            # File I/O errors (saving shadow image)
+            logger.error(f"File I/O error pre-rendering shadow for Level {evolution_level}: {e}", exc_info=True)
+            return False
+        except (ValueError, TypeError) as e:
+            # Image processing errors (PIL operations, pixel data)
+            logger.error(f"Image processing error pre-rendering shadow for Level {evolution_level}: {e}", exc_info=True)
             return False
 
     def _pre_render_unlocked_image(self, evolution_level: int, force: bool = False) -> bool:
@@ -243,8 +268,13 @@ class MechDisplayCacheService:
             logger.debug(f"Pre-rendered unlocked image: {unlocked_path}")
             return True
 
-        except Exception as e:
-            logger.error(f"Error pre-rendering unlocked for Level {evolution_level}: {e}", exc_info=True)
+        except (ImportError, AttributeError) as e:
+            # Service dependency errors (animation cache service unavailable)
+            logger.error(f"Service dependency error pre-rendering unlocked for Level {evolution_level}: {e}", exc_info=True)
+            return False
+        except (IOError, OSError) as e:
+            # File I/O errors (writing animation file)
+            logger.error(f"File I/O error pre-rendering unlocked for Level {evolution_level}: {e}", exc_info=True)
             return False
 
     def get_mech_display_image(self, request: MechDisplayImageRequest) -> MechDisplayImageResult:
@@ -289,8 +319,17 @@ class MechDisplayCacheService:
                 filename=filename
             )
 
-        except Exception as e:
-            error_msg = f"Error loading mech display image: {e}"
+        except (IOError, OSError) as e:
+            # File I/O errors (reading image file)
+            error_msg = f"File I/O error loading mech display image: {e}"
+            logger.error(error_msg, exc_info=True)
+            return MechDisplayImageResult(
+                success=False,
+                error_message=error_msg
+            )
+        except ValueError as e:
+            # Validation errors (invalid image type, level)
+            error_msg = f"Validation error loading mech display image: {e}"
             logger.error(error_msg, exc_info=True)
             return MechDisplayImageResult(
                 success=False,
@@ -315,8 +354,9 @@ class MechDisplayCacheService:
                 levels_processed=deleted_count
             )
 
-        except Exception as e:
-            error_msg = f"Error clearing display cache: {e}"
+        except (IOError, OSError, PermissionError) as e:
+            # File system errors (file deletion, permissions)
+            error_msg = f"File system error clearing display cache: {e}"
             logger.error(error_msg, exc_info=True)
             return MechDisplayCacheResult(
                 success=False,
