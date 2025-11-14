@@ -900,6 +900,26 @@ class AnimationCacheService:
             # Otherwise, adjust speed by re-encoding with new duration
             logger.debug(f"Adjusting big {animation_type} speed for evolution {evolution_level}: {speed_level} → {new_duration}ms/frame")
 
+            # PERFORMANCE: Check disk cache for speed-adjusted big animations
+            # Round speed to nearest 10 to reduce cache variations (e.g., 95-100 → 100)
+            speed_rounded = int(round(speed_level / 10.0) * 10)
+            speed_cache_filename = f"big_{animation_type}_L{evolution_level}_S{speed_rounded}.webp"
+            speed_cache_path = self.cache_dir / speed_cache_filename
+
+            # Try to load from speed-adjusted cache
+            if speed_cache_path.exists():
+                try:
+                    with open(speed_cache_path, 'rb') as f:
+                        cached_speed_data = f.read()
+                    logger.debug(f"🚀 SPEED CACHE HIT: Loaded big {animation_type} L{evolution_level} S{speed_rounded} from disk ({len(cached_speed_data)} bytes)")
+                    # Store in focused cache for ultra-fast access next time
+                    if self._is_current_state(evolution_level, speed_level, power_level):
+                        self._store_in_focused_cache('big', cached_speed_data)
+                    return cached_speed_data
+                except (IOError, OSError) as e:
+                    logger.warning(f"Failed to load speed cache {speed_cache_path}: {e}")
+                    # Continue to re-encode below
+
             # Load the cached animation and re-save with new duration
             frames = []
             try:
@@ -938,6 +958,14 @@ class AnimationCacheService:
 
                 buffer.seek(0)
                 adjusted_data = buffer.getvalue()
+
+                # PERFORMANCE: Save speed-adjusted animation to disk cache for future reuse
+                try:
+                    with open(speed_cache_path, 'wb') as f:
+                        f.write(adjusted_data)
+                    logger.info(f"💾 SPEED CACHE SAVED: big {animation_type} L{evolution_level} S{speed_rounded} → {speed_cache_path} ({len(adjusted_data)} bytes)")
+                except (IOError, OSError) as e:
+                    logger.warning(f"Failed to save speed cache to {speed_cache_path}: {e}")
 
                 # Store speed-adjusted animation in focused cache for current state
                 if self._is_current_state(evolution_level, speed_level, power_level):
