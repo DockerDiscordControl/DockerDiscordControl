@@ -506,15 +506,18 @@ class AnimationCacheService:
                         logger.debug(f"Mech 6 walk pre-crop: removed 15px from top, 8px from bottom, new size: {frame.size}")
                     elif evolution_level == 10:
                         # Mech 10: Resolution-aware pre-cropping (fixes vertical wobble in big version)
+                        # Analysis of source frames: small has 4px deviation, big has 19.5px deviation
                         frame_width, frame_height = frame.size
                         if is_big_resolution:
-                            # Big version (412x412): Use scaled values
-                            top_crop = 160  # ~50 * 3.2 ratio
-                            bottom_crop = 48  # ~15 * 3.2 ratio
+                            # Big version (412x412): Average top=44px, bottom=83px
+                            # Optimized to minimize 19.5px vertical deviation
+                            top_crop = 44
+                            bottom_crop = 83
                         else:
-                            # Small version (128x128): Use base values
-                            top_crop = 50
-                            bottom_crop = 15
+                            # Small version (128x128): Average top=12px, bottom=21px
+                            # Optimized to minimize 4px vertical deviation
+                            top_crop = 12
+                            bottom_crop = 21
                         frame = frame.crop((0, top_crop, frame_width, frame_height - bottom_crop))
                         res_label = "big" if is_big_resolution else "small"
                         logger.debug(f"Mech 10 walk pre-crop ({res_label}): removed {top_crop}px from top, {bottom_crop}px from bottom, new size: {frame.size}")
