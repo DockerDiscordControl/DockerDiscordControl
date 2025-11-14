@@ -486,6 +486,9 @@ class AnimationCacheService:
                 # Special handling for mechs with invisible glow/effects issues
                 if animation_type == "walk":
                     # Walk animation pre-cropping (CORRECTED for native asset sizes)
+                    # Determine if we're processing big or small resolution
+                    is_big_resolution = resolution == "big" if resolution else False
+
                     if evolution_level == 4:
                         # Pre-crop 10 pixels from top and 5 pixels from bottom for Mech 4 (64x64 native)
                         frame_width, frame_height = frame.size
@@ -501,6 +504,20 @@ class AnimationCacheService:
                         frame_width, frame_height = frame.size
                         frame = frame.crop((0, 15, frame_width, frame_height - 8))
                         logger.debug(f"Mech 6 walk pre-crop: removed 15px from top, 8px from bottom, new size: {frame.size}")
+                    elif evolution_level == 10:
+                        # Mech 10: Resolution-aware pre-cropping (fixes vertical wobble in big version)
+                        frame_width, frame_height = frame.size
+                        if is_big_resolution:
+                            # Big version (412x412): Use scaled values
+                            top_crop = 160  # ~50 * 3.2 ratio
+                            bottom_crop = 48  # ~15 * 3.2 ratio
+                        else:
+                            # Small version (128x128): Use base values
+                            top_crop = 50
+                            bottom_crop = 15
+                        frame = frame.crop((0, top_crop, frame_width, frame_height - bottom_crop))
+                        res_label = "big" if is_big_resolution else "small"
+                        logger.debug(f"Mech 10 walk pre-crop ({res_label}): removed {top_crop}px from top, {bottom_crop}px from bottom, new size: {frame.size}")
 
                 elif animation_type == "rest":
                     # REST pre-cropping - COMPLETE ORIGINAL VALUES for small mechs, proportional for big mechs

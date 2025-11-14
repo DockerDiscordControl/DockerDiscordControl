@@ -187,7 +187,7 @@ class MechHighResService:
             7: {"top": 60, "bottom": 10},    # Mech 7: uniform crop
             8: {"top": 60, "bottom": 10},    # Mech 8: uniform crop
             9: {"top": 60, "bottom": 10},    # Mech 9: uniform crop
-            10: {"top": 60, "bottom": 10},   # Mech 10: uniform crop
+            10: {"top": 50, "bottom": 15},   # Mech 10: custom pre-cropping (fixes vertical wobble in big version)
         }
 
         base_adjustment = small_adjustments.get(evolution_level, {"top": 0, "bottom": 0})
