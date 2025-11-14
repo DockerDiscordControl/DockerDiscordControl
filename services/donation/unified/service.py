@@ -268,9 +268,9 @@ class UnifiedDonationService:
                     "source": request.source,
                     "guild_id": str(request.discord_guild_id) if request.discord_guild_id else None,
                     "member_count": member_count,
-                    "old_power": old_state.current_power if old_state else None,
-                    "new_power": new_state.current_power if new_state else None,
-                    "power_gained": (new_state.current_power - old_state.current_power) if (old_state and new_state) else None,
+                    "old_power": old_state.power_level if old_state else None,
+                    "new_power": new_state.power_level if new_state else None,
+                    "power_gained": (new_state.power_level - old_state.power_level) if (old_state and new_state) else None,
                     "event_id": event_id,
                     "duration_ms": duration_ms,
                 })
