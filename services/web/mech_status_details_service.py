@@ -44,6 +44,10 @@ class MechStatusDetailsResult:
     animation_bytes: Optional[bytes] = None
     content_type: Optional[str] = None
 
+    # Raw data for filename generation (performance optimization - avoid extra service calls)
+    level: int = 0           # Current mech level
+    power_decimal: float = 0.0  # Current power with decimals
+
 
 class MechStatusDetailsService:
     """Service for providing formatted mech status details."""
@@ -146,7 +150,10 @@ class MechStatusDetailsService:
                 next_evolution=next_evolution,
                 evolution_bar=evolution_bar,
                 animation_bytes=animation_bytes,
-                content_type=content_type
+                content_type=content_type,
+                # Raw data for filename generation (avoid extra service calls)
+                level=current_level,
+                power_decimal=power_decimal
             )
 
         except (RuntimeError) as e:

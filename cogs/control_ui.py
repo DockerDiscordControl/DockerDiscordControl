@@ -2077,11 +2077,8 @@ class MechDetailsButton(Button):
             if result.animation_bytes and result.content_type:
                 # Create unique filename to prevent Discord caching issues
                 # Include level and power to ensure cache busting when mech evolves
-                from services.mech.mech_service import get_mech_service
-                mech_service = get_mech_service()
-                state = mech_service.get_state()
-                power_decimal = mech_service.get_power_with_decimals()
-                unique_filename = f"mech_level_{state.level}_power_{power_decimal:.2f}.webp"
+                # PERFORMANCE: Use data from result instead of making extra service calls
+                unique_filename = f"mech_level_{result.level}_power_{result.power_decimal:.2f}.webp"
 
                 file = discord.File(
                     io.BytesIO(result.animation_bytes),
