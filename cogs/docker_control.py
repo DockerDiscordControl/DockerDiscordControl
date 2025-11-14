@@ -3651,7 +3651,12 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                             embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
 
                         # Delete and recreate message with new animation
-                        await message.delete()
+                        # ROBUST: Handle case where message was already deleted (e.g., by /ss command)
+                        try:
+                            await message.delete()
+                        except discord.NotFound:
+                            logger.debug(f"Overview message {message_id} already deleted in channel {channel_id} (probably by /ss command)")
+                            # Continue anyway - we'll create a new message below
 
                         # Create new view
                         from .control_ui import MechView
