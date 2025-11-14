@@ -331,13 +331,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
             # Schedule async updates using the bot's event loop
             if self.bot and hasattr(self.bot, 'loop'):
-                # Update both /ss messages and overview messages
+                # Update /ss messages (overview messages are updated automatically via event)
+                # NOTE: _auto_update_ss_messages already handles overview message updates
+                # No need to call _update_all_overview_messages_after_donation separately
                 asyncio.run_coroutine_threadsafe(
                     self._auto_update_ss_messages(f"Event: {reason}", force_recreate=True),
-                    self.bot.loop
-                )
-                asyncio.run_coroutine_threadsafe(
-                    self._update_all_overview_messages_after_donation(),
                     self.bot.loop
                 )
 
