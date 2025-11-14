@@ -62,7 +62,10 @@ def get_module_imports(file_path: Path, base_path: Path) -> Tuple[str, List[str]
             tree = ast.parse(f.read(), filename=str(file_path))
 
         # Convert file path to module name
-        relative = file_path.relative_to(base_path)
+        # BUGFIX: Resolve both paths to absolute to avoid relative/absolute mismatch
+        file_path_abs = file_path.resolve()
+        base_path_abs = base_path.resolve()
+        relative = file_path_abs.relative_to(base_path_abs)
         module_parts = list(relative.parts)[:-1]  # Remove .py file
         if relative.stem != '__init__':
             module_parts.append(relative.stem)
@@ -96,11 +99,12 @@ def build_dependency_graph(paths: List[str]) -> Dict[str, List[str]]:
     Returns:
         Dictionary mapping module names to their dependencies
     """
-    base_path = Path.cwd()
+    # BUGFIX: Ensure base_path is absolute to avoid relative/absolute mismatches
+    base_path = Path.cwd().resolve()
     dependency_graph: Dict[str, List[str]] = defaultdict(list)
 
     for path_str in paths:
-        path = Path(path_str)
+        path = Path(path_str).resolve()
         if not path.exists():
             print(f"Warning: Path {path} does not exist", file=sys.stderr)
             continue
