@@ -435,8 +435,19 @@ class AnimationCacheService:
 
     def _load_and_process_frames(self, evolution_level: int, animation_type: str = "walk", resolution: str = "small") -> List[Image.Image]:
         """Load PNG frames and process them with fixed canvas heights and preserved aspect ratio"""
+
+        # SPECIAL CASE: Mech 10 big has corrupted source material, use upscaled small version instead
+        use_upscaled_small = (evolution_level == 10 and resolution == "big" and animation_type == "walk")
+        if use_upscaled_small:
+            logger.info(f"Mech 10 big walk: Using upscaled small version due to corrupted big source material")
+            actual_resolution = "small"
+            upscale_factor = 3.22  # 412 / 128 = 3.21875 (big/small ratio)
+        else:
+            actual_resolution = resolution
+            upscale_factor = None
+
         # Use the same folder detection logic as cache path
-        mech_folder = self._get_actual_mech_folder(evolution_level, resolution)
+        mech_folder = self._get_actual_mech_folder(evolution_level, actual_resolution)
         # Check if we're using the correct Mech folder (parent folder name for resolution subfolders)
         expected_mech = f"Mech{evolution_level}"
         actual_mech = mech_folder.parent.name if mech_folder.name in ["big", "small"] else mech_folder.name
@@ -483,6 +494,14 @@ class AnimationCacheService:
                 else:
                     frame = img.copy()  # Direct copy if already RGBA to avoid conversion
 
+                # SPECIAL: Upscale immediately if using small→big fallback (Mech 10)
+                if upscale_factor is not None:
+                    new_width = int(frame.width * upscale_factor)
+                    new_height = int(frame.height * upscale_factor)
+                    frame = frame.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                    if png_path == png_files[0]:  # Log only once
+                        logger.info(f"Upscaling source PNGs from {img.width}x{img.height} → {new_width}x{new_height} (factor {upscale_factor:.2f}x)")
+
                 # Special handling for mechs with invisible glow/effects issues
                 if animation_type == "walk":
                     # Walk animation pre-cropping (CORRECTED for native asset sizes)
@@ -506,20 +525,24 @@ class AnimationCacheService:
                         logger.debug(f"Mech 6 walk pre-crop: removed 15px from top, 8px from bottom, new size: {frame.size}")
                     elif evolution_level == 10:
                         # Mech 10: Resolution-aware pre-cropping (fixes vertical wobble in big version)
-                        # Analysis of source frames: small has 4px deviation, big has 19.5px deviation
+                        # Big version uses upscaled small source (corrupted big source material)
                         frame_width, frame_height = frame.size
-                        if is_big_resolution:
+                        if upscale_factor is not None:
+                            # Using upscaled small version: scale the small crop values by upscale factor
+                            # Small: top=12px, bottom=21px → Big: top=39px, bottom=68px (at 3.22x)
+                            top_crop = int(12 * upscale_factor)
+                            bottom_crop = int(21 * upscale_factor)
+                        elif is_big_resolution:
+                            # Native big version (not used anymore, kept for reference)
                             # Big version (412x412): Average top=44px, bottom=83px
-                            # Optimized to minimize 19.5px vertical deviation
                             top_crop = 44
                             bottom_crop = 83
                         else:
                             # Small version (128x128): Average top=12px, bottom=21px
-                            # Optimized to minimize 4px vertical deviation
                             top_crop = 12
                             bottom_crop = 21
                         frame = frame.crop((0, top_crop, frame_width, frame_height - bottom_crop))
-                        res_label = "big" if is_big_resolution else "small"
+                        res_label = "upscaled_small" if upscale_factor else ("big" if is_big_resolution else "small")
                         logger.debug(f"Mech 10 walk pre-crop ({res_label}): removed {top_crop}px from top, {bottom_crop}px from bottom, new size: {frame.size}")
 
                 elif animation_type == "rest":
