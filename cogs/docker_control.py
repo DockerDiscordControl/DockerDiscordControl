@@ -1297,7 +1297,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         """Shows an overview of all server statuses in a single message."""
         try:
             # CRITICAL: Defer FIRST to prevent Discord timeout (must respond within 3 seconds)
-            await ctx.defer()
+            # ROBUST: Handle "Unknown interaction" gracefully (happens when bot is slow/overloaded)
+            try:
+                await ctx.defer()
+            except discord.NotFound as e:
+                if e.code == 10062:  # Unknown interaction
+                    logger.error(f"⚠️ Interaction expired before defer - bot was too slow! User needs to retry. Error: {e}")
+                    # Cannot respond anymore - interaction is dead. User needs to retry the command.
+                    return
+                else:
+                    raise  # Re-raise other NotFound errors
 
             # Check spam protection after defer
             if not await self._check_spam_protection(ctx, "serverstatus"):
@@ -1383,11 +1392,23 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config, force_refresh=True)
             else:
                 embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config, force_refresh=True)
-            
+
             # Create MechView with expand/collapse buttons for mech status
             from .control_ui import MechView
             view = MechView(self, channel_id)
-            
+
+            # Delete old overview message if it exists (prevents duplicate messages)
+            if ctx.channel.id in self.channel_server_message_ids and "overview" in self.channel_server_message_ids[ctx.channel.id]:
+                old_message_id = self.channel_server_message_ids[ctx.channel.id]["overview"]
+                try:
+                    old_message = await ctx.channel.fetch_message(old_message_id)
+                    await old_message.delete()
+                    logger.debug(f"Deleted old overview message {old_message_id} in channel {ctx.channel.id}")
+                except discord.NotFound:
+                    logger.debug(f"Old overview message {old_message_id} not found (already deleted)")
+                except (discord.Forbidden, discord.HTTPException) as e:
+                    logger.warning(f"Could not delete old overview message {old_message_id}: {e}")
+
             # EDGE CASE: Safely send embed with animation and button
             try:
                 if animation_file:
