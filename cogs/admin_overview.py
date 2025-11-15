@@ -490,12 +490,16 @@ class ConfirmRestartAllButton(Button):
                 status_cache_service = get_status_cache_service()
                 cached_entry = status_cache_service.get(docker_name)
 
-                # Extract is_running from cache data tuple
+                # Extract is_running from cache data (ContainerStatusResult object)
                 is_running = False
                 if cached_entry and cached_entry.get('data'):
                     status_result = cached_entry['data']
-                    if isinstance(status_result, tuple) and len(status_result) >= 2:
-                        # Cache format: (display_name, is_running, cpu_str, ram_str, uptime, details_allowed)
+                    # Modern format: ContainerStatusResult dataclass
+                    from services.docker_status.models import ContainerStatusResult
+                    if isinstance(status_result, ContainerStatusResult):
+                        is_running = status_result.is_running
+                    # Backwards compatibility: old tuple format
+                    elif isinstance(status_result, tuple) and len(status_result) >= 2:
                         is_running = status_result[1]
 
                 if is_running:
@@ -669,12 +673,16 @@ class ConfirmStopAllButton(Button):
                 status_cache_service = get_status_cache_service()
                 cached_entry = status_cache_service.get(docker_name)
 
-                # Extract is_running from cache data tuple
+                # Extract is_running from cache data (ContainerStatusResult object)
                 is_running = False
                 if cached_entry and cached_entry.get('data'):
                     status_result = cached_entry['data']
-                    if isinstance(status_result, tuple) and len(status_result) >= 2:
-                        # Cache format: (display_name, is_running, cpu_str, ram_str, uptime, details_allowed)
+                    # Modern format: ContainerStatusResult dataclass
+                    from services.docker_status.models import ContainerStatusResult
+                    if isinstance(status_result, ContainerStatusResult):
+                        is_running = status_result.is_running
+                    # Backwards compatibility: old tuple format
+                    elif isinstance(status_result, tuple) and len(status_result) >= 2:
                         is_running = status_result[1]
 
                 if is_running:
