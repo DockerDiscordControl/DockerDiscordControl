@@ -690,14 +690,29 @@ class ToggleButton(Button):
         if interaction.channel:
             self.cog.last_channel_activity[interaction.channel.id] = datetime.now(timezone.utc)
 
-    async def _generate_ultra_fast_toggle_embed_and_view(self, channel_id: int, status_result: tuple, current_config: dict, cached_entry: dict) -> tuple[Optional[discord.Embed], Optional[discord.ui.View]]:
+    async def _generate_ultra_fast_toggle_embed_and_view(self, channel_id: int, status_result, current_config: dict, cached_entry: dict) -> tuple[Optional[discord.Embed], Optional[discord.ui.View]]:
         """Ultra-fast embed/view generation mit allen 6 Optimierungen."""
         try:
-            if not isinstance(status_result, tuple) or len(status_result) != 6:
-                logger.warning(f"[ULTRA_FAST_TOGGLE] Invalid status_result format for '{self.display_name}'")
+            # Handle both ContainerStatusResult (modern) and tuple (legacy) formats
+            from services.docker_status.models import ContainerStatusResult
+
+            if isinstance(status_result, ContainerStatusResult):
+                # Modern format: ContainerStatusResult dataclass
+                if not status_result.success:
+                    logger.warning(f"[ULTRA_FAST_TOGGLE] ContainerStatusResult failed for '{self.display_name}'")
+                    return None, None
+                display_name_from_status = status_result.display_name
+                running = status_result.is_running
+                cpu = status_result.cpu
+                ram = status_result.ram
+                uptime = status_result.uptime
+                details_allowed = status_result.details_allowed
+            elif isinstance(status_result, tuple) and len(status_result) == 6:
+                # Legacy format: tuple unpacking
+                display_name_from_status, running, cpu, ram, uptime, details_allowed = status_result
+            else:
+                logger.warning(f"[ULTRA_FAST_TOGGLE] Invalid status_result format for '{self.display_name}': {type(status_result).__name__}")
                 return None, None
-            
-            display_name_from_status, running, cpu, ram, uptime, details_allowed = status_result
             status_color = 0x00b300 if running else 0xe74c3c
             
             # OPTIMIZATION 2: Use cached translations (99% schneller)
