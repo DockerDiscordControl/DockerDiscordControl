@@ -417,12 +417,23 @@ class ActionButton(Button):
                                 # Get fresh status for running state and color
                                 # Use docker_name as key for cache lookup
                                 logger.info(f"[ACTION_BTN] Step 3: Getting fresh status from cache...")
-                                cached_entry = self.cog.status_cache_service.get(self.docker_name)
-                                fresh_status = cached_entry.get('data') if cached_entry else None
-                                is_running = False
-                                if fresh_status and not isinstance(fresh_status, Exception):
-                                    _, is_running, _, _, _, _ = fresh_status
-                                logger.info(f"[ACTION_BTN] Step 4: Fresh status retrieved, is_running={is_running}")
+                                logger.info(f"[ACTION_BTN] Step 3a: docker_name='{self.docker_name}', display_name='{self.display_name}'")
+                                logger.info(f"[ACTION_BTN] Step 3b: status_cache_service exists: {hasattr(self.cog, 'status_cache_service')}")
+
+                                try:
+                                    cached_entry = self.cog.status_cache_service.get(self.docker_name)
+                                    logger.info(f"[ACTION_BTN] Step 3c: cached_entry={'exists' if cached_entry else 'None'}, type={type(cached_entry).__name__ if cached_entry else 'N/A'}")
+                                    fresh_status = cached_entry.get('data') if cached_entry else None
+                                    logger.info(f"[ACTION_BTN] Step 3d: fresh_status={'exists' if fresh_status else 'None'}, type={type(fresh_status).__name__ if fresh_status else 'N/A'}")
+                                    is_running = False
+                                    if fresh_status and not isinstance(fresh_status, Exception):
+                                        _, is_running, _, _, _, _ = fresh_status
+                                    logger.info(f"[ACTION_BTN] Step 4: Fresh status retrieved, is_running={is_running}")
+                                except (AttributeError, TypeError, ValueError, KeyError) as e:
+                                    logger.error(f"[ACTION_BTN] Step 3 FAILED: Error getting fresh status: {e}", exc_info=True)
+                                    # Default to unknown state if cache lookup fails
+                                    is_running = False
+                                    logger.info(f"[ACTION_BTN] Step 4: Using default is_running=False due to cache error")
 
                                 # Create admin control view with all buttons
                                 logger.info(f"[ACTION_BTN] Step 5: Creating ControlView...")
