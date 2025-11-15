@@ -65,7 +65,10 @@ class DonationStatusService:
             self.logger.info(f"WEB UI: Using cached mech status (age: {mech_cache_result.cache_age_seconds:.1f}s)")
 
             # Step 3: Get speed information using cached data
-            speed_info = self._calculate_speed_information(mech_cache_result.power)
+            speed_info = self._calculate_speed_information(
+                power=mech_cache_result.power,
+                total_donated=mech_cache_result.total_donated
+            )
 
             # Step 4: Get evolution information using cached data
             evolution_info = self._get_evolution_information(mech_cache_result.level)
@@ -86,18 +89,24 @@ class DonationStatusService:
             )
 
 
-    def _calculate_speed_information(self, total_amount: float) -> Dict[str, Any]:
-        """Calculate speed level and related information."""
+    def _calculate_speed_information(self, power: float, total_donated: float) -> Dict[str, Any]:
+        """Calculate speed level and related information.
+
+        Args:
+            power: Current power amount (for speed calculation within level)
+            total_donated: Total donations received (for evolution level determination)
+        """
         try:
             from services.mech.speed_levels import SPEED_DESCRIPTIONS, get_speed_emoji, _get_evolution_context, _calculate_speed_level_from_power_ratio
 
             # Calculate speed level using evolution-based calculation
+            # CRITICAL: Use total_donated for evolution level, power for speed calculation
             try:
-                evolution_level, max_power_for_level = _get_evolution_context(total_amount)
-                level = _calculate_speed_level_from_power_ratio(evolution_level, total_amount, max_power_for_level)
+                evolution_level, max_power_for_level = _get_evolution_context(total_donated)
+                level = _calculate_speed_level_from_power_ratio(evolution_level, power, max_power_for_level)
             except (ImportError, ValueError, ZeroDivisionError):
                 # Fallback if evolution system unavailable
-                level = min(int(total_amount), 100) if total_amount > 0 else 0
+                level = min(int(power), 100) if power > 0 else 0
 
             # Get description directly from SPEED_DESCRIPTIONS using calculated level
             # This ensures consistency between level and description
