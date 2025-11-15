@@ -69,8 +69,18 @@ class MechStatusDetailsService:
             # SINGLE POINT OF TRUTH: Use MechDataStore for all mech data
             from services.mech.mech_data_store import get_mech_data_store, MechDataRequest
 
+            # Get system language from config for MechDataStore
+            try:
+                from services.config.config_service import get_config_service, GetConfigRequest
+                config_service = get_config_service()
+                config_request_cfg = GetConfigRequest(force_reload=False)
+                config_result_cfg = config_service.get_config_service(config_request_cfg)
+                language = config_result_cfg.config.get('language', 'de') if config_result_cfg.success else 'de'
+            except (ImportError, AttributeError, KeyError):
+                language = 'de'  # Fallback to German
+
             data_store = get_mech_data_store()
-            data_request = MechDataRequest(include_decimals=True)
+            data_request = MechDataRequest(include_decimals=True, language=language)
             data_result = data_store.get_comprehensive_data(data_request)
 
             if not data_result.success:
@@ -79,12 +89,30 @@ class MechStatusDetailsService:
             # Extract data from MechDataStore result
             power_decimal = data_result.current_power
 
-            # Get speed description from MechDataStore
+            # Get speed description from MechDataStore using get_combined_mech_status (Single Point of Truth)
             # SPECIAL CASE: Level 11 is maximum level - always show "Göttlich" (no more speed changes)
             if data_result.current_level >= 11:
                 speed_description = "Göttlich"  # Level 11 is final level with static divine speed
             else:
-                speed_description = self._get_speed_description(int(data_result.current_power))
+                # Use get_combined_mech_status for correct speed calculation
+                from services.mech.speed_levels import get_combined_mech_status
+
+                # Get system language from config
+                try:
+                    from services.config.config_service import get_config_service, GetConfigRequest
+                    config_service = get_config_service()
+                    config_request = GetConfigRequest(force_reload=False)
+                    config_result = config_service.get_config_service(config_request)
+                    language = config_result.config.get('language', 'de') if config_result.success else 'de'
+                except (ImportError, AttributeError, KeyError):
+                    language = 'de'  # Fallback to German
+
+                combined_status = get_combined_mech_status(
+                    Power_amount=data_result.current_power,
+                    total_donations_received=data_result.total_donated,
+                    language=language
+                )
+                speed_description = combined_status['speed']['description']
 
             # Format level text
             level_text = f"{data_result.level_name} (Level {data_result.current_level})"
