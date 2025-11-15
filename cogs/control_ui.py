@@ -922,8 +922,16 @@ class InfoButton(Button):
             if not info_config.get('enabled', False):
                 # Check if user can edit (in control channels, users can add info)
                 from .control_helpers import _channel_has_permission
-                has_control = _channel_has_permission(channel_id, 'control', config) if config else False
-                
+
+                # Check if this is an admin control message (title contains "Admin Control")
+                is_admin_control = False
+                if interaction.message and interaction.message.embeds:
+                    embed_title = interaction.message.embeds[0].title if interaction.message.embeds else ""
+                    is_admin_control = "Admin Control" in str(embed_title)
+
+                # Admin control messages always have control permission
+                has_control = is_admin_control or (_channel_has_permission(channel_id, 'control', config) if config else False)
+
                 if has_control:
                     # Create empty info template with Edit/Log buttons
                     display_name = self.server_config.get('display_name', 'Unknown')
@@ -942,9 +950,9 @@ class InfoButton(Button):
                     from .control_helpers import _channel_has_permission
                     
                     info_button = StatusInfoButton(self.cog, self.server_config, empty_info_config)
-                    
-                    # Check if control channel for protected info
-                    has_control = _channel_has_permission(channel_id, 'control', config) if config else False
+
+                    # Use the has_control flag we already determined (includes is_admin_control check)
+                    # Don't re-check channel permission as it would ignore admin control context
                     embed = await info_button._generate_info_embed(include_protected=has_control)
                     
                     # Add admin buttons for editing
