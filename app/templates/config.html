@@ -1102,8 +1102,9 @@
                                     speedStatusOverlay.style.color = apiData.speed.color;
                                     speedStatusOverlay.style.textShadow = "none";
                                 } else {
-                                    // Final fallback to simplified calculation (but improved)
-                                    const glvl = currentPower <= 0 ? 0 : Math.max(1, Math.min(100, Math.floor(currentPower * 5))); // Better than Math.floor(currentPower)
+                                    // Final fallback: Use simple 1:1 mapping (1 Power = 1 Speed Level)
+                                    // This is not evolution-aware but better than nothing
+                                    const glvl = currentPower <= 0 ? 0 : Math.max(1, Math.min(100, Math.floor(currentPower)));
                                     const speedInfo = getSpeedDescription(glvl);
                                     speedStatusOverlay.textContent = speedInfo.text;
                                     speedStatusOverlay.style.color = speedInfo.color;
@@ -1111,8 +1112,9 @@
                                 }
                             })
                             .catch(() => {
-                                // Final fallback to simplified calculation (but improved)
-                                const glvl = currentPower <= 0 ? 0 : Math.max(1, Math.min(100, Math.floor(currentPower * 5))); // Better than Math.floor(currentPower)
+                                // Final fallback: Use simple 1:1 mapping (1 Power = 1 Speed Level)
+                                // This is not evolution-aware but better than nothing
+                                const glvl = currentPower <= 0 ? 0 : Math.max(1, Math.min(100, Math.floor(currentPower)));
                                 const speedInfo = getSpeedDescription(glvl);
                                 speedStatusOverlay.textContent = speedInfo.text;
                                 speedStatusOverlay.style.color = speedInfo.color;

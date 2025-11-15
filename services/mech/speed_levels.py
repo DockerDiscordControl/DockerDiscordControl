@@ -144,6 +144,9 @@ def _get_evolution_context(donation_amount: float) -> tuple:
     Returns:
         Tuple of (evolution_level, max_power_for_level)
 
+        max_power_for_level is the threshold to reach the NEXT level,
+        which is the correct range for speed calculations within the current level.
+
     Raises:
         ImportError: If mech_evolutions module is not available
     """
@@ -155,7 +158,19 @@ def _get_evolution_context(donation_amount: float) -> tuple:
     if not evolution_level_info:
         raise ValueError(f"Unknown evolution level: {evolution_level}")
 
-    return evolution_level, evolution_level_info.power_max
+    # Get next level threshold for correct speed scaling
+    # Example: Level 6 (threshold=30) should use Level 7's threshold (35) as max_power
+    # so that power 30-34.99 scales correctly from 0-100% speed within Level 6
+    next_level_info = get_evolution_level_info(evolution_level + 1)
+
+    if next_level_info:
+        # Use next level's threshold as max power for this level
+        max_power = next_level_info.base_cost
+    else:
+        # Max level (11): Use current level's power_max
+        max_power = evolution_level_info.power_max
+
+    return evolution_level, max_power
 
 
 def _calculate_power_ratio(power_amount: float, max_power: float) -> float:
