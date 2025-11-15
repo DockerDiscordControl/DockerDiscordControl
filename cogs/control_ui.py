@@ -380,123 +380,35 @@ class ActionButton(Button):
                             else:
                                 logger.error(f"[ACTION_BTN] Error getting status: {fresh_status}")
                     
+                    # Check if original message was Admin Control (needed for background update)
+                    is_admin_message = False
                     try:
-                        if hasattr(self.cog, '_generate_status_embed_and_view'):
-                            # Check if original message was Admin Control
-                            is_admin_message = False
-                            try:
-                                original_message = interaction.message
-                                if original_message and original_message.embeds:
-                                    embed_title = original_message.embeds[0].title if original_message.embeds else ""
-                                    is_admin_message = "Admin Control" in str(embed_title)
-                                    logger.debug(f"[ACTION_BTN] Is admin message check: {is_admin_message}, title: {embed_title}")
-                            except (discord.errors.DiscordException, AttributeError, KeyError) as e:
-                                logger.error(f"[ACTION_BTN] Error checking admin status: {e}", exc_info=True)
+                        original_message = interaction.message
+                        if original_message and original_message.embeds:
+                            embed_title = original_message.embeds[0].title if original_message.embeds else ""
+                            is_admin_message = "Admin Control" in str(embed_title)
+                            logger.debug(f"[ACTION_BTN] Is admin message check: {is_admin_message}, title: {embed_title}")
+                    except (discord.errors.DiscordException, AttributeError, KeyError) as e:
+                        logger.error(f"[ACTION_BTN] Error checking admin status: {e}", exc_info=True)
 
-                            if is_admin_message:
-                                # For Admin Control, force expanded state
-                                # Use docker_name as key for expanded state
-                                self.cog.expanded_states[self.docker_name] = True
-                                # Mark config for admin control
-                                self.server_config['_is_admin_control'] = True
-                                logger.info(f"[ACTION_BTN] Preserving Admin Control for {self.display_name}")
+                    # Show immediate "Processing..." message
+                    try:
+                        processing_embed = discord.Embed(
+                            description="```\n┌── Processing ───────────────\n│ ⏳ Updating container status...\n│ 🔄 Please wait ~15 seconds\n└─────────────────────────────\n```",
+                            color=0xffa500  # Orange
+                        )
+                        processing_embed.set_footer(text="Container action in progress • https://ddc.bot")
+                        await interaction.edit_original_response(embed=processing_embed, view=None)
+                        logger.info(f"[ACTION_BTN] Showing processing message for {self.display_name}")
+                    except (discord.NotFound, discord.HTTPException) as e:
+                        logger.warning(f"[ACTION_BTN] Failed to show processing message: {e}")
 
-                                # Generate embed with admin flag
-                                logger.info(f"[ACTION_BTN] Step 1: Calling _generate_status_embed_and_view...")
-                                embed, _, _ = await self.cog._generate_status_embed_and_view(
-                                    interaction.channel.id,
-                                    self.display_name,
-                                    self.server_config,
-                                    config,
-                                    allow_toggle=False,  # No toggle for admin
-                                    force_collapse=False,
-                                    show_cache_age=False
-                                )
-                                logger.info(f"[ACTION_BTN] Step 2: _generate_status_embed_and_view returned, embed={'exists' if embed else 'None'}")
-
-                                # Get fresh status for running state and color
-                                # Use docker_name as key for cache lookup
-                                logger.info(f"[ACTION_BTN] Step 3: Getting fresh status from cache...")
-                                logger.info(f"[ACTION_BTN] Step 3a: docker_name='{self.docker_name}', display_name='{self.display_name}'")
-                                logger.info(f"[ACTION_BTN] Step 3b: status_cache_service exists: {hasattr(self.cog, 'status_cache_service')}")
-
-                                try:
-                                    cached_entry = self.cog.status_cache_service.get(self.docker_name)
-                                    logger.info(f"[ACTION_BTN] Step 3c: cached_entry={'exists' if cached_entry else 'None'}, type={type(cached_entry).__name__ if cached_entry else 'N/A'}")
-                                    fresh_status = cached_entry.get('data') if cached_entry else None
-                                    logger.info(f"[ACTION_BTN] Step 3d: fresh_status={'exists' if fresh_status else 'None'}, type={type(fresh_status).__name__ if fresh_status else 'N/A'}")
-                                    is_running = False
-                                    if fresh_status and not isinstance(fresh_status, Exception):
-                                        # ContainerStatusResult is a dataclass, not a tuple - access .is_running directly
-                                        is_running = fresh_status.is_running
-                                    logger.info(f"[ACTION_BTN] Step 4: Fresh status retrieved, is_running={is_running}")
-                                except (AttributeError, TypeError, ValueError, KeyError) as e:
-                                    logger.error(f"[ACTION_BTN] Step 3 FAILED: Error getting fresh status: {e}", exc_info=True)
-                                    # Default to unknown state if cache lookup fails
-                                    is_running = False
-                                    logger.info(f"[ACTION_BTN] Step 4: Using default is_running=False due to cache error")
-
-                                # Create admin control view with all buttons
-                                logger.info(f"[ACTION_BTN] Step 5: Creating ControlView...")
-                                view = ControlView(
-                                    self.cog,
-                                    self.server_config,
-                                    is_running=is_running,
-                                    channel_has_control_permission=True,
-                                    allow_toggle=False
-                                )
-                                logger.info(f"[ACTION_BTN] Step 6: ControlView created")
-
-                                if embed:
-                                    logger.info(f"[ACTION_BTN] Step 7: Setting embed title and color...")
-                                    # Set admin header and dynamic color
-                                    embed.title = f"🛠️ Admin Control: {self.display_name}"
-                                    if not fresh_status or isinstance(fresh_status, Exception):
-                                        embed.color = discord.Color.gold()  # Yellow for unknown
-                                    elif is_running:
-                                        embed.color = discord.Color.green()  # Green for online
-                                    else:
-                                        embed.color = discord.Color.red()  # Red for offline
-                                    logger.info(f"[ACTION_BTN] Step 8: Embed title and color set")
-                                else:
-                                    logger.warning(f"[ACTION_BTN] Step 7: Embed is None, skipping title/color setup")
-
-                                # Clean up temporary flag
-                                logger.info(f"[ACTION_BTN] Step 9: Cleaning up temporary flag...")
-                                self.server_config.pop('_is_admin_control', None)
-                                logger.info(f"[ACTION_BTN] Step 10: Admin embed fully prepared, embed={'exists' if embed else 'None'}, view={'exists' if view else 'None'}")
-
-                            else:
-                                # Normal control message update
-                                embed, view, _ = await self.cog._generate_status_embed_and_view(
-                                    interaction.channel.id,
-                                    self.display_name,
-                                    self.server_config,
-                                    config,
-                                    allow_toggle=True,
-                                    force_collapse=False,
-                                    show_cache_age=False
-                                )
-                                logger.debug(f"[ACTION_BTN] Normal embed generated, has embed: {embed is not None}, has view: {view is not None}")
-
-                            if embed:
-                                try:
-                                    logger.info(f"[ACTION_BTN] Updating message with new embed (title: {embed.title if embed else 'None'})")
-                                    await interaction.edit_original_response(embed=embed, view=view)
-                                    logger.info(f"[ACTION_BTN] Message successfully updated for {self.display_name}")
-                                except (discord.NotFound, discord.HTTPException) as e:
-                                    logger.warning(f"[ACTION_BTN] Interaction expired during update for {self.display_name}: {e}")
-                            else:
-                                logger.warning(f"[ACTION_BTN] No embed generated, skipping message update for {self.display_name}")
-                    except (discord.errors.DiscordException, RuntimeError) as e:
-                        logger.error(f"[ACTION_BTN] Error updating message after {self.action}: {e}", exc_info=True)
-
-                    # Schedule status overview update after container has time to fully transition
-                    async def update_status_overview():
+                    # Schedule BOTH updates (Admin Control + Server Overview) after 15 seconds
+                    async def update_all_views():
                         try:
-                            # FAST UPDATE: Only 2 seconds wait (status already verified above with retries)
-                            # Admin Control updates immediately, Server Overview updates 2s later
-                            await asyncio.sleep(2)
+                            # STABLE UPDATE: Wait 15 seconds for container to fully stabilize
+                            logger.info(f"[ACTION_BTN] Waiting 15 seconds for {self.display_name} to stabilize...")
+                            await asyncio.sleep(15)
                             logger.info(f"[ACTION_BTN] Updating status overview for {self.display_name}")
 
                             # Invalidate BOTH caches again to get latest status - use docker_name!
@@ -522,7 +434,77 @@ class ActionButton(Button):
                                         datetime.now(timezone.utc)
                                     )
 
-                            # Update all status messages for this container
+                            # FIRST: Update Admin Control message (if it was an admin control action)
+                            if is_admin_message:
+                                try:
+                                    # For Admin Control, force expanded state
+                                    self.cog.expanded_states[self.docker_name] = True
+                                    self.server_config['_is_admin_control'] = True
+
+                                    # Generate admin control embed
+                                    admin_embed, _, _ = await self.cog._generate_status_embed_and_view(
+                                        interaction.channel.id,
+                                        self.display_name,
+                                        self.server_config,
+                                        config,
+                                        allow_toggle=False,
+                                        force_collapse=False,
+                                        show_cache_age=False
+                                    )
+
+                                    # Get fresh status for color
+                                    cached_entry = self.cog.status_cache_service.get(self.docker_name)
+                                    fresh_status_data = cached_entry.get('data') if cached_entry else None
+                                    is_running = False
+                                    if fresh_status_data and not isinstance(fresh_status_data, Exception):
+                                        from services.docker_status.models import ContainerStatusResult
+                                        if isinstance(fresh_status_data, ContainerStatusResult):
+                                            is_running = fresh_status_data.is_running
+
+                                    # Create admin view
+                                    admin_view = ControlView(
+                                        self.cog,
+                                        self.server_config,
+                                        is_running=is_running,
+                                        channel_has_control_permission=True,
+                                        allow_toggle=False
+                                    )
+
+                                    if admin_embed:
+                                        admin_embed.title = f"🛠️ Admin Control: {self.display_name}"
+                                        if not fresh_status_data or isinstance(fresh_status_data, Exception):
+                                            admin_embed.color = discord.Color.gold()
+                                        elif is_running:
+                                            admin_embed.color = discord.Color.green()
+                                        else:
+                                            admin_embed.color = discord.Color.red()
+
+                                        # Update the Admin Control message
+                                        await interaction.edit_original_response(embed=admin_embed, view=admin_view)
+                                        logger.info(f"[ACTION_BTN] Updated Admin Control message for {self.display_name}")
+
+                                    self.server_config.pop('_is_admin_control', None)
+                                except (discord.errors.DiscordException, RuntimeError) as e:
+                                    logger.error(f"[ACTION_BTN] Failed to update Admin Control message: {e}", exc_info=True)
+                            else:
+                                # Update normal control message
+                                try:
+                                    normal_embed, normal_view, _ = await self.cog._generate_status_embed_and_view(
+                                        interaction.channel.id,
+                                        self.display_name,
+                                        self.server_config,
+                                        config,
+                                        allow_toggle=True,
+                                        force_collapse=False,
+                                        show_cache_age=False
+                                    )
+                                    if normal_embed:
+                                        await interaction.edit_original_response(embed=normal_embed, view=normal_view)
+                                        logger.info(f"[ACTION_BTN] Updated control message for {self.display_name}")
+                                except (discord.errors.DiscordException, RuntimeError) as e:
+                                    logger.error(f"[ACTION_BTN] Failed to update control message: {e}", exc_info=True)
+
+                            # SECOND: Update all Server Overview status messages for this container
                             if hasattr(self.cog, 'tracked_status_messages'):
                                 for channel_id, messages in self.cog.tracked_status_messages.items():
                                     for msg_data in messages:
@@ -547,11 +529,11 @@ class ActionButton(Button):
                                             except (discord.errors.DiscordException, RuntimeError) as e:
                                                 logger.error(f"[ACTION_BTN] Failed to update status message: {e}", exc_info=True)
                         except (discord.errors.DiscordException, RuntimeError) as e:
-                            logger.error(f"[ACTION_BTN] Error in status overview update: {e}", exc_info=True)
+                            logger.error(f"[ACTION_BTN] Error in update_all_views: {e}", exc_info=True)
 
-                    # Create task for status overview update
-                    overview_task = asyncio.create_task(update_status_overview())
-                    overview_task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
+                    # Create background task for BOTH Admin Control + Server Overview updates
+                    update_task = asyncio.create_task(update_all_views())
+                    update_task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
 
                 except (RuntimeError, OSError, asyncio.TimeoutError) as e:
                     logger.error(f"[ACTION_BTN] Error in background Docker {self.action}: {e}", exc_info=True)
