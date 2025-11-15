@@ -1977,24 +1977,21 @@ class HelpButton(Button):
             from .translation_manager import _
             
             embed = discord.Embed(title=_("DDC Help & Information"), color=discord.Color.blue())
-            
-            # Add tip first (most important for new users)
-            embed.add_field(name=f"**{_('Tip')}**", value=f"{_('Use /info <servername> to get detailed information about containers with ℹ️ indicators.')}" + "\n\u200b", inline=False)
-            
-            # Status Channel Commands
-            embed.add_field(name=f"**{_('Status Channel Commands')}**", value=f"`/serverstatus` or `/ss` - {_('Displays the status of all configured Docker containers.')}\n`/info <container>` - {_('Shows detailed container information.')}" + "\n\u200b", inline=False)
-            
-            # Control Channel Commands  
-            embed.add_field(name=f"**{_('Control Channel Commands')}**", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n**Container Control:** {_('Click control buttons under container status panels to start, stop, or restart.')}" + "\n\u200b", inline=False)
-            
-            # Add status indicators explanation
-            embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n🔄 {_('Container status loading')}" + "\n\u200b", inline=False)
-            
-            # Add info system explanation  
-            embed.add_field(name=f"**{_('Info System')}**", value=f"ℹ️ {_('Click for container details')}\n🔒 {_('Protected info (control channels only)')}\n🔓 {_('Public info available')}" + "\n\u200b", inline=False)
-            
-            # Add control buttons explanation (no spacing after last field)
-            embed.add_field(name=f"**{_('Control Buttons (Admin Channels)')}**", value=f"📝 {_('Edit container info text')}\n📋 {_('View container logs')}", inline=False)
+
+            # Commands
+            embed.add_field(name=f"**{_('Commands')}**", value=f"`/ss` - {_('Displays the status of all configured Docker containers')}\n`/control` - {_('(Re)generates the main control panel in configured channels')}" + "\n\u200b", inline=False)
+
+            # Status Indicators
+            embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n🔄 {_('Container status loading')}\n🟡 {_('Action pending (starting/stopping)')}" + "\n\u200b", inline=False)
+
+            # Buttons in Server Overview
+            embed.add_field(name=f"**{_('Buttons')}**", value=f"🤖 **Mech** - {_('Shows detailed mech evolution status')}\nℹ️ **Info** - {_('Shows container details (if configured)')}\n🛠️ **Admin** - {_('Opens admin control panel (admin channels only)')}\n❓ **Help** - {_('Shows this help message')}" + "\n\u200b", inline=False)
+
+            # Container Controls
+            embed.add_field(name=f"**{_('Container Controls')}**", value=f"▶️ **Start** - {_('Starts the container')}\n⏹️ **Stop** - {_('Stops the container')}\n🔄 **Restart** - {_('Restarts the container')}" + "\n\u200b", inline=False)
+
+            # Admin Panel Functions
+            embed.add_field(name=f"**{_('Admin Panel')}**", value=f"📝 {_('Edit container info text')}\n📋 {_('View container logs')}\n🔄 {_('Restart All containers')}\n⏹️ {_('Stop All containers')}", inline=False)
             
             embed.set_footer(text="https://ddc.bot")
             
