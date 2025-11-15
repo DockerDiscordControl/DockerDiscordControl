@@ -1979,7 +1979,7 @@ class HelpButton(Button):
             embed = discord.Embed(title=_("DDC Help & Information"), color=discord.Color.blue())
 
             # Commands
-            embed.add_field(name=f"**{_('Commands')}**", value=f"`/ss` - {_('Displays the status of all configured Docker containers')}\n`/control` - {_('(Re)generates the main control panel in configured channels')}" + "\n\u200b", inline=False)
+            embed.add_field(name=f"**{_('Commands')}**", value=f"`/ss` - {_('(Re)generates the Server Overview panel in status channels')}\n`/control` - {_('(Re)generates the Admin Overview in control channels')}" + "\n\u200b", inline=False)
 
             # Status Indicators
             embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n🔄 {_('Container status loading')}\n🟡 {_('Action pending (starting/stopping)')}" + "\n\u200b", inline=False)
