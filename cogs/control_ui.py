@@ -441,6 +441,7 @@ class ActionButton(Button):
 
                                 # Clean up temporary flag
                                 self.server_config.pop('_is_admin_control', None)
+                                logger.debug(f"[ACTION_BTN] Admin embed generated, has embed: {embed is not None}, has view: {view is not None}")
 
                             else:
                                 # Normal control message update
@@ -453,12 +454,17 @@ class ActionButton(Button):
                                     force_collapse=False,
                                     show_cache_age=False
                                 )
+                                logger.debug(f"[ACTION_BTN] Normal embed generated, has embed: {embed is not None}, has view: {view is not None}")
 
                             if embed:
                                 try:
+                                    logger.info(f"[ACTION_BTN] Updating message with new embed (title: {embed.title if embed else 'None'})")
                                     await interaction.edit_original_response(embed=embed, view=view)
+                                    logger.info(f"[ACTION_BTN] Message successfully updated for {self.display_name}")
                                 except (discord.NotFound, discord.HTTPException) as e:
                                     logger.warning(f"[ACTION_BTN] Interaction expired during update for {self.display_name}: {e}")
+                            else:
+                                logger.warning(f"[ACTION_BTN] No embed generated, skipping message update for {self.display_name}")
                     except (discord.errors.DiscordException, RuntimeError) as e:
                         logger.error(f"[ACTION_BTN] Error updating message after {self.action}: {e}", exc_info=True)
 
