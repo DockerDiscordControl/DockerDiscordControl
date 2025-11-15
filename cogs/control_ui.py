@@ -494,7 +494,9 @@ class ActionButton(Button):
                     # Schedule status overview update after container has time to fully transition
                     async def update_status_overview():
                         try:
-                            await asyncio.sleep(30)  # Wait 30 seconds for container to fully start/stop
+                            # FAST UPDATE: Only 2 seconds wait (status already verified above with retries)
+                            # Admin Control updates immediately, Server Overview updates 2s later
+                            await asyncio.sleep(2)
                             logger.info(f"[ACTION_BTN] Updating status overview for {self.display_name}")
 
                             # Invalidate BOTH caches again to get latest status - use docker_name!
