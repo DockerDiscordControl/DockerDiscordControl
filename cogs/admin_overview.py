@@ -60,18 +60,8 @@ class AdminOverviewAdminButton(Button):
             return
 
         try:
-            # SERVICE FIRST: Use AdminService to check permissions
-            admin_service = get_admin_service()
-            user_id = str(interaction.user.id)
-
-            # Check if user is admin using service
-            is_admin = await admin_service.is_user_admin_async(user_id)
-            if not is_admin:
-                await interaction.followup.send(
-                    "❌ You don't have permission to use admin controls.",
-                    ephemeral=True
-                )
-                return
+            # Note: In control channels, all users have access to admin controls
+            # No admin user check needed here (unlike Server Overview in status channels)
 
             # SERVICE FIRST: Use ServerConfigService to get containers
             server_config_service = get_server_config_service()
