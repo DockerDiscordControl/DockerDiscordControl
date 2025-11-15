@@ -1985,7 +1985,7 @@ class HelpButton(Button):
             embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n🔄 {_('Container status loading')}\n🟡 {_('Action pending (starting/stopping)')}" + "\n\u200b", inline=False)
 
             # Buttons in Server Overview
-            embed.add_field(name=f"**{_('Buttons')}**", value=f"🤖 **Mech** - {_('Shows detailed mech evolution status')}\nℹ️ **Info** - {_('Shows container details (if configured)')}\n🛠️ **Admin** - {_('Opens admin control panel')}\n❓ **Help** - {_('Shows this help message')}" + "\n\u200b", inline=False)
+            embed.add_field(name=f"**{_('Buttons')}**", value=f"**Mech** - {_('Shows detailed mech stats and donation system')}\nℹ️ **Info** - {_('Shows container details (if configured)')}\n🛠️ **Admin** - {_('Opens admin control panel')}\n❓ **Help** - {_('Shows this help message')}" + "\n\u200b", inline=False)
 
             # Container Controls
             embed.add_field(name=f"**{_('Container Controls')}**", value=f"▶️ **Start** - {_('Starts the container')}\n⏹️ **Stop** - {_('Stops the container')}\n🔄 **Restart** - {_('Restarts the container')}" + "\n\u200b", inline=False)
