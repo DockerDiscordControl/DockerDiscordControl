@@ -402,6 +402,7 @@ class ActionButton(Button):
                                 logger.info(f"[ACTION_BTN] Preserving Admin Control for {self.display_name}")
 
                                 # Generate embed with admin flag
+                                logger.info(f"[ACTION_BTN] Step 1: Calling _generate_status_embed_and_view...")
                                 embed, _, _ = await self.cog._generate_status_embed_and_view(
                                     interaction.channel.id,
                                     self.display_name,
@@ -411,16 +412,20 @@ class ActionButton(Button):
                                     force_collapse=False,
                                     show_cache_age=False
                                 )
+                                logger.info(f"[ACTION_BTN] Step 2: _generate_status_embed_and_view returned, embed={'exists' if embed else 'None'}")
 
                                 # Get fresh status for running state and color
                                 # Use docker_name as key for cache lookup
+                                logger.info(f"[ACTION_BTN] Step 3: Getting fresh status from cache...")
                                 cached_entry = self.cog.status_cache_service.get(self.docker_name)
                                 fresh_status = cached_entry.get('data') if cached_entry else None
                                 is_running = False
                                 if fresh_status and not isinstance(fresh_status, Exception):
                                     _, is_running, _, _, _, _ = fresh_status
+                                logger.info(f"[ACTION_BTN] Step 4: Fresh status retrieved, is_running={is_running}")
 
                                 # Create admin control view with all buttons
+                                logger.info(f"[ACTION_BTN] Step 5: Creating ControlView...")
                                 view = ControlView(
                                     self.cog,
                                     self.server_config,
@@ -428,8 +433,10 @@ class ActionButton(Button):
                                     channel_has_control_permission=True,
                                     allow_toggle=False
                                 )
+                                logger.info(f"[ACTION_BTN] Step 6: ControlView created")
 
                                 if embed:
+                                    logger.info(f"[ACTION_BTN] Step 7: Setting embed title and color...")
                                     # Set admin header and dynamic color
                                     embed.title = f"🛠️ Admin Control: {self.display_name}"
                                     if not fresh_status or isinstance(fresh_status, Exception):
@@ -438,10 +445,14 @@ class ActionButton(Button):
                                         embed.color = discord.Color.green()  # Green for online
                                     else:
                                         embed.color = discord.Color.red()  # Red for offline
+                                    logger.info(f"[ACTION_BTN] Step 8: Embed title and color set")
+                                else:
+                                    logger.warning(f"[ACTION_BTN] Step 7: Embed is None, skipping title/color setup")
 
                                 # Clean up temporary flag
+                                logger.info(f"[ACTION_BTN] Step 9: Cleaning up temporary flag...")
                                 self.server_config.pop('_is_admin_control', None)
-                                logger.debug(f"[ACTION_BTN] Admin embed generated, has embed: {embed is not None}, has view: {view is not None}")
+                                logger.info(f"[ACTION_BTN] Step 10: Admin embed fully prepared, embed={'exists' if embed else 'None'}, view={'exists' if view else 'None'}")
 
                             else:
                                 # Normal control message update
