@@ -183,9 +183,15 @@ class MechStatusCacheService:
                     error_message="Failed to get mech data from MechDataStore"
                 )
 
-            # Get speed status info
-            from services.mech.speed_levels import get_speed_info
-            speed_description, speed_color = get_speed_info(data_result.current_power)
+            # Get speed status info using get_combined_mech_status (Single Point of Truth)
+            from services.mech.speed_levels import get_combined_mech_status
+
+            combined_status = get_combined_mech_status(
+                Power_amount=data_result.current_power,
+                total_donations_received=data_result.total_donated
+            )
+            speed_description = combined_status['speed']['description']
+            speed_color = combined_status['speed']['color']
 
             # Build cached result
             return MechStatusCacheResult(

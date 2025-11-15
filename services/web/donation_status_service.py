@@ -89,19 +89,22 @@ class DonationStatusService:
     def _calculate_speed_information(self, total_amount: float) -> Dict[str, Any]:
         """Calculate speed level and related information."""
         try:
-            from services.mech.speed_levels import get_speed_info, get_speed_emoji, _get_evolution_context, _calculate_speed_level_from_power_ratio
+            from services.mech.speed_levels import SPEED_DESCRIPTIONS, get_speed_emoji, _get_evolution_context, _calculate_speed_level_from_power_ratio
 
-            # Calculate speed information using correct evolution-based calculation
-            description, color = get_speed_info(total_amount)
-
-            # Calculate actual speed level using same logic as get_speed_info
-            # This ensures consistency between level and description
+            # Calculate speed level using evolution-based calculation
             try:
                 evolution_level, max_power_for_level = _get_evolution_context(total_amount)
                 level = _calculate_speed_level_from_power_ratio(evolution_level, total_amount, max_power_for_level)
             except (ImportError, ValueError, ZeroDivisionError):
                 # Fallback if evolution system unavailable
                 level = min(int(total_amount), 100) if total_amount > 0 else 0
+
+            # Get description directly from SPEED_DESCRIPTIONS using calculated level
+            # This ensures consistency between level and description
+            if level in SPEED_DESCRIPTIONS:
+                description, color = SPEED_DESCRIPTIONS[level]
+            else:
+                description, color = SPEED_DESCRIPTIONS.get(0, ("OFFLINE", "#888888"))
 
             emoji = get_speed_emoji(level)
 

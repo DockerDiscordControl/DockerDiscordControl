@@ -224,11 +224,21 @@ class MechWebService:
             MechConfigResult with speed configuration data
         """
         try:
-            from services.mech.speed_levels import get_speed_info, get_speed_emoji
+            from services.mech.speed_levels import SPEED_DESCRIPTIONS, get_speed_emoji, _get_evolution_context, _calculate_speed_level_from_power_ratio
 
-            # Use new speed system
-            description, color = get_speed_info(request.total_donations)
-            level = min(int(request.total_donations / 10), 101) if request.total_donations > 0 else 0
+            # Calculate speed level using evolution-based system
+            try:
+                evolution_level, max_power_for_level = _get_evolution_context(request.total_donations)
+                level = _calculate_speed_level_from_power_ratio(evolution_level, request.total_donations, max_power_for_level)
+            except (ImportError, ValueError, ZeroDivisionError):
+                level = min(int(request.total_donations), 100) if request.total_donations > 0 else 0
+
+            # Get description directly from SPEED_DESCRIPTIONS
+            if level in SPEED_DESCRIPTIONS:
+                description, color = SPEED_DESCRIPTIONS[level]
+            else:
+                description, color = SPEED_DESCRIPTIONS.get(0, ("OFFLINE", "#888888"))
+
             emoji = get_speed_emoji(level)
 
             config = {
