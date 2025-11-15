@@ -173,8 +173,18 @@ class MechStatusCacheService:
             # Get mech data directly from MechDataStore
             from services.mech.mech_data_store import get_mech_data_store, MechDataRequest
 
+            # Get system language from config
+            try:
+                from services.config.config_service import get_config_service, GetConfigRequest
+                config_service = get_config_service()
+                config_request = GetConfigRequest(force_reload=False)
+                config_result = config_service.get_config_service(config_request)
+                language = config_result.config.get('language', 'de') if config_result.success else 'de'
+            except (ImportError, AttributeError, KeyError):
+                language = 'de'  # Fallback to German
+
             data_store = get_mech_data_store()
-            data_request = MechDataRequest(include_decimals=include_decimals)
+            data_request = MechDataRequest(include_decimals=include_decimals, language=language)
             data_result = data_store.get_comprehensive_data(data_request)
 
             if not data_result.success:
