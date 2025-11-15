@@ -587,29 +587,23 @@ class MechDataStore:
             }
 
     def _calculate_speed_data(self, core_data: Dict[str, Any], language: str) -> Dict[str, Any]:
-        """Calculate speed-related data."""
+        """Calculate speed-related data using get_combined_mech_status (Single Point of Truth)."""
         try:
-            from services.mech.speed_levels import get_speed_info, _calculate_speed_level_from_power_ratio
-            from services.mech.mech_evolutions import get_evolution_level_info
+            from services.mech.speed_levels import get_combined_mech_status
 
-            # Get evolution-specific max power for proper scaling
-            evolution_level_info = get_evolution_level_info(core_data['level'])
-            if evolution_level_info:
-                max_power_for_level = evolution_level_info.power_max
-                speed_level = _calculate_speed_level_from_power_ratio(
-                    core_data['level'],
-                    core_data['power'],
-                    max_power_for_level
-                )
-            else:
-                speed_level = min(int(core_data['power']), 100)
-
-            speed_description, speed_color = get_speed_info(core_data['power'])
+            # Use get_combined_mech_status with proper parameters:
+            # - Power_amount: current power (after decay)
+            # - total_donations_received: total donations (for correct evolution level)
+            combined_status = get_combined_mech_status(
+                Power_amount=core_data['power'],
+                total_donations_received=core_data.get('total_donated', core_data['power']),
+                language=language
+            )
 
             return {
-                'speed_level': speed_level,
-                'speed_description': speed_description,
-                'speed_color': speed_color
+                'speed_level': combined_status['speed']['level'],
+                'speed_description': combined_status['speed']['description'],
+                'speed_color': combined_status['speed']['color']
             }
 
         except (ImportError, AttributeError) as e:

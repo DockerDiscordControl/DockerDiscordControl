@@ -329,15 +329,14 @@ def get_combined_mech_status(Power_amount: float, total_donations_received: floa
             print(f"Error accessing config for language: {e}")
             language = 'en'
     
-    # Get speed info based on POWER amount
-    speed_description, speed_color = get_speed_info(Power_amount)
-
     # Calculate speed level using helper (DRY)
+    # IMPORTANT: Use total_donations_received for evolution level, Power_amount for speed calculation
     try:
-        # Get evolution context using helper
+        # Get evolution context using total donations (NOT current power!)
+        # This ensures we use actual mech level, not power-degraded level
         evolution_level, max_power_for_level = _get_evolution_context(total_donations_received)
 
-        # Calculate speed level using consolidated logic
+        # Calculate speed level using actual evolution level and current power
         speed_level = _calculate_speed_level_from_power_ratio(evolution_level, Power_amount, max_power_for_level)
 
     except (ImportError, AttributeError) as e:
@@ -348,7 +347,14 @@ def get_combined_mech_status(Power_amount: float, total_donations_received: floa
         # Calculation errors (power ratio, type conversion)
         print(f"Calculation error calculating speed level: {e}")
         speed_level = min(int(Power_amount), 100)
-    
+
+    # Get speed description and color from SPEED_DESCRIPTIONS using calculated level
+    # This ensures consistency between speed_level and speed_description
+    if speed_level in SPEED_DESCRIPTIONS:
+        speed_description, speed_color = SPEED_DESCRIPTIONS[speed_level]
+    else:
+        speed_description, speed_color = SPEED_DESCRIPTIONS.get(0, ("OFFLINE", "#888888"))
+
     # Get translated speed description
     translated_speed_description = get_translated_speed_description(speed_level, language)
     
