@@ -427,7 +427,8 @@ class ActionButton(Button):
                                     logger.info(f"[ACTION_BTN] Step 3d: fresh_status={'exists' if fresh_status else 'None'}, type={type(fresh_status).__name__ if fresh_status else 'N/A'}")
                                     is_running = False
                                     if fresh_status and not isinstance(fresh_status, Exception):
-                                        _, is_running, _, _, _, _ = fresh_status
+                                        # ContainerStatusResult is a dataclass, not a tuple - access .is_running directly
+                                        is_running = fresh_status.is_running
                                     logger.info(f"[ACTION_BTN] Step 4: Fresh status retrieved, is_running={is_running}")
                                 except (AttributeError, TypeError, ValueError, KeyError) as e:
                                     logger.error(f"[ACTION_BTN] Step 3 FAILED: Error getting fresh status: {e}", exc_info=True)
