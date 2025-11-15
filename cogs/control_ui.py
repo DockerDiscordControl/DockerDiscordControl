@@ -2375,9 +2375,18 @@ class MechHistoryButton(Button):
                 import time
                 current_time = time.time()
                 user_id = str(interaction.user.id)
+
                 # CRITICAL: Defer IMMEDIATELY to avoid "Unknown interaction" errors
-                # This must happen within 3 seconds, so do it BEFORE any checks
-                await interaction.response.defer(ephemeral=True)
+                # ROBUST: Handle interaction expiration (15 min timeout) gracefully
+                try:
+                    await interaction.response.defer(ephemeral=True)
+                except discord.NotFound as e:
+                    if e.code == 10062:  # Unknown interaction (expired after 15 minutes)
+                        logger.info(f"⏱️ Mech History: Interaction expired (user waited >15 min). User: {interaction.user.name}")
+                        # Cannot respond - interaction is dead. User needs to re-open mech details
+                        return
+                    else:
+                        raise  # Re-raise other NotFound errors
 
                 last_click = getattr(self, f'_last_click_{user_id}', 0)
                 if current_time - last_click < cooldown:
