@@ -6,6 +6,7 @@ import logging
 from typing import Iterable
 
 import discord
+import docker
 
 
 def list_registered_command_names(bot: discord.Bot) -> Iterable[str]:
@@ -30,7 +31,7 @@ def setup_schedule_commands(bot: discord.Bot, logger: logging.Logger) -> bool:
             logger.error("Could not retrieve DockerControlCog instance for setting up schedule commands")
             return False
     except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
-        logger.error("Error checking DockerControlCog presence: %s", exc, exc_info=True)
+        logger.error("Error checking DockerControlCog presence: %s", e, exc_info=True)
         return False
 
     logger.info("Schedule command setup complete (handled by Cog definitions)")

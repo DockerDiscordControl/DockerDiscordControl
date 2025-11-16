@@ -149,7 +149,7 @@ class MemberCountService:
 
         payload = {
             "count": member_count,
-            "last_updated": datetime.utcnow().isoformat() + "Z",
+            "last_updated": datetime.now(timezone.utc).isoformat(),
             "source": source,
             "description": description,
         }

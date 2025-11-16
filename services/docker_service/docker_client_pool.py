@@ -17,7 +17,7 @@ import logging
 import asyncio
 from typing import Optional
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 # Import custom exceptions
 from services.exceptions import (
@@ -293,9 +293,8 @@ class DockerClientService:
             )
 
             if request.include_performance_history:
-                result = DockerPoolStatsResult(
-                    **{**result.__dict__, 'performance_history': stats}
-                )
+                # Use dataclasses.replace() for frozen dataclass
+                result = replace(result, performance_history=stats)
 
             return result
 

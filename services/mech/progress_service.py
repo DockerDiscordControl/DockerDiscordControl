@@ -41,7 +41,7 @@ import logging
 
 from services.mech.progress import get_progress_runtime
 
-logger = logging.getLogger('ddc.progress_service')
+logger = logging.getLogger('ddc.mech.progress_service')
 
 runtime = get_progress_runtime()
 

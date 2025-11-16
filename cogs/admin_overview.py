@@ -348,7 +348,7 @@ class AdminOverviewDonateButton(Button):
                 from services.mech.mech_service import get_mech_service
                 mech_service = get_mech_service()
                 mech_service_available = True
-            except:
+            except (ImportError, AttributeError, ModuleNotFoundError, RuntimeError):
                 pass
 
             # Import DonationView from docker_control

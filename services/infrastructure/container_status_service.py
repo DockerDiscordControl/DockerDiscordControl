@@ -323,7 +323,11 @@ class ContainerStatusService:
                     try:
                         # Get container stats (use stream=True with decode for single snapshot)
                         stats_generator = container.stats(stream=True, decode=True)
-                        stats = next(stats_generator)  # Get first (and only needed) stats entry
+                        try:
+                            stats = next(stats_generator)  # Get first (and only needed) stats entry
+                        finally:
+                            # Close the generator to prevent resource leak
+                            stats_generator.close()
 
                         # ENHANCED CPU calculation with better fallback handling
                         cpu_stats = stats.get('cpu_stats', {})

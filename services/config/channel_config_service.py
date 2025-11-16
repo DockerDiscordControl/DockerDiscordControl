@@ -4,6 +4,7 @@
 
 import logging
 import json
+import tempfile
 from pathlib import Path
 from typing import Dict, Any, Optional
 import os
@@ -26,6 +27,40 @@ class ChannelConfigService:
         # Ensure channels directory exists
         self.channels_dir.mkdir(parents=True, exist_ok=True)
         logger.info(f"ChannelConfigService initialized - managing {self.channels_dir}")
+
+    def _atomic_write_json(self, file_path: Path, data: Dict[str, Any]) -> None:
+        """Write JSON data to file atomically to prevent corruption.
+
+        Args:
+            file_path: Path to the file to write
+            data: Dictionary to serialize as JSON
+        """
+        temp_dir = str(file_path.parent)
+        fd, temp_path = tempfile.mkstemp(dir=temp_dir, text=True, suffix='.json.tmp')
+
+        try:
+            # Write to temp file
+            with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())  # Ensure data is written to disk
+
+            # Atomic rename (POSIX) or move (Windows)
+            if os.name == 'posix':
+                os.rename(temp_path, file_path)
+            else:
+                # Windows: remove target first if exists
+                if file_path.exists():
+                    file_path.unlink()
+                os.rename(temp_path, file_path)
+        except Exception:
+            # Cleanup temp file on error
+            if os.path.exists(temp_path):
+                try:
+                    os.unlink(temp_path)
+                except OSError:
+                    pass  # Best effort cleanup
+            raise
 
     def get_all_channels(self) -> Dict[str, Dict[str, Any]]:
         """Get all channel configurations from individual JSON files.
@@ -89,10 +124,9 @@ class ChannelConfigService:
             True if successful, False otherwise
         """
         try:
-            # Save to individual channel file
+            # Save to individual channel file atomically
             config_file = self.channels_dir / f"{channel_id}.json"
-            with open(config_file, 'w') as f:
-                json.dump(config, f, indent=2)
+            self._atomic_write_json(config_file, config)
             logger.info(f"Saved channel config for {channel_id}")
 
             # Also update main config.json for consistency
@@ -180,9 +214,8 @@ class ChannelConfigService:
 
             main_config['channel_permissions'][channel_id] = channel_config
 
-            # Save back
-            with open(self.config_file, 'w') as f:
-                json.dump(main_config, f, indent=2)
+            # Save back atomically
+            self._atomic_write_json(self.config_file, main_config)
 
             logger.debug(f"Updated main config with channel {channel_id}")
 
@@ -204,8 +237,8 @@ class ChannelConfigService:
                 if 'channel_permissions' in main_config and channel_id in main_config['channel_permissions']:
                     del main_config['channel_permissions'][channel_id]
 
-                    with open(self.config_file, 'w') as f:
-                        json.dump(main_config, f, indent=2)
+                    # Save back atomically
+                    self._atomic_write_json(self.config_file, main_config)
 
                     logger.debug(f"Removed channel {channel_id} from main config")
 
@@ -229,9 +262,8 @@ class ChannelConfigService:
             # Replace entire channel_permissions section
             main_config['channel_permissions'] = channels
 
-            # Save back
-            with open(self.config_file, 'w') as f:
-                json.dump(main_config, f, indent=2)
+            # Save back atomically
+            self._atomic_write_json(self.config_file, main_config)
 
             logger.info(f"Updated main config with {len(channels)} channels")
 

@@ -4,6 +4,7 @@
 
 import logging
 import json
+import tempfile
 from pathlib import Path
 from typing import Dict, Any
 import os
@@ -41,14 +42,38 @@ class ContainerConfigSaveService:
             # Determine file path
             config_file = self.containers_dir / f"{container_name}.json"
 
-            # Write the configuration
-            with open(config_file, 'w') as f:
-                json.dump(config, f, indent=2)
+            # Write atomically using temp file
+            temp_dir = str(self.containers_dir)
+            fd, temp_path = tempfile.mkstemp(dir=temp_dir, text=True, suffix='.json.tmp')
+
+            try:
+                # Write to temp file
+                with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                    json.dump(config, f, indent=2)
+                    f.flush()
+                    os.fsync(f.fileno())  # Ensure data is written to disk
+
+                # Atomic rename (POSIX) or move (Windows)
+                if os.name == 'posix':
+                    os.rename(temp_path, config_file)
+                else:
+                    # Windows: remove target first if exists
+                    if config_file.exists():
+                        config_file.unlink()
+                    os.rename(temp_path, config_file)
+            except Exception:
+                # Cleanup temp file on error
+                if os.path.exists(temp_path):
+                    try:
+                        os.unlink(temp_path)
+                    except OSError:
+                        pass  # Best effort cleanup
+                raise
 
             logger.info(f"Saved container config for {container_name} to {config_file}")
             return True
 
-        except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException, json.JSONDecodeError) as e:
+        except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError) as e:
             logger.error(f"Error saving container config for {container_name}: {e}", exc_info=True)
             return False
 
@@ -72,7 +97,7 @@ class ContainerConfigSaveService:
 
             return True
 
-        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+        except (RuntimeError, OSError, PermissionError) as e:
             logger.error(f"Error deleting container config for {container_name}: {e}", exc_info=True)
             return False
 

@@ -98,7 +98,7 @@ class ConfigFormParserService:
                         else:
                             # Couldn't parse, use raw value
                             display_name = display_name_raw.strip("[]'\"")
-                    except:
+                    except (ValueError, SyntaxError, TypeError):
                         # Failed to parse, treat as regular string
                         display_name = display_name_raw.strip("[]'\"")
                 else:

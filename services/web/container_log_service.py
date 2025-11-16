@@ -105,16 +105,20 @@ class ContainerLogService:
 
             # Step 2 & 3: Get logs using SERVICE FIRST pattern (async internally)
             try:
-                # Try to get current event loop
+                # Check if we're in an async context
                 loop = asyncio.get_running_loop()
-                # Create task for existing loop
-                task = loop.create_task(self._get_container_logs_service_first(
-                    request.container_name,
-                    request.max_lines
-                ))
-                logs_content = asyncio.run_coroutine_threadsafe(task, loop).result()
+                # We're in an async context but this method is sync
+                # Use run_in_executor to run the async function
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    logs_content = executor.submit(
+                        lambda: asyncio.run(self._get_container_logs_service_first(
+                            request.container_name,
+                            request.max_lines
+                        ))
+                    ).result()
             except RuntimeError:
-                # No event loop running, use asyncio.run()
+                # No event loop running (gevent thread), use asyncio.run() directly
                 logs_content = asyncio.run(self._get_container_logs_service_first(
                     request.container_name,
                     request.max_lines
@@ -276,7 +280,7 @@ class ContainerLogService:
             return None
         except docker.errors.APIError as e:
             self.logger.error(f"Docker API error when fetching logs for {container_name}: {e}")
-            raise Exception("Could not retrieve logs due to a Docker API error")
+            raise RuntimeError("Could not retrieve logs due to a Docker API error")
         except (ImportError, AttributeError, TypeError, UnicodeDecodeError, RuntimeError) as e:
             # Import/decode/async errors (missing modules, attribute errors, decode errors, runtime errors)
             self.logger.error(f"Error fetching container logs: {e}", exc_info=True)

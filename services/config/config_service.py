@@ -14,6 +14,7 @@ import json
 import base64
 import hashlib
 import logging
+import tempfile
 from typing import Dict, Any, Optional, List, Tuple
 from pathlib import Path
 from threading import Lock
@@ -465,9 +466,34 @@ class ConfigService:
             return default.copy()
     
     def _save_json_file(self, file_path: Path, data: Dict[str, Any]) -> None:
-        """Save data to JSON file."""
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+        """Save data to JSON file atomically to prevent corruption."""
+        # Create temp file in same directory as target file
+        temp_dir = str(file_path.parent)
+        fd, temp_path = tempfile.mkstemp(dir=temp_dir, text=True, suffix='.json.tmp')
+
+        try:
+            # Write to temp file
+            with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+                f.flush()
+                os.fsync(f.fileno())  # Ensure data is written to disk
+
+            # Atomic rename (POSIX) or move (Windows)
+            if os.name == 'posix':
+                os.rename(temp_path, file_path)
+            else:
+                # Windows: remove target first if exists
+                if file_path.exists():
+                    file_path.unlink()
+                os.rename(temp_path, file_path)
+        except Exception:
+            # Cleanup temp file on error
+            if os.path.exists(temp_path):
+                try:
+                    os.unlink(temp_path)
+                except OSError:
+                    pass  # Best effort cleanup
+            raise
     
     def _decrypt_token_if_needed(self, token: str, password_hash: Optional[str]) -> Optional[str]:
         """Decrypt token if it's encrypted, otherwise return as-is."""

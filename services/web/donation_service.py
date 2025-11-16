@@ -140,7 +140,7 @@ class DonationService:
             )
 
             if not donation_result.success:
-                raise Exception(f"Donation failed: {donation_result.error_message}")
+                raise RuntimeError(f"Donation failed: {donation_result.error_message}")
 
             result_state = donation_result.new_state
 

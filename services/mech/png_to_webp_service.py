@@ -74,7 +74,7 @@ class PngToWebpService:
             if result.success and result.animation_bytes:
                 return result.animation_bytes
             else:
-                raise Exception("Failed to get animation from MechWebService")
+                raise RuntimeError("Failed to get animation from MechWebService")
 
         except (ImportError, AttributeError) as e:
             # Service dependency errors (MechWebService, mech_evolutions unavailable)
