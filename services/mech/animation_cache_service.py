@@ -519,20 +519,17 @@ class AnimationCacheService:
                         frame = frame.crop((0, 15, frame_width, frame_height - 8))
                         logger.debug(f"Mech 6 walk pre-crop: removed 15px from top, 8px from bottom, new size: {frame.size}")
                     elif evolution_level == 10:
-                        # FIXED: Mech 10 pre-cropping using native high-quality big PNGs
-                        # Frames 1 and 3 automatically aligned for smooth animation
+                        # TEST: Mech 10 NO CROPPING for big resolution (testing full frame)
                         frame_width, frame_height = frame.size
                         if is_big_resolution:
-                            # Native big version (412x412): Verified crop values
-                            top_crop = 44
-                            bottom_crop = 83
+                            # TEST: No cropping for big version - use full 412x412 frame
+                            logger.info(f"🚨 PRE-CROP BYPASS: Mech 10 walk (big) - NO CROPPING - using full frame {frame.size}")
                         else:
-                            # Small version (128x128): Verified crop values
+                            # Small version (128x128): Keep original crop values
                             top_crop = 12
                             bottom_crop = 21
-                        frame = frame.crop((0, top_crop, frame_width, frame_height - bottom_crop))
-                        res_label = "big" if is_big_resolution else "small"
-                        logger.debug(f"Mech 10 walk pre-crop ({res_label}): removed {top_crop}px from top, {bottom_crop}px from bottom, new size: {frame.size}")
+                            frame = frame.crop((0, top_crop, frame_width, frame_height - bottom_crop))
+                            logger.debug(f"Mech 10 walk pre-crop (small): removed {top_crop}px from top, {bottom_crop}px from bottom, new size: {frame.size}")
 
                 elif animation_type == "rest":
                     # REST pre-cropping - COMPLETE ORIGINAL VALUES for small mechs, proportional for big mechs
@@ -588,32 +585,41 @@ class AnimationCacheService:
                     max_x = max(max_x, x2)
                     max_y = max(max_y, y2)
 
-        # Calculate unified crop dimensions for entire animation (smart crop for both walk and rest)
-        if min_x == float('inf'):
-            # Fallback if no content found
-            crop_width, crop_height = 64, 64
-            logger.warning(f"No content found in frames, using fallback size")
+        # TEST: Mech 10 Big Walk - NO unified cropping (skip smart crop entirely)
+        if evolution_level == 10 and resolution == "big" and animation_type == "walk":
+            logger.info(f"🚨 BYPASS ACTIVE: Mech 10 Big Walk - SKIPPING unified smart crop - using full 412x412 frames")
+            logger.info(f"🚨 BYPASS: evolution_level={evolution_level}, resolution={resolution}, animation_type={animation_type}")
+            logger.info(f"🚨 BYPASS: Frame count={len(all_frames)}, First frame size={all_frames[0].size if all_frames else 'NO FRAMES'}")
+            frames = all_frames  # Use frames as-is without any unified cropping
+            crop_width, crop_height = all_frames[0].size if all_frames else (412, 412)
+            logger.info(f"🚨 BYPASS: Final dimensions will be {crop_width}x{crop_height}")
         else:
-            crop_width = max_x - min_x
-            crop_height = max_y - min_y
-            logger.debug(f"Smart crop found: {crop_width}x{crop_height} (from {min_x},{min_y} to {max_x},{max_y})")
-
-        # KOMPLETT KEINE SKALIERUNG: Nur pures Smart Cropping, sonst nichts!
-        # Direkt das gecroppte Resultat verwenden - ZERO weitere Manipulation
-
-        logger.debug(f"Using pure crop result: {crop_width}x{crop_height} (ZERO scaling, ZERO canvas manipulation)")
-
-        # Process all frames with unified cropping - PURE crop result only
-        frames = []
-        for frame in all_frames:
-            # Apply unified crop to this frame
-            if min_x != float('inf'):
-                cropped = frame.crop((min_x, min_y, max_x, max_y))
+            # Calculate unified crop dimensions for entire animation (smart crop for both walk and rest)
+            if min_x == float('inf'):
+                # Fallback if no content found
+                crop_width, crop_height = 64, 64
+                logger.warning(f"No content found in frames, using fallback size")
             else:
-                cropped = frame
+                crop_width = max_x - min_x
+                crop_height = max_y - min_y
+                logger.debug(f"Smart crop found: {crop_width}x{crop_height} (from {min_x},{min_y} to {max_x},{max_y})")
 
-            # DIREKTES Resultat ohne jegliche weitere Veränderung!
-            frames.append(cropped)
+            # KOMPLETT KEINE SKALIERUNG: Nur pures Smart Cropping, sonst nichts!
+            # Direkt das gecroppte Resultat verwenden - ZERO weitere Manipulation
+
+            logger.debug(f"Using pure crop result: {crop_width}x{crop_height} (ZERO scaling, ZERO canvas manipulation)")
+
+            # Process all frames with unified cropping - PURE crop result only
+            frames = []
+            for frame in all_frames:
+                # Apply unified crop to this frame
+                if min_x != float('inf'):
+                    cropped = frame.crop((min_x, min_y, max_x, max_y))
+                else:
+                    cropped = frame
+
+                # DIREKTES Resultat ohne jegliche weitere Veränderung!
+                frames.append(cropped)
 
         logger.debug(f"Processed {len(frames)} frames for evolution {evolution_level} with pure crop size {crop_width}x{crop_height}")
         return frames
