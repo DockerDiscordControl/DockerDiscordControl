@@ -1,6 +1,13 @@
-# =============================================================================
-# SERVICE FIRST: Server Configuration Service - SINGLE POINT OF TRUTH
-# =============================================================================
+# -*- coding: utf-8 -*-
+# ============================================================================ #
+# DockerDiscordControl (DDC)                                                  #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                  #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
+"""
+SERVICE FIRST: Server Configuration Service - SINGLE POINT OF TRUTH
+"""
 
 import logging
 import json

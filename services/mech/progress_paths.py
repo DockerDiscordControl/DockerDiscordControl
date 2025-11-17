@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+# ============================================================================ #
+# DockerDiscordControl (DDC)                                                  #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                  #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
+
 """Utilities for resolving progress service storage locations.
 
 This module centralizes how the progress service determines where its

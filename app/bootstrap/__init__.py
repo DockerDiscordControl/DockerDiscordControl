@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+# ============================================================================ #
+# DockerDiscordControl (DDC)                                                  #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                  #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
 """Bootstrap utilities for preparing the Discord bot runtime.
 
 This package centralizes environment and logging setup that previously lived

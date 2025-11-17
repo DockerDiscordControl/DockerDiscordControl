@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+# ============================================================================ #
+# DockerDiscordControl (DDC)                                                  #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                  #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
+
 """
 Mech Evolution System - Maps donation amounts to evolution levels
 SERVICE FIRST: Unified evolution system replacing evolution_config_manager

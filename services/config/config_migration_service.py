@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+# ============================================================================ #
+# DockerDiscordControl (DDC)                                                  #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                  #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
 """
 Configuration Migration Service - Handles all config file migrations
 Part of ConfigService refactoring for Single Responsibility Principle

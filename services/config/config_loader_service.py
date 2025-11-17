@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+# ============================================================================ #
+# DockerDiscordControl (DDC)                                                  #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                  #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
 """
 Configuration Loader Service - Handles modular config loading
 Part of ConfigService refactoring for Single Responsibility Principle

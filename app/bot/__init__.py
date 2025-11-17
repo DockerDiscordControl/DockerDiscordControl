@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+# ============================================================================ #
+# DockerDiscordControl (DDC)                                                  #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                  #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
 """Utilities for constructing and running the Discord bot runtime."""
 
 from .runtime import BotRuntime, build_runtime  # noqa: F401

@@ -1,6 +1,11 @@
-# =============================================================================
-# ADMIN OVERVIEW VIEW FOR CONTROL CHANNELS - SERVICE FIRST IMPLEMENTATION
-# =============================================================================
+# -*- coding: utf-8 -*-
+# ============================================================================ #
+# DockerDiscordControl (DDC)                                                  #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                  #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
+"""Admin overview view for control channels - service first implementation."""
 
 import discord
 from discord.ui import View, Button

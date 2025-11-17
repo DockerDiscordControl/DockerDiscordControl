@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+# ============================================================================ #
+# DockerDiscordControl (DDC)                                                  #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                  #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
+
 """Shared runtime helpers for the scheduler service.
 
 This module centralises the mutable state that used to live as module-level
