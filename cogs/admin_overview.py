@@ -18,6 +18,7 @@ from services.admin.admin_service import get_admin_service
 from services.status.status_cache_service import get_status_cache_service
 from services.config.server_config_service import get_server_config_service
 from services.config.config_service import load_config  # Keep for backward compatibility
+from cogs.translation_manager import _
 
 logger = logging.getLogger('ddc.admin_overview')
 
@@ -75,7 +76,7 @@ class AdminOverviewAdminButton(Button):
 
             if not all_servers:
                 await interaction.followup.send(
-                    "❌ No containers found in configuration.",
+                    _("❌ No containers found in configuration."),
                     ephemeral=True
                 )
                 return
@@ -103,7 +104,7 @@ class AdminOverviewAdminButton(Button):
 
             if not containers:
                 await interaction.followup.send(
-                    "❌ No valid containers found in configuration.",
+                    _("❌ No valid containers found in configuration."),
                     ephemeral=True
                 )
                 return
@@ -114,7 +115,7 @@ class AdminOverviewAdminButton(Button):
             except ImportError as e:
                 logger.error(f"Failed to import AdminContainerSelectView: {e}")
                 await interaction.followup.send(
-                    "❌ Internal error. Please try again later.",
+                    _("❌ Internal error. Please try again later."),
                     ephemeral=True
                 )
                 return
@@ -122,7 +123,7 @@ class AdminOverviewAdminButton(Button):
             # Create dropdown view with containers list
             view = AdminContainerSelectView(self.cog, containers, self.channel_id)
             await interaction.followup.send(
-                "Select a container to control:",
+                _("Select a container to control:"),
                 view=view,
                 ephemeral=True
             )
@@ -132,7 +133,7 @@ class AdminOverviewAdminButton(Button):
             try:
                 if not interaction.response.is_done():
                     await interaction.response.send_message(
-                        "❌ Error accessing admin controls.",
+                        _("❌ Error accessing admin controls."),
                         ephemeral=True
                     )
             except (discord.errors.NotFound, discord.errors.HTTPException):
@@ -175,7 +176,7 @@ class AdminOverviewRestartAllButton(Button):
             is_admin = await admin_service.is_user_admin_async(user_id)
             if not is_admin:
                 await interaction.followup.send(
-                    "❌ You don't have permission to restart all containers.",
+                    _("❌ You don't have permission to restart all containers."),
                     ephemeral=True
                 )
                 return
@@ -183,7 +184,7 @@ class AdminOverviewRestartAllButton(Button):
             # Edge case: Check if button is already disabled
             if self.disabled:
                 await interaction.followup.send(
-                    "❌ No running containers to restart.",
+                    _("❌ No running containers to restart."),
                     ephemeral=True
                 )
                 return
@@ -191,8 +192,8 @@ class AdminOverviewRestartAllButton(Button):
             # Create confirmation view
             view = RestartAllConfirmationView(self.cog, self.channel_id)
             embed = discord.Embed(
-                title="⚠️ Confirm Restart All",
-                description="Are you sure you want to restart ALL running containers?\n\nThis will temporarily disrupt all services.",
+                title=_("⚠️ Confirm Restart All"),
+                description=_("Are you sure you want to restart ALL running containers?\n\nThis will temporarily disrupt all services."),
                 color=discord.Color.orange()
             )
             await interaction.followup.send(
@@ -206,7 +207,7 @@ class AdminOverviewRestartAllButton(Button):
             try:
                 if not interaction.response.is_done():
                     await interaction.response.send_message(
-                        "❌ Error processing restart all request.",
+                        _("❌ Error processing restart all request."),
                         ephemeral=True
                     )
             except (discord.errors.NotFound, discord.errors.HTTPException):
@@ -249,7 +250,7 @@ class AdminOverviewStopAllButton(Button):
             is_admin = await admin_service.is_user_admin_async(user_id)
             if not is_admin:
                 await interaction.followup.send(
-                    "❌ You don't have permission to stop all containers.",
+                    _("❌ You don't have permission to stop all containers."),
                     ephemeral=True
                 )
                 return
@@ -257,7 +258,7 @@ class AdminOverviewStopAllButton(Button):
             # Edge case: Check if button is already disabled
             if self.disabled:
                 await interaction.followup.send(
-                    "❌ No running containers to stop.",
+                    _("❌ No running containers to stop."),
                     ephemeral=True
                 )
                 return
@@ -265,8 +266,8 @@ class AdminOverviewStopAllButton(Button):
             # Create confirmation view
             view = StopAllConfirmationView(self.cog, self.channel_id)
             embed = discord.Embed(
-                title="🚨 Confirm Stop All",
-                description="Are you sure you want to STOP ALL running containers?\n\n**WARNING:** This will shut down all services!",
+                title=_("🚨 Confirm Stop All"),
+                description=_("Are you sure you want to STOP ALL running containers?\n\n**WARNING:** This will shut down all services!"),
                 color=discord.Color.red()
             )
             await interaction.followup.send(
@@ -280,7 +281,7 @@ class AdminOverviewStopAllButton(Button):
             try:
                 if not interaction.response.is_done():
                     await interaction.response.send_message(
-                        "❌ Error processing stop all request.",
+                        _("❌ Error processing stop all request."),
                         ephemeral=True
                     )
             except (discord.errors.NotFound, discord.errors.HTTPException):
@@ -368,7 +369,7 @@ class AdminOverviewDonateButton(Button):
             try:
                 if not interaction.response.is_done():
                     await interaction.response.send_message(
-                        "❌ Error processing donate request.",
+                        _("❌ Error processing donate request."),
                         ephemeral=True
                     )
             except (discord.errors.NotFound, discord.errors.HTTPException):
@@ -411,7 +412,7 @@ class ConfirmRestartAllButton(Button):
 
         super().__init__(
             style=discord.ButtonStyle.danger,
-            label="Yes, Restart All",
+            label=_("Yes, Restart All"),
             custom_id="confirm_restart_all"
         )
 
@@ -431,7 +432,7 @@ class ConfirmRestartAllButton(Button):
         if hasattr(self.cog, '_bulk_operation_in_progress'):
             if self.cog._bulk_operation_in_progress:
                 await interaction.followup.send(
-                    "⏳ Another bulk operation is in progress. Please wait.",
+                    _("⏳ Another bulk operation is in progress. Please wait."),
                     ephemeral=True
                 )
                 return
@@ -449,7 +450,7 @@ class ConfirmRestartAllButton(Button):
 
             if not servers:
                 await interaction.followup.send(
-                    "❌ No active servers configured.",
+                    _("❌ No active servers configured."),
                     ephemeral=True
                 )
                 return
@@ -466,7 +467,7 @@ class ConfirmRestartAllButton(Button):
             except ImportError as e:
                 logger.error(f"Failed to import docker action service: {e}")
                 await interaction.followup.send(
-                    "❌ Docker service unavailable. Operation cancelled.",
+                    _("❌ Docker service unavailable. Operation cancelled."),
                     ephemeral=True
                 )
                 return
@@ -525,14 +526,14 @@ class ConfirmRestartAllButton(Button):
                     skipped_count += 1
 
             # Send result message
-            description = f"Successfully restarted: **{restarted_count}** containers"
+            description = _("Successfully restarted: **{count}** containers").format(count=restarted_count)
             if failed_count > 0:
-                description += f"\nFailed: **{failed_count}** containers"
+                description += _("\nFailed: **{count}** containers").format(count=failed_count)
             if skipped_count > 0:
-                description += f"\nSkipped (not running): **{skipped_count}** containers"
+                description += _("\nSkipped (not running): **{count}** containers").format(count=skipped_count)
 
             embed = discord.Embed(
-                title="🔄 Restart All Complete",
+                title=_("🔄 Restart All Complete"),
                 description=description,
                 color=discord.Color.green() if failed_count == 0 else discord.Color.orange()
             )
@@ -545,7 +546,7 @@ class ConfirmRestartAllButton(Button):
             logger.error(f"Critical error in restart all: {e}", exc_info=True)
             try:
                 await interaction.followup.send(
-                    "❌ An error occurred during the restart operation.",
+                    _("❌ An error occurred during the restart operation."),
                     ephemeral=True
                 )
             except (discord.errors.NotFound, discord.errors.HTTPException):
@@ -594,7 +595,7 @@ class ConfirmStopAllButton(Button):
 
         super().__init__(
             style=discord.ButtonStyle.danger,
-            label="Yes, Stop All",
+            label=_("Yes, Stop All"),
             custom_id="confirm_stop_all"
         )
 
@@ -614,7 +615,7 @@ class ConfirmStopAllButton(Button):
         if hasattr(self.cog, '_bulk_operation_in_progress'):
             if self.cog._bulk_operation_in_progress:
                 await interaction.followup.send(
-                    "⏳ Another bulk operation is in progress. Please wait.",
+                    _("⏳ Another bulk operation is in progress. Please wait."),
                     ephemeral=True
                 )
                 return
@@ -632,7 +633,7 @@ class ConfirmStopAllButton(Button):
 
             if not servers:
                 await interaction.followup.send(
-                    "❌ No active servers configured.",
+                    _("❌ No active servers configured."),
                     ephemeral=True
                 )
                 return
@@ -649,7 +650,7 @@ class ConfirmStopAllButton(Button):
             except ImportError as e:
                 logger.error(f"Failed to import docker action service: {e}")
                 await interaction.followup.send(
-                    "❌ Docker service unavailable. Operation cancelled.",
+                    _("❌ Docker service unavailable. Operation cancelled."),
                     ephemeral=True
                 )
                 return
@@ -708,14 +709,14 @@ class ConfirmStopAllButton(Button):
                     skipped_count += 1
 
             # Send result message
-            description = f"Successfully stopped: **{stopped_count}** containers"
+            description = _("Successfully stopped: **{count}** containers").format(count=stopped_count)
             if failed_count > 0:
-                description += f"\nFailed: **{failed_count}** containers"
+                description += _("\nFailed: **{count}** containers").format(count=failed_count)
             if skipped_count > 0:
-                description += f"\nSkipped (not running): **{skipped_count}** containers"
+                description += _("\nSkipped (not running): **{count}** containers").format(count=skipped_count)
 
             embed = discord.Embed(
-                title="⏹️ Stop All Complete",
+                title=_("⏹️ Stop All Complete"),
                 description=description,
                 color=discord.Color.green() if failed_count == 0 else discord.Color.orange()
             )
@@ -728,7 +729,7 @@ class ConfirmStopAllButton(Button):
             logger.error(f"Critical error in stop all: {e}", exc_info=True)
             try:
                 await interaction.followup.send(
-                    "❌ An error occurred during the stop operation.",
+                    _("❌ An error occurred during the stop operation."),
                     ephemeral=True
                 )
             except (discord.errors.NotFound, discord.errors.HTTPException):
@@ -774,7 +775,7 @@ class CancelBulkActionButton(Button):
     def __init__(self):
         super().__init__(
             style=discord.ButtonStyle.secondary,
-            label="Cancel",
+            label=_("Cancel"),
             custom_id="cancel_bulk_action"
         )
 
@@ -782,7 +783,7 @@ class CancelBulkActionButton(Button):
         """Cancel the bulk action."""
         try:
             await interaction.response.edit_message(
-                content="✅ Action cancelled.",
+                content=_("✅ Action cancelled."),
                 embed=None,
                 view=None
             )

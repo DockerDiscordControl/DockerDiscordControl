@@ -1275,9 +1275,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         try:
                             # Check if we need to use followup (for commands that defer early)
                             if command_name in ['donate', 'donatebroadcast', 'serverstatus', 'ss']:
-                                await ctx.followup.send(f"❌ Command on cooldown. Try again in {remaining} seconds.")
+                                await ctx.followup.send(_("❌ Command on cooldown. Try again in {remaining} seconds.").format(remaining=remaining))
                             else:
-                                await ctx.respond(f"❌ Command on cooldown. Try again in {remaining} seconds.", ephemeral=True)
+                                await ctx.respond(_("❌ Command on cooldown. Try again in {remaining} seconds.").format(remaining=remaining), ephemeral=True)
                         except (discord.errors.HTTPException, discord.errors.NotFound):
                             # If response fails, still prevent command execution
                             pass
@@ -1473,7 +1473,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # Load configuration
             config = load_config()
             if not config:
-                await ctx.followup.send("❌ Could not load configuration.")
+                await ctx.followup.send(_("❌ Could not load configuration."))
                 return
 
             # Get all server configurations
@@ -1481,7 +1481,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             server_config_service = get_server_config_service()
             servers = server_config_service.get_all_servers()
             if not servers:
-                await ctx.followup.send("❌ No servers configured.")
+                await ctx.followup.send(_("❌ No servers configured."))
                 return
 
             # Sort servers by order
@@ -1511,9 +1511,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             logger.error(f"Error in control command: {e}", exc_info=True)
             try:
                 if not ctx.response.is_done():
-                    await ctx.respond("❌ Error showing control overview.")
+                    await ctx.respond(_("❌ Error showing control overview."))
                 else:
-                    await ctx.followup.send("❌ Error showing control overview.")
+                    await ctx.followup.send(_("❌ Error showing control overview."))
             except (discord.errors.DiscordException, RuntimeError):
                 pass
 
@@ -1591,7 +1591,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         embed = discord.Embed(title="🏓", description=ping_message, color=discord.Color.blurple())
         await ctx.respond(embed=embed)
     
-    @commands.slash_command(name="donate", description="Show donation information to support the project", guild_ids=get_guild_id())
+    @commands.slash_command(name="donate", description=_("Show donation information to support the project"), guild_ids=get_guild_id())
     async def donate_command(self, ctx: discord.ApplicationContext):
         """Show donation links to support DockerDiscordControl development."""
         # IMMEDIATELY defer to prevent timeout - this MUST be first!
@@ -2275,15 +2275,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         has_running_containers = False
 
         # Create the embed with dark-mode friendly color
+        from .translation_manager import _ as translate
         embed = discord.Embed(
-            title="Admin Overview",
+            title=translate("Admin Overview"),
             color=0x2f3136  # Dark grey, dark-mode friendly
         )
 
         # Build description header
         header_lines = [
-            f"Letztes Update: {current_time}",
-            f"Container: {total_containers} • Online: {{online}} • Offline: {{offline}}"
+            translate("Last update") + f": {current_time}",
+            translate("Container: {total} • Online: {online} • Offline: {offline}").format(total=total_containers, online='{online}', offline='{offline}')
         ]
 
         # Collect container lines separately (will add spacing between them later)
@@ -2394,7 +2395,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         container_line += " ⓘ"  # Small circled i
                 else:
                     # Container is stopped: "🔴 Name · offline"
-                    container_line = f"{status_emoji} {truncated_name} · offline"
+                    container_line = f"{status_emoji} {truncated_name} · {translate('offline')}"
 
                 # Add to container lines list
                 container_lines.append(container_line)
@@ -2418,7 +2419,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 container_lines.append(container_line)
 
         # Format the counts in the header line
-        header_lines[1] = f"Container: {total_containers} • Online: {online_count} • Offline: {offline_count}"
+        header_lines[1] = translate("Container: {total} • Online: {online} • Offline: {offline}").format(total=total_containers, online=online_count, offline=offline_count)
 
         # Build final description with spacing between container lines to handle ⓘ height differences
         # Join container lines with double newline for consistent spacing (fixes mobile layout issue)
@@ -2715,8 +2716,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 
             if donations_disabled:
                 embed = discord.Embed(
-                    title="🔐 Premium Features Active",
-                    description="Donations are disabled via premium key. Thank you for supporting DDC!",
+                    title=_("🔐 Premium Features Active"),
+                    description=_("Donations are disabled via premium key. Thank you for supporting DDC!"),
                     color=0xFFD700  # Gold color
                 )
                 await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -2753,7 +2754,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             logger.error(f"Error in _handle_donate_interaction: {e}", exc_info=True)
             try:
                 error_embed = discord.Embed(
-                    title="❌ Error",
+                    title=_("❌ Error"),
                     description=_("An error occurred while showing donation information. Please try again later."),
                     color=discord.Color.red()
                 )
@@ -4308,7 +4309,7 @@ class DonationBroadcastModal(discord.ui.Modal):
             else:
                 response_text = _("✅ **Donation recorded privately!**") + "\n\n"
                 response_text += _("Thank you **{donor_name}** for your generous support! 🙏").format(donor_name=donor_name) + "\n"
-                response_text += _("Your donation has been recorded and helps fuel the Donation Engine.")
+                response_text += _("Your donation has been recorded and helps power the Donation Engine.")
             
             # Replace the processing message with the final result
             await interaction.edit_original_response(content=response_text)

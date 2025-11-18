@@ -224,6 +224,10 @@ class TranslationManager:
                 "Start": "Starten",
                 "Stop": "Stoppen",
                 "Restart": "Neustart",
+                "Mech": "Mech",
+                "Info": "Info",
+                "Admin": "Admin",
+                "Help": "Hilfe",
                 "Language": "Sprache",
                 "Bot language set to": "Bot-Sprache gesetzt auf",
                 "Control Panel": "Kontrollpanel",
@@ -269,6 +273,19 @@ class TranslationManager:
                 "Docker container: {docker_name}": "Docker Container: {docker_name}",
                 "Pending..." : "Wird verarbeitet...",
                 "Status is currently unknown.": "Status ist derzeit unbekannt.",
+
+                # Cooldown and error messages
+                "❌ Command on cooldown. Try again in {remaining} seconds.": "❌ Befehl im Cooldown. Versuchen Sie es in {remaining} Sekunden erneut.",
+                "❌ Could not load configuration.": "❌ Konfiguration konnte nicht geladen werden.",
+                "❌ No servers configured.": "❌ Keine Server konfiguriert.",
+                "❌ Error showing control overview.": "❌ Fehler beim Anzeigen der Kontrollübersicht.",
+                "Show donation information to support the project": "Spenden-Informationen zur Projektunterstützung anzeigen",
+                "Admin Overview": "Admin-Übersicht",
+                "Container: {total} • Online: {online} • Offline: {offline}": "Container: {total} • Online: {online} • Offline: {offline}",
+                "offline": "offline",
+                "🔐 Premium Features Active": "🔐 Premium-Funktionen aktiv",
+                "Donations are disabled via premium key. Thank you for supporting DDC!": "Spenden sind durch Premium-Schlüssel deaktiviert. Danke für die Unterstützung von DDC!",
+                "❌ Error": "❌ Fehler",
 
                 # Schedule Command Texts
                 "This command can only be used in server channels.": "Dieser Befehl kann nur in Server-Kanälen verwendet werden.",
@@ -643,6 +660,183 @@ class TranslationManager:
                 "The final transcendence. No longer merely a machine, it radiates with cosmic energy, haloed in starlight. A godlike protector forged from centuries of steel and sacrifice.": "Die finale Transzendenz. Nicht länger nur eine Maschine, strahlt es mit kosmischer Energie, umkränzt von Sternenlicht. Ein gottgleicher Beschützer, geschmiedet aus Jahrhunderten von Stahl und Opfer.",
                 "Reality-bending omnipotent war machine of the gods": "Realitätsverbiegende omnipotente Kriegsmaschine der Götter",
                 "The final scream of a burning universe, forged into indestructible form. Its steps tear the fabric of existence, its pulse synchronizes with the heartbeat of dead gods. Finality in metal form.": "Der letzte Schrei eines brennenden Universums, gegossen in unzerstörbare Form. Seine Schritte zerreißen die Fabric der Existenz, sein Puls synchronisiert sich mit dem Herzschlag toter Götter. Endgültigkeit in Metallform.",
+
+                # Admin Overview translations
+                "❌ No containers found in configuration.": "❌ Keine Container in der Konfiguration gefunden.",
+                "❌ No valid containers found in configuration.": "❌ Keine gültigen Container in der Konfiguration gefunden.",
+                "❌ Internal error. Please try again later.": "❌ Interner Fehler. Bitte versuchen Sie es später erneut.",
+                "Select a container to control:": "Wählen Sie einen Container zum Steuern:",
+                "❌ Error accessing admin controls.": "❌ Fehler beim Zugriff auf Admin-Steuerung.",
+                "❌ You don't have permission to restart all containers.": "❌ Sie haben keine Berechtigung, alle Container neu zu starten.",
+                "❌ No running containers to restart.": "❌ Keine laufenden Container zum Neustarten.",
+                "⚠️ Confirm Restart All": "⚠️ Alle neu starten bestätigen",
+                "Are you sure you want to restart ALL running containers?\n\nThis will temporarily disrupt all services.": "Sind Sie sicher, dass Sie ALLE laufenden Container neu starten möchten?\n\nDies wird alle Dienste vorübergehend unterbrechen.",
+                "❌ Error processing restart all request.": "❌ Fehler bei der Verarbeitung der Neustart-Anfrage.",
+                "❌ You don't have permission to stop all containers.": "❌ Sie haben keine Berechtigung, alle Container zu stoppen.",
+                "❌ No running containers to stop.": "❌ Keine laufenden Container zum Stoppen.",
+                "🚨 Confirm Stop All": "🚨 Alle stoppen bestätigen",
+                "Are you sure you want to STOP ALL running containers?\n\n**WARNING:** This will shut down all services!": "Sind Sie sicher, dass Sie ALLE laufenden Container STOPPEN möchten?\n\n**WARNUNG:** Dies wird alle Dienste herunterfahren!",
+                "❌ Error processing stop all request.": "❌ Fehler bei der Verarbeitung der Stopp-Anfrage.",
+                "❌ Error processing donate request.": "❌ Fehler bei der Verarbeitung der Spenden-Anfrage.",
+                "Yes, Restart All": "Ja, alle neu starten",
+                "⏳ Another bulk operation is in progress. Please wait.": "⏳ Eine andere Massenoperation läuft bereits. Bitte warten.",
+                "❌ No active servers configured.": "❌ Keine aktiven Server konfiguriert.",
+                "❌ Docker service unavailable. Operation cancelled.": "❌ Docker-Dienst nicht verfügbar. Operation abgebrochen.",
+                "Successfully restarted: **{count}** containers": "Erfolgreich neugestartet: **{count}** Container",
+                "\nFailed: **{count}** containers": "\nFehlgeschlagen: **{count}** Container",
+                "\nSkipped (not running): **{count}** containers": "\nÜbersprungen (nicht laufend): **{count}** Container",
+                "🔄 Restart All Complete": "🔄 Alle neu starten abgeschlossen",
+                "❌ An error occurred during the restart operation.": "❌ Ein Fehler ist während der Neustart-Operation aufgetreten.",
+                "Yes, Stop All": "Ja, alle stoppen",
+                "Successfully stopped: **{count}** containers": "Erfolgreich gestoppt: **{count}** Container",
+                "⏹️ Stop All Complete": "⏹️ Alle stoppen abgeschlossen",
+                "❌ An error occurred during the stop operation.": "❌ Ein Fehler ist während der Stopp-Operation aufgetreten.",
+                "Cancel": "Abbrechen",
+                "✅ Action cancelled.": "✅ Aktion abgebrochen.",
+
+                # Update notification system
+                "🎉 DockerDiscordControl Update": "🎉 DockerDiscordControl Update",
+                "**Version {version}** - New features available!": "**Version {version}** - Neue Features verfügbar!",
+                "🔒 Spam Protection System": "🔒 Spam-Schutzsystem",
+                "• Dynamically configurable cooldowns for all commands\n• Web UI Modal under 'Web UI Authentication'\n• Individual settings per command and button\n• Protection against rate-limiting and abuse": "• Dynamisch konfigurierbare Cooldowns für alle Commands\n• Web UI Modal unter 'Web UI Authentication'\n• Individuelle Einstellungen pro Command und Button\n• Schutz vor Rate-Limiting und Missbrauch",
+                "📋 Container Info System": "📋 Container-Info-System",
+                "• New /info command for detailed container information\n• Port field in info editor modal\n• Live WAN IP detection or custom address\n• Consistent display in all info views": "• Neuer /info Befehl für detaillierte Container-Informationen\n• Port-Feld im Info-Editor-Modal\n• Live WAN IP-Erkennung oder benutzerdefinierte Adresse\n• Konsistente Anzeige in allen Info-Ansichten",
+                "🌍 Dynamic Timezone System": "🌍 Dynamisches Zeitzonen-System",
+                "• Automatic timezone detection from Web UI config\n• No more hardcoded timezones\n• Better token decryption": "• Automatische Zeitzonen-Erkennung aus Web UI Config\n• Keine hardcodierten Zeitzonen mehr\n• Bessere Token-Entschlüsselung",
+                "⚙️ Configuration": "⚙️ Konfiguration",
+                "**Spam Protection:** Web UI → Configuration → 'Spam Protection Settings'\n**Container Info:** Use info buttons in status messages": "**Spam-Schutz:** Web UI → Konfiguration → 'Spam-Schutz-Einstellungen'\n**Container Info:** Info-Buttons in Status-Nachrichten verwenden",
+                "This message is only shown once • https://ddc.bot": "Diese Nachricht wird nur einmal angezeigt • https://ddc.bot",
+
+                # Quick Win Additions
+                "None": "Keine",
+                "This command is not allowed in this channel": "Dieser Befehl ist in diesem Kanal nicht erlaubt",
+
+                # Priority Group 1: Error Messages
+                "An error occurred while deleting the task.": "Ein Fehler ist beim Löschen der Aufgabe aufgetreten.",
+                "An error occurred while retrieving container information.": "Ein Fehler ist beim Abrufen der Container-Informationen aufgetreten.",
+                "Container '{container}' not found in configuration.": "Container '{container}' nicht in der Konfiguration gefunden.",
+                "You don't have permission to perform '{action}' on '{container}'.": "Sie haben keine Berechtigung, '{action}' auf '{container}' auszuführen.",
+                "Failed to schedule task. It might conflict with an existing task or another error occurred.": "Aufgabe konnte nicht geplant werden. Es könnte einen Konflikt mit einer bestehenden Aufgabe geben oder ein anderer Fehler ist aufgetreten.",
+                "An unexpected error occurred while creating the task.": "Ein unerwarteter Fehler ist beim Erstellen der Aufgabe aufgetreten.",
+                "Error during execution: {error}": "Fehler während der Ausführung: {error}",
+                "This action is not allowed in this channel.": "Diese Aktion ist in diesem Kanal nicht erlaubt.",
+                "An error occurred: {error}": "Ein Fehler ist aufgetreten: {error}",
+                "Error displaying container info. Please try again.": "Fehler beim Anzeigen der Container-Informationen. Bitte versuchen Sie es erneut.",
+
+                # Priority Group 2: Scheduling Messages
+                "Invalid time format. Please use HH:MM (e.g., 14:30).": "Ungültiges Zeitformat. Bitte verwenden Sie HH:MM (z.B. 14:30).",
+                "Cannot schedule task: It conflicts with an existing task for container '{container}' within a 10-minute window.": "Aufgabe kann nicht geplant werden: Sie steht in Konflikt mit einer bestehenden Aufgabe für Container '{container}' innerhalb eines 10-Minuten-Fensters.",
+                "Cannot schedule task: The calculated execution time is invalid or conflicts with an existing task.": "Aufgabe kann nicht geplant werden: Die berechnete Ausführungszeit ist ungültig oder steht in Konflikt mit einer bestehenden Aufgabe.",
+                "Task for {container_name} scheduled daily at {hour:02d}:{minute:02d}.": "Aufgabe für {container_name} täglich um {hour:02d}:{minute:02d} geplant.",
+                "Task for {container_name} scheduled weekly on {weekday} at {hour:02d}:{minute:02d}.": "Aufgabe für {container_name} wöchentlich am {weekday} um {hour:02d}:{minute:02d} geplant.",
+                "Task for {container_name} scheduled monthly on day {day} at {hour:02d}:{minute:02d}.": "Aufgabe für {container_name} monatlich am Tag {day} um {hour:02d}:{minute:02d} geplant.",
+                "Task for {container_name} scheduled yearly on {month} {day} at {hour:02d}:{minute:02d}.": "Aufgabe für {container_name} jährlich am {day}. {month} um {hour:02d}:{minute:02d} geplant.",
+                "Next execution: {time}": "Nächste Ausführung: {time}",
+                "Task successfully deleted.": "Aufgabe erfolgreich gelöscht.",
+                "No Tasks": "Keine Aufgaben",
+
+                # Priority Group 3: Permission & Status Messages
+                "This command is on cooldown. Please try again in {duration}.": "Dieser Befehl befindet sich im Cooldown. Bitte versuchen Sie es in {duration} erneut.",
+                "You do not have permission to use this command.": "Sie haben keine Berechtigung, diesen Befehl zu verwenden.",
+                "Container Information": "Container-Informationen",
+                "Select a container from the dropdown to view its information:": "Wählen Sie einen Container aus der Dropdown-Liste, um seine Informationen anzuzeigen:",
+                "Admin Control Panel": "Admin-Kontrollpanel",
+                "Select a container to view its control panel:": "Wählen Sie einen Container, um sein Kontrollpanel anzuzeigen:",
+                "Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.": "Verwenden Sie `/info <servername>` um detaillierte Informationen über Container mit ℹ️ Indikatoren zu erhalten.",
+                "Container information is not configured for '{container}'.": "Container-Informationen sind für '{container}' nicht konfiguriert.",
+                "Container information is not enabled for '{container}'.": "Container-Informationen sind für '{container}' nicht aktiviert.",
+                "Could not load container information for '{container}'.": "Container-Informationen für '{container}' konnten nicht geladen werden.",
+                "No additional information is configured for container '{container}'.": "Keine zusätzlichen Informationen sind für Container '{container}' konfiguriert.",
+                "**Evolution: Level {old} → {new}!**": "**Evolution: Stufe {old} → {new}!**",
+                "Processing...": "Verarbeite...",
+
+                # Agent 6: Critical Missing Strings - Command Descriptions & Help
+                "Month (1-12 or name like 'January')": "Monat (1-12 oder Name wie 'Januar')",
+
+                # Agent 6: Task Management Strings
+                "Task deleted successfully.": "Aufgabe erfolgreich gelöscht.",
+                "No task found with ID: {task_id}": "Keine Aufgabe mit ID gefunden: {task_id}",
+                "Invalid task ID format.": "Ungültiges Aufgaben-ID-Format.",
+                "You don't have permission to delete this task.": "Sie haben keine Berechtigung, diese Aufgabe zu löschen.",
+                "No scheduled tasks were found.": "Keine geplanten Aufgaben gefunden.",
+                "Scheduled Tasks": "Geplante Aufgaben",
+                "Task #{id}": "Aufgabe #{id}",
+
+                # Agent 6: Container Status Strings
+                "Online": "Online",
+                "Offline": "Offline",
+                "Unknown": "Unbekannt",
+                "Starting...": "Startet...",
+                "Stopping...": "Stoppt...",
+
+                # Agent 6: Permission Strings
+                "You don't have permission to use the info command in this channel.": "Sie haben keine Berechtigung, den Info-Befehl in diesem Kanal zu verwenden.",
+                "You do not have permission to view container info in this channel.": "Sie haben keine Berechtigung, Container-Informationen in diesem Kanal anzuzeigen.",
+
+                # Agent 5: control_ui.py + Other Cogs Translation Fixes
+                "⏰ Please wait {remaining:.1f} seconds before using '{action}' button again.": "⏰ Bitte warten Sie {remaining:.1f} Sekunden bevor Sie den '{action}' Button erneut verwenden.",
+                "⏰ Please wait {remaining:.1f} seconds before using info button again.": "⏰ Bitte warten Sie {remaining:.1f} Sekunden bevor Sie den Info-Button erneut verwenden.",
+                "❌ Action '{action}' is not allowed for container '{container}'.": "❌ Aktion '{action}' ist für Container '{container}' nicht erlaubt.",
+                """```
+┌── Processing ───────────────
+│ ⏳ Updating container status...
+│ 🔄 Please wait ~15 seconds
+└─────────────────────────────
+```""": """```
+┌── Verarbeitung ─────────────
+│ ⏳ Aktualisiere Container-Status...
+│ 🔄 Bitte warten Sie ~15 Sekunden
+└─────────────────────────────
+```""",
+                """```
+┌── Loading Status ───────────
+│ 🔄 Fetching container data...
+│ ⏱️ Background process running
+│ 📊 Please wait for fresh data
+└─────────────────────────────
+```""": """```
+┌── Status wird geladen ──────
+│ 🔄 Lade Container-Daten...
+│ ⏱️ Hintergrundprozess läuft
+│ 📊 Bitte warten auf neue Daten
+└─────────────────────────────
+```""",
+                "⏰ Please wait {remaining:.1f} more seconds before using this button again.": "⏰ Bitte warten Sie noch {remaining:.1f} Sekunden bevor Sie diesen Button erneut verwenden.",
+
+                # Agent 7: Final Missing Code Strings (Priority Group 1: Scheduler & Task Management)
+                "Year must be between 2025 and 2030.": "Jahr muss zwischen 2025 und 2030 liegen.",
+                "Invalid year format. Please use a 4-digit year (e.g., 2025).": "Ungültiges Jahresformat. Bitte verwenden Sie ein 4-stelliges Jahr (z.B. 2025).",
+                "Invalid month format. Please use MM or month name (e.g., 07 or July).": "Ungültiges Monatsformat. Bitte verwenden Sie MM oder Monatsname (z.B. 07 oder Juli).",
+                "Year (e.g., 2025)": "Jahr (z.B. 2025)",
+                "Weekday (e.g., Monday)": "Wochentag (z.B. Montag)",
+                "Task for {container_name} scheduled for one-time execution on {year}-{month:02d}-{day:02d} at {hour:02d}:{minute:02d}.": "Aufgabe für {container_name} für einmalige Ausführung am {year}-{month:02d}-{day:02d} um {hour:02d}:{minute:02d} geplant.",
+                "Daily": "Täglich",
+                "Weekly": "Wöchentlich",
+                "Monthly": "Monatlich",
+                "Yearly": "Jährlich",
+                "One-time": "Einmalig",
+                "Next run": "Nächste Ausführung",
+
+                # Agent 7: Final Missing Code Strings (Priority Group 2: Container Control & Info)
+                "Edit": "Bearbeiten",
+                "Logs": "Logs",
+                "Info": "Info",
+                "Refresh": "Aktualisieren",
+                "Protected Info": "Geschützte Info",
+                "Public Info": "Öffentliche Info",
+                "Server **{server_name}** could not be processed {action_process_text}.": "Server **{server_name}** konnte nicht verarbeitet werden {action_process_text}.",
+                "Server **{server_name}** is being processed {action_process_text}.": "Server **{server_name}** wird gerade verarbeitet {action_process_text}.",
+
+                # Agent 7: Final Missing Code Strings (Priority Group 3: Status & Display)
+                "CPU": "CPU",
+                "RAM": "RAM",
+                "Uptime": "Laufzeit",
+                "Hidden": "Verborgen",
+                "N/A": "N/V",
+
+                # Agent 7: Final Missing Code Strings (Priority Group 4: User Feedback & Errors)
+                "An error occurred while generating the overview.": "Ein Fehler ist beim Generieren der Übersicht aufgetreten.",
+                "Your donation has been recorded and helps power the Donation Engine.": "Ihre Spende wurde erfasst und hilft, die Spenden-Engine zu betreiben.",
             },
 
             # French
@@ -707,6 +901,10 @@ class TranslationManager:
                 "Start": "Démarrer",
                 "Stop": "Arrêter",
                 "Restart": "Redémarrer",
+                "Mech": "Mech",
+                "Info": "Info",
+                "Admin": "Admin",
+                "Help": "Aide",
                 "Language": "Langue",
                 "Bot language set to": "Langue du bot définie sur",
                 "Control Panel": "Panneau de contrôle",
@@ -753,6 +951,19 @@ class TranslationManager:
                 "Docker container: {docker_name}": "Conteneur Docker : {docker_name}",
                 "Pending..." : "En cours...",
                 "Status is currently unknown.": "Statut actuellement inconnu.",
+
+                # Cooldown and error messages
+                "❌ Command on cooldown. Try again in {remaining} seconds.": "❌ Commande en cooldown. Réessayez dans {remaining} secondes.",
+                "❌ Could not load configuration.": "❌ Impossible de charger la configuration.",
+                "❌ No servers configured.": "❌ Aucun serveur configuré.",
+                "❌ Error showing control overview.": "❌ Erreur lors de l'affichage de la vue d'ensemble du contrôle.",
+                "Show donation information to support the project": "Afficher les informations de don pour soutenir le projet",
+                "Admin Overview": "Vue d'ensemble administrateur",
+                "Container: {total} • Online: {online} • Offline: {offline}": "Conteneurs: {total} • En ligne: {online} • Hors ligne: {offline}",
+                "offline": "hors ligne",
+                "🔐 Premium Features Active": "🔐 Fonctionnalités Premium actives",
+                "Donations are disabled via premium key. Thank you for supporting DDC!": "Les dons sont désactivés via clé premium. Merci de soutenir DDC!",
+                "❌ Error": "❌ Erreur",
 
                 # Schedule Command Texts
                 "This command can only be used in server channels.": "Cette commande ne peut être utilisée que dans les canaux du serveur.",
@@ -1217,6 +1428,229 @@ class TranslationManager:
                 "DIVINE MECH": "MECH DIVIN",
                 "OMEGA MECH": "MECH OMEGA",
                 "MAX EVOLUTION REACHED!": "ÉVOLUTION MAXIMALE ATTEINTE!",
+                # Update notification system
+                "🎉 DockerDiscordControl Update": "🎉 Mise à jour DockerDiscordControl",
+                "**Version {version}** - New features available!": "**Version {version}** - Nouvelles fonctionnalités disponibles!",
+                "🔒 Spam Protection System": "🔒 Système de protection anti-spam",
+                "• Dynamically configurable cooldowns for all commands\n• Web UI Modal under 'Web UI Authentication'\n• Individual settings per command and button\n• Protection against rate-limiting and abuse": "• Délais d'attente configurables dynamiquement pour toutes les commandes\n• Modal Web UI sous 'Authentification Web UI'\n• Paramètres individuels par commande et bouton\n• Protection contre la limitation de débit et les abus",
+                "📋 Container Info System": "📋 Système d'information conteneur",
+                "• New /info command for detailed container information\n• Port field in info editor modal\n• Live WAN IP detection or custom address\n• Consistent display in all info views": "• Nouvelle commande /info pour des informations détaillées sur les conteneurs\n• Champ de port dans le modal d'édition d'info\n• Détection IP WAN en direct ou adresse personnalisée\n• Affichage cohérent dans toutes les vues d'info",
+                "🌍 Dynamic Timezone System": "🌍 Système de fuseau horaire dynamique",
+                "• Automatic timezone detection from Web UI config\n• No more hardcoded timezones\n• Better token decryption": "• Détection automatique du fuseau horaire depuis la config Web UI\n• Plus de fuseaux horaires codés en dur\n• Meilleur déchiffrement de jeton",
+                "⚙️ Configuration": "⚙️ Configuration",
+                "**Spam Protection:** Web UI → Configuration → 'Spam Protection Settings'\n**Container Info:** Use info buttons in status messages": "**Protection anti-spam:** Web UI → Configuration → 'Paramètres de protection anti-spam'\n**Info conteneur:** Utiliser les boutons d'info dans les messages de statut",
+                "This message is only shown once • https://ddc.bot": "Ce message n'est affiché qu'une seule fois • https://ddc.bot",
+
+                # Quick Win Additions
+                "None": "Aucun",
+                "This command is not allowed in this channel": "Cette commande n'est pas autorisée dans ce canal",
+
+                # Priority Group 1: Error Messages
+                "An error occurred while deleting the task.": "Une erreur s'est produite lors de la suppression de la tâche.",
+                "An error occurred while retrieving container information.": "Une erreur s'est produite lors de la récupération des informations du conteneur.",
+                "Container '{container}' not found in configuration.": "Conteneur '{container}' introuvable dans la configuration.",
+                "You don't have permission to perform '{action}' on '{container}'.": "Vous n'avez pas la permission d'effectuer '{action}' sur '{container}'.",
+                "Failed to schedule task. It might conflict with an existing task or another error occurred.": "Échec de la planification de la tâche. Il pourrait y avoir un conflit avec une tâche existante ou une autre erreur s'est produite.",
+                "An unexpected error occurred while creating the task.": "Une erreur inattendue s'est produite lors de la création de la tâche.",
+                "Error during execution: {error}": "Erreur pendant l'exécution: {error}",
+                "This action is not allowed in this channel.": "Cette action n'est pas autorisée dans ce canal.",
+                "An error occurred: {error}": "Une erreur s'est produite: {error}",
+                "Error displaying container info. Please try again.": "Erreur lors de l'affichage des informations du conteneur. Veuillez réessayer.",
+
+                # Priority Group 2: Scheduling Messages
+                "Invalid time format. Please use HH:MM (e.g., 14:30).": "Format d'heure invalide. Veuillez utiliser HH:MM (ex: 14:30).",
+                "Cannot schedule task: It conflicts with an existing task for container '{container}' within a 10-minute window.": "Impossible de planifier la tâche: Elle entre en conflit avec une tâche existante pour le conteneur '{container}' dans une fenêtre de 10 minutes.",
+                "Cannot schedule task: The calculated execution time is invalid or conflicts with an existing task.": "Impossible de planifier la tâche: L'heure d'exécution calculée est invalide ou entre en conflit avec une tâche existante.",
+                "Task for {container_name} scheduled daily at {hour:02d}:{minute:02d}.": "Tâche pour {container_name} planifiée quotidiennement à {hour:02d}:{minute:02d}.",
+                "Task for {container_name} scheduled weekly on {weekday} at {hour:02d}:{minute:02d}.": "Tâche pour {container_name} planifiée hebdomadairement le {weekday} à {hour:02d}:{minute:02d}.",
+                "Task for {container_name} scheduled monthly on day {day} at {hour:02d}:{minute:02d}.": "Tâche pour {container_name} planifiée mensuellement le jour {day} à {hour:02d}:{minute:02d}.",
+                "Task for {container_name} scheduled yearly on {month} {day} at {hour:02d}:{minute:02d}.": "Tâche pour {container_name} planifiée annuellement le {day} {month} à {hour:02d}:{minute:02d}.",
+                "Next execution: {time}": "Prochaine exécution: {time}",
+                "Task successfully deleted.": "Tâche supprimée avec succès.",
+                "No Tasks": "Aucune tâche",
+
+                # Priority Group 3: Permission & Status Messages
+                "This command is on cooldown. Please try again in {duration}.": "Cette commande est en cooldown. Veuillez réessayer dans {duration}.",
+                "You do not have permission to use this command.": "Vous n'avez pas la permission d'utiliser cette commande.",
+                "Container Information": "Informations du conteneur",
+                "Select a container from the dropdown to view its information:": "Sélectionnez un conteneur dans la liste déroulante pour voir ses informations :",
+                "Admin Control Panel": "Panneau de contrôle administrateur",
+                "Select a container to view its control panel:": "Sélectionnez un conteneur pour voir son panneau de contrôle :",
+                "Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.": "Utilisez `/info <nom-serveur>` pour obtenir des informations détaillées sur les conteneurs avec des indicateurs ℹ️.",
+                "Container information is not configured for '{container}'.": "Les informations du conteneur ne sont pas configurées pour '{container}'.",
+                "Container information is not enabled for '{container}'.": "Les informations du conteneur ne sont pas activées pour '{container}'.",
+                "Could not load container information for '{container}'.": "Impossible de charger les informations du conteneur pour '{container}'.",
+                "No additional information is configured for container '{container}'.": "Aucune information supplémentaire n'est configurée pour le conteneur '{container}'.",
+                "**Evolution: Level {old} → {new}!**": "**Évolution: Niveau {old} → {new}!**",
+                "Processing...": "Traitement...",
+
+                # Admin Overview translations
+                "❌ No containers found in configuration.": "❌ Aucun conteneur trouvé dans la configuration.",
+                "❌ No valid containers found in configuration.": "❌ Aucun conteneur valide trouvé dans la configuration.",
+                "❌ Internal error. Please try again later.": "❌ Erreur interne. Veuillez réessayer plus tard.",
+                "Select a container to control:": "Sélectionnez un conteneur à contrôler:",
+                "❌ Error accessing admin controls.": "❌ Erreur d'accès aux contrôles administrateur.",
+                "❌ You don't have permission to restart all containers.": "❌ Vous n'avez pas la permission de redémarrer tous les conteneurs.",
+                "❌ No running containers to restart.": "❌ Aucun conteneur en cours d'exécution à redémarrer.",
+                "⚠️ Confirm Restart All": "⚠️ Confirmer le redémarrage de tous",
+                "Are you sure you want to restart ALL running containers?\n\nThis will temporarily disrupt all services.": "Êtes-vous sûr de vouloir redémarrer TOUS les conteneurs en cours d'exécution?\n\nCela perturbera temporairement tous les services.",
+                "❌ Error processing restart all request.": "❌ Erreur lors du traitement de la demande de redémarrage.",
+                "❌ You don't have permission to stop all containers.": "❌ Vous n'avez pas la permission d'arrêter tous les conteneurs.",
+                "❌ No running containers to stop.": "❌ Aucun conteneur en cours d'exécution à arrêter.",
+                "🚨 Confirm Stop All": "🚨 Confirmer l'arrêt de tous",
+                "Are you sure you want to STOP ALL running containers?\n\n**WARNING:** This will shut down all services!": "Êtes-vous sûr de vouloir ARRÊTER TOUS les conteneurs en cours d'exécution?\n\n**ATTENTION:** Cela éteindra tous les services!",
+                "❌ Error processing stop all request.": "❌ Erreur lors du traitement de la demande d'arrêt.",
+                "❌ Error processing donate request.": "❌ Erreur lors du traitement de la demande de don.",
+                "Yes, Restart All": "Oui, tout redémarrer",
+                "⏳ Another bulk operation is in progress. Please wait.": "⏳ Une autre opération en masse est en cours. Veuillez patienter.",
+                "❌ No active servers configured.": "❌ Aucun serveur actif configuré.",
+                "❌ Docker service unavailable. Operation cancelled.": "❌ Service Docker indisponible. Opération annulée.",
+                "Successfully restarted: **{count}** containers": "Redémarré avec succès: **{count}** conteneurs",
+                "\nFailed: **{count}** containers": "\nÉchoué: **{count}** conteneurs",
+                "\nSkipped (not running): **{count}** containers": "\nIgnoré (non en cours d'exécution): **{count}** conteneurs",
+                "🔄 Restart All Complete": "🔄 Redémarrage de tous terminé",
+                "❌ An error occurred during the restart operation.": "❌ Une erreur s'est produite pendant l'opération de redémarrage.",
+                "Yes, Stop All": "Oui, tout arrêter",
+                "Successfully stopped: **{count}** containers": "Arrêté avec succès: **{count}** conteneurs",
+                "⏹️ Stop All Complete": "⏹️ Arrêt de tous terminé",
+                "❌ An error occurred during the stop operation.": "❌ Une erreur s'est produite pendant l'opération d'arrêt.",
+                "Cancel": "Annuler",
+                "✅ Action cancelled.": "✅ Action annulée.",
+
+                # Agent 6: Critical Missing Strings - Command Descriptions & Help
+                "Month (1-12 or name like 'January')": "Mois (1-12 ou nom comme 'Janvier')",
+
+                # Agent 6: Task Management Strings
+                "Task deleted successfully.": "Tâche supprimée avec succès.",
+                "No task found with ID: {task_id}": "Aucune tâche trouvée avec l'ID: {task_id}",
+                "Invalid task ID format.": "Format d'ID de tâche invalide.",
+                "You don't have permission to delete this task.": "Vous n'avez pas la permission de supprimer cette tâche.",
+                "No scheduled tasks were found.": "Aucune tâche planifiée trouvée.",
+                "Scheduled Tasks": "Tâches planifiées",
+                "Task #{id}": "Tâche #{id}",
+
+                # Agent 6: Container Status Strings
+                "Online": "En ligne",
+                "Offline": "Hors ligne",
+                "Unknown": "Inconnu",
+                "Starting...": "Démarrage...",
+                "Stopping...": "Arrêt...",
+
+                # Agent 6: Permission Strings
+                "You don't have permission to use the info command in this channel.": "Vous n'avez pas la permission d'utiliser la commande info dans ce canal.",
+                "You do not have permission to view container info in this channel.": "Vous n'avez pas la permission de voir les informations du conteneur dans ce canal.",
+
+                # Agent 5: control_ui.py + Other Cogs Translation Fixes
+                "⏰ Please wait {remaining:.1f} seconds before using '{action}' button again.": "⏰ Veuillez patienter {remaining:.1f} secondes avant d'utiliser à nouveau le bouton '{action}'.",
+                "⏰ Please wait {remaining:.1f} seconds before using info button again.": "⏰ Veuillez patienter {remaining:.1f} secondes avant d'utiliser à nouveau le bouton info.",
+                "❌ Action '{action}' is not allowed for container '{container}'.": "❌ L'action '{action}' n'est pas autorisée pour le conteneur '{container}'.",
+                """```
+┌── Processing ───────────────
+│ ⏳ Updating container status...
+│ 🔄 Please wait ~15 seconds
+└─────────────────────────────
+```""": """```
+┌── Traitement ───────────────
+│ ⏳ Mise à jour du statut du conteneur...
+│ 🔄 Veuillez patienter ~15 secondes
+└─────────────────────────────
+```""",
+                """```
+┌── Loading Status ───────────
+│ 🔄 Fetching container data...
+│ ⏱️ Background process running
+│ 📊 Please wait for fresh data
+└─────────────────────────────
+```""": """```
+┌── Chargement du statut ─────
+│ 🔄 Récupération des données...
+│ ⏱️ Processus en arrière-plan
+│ 📊 Veuillez patienter
+└─────────────────────────────
+```""",
+                "⏰ Please wait {remaining:.1f} more seconds before using this button again.": "⏰ Veuillez patienter encore {remaining:.1f} secondes avant d'utiliser à nouveau ce bouton.",
+
+                # Agent 6: Missing French Translations (High Priority)
+                "Container Info System": "Système d'information conteneur",
+                "DockerDiscordControl Update": "Mise à jour DockerDiscordControl",
+                "Dynamic Timezone System": "Système de fuseau horaire dynamique",
+                "Spam Protection System": "Système de protection anti-spam",
+                "New features available!": "Nouvelles fonctionnalités disponibles!",
+                "This message is only shown once": "Ce message n'est affiché qu'une seule fois",
+                "Ready to unlock!": "Prêt à débloquer!",
+                "Next Evolution": "Prochaine évolution",
+                "Error loading mech history.": "Erreur lors du chargement de l'historique du mech.",
+                "Error loading story.": "Erreur lors du chargement de l'histoire.",
+
+                # Agent 7: Final Missing Code Strings (Priority Group 1: Scheduler & Task Management)
+                "Year must be between 2025 and 2030.": "L'année doit être entre 2025 et 2030.",
+                "Invalid year format. Please use a 4-digit year (e.g., 2025).": "Format d'année invalide. Veuillez utiliser une année à 4 chiffres (ex: 2025).",
+                "Invalid month format. Please use MM or month name (e.g., 07 or July).": "Format de mois invalide. Veuillez utiliser MM ou le nom du mois (ex: 07 ou Juillet).",
+                "Year (e.g., 2025)": "Année (ex: 2025)",
+                "Weekday (e.g., Monday)": "Jour de la semaine (ex: Lundi)",
+                "Task for {container_name} scheduled for one-time execution on {year}-{month:02d}-{day:02d} at {hour:02d}:{minute:02d}.": "Tâche pour {container_name} planifiée pour une exécution unique le {year}-{month:02d}-{day:02d} à {hour:02d}:{minute:02d}.",
+                "Daily": "Quotidien",
+                "Weekly": "Hebdomadaire",
+                "Monthly": "Mensuel",
+                "Yearly": "Annuel",
+                "One-time": "Unique",
+                "Next run": "Prochaine exécution",
+
+                # Agent 7: Final Missing Code Strings (Priority Group 2: Container Control & Info)
+                "Edit": "Modifier",
+                "Logs": "Journaux",
+                "Info": "Info",
+                "Refresh": "Actualiser",
+                "Protected Info": "Info protégée",
+                "Public Info": "Info publique",
+                "Server **{server_name}** could not be processed {action_process_text}.": "Le serveur **{server_name}** n'a pas pu être traité {action_process_text}.",
+                "Server **{server_name}** is being processed {action_process_text}.": "Le serveur **{server_name}** est en cours de traitement {action_process_text}.",
+
+                # Agent 7: Final Missing Code Strings (Priority Group 3: Status & Display)
+                "CPU": "CPU",
+                "RAM": "RAM",
+                "Uptime": "Temps de fonctionnement",
+                "Hidden": "Masqué",
+                "N/A": "N/D",
+
+                # Agent 7: Final Missing Code Strings (Priority Group 4: User Feedback & Errors)
+                "An error occurred while generating the overview.": "Une erreur s'est produite lors de la génération de l'aperçu.",
+                "Your donation has been recorded and helps power the Donation Engine.": "Votre don a été enregistré et aide à alimenter le moteur de dons.",
+
+                # Agent 8: Mech Evolution System (moved from English section)
+                "Error during execution: {error}": "Erreur lors de l'exécution : {error}",
+
+                # Mech History translations
+                "🛡️ Mech Evolution History": "🛡️ Histoire de l'Évolution des Mechs",
+                "The Song of Steel and Stars": "Le Chant d'Acier et d'Étoiles",
+                "A Chronicle of the Mech Ascension": "Une Chronique de l'Ascension des Mechs",
+                "Select a mech to view": "Sélectionnez un mech à afficher",
+                "Read Story": "Lire l'Histoire",
+                "Epilogue": "Épilogue",
+                "Next Evolution": "Prochaine Évolution",
+                "Need $": "Nécessite $",
+                "more to unlock": "de plus pour débloquer",
+                "Ready to unlock!": "Prêt à débloquer !",
+                "Error loading mech history.": "Erreur lors du chargement de l'histoire des mechs.",
+                "Error loading mech.": "Erreur lors du chargement du mech.",
+                "Error loading story.": "Erreur lors du chargement de l'histoire.",
+                "Error loading epilogue.": "Erreur lors du chargement de l'épilogue.",
+                "No story chapter available for this mech yet.": "Aucun chapitre d'histoire disponible pour ce mech pour le moment.",
+                "Mech data not found.": "Données du mech introuvables.",
+
+                # Mech Descriptions (Names kept in English)
+                "Once a glorious war machine, now a corroded ruin. Rust gnaws through its joints, hydraulic fluids drip from torn plating, and its reactor sputters faintly. Barely able to move, it staggers like a dying beast.": "Jadis machine de guerre glorieuse, désormais ruine corrodée. La rouille ronge ses articulations, des fluides hydrauliques suintent de blindages déchirés, son réacteur crépite faiblement. À peine capable de bouger, il titube comme une bête à l'agonie.",
+                "A patched-up wreck, limping forward with mismatched armor and screeching servos. Every step is agony, but its core refuses to shut down. It is stubborn survival embodied in steel.": "Une épave rapiécée, claudiquant avec un blindage dépareillé et des servos grinçants. Chaque pas est supplice, mais son noyau refuse de s'éteindre. C'est la survie obstinée incarnée dans l'acier.",
+                "The dependable backbone of every mechanized army. Neither rusted ruin nor experimental prototype, but the perfected baseline. Mass-produced, balanced in offense and defense, its sturdy frame and reliable core make it the soldier's choice—the mech that wins wars through sheer numbers and unshakable consistency.": "L'épine dorsale fiable de toute armée mécanisée. Ni ruine rouillée ni prototype expérimental, mais la base perfectionnée. Produit en masse, équilibré entre attaque et défense, son châssis robuste et son noyau fiable en font le choix du soldat – le mech qui gagne les guerres par le nombre pur et une constance inébranlable.",
+                "Augmented with bulked plating and spiked enhancements, this mech becomes a juggernaut of intimidation. Every movement resonates with power, built to crush resistance head-on.": "Renforcé de blindage massif et d'améliorations hérissées, ce mech devient un mastodonte d'intimidation. Chaque mouvement résonne de puissance, bâti pour écraser toute résistance de front.",
+                "Energy channels glow across its reinforced body, pulsing like living veins. Its reactor hums with controlled plasma output, a perfected synthesis of raw strength and engineered balance.": "Des canaux d'énergie luisent sur son corps renforcé, pulsant comme des veines vivantes. Son réacteur vibre d'une émission de plasma contrôlée, synthèse parfaite entre force brute et équilibre ingénié.",
+                "A dark branch of evolution, tainted by void-tech. Corruption twists its frame, reactor howls like a collapsing star. It moves with unnatural spasms—unstable, terrifying, yet overwhelmingly powerful.": "Une branche sombre de l'évolution, souillée par la technologie du vide. La corruption tord son châssis, son réacteur hurle comme une étoile qui s'effondre. Il se meut en spasmes contre-nature – instable, terrifiant, mais d'une puissance accablante.",
+                "Mastery from chaos: sleek, fast, and armed with rift engines. It phases in and out of existence, striking enemies with energy blades before they can react. A predator between dimensions.": "La maîtrise née du chaos : élancé, rapide, armé de moteurs de faille. Il se dématérialise et réapparaît, frappant ses ennemis de lames d'énergie avant qu'ils ne puissent réagir. Un prédateur entre les dimensions.",
+                "A glowing fortress of shields and radiant plating. Built to withstand orbital bombardments, this mech inspires entire armies with its unyielding defense and brilliant aura.": "Une forteresse rayonnante de boucliers et de blindage lumineux. Conçu pour résister aux bombardements orbitaux, ce mech inspire des armées entières par sa défense inflexible et son aura éclatante.",
+                "Elevated above the battlefield, carried and revered by lesser frames. Wreathed in fire and cloaked in command systems, it has become both warlord and deity of steel.": "Élevé au-dessus du champ de bataille, porté et vénéré par des châssis inférieurs. Drapé de feu et enveloppé de systèmes de commandement, il est devenu à la fois seigneur de guerre et divinité d'acier.",
+                "The final transcendence. No longer merely a machine, it radiates with cosmic energy, haloed in starlight. A godlike protector forged from centuries of steel and sacrifice.": "La transcendance ultime. Plus qu'une simple machine, il rayonne d'énergie cosmique, auréolé de lumière stellaire. Un protecteur divin forgé de siècles d'acier et de sacrifice.",
+                "Reality-bending omnipotent war machine of the gods": "Machine de guerre omnipotente des dieux, pliant la réalité",
+                "The final scream of a burning universe, forged into indestructible form. Its steps tear the fabric of existence, its pulse synchronizes with the heartbeat of dead gods. Finality in metal form.": "Le cri final d'un univers en flammes, forgé en forme indestructible. Ses pas déchirent le tissu de l'existence, son pouls se synchronise avec les battements de cœur des dieux morts. La finalité sous forme métallique.",
             },
             # Fallback English (or add more languages)
             'en': {
@@ -1399,6 +1833,10 @@ class TranslationManager:
                 "Start": "Start",
                 "Stop": "Stop",
                 "Restart": "Restart",
+                "Mech": "Mech",
+                "Info": "Info",
+                "Admin": "Admin",
+                "Help": "Help",
                 "Language": "Language",
                 "Bot language set to": "Bot language set to",
                 "Control Panel": "Control Panel",
@@ -1444,6 +1882,19 @@ class TranslationManager:
                 "Docker container: {docker_name}": "Docker container: {docker_name}",
                 "Pending..." : "Pending...",
                 "Status is currently unknown.": "Status is currently unknown.",
+
+                # Cooldown and error messages
+                "❌ Command on cooldown. Try again in {remaining} seconds.": "❌ Command on cooldown. Try again in {remaining} seconds.",
+                "❌ Could not load configuration.": "❌ Could not load configuration.",
+                "❌ No servers configured.": "❌ No servers configured.",
+                "❌ Error showing control overview.": "❌ Error showing control overview.",
+                "Show donation information to support the project": "Show donation information to support the project",
+                "Admin Overview": "Admin Overview",
+                "Container: {total} • Online: {online} • Offline: {offline}": "Container: {total} • Online: {online} • Offline: {offline}",
+                "offline": "offline",
+                "🔐 Premium Features Active": "🔐 Premium Features Active",
+                "Donations are disabled via premium key. Thank you for supporting DDC!": "Donations are disabled via premium key. Thank you for supporting DDC!",
+                "❌ Error": "❌ Error",
 
                 # Schedule Command Texts
                 "This command can only be used in server channels.": "This command can only be used in server channels.",
@@ -1576,41 +2027,6 @@ class TranslationManager:
 
                 # Heartbeat
                 "❤️ Heartbeat signal at {timestamp}": "❤️ Heartbeat signal at {timestamp}",
-
-                # Error messages
-                "Error during execution: {error}": "Erreur lors de l'exécution : {error}",
-
-                # Mech History translations
-                "🛡️ Mech Evolution History": "🛡️ Histoire de l'Évolution des Mechs",
-                "The Song of Steel and Stars": "Le Chant d'Acier et d'Étoiles",
-                "A Chronicle of the Mech Ascension": "Une Chronique de l'Ascension des Mechs",
-                "Select a mech to view": "Sélectionnez un mech à afficher",
-                "Read Story": "Lire l'Histoire",
-                "Epilogue": "Épilogue",
-                "Next Evolution": "Prochaine Évolution",
-                "Need $": "Nécessite $",
-                "more to unlock": "de plus pour débloquer",
-                "Ready to unlock!": "Prêt à débloquer !",
-                "Error loading mech history.": "Erreur lors du chargement de l'histoire des mechs.",
-                "Error loading mech.": "Erreur lors du chargement du mech.",
-                "Error loading story.": "Erreur lors du chargement de l'histoire.",
-                "Error loading epilogue.": "Erreur lors du chargement de l'épilogue.",
-                "No story chapter available for this mech yet.": "Aucun chapitre d'histoire disponible pour ce mech pour le moment.",
-                "Mech data not found.": "Données du mech introuvables.",
-
-                # Mech Descriptions (Names kept in English)
-                "Once a glorious war machine, now a corroded ruin. Rust gnaws through its joints, hydraulic fluids drip from torn plating, and its reactor sputters faintly. Barely able to move, it staggers like a dying beast.": "Jadis machine de guerre glorieuse, désormais ruine corrodée. La rouille ronge ses articulations, des fluides hydrauliques suintent de blindages déchirés, son réacteur crépite faiblement. À peine capable de bouger, il titube comme une bête à l'agonie.",
-                "A patched-up wreck, limping forward with mismatched armor and screeching servos. Every step is agony, but its core refuses to shut down. It is stubborn survival embodied in steel.": "Une épave rapiécée, claudiquant avec un blindage dépareillé et des servos grinçants. Chaque pas est supplice, mais son noyau refuse de s'éteindre. C'est la survie obstinée incarnée dans l'acier.",
-                "The dependable backbone of every mechanized army. Neither rusted ruin nor experimental prototype, but the perfected baseline. Mass-produced, balanced in offense and defense, its sturdy frame and reliable core make it the soldier's choice—the mech that wins wars through sheer numbers and unshakable consistency.": "L'épine dorsale fiable de toute armée mécanisée. Ni ruine rouillée ni prototype expérimental, mais la base perfectionnée. Produit en masse, équilibré entre attaque et défense, son châssis robuste et son noyau fiable en font le choix du soldat – le mech qui gagne les guerres par le nombre pur et une constance inébranlable.",
-                "Augmented with bulked plating and spiked enhancements, this mech becomes a juggernaut of intimidation. Every movement resonates with power, built to crush resistance head-on.": "Renforcé de blindage massif et d'améliorations hérissées, ce mech devient un mastodonte d'intimidation. Chaque mouvement résonne de puissance, bâti pour écraser toute résistance de front.",
-                "Energy channels glow across its reinforced body, pulsing like living veins. Its reactor hums with controlled plasma output, a perfected synthesis of raw strength and engineered balance.": "Des canaux d'énergie luisent sur son corps renforcé, pulsant comme des veines vivantes. Son réacteur vibre d'une émission de plasma contrôlée, synthèse parfaite entre force brute et équilibre ingénié.",
-                "A dark branch of evolution, tainted by void-tech. Corruption twists its frame, reactor howls like a collapsing star. It moves with unnatural spasms—unstable, terrifying, yet overwhelmingly powerful.": "Une branche sombre de l'évolution, souillée par la technologie du vide. La corruption tord son châssis, son réacteur hurle comme une étoile qui s'effondre. Il se meut en spasmes contre-nature – instable, terrifiant, mais d'une puissance accablante.",
-                "Mastery from chaos: sleek, fast, and armed with rift engines. It phases in and out of existence, striking enemies with energy blades before they can react. A predator between dimensions.": "La maîtrise née du chaos : élancé, rapide, armé de moteurs de faille. Il se dématérialise et réapparaît, frappant ses ennemis de lames d'énergie avant qu'ils ne puissent réagir. Un prédateur entre les dimensions.",
-                "A glowing fortress of shields and radiant plating. Built to withstand orbital bombardments, this mech inspires entire armies with its unyielding defense and brilliant aura.": "Une forteresse rayonnante de boucliers et de blindage lumineux. Conçu pour résister aux bombardements orbitaux, ce mech inspire des armées entières par sa défense inflexible et son aura éclatante.",
-                "Elevated above the battlefield, carried and revered by lesser frames. Wreathed in fire and cloaked in command systems, it has become both warlord and deity of steel.": "Élevé au-dessus du champ de bataille, porté et vénéré par des châssis inférieurs. Drapé de feu et enveloppé de systèmes de commandement, il est devenu à la fois seigneur de guerre et divinité d'acier.",
-                "The final transcendence. No longer merely a machine, it radiates with cosmic energy, haloed in starlight. A godlike protector forged from centuries of steel and sacrifice.": "La transcendance ultime. Plus qu'une simple machine, il rayonne d'énergie cosmique, auréolé de lumière stellaire. Un protecteur divin forgé de siècles d'acier et de sacrifice.",
-                "Reality-bending omnipotent war machine of the gods": "Machine de guerre omnipotente des dieux, pliant la réalité",
-                "The final scream of a burning universe, forged into indestructible form. Its steps tear the fabric of existence, its pulse synchronizes with the heartbeat of dead gods. Finality in metal form.": "Le cri final d'un univers en flammes, forgé en forme indestructible. Ses pas déchirent le tissu de l'existence, son pouls se synchronise avec les battements de cœur des dieux morts. La finalité sous forme métallique.",
 
                 # Mech System translations (English)
                 "Mech-onate": "Mech-onate",
@@ -1764,6 +2180,230 @@ class TranslationManager:
                 "ID": "ID",
                 "Showing first {count} of {total} tasks": "Showing first {count} of {total} tasks",
                 "Error opening task delete panel.": "Error opening task delete panel.",
+                # Update notification system
+                "🎉 DockerDiscordControl Update": "🎉 DockerDiscordControl Update",
+                "**Version {version}** - New features available!": "**Version {version}** - New features available!",
+                "🔒 Spam Protection System": "🔒 Spam Protection System",
+                "• Dynamically configurable cooldowns for all commands\n• Web UI Modal under 'Web UI Authentication'\n• Individual settings per command and button\n• Protection against rate-limiting and abuse": "• Dynamically configurable cooldowns for all commands\n• Web UI Modal under 'Web UI Authentication'\n• Individual settings per command and button\n• Protection against rate-limiting and abuse",
+                "📋 Container Info System": "📋 Container Info System",
+                "• New /info command for detailed container information\n• Port field in info editor modal\n• Live WAN IP detection or custom address\n• Consistent display in all info views": "• New /info command for detailed container information\n• Port field in info editor modal\n• Live WAN IP detection or custom address\n• Consistent display in all info views",
+                "🌍 Dynamic Timezone System": "🌍 Dynamic Timezone System",
+                "• Automatic timezone detection from Web UI config\n• No more hardcoded timezones\n• Better token decryption": "• Automatic timezone detection from Web UI config\n• No more hardcoded timezones\n• Better token decryption",
+                "⚙️ Configuration": "⚙️ Configuration",
+                "**Spam Protection:** Web UI → Configuration → 'Spam Protection Settings'\n**Container Info:** Use info buttons in status messages": "**Spam Protection:** Web UI → Configuration → 'Spam Protection Settings'\n**Container Info:** Use info buttons in status messages",
+                "This message is only shown once • https://ddc.bot": "This message is only shown once • https://ddc.bot",
+
+                # Quick Win Additions
+                "None": "None",
+                "This command is not allowed in this channel": "This command is not allowed in this channel",
+
+                # Priority Group 1: Error Messages
+                "An error occurred while deleting the task.": "An error occurred while deleting the task.",
+                "An error occurred while retrieving container information.": "An error occurred while retrieving container information.",
+                "Container '{container}' not found in configuration.": "Container '{container}' not found in configuration.",
+                "You don't have permission to perform '{action}' on '{container}'.": "You don't have permission to perform '{action}' on '{container}'.",
+                "Failed to schedule task. It might conflict with an existing task or another error occurred.": "Failed to schedule task. It might conflict with an existing task or another error occurred.",
+                "An unexpected error occurred while creating the task.": "An unexpected error occurred while creating the task.",
+                "Error during execution: {error}": "Error during execution: {error}",
+                "This action is not allowed in this channel.": "This action is not allowed in this channel.",
+                "An error occurred: {error}": "An error occurred: {error}",
+                "Error displaying container info. Please try again.": "Error displaying container info. Please try again.",
+
+                # Priority Group 2: Scheduling Messages
+                "Invalid time format. Please use HH:MM (e.g., 14:30).": "Invalid time format. Please use HH:MM (e.g., 14:30).",
+                "Cannot schedule task: It conflicts with an existing task for container '{container}' within a 10-minute window.": "Cannot schedule task: It conflicts with an existing task for container '{container}' within a 10-minute window.",
+                "Cannot schedule task: The calculated execution time is invalid or conflicts with an existing task.": "Cannot schedule task: The calculated execution time is invalid or conflicts with an existing task.",
+                "Task for {container_name} scheduled daily at {hour:02d}:{minute:02d}.": "Task for {container_name} scheduled daily at {hour:02d}:{minute:02d}.",
+                "Task for {container_name} scheduled weekly on {weekday} at {hour:02d}:{minute:02d}.": "Task for {container_name} scheduled weekly on {weekday} at {hour:02d}:{minute:02d}.",
+                "Task for {container_name} scheduled monthly on day {day} at {hour:02d}:{minute:02d}.": "Task for {container_name} scheduled monthly on day {day} at {hour:02d}:{minute:02d}.",
+                "Task for {container_name} scheduled yearly on {month} {day} at {hour:02d}:{minute:02d}.": "Task for {container_name} scheduled yearly on {month} {day} at {hour:02d}:{minute:02d}.",
+                "Next execution: {time}": "Next execution: {time}",
+                "Task successfully deleted.": "Task successfully deleted.",
+                "No Tasks": "No Tasks",
+
+                # Priority Group 3: Permission & Status Messages
+                "This command is on cooldown. Please try again in {duration}.": "This command is on cooldown. Please try again in {duration}.",
+                "You do not have permission to use this command.": "You do not have permission to use this command.",
+                "Container Information": "Container Information",
+                "Select a container from the dropdown to view its information:": "Select a container from the dropdown to view its information:",
+                "Admin Control Panel": "Admin Control Panel",
+                "Select a container to view its control panel:": "Select a container to view its control panel:",
+                "Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.": "Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.",
+                "Container information is not configured for '{container}'.": "Container information is not configured for '{container}'.",
+                "Container information is not enabled for '{container}'.": "Container information is not enabled for '{container}'.",
+                "Could not load container information for '{container}'.": "Could not load container information for '{container}'.",
+                "No additional information is configured for container '{container}'.": "No additional information is configured for container '{container}'.",
+                "**Evolution: Level {old} → {new}!**": "**Evolution: Level {old} → {new}!**",
+                "Processing...": "Processing...",
+
+                # Admin Overview translations
+                "❌ No containers found in configuration.": "❌ No containers found in configuration.",
+                "❌ No valid containers found in configuration.": "❌ No valid containers found in configuration.",
+                "❌ Internal error. Please try again later.": "❌ Internal error. Please try again later.",
+                "Select a container to control:": "Select a container to control:",
+                "❌ Error accessing admin controls.": "❌ Error accessing admin controls.",
+                "❌ You don't have permission to restart all containers.": "❌ You don't have permission to restart all containers.",
+                "❌ No running containers to restart.": "❌ No running containers to restart.",
+                "⚠️ Confirm Restart All": "⚠️ Confirm Restart All",
+                "Are you sure you want to restart ALL running containers?\n\nThis will temporarily disrupt all services.": "Are you sure you want to restart ALL running containers?\n\nThis will temporarily disrupt all services.",
+                "❌ Error processing restart all request.": "❌ Error processing restart all request.",
+                "❌ You don't have permission to stop all containers.": "❌ You don't have permission to stop all containers.",
+                "❌ No running containers to stop.": "❌ No running containers to stop.",
+                "🚨 Confirm Stop All": "🚨 Confirm Stop All",
+                "Are you sure you want to STOP ALL running containers?\n\n**WARNING:** This will shut down all services!": "Are you sure you want to STOP ALL running containers?\n\n**WARNING:** This will shut down all services!",
+                "❌ Error processing stop all request.": "❌ Error processing stop all request.",
+                "❌ Error processing donate request.": "❌ Error processing donate request.",
+                "Yes, Restart All": "Yes, Restart All",
+                "⏳ Another bulk operation is in progress. Please wait.": "⏳ Another bulk operation is in progress. Please wait.",
+                "❌ No active servers configured.": "❌ No active servers configured.",
+                "❌ Docker service unavailable. Operation cancelled.": "❌ Docker service unavailable. Operation cancelled.",
+                "Successfully restarted: **{count}** containers": "Successfully restarted: **{count}** containers",
+                "\nFailed: **{count}** containers": "\nFailed: **{count}** containers",
+                "\nSkipped (not running): **{count}** containers": "\nSkipped (not running): **{count}** containers",
+                "🔄 Restart All Complete": "🔄 Restart All Complete",
+                "❌ An error occurred during the restart operation.": "❌ An error occurred during the restart operation.",
+                "Yes, Stop All": "Yes, Stop All",
+                "Successfully stopped: **{count}** containers": "Successfully stopped: **{count}** containers",
+                "⏹️ Stop All Complete": "⏹️ Stop All Complete",
+                "❌ An error occurred during the stop operation.": "❌ An error occurred during the stop operation.",
+                "Cancel": "Cancel",
+                "✅ Action cancelled.": "✅ Action cancelled.",
+
+                # Agent 6: Critical Missing Strings - Command Descriptions & Help
+                "Month (1-12 or name like 'January')": "Month (1-12 or name like 'January')",
+
+                # Agent 6: Task Management Strings
+                "Task deleted successfully.": "Task deleted successfully.",
+                "No task found with ID: {task_id}": "No task found with ID: {task_id}",
+                "Invalid task ID format.": "Invalid task ID format.",
+                "You don't have permission to delete this task.": "You don't have permission to delete this task.",
+                "No scheduled tasks were found.": "No scheduled tasks were found.",
+                "Scheduled Tasks": "Scheduled Tasks",
+                "Task #{id}": "Task #{id}",
+
+                # Agent 6: Container Status Strings
+                "Online": "Online",
+                "Offline": "Offline",
+                "Unknown": "Unknown",
+                "Starting...": "Starting...",
+                "Stopping...": "Stopping...",
+
+                # Agent 6: Permission Strings
+                "You don't have permission to use the info command in this channel.": "You don't have permission to use the info command in this channel.",
+                "You do not have permission to view container info in this channel.": "You do not have permission to view container info in this channel.",
+
+                # Agent 6: Missing English Translations (High Priority)
+                "Action to perform": "Action to perform",
+                "Container name (or 'all')": "Container name (or 'all')",
+                "Time in HH:MM format (e.g., 14:30)": "Time in HH:MM format (e.g., 14:30)",
+                "Day of the month (1-31)": "Day of the month (1-31)",
+                "Delete a scheduled task": "Delete a scheduled task",
+                "Shows information about scheduled tasks": "Shows information about scheduled tasks",
+                "Task ID to delete": "Task ID to delete",
+                "Shows the bot's latency": "Shows the bot's latency",
+                "Checks the bot's latency.": "Checks the bot's latency.",
+
+                # Agent 5: control_ui.py + Other Cogs Translation Fixes
+                "⏰ Please wait {remaining:.1f} seconds before using '{action}' button again.": "⏰ Please wait {remaining:.1f} seconds before using '{action}' button again.",
+                "⏰ Please wait {remaining:.1f} seconds before using info button again.": "⏰ Please wait {remaining:.1f} seconds before using info button again.",
+                "❌ Action '{action}' is not allowed for container '{container}'.": "❌ Action '{action}' is not allowed for container '{container}'.",
+                """```
+┌── Processing ───────────────
+│ ⏳ Updating container status...
+│ 🔄 Please wait ~15 seconds
+└─────────────────────────────
+```""": """```
+┌── Processing ───────────────
+│ ⏳ Updating container status...
+│ 🔄 Please wait ~15 seconds
+└─────────────────────────────
+```""",
+                """```
+┌── Loading Status ───────────
+│ 🔄 Fetching container data...
+│ ⏱️ Background process running
+│ 📊 Please wait for fresh data
+└─────────────────────────────
+```""": """```
+┌── Loading Status ───────────
+│ 🔄 Fetching container data...
+│ ⏱️ Background process running
+│ 📊 Please wait for fresh data
+└─────────────────────────────
+```""",
+                "⏰ Please wait {remaining:.1f} more seconds before using this button again.": "⏰ Please wait {remaining:.1f} more seconds before using this button again.",
+
+                # Agent 7: Final Missing Code Strings (Priority Group 1: Scheduler & Task Management)
+                "Year must be between 2025 and 2030.": "Year must be between 2025 and 2030.",
+                "Invalid year format. Please use a 4-digit year (e.g., 2025).": "Invalid year format. Please use a 4-digit year (e.g., 2025).",
+                "Invalid month format. Please use MM or month name (e.g., 07 or July).": "Invalid month format. Please use MM or month name (e.g., 07 or July).",
+                "Year (e.g., 2025)": "Year (e.g., 2025)",
+                "Weekday (e.g., Monday)": "Weekday (e.g., Monday)",
+                "Task for {container_name} scheduled for one-time execution on {year}-{month:02d}-{day:02d} at {hour:02d}:{minute:02d}.": "Task for {container_name} scheduled for one-time execution on {year}-{month:02d}-{day:02d} at {hour:02d}:{minute:02d}.",
+                "Daily": "Daily",
+                "Weekly": "Weekly",
+                "Monthly": "Monthly",
+                "Yearly": "Yearly",
+                "One-time": "One-time",
+                "Next run": "Next run",
+
+                # Agent 7: Final Missing Code Strings (Priority Group 2: Container Control & Info)
+                "Edit": "Edit",
+                "Logs": "Logs",
+                "Info": "Info",
+                "Refresh": "Refresh",
+                "Protected Info": "Protected Info",
+                "Public Info": "Public Info",
+                "Server **{server_name}** could not be processed {action_process_text}.": "Server **{server_name}** could not be processed {action_process_text}.",
+                "Server **{server_name}** is being processed {action_process_text}.": "Server **{server_name}** is being processed {action_process_text}.",
+
+                # Agent 7: Final Missing Code Strings (Priority Group 3: Status & Display)
+                "CPU": "CPU",
+                "RAM": "RAM",
+                "Uptime": "Uptime",
+                "Hidden": "Hidden",
+                "N/A": "N/A",
+
+                # Agent 7: Final Missing Code Strings (Priority Group 4: User Feedback & Errors)
+                "An error occurred while generating the overview.": "An error occurred while generating the overview.",
+                "Your donation has been recorded and helps power the Donation Engine.": "Your donation has been recorded and helps power the Donation Engine.",
+
+                # Agent 9: Complete English Translation Coverage to 100% (35 final missing keys)
+                "Click any button below to delete the corresponding task:": "Click any button below to delete the corresponding task:",
+                "Container Info System": "Container Info System",
+                "Controls a specific Docker container. Actions: `start`, `stop`, `restart`. Requires permissions.": "Controls a specific Docker container. Actions: `start`, `stop`, `restart`. Requires permissions.",
+                "Date:": "Date:",
+                "Day of month (e.g., 15)": "Day of month (e.g., 15)",
+                "Day of the week (e.g., Monday or 1)": "Day of the week (e.g., Monday or 1)",
+                "Delete a scheduled task by its task ID.": "Delete a scheduled task by its task ID.",
+                "Displays help for available commands": "Displays help for available commands",
+                "Displays the control panel in the control channel": "Displays the control panel in the control channel",
+                "DockerDiscordControl Update": "DockerDiscordControl Update",
+                "Dynamic Timezone System": "Dynamic Timezone System",
+                "Found {total} active tasks": "Found {total} active tasks",
+                "Legend:** O = Once, D = Daily, W = Weekly, M = Monthly, Y = Yearly": "Legend:** O = Once, D = Daily, W = Weekly, M = Monthly, Y = Yearly",
+                "Month (e.g., 07 or July)": "Month (e.g., 07 or July)",
+                "New features available!": "New features available!",
+                "Shortcut: Shows the status of all containers": "Shortcut: Shows the status of all containers",
+                "Show active tasks with delete buttons": "Show active tasks with delete buttons",
+                "Showing first 25 of {total} tasks": "Showing first 25 of {total} tasks",
+                "Shows schedule command help": "Shows schedule command help",
+                "Shows task command help": "Shows task command help",
+                "Shows the status of all containers": "Shows the status of all containers",
+                "Shows this help message.": "Shows this help message.",
+                "Spam Protection System": "Spam Protection System",
+                "Task Delete Panel": "Task Delete Panel",
+                "The Docker container to schedule": "The Docker container to schedule",
+                "This message is only shown once": "This message is only shown once",
+                "Time in HH:MM format": "Time in HH:MM format",
+                "Time in HH:MM format (e.g., 08:00)": "Time in HH:MM format (e.g., 08:00)",
+                "Time period (e.g., next_week)": "Time period (e.g., next_week)",
+                "You do not have permission to delete tasks in this channel.": "You do not have permission to delete tasks in this channel.",
+                "https://ddc.bot • Click ▶️ to start live updates": "https://ddc.bot • Click ▶️ to start live updates",
+                "⏳ Updating...": "⏳ Updating...",
+                "✅ Successfully deleted scheduled task!\n**Task ID:** {task_id}\n**Container:** {container}\n**Action:** {action}\n**Cycle:** {cycle}": "✅ Successfully deleted scheduled task!\n**Task ID:** {task_id}\n**Container:** {container}\n**Action:** {action}\n**Cycle:** {cycle}",
+                "❌ Live Logs feature is currently disabled by administrator.": "❌ Live Logs feature is currently disabled by administrator.",
+                "🔄 Refreshing logs...": "🔄 Refreshing logs...",
             }
             # Add other languages here if needed
         }

@@ -143,7 +143,9 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
             # Validate custom text length
             if len(custom_text) > 250:
                 await interaction.response.send_message(
-                    f"❌ Custom text too long ({len(custom_text)}/250 characters). Please shorten it.",
+                    _("❌ Custom text too long ({length}/250 characters). Please shorten it.").format(
+                        length=len(custom_text)
+                    ),
                     ephemeral=True
                 )
                 return

@@ -565,7 +565,13 @@ class StatusHandlersMixin:
             if 'embed_cache_indicator' in locals() and 'loading' in embed_cache_indicator:
                 # Loading status
                 embed = discord.Embed(
-                    description="```\n┌── Loading Status ───────────\n│ 🔄 Fetching container data...\n│ ⏱️ Background process running\n│ 📊 Please wait for fresh data\n└─────────────────────────────\n```",
+                    description=_("""```
+┌── Loading Status ───────────
+│ 🔄 Fetching container data...
+│ ⏱️ Background process running
+│ 📊 Please wait for fresh data
+└─────────────────────────────
+```"""),
                     color=0x3498db
                 )
                 embed.set_footer(text="Background data collection in progress • https://ddc.bot")

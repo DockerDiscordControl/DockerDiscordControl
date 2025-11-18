@@ -16,7 +16,7 @@ import discord
 from pathlib import Path
 from typing import Dict, Any, Optional
 from utils.logging_utils import get_module_logger
-# Translation import moved to function level to avoid circular import
+from cogs.translation_manager import _
 
 logger = get_module_logger('update_notifier')
 
@@ -80,46 +80,46 @@ class UpdateNotifier:
     def create_update_embed(self) -> discord.Embed:
         """Create the update notification embed."""
         embed = discord.Embed(
-            title="🎉 DockerDiscordControl Update",
-            description=f"**Version {self.current_version}** - Neue Features verfügbar!",
+            title=_("🎉 DockerDiscordControl Update"),
+            description=_("**Version {version}** - New features available!").format(version=self.current_version),
             color=0x00ff00
         )
-        
+
         # New features in this update
         embed.add_field(
-            name="🔒 Spam Protection System",
-            value="• Dynamisch konfigurierbare Cooldowns für alle Commands\n"
-                  "• Web UI Modal unter 'Web UI Authentication'\n"
-                  "• Individuelle Einstellungen pro Command und Button\n"
-                  "• Schutz vor Rate-Limiting und Missbrauch",
+            name=_("🔒 Spam Protection System"),
+            value=_("• Dynamically configurable cooldowns for all commands\n"
+                    "• Web UI Modal under 'Web UI Authentication'\n"
+                    "• Individual settings per command and button\n"
+                    "• Protection against rate-limiting and abuse"),
             inline=False
         )
-        
+
         embed.add_field(
-            name="📋 Container Info System",
-            value="• Neuer `/info` Command für detaillierte Container-Infos\n"
-                  "• Port-Feld im Info-Editor Modal\n"
-                  "• Live WAN IP Detection oder Custom Address\n"
-                  "• Einheitliche Darstellung in allen Info-Anzeigen",
+            name=_("📋 Container Info System"),
+            value=_("• New /info command for detailed container information\n"
+                    "• Port field in info editor modal\n"
+                    "• Live WAN IP detection or custom address\n"
+                    "• Consistent display in all info views"),
             inline=False
         )
-        
+
         embed.add_field(
-            name="🌍 Dynamisches Timezone System",
-            value="• Automatische Timezone-Erkennung aus Web UI Config\n"
-                  "• Keine hardcodierten Timezones mehr\n"
-                  "• Bessere Token-Entschlüsselung",
+            name=_("🌍 Dynamic Timezone System"),
+            value=_("• Automatic timezone detection from Web UI config\n"
+                    "• No more hardcoded timezones\n"
+                    "• Better token decryption"),
             inline=False
         )
-        
+
         embed.add_field(
-            name="⚙️ Konfiguration",
-            value="**Spam Protection:** Web UI → Konfiguration → 'Spam Protection Settings'\n"
-                  "**Container Info:** Info-Buttons in Status-Nachrichten verwenden",
+            name=_("⚙️ Configuration"),
+            value=_("**Spam Protection:** Web UI → Configuration → 'Spam Protection Settings'\n"
+                    "**Container Info:** Use info buttons in status messages"),
             inline=False
         )
-        
-        embed.set_footer(text="Diese Nachricht wird nur einmal angezeigt • https://ddc.bot")
+
+        embed.set_footer(text=_("This message is only shown once • https://ddc.bot"))
         return embed
     
     async def send_update_notification(self, bot) -> bool:

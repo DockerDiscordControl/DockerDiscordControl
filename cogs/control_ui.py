@@ -248,7 +248,9 @@ class ActionButton(Button):
                 if spam_service.is_on_cooldown(interaction.user.id, self.action):
                     remaining_time = spam_service.get_remaining_cooldown(interaction.user.id, self.action)
                     await interaction.response.send_message(
-                        f"⏰ Please wait {remaining_time:.1f} seconds before using '{self.action}' button again.", 
+                        _("⏰ Please wait {remaining:.1f} seconds before using '{action}' button again.").format(
+                            remaining=remaining_time, action=self.action
+                        ),
                         ephemeral=True
                     )
                     return
@@ -284,7 +286,12 @@ class ActionButton(Button):
 
         allowed_actions = self.server_config.get('allowed_actions', [])
         if self.action not in allowed_actions:
-            await interaction.followup.send(f"❌ Action '{self.action}' is not allowed for container '{self.display_name}'.", ephemeral=True)
+            await interaction.followup.send(
+                _("❌ Action '{action}' is not allowed for container '{container}'.").format(
+                    action=self.action, container=self.display_name
+                ),
+                ephemeral=True
+            )
             return
 
         logger.info(f"[ACTION_BTN] {self.action.upper()} action for '{self.display_name}' triggered by {user.name}")
@@ -400,7 +407,12 @@ class ActionButton(Button):
                     # Show immediate "Processing..." message
                     try:
                         processing_embed = discord.Embed(
-                            description="```\n┌── Processing ───────────────\n│ ⏳ Updating container status...\n│ 🔄 Please wait ~15 seconds\n└─────────────────────────────\n```",
+                            description=_("""```
+┌── Processing ───────────────
+│ ⏳ Updating container status...
+│ 🔄 Please wait ~15 seconds
+└─────────────────────────────
+```"""),
                             color=0xffa500  # Orange
                         )
                         processing_embed.set_footer(text="Container action in progress • https://ddc.bot")
@@ -894,7 +906,9 @@ class InfoButton(Button):
                 if spam_service.is_on_cooldown(interaction.user.id, "info"):
                     remaining_time = spam_service.get_remaining_cooldown(interaction.user.id, "info")
                     await interaction.response.send_message(
-                        f"⏰ Please wait {remaining_time:.1f} seconds before using info button again.", 
+                        _("⏰ Please wait {remaining:.1f} seconds before using info button again.").format(
+                            remaining=remaining_time
+                        ),
                         ephemeral=True
                     )
                     return
@@ -1836,6 +1850,9 @@ class AdminContainerDropdown(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle container selection and show control panel."""
         try:
+            # IMPORTANT: Defer immediately to avoid interaction timeout (3 second limit)
+            await interaction.response.defer()
+
             selected_container = self.values[0]
 
             # Find the container configuration
@@ -1854,7 +1871,7 @@ class AdminContainerDropdown(discord.ui.Select):
                         break
 
             if not container_config:
-                await interaction.response.edit_message(
+                await interaction.edit_original_response(
                     content=f"❌ Container configuration not found for '{selected_container}'",
                     embed=None,
                     view=None
@@ -1868,7 +1885,7 @@ class AdminContainerDropdown(discord.ui.Select):
             # Load configuration
             config = load_config()
             if not config:
-                await interaction.response.edit_message(
+                await interaction.edit_original_response(
                     content="❌ Failed to load configuration",
                     embed=None,
                     view=None
@@ -1928,10 +1945,10 @@ class AdminContainerDropdown(discord.ui.Select):
                 # Clean up temporary marker after everything is done
                 container_config.pop('_is_admin_control', None)
 
-                await interaction.response.edit_message(embed=embed, view=control_view)
+                await interaction.edit_original_response(embed=embed, view=control_view)
             else:
                 # Fallback if method not available
-                await interaction.response.edit_message(
+                await interaction.edit_original_response(
                     content="❌ Control generation method not available",
                     embed=None,
                     view=None
@@ -1943,14 +1960,12 @@ class AdminContainerDropdown(discord.ui.Select):
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error handling admin container selection: {e}", exc_info=True)
             try:
-                if not interaction.response.is_done():
-                    await interaction.response.edit_message(
-                        content="❌ Error showing container control panel.",
-                        embed=None,
-                        view=None
-                    )
-                else:
-                    await interaction.followup.send("❌ Error showing container control panel.", ephemeral=True)
+                # Since we deferred at the start, response is always done, so edit original
+                await interaction.edit_original_response(
+                    content="❌ Error showing container control panel.",
+                    embed=None,
+                    view=None
+                )
             except (discord.errors.DiscordException, RuntimeError):
                 pass
 
@@ -1999,10 +2014,10 @@ class HelpButton(Button):
             embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n🔄 {_('Container status loading')}\n🟡 {_('Action pending (starting/stopping)')}" + "\n\u200b", inline=False)
 
             # Buttons in Server Overview
-            embed.add_field(name=f"**{_('Buttons')}**", value=f"**Mech** - {_('Shows detailed mech stats and donation system')}\nℹ️ **Info** - {_('Shows container details (if configured)')}\n🛠️ **Admin** - {_('Opens admin control panel')}\n❓ **Help** - {_('Shows this help message')}" + "\n\u200b", inline=False)
+            embed.add_field(name=f"**{_('Buttons')}**", value=f"**{_('Mech')}** - {_('Shows detailed mech stats and donation system')}\nℹ️ **{_('Info')}** - {_('Shows container details (if configured)')}\n🛠️ **{_('Admin')}** - {_('Opens admin control panel')}\n❓ **{_('Help')}** - {_('Shows this help message')}" + "\n\u200b", inline=False)
 
             # Container Controls
-            embed.add_field(name=f"**{_('Container Controls')}**", value=f"▶️ **Start** - {_('Starts the container')}\n⏹️ **Stop** - {_('Stops the container')}\n🔄 **Restart** - {_('Restarts the container')}" + "\n\u200b", inline=False)
+            embed.add_field(name=f"**{_('Container Controls')}**", value=f"▶️ **{_('Start')}** - {_('Starts the container')}\n⏹️ **{_('Stop')}** - {_('Stops the container')}\n🔄 **{_('Restart')}** - {_('Restarts the container')}" + "\n\u200b", inline=False)
 
             # Admin Panel Functions
             embed.add_field(name=f"**{_('Admin Panel')}**", value=f"📝 {_('Edit container info text')}\n📋 {_('View container logs')}\n🔄 {_('Restart All containers')}\n⏹️ {_('Stop All containers')}", inline=False)

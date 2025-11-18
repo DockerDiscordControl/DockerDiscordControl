@@ -120,23 +120,25 @@ class ProtectedInfoEditButton(discord.ui.Button):
             cooldown_seconds = spam_manager.get_button_cooldown("info")
             current_time = time.time()
             cooldown_key = f"button_protected_edit_{interaction.user.id}"
-            
+
             if hasattr(self.cog, '_button_cooldowns'):
                 if cooldown_key in self.cog._button_cooldowns:
                     last_use = self.cog._button_cooldowns[cooldown_key]
                     if current_time - last_use < cooldown_seconds:
                         remaining = cooldown_seconds - (current_time - last_use)
                         await interaction.response.send_message(
-                            f"⏰ Please wait {remaining:.1f} more seconds before using this button again.", 
+                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                                remaining=remaining
+                            ),
                             ephemeral=True
                         )
                         return
             else:
                 self.cog._button_cooldowns = {}
-            
+
             # Record button use
             self.cog._button_cooldowns[cooldown_key] = current_time
-            
+
         try:
             # Import modal from enhanced_info_modal_simple
             from .enhanced_info_modal_simple import ProtectedInfoModal
@@ -188,23 +190,25 @@ class EditInfoButton(discord.ui.Button):
             cooldown_seconds = spam_manager.get_button_cooldown("info")
             current_time = time.time()
             cooldown_key = f"button_info_{interaction.user.id}"
-            
+
             if hasattr(self.cog, '_button_cooldowns'):
                 if cooldown_key in self.cog._button_cooldowns:
                     last_use = self.cog._button_cooldowns[cooldown_key]
                     if current_time - last_use < cooldown_seconds:
                         remaining = cooldown_seconds - (current_time - last_use)
                         await interaction.response.send_message(
-                            f"⏰ Please wait {remaining:.1f} more seconds before using this button again.", 
+                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                                remaining=remaining
+                            ),
                             ephemeral=True
                         )
                         return
             else:
                 self.cog._button_cooldowns = {}
-            
+
             # Record button use
             self.cog._button_cooldowns[cooldown_key] = current_time
-            
+
         try:
             # Import modal from enhanced_info_modal_simple
             from .enhanced_info_modal_simple import SimplifiedContainerInfoModal
@@ -680,7 +684,9 @@ class DebugLogsButton(discord.ui.Button):
                         if current_time - last_use < cooldown_seconds:
                             remaining = cooldown_seconds - (current_time - last_use)
                             await interaction.followup.send(
-                                f"⏰ Please wait {remaining:.1f} more seconds before using this button again.",
+                                _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                                    remaining=remaining
+                                ),
                                 ephemeral=True
                             )
                             return
@@ -1074,16 +1080,18 @@ class ProtectedInfoButton(discord.ui.Button):
                     if current_time - last_use < cooldown_seconds:
                         remaining = cooldown_seconds - (current_time - last_use)
                         await interaction.response.send_message(
-                            f"⏰ Please wait {remaining:.1f} more seconds before using this button again.", 
+                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                                remaining=remaining
+                            ),
                             ephemeral=True
                         )
                         return
             else:
                 self.cog._button_cooldowns = {}
-            
+
             # Record button use
             self.cog._button_cooldowns[cooldown_key] = current_time
-            
+
         try:
             # Import password validation modal from enhanced_info_modal_simple
             from .enhanced_info_modal_simple import PasswordValidationModal
