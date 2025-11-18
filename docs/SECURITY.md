@@ -6,7 +6,7 @@
 
 All CodeQL security vulnerabilities identified by static analysis have been fixed in v2.0.0:
 
-#### 1. DOM-based XSS Vulnerability (High Severity)
+#### 1. DOM-based XSS Vulnerability - Alert Messages (High Severity)
 - **Alert:** js/xss-through-dom
 - **Location:** app/templates/config.html (lines 1378, 1488)
 - **Vulnerability:** User-controlled data inserted into DOM using innerHTML without sanitization
@@ -25,7 +25,26 @@ const alertDiv = document.createElement('div');
 alertDiv.textContent = message;  // Auto-escapes HTML
 ```
 
-#### 2. Information Exposure Through Exceptions (Medium Severity)
+#### 2. DOM-based XSS Vulnerability - Container Info Modal (High Severity)
+- **Alert:** js/xss-through-dom
+- **Location:** app/static/js/config-ui.js (line 129)
+- **Vulnerability:** Container name concatenated into innerHTML without escaping
+- **Attack Vector:** Malicious container name could execute JavaScript: `<img src=x onerror=alert(1)>`
+- **Fix Applied:** Split into safe innerHTML for static content + textContent for containerName
+- **Commit:** ce0d3d7 (2025-11-18)
+- **Impact:** Prevents XSS via container name injection
+
+Technical Details:
+```javascript
+// BEFORE (Vulnerable):
+modalLabel.innerHTML = '<i class="bi bi-info-circle"></i> ... - ' + containerName;
+
+// AFTER (Secure):
+modalLabel.innerHTML = '<i class="bi bi-info-circle"></i> ... - ';
+modalLabel.appendChild(document.createTextNode(containerName));
+```
+
+#### 3. Information Exposure Through Exceptions (Medium Severity)
 - **Alert:** py/stack-trace-exposure
 - **Locations:** 18 endpoints across 3 blueprint files
 - **Vulnerability:** Internal error details exposed to external users
@@ -44,7 +63,7 @@ logger.error(f"Failed: {result.error}", exc_info=True)
 return jsonify({'error': 'Failed to fetch data'}), 500
 ```
 
-#### 3. Incomplete URL Substring Sanitization - Part 1 (Medium Severity)
+#### 4. Incomplete URL Substring Sanitization - Part 1 (Medium Severity)
 - **Alert:** py/incomplete-url-substring-sanitization
 - **Location:** cogs/status_info_integration.py (line 1186)
 - **Vulnerability:** Simple substring check could be bypassed
@@ -62,7 +81,7 @@ if "https://ddc.bot" in current_footer:
 if current_footer.endswith("https://ddc.bot") or current_footer == "https://ddc.bot":
 ```
 
-#### 4. Incomplete URL Substring Sanitization - Part 2 (Medium Severity)
+#### 5. Incomplete URL Substring Sanitization - Part 2 (Medium Severity)
 - **Alert:** py/incomplete-url-substring-sanitization
 - **Location:** cogs/status_info_integration.py (line 1188)
 - **Vulnerability:** replace() method replaced ALL occurrences, not just the suffix
@@ -81,7 +100,7 @@ prefix = current_footer.removesuffix("https://ddc.bot")
 enhanced_footer = prefix + "ℹ️ Info Available • https://ddc.bot"
 ```
 
-#### 5. Information Exposure Through Exceptions - Mech Reset (Medium Severity)
+#### 6. Information Exposure Through Exceptions - Mech Reset (Medium Severity)
 - **Alert:** py/stack-trace-exposure
 - **Location:** app/blueprints/main_routes.py (mech reset endpoint)
 - **Vulnerability:** Internal error details from `result.message` exposed to users
@@ -101,7 +120,7 @@ current_app.logger.error(f"Mech reset failed: {result.message}", exc_info=True)
 return jsonify({'error': 'Failed to reset mech system'}), 500
 ```
 
-#### 6. Information Exposure Through Exceptions - 12 API Endpoints (Medium Severity)
+#### 7. Information Exposure Through Exceptions - 12 API Endpoints (Medium Severity)
 - **Alert:** py/stack-trace-exposure
 - **Locations:** 12 endpoints across main_routes.py
 - **Vulnerability:** `result.error` containing exception details returned to users

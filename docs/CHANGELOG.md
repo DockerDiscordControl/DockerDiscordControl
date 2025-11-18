@@ -45,8 +45,9 @@ Production-ready release with multi-language support, performance improvements, 
 - Web UI configuration persistence
 
 #### Security Fixes (2025-11-18)
-Six CodeQL security alerts resolved affecting 15+ locations:
-- DOM-based XSS vulnerability in Web UI (High severity)
+Seven CodeQL security alerts resolved affecting 34+ locations:
+- DOM-based XSS vulnerability - alert messages in Web UI (High severity)
+- DOM-based XSS vulnerability - container info modal (High severity)
 - Information exposure through exceptions - 18 API endpoints (Medium severity)
 - Information exposure through exceptions - Mech reset endpoint (Medium severity)
 - Information exposure through exceptions - 12 additional endpoints (Medium severity)
