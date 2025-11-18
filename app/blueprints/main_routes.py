@@ -360,9 +360,11 @@ def refresh_containers():
                 'formatted_time': result.formatted_time
             })
         else:
+            # Log detailed error server-side, return generic message to user
+            current_app.logger.error(f"Container refresh failed: {result.error}", exc_info=True)
             return jsonify({
                 'success': False,
-                'message': result.error or "Container refresh failed"
+                'message': "Container refresh failed"
             })
 
     except (ImportError, AttributeError, RuntimeError) as e:
@@ -403,10 +405,12 @@ def enable_temp_debug():
                 **result.data
             })
         else:
+            # Log detailed error server-side, return generic message to user
+            current_app.logger.error(f"Failed to enable temp debug: {result.error}", exc_info=True)
             return jsonify({
                 'success': False,
-                'message': result.error
-            }), result.status_code
+                'message': "Failed to enable debug mode"
+            }), 500
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (diagnostics service unavailable)
@@ -443,10 +447,12 @@ def disable_temp_debug():
                 **result.data
             })
         else:
+            # Log detailed error server-side, return generic message to user
+            current_app.logger.error(f"Failed to disable temp debug: {result.error}", exc_info=True)
             return jsonify({
                 'success': False,
-                'message': result.error
-            }), result.status_code
+                'message': "Failed to disable debug mode"
+            }), 500
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (diagnostics service unavailable)
@@ -476,11 +482,12 @@ def temp_debug_status():
                 **result.data
             })
         else:
+            # Log detailed error server-side, return generic message to user
+            current_app.logger.error(f"Cache diagnostics failed: {result.error}", exc_info=True)
             return jsonify({
                 'success': False,
-                'message': result.error,
-                **result.data
-            }), result.status_code
+                'message': "Failed to retrieve cache diagnostics"
+            }), 500
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (diagnostics service unavailable)
@@ -511,9 +518,11 @@ def performance_stats():
                 'performance_data': result.performance_data
             })
         else:
+            # Log detailed error server-side, return generic message to user
+            current_app.logger.error(f"Performance statistics failed: {result.error}", exc_info=True)
             return jsonify({
                 'success': False,
-                'message': result.error or "Error getting performance statistics. Please check the logs for details."
+                'message': "Error getting performance statistics. Please check the logs for details."
             })
 
     except (ImportError, AttributeError, RuntimeError) as e:
@@ -822,7 +831,9 @@ def submit_donation():
                 'donation_info': result.donation_info
             })
         else:
-            return jsonify({'success': False, 'error': result.error}), 400
+            # Log detailed error server-side, return generic message to user
+            current_app.logger.error(f"Donation processing failed: {result.error}", exc_info=True)
+            return jsonify({'success': False, 'error': 'Failed to process donation'}), 500
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (donation service unavailable)
@@ -952,8 +963,9 @@ def get_mech_speed_config():
         if result.success:
             return jsonify(result.data)
         else:
-            current_app.logger.error(f"Speed config request failed: {result.error}")
-            return jsonify({'error': result.error}), result.status_code
+            # Log detailed error server-side, return generic message to user
+            current_app.logger.error(f"Speed config request failed: {result.error}", exc_info=True)
+            return jsonify({'error': 'Failed to get speed configuration'}), 500
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (mech web service unavailable)
@@ -1014,8 +1026,9 @@ def get_mech_difficulty():
         if result.success:
             return jsonify(result.data)
         else:
-            current_app.logger.error(f"Difficulty get request failed: {result.error}")
-            return jsonify({'success': False, 'error': result.error}), result.status_code
+            # Log detailed error server-side, return generic message to user
+            current_app.logger.error(f"Difficulty get request failed: {result.error}", exc_info=True)
+            return jsonify({'success': False, 'error': 'Failed to get difficulty settings'}), 500
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (mech web service unavailable)
@@ -1056,8 +1069,9 @@ def set_mech_difficulty():
         if result.success:
             return jsonify(result.data)
         else:
-            current_app.logger.error(f"Difficulty set request failed: {result.error}")
-            return jsonify({'success': False, 'error': result.error}), result.status_code
+            # Log detailed error server-side, return generic message to user
+            current_app.logger.error(f"Difficulty set request failed: {result.error}", exc_info=True)
+            return jsonify({'success': False, 'error': 'Failed to set difficulty'}), 500
 
     except ValueError:
         return jsonify({'success': False, 'error': 'Invalid difficulty multiplier value'}), 400
@@ -1083,8 +1097,9 @@ def reset_mech_difficulty():
         if result.success:
             return jsonify(result.data)
         else:
-            current_app.logger.error(f"Difficulty reset request failed: {result.error}")
-            return jsonify({'success': False, 'error': result.error}), result.status_code
+            # Log detailed error server-side, return generic message to user
+            current_app.logger.error(f"Difficulty reset request failed: {result.error}", exc_info=True)
+            return jsonify({'success': False, 'error': 'Failed to reset difficulty'}), 500
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (mech web service unavailable)
@@ -1105,10 +1120,11 @@ def donations_api():
         result = donation_service.get_donation_history(limit=100)
         
         if not result.success:
-            current_app.logger.error(f"Failed to load donations: {result.error}")
+            # Log detailed error server-side, return generic message to user
+            current_app.logger.error(f"Failed to load donations: {result.error}", exc_info=True)
             return jsonify({
                 'success': False,
-                'error': result.error
+                'error': 'Failed to load donations'
             })
         
         donations = result.data['donations']
@@ -1171,10 +1187,11 @@ def delete_donation(index):
                 'message': message
             })
         else:
-            current_app.logger.error(f"Failed to delete/restore event: {result.error}")
+            # Log detailed error server-side, return generic message to user
+            current_app.logger.error(f"Failed to delete/restore event: {result.error}", exc_info=True)
             return jsonify({
                 'success': False,
-                'error': result.error
+                'error': 'Failed to delete/restore event'
             }), 400
 
     except (ImportError, AttributeError, RuntimeError) as e:
