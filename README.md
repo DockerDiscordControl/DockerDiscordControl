@@ -1,6 +1,6 @@
-# DockerDiscordControl 🐳
+# DockerDiscordControl v2.0 🐳
 
-[![Version](https://img.shields.io/github/v/release/DockerDiscordControl/DockerDiscordControl?style=for-the-badge&label=Version)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/latest) [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.22.1-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Ready-blue?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
+[![Version](https://img.shields.io/badge/Version-v2.0.0-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.0.0) [![Python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.22.1-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
 
 A powerful Discord bot and web interface to manage Docker containers remotely. This application bridges the gap between Discord and your Docker environment, allowing container monitoring and control directly through Discord channels.
 
@@ -8,47 +8,47 @@ A powerful Discord bot and web interface to manage Docker containers remotely. T
 
 Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is an ultra-optimized Alpine Linux build with the latest security patches and enhanced performance.
 
-## 🆕 Latest Updates (v2.0)
+## 🆕 Latest Updates
 
-### ✅ **v2.0 - Complete Service Architecture & Enhanced Features**
+### ✅ **v2.0.0 (2025-11-18) - MAJOR UPDATE - Complete Rewrite**
 
-🏗️ **Service Architecture:**
-- **NEW:** Complete modular service architecture replacing legacy utils system
-- Centralized ConfigService with automatic migration from old configurations
-- Service-oriented design for better maintainability and scalability
-- Thread-safe singleton patterns for all core services
+🌍 **Multi-Language Support:**
+- **NEW:** Full Discord UI translation in German, French, and English
+- Complete language coverage for all buttons, messages, and interactions
+- Dynamic language switching via Web UI settings
+- 100% translation coverage across entire bot interface
 
-📊 **Container Information System:**
-- **NEW:** Detailed container/server info function accessible via Discord and Web UI
-- Real-time status monitoring with comprehensive container metrics
-- Enhanced logging and performance tracking capabilities
-- Improved Docker Engine integration with better error handling
+🤖 **Mech Evolution System:**
+- **NEW:** 11-stage Mech Evolution with animated WebP graphics
+- Continuous power decay system (minutengenau) for fair donation tracking
+- Premium key system for power users
+- Visual feedback with stage-specific animations and particle effects
 
-⚙️ **Advanced Settings & Configuration:**
-- **NEW:** Advanced Settings panel in Web UI for power users
-- Comprehensive spam protection settings with rate limiting
-- Environment variable fallback system for production deployments
-- Enhanced security with improved token encryption and validation
+⚡ **Performance Improvements:**
+- **IMPROVED:** 16x faster Docker status cache (500ms → 31ms)
+- 7x faster container processing through async optimization
+- Smart queue system with fair request processing
+- Operation-specific timeout optimization
 
-💰 **Donation System with Animated Mech:**
-- **NEW:** Integrated donation tracking system with visual feedback
-- Animated mech character that evolves based on donation levels
-- Real-time power system with WebP animations and particle effects
-- Donation disable system with encrypted keys for clean presentation
+🎨 **Modern UI/UX Overhaul:**
+- **IMPROVED:** Beautiful Discord embeds with consistent styling
+- Advanced spam protection with configurable cooldowns
+- Enhanced container information system
+- Real-time monitoring and status updates
 
-🐳 **Ultra-Optimized Image:**
-- **Enhanced:** Ultra-compact Alpine 3.22.1 image (176MB) with multi-stage build
-- 61% size reduction through streamlined dependency management  
-- Production-only runtime with build dependencies completely removed
-- Enhanced security with latest patches and minimal attack surface
+🔒 **Security & Optimization:**
+- **IMPROVED:** Alpine Linux 3.22.1 base (94% fewer vulnerabilities)
+- Ultra-compact image (<200MB RAM usage)
+- Production-ready security hardening
+- Enhanced token encryption and validation
 
-🔐 **Security & Migration:**
-- Automatic token migration ensuring seamless upgrades from older versions
-- Enhanced encryption compatibility with backward support
-- Improved configuration validation and error handling
-- Production-ready security hardening throughout
+🐛 **Critical Fixes:**
+- **FIXED:** Port mapping consistency (9374) for Unraid deployment
+- Interaction timeout issues with defer() pattern
+- Container control reliability improvements
+- Web UI configuration persistence
 
-**🚀 Production-ready v2.0 with complete architecture overhaul, advanced features, and seamless migration!**
+**🚀 Ready for Unraid Community Applications! Complete rewrite with multi-language support, performance optimizations, and production-ready deployment!**
 
 ## Platform Selection
 
