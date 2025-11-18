@@ -100,9 +100,9 @@ prefix = current_footer.removesuffix("https://ddc.bot")
 enhanced_footer = prefix + "ℹ️ Info Available • https://ddc.bot"
 ```
 
-#### 6. Information Exposure Through Exceptions - Mech Reset (Medium Severity)
+#### 6. Information Exposure Through Exceptions - Mech Reset Failure (Medium Severity)
 - **Alert:** py/stack-trace-exposure
-- **Location:** app/blueprints/main_routes.py (mech reset endpoint)
+- **Location:** app/blueprints/main_routes.py (mech reset endpoint - failure path)
 - **Vulnerability:** Internal error details from `result.message` exposed to users
 - **Attack Vector:** Exception messages revealed file paths, method names, service structure
 - **Fix Applied:** Log detailed errors server-side, return generic messages to users
@@ -118,6 +118,33 @@ return jsonify(response_data), 400
 # AFTER (Secure):
 current_app.logger.error(f"Mech reset failed: {result.message}", exc_info=True)
 return jsonify({'error': 'Failed to reset mech system'}), 500
+```
+
+#### 6b. Information Exposure Through Exceptions - Mech Reset Success (Defense-in-Depth)
+- **Alert:** py/stack-trace-exposure (CodeQL data flow analysis)
+- **Location:** app/blueprints/main_routes.py (mech reset endpoint - success path)
+- **Vulnerability:** CodeQL flagged that `result.message` could theoretically contain sensitive data
+- **Attack Vector:** While success messages are safe in practice, CodeQL cannot prove this statically
+- **Fix Applied:** Defense-in-depth: sanitize even success responses with explicit safe fields
+- **Commit:** 0e543fa (2025-11-18)
+- **Impact:** Additional layer of protection against potential data leaks
+
+Technical Details:
+```python
+# BEFORE (Safe but flagged by CodeQL):
+response_data = {
+    'message': result.message,  # CodeQL: Can't prove this is safe
+    'previous_status': current_status,
+    'operations': result.details['operations']
+}
+
+# AFTER (Defense-in-depth):
+safe_message = "Mech system reset to Level 1 completed successfully"
+response_data = {
+    'message': safe_message,  # Hardcoded safe message
+    'previous_status': {filtered_fields},  # Only expected fields
+    'operations': [op for op in ops if no_exception_markers]  # Filtered
+}
 ```
 
 #### 7. Information Exposure Through Exceptions - 12 API Endpoints (Medium Severity)
