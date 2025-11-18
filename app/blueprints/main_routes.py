@@ -1551,15 +1551,30 @@ def reset_mech_to_level_1():
 
         # Return result
         if result.success:
-            # Success: Include full details
+            # Success: Construct clean response (defense-in-depth against potential data leaks)
+            # Note: Success messages are safe, but we sanitize to satisfy CodeQL data flow analysis
+            safe_message = "Mech system reset to Level 1 completed successfully"
+
             response_data = {
                 'success': True,
-                'message': result.message,
-                'previous_status': current_status,
+                'message': safe_message,
+                'previous_status': {
+                    'current_level': current_status.get('current_level', 1),
+                    'donations_count': current_status.get('donations_count', 0),
+                    'total_donated': current_status.get('total_donated', 0)
+                },
                 'timestamp': result.details.get('timestamp') if result.details else None
             }
+
+            # Include sanitized operation details if available
             if result.details and 'operations' in result.details:
-                response_data['operations'] = result.details['operations']
+                # Filter operations to only include safe, expected messages
+                safe_operations = []
+                for op in result.details['operations']:
+                    # Only include operations that match expected patterns (no exception traces)
+                    if isinstance(op, str) and not any(x in op for x in ['Exception', 'Error:', 'Traceback']):
+                        safe_operations.append(op)
+                response_data['operations'] = safe_operations
 
             current_app.logger.info(f"Mech reset to Level 1 completed by user: {session.get('username', 'Unknown')}")
             return jsonify(response_data)
