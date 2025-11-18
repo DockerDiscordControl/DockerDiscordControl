@@ -190,7 +190,7 @@ docker run -d --name ddc \
 3. **Complete Setup**: Configure bot token, Guild ID, container permissions
 4. **Restart**: `docker compose restart` after initial configuration
 
-**Security Note**: No default passwords! System requires secure setup on first run.
+**Security Note**: Default password is 'setup' for initial access. MUST be changed immediately after first login for security!
 
 **Upgrade from v1.1.3D**: Automatic migration! Your existing `config.json` will be automatically split into modular files and backed up. No manual action required.
 
@@ -212,7 +212,7 @@ DDC_ADMIN_PASSWORD=your_secure_password_here
 FLASK_SECRET_KEY=your-64-character-random-secret-key
 ```
 
-**Important**: DDC v2.0+ has no default passwords for security. Choose one of the setup methods above.
+**Important**: The default password is 'setup' for security setup. You MUST change this immediately after first login. For production deployments, set DDC_ADMIN_PASSWORD before first start.
 
 ### Performance Optimization Variables (New in 2025)
 
@@ -372,7 +372,7 @@ docker pull dockerdiscordcontrol/dockerdiscordcontrol:latest
 
 **Docker Socket Access Required**: This application requires access to `/var/run/docker.sock` to control containers. Only run in trusted environments and ensure proper host security.
 
-**First-Time Setup Required**: DDC v2.0+ has no default passwords. Use one of these secure setup methods:
+**First-Time Setup Required**: DDC v2.0+ uses temporary default password 'setup' for initial access. Use one of these secure setup methods:
 - **Web Setup**: Visit `/setup` and create your password  
 - **Temporary Access**: Login with `admin` / `setup`, then set real password
 - **Environment Variable**: Set `DDC_ADMIN_PASSWORD` before starting container
@@ -383,7 +383,7 @@ docker pull dockerdiscordcontrol/dockerdiscordcontrol:latest
 
 **First-Time Setup Issues:**
 - **Can't Login**: Visit `/setup` or use `admin` / `setup` credentials
-- **"Authentication Required"**: No password configured - use setup methods above
+- **"Authentication Required"**: Use default credentials `admin` / `setup` or configure DDC_ADMIN_PASSWORD
 - **Password Reset**: Run `docker exec -it ddc python3 scripts/reset_password.py`
 
 **Common Issues:**
