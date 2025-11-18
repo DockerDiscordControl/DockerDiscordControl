@@ -5,16 +5,6 @@
   <Registry>https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol</Registry>
   <Default>latest</Default>
   <Network>bridge</Network>
-  <Networking>
-    <Mode>bridge</Mode>
-    <Publish>
-      <Port>
-        <HostPort>8374</HostPort>
-        <ContainerPort>9374</ContainerPort>
-        <Protocol>tcp</Protocol>
-      </Port>
-    </Publish>
-  </Networking>
   <Shell>sh</Shell>
   <Privileged>false</Privileged>
   <Support>https://github.com/DockerDiscordControl/DockerDiscordControl</Support>
@@ -42,7 +32,7 @@
 - Task scheduling and heartbeat monitoring
 - Web UI configuration panel
   </Changes>
-  <TemplateURL>https://raw.githubusercontent.com/DockerDiscordControl/DockerDiscordControl/main/templates/DockerDiscordControl.xml</TemplateURL>
+  <TemplateURL>https://raw.githubusercontent.com/selfhosters/unRAID-CA-templates/master/templates/dockerdiscordcontrol.xml</TemplateURL>
   <Icon>https://raw.githubusercontent.com/DockerDiscordControl/DockerDiscordControl/main/app/static/favicon.png</Icon>
     <ExtraParams>--restart unless-stopped</ExtraParams>
   <DonateText>Support DDC Development ☕</DonateText>
