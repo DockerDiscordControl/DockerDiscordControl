@@ -81,11 +81,12 @@ FROM alpine:3.22.2
 WORKDIR /app
 
 # Install ONLY runtime dependencies
+# Note: docker-cli removed - we use Docker Python SDK (docker-py) which communicates
+#       directly with Docker socket, no CLI binary needed. Eliminates CVE-2025-58187.
 RUN apk add --no-cache \
     python3 \
     ca-certificates \
     tzdata \
-    docker-cli \
     jpeg \
     zlib \
     freetype && \
