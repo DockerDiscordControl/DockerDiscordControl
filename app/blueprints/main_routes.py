@@ -1627,9 +1627,33 @@ def get_mech_status():
         reset_service = get_mech_reset_service()
         status = reset_service.get_current_status()
 
+        # Security: Check for error in status (service returns {"error": "..."} on exceptions)
+        if isinstance(status, dict) and "error" in status:
+            # Service encountered an error - log detailed error, return generic message
+            current_app.logger.error(f"Mech status service error: {status['error']}", exc_info=True)
+            return jsonify({
+                'success': False,
+                'error': 'Failed to retrieve mech status'
+            }), 500
+
+        # Security: Sanitize status to only include expected safe fields (allowlist approach)
+        safe_status = {
+            'donations_count': status.get('donations_count', 0),
+            'total_donated': status.get('total_donated', 0),
+            'current_level': status.get('current_level', 1),
+            'level_upgrades_count': status.get('level_upgrades_count', 0),
+            'next_level_threshold': status.get('next_level_threshold'),
+            'amount_needed': status.get('amount_needed', 0),
+            'next_level_name': status.get('next_level_name', 'Unknown'),
+            'channels_tracked': status.get('channels_tracked', 0),
+            'glvl_values': status.get('glvl_values', []),
+            'architecture': status.get('architecture', 'Unknown'),
+            'deprecated_files_exist': status.get('deprecated_files_exist', False)
+        }
+
         return jsonify({
             'success': True,
-            'status': status,
+            'status': safe_status,
             'timestamp': datetime.now().isoformat()
         })
 

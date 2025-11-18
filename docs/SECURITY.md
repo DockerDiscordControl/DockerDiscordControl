@@ -183,6 +183,48 @@ current_app.logger.error(f"Operation failed: {result.error}", exc_info=True)
 return jsonify({'error': 'Failed to process request'}), 500
 ```
 
+#### 8. Information Exposure Through Exceptions - Mech Status Endpoint (Medium Severity)
+- **Alert:** py/stack-trace-exposure
+- **Location:** app/blueprints/main_routes.py:1632 (/api/mech/status endpoint)
+- **Vulnerability:** Service returns `{"error": "exception details"}` on exceptions, exposed to users
+- **Attack Vector:** The `get_current_status()` service method returns error dictionaries containing exception messages (IOError, JSONDecodeError, etc.) which were passed directly to API responses
+- **Fix Applied:** Two-layer defense: detect error responses + sanitize status with allowlist
+- **Commit:** [current] (2025-11-18)
+- **Impact:** Prevents exception exposure through status endpoint
+
+Technical Details:
+```python
+# BEFORE (Vulnerable):
+status = reset_service.get_current_status()  # May return {"error": "File I/O error: ..."}
+return jsonify({
+    'success': True,
+    'status': status  # Error details exposed to user
+})
+
+# AFTER (Secure - Two layers):
+status = reset_service.get_current_status()
+
+# Layer 1: Detect and handle error responses
+if isinstance(status, dict) and "error" in status:
+    current_app.logger.error(f"Mech status service error: {status['error']}", exc_info=True)
+    return jsonify({'error': 'Failed to retrieve mech status'}), 500
+
+# Layer 2: Allowlist approach for safe fields only
+safe_status = {
+    'donations_count': status.get('donations_count', 0),
+    'total_donated': status.get('total_donated', 0),
+    'current_level': status.get('current_level', 1),
+    'level_upgrades_count': status.get('level_upgrades_count', 0),
+    'next_level_threshold': status.get('next_level_threshold'),
+    'amount_needed': status.get('amount_needed', 0),
+    'next_level_name': status.get('next_level_name', 'Unknown'),
+    # ... only expected safe fields
+}
+return jsonify({'success': True, 'status': safe_status})
+```
+
+**Security Rationale:** Service layer may return error dictionaries during exception handling. The endpoint now detects these error responses and prevents them from reaching users. Additionally, even successful responses are sanitized using an allowlist of expected fields to provide defense-in-depth protection.
+
 ---
 
 ## Security Best Practices
