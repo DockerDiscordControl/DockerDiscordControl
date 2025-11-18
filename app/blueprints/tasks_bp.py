@@ -51,7 +51,9 @@ def add_task():
                 "task": result.task_data
             }), 201
         else:
-            return jsonify({"error": result.error}), 400
+            # Log detailed error but return generic message to user
+            current_app.logger.error(f"Failed to add task: {result.error}")
+            return jsonify({"error": "Failed to add task"}), 400
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (task_management_service unavailable, service method failures)
@@ -78,8 +80,9 @@ def list_tasks():
         if result.success:
             return jsonify(result.tasks), 200
         else:
+            # Log detailed error but return generic message to user
             current_app.logger.error(f"Failed to list tasks: {result.error}")
-            return jsonify({"error": result.error}), 500
+            return jsonify({"error": "Failed to list tasks"}), 500
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (task_management_service unavailable, service method failures)
@@ -167,8 +170,11 @@ def update_task_status():
                 "task": result.task_data
             })
         else:
+            # Log detailed error but return generic message to user
+            current_app.logger.error(f"Failed to update task status: {result.error}")
             status_code = 404 if "not found" in result.error.lower() else 400
-            return jsonify({"success": False, "error": result.error}), status_code
+            error_msg = "Task not found" if status_code == 404 else "Failed to update task status"
+            return jsonify({"success": False, "error": error_msg}), status_code
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (task_management_service unavailable, service method failures)
@@ -201,8 +207,11 @@ def delete_task_route(task_id):
                 "message": result.message
             }), 200
         else:
+            # Log detailed error but return generic message to user
+            current_app.logger.error(f"Failed to delete task: {result.error}")
             status_code = 404 if "not found" in result.error.lower() else 500
-            return jsonify({"success": False, "error": result.error}), status_code
+            error_msg = "Task not found" if status_code == 404 else "Failed to delete task"
+            return jsonify({"success": False, "error": error_msg}), status_code
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (task_management_service unavailable, service method failures)
@@ -240,8 +249,11 @@ def edit_task_route(task_id):
                     "task": result.task_data
                 }), 200
             else:
+                # Log detailed error but return generic message to user
+                current_app.logger.error(f"Failed to get task for editing: {result.error}")
                 status_code = 404 if "not found" in result.error.lower() else 500
-                return jsonify({"success": False, "error": result.error}), status_code
+                error_msg = "Task not found" if status_code == 404 else "Failed to get task"
+                return jsonify({"success": False, "error": error_msg}), status_code
 
         elif request.method == 'PUT':
             # Update task
@@ -265,8 +277,11 @@ def edit_task_route(task_id):
                     "task": result.task_data
                 }), 200
             else:
+                # Log detailed error but return generic message to user
+                current_app.logger.error(f"Failed to update task: {result.error}")
                 status_code = 404 if "not found" in result.error.lower() else 400
-                return jsonify({"success": False, "error": result.error}), status_code
+                error_msg = "Task not found" if status_code == 404 else "Failed to update task"
+                return jsonify({"success": False, "error": error_msg}), status_code
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (task_management_service unavailable, service method failures)

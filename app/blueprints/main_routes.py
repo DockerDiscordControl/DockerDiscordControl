@@ -590,8 +590,9 @@ def get_donation_status():
         if result.success:
             return jsonify(result.status_data)
         else:
+            # Log detailed error but return generic message to user
             current_app.logger.error(f"Failed to get donation status: {result.error}")
-            return jsonify({'error': result.error or 'Failed to get donation status'}), 500
+            return jsonify({'error': 'Failed to get donation status'}), 500
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (donation status service unavailable)
@@ -629,9 +630,11 @@ def record_donation_click():
                 'message': result.message
             })
         else:
+            # Log detailed error but return generic message to user
+            current_app.logger.error(f"Failed to record donation click: {result.error}")
             return jsonify({
                 'success': False,
-                'error': result.error
+                'error': 'Failed to record donation click'
             }), 400
 
     except (ImportError, AttributeError, RuntimeError) as e:
@@ -735,8 +738,9 @@ def reset_power():
         reset_result = reset_all_donations(source='admin_reset')
 
         if not reset_result.success:
+            # Log detailed error but return generic message to user
             current_app.logger.error(f"Failed to reset donations: {reset_result.error_message}")
-            return jsonify({'success': False, 'error': reset_result.error_message})
+            return jsonify({'success': False, 'error': 'Failed to reset donations'})
         
         # Get new state (should be Level 1, 0 Power) using CACHE FOR PERFORMANCE
         # PERFORMANCE OPTIMIZATION: Use cached mech state (will be fresh since we just reset)

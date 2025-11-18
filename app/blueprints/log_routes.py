@@ -30,8 +30,9 @@ def get_container_logs(container_name):
         if result.success:
             return Response(result.content, mimetype='text/plain')
         else:
+            # Log detailed error but return generic message to user
             current_app.logger.warning(f"Container log request failed: {result.error}")
-            return Response(result.error, status=result.status_code, mimetype='text/plain')
+            return Response("Failed to fetch container logs", status=result.status_code, mimetype='text/plain')
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (container_log_service unavailable, service method failures)
@@ -62,8 +63,9 @@ def get_bot_logs():
         if result.success:
             return Response(result.content, mimetype='text/plain')
         else:
+            # Log detailed error but return generic message to user
             current_app.logger.error(f"Bot log request failed: {result.error}")
-            return Response(result.error, status=result.status_code, mimetype='text/plain')
+            return Response("Failed to fetch bot logs", status=result.status_code, mimetype='text/plain')
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (container_log_service unavailable, service method failures)
@@ -94,8 +96,9 @@ def get_discord_logs():
         if result.success:
             return Response(result.content, mimetype='text/plain')
         else:
+            # Log detailed error but return generic message to user
             current_app.logger.error(f"Discord log request failed: {result.error}")
-            return Response(result.error, status=result.status_code, mimetype='text/plain')
+            return Response("Failed to fetch Discord logs", status=result.status_code, mimetype='text/plain')
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (container_log_service unavailable, service method failures)
@@ -126,8 +129,9 @@ def get_webui_logs():
         if result.success:
             return Response(result.content, mimetype='text/plain')
         else:
+            # Log detailed error but return generic message to user
             current_app.logger.error(f"Web UI log request failed: {result.error}")
-            return Response(result.error, status=result.status_code, mimetype='text/plain')
+            return Response("Failed to fetch Web UI logs", status=result.status_code, mimetype='text/plain')
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (container_log_service unavailable, service method failures)
@@ -158,8 +162,9 @@ def get_application_logs():
         if result.success:
             return Response(result.content, mimetype='text/plain')
         else:
+            # Log detailed error but return generic message to user
             current_app.logger.error(f"Application log request failed: {result.error}")
-            return Response(result.error, status=result.status_code, mimetype='text/plain')
+            return Response("Failed to fetch application logs", status=result.status_code, mimetype='text/plain')
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (container_log_service unavailable, service method failures)
@@ -190,8 +195,9 @@ def get_action_logs():
         if result.success:
             return Response(result.content, mimetype='text/plain')
         else:
+            # Log detailed error but return generic message to user
             current_app.logger.error(f"Action log request failed: {result.error}")
-            return Response(result.error, status=result.status_code, mimetype='text/plain')
+            return Response("Failed to fetch action logs", status=result.status_code, mimetype='text/plain')
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (container_log_service unavailable, service method failures)
@@ -222,8 +228,9 @@ def get_action_logs_json():
         if result.success:
             return jsonify(result.data)
         else:
+            # Log detailed error but return generic message to user
             current_app.logger.error(f"Action log JSON request failed: {result.error}")
-            return jsonify({'success': False, 'error': result.error}), result.status_code
+            return jsonify({'success': False, 'error': 'Failed to fetch action logs'}), result.status_code
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (container_log_service unavailable, service method failures)
@@ -253,8 +260,9 @@ def clear_logs():
         if result.success:
             return jsonify(result.data)
         else:
+            # Log detailed error but return generic message to user
             current_app.logger.error(f"Clear logs request failed: {result.error}")
-            return jsonify({'success': False, 'message': result.error}), result.status_code
+            return jsonify({'success': False, 'message': 'Failed to clear logs'}), result.status_code
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (container_log_service unavailable, service method failures)
