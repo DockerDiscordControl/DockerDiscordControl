@@ -2,6 +2,23 @@
 
 Complete guide to code quality standards, tools, and best practices for DockerDiscordControl.
 
+## Production Release Notice
+
+**IMPORTANT**: The main branch is production-only as of v2.0.0 (2025-11-18). All code quality tool configurations and development infrastructure have been removed from the main branch to create a clean production release.
+
+**For Development**: Active development continues in the `v2.0` branch, which contains the complete code quality infrastructure:
+- Quality tool configuration files (.pylintrc, .flake8, mypy.ini)
+- CI/CD workflows for code quality checks
+- SonarCloud configuration (sonar-project.properties)
+- Development requirements (requirements-test.txt)
+
+**To contribute or run quality checks**: Switch to the `v2.0` branch:
+```bash
+git checkout origin/v2.0
+```
+
+---
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -14,6 +31,8 @@ Complete guide to code quality standards, tools, and best practices for DockerDi
 - [Configuration Files](#configuration-files)
 
 ## Overview
+
+**Note**: This documentation describes the code quality infrastructure available in the `v2.0` development branch.
 
 DDC maintains high code quality standards through automated checks:
 
@@ -197,7 +216,7 @@ FAILURE: Complexity threshold exceeded
 pip install pylint
 ```
 
-**Configuration**: `.pylintrc`
+**Configuration**: `.pylintrc` (available in `v2.0` branch only)
 
 **Usage**:
 
@@ -233,7 +252,7 @@ Your code has been rated at 8.45/10
 pip install flake8 mccabe
 ```
 
-**Configuration**: `.flake8`
+**Configuration**: `.flake8` (available in `v2.0` branch only)
 
 **Usage**:
 
@@ -266,7 +285,7 @@ services/docker_service/docker_utils.py:120:1: C901 'get_container_status_async'
 pip install mypy
 ```
 
-**Configuration**: `mypy.ini`
+**Configuration**: `mypy.ini` (available in `v2.0` branch only)
 
 **Usage**:
 
@@ -313,6 +332,11 @@ Found 2 errors in 2 files (checked 45 source files)
 ## Running Quality Checks
 
 ### Quick Check (All Tools)
+
+**Prerequisites**: Switch to the `v2.0` branch to access quality tools:
+```bash
+git checkout origin/v2.0
+```
 
 ```bash
 # Install all tools
@@ -387,7 +411,9 @@ chmod +x .git/hooks/pre-commit
 
 ## CI/CD Quality Gates
 
-**Workflow**: `.github/workflows/code-quality.yml`
+**Note**: GitHub Actions workflows (`.github/workflows/`) are available in the `v2.0` branch only. The main branch is production-focused and does not include CI/CD workflows.
+
+**Workflow**: `.github/workflows/code-quality.yml` (v2.0 branch only)
 
 ### Jobs
 
@@ -704,9 +730,11 @@ def get_containers(
 
 ## Configuration Files
 
+**Note**: All configuration files below are available in the `v2.0` branch only. They have been removed from the main branch for the production release.
+
 ### .pylintrc
 
-**Location**: `/path/to/.pylintrc`
+**Location**: `/.pylintrc` (v2.0 branch only)
 
 **Key Settings**:
 ```ini
@@ -724,7 +752,7 @@ max-line-length=100
 
 ### .flake8
 
-**Location**: `/path/to/.flake8`
+**Location**: `/.flake8` (v2.0 branch only)
 
 **Key Settings**:
 ```ini
@@ -737,7 +765,7 @@ ignore = E203,W503
 
 ### mypy.ini
 
-**Location**: `/path/to/mypy.ini`
+**Location**: `/mypy.ini` (v2.0 branch only)
 
 **Key Settings**:
 ```ini
@@ -750,7 +778,7 @@ ignore_missing_imports = True
 
 ### sonar-project.properties
 
-**Location**: `/path/to/sonar-project.properties`
+**Location**: `/sonar-project.properties` (v2.0 branch only)
 
 **Key Settings**:
 ```properties

@@ -342,47 +342,17 @@ def get_config():
     return _CONFIG
 ```
 
-## CI/CD Dependency Checks
+## Dependency Analysis Tools
 
-**Workflow**: `.github/workflows/dependency-checks.yml`
+DDC includes tools for analyzing and visualizing dependencies:
 
-### Jobs
+### Available Tools
 
-#### 1. Check Circular Imports
+- **check_circular_imports.py**: Detect circular import issues
+- **generate_dependency_graph.py**: Create visual dependency graphs
+- **analyze_exception_handlers.py**: Analyze exception handling patterns
 
-**Runs**: `tools/check_circular_imports.py --fail-on-circular`
-
-**Fails if**: Circular dependencies detected
-
-#### 2. Generate Dependency Graphs
-
-**Creates**:
-- Service-level dependency graph
-- Package-level dependency graph
-- Hierarchical view
-
-**Uploads**: Graphs as artifacts (90-day retention)
-
-#### 3. Analyze Dependencies
-
-**Shows**: Most imported modules (top 10)
-
-#### 4. Dependency Summary
-
-**Status**: Aggregates all job results
-
-### Triggers
-
-- Push to `main`, `v2.0`, `develop`
-- Pull requests to `main`, `v2.0`
-- Manual workflow dispatch
-
-### PR Comments
-
-Workflow automatically comments on PRs with:
-- Circular import check results
-- Link to dependency graphs
-- Analysis summary
+Run these tools locally to verify code architecture before deployment.
 
 ## Service Communication Patterns
 

@@ -1,259 +1,197 @@
-# DDC Documentation
+# DockerDiscordControl Documentation
 
-Complete documentation for DockerDiscordControl.
+Official documentation for DockerDiscordControl v2.0 - Production Release.
 
-## Documentation Files
+## Getting Started
 
-| File | Description |
-|------|-------------|
-| [SERVICES.md](SERVICES.md) | Service architecture and API reference |
-| [CONFIGURATION.md](CONFIGURATION.md) | Configuration guide with examples |
-| [EXAMPLES.md](EXAMPLES.md) | Practical code examples |
-| [ERROR_HANDLING.md](ERROR_HANDLING.md) | Exception handling guide |
-| [PERFORMANCE.md](PERFORMANCE.md) | Performance testing and monitoring guide |
-| [CODE_QUALITY.md](CODE_QUALITY.md) | Code quality standards and tools |
-| [DEPENDENCIES.md](DEPENDENCIES.md) | Dependency management and service hierarchy |
-| [OBSERVABILITY.md](OBSERVABILITY.md) | Monitoring, logging, metrics, and tracing |
-| [TESTING.md](TESTING.md) | Testing guide, coverage goals, and examples |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
-| [SECURITY.md](SECURITY.md) | Security best practices |
+New to DDC? Start here:
 
-## Quick Links
+1. [Main README](../README.md) - Installation and quick start
+2. [CONFIGURATION.md](CONFIGURATION.md) - Configuration guide
+3. [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Common issues and solutions
 
-### For Users
+## Documentation Index
 
-- **Getting Started**: See main [README.md](../README.md)
-- **Configuration**: [CONFIGURATION.md](CONFIGURATION.md)
-- **Troubleshooting**: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-- **Unraid Setup**: [UNRAID.md](UNRAID.md)
+### User Documentation
 
-### For Developers
+| Document | Description |
+|----------|-------------|
+| [CONFIGURATION.md](CONFIGURATION.md) | Complete configuration guide for Web UI and environment variables |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Solutions for common issues and problems |
+| [SECURITY.md](SECURITY.md) | Security best practices and incident response |
+| [SUPPORTED_VERSIONS.md](SUPPORTED_VERSIONS.md) | Version support and upgrade instructions |
+| [CHANGELOG.md](CHANGELOG.md) | Release history and version changes |
 
-- **Service Architecture**: [SERVICES.md](SERVICES.md)
-- **Code Examples**: [EXAMPLES.md](EXAMPLES.md)
-- **Error Handling**: [ERROR_HANDLING.md](ERROR_HANDLING.md)
-- **Performance Testing**: [PERFORMANCE.md](PERFORMANCE.md)
-- **Code Quality**: [CODE_QUALITY.md](CODE_QUALITY.md)
-- **Dependency Management**: [DEPENDENCIES.md](DEPENDENCIES.md)
-- **Observability**: [OBSERVABILITY.md](OBSERVABILITY.md)
-- **Testing**: [TESTING.md](TESTING.md)
-- **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
+### Platform-Specific Guides
 
-## Documentation Overview
+| Document | Description |
+|----------|-------------|
+| [UNRAID.md](UNRAID.md) | Unraid installation and configuration guide |
+| [UNRAID_TROUBLESHOOTING.md](UNRAID_TROUBLESHOOTING.md) | Unraid-specific troubleshooting |
 
-### SERVICES.md
+## Quick Reference
 
-Complete service architecture documentation:
+### Essential Topics
 
-- Service-oriented architecture overview
-- Design patterns (SRP, Request/Result, Singleton, DI)
-- Configuration Services (6 services)
-- Docker Services
-- Donation Services
-- Mech Services
-- Web Services
-- Testing guidelines
+**First-Time Setup:**
+- Default Web UI: `http://your-server:9374`
+- Default credentials: `admin` / `setup`
+- Change password immediately after first login
 
-**When to read**: Understanding DDC architecture or working with services.
+**Configuration:**
+- Primary method: Web UI at port 9374
+- Alternative: Environment variables in docker-compose.yml
+- All settings accessible via Web UI
 
-### CONFIGURATION.md
+**Common Tasks:**
+- Add containers: Web UI → Container Management
+- Set permissions: Web UI → Channel Configuration
+- View logs: Web UI → Logs or `docker logs ddc`
+- Troubleshooting: See [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 
-Complete configuration guide:
+## Feature Highlights
 
-- Configuration file structure
-- Loading and saving configuration
-- Container configuration
-- Channel configuration
-- Token encryption/decryption
-- Advanced settings
-- Migration from v1.x
+### Multi-Language Support
+- German, French, and English translations
+- Dynamic language switching via Web UI
+- 100% translation coverage
 
-**When to read**: Setting up DDC or modifying configuration.
+### Container Management
+- Control Docker containers from Discord
+- Start, stop, restart actions
+- Real-time status updates
+- Scheduled tasks
 
-### EXAMPLES.md
+### Mech Evolution System
+- 11-stage evolution with animations
+- Power decay tracking
+- Premium key support
+- Visual feedback
 
-Practical code examples:
+### Security Features
+- Token encryption (Fernet + PBKDF2)
+- Non-root container execution
+- Read-only Docker socket mounting
+- Strong password hashing (PBKDF2-SHA256)
+- Session management
 
-- Configuration loading
-- Token encryption
-- Container operations
-- Docker async operations
-- Error handling
-- Testing
-- Complete workflow examples
+### Performance
+- 16x faster Docker status cache
+- 7x faster container processing
+- Smart queue system
+- Optimized async operations
 
-**When to read**: Looking for code examples or learning DDC API.
+## Documentation Structure
 
-### ERROR_HANDLING.md
+### User-Focused
+Production documentation focuses on:
+- How to configure and use DDC
+- Troubleshooting common issues
+- Security best practices
+- Platform-specific guides
 
-Exception handling guide:
+### Development Documentation
+Development documentation is archived in the `v2.0` branch.
 
-- Custom exception hierarchy (50+ exceptions)
-- Domain-specific exceptions
-- Error recovery strategies
-- Logging best practices
-- Migration guide
+## Support
 
-**When to read**: Implementing error handling or debugging issues.
+### Getting Help
 
-### PERFORMANCE.md
+1. **Check documentation:**
+   - [CONFIGURATION.md](CONFIGURATION.md) for setup questions
+   - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues
+   - [SECURITY.md](SECURITY.md) for security questions
 
-Performance testing and monitoring guide:
+2. **GitHub Issues:**
+   - Search existing issues first
+   - Include version, logs, and steps to reproduce
+   - Redact sensitive information (tokens, passwords)
 
-- Performance tests for all critical services
-- Performance baselines and thresholds
-- CI/CD performance gates (GitHub Actions)
-- Lightweight metrics logging system
-- Running and interpreting performance tests
-- Optimization guide for slow operations
+3. **Required information for bug reports:**
+   ```bash
+   # Version
+   docker exec ddc python -c "print('v2.0.0')"
 
-**When to read**: Writing performance tests, optimizing code, or investigating slow operations.
+   # Logs
+   docker logs ddc --tail 100
 
-### CODE_QUALITY.md
+   # Configuration check
+   docker exec ddc ls -la /app/config/
+   ```
 
-Code quality standards and tools:
+### Security Issues
 
-- Quality standards (complexity < 10, maintainability > 80)
-- Code quality tools (Radon, Pylint, Flake8, MyPy)
-- Running quality checks locally
-- CI/CD quality gates
-- Interpreting results and improving code quality
-- Configuration files (.pylintrc, .flake8, mypy.ini)
+For security vulnerabilities:
+- Do NOT create public GitHub issues
+- Contact project maintainers privately
+- See [SECURITY.md](SECURITY.md) for details
 
-**When to read**: Ensuring code quality, preparing pull requests, or improving existing code.
+## Version Information
 
-### DEPENDENCIES.md
+**Current Version:** v2.0.0 (Released 2025-11-18)
 
-Dependency management and service hierarchy guide:
+**Key Changes in v2.0:**
+- Production-ready release
+- Multi-language support
+- Performance improvements
+- Security hardening
+- Modern Web UI
 
-- Service hierarchy and layered architecture
-- Dependency rules (allowed and prohibited patterns)
-- Circular import detection tool
-- Dependency graph generation
-- Import guidelines and best practices
-- CI/CD dependency checks
+See [CHANGELOG.md](CHANGELOG.md) for complete release history.
 
-**When to read**: Understanding service dependencies, checking for circular imports, or planning new services.
+## External Resources
 
-### OBSERVABILITY.md
+### Related Technologies
 
-Monitoring, logging, metrics, and tracing guide:
+- [Discord Developer Portal](https://discord.com/developers/docs) - Discord bot documentation
+- [Docker Documentation](https://docs.docker.com/) - Docker reference
+- [Flask Documentation](https://flask.palletsprojects.com/) - Web framework docs
 
-- Structured JSON logging with rich context
-- Lightweight metrics collection (counters, histograms, gauges)
-- OpenTelemetry distributed tracing integration
-- Complete service integration examples
-- Metrics export and analysis
-- Log aggregation and querying
+### Community
 
-**When to read**: Implementing monitoring, debugging production issues, analyzing service performance, or setting up observability infrastructure.
+- **GitHub Repository:** https://github.com/maxzeichen/dockerdiscordcontrol
+- **Docker Hub:** https://hub.docker.com/r/maxzeichen/dockerdiscordcontrol
+- **Issues:** https://github.com/maxzeichen/dockerdiscordcontrol/issues
 
-### TESTING.md
+## Project Structure
 
-Complete testing guide and coverage goals:
-
-- Test structure and organization (unit, integration, E2E, performance)
-- Running tests locally and in CI/CD
-- Coverage measurement and goals (80%+ target)
-- Writing tests (unit, integration, performance templates)
-- Test priorities for critical services
-- Best practices for test development
-
-**When to read**: Writing tests, improving test coverage, setting up CI/CD, or ensuring code quality through testing.
-
-### CONTRIBUTING.md
-
-Contribution guidelines:
-
-- Code standards (PEP 8, type hints, docstrings)
-- Service guidelines (SRP, size limits, patterns)
-- Testing requirements
-- Pull request process
-- Commit message format
-
-**When to read**: Contributing to DDC development.
-
-## Documentation Standards
-
-### Code Documentation
-
-All public APIs must have:
-
-1. **Google-style docstrings**
-2. **Type hints** on all parameters
-3. **Usage examples**
-4. **Exception documentation**
-
-Example:
-
-```python
-def get_config(self, force_reload: bool = False) -> Dict[str, Any]:
-    """Get unified configuration from all config files.
-
-    Args:
-        force_reload (bool): If True, bypass cache and reload from disk.
-
-    Returns:
-        Dict[str, Any]: Complete configuration dictionary.
-
-    Raises:
-        ConfigLoadError: If configuration files cannot be loaded
-
-    Example:
-        >>> config = config_service.get_config()
-        >>> print(config['language'])
-    """
-    pass
+```
+DockerDiscordControl/
+├── app/                 # Flask Web UI application
+├── bot.py              # Discord bot entry point
+├── cogs/               # Discord bot commands and features
+├── config/             # Configuration storage
+├── docs/               # Documentation (you are here)
+├── services/           # Business logic services
+├── utils/              # Utility functions
+├── docker-compose.yml  # Docker deployment configuration
+├── Dockerfile          # Container build configuration
+└── requirements.txt    # Python dependencies
 ```
 
-### Markdown Documentation
+## Contributing
 
-Follow these guidelines:
+DockerDiscordControl v2.0 is production-ready and stable.
 
-1. **Clear headings** with proper hierarchy
-2. **Code blocks** with syntax highlighting
-3. **Tables** for structured data
-4. **Links** to related documentation
-5. **Examples** for all features
+For feature requests or bug reports:
+1. Check existing GitHub issues
+2. Create detailed issue with reproduction steps
+3. Include environment information
 
-## Keeping Documentation Updated
+Development continues in the `v2.0` branch.
 
-When adding features:
+## License
 
-1. **Update relevant .md files**
-2. **Add code examples** to EXAMPLES.md
-3. **Document exceptions** in ERROR_HANDLING.md
-4. **Update service docs** in SERVICES.md
-5. **Update config guide** in CONFIGURATION.md
+DockerDiscordControl is licensed under the MIT License.
+See the LICENSE file in the repository for details.
 
-## GitHub Rendering
+## Acknowledgments
 
-All documentation is in **Markdown format** and automatically rendered by GitHub.
+Built with:
+- Python 3.13
+- Discord.py
+- Docker SDK for Python
+- Flask 3.1.1
+- Alpine Linux 3.22.1
 
-Navigate to `docs/` in the GitHub repository to browse documentation with:
-- Automatic syntax highlighting
-- Clickable links
-- Formatted tables
-- Rendered code blocks
-
-No build step required!
-
-## Additional Resources
-
-### Project Links
-
-- **GitHub**: https://github.com/DockerDiscordControl/DockerDiscordControl
-- **Issues**: https://github.com/DockerDiscordControl/DockerDiscordControl/issues
-- **Discussions**: https://github.com/DockerDiscordControl/DockerDiscordControl/discussions
-
-### External Documentation
-
-- **Discord.py**: https://discordpy.readthedocs.io/
-- **Docker SDK**: https://docker-py.readthedocs.io/
-- **Flask**: https://flask.palletsprojects.com/
-
-## Questions?
-
-- **For users**: See [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-- **For developers**: Open an issue on GitHub
-- **For security**: See [SECURITY.md](SECURITY.md)
+Thank you to all contributors and users!

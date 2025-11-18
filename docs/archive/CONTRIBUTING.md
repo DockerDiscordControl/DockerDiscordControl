@@ -2,6 +2,34 @@
 
 Thank you for your interest in contributing to DockerDiscordControl!
 
+## Development Branch Notice
+
+**IMPORTANT**: The main branch is production-only as of v2.0.0 (2025-11-18). All development work happens in the `v2.0` branch.
+
+**To contribute**:
+```bash
+# Clone the repository
+git clone https://github.com/DockerDiscordControl/DockerDiscordControl.git
+cd DockerDiscordControl
+
+# Switch to development branch
+git checkout origin/v2.0
+
+# Create your feature branch from v2.0
+git checkout -b feature/your-feature-name
+
+# Install development dependencies
+pip install -r requirements-test.txt
+```
+
+The `v2.0` branch contains:
+- Full test suite and testing infrastructure
+- Code quality tools (.pylintrc, .flake8, mypy.ini)
+- CI/CD workflows
+- Development documentation
+
+---
+
 ## Code Standards
 
 ### Python Style
@@ -69,9 +97,14 @@ Always log with `exc_info=True` for errors.
 
 ## Testing
 
+**Note**: Testing infrastructure is available in the `v2.0` branch only.
+
 ### Running Tests
 
 ```bash
+# Ensure you're on the v2.0 branch
+git checkout origin/v2.0
+
 # Run all tests
 python -m pytest tests/
 
@@ -100,12 +133,13 @@ class TestConfigService:
 ## Pull Requests
 
 1. **Fork** the repository
-2. **Create** a feature branch
-3. **Make** your changes
-4. **Test** thoroughly
-5. **Commit** with clear messages
-6. **Push** to your fork
-7. **Create** a pull request
+2. **Switch** to the `v2.0` branch
+3. **Create** a feature branch from `v2.0`
+4. **Make** your changes
+5. **Test** thoroughly (tests available in `v2.0` branch)
+6. **Commit** with clear messages
+7. **Push** to your fork
+8. **Create** a pull request targeting the `v2.0` branch
 
 ### Commit Messages
 

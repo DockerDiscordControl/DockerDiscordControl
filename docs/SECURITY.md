@@ -1,175 +1,239 @@
-# 🔒 DockerDiscordControl - Security Guide
+# DockerDiscordControl - Security Guide
 
-## ⚠️ Security Improvements Implemented
+## Recent Security Fixes
 
-### 1. Discord Bot Token Security
+### 2025-11-18: Three CodeQL Security Alerts Resolved
 
-**🚨 CRITICAL CHANGE**: The Discord bot token should now be provided via environment variable instead of config file.
+All three security vulnerabilities identified by CodeQL static analysis have been fixed in v2.0.0:
 
-#### Migration Steps:
+#### 1. DOM-based XSS Vulnerability (High Severity)
+- **Alert:** js/xss-through-dom
+- **Location:** app/templates/config.html (lines 1378, 1488)
+- **Vulnerability:** User-controlled data inserted into DOM using innerHTML without sanitization
+- **Attack Vector:** Malicious input could execute arbitrary JavaScript
+- **Fix Applied:** Replaced unsafe innerHTML with safe DOM manipulation
+- **Commit:** 55dea35fadfe89661041a6495c489a1e8bf1072a
+- **Impact:** XSS attacks prevented, user input automatically escaped
 
-1. **Copy your current token** from `config/bot_config.json`
-2. **Set environment variable**:
-   ```bash
-   export DISCORD_BOT_TOKEN="your_token_here"
-   ```
-3. **Or use .env file**:
-   ```bash
-   cp .env.example .env
-   # Edit .env and set DISCORD_BOT_TOKEN
-   ```
+Technical Details:
+```javascript
+// BEFORE (Vulnerable):
+successDiv.innerHTML = `<div>${message}</div>`;
 
-#### Security Benefits:
-- ✅ Token not stored in plaintext files
-- ✅ Token not in version control
-- ✅ Environment-based configuration
-- ✅ Automatic fallback to config file (for compatibility)
+// AFTER (Secure):
+const alertDiv = document.createElement('div');
+alertDiv.textContent = message;  // Auto-escapes HTML
+```
 
-### 2. Docker Socket Security
+#### 2. Information Exposure Through Exceptions (Medium Severity)
+- **Alert:** py/stack-trace-exposure
+- **Locations:** 18 endpoints across 3 blueprint files
+- **Vulnerability:** Internal error details exposed to external users
+- **Attack Vector:** Error messages revealed application structure
+- **Fix Applied:** Generic user-facing error messages with detailed server-side logging
+- **Commit:** 9fddd34eda4ca2a0f89265638f685d1dffcb84b0
+- **Impact:** Application internals no longer exposed
 
-**🔧 ENHANCED SECURITY**: Multiple security layers added to reduce Docker socket risks.
+Technical Details:
+```python
+# BEFORE (Insecure):
+return jsonify({'error': result.error}), 500
 
-#### Standard Deployment:
+# AFTER (Secure):
+logger.error(f"Failed: {result.error}", exc_info=True)
+return jsonify({'error': 'Failed to fetch data'}), 500
+```
+
+#### 3. Incomplete URL Substring Sanitization (Medium Severity)
+- **Alert:** py/incomplete-url-substring-sanitization
+- **Location:** cogs/status_info_integration.py (line 1186)
+- **Vulnerability:** Simple substring check could be bypassed
+- **Fix Applied:** Secure URL validation using endswith() and exact match
+- **Commit:** c6606a937c39d0567c6a67b40fc7102f90993816
+- **Impact:** URL injection attacks prevented
+
+Technical Details:
+```python
+# BEFORE (Vulnerable):
+if "https://ddc.bot" in current_footer:
+
+# AFTER (Secure):
+if current_footer.endswith("https://ddc.bot") or current_footer == "https://ddc.bot":
+```
+
+---
+
+## Security Best Practices
+
+### Discord Bot Token Security
+
+The Discord bot token can be provided via environment variable for enhanced security.
+
+#### Environment Variable Method:
+```bash
+# Set in docker-compose.yml
+environment:
+  DISCORD_BOT_TOKEN: "your_token_here"
+```
+
+#### Configuration File Method:
+Alternatively, configure via Web UI at http://your-server:9374
+
+Security Benefits:
+- Token not stored in plaintext when using environment variables
+- Token not in version control
+- Environment-based configuration
+- Automatic fallback to Web UI configuration
+
+### Docker Socket Security
+
+**Important:** This application requires access to the Docker socket. Only deploy in trusted environments.
+
+#### Security Features:
+- Read-only Docker socket mounting (configured in docker-compose.yml)
+- Non-root user execution (uid 1000, gid 1000)
+- Resource limits (CPU, memory)
+- Alpine Linux base with minimal attack surface
+
+#### Deployment:
 ```bash
 docker-compose up -d
 ```
 
-#### High-Security Deployment:
+#### Verification:
 ```bash
-docker-compose -f docker-compose.secure.yml up -d
-```
-
-#### Security Features:
-- 🛡️ **Read-only Docker socket** mounting
-- 🛡️ **Non-root user** execution (uid 1000)
-- 🛡️ **Resource limits** (CPU, memory, PIDs)
-- 🛡️ **Read-only filesystem** for application code
-- 🛡️ **Dropped capabilities** (minimal privileges)
-- 🛡️ **Network isolation** with dedicated bridge
-- 🛡️ **No privilege escalation** allowed
-- 🛡️ **Syscall restrictions** via seccomp
-
-### 3. Session Security
-
-#### Current Status:
-- ✅ Strong password hashing (PBKDF2-SHA256, 600k iterations)
-- ⚠️ Session cookies secure for HTTPS (requires configuration)
-- ⚠️ Rate limiting on authentication only
-
-#### Recommendations:
-1. **Enable HTTPS** and set `SESSION_COOKIE_SECURE=True`
-2. **Set strong Flask secret key** via environment variable
-3. **Change default admin password** immediately
-
-## 🚀 Quick Security Setup
-
-### 1. Environment Variables Setup:
-```bash
-# Create .env file
-cp .env.example .env
-
-# Generate secure Flask secret
-python3 -c "import secrets; print('FLASK_SECRET_KEY=' + secrets.token_hex(32))" >> .env
-
-# Add your Discord token
-echo "DISCORD_BOT_TOKEN=your_token_here" >> .env
-```
-
-### 2. Secure Deployment:
-```bash
-# Use secure Docker Compose configuration
-docker-compose -f docker-compose.secure.yml up -d
-```
-
-### 3. Verify Security:
-```bash
-# Check container is running as non-root
+# Check container runs as non-root
 docker exec ddc id
 
 # Check resource limits
 docker stats ddc
 
-# Verify read-only mounts
-docker inspect ddc | grep -A 20 "Mounts"
+# Verify Docker socket permissions
+docker exec ddc ls -la /var/run/docker.sock
 ```
 
-## 🔍 Security Checklist
+### Session Security
 
-### ✅ **Completed Improvements:**
-- [x] Discord token via environment variable
+#### Current Implementation:
+- Strong password hashing (PBKDF2-SHA256, 600,000 iterations)
+- Secure session cookies
+- Rate limiting on authentication
+
+#### Required Configuration:
+1. **Set strong Flask secret key** via environment variable:
+   ```bash
+   FLASK_SECRET_KEY="$(openssl rand -hex 32)"
+   ```
+
+2. **Change default admin password** immediately after first login:
+   - Default username: admin
+   - Default password: setup
+   - Change via Web UI Settings
+
+3. **Enable HTTPS** in production environments (recommended)
+
+## Quick Security Setup
+
+### 1. Environment Variables:
+```bash
+# In docker-compose.yml or .env file
+FLASK_SECRET_KEY="your-64-character-random-secret-key"
+DISCORD_BOT_TOKEN="your-discord-token-here"
+DDC_ADMIN_PASSWORD="your-secure-admin-password"
+```
+
+### 2. Generate Secure Keys:
+```bash
+# Generate Flask secret key
+openssl rand -hex 32
+
+# Use this in your docker-compose.yml or .env file
+```
+
+### 3. First-Time Setup:
+1. Start container: `docker-compose up -d`
+2. Access Web UI: `http://your-server:9374`
+3. Login with: admin / setup
+4. Immediately change password in Settings
+5. Configure Discord bot token
+6. Save configuration
+
+## Security Checklist
+
+### Completed Security Features:
+- [x] CodeQL security alerts resolved (XSS, Exception Exposure, URL Sanitization)
+- [x] Discord token via environment variable support
 - [x] Enhanced Docker socket security
 - [x] Non-root container execution
 - [x] Resource limits and restrictions
-- [x] Security-focused Docker Compose variants
-- [x] Capability dropping
-- [x] Read-only filesystem options
+- [x] Strong password hashing (PBKDF2-SHA256)
+- [x] Alpine Linux base (minimal vulnerabilities)
+- [x] Flask 3.1.1 and Werkzeug 3.1.3 (CVEs resolved)
 
-### 🔄 **Recommended Next Steps:**
+### Recommended Additional Steps:
 - [ ] Enable HTTPS with valid certificates
 - [ ] Implement comprehensive rate limiting
 - [ ] Add security headers (HSTS, CSP)
-- [ ] Set up security monitoring
 - [ ] Regular dependency updates
-- [ ] Penetration testing
+- [ ] Security monitoring and logging
 
-### ⚠️ **Known Limitations:**
-- Docker socket access still provides significant container control
-- Default admin credentials still available as fallback
+### Known Limitations:
+- Docker socket access provides significant container control
+- Default credentials available for initial setup (must be changed)
 - Some operations require elevated Docker permissions
 
-## 🛡️ Additional Security Measures
+## Additional Security Measures
 
 ### Network Security:
 ```yaml
-# In docker-compose.yml, add network restrictions
+# Recommended docker-compose.yml network configuration
 networks:
   ddc_network:
     driver: bridge
-    internal: false
-    ipam:
-      config:
-        - subnet: 172.20.0.0/24
 ```
 
 ### Monitoring:
 ```bash
-# Monitor container security events
-docker logs ddc | grep -i "security\|error\|warning"
+# Monitor container logs
+docker logs ddc
 
-# Check for privilege escalation attempts
-docker exec ddc ps aux | grep root
+# Check for security events
+docker logs ddc | grep -i "security\|error\|warning"
 ```
 
 ### Backup Security:
 ```bash
-# Encrypt configuration backups
-tar czf - config/ | gpg --symmetric --cipher-algo AES256 > config_backup.tar.gz.gpg
+# Backup configuration securely
+tar czf config_backup.tar.gz config/
+
+# Store backups securely with restricted permissions
+chmod 600 config_backup.tar.gz
 ```
 
-## 🆘 Security Incident Response
+## Security Incident Response
 
 ### If Token Compromised:
-1. **Immediately rotate** Discord bot token in Developer Portal
-2. **Update environment variable** with new token
-3. **Restart DDC container**
-4. **Review logs** for unauthorized access
-5. **Check Discord server** for suspicious activity
+1. Immediately rotate Discord bot token in Developer Portal
+2. Update environment variable or Web UI configuration with new token
+3. Restart DDC container: `docker-compose restart`
+4. Review logs for unauthorized access
+5. Check Discord server for suspicious activity
 
 ### If Container Compromised:
-1. **Stop container immediately**: `docker stop ddc`
-2. **Review logs**: `docker logs ddc`
-3. **Check host system** for signs of escape
-4. **Rebuild from clean image**
-5. **Review and enhance security configuration**
+1. Stop container immediately: `docker stop ddc`
+2. Review logs: `docker logs ddc`
+3. Check host system for signs of escape
+4. Rebuild from clean image
+5. Review and enhance security configuration
 
-## 📞 Security Contact
+## Security Contact
 
-For security issues, please:
-1. **Do not** create public GitHub issues
-2. **Report privately** to project maintainers
-3. **Include** detailed reproduction steps
-4. **Wait** for confirmation before public disclosure
+For security issues:
+1. Do not create public GitHub issues
+2. Report privately to project maintainers
+3. Include detailed reproduction steps
+4. Wait for confirmation before public disclosure
 
 ---
 
-**Remember**: Security is an ongoing process, not a one-time setup. Regularly review and update your security configuration.
+**Note:** Security is an ongoing process. Regularly review and update your security configuration. Monitor the GitHub repository for security updates and advisories.

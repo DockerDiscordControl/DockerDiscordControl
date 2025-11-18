@@ -2,6 +2,23 @@
 
 Complete guide to testing DockerDiscordControl.
 
+## Production Release Notice
+
+**IMPORTANT**: The main branch is production-only as of v2.0.0 (2025-11-18). All testing infrastructure, test files, and development tooling have been removed from the main branch to create a clean production release.
+
+**For Development**: Active development continues in the `v2.0` branch, which contains the complete testing infrastructure:
+- Full test suite (unit, integration, performance, security tests)
+- Test configuration files (pytest.ini, requirements-test.txt)
+- CI/CD workflows (.github/workflows/)
+- Code quality tools configuration
+
+**To contribute or run tests**: Switch to the `v2.0` branch:
+```bash
+git checkout origin/v2.0
+```
+
+---
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -13,6 +30,8 @@ Complete guide to testing DockerDiscordControl.
 - [CI/CD Integration](#cicd-integration)
 
 ## Overview
+
+**Note**: This documentation describes the testing infrastructure available in the `v2.0` development branch.
 
 DDC follows a comprehensive testing strategy with multiple test levels:
 
@@ -45,8 +64,10 @@ DDC follows a comprehensive testing strategy with multiple test levels:
 
 ## Test Structure
 
+**Note**: The test structure below exists in the `v2.0` development branch. The `tests/` directory has been removed from the main branch.
+
 ```
-tests/
+tests/  (Available in v2.0 branch only)
 ├── unit/                          # Unit tests (fast, isolated)
 │   └── services/
 │       ├── config/               # ConfigService tests (15 tests)
@@ -70,6 +91,12 @@ tests/
 ```
 
 ## Running Tests
+
+**Prerequisites**: Switch to the `v2.0` branch to access the test infrastructure:
+```bash
+git checkout origin/v2.0
+pip install -r requirements-test.txt
+```
 
 ### Run All Tests
 
@@ -168,6 +195,8 @@ coverage report -m
 ```
 
 ### Coverage Enforcement
+
+**Note**: `pytest.ini` is available in the `v2.0` branch only.
 
 pytest.ini configuration enforces minimum coverage:
 
@@ -540,10 +569,12 @@ class TestMechService:
 
 ## CI/CD Integration
 
-Tests run automatically in GitHub Actions:
+**Note**: GitHub Actions workflows (`.github/workflows/`) are available in the `v2.0` branch only. The main branch is production-focused and does not include CI/CD workflows.
+
+In the `v2.0` development branch, tests run automatically in GitHub Actions:
 
 ```yaml
-# .github/workflows/tests.yml
+# .github/workflows/tests.yml (v2.0 branch only)
 
 name: Tests
 
