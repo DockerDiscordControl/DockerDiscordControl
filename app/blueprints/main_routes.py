@@ -1566,15 +1566,28 @@ def reset_mech_to_level_1():
                 'timestamp': result.details.get('timestamp') if result.details else None
             }
 
-            # Include sanitized operation details if available
+            # Include operation details using strict allowlist (security: prevent exception exposure)
+            # Define expected safe operation messages (allowlist approach for CodeQL compliance)
+            SAFE_OPERATION_ALLOWLIST = {
+                "Donations: All donations cleared",
+                "Mech State: Mech state reset to Level 1",
+                "Mech State: Reset to Level 1",
+                "Evolution Mode: Evolution mode reset to defaults",
+                "Evolution Mode: Reset to defaults",
+                "Cleanup: Deprecated files cleaned up",
+                "Cleanup: Files cleaned up successfully",
+                "Config: Mech configuration updated",
+                "Status: Mech system reset completed"
+            }
+
             if result.details and 'operations' in result.details:
-                # Filter operations to only include safe, expected messages
-                safe_operations = []
-                for op in result.details['operations']:
-                    # Only include operations that match expected patterns (no exception traces)
-                    if isinstance(op, str) and not any(x in op for x in ['Exception', 'Error:', 'Traceback']):
-                        safe_operations.append(op)
-                response_data['operations'] = safe_operations
+                # Only include operations that exactly match allowlist (breaks taint tracking)
+                safe_operations = [
+                    op for op in result.details['operations']
+                    if isinstance(op, str) and op in SAFE_OPERATION_ALLOWLIST
+                ]
+                if safe_operations:  # Only add if we have safe operations
+                    response_data['operations'] = safe_operations
 
             current_app.logger.info(f"Mech reset to Level 1 completed by user: {session.get('username', 'Unknown')}")
             return jsonify(response_data)

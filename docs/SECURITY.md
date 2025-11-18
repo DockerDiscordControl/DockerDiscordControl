@@ -123,11 +123,11 @@ return jsonify({'error': 'Failed to reset mech system'}), 500
 #### 6b. Information Exposure Through Exceptions - Mech Reset Success (Defense-in-Depth)
 - **Alert:** py/stack-trace-exposure (CodeQL data flow analysis)
 - **Location:** app/blueprints/main_routes.py (mech reset endpoint - success path)
-- **Vulnerability:** CodeQL flagged that `result.message` could theoretically contain sensitive data
-- **Attack Vector:** While success messages are safe in practice, CodeQL cannot prove this statically
-- **Fix Applied:** Defense-in-depth: sanitize even success responses with explicit safe fields
-- **Commit:** 0e543fa (2025-11-18)
-- **Impact:** Additional layer of protection against potential data leaks
+- **Vulnerability:** CodeQL flagged that `result.message` and `result.details['operations']` could contain exception data
+- **Attack Vector:** CodeQL's taint tracking cannot statically prove filtering logic prevents all exception exposure
+- **Fix Applied:** Multi-layer defense with hardcoded messages + strict allowlist for operations
+- **Commits:** 0e543fa, [current] (2025-11-18)
+- **Impact:** Complete prevention of exception exposure through success responses
 
 Technical Details:
 ```python
@@ -135,17 +135,27 @@ Technical Details:
 response_data = {
     'message': result.message,  # CodeQL: Can't prove this is safe
     'previous_status': current_status,
-    'operations': result.details['operations']
+    'operations': result.details['operations']  # Tainted data flow
 }
 
-# AFTER (Defense-in-depth):
-safe_message = "Mech system reset to Level 1 completed successfully"
-response_data = {
-    'message': safe_message,  # Hardcoded safe message
-    'previous_status': {filtered_fields},  # Only expected fields
-    'operations': [op for op in ops if no_exception_markers]  # Filtered
+# INTERMEDIATE (Filtered but still flagged):
+safe_operations = [op for op in result.details['operations']
+                   if not any(x in op for x in ['Exception', 'Error:'])]
+response_data['operations'] = safe_operations  # Still tainted by data flow
+
+# FINAL (Strict allowlist - breaks taint tracking):
+SAFE_OPERATION_ALLOWLIST = {
+    "Donations: All donations cleared",
+    "Mech State: Mech state reset to Level 1",
+    "Evolution Mode: Evolution mode reset to defaults",
+    # ... predefined safe messages only
 }
+safe_operations = [op for op in result.details['operations']
+                   if op in SAFE_OPERATION_ALLOWLIST]  # Only exact matches
+response_data['operations'] = safe_operations  # Safe: allowlist validation
 ```
+
+**Security Rationale:** Allowlist approach ensures only predefined, known-safe operation messages are included in API responses. CodeQL's data flow analysis recognizes this pattern as breaking the taint chain from potentially unsafe `result.details`.
 
 #### 7. Information Exposure Through Exceptions - 12 API Endpoints (Medium Severity)
 - **Alert:** py/stack-trace-exposure
