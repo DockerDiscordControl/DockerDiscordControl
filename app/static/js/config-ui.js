@@ -126,7 +126,11 @@ function openContainerInfoModal(containerName) {
     }
     
     if (modalLabel) {
-        modalLabel.innerHTML = '<i class="bi bi-info-circle"></i> Container Info Configuration - ' + containerName;
+        // Security: Prevent XSS by using textContent for user-controlled containerName
+        // First set the static HTML (icon + base text)
+        modalLabel.innerHTML = '<i class="bi bi-info-circle"></i> Container Info Configuration - ';
+        // Then append containerName as text (auto-escapes HTML)
+        modalLabel.appendChild(document.createTextNode(containerName));
     }
     
     // Get current values from form (look for existing hidden inputs)
