@@ -1533,22 +1533,26 @@ def reset_mech_to_level_1():
             current_app.logger.warning(f"Failed to log mech reset action: {log_error}")
 
         # Return result
-        response_data = {
-            'success': result.success,
-            'message': result.message,
-            'previous_status': current_status,
-            'timestamp': result.details.get('timestamp') if result.details else None
-        }
-
-        if result.details and 'operations' in result.details:
-            response_data['operations'] = result.details['operations']
-
         if result.success:
+            # Success: Include full details
+            response_data = {
+                'success': True,
+                'message': result.message,
+                'previous_status': current_status,
+                'timestamp': result.details.get('timestamp') if result.details else None
+            }
+            if result.details and 'operations' in result.details:
+                response_data['operations'] = result.details['operations']
+
             current_app.logger.info(f"Mech reset to Level 1 completed by user: {session.get('username', 'Unknown')}")
             return jsonify(response_data)
         else:
-            current_app.logger.error(f"Mech reset failed: {result.message}")
-            return jsonify(response_data), 400
+            # Failure: Log detailed error server-side, return generic message to user
+            current_app.logger.error(f"Mech reset failed: {result.message}", exc_info=True)
+            return jsonify({
+                'success': False,
+                'error': 'Failed to reset mech system'
+            }), 500
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (mech reset service unavailable)
