@@ -23,9 +23,9 @@ if [ -S /var/run/docker.sock ]; then
         fi
     fi
     
-    # Test Docker access
-    if docker version > /dev/null 2>&1; then
-        echo "✓ Docker daemon accessible"
+    # Test Docker access using Python SDK (no docker-cli binary needed)
+    if python3 -c "import docker; docker.from_env().ping()" > /dev/null 2>&1; then
+        echo "✓ Docker daemon accessible via Python SDK"
     else
         echo "⚠ WARNING: Cannot access Docker daemon - container control will not work"
         echo "  Make sure the Docker socket is mounted and accessible"
