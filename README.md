@@ -181,7 +181,7 @@ docker run -d --name ddc \
 
 **🚀 Easy Web Setup (Recommended)**
 
-1. **Access Web UI**: `http://<your-server-ip>:5001`
+1. **Access Web UI**: `http://<your-server-ip>:9374`
 2. **Setup Options**:
    - **Method 1**: Visit `/setup` for guided web setup
    - **Method 2**: Use temporary credentials: `admin` / `setup` 
@@ -205,7 +205,7 @@ docker run -d --name ddc \
 DDC_ADMIN_PASSWORD=your_secure_password_here
 
 # Option 2: Use temporary credentials for web setup
-# Visit http://your-server:5001 and login with: admin / setup
+# Visit http://your-server:9374 and login with: admin / setup
 # Then complete setup through the web interface
 
 # Flask security (auto-generated if not provided)
@@ -391,7 +391,7 @@ docker pull dockerdiscordcontrol/dockerdiscordcontrol:latest
 - **Configuration Not Saving**: Check file permissions in logs
 - **Bot Not Responding**: Verify token and Guild ID in Web UI
 
-**Need Help?** Check our [First-Time Setup Guide](FIRST_TIME_SETUP.md), [Troubleshooting Guide](../../wiki/Troubleshooting), or create an issue.
+**Need Help?** Check our [Troubleshooting Guide](../../wiki/Troubleshooting) or create an issue.
 
 ## Contributing
 
@@ -431,6 +431,6 @@ Your support helps maintain DDC across **Windows, Linux, macOS, and Universal** 
 - **Contributors**: Community contributions welcome via [Pull Requests](../../pulls)
 - **Special Thanks**: All users who report bugs, suggest features, and support the project
 
-Want to contribute? Check out our [Contributing Guidelines](CONTRIBUTING.md)!
+Want to contribute? Check out our [Contributing Guidelines](docs/CONTRIBUTING.md)!
 
 **Built for every platform - optimized for your environment!**
