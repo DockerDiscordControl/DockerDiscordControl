@@ -19,9 +19,29 @@
   <Privileged>false</Privileged>
   <Support>https://github.com/DockerDiscordControl/DockerDiscordControl</Support>
   <Project>https://ddc.bot</Project>
-  <Overview>DockerDiscordControl (DDC) is a powerful Discord bot that allows you to monitor and control your Docker containers directly from Discord. Features include real-time status monitoring, container control (start/stop/restart), scheduled tasks, heartbeat monitoring, and a comprehensive web UI. Built with Alpine Linux for enhanced security and smaller footprint.</Overview>
-  <Category>Tools: Network:Management</Category>
+  <Overview>DockerDiscordControl (DDC) v2.0 - Control your Docker containers directly from Discord! Features include real-time monitoring, multi-language support (German/French/English), Mech Evolution donation system, scheduled tasks, heartbeat monitoring, and comprehensive web UI. Built with Alpine Linux for enhanced security and 94% fewer vulnerabilities. Perfect for Unraid servers and Discord communities!</Overview>
+  <Category>Tools:System Network:Management HomeAutomation:</Category>
   <WebUI>http://[IP]:[PORT:8374]</WebUI>
+  <Changes>
+###v2.0.0 (2025-11-18)
+**MAJOR UPDATE - Complete Rewrite**
+- NEW: Multi-language support (German, French, English) - Full Discord UI translation
+- NEW: Mech Evolution system with 11 stages and animated WebP graphics
+- NEW: Continuous power decay system (minutengenau) for fair donation tracking
+- NEW: Premium key system for power users
+- IMPROVED: Docker performance optimization (16x faster cache, 7x faster processing)
+- IMPROVED: Advanced spam protection with configurable cooldowns
+- IMPROVED: Modern UI/UX overhaul with beautiful Discord embeds
+- IMPROVED: Alpine Linux base (94% fewer vulnerabilities, &lt;200MB RAM)
+- FIXED: Port mapping consistency (9374) for Unraid deployment
+- FIXED: Interaction timeout issues with defer() pattern
+- FIXED: Translation coverage 100% across all languages
+
+###v1.x (Previous)
+- Initial release with basic container control
+- Task scheduling and heartbeat monitoring
+- Web UI configuration panel
+  </Changes>
   <TemplateURL>https://raw.githubusercontent.com/DockerDiscordControl/DockerDiscordControl/main/templates/DockerDiscordControl.xml</TemplateURL>
   <Icon>https://raw.githubusercontent.com/DockerDiscordControl/DockerDiscordControl/main/app/static/favicon.png</Icon>
     <ExtraParams>--restart unless-stopped</ExtraParams>

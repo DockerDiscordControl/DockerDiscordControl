@@ -4,7 +4,15 @@
       "Bash(git show:*)",
       "Bash(tee:*)",
       "Bash(lsof:*)",
-      "Bash(xargs python3 -m py_compile:*)"
+      "Bash(xargs python3 -m py_compile:*)",
+      "Bash(du -sh:*)",
+      "Bash(if grep -q \"Letztes Update\" cogs/docker_control.py)",
+      "Bash(then echo \"FOUND - ERROR\")",
+      "Bash(else echo \"NONE FOUND - SUCCESS\")",
+      "Bash(fi)",
+      "Bash(/tmp/german_section.txt)",
+      "Bash(/tmp/french_section.txt)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []
