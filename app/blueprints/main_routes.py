@@ -1636,19 +1636,37 @@ def get_mech_status():
                 'error': 'Failed to retrieve mech status'
             }), 500
 
-        # Security: Sanitize status to only include expected safe fields (allowlist approach)
+        # Security: Sanitize status with strict type validation (defense-in-depth)
+        # Validate glvl_values to only include numbers (prevent exception data in lists)
+        raw_glvl_values = status.get('glvl_values', [])
+        safe_glvl_values = []
+        if isinstance(raw_glvl_values, list):
+            for val in raw_glvl_values:
+                if isinstance(val, (int, float)) and not isinstance(val, bool):
+                    safe_glvl_values.append(val)
+
+        # Validate string fields don't contain exception markers
+        next_level_name = status.get('next_level_name', 'Unknown')
+        if not isinstance(next_level_name, str) or any(x in str(next_level_name) for x in ['Exception', 'Error:', 'Traceback']):
+            next_level_name = 'Unknown'
+
+        architecture = status.get('architecture', 'Unknown')
+        if not isinstance(architecture, str) or any(x in str(architecture) for x in ['Exception', 'Error:', 'Traceback']):
+            architecture = 'Unknown'
+
+        # Build safe status with validated fields only
         safe_status = {
-            'donations_count': status.get('donations_count', 0),
-            'total_donated': status.get('total_donated', 0),
-            'current_level': status.get('current_level', 1),
-            'level_upgrades_count': status.get('level_upgrades_count', 0),
-            'next_level_threshold': status.get('next_level_threshold'),
-            'amount_needed': status.get('amount_needed', 0),
-            'next_level_name': status.get('next_level_name', 'Unknown'),
-            'channels_tracked': status.get('channels_tracked', 0),
-            'glvl_values': status.get('glvl_values', []),
-            'architecture': status.get('architecture', 'Unknown'),
-            'deprecated_files_exist': status.get('deprecated_files_exist', False)
+            'donations_count': int(status.get('donations_count', 0)) if isinstance(status.get('donations_count'), (int, float)) else 0,
+            'total_donated': int(status.get('total_donated', 0)) if isinstance(status.get('total_donated'), (int, float)) else 0,
+            'current_level': int(status.get('current_level', 1)) if isinstance(status.get('current_level'), (int, float)) else 1,
+            'level_upgrades_count': int(status.get('level_upgrades_count', 0)) if isinstance(status.get('level_upgrades_count'), (int, float)) else 0,
+            'next_level_threshold': status.get('next_level_threshold') if isinstance(status.get('next_level_threshold'), (int, float, type(None))) else None,
+            'amount_needed': int(status.get('amount_needed', 0)) if isinstance(status.get('amount_needed'), (int, float)) else 0,
+            'next_level_name': next_level_name,
+            'channels_tracked': int(status.get('channels_tracked', 0)) if isinstance(status.get('channels_tracked'), (int, float)) else 0,
+            'glvl_values': safe_glvl_values,
+            'architecture': architecture,
+            'deprecated_files_exist': bool(status.get('deprecated_files_exist', False))
         }
 
         return jsonify({

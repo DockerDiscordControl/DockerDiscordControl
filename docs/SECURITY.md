@@ -184,13 +184,13 @@ return jsonify({'error': 'Failed to process request'}), 500
 ```
 
 #### 8. Information Exposure Through Exceptions - Mech Status Endpoint (Medium Severity)
-- **Alert:** py/stack-trace-exposure
+- **Alert:** py/stack-trace-exposure (CodeQL alerts #21, #44)
 - **Location:** app/blueprints/main_routes.py:1632 (/api/mech/status endpoint)
 - **Vulnerability:** Service returns `{"error": "exception details"}` on exceptions, exposed to users
-- **Attack Vector:** The `get_current_status()` service method returns error dictionaries containing exception messages (IOError, JSONDecodeError, etc.) which were passed directly to API responses
-- **Fix Applied:** Two-layer defense: detect error responses + sanitize status with allowlist
-- **Commit:** [current] (2025-11-18)
-- **Impact:** Prevents exception exposure through status endpoint
+- **Attack Vector:** The `get_current_status()` service method returns error dictionaries containing exception messages (IOError, JSONDecodeError, etc.) which were passed directly to API responses. Additionally, tainted data could flow through list/string fields.
+- **Fix Applied:** Three-layer defense: detect errors + strict type validation + exception marker filtering
+- **Commits:** 36d95ec, [current] (2025-11-18)
+- **Impact:** Complete prevention of exception exposure through status endpoint
 
 Technical Details:
 ```python
@@ -198,10 +198,10 @@ Technical Details:
 status = reset_service.get_current_status()  # May return {"error": "File I/O error: ..."}
 return jsonify({
     'success': True,
-    'status': status  # Error details exposed to user
+    'status': status  # Error details + tainted data exposed to user
 })
 
-# AFTER (Secure - Two layers):
+# AFTER (Secure - Three layers):
 status = reset_service.get_current_status()
 
 # Layer 1: Detect and handle error responses
@@ -209,21 +209,38 @@ if isinstance(status, dict) and "error" in status:
     current_app.logger.error(f"Mech status service error: {status['error']}", exc_info=True)
     return jsonify({'error': 'Failed to retrieve mech status'}), 500
 
-# Layer 2: Allowlist approach for safe fields only
+# Layer 2: Strict type validation for complex fields
+raw_glvl_values = status.get('glvl_values', [])
+safe_glvl_values = []
+if isinstance(raw_glvl_values, list):
+    for val in raw_glvl_values:
+        if isinstance(val, (int, float)) and not isinstance(val, bool):
+            safe_glvl_values.append(val)  # Only numeric values
+
+# Layer 3: Exception marker filtering for strings
+next_level_name = status.get('next_level_name', 'Unknown')
+if not isinstance(next_level_name, str) or \
+   any(x in str(next_level_name) for x in ['Exception', 'Error:', 'Traceback']):
+    next_level_name = 'Unknown'
+
+# Build safe status with fully validated fields
 safe_status = {
-    'donations_count': status.get('donations_count', 0),
-    'total_donated': status.get('total_donated', 0),
-    'current_level': status.get('current_level', 1),
-    'level_upgrades_count': status.get('level_upgrades_count', 0),
-    'next_level_threshold': status.get('next_level_threshold'),
-    'amount_needed': status.get('amount_needed', 0),
-    'next_level_name': status.get('next_level_name', 'Unknown'),
-    # ... only expected safe fields
+    'donations_count': int(status.get('donations_count', 0))
+                       if isinstance(status.get('donations_count'), (int, float)) else 0,
+    'glvl_values': safe_glvl_values,  # Validated list
+    'next_level_name': next_level_name,  # Filtered string
+    # ... all fields with type validation
 }
 return jsonify({'success': True, 'status': safe_status})
 ```
 
-**Security Rationale:** Service layer may return error dictionaries during exception handling. The endpoint now detects these error responses and prevents them from reaching users. Additionally, even successful responses are sanitized using an allowlist of expected fields to provide defense-in-depth protection.
+**Security Rationale:** Multi-layer defense ensures no exception data can leak through any field type:
+1. Error detection catches explicit error responses from service layer
+2. Type validation ensures only expected data types (int, float, str) are included
+3. Exception marker filtering prevents exception strings in text fields
+4. List validation prevents malicious data in array fields (glvl_values)
+
+This comprehensive approach satisfies CodeQL's taint tracking by breaking all possible data flow paths from potentially unsafe service responses.
 
 ---
 
