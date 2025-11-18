@@ -2,9 +2,9 @@
 
 ## Recent Security Fixes
 
-### 2025-11-18: Four CodeQL Security Alerts Resolved
+### 2025-11-18: Multiple CodeQL Security Alerts Resolved
 
-All four security vulnerabilities identified by CodeQL static analysis have been fixed in v2.0.0:
+All CodeQL security vulnerabilities identified by static analysis have been fixed in v2.0.0:
 
 #### 1. DOM-based XSS Vulnerability (High Severity)
 - **Alert:** js/xss-through-dom
@@ -79,6 +79,52 @@ enhanced_footer = current_footer.replace("https://ddc.bot", "ℹ️ Info Availab
 # AFTER (Secure):
 prefix = current_footer.removesuffix("https://ddc.bot")
 enhanced_footer = prefix + "ℹ️ Info Available • https://ddc.bot"
+```
+
+#### 5. Information Exposure Through Exceptions - Mech Reset (Medium Severity)
+- **Alert:** py/stack-trace-exposure
+- **Location:** app/blueprints/main_routes.py (mech reset endpoint)
+- **Vulnerability:** Internal error details from `result.message` exposed to users
+- **Attack Vector:** Exception messages revealed file paths, method names, service structure
+- **Fix Applied:** Log detailed errors server-side, return generic messages to users
+- **Commit:** 4b6acbb (2025-11-18)
+- **Impact:** Prevents information disclosure
+
+Technical Details:
+```python
+# BEFORE (Vulnerable):
+response_data = {'message': result.message}  # Contains "Error: /path/to/file.json"
+return jsonify(response_data), 400
+
+# AFTER (Secure):
+current_app.logger.error(f"Mech reset failed: {result.message}", exc_info=True)
+return jsonify({'error': 'Failed to reset mech system'}), 500
+```
+
+#### 6. Information Exposure Through Exceptions - 12 API Endpoints (Medium Severity)
+- **Alert:** py/stack-trace-exposure
+- **Locations:** 12 endpoints across main_routes.py
+- **Vulnerability:** `result.error` containing exception details returned to users
+- **Attack Vector:** Internal errors exposed file paths, IOError details, service internals
+- **Fix Applied:** Comprehensive fix across all endpoints with detailed logging
+- **Commit:** eb81df6 (2025-11-18)
+- **Impact:** Prevents information disclosure across entire API surface
+
+**Affected Endpoints:**
+- /api/containers/refresh
+- /api/diagnostics/enable, disable, status
+- /api/stats/performance
+- /api/donations/manual, list, delete
+- /api/mech/speed_config, difficulty (GET/POST/reset)
+
+Technical Details:
+```python
+# BEFORE (Vulnerable):
+return jsonify({'error': result.error}), 400  # Exposes "IOError: permission denied"
+
+# AFTER (Secure):
+current_app.logger.error(f"Operation failed: {result.error}", exc_info=True)
+return jsonify({'error': 'Failed to process request'}), 500
 ```
 
 ---
