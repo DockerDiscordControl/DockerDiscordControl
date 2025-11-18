@@ -292,7 +292,15 @@ class ConfigService:
     
     def save_config(self, config: Dict[str, Any]) -> ConfigServiceResult:
         """
-        Save configuration to appropriate files.
+        Save main configuration to config/config.json using atomic write pattern.
+
+        This method saves the main configuration settings (bot_token, guild_id,
+        web_ui_password_hash, etc.) to config/config.json.
+
+        Note: Modular structure is used for specialized config:
+        - Containers: config/containers/*.json (saved by ConfigurationSaveService)
+        - Channels: config/channels/*.json (saved by ChannelConfigService)
+        - Main settings: config/config.json (saved by THIS method)
 
         Args:
             config: Configuration dictionary to save
@@ -302,29 +310,81 @@ class ConfigService:
         """
         with self._save_lock:
             try:
-                # IMPORTANT: Do NOT save to legacy files anymore!
-                # The system now uses ONLY modular config structure:
-                # - Containers: config/containers/*.json (saved by ConfigurationSaveService)
-                # - Channels: config/channels/*.json (saved by ChannelConfigService)
-                # - Other settings: config/*.json (main_config, auth, etc.)
+                import json
+                import os
+                import tempfile
+                from pathlib import Path
 
-                # Legacy files (bot_config.json, docker_config.json, web_config.json, channels_config.json)
-                # are NO LONGER USED and should NOT be created!
+                # Prepare main config (exclude modular data saved separately)
+                main_config = config.copy()
 
-                logger.info("save_config called - using modular structure only (no legacy files)")
+                # Remove fields that are saved separately in modular structure
+                fields_saved_separately = ['servers', 'channel_permissions']
+                for field in fields_saved_separately:
+                    main_config.pop(field, None)
 
-                # Invalidate cache using cache service
+                logger.info(f"save_config called - saving main config with {len(main_config)} fields")
+                logger.debug(f"Main config keys: {list(main_config.keys())}")
+
+                # Ensure config directory exists
+                config_dir = Path(self.main_config_file).parent
+                config_dir.mkdir(parents=True, exist_ok=True)
+
+                # === Atomic Write Pattern (Best Practice) ===
+                # Write to temp file first, then atomically rename to prevent corruption
+
+                # Create temp file in same directory (required for atomic rename on same filesystem)
+                fd, temp_path = tempfile.mkstemp(
+                    dir=str(config_dir),
+                    prefix='.config_',
+                    suffix='.json.tmp'
+                )
+
+                try:
+                    # Write to temp file
+                    with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                        json.dump(main_config, f, indent=2, ensure_ascii=False)
+                        f.flush()
+                        os.fsync(f.fileno())  # Ensure data is written to disk
+
+                    # Atomic rename (POSIX) or move (Windows)
+                    if os.name == 'posix':
+                        # On POSIX systems, rename is atomic
+                        os.rename(temp_path, str(self.main_config_file))
+                    else:
+                        # On Windows, use replace for atomic operation
+                        os.replace(temp_path, str(self.main_config_file))
+
+                    logger.info(f"✅ Main configuration saved successfully to {self.main_config_file}")
+
+                    # Log important fields that were saved (without showing sensitive data)
+                    if 'bot_token' in main_config:
+                        logger.info("  - bot_token: saved (encrypted)")
+                    if 'guild_id' in main_config:
+                        logger.info(f"  - guild_id: {main_config.get('guild_id')}")
+                    if 'web_ui_password_hash' in main_config:
+                        logger.info("  - web_ui_password_hash: saved")
+
+                except (IOError, OSError) as write_error:
+                    # Clean up temp file on error
+                    try:
+                        if os.path.exists(temp_path):
+                            os.unlink(temp_path)
+                    except (IOError, OSError):
+                        pass  # Ignore cleanup errors
+                    raise write_error
+
+                # Invalidate cache after successful save
                 try:
                     self._cache_service.invalidate_cache()
+                    logger.debug("Cache invalidated after config save")
                 except (ConfigCacheError, IOError, OSError) as cache_error:
                     # Cache invalidation failure is not critical
                     logger.warning(f"Cache invalidation failed (non-critical): {cache_error}")
-                    # Don't re-raise since this is non-critical
-                    # Original code raised but that seems wrong for "non-critical"
 
                 return ConfigServiceResult(
                     success=True,
-                    message="Configuration saved successfully (modular structure)"
+                    message="Configuration saved successfully"
                 )
 
             except ConfigCacheError:
