@@ -1,5 +1,5 @@
 # Multi-stage build for ultra-small production image
-FROM alpine:3.22.1 AS builder
+FROM alpine:3.22.2 AS builder
 
 WORKDIR /build
 
@@ -76,7 +76,7 @@ for pth_file in runtime.glob('*.pth'):
 PY
 
 # Production stage - minimal runtime
-FROM alpine:3.22.1
+FROM alpine:3.22.2
 
 WORKDIR /app
 
