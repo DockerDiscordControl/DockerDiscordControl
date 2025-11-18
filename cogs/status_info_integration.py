@@ -1183,11 +1183,24 @@ def create_enhanced_status_embed(
         
         # Add subtle footer enhancement
         current_footer = original_embed.footer.text if original_embed.footer else ""
-        # Secure URL check: Only match if URL is at the end or is the complete footer
-        if current_footer.endswith("https://ddc.bot") or current_footer == "https://ddc.bot":
-            # Security: Only replace the suffix at the end, not all occurrences
-            prefix = current_footer.removesuffix("https://ddc.bot")
-            enhanced_footer = prefix + "ℹ️ Info Available • https://ddc.bot"
+
+        # Security: Validate URL properly to prevent malicious URLs like:
+        # - "https://evil-ddc.bot" (would pass simple endswith check)
+        # - "Visit https://ddc.bot.evil.com • https://ddc.bot" (would affect multiple URLs with replace)
+        # Use exact match for the complete footer or validate suffix properly
+        if current_footer == "https://ddc.bot":
+            # Exact match - safe to enhance
+            enhanced_footer = "ℹ️ Info Available • https://ddc.bot"
+            original_embed.set_footer(text=enhanced_footer)
+        elif current_footer.endswith(" • https://ddc.bot") or current_footer.endswith(" https://ddc.bot"):
+            # Footer ends with separator + our URL - safe to enhance
+            # Only replace the exact suffix at the end, not all occurrences
+            if current_footer.endswith(" • https://ddc.bot"):
+                prefix = current_footer.removesuffix(" • https://ddc.bot")
+                enhanced_footer = prefix + " • ℹ️ Info Available • https://ddc.bot"
+            else:
+                prefix = current_footer.removesuffix(" https://ddc.bot")
+                enhanced_footer = prefix + " ℹ️ Info Available • https://ddc.bot"
             original_embed.set_footer(text=enhanced_footer)
         
         logger.debug(f"Enhanced status embed with info indicator for {container_name}")

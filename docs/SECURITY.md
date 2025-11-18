@@ -2,9 +2,9 @@
 
 ## Recent Security Fixes
 
-### 2025-11-18: Three CodeQL Security Alerts Resolved
+### 2025-11-18: Four CodeQL Security Alerts Resolved
 
-All three security vulnerabilities identified by CodeQL static analysis have been fixed in v2.0.0:
+All four security vulnerabilities identified by CodeQL static analysis have been fixed in v2.0.0:
 
 #### 1. DOM-based XSS Vulnerability (High Severity)
 - **Alert:** js/xss-through-dom
@@ -44,10 +44,11 @@ logger.error(f"Failed: {result.error}", exc_info=True)
 return jsonify({'error': 'Failed to fetch data'}), 500
 ```
 
-#### 3. Incomplete URL Substring Sanitization (Medium Severity)
+#### 3. Incomplete URL Substring Sanitization - Part 1 (Medium Severity)
 - **Alert:** py/incomplete-url-substring-sanitization
 - **Location:** cogs/status_info_integration.py (line 1186)
 - **Vulnerability:** Simple substring check could be bypassed
+- **Attack Vector:** Malicious URL like "https://evil.com/ddc.bot" would match
 - **Fix Applied:** Secure URL validation using endswith() and exact match
 - **Commit:** c6606a937c39d0567c6a67b40fc7102f90993816
 - **Impact:** URL injection attacks prevented
@@ -59,6 +60,25 @@ if "https://ddc.bot" in current_footer:
 
 # AFTER (Secure):
 if current_footer.endswith("https://ddc.bot") or current_footer == "https://ddc.bot":
+```
+
+#### 4. Incomplete URL Substring Sanitization - Part 2 (Medium Severity)
+- **Alert:** py/incomplete-url-substring-sanitization
+- **Location:** cogs/status_info_integration.py (line 1188)
+- **Vulnerability:** replace() method replaced ALL occurrences, not just the suffix
+- **Attack Vector:** Footer "Visit https://ddc.bot.evil.com • https://ddc.bot" would pass endswith() check but replace() would affect BOTH URLs
+- **Fix Applied:** Use removesuffix() to only replace the URL at the end
+- **Commit:** c36164a (2025-11-18)
+- **Impact:** Prevents URL manipulation attacks
+
+Technical Details:
+```python
+# BEFORE (Vulnerable):
+enhanced_footer = current_footer.replace("https://ddc.bot", "ℹ️ Info Available • https://ddc.bot")
+
+# AFTER (Secure):
+prefix = current_footer.removesuffix("https://ddc.bot")
+enhanced_footer = prefix + "ℹ️ Info Available • https://ddc.bot"
 ```
 
 ---
