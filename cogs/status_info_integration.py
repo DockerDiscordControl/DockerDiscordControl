@@ -1183,7 +1183,8 @@ def create_enhanced_status_embed(
         
         # Add subtle footer enhancement
         current_footer = original_embed.footer.text if original_embed.footer else ""
-        if "https://ddc.bot" in current_footer:
+        # Secure URL check: Only match if URL is at the end or is the complete footer
+        if current_footer.endswith("https://ddc.bot") or current_footer == "https://ddc.bot":
             enhanced_footer = current_footer.replace("https://ddc.bot", "ℹ️ Info Available • https://ddc.bot")
             original_embed.set_footer(text=enhanced_footer)
         
