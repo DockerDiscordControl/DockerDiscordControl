@@ -83,13 +83,14 @@ WORKDIR /app
 # Install ONLY runtime dependencies
 RUN apk add --no-cache \
     python3 \
-    supervisor \
     ca-certificates \
     tzdata \
     docker-cli \
     jpeg \
     zlib \
-    freetype
+    freetype && \
+    # Install supervisor 4.3.0+ from edge repo to fix CVE-2023-27482
+    apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main supervisor
 
 # Copy cleaned venv from builder
 COPY --from=builder /runtime/site-packages /opt/runtime/site-packages
