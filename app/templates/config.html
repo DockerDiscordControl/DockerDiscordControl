@@ -1376,19 +1376,20 @@
         }
         
         function showSuccessMessage(message) {
-            // Create temporary success message
-            const successDiv = document.createElement('div');
-            successDiv.innerHTML = `
-                <div class="alert alert-success" style="position: fixed; top: 20px; right: 20px; z-index: 3000; animation: slideInRight 0.3s ease;">
-                    ${message}
-                </div>
-            `;
-            document.body.appendChild(successDiv);
-            
+            // Create temporary success message using safe DOM manipulation
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success';
+            alertDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 3000; animation: slideInRight 0.3s ease;';
+
+            // Use textContent to safely insert message (auto-escapes HTML)
+            alertDiv.textContent = message;
+
+            document.body.appendChild(alertDiv);
+
             // Remove after 4 seconds
             setTimeout(() => {
-                successDiv.style.animation = 'slideOutRight 0.3s ease';
-                setTimeout(() => document.body.removeChild(successDiv), 300);
+                alertDiv.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => document.body.removeChild(alertDiv), 300);
             }, 4000);
         }
         
@@ -1484,7 +1485,14 @@
             .then(blob => {
                 console.log('Blob size:', blob.size, 'Type:', blob.type);
                 const url = URL.createObjectURL(blob);
-                preview.innerHTML = `<img src="${url}" alt="Mech Animation" style="max-width: 100%; height: auto; border: 1px solid #666;">`;
+
+                // Safe DOM manipulation instead of innerHTML
+                preview.textContent = ''; // Clear existing content
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = 'Mech Animation';
+                img.style.cssText = 'max-width: 100%; height: auto; border: 1px solid #666;';
+                preview.appendChild(img);
                 
                 // Calculate speed level
                 let speedLevel = 1;
