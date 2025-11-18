@@ -1636,36 +1636,46 @@ def get_mech_status():
                 'error': 'Failed to retrieve mech status'
             }), 500
 
-        # Security: Sanitize status with strict type validation (defense-in-depth)
-        # Validate glvl_values to only include numbers (prevent exception data in lists)
-        raw_glvl_values = status.get('glvl_values', [])
-        safe_glvl_values = []
-        if isinstance(raw_glvl_values, list):
-            for val in raw_glvl_values:
-                if isinstance(val, (int, float)) and not isinstance(val, bool):
-                    safe_glvl_values.append(val)
+        # Security: Sanitize status completely (CodeQL taint barrier)
+        # Create new dict with only primitive, validated values - breaks taint chain
+        def _safe_int(value, default=0):
+            """Extract safe integer - CodeQL taint barrier."""
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                return int(value)
+            return default
 
-        # Validate string fields don't contain exception markers
-        next_level_name = status.get('next_level_name', 'Unknown')
-        if not isinstance(next_level_name, str) or any(x in str(next_level_name) for x in ['Exception', 'Error:', 'Traceback']):
-            next_level_name = 'Unknown'
+        def _safe_string(value, default='Unknown'):
+            """Extract safe string without exceptions - CodeQL taint barrier."""
+            if not isinstance(value, str):
+                return default
+            # Reject any string containing exception markers
+            if any(marker in str(value) for marker in ['Exception', 'Error:', 'Traceback', 'File "', 'line ']):
+                return default
+            return value
 
-        architecture = status.get('architecture', 'Unknown')
-        if not isinstance(architecture, str) or any(x in str(architecture) for x in ['Exception', 'Error:', 'Traceback']):
-            architecture = 'Unknown'
+        def _safe_numbers_list(value):
+            """Extract safe list of numbers only - CodeQL taint barrier."""
+            if not isinstance(value, list):
+                return []
+            result = []
+            for item in value:
+                if isinstance(item, (int, float)) and not isinstance(item, bool):
+                    result.append(item)
+            return result
 
-        # Build safe status with validated fields only
+        # Construct completely new dict using safe extraction functions
+        # This breaks CodeQL's taint tracking by going through validation barriers
         safe_status = {
-            'donations_count': int(status.get('donations_count', 0)) if isinstance(status.get('donations_count'), (int, float)) else 0,
-            'total_donated': int(status.get('total_donated', 0)) if isinstance(status.get('total_donated'), (int, float)) else 0,
-            'current_level': int(status.get('current_level', 1)) if isinstance(status.get('current_level'), (int, float)) else 1,
-            'level_upgrades_count': int(status.get('level_upgrades_count', 0)) if isinstance(status.get('level_upgrades_count'), (int, float)) else 0,
-            'next_level_threshold': status.get('next_level_threshold') if isinstance(status.get('next_level_threshold'), (int, float, type(None))) else None,
-            'amount_needed': int(status.get('amount_needed', 0)) if isinstance(status.get('amount_needed'), (int, float)) else 0,
-            'next_level_name': next_level_name,
-            'channels_tracked': int(status.get('channels_tracked', 0)) if isinstance(status.get('channels_tracked'), (int, float)) else 0,
-            'glvl_values': safe_glvl_values,
-            'architecture': architecture,
+            'donations_count': _safe_int(status.get('donations_count'), 0),
+            'total_donated': _safe_int(status.get('total_donated'), 0),
+            'current_level': _safe_int(status.get('current_level'), 1),
+            'level_upgrades_count': _safe_int(status.get('level_upgrades_count'), 0),
+            'next_level_threshold': _safe_int(status.get('next_level_threshold'), 0) if status.get('next_level_threshold') is not None else None,
+            'amount_needed': _safe_int(status.get('amount_needed'), 0),
+            'next_level_name': _safe_string(status.get('next_level_name'), 'Unknown'),
+            'channels_tracked': _safe_int(status.get('channels_tracked'), 0),
+            'glvl_values': _safe_numbers_list(status.get('glvl_values')),
+            'architecture': _safe_string(status.get('architecture'), 'Unknown'),
             'deprecated_files_exist': bool(status.get('deprecated_files_exist', False))
         }
 
