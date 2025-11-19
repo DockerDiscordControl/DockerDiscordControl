@@ -79,16 +79,49 @@ Control your Docker containers directly from Discord! This application provides 
 - **Docker Socket Fixes**: Resolved permissions and volume mount issues
 - **Complete Functionality**: All features preserved while dramatically reducing resource usage
 
-## Features
+## Features - EVERYTHING via Discord! 🚀
 
-- **Discord Bot**: Slash commands, status monitoring, container controls
-- **Web Interface**: Secure configuration, permissions, logs, and monitoring  
-- **Task System**: Schedule automated container actions (daily, weekly, monthly, one-time)
-- **Security**: All dependencies updated to the latest secure versions.
-- **Multi-Language**: English, German, French support
-- **Alpine Linux**: Ultra-optimized ~200MB image with enhanced performance and security
-- **Memory Optimized**: <200MB RAM usage with intelligent garbage collection
+### 🎮 Discord Container Control
+- **Start, Stop, Restart** individual containers or **ALL containers at once**
+- **Live Logs Viewer** - Monitor container output in real-time directly in Discord
+- **Attach Custom Info** to containers (e.g., current WAN IP address, connection details)
+- **Password-Protected Info** for secure data sharing within your Discord community
+- **Container Status** monitoring with real-time updates
+
+### 📅 Discord Task Scheduler
+- **Create, view, and delete** automated tasks directly in Discord channels
+- **Flexible Scheduling**: Once, Daily, Weekly, Monthly, Yearly
+- **Full Task Management** - Complete control without leaving Discord
+- **Timezone Configuration** for accurate scheduling across regions
+
+### 🔒 Flexible Permissions System
+- **Status Channels**: All members see container status and public info
+- **Status Channels**: Admin users get admin panel access for full control
+- **Control Channels**: Everyone gets full admin access to all features
+- **Granular Container Permissions**: Fine-grained control per container (Status, Start, Stop, Restart, Active visibility)
+- **Hide Containers** from Discord or configure custom visibility per container
+- **Password-Protected Info**: Viewable by anyone who knows the password
+- **Spam Protection**: All Discord commands and button clicks protected by configurable cooldowns
+
+### 🌐 Web Interface
+- **Secure Configuration Panel** with real-time monitoring
+- **Container Management**: Configure permissions, custom info, and visibility
+- **Task Management**: Create and manage scheduled tasks
+- **Admin User Management**: Define who gets admin panel access in status channels
+- **Security Audit**: Built-in security scoring and recommendations
+
+### 🎨 Customization & Localization
+- **Multi-Language Support**: Full Discord UI in English, German, and French
+- **Customizable Container Order**: Organize containers in your preferred display order
+- **Mech Evolution System**: 11-stage evolution with animated graphics and premium keys
+- **Custom Branding**: Configure container display names and information
+
+### ⚡ Performance & Optimization
+- **16x Faster Docker Cache**: Optimized from 500ms to 31ms response time
+- **7x Faster Processing**: Through async optimization and smart queue system
+- **Alpine Linux 3.22.2**: 94% fewer vulnerabilities, less than 200MB RAM usage
 - **Production Ready**: Supports 50 containers across 15 Discord channels
+- **Intelligent Caching**: Background refresh for real-time data
 
 **New in v1.1.2-alpine:** The default build is now an ultra-optimized ~200MB Alpine Linux image with 78% size reduction while maintaining full functionality and improving security.
 

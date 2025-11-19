@@ -1520,13 +1520,28 @@ class ContainerInfoDropdown(discord.ui.Select):
             if info_config.get('enabled', False):
                 info_text = []
 
-                if info_config.get('show_ip', False) and info_config.get('custom_ip'):
-                    ip_value = info_config['custom_ip']
-                    port_value = info_config.get('custom_port', '')
-                    if port_value:
-                        info_text.append(f"**{_('Server')}:** `{ip_value}:{port_value}`")
+                if info_config.get('show_ip', False):
+                    custom_ip = info_config.get('custom_ip', '').strip()
+                    custom_port = info_config.get('custom_port', '').strip()
+
+                    if custom_ip:
+                        # Use custom IP
+                        if custom_port:
+                            info_text.append(f"🔗 **{_('Custom Address')}:** `{custom_ip}:{custom_port}`")
+                        else:
+                            info_text.append(f"🔗 **{_('Custom Address')}:** `{custom_ip}`")
                     else:
-                        info_text.append(f"**{_('Server')}:** `{ip_value}`")
+                        # Fallback to WAN IP
+                        try:
+                            from utils.common_helpers import get_wan_ip_async
+                            wan_ip = await get_wan_ip_async()
+                            if wan_ip:
+                                if custom_port:
+                                    info_text.append(f"**{_('Public IP')}:** `{wan_ip}:{custom_port}`")
+                                else:
+                                    info_text.append(f"**{_('Public IP')}:** `{wan_ip}`")
+                        except (OSError, RuntimeError, ValueError) as e:
+                            logger.debug(f"Could not get WAN IP: {e}")
 
                 if info_config.get('custom_text'):
                     info_text.append(info_config['custom_text'])

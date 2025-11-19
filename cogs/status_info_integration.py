@@ -956,7 +956,7 @@ class StatusInfoButton(discord.ui.Button):
         
         # Add IP information if enabled
         if fresh_info_config.get('show_ip', False):
-            ip_info = await self._get_ip_info()
+            ip_info = await self._get_ip_info(fresh_info_config)
             if ip_info:
                 description_parts.append(ip_info)
         
@@ -979,10 +979,10 @@ class StatusInfoButton(discord.ui.Button):
         embed.set_footer(text="https://ddc.bot")
         return embed
     
-    async def _get_ip_info(self) -> Optional[str]:
+    async def _get_ip_info(self, info_config: dict) -> Optional[str]:
         """Get IP information for the container."""
-        custom_ip = self.info_config.get('custom_ip', '').strip()
-        custom_port = self.info_config.get('custom_port', '').strip()
+        custom_ip = info_config.get('custom_ip', '').strip()
+        custom_port = info_config.get('custom_port', '').strip()
         
         if custom_ip:
             # Validate custom IP/hostname format for security
