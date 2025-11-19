@@ -14,10 +14,12 @@ and proper caching for high-performance Discord status updates.
 
 import asyncio
 import docker.errors
+import json
 import logging
 import os
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime, timezone
 from utils.logging_utils import get_module_logger
@@ -109,6 +111,48 @@ class ContainerStatusService:
         self._performance_history: Dict[str, List[float]] = {}
 
         self.logger.info(f"Container Status Service initialized (SINGLE CACHE) with {self._cache_ttl}s TTL")
+
+    def _deactivate_container(self, container_name: str) -> bool:
+        """
+        Deactivate a container that no longer exists by setting active=false in its config file.
+        The JSON file is kept (not deleted) to preserve settings if the container is recreated.
+
+        Args:
+            container_name: Name of the container to deactivate
+
+        Returns:
+            True if deactivation was successful, False otherwise
+        """
+        try:
+            config_path = Path(os.environ.get('DDC_CONFIG_DIR', '/app/config'))
+            container_file = config_path / 'containers' / f'{container_name}.json'
+
+            if not container_file.exists():
+                self.logger.debug(f"No config file found for '{container_name}', nothing to deactivate")
+                return False
+
+            # Load existing config
+            with open(container_file, 'r', encoding='utf-8') as f:
+                container_config = json.load(f)
+
+            # Check if already inactive
+            if not container_config.get('active', False):
+                self.logger.debug(f"Container '{container_name}' is already inactive")
+                return True
+
+            # Set to inactive
+            container_config['active'] = False
+
+            # Save back to file
+            with open(container_file, 'w', encoding='utf-8') as f:
+                json.dump(container_config, f, indent=2, ensure_ascii=False)
+
+            self.logger.info(f"✓ Container '{container_name}' automatically deactivated (config file preserved)")
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Failed to deactivate container '{container_name}': {e}")
+            return False
 
     async def get_container_status(self, request: ContainerStatusRequest) -> ContainerStatusResult:
         """
@@ -468,9 +512,12 @@ class ContainerStatusService:
                 )
 
         except docker.errors.NotFound as e:
-            # Container not found error
+            # Container not found error - automatically deactivate it
             duration_ms = (time.time() - start_time) * 1000
-            self.logger.error(f"Container not found: {request.container_name}: {e}", exc_info=True)
+            self.logger.warning(f"Container '{request.container_name}' not found (may have been removed or renamed)")
+
+            # Automatically deactivate the container to prevent future errors
+            self._deactivate_container(request.container_name)
 
             return ContainerStatusResult(
                 success=False,

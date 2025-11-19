@@ -25,6 +25,7 @@ if os.getenv("GUNICORN_WORKER_CLASS", "sync") == "gevent":
 import multiprocessing
 import logging
 import atexit
+import docker
 from apscheduler.schedulers.background import BackgroundScheduler
 
 # Assumption: web_ui.py is in the 'app' subdirectory
@@ -91,8 +92,11 @@ def when_ready(server):
         get_docker_containers_live(logger) # Pass the logger
         logger.info(f"[Gunicorn Master {os.getpid()}] Initial cache update complete.")
 
-    except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
-        logger.error(f"[Gunicorn Master {os.getpid()}] Error during initial cache population: {e}", exc_info=True)
+    except Exception as e:
+        # Catch ALL exceptions including DockerConnectionError, APIError, etc.
+        # Web-UI must continue to start even if Docker is unavailable
+        logger.warning(f"[Gunicorn Master {os.getpid()}] Could not populate Docker cache (Docker may be unavailable): {e}")
+        logger.info(f"[Gunicorn Master {os.getpid()}] Web-UI will continue starting - Docker features may be limited")
 
 # --- RAM-OPTIMIZED Gunicorn Server Configuration ---
 

@@ -158,6 +158,7 @@ COPY --chown=ddc:ddc scripts/entrypoint.sh /app/entrypoint.sh
 
 # Setup permissions
 RUN chmod +x /app/entrypoint.sh && \
+    chmod 644 /etc/supervisor/conf.d/supervisord.conf && \
     mkdir -p /app/config /app/logs /app/scripts && \
     mkdir -p /app/config/info /app/config/tasks && \
     mkdir -p /app/cached_displays && \

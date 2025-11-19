@@ -14,6 +14,7 @@ import asyncio
 import logging
 import os
 import sys
+import time
 from datetime import datetime, timezone
 
 import pytz
@@ -91,13 +92,38 @@ def main() -> None:
     bot = create_bot(runtime)
     register_event_handlers(bot, runtime)
 
-    token = get_decrypted_bot_token(runtime)
-    if not token:
+    # Retry loop for missing token with countdown
+    retry_interval = int(os.getenv("DDC_TOKEN_RETRY_INTERVAL", "60"))
+    max_retries = int(os.getenv("DDC_TOKEN_MAX_RETRIES", "0"))  # 0 = infinite
+    retry_count = 0
+
+    while True:
+        token = get_decrypted_bot_token(runtime)
+        if token:
+            break
+
+        retry_count += 1
         runtime.logger.error("FATAL: Bot token not found or could not be decrypted.")
         runtime.logger.error(
             "Please configure the bot token in the Web UI or check the configuration files."
         )
-        sys.exit(1)
+
+        if max_retries > 0 and retry_count >= max_retries:
+            runtime.logger.error(f"Maximum retries ({max_retries}) reached. Exiting.")
+            sys.exit(1)
+
+        runtime.logger.warning(f"Retry {retry_count}: Waiting {retry_interval} seconds before next attempt...")
+
+        # Countdown timer
+        for remaining in range(retry_interval, 0, -1):
+            if remaining % 10 == 0 or remaining <= 5:
+                runtime.logger.info(f"⏳ Retrying in {remaining} seconds...")
+            time.sleep(1)
+
+        runtime.logger.info("Attempting to reload configuration and retry...")
+        # Reload config in case it was updated
+        config = load_main_configuration()
+        runtime = build_runtime(config)
 
     runtime.logger.info("Starting bot with token ending in: ...%s", token[-4:])
     bot.run(token)
