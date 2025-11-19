@@ -1,6 +1,6 @@
 # DockerDiscordControl v2.0 🐳
 
-[![Version](https://img.shields.io/badge/Version-v2.0.0-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.0.0) [![Python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.22.1-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
+[![Version](https://img.shields.io/badge/Version-v2.0.0-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.0.0) [![Python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.22.2-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
 
 A powerful Discord bot and web interface to manage Docker containers remotely. This application bridges the gap between Discord and your Docker environment, allowing container monitoring and control directly through Discord channels.
 
@@ -11,6 +11,13 @@ Control your Docker containers directly from Discord! This application provides 
 ## 🆕 Latest Updates
 
 ### ✅ **v2.0.0 (2025-11-18) - MAJOR UPDATE - Complete Rewrite**
+
+🎮 **EVERYTHING via Discord - Complete Control:**
+- **NEW:** Live Logs Viewer - Monitor container output in real-time directly in Discord
+- **NEW:** Task System - Create, view, delete tasks (Once, Daily, Weekly, Monthly, Yearly) entirely in Discord
+- **NEW:** Container Info System - Attach custom info and password-protected info to containers
+- **NEW:** Public IP Display - Automatic WAN IP detection with custom port support
+- Full container management without leaving Discord (start, stop, restart, bulk operations)
 
 🌍 **Multi-Language Support:**
 - **NEW:** Full Discord UI translation in German, French, and English
@@ -37,7 +44,7 @@ Control your Docker containers directly from Discord! This application provides 
 - Real-time monitoring and status updates
 
 🔒 **Security & Optimization:**
-- **IMPROVED:** Alpine Linux 3.22.1 base (94% fewer vulnerabilities)
+- **IMPROVED:** Alpine Linux 3.22.2 base (94% fewer vulnerabilities)
 - Ultra-compact image (<200MB RAM usage)
 - Production-ready security hardening
 - Enhanced token encryption and validation
@@ -73,7 +80,7 @@ Control your Docker containers directly from Discord! This application provides 
 ## v1.1.2-alpine: Ultra-Optimized & Secure
 
 **Release v1.1.2-alpine brings massive performance improvements with an ultra-optimized Alpine Linux image.**
-- **78% Size Reduction**: From 924MB to ~200MB - ultra-optimized Alpine Linux 3.22.1
+- **78% Size Reduction**: From 924MB to ~200MB - ultra-optimized Alpine Linux 3.22.2
 - **Latest Security Patches**: Upgraded to Flask 3.1.1 and Werkzeug 3.1.3 to resolve all critical and high-severity CVEs
 - **Enhanced Performance**: Faster startup times and reduced memory footprint
 - **Docker Socket Fixes**: Resolved permissions and volume mount issues
@@ -125,7 +132,7 @@ Control your Docker containers directly from Discord! This application provides 
 
 **New in v1.1.2-alpine:** The default build is now an ultra-optimized ~200MB Alpine Linux image with 78% size reduction while maintaining full functionality and improving security.
 
-**Latest Updates:** Upgraded to Flask 3.1.1 and Werkzeug 3.1.3, resolved all security vulnerabilities, and achieved massive optimization with Alpine Linux 3.22.1 base image.
+**Latest Updates:** Upgraded to Flask 3.1.1 and Werkzeug 3.1.3, resolved all security vulnerabilities, and achieved massive optimization with Alpine Linux 3.22.2 base image.
 
 ## 🚀 Quick Start
 
@@ -350,7 +357,7 @@ The default build for this repository is now the stable, optimized Alpine image.
 
 **Ultra-optimized Alpine Linux image:**
 - **Size:** 176MB with multi-stage build optimization
-- **Base:** Alpine Linux 3.22.1 (latest secure version)  
+- **Base:** Alpine Linux 3.22.2 (latest secure version)  
 - **Architecture:** Service-oriented modular design (v2.0)
 - **Security:** Latest dependencies with all CVEs fixed
 - **Performance:** Optimized for minimal resource usage and fast startup
