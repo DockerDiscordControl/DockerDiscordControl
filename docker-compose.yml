@@ -7,8 +7,8 @@ services:
     build: . # Optional: Allows building the image with 'docker-compose build'
     restart: unless-stopped # Equivalent to --restart unless-stopped
     ports:
-      - "8374:9374" # Equivalent to -p 8374:9374 (<host-port>:<container-port>)
-                    # Change the host port (8374) if it's already in use.
+      - "9374:9374" # Equivalent to -p 9374:9374 (<host-port>:<container-port>)
+                    # Change the host port (9374) if it's already in use.
     volumes:
       # Mount for Docker Socket (Adjust if your socket is located elsewhere)
       - /var/run/docker.sock:/var/run/docker.sock:ro

@@ -104,7 +104,7 @@ fi
 echo -e "${GREEN}🚀 Starting new container dockerdiscordcontrol...${NC}"
 docker run -d \
   --name dockerdiscordcontrol \
-  -p 8374:9374 \
+  -p 9374:9374 \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v "$(pwd)/config":/app/config \
   -v "$(pwd)/logs":/app/logs \
@@ -137,9 +137,9 @@ if [ $? -eq 0 ]; then
     # Get local IP address
     LOCAL_IP=$(hostname -I | awk '{print $1}' 2>/dev/null || ip route get 1 | awk '{print $7}' 2>/dev/null || echo "localhost")
     
-    echo -e "${WHITE}   📍 Local:    ${CYAN}http://localhost:8374${NC}"
+    echo -e "${WHITE}   📍 Local:    ${CYAN}http://localhost:9374${NC}"
     if [ "$LOCAL_IP" != "localhost" ] && [ -n "$LOCAL_IP" ]; then
-        echo -e "${WHITE}   🌍 Network:  ${CYAN}http://${LOCAL_IP}:8374${NC}"
+        echo -e "${WHITE}   🌍 Network:  ${CYAN}http://${LOCAL_IP}:9374${NC}"
     fi
     echo ""
 else

@@ -117,7 +117,7 @@ if [ "$METHOD" = "python" ]; then
     $PYTHON_CMD bot.py &
     
     echo -e "${GREEN}Starting Web UI...${NC}"
-    FLASK_APP=app.web_ui FLASK_SECRET_KEY="${FLASK_SECRET_KEY}" $PYTHON_CMD -m gunicorn --bind 0.0.0.0:8374 --worker-class gevent "app.web_ui:create_app()" -c gunicorn_config.py
+    FLASK_APP=app.web_ui FLASK_SECRET_KEY="${FLASK_SECRET_KEY}" $PYTHON_CMD -m gunicorn --bind 0.0.0.0:9374 --worker-class gevent "app.web_ui:create_app()" -c gunicorn_config.py
     
 elif [ "$METHOD" = "docker" ]; then
     echo -e "${GREEN}Starting with Docker...${NC}"
@@ -151,7 +151,7 @@ elif [ "$METHOD" = "docker" ]; then
         docker build -t dockerdiscordcontrol .
         
         echo -e "${GREEN}Starting Docker Container...${NC}"
-        docker run -p 8374:9374 \
+        docker run -p 9374:9374 \
             -v $(pwd)/config:/app/config \
             -v $(pwd)/logs:/app/logs \
             -v /var/run/docker.sock:/var/run/docker.sock \
