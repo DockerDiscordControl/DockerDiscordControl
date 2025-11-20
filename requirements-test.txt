@@ -1,0 +1,69 @@
+# -*- coding: utf-8 -*-
+# ============================================================================ #
+# DockerDiscordControl (DDC) - Test Dependencies                              #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                  #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
+
+# Core Testing Framework
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.11.0
+pytest-cov>=4.1.0
+pytest-xdist>=3.3.0  # Parallel test execution
+
+# Web UI Testing
+selenium>=4.11.0
+pytest-flask>=1.2.0
+flask-testing>=0.8.1
+
+# Docker Testing
+docker>=6.1.0
+testcontainers>=3.7.0  # Real Docker container testing
+
+# Performance Testing
+locust>=2.16.0
+memory-profiler>=0.60.0
+
+# Security Testing (SAST)
+bandit>=1.7.5
+safety>=2.3.0
+semgrep>=1.35.0
+
+# Mocking and Fixtures
+responses>=0.23.0
+factory-boy>=3.3.0
+faker>=19.6.0
+
+# Coverage and Reporting
+coverage>=7.3.0
+pytest-html>=3.2.0
+pytest-json-report>=1.5.0
+
+# Discord Testing
+discord.py-stubs>=1.7.3
+
+# Database Testing (if needed)
+pytest-postgresql>=5.0.0
+
+# Load Testing
+pytest-benchmark>=4.0.0
+
+# Code Quality and Metrics
+radon>=6.0.1          # Cyclomatic complexity and maintainability index
+pylint>=3.0.0         # Code quality linting
+flake8>=7.0.0         # Style guide enforcement
+mccabe>=0.7.0         # Complexity checker for flake8
+mypy>=1.8.0           # Static type checking
+xenon>=0.9.0          # Monitoring code complexity (radon wrapper)
+
+# Dependency Management
+graphviz>=0.20.0      # Dependency graph visualization
+
+# Observability and Monitoring
+opentelemetry-api>=1.20.0                    # OpenTelemetry tracing API
+opentelemetry-sdk>=1.20.0                    # OpenTelemetry SDK
+opentelemetry-instrumentation>=0.41b0        # Auto-instrumentation
+opentelemetry-exporter-otlp>=1.20.0          # OTLP exporter for production
+opentelemetry-exporter-jaeger>=1.20.0        # Jaeger exporter (optional)

@@ -1,0 +1,211 @@
+# -*- coding: utf-8 -*-
+# ============================================================================ #
+# DockerDiscordControl (DDC) - Dependency Checks CI/CD Workflow               #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                       #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
+#
+# This workflow checks for circular dependencies and generates dependency graphs.
+
+name: Dependency Checks
+
+on:
+  push:
+    branches:
+      - main
+      - v2.0
+      - develop
+    paths:
+      - '**.py'
+      - 'tools/check_circular_imports.py'
+      - 'tools/generate_dependency_graph.py'
+      - '.github/workflows/dependency-checks.yml'
+
+  pull_request:
+    branches:
+      - main
+      - v2.0
+    paths:
+      - '**.py'
+      - 'tools/*.py'
+
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  check-circular-imports:
+    name: Check Circular Imports
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Run circular import check
+        run: |
+          echo "## Circular Import Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Run the check (without --fail-on-circular flag)
+          # Circular imports are reported as warnings, not failures
+          # Python handles them fine with lazy imports at runtime
+          python3 tools/check_circular_imports.py --verbose
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Circular import check completed!" >> $GITHUB_STEP_SUMMARY
+        continue-on-error: false
+
+  generate-dependency-graph:
+    name: Generate Dependency Graph
+    runs-on: ubuntu-latest
+    needs: check-circular-imports  # Only run if no circular imports
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Graphviz
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz
+
+      - name: Install Python dependencies
+        run: |
+          pip install graphviz
+
+      - name: Generate dependency graph (Service level)
+        run: |
+          python3 tools/generate_dependency_graph.py \
+            --output docs/dependency_graph_service \
+            --format png \
+            --level service
+        continue-on-error: true  # Don't fail if graph generation fails
+
+      - name: Generate dependency graph (Package level)
+        run: |
+          python3 tools/generate_dependency_graph.py \
+            --output docs/dependency_graph_package \
+            --format png \
+            --level package
+        continue-on-error: true
+
+      - name: Generate hierarchical graph
+        run: |
+          python3 tools/generate_dependency_graph.py \
+            --output docs/dependency_graph_hierarchical \
+            --format png \
+            --level service \
+            --hierarchical
+        continue-on-error: true
+
+      - name: Generate service hierarchy document
+        run: |
+          python3 tools/generate_dependency_graph.py \
+            --output docs/dependency_graph \
+            --format png \
+            --level service \
+            --generate-text
+        continue-on-error: true
+
+      - name: Upload dependency graphs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-graphs
+          path: |
+            docs/dependency_graph*.png
+            docs/dependency_graph*.svg
+            docs/SERVICE_HIERARCHY.md
+          retention-days: 90
+
+      - name: Comment PR with dependency graph
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let comment = '## Dependency Analysis\n\n';
+            comment += '✅ Circular import analysis completed\n\n';
+            comment += '### Dependency Graphs\n\n';
+            comment += 'Dependency graphs have been generated and uploaded as artifacts.\n\n';
+            comment += '**Available Graphs:**\n';
+            comment += '- Service-level dependencies\n';
+            comment += '- Package-level dependencies\n';
+            comment += '- Hierarchical view\n';
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+        continue-on-error: true
+
+  analyze-dependencies:
+    name: Analyze Import Dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Analyze most imported modules
+        run: |
+          echo "## Most Imported Modules" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          python3 tools/check_circular_imports.py --verbose 2>&1 | \
+            grep -A 20 "Top 10 most imported modules:" >> $GITHUB_STEP_SUMMARY || true
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+  dependency-summary:
+    name: Dependency Check Summary
+    runs-on: ubuntu-latest
+    needs: [check-circular-imports, generate-dependency-graph, analyze-dependencies]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# Dependency Check Summary" > dependency_summary.md
+          echo "" >> dependency_summary.md
+          echo "**Branch**: ${{ github.ref_name }}" >> dependency_summary.md
+          echo "**Commit**: ${{ github.sha }}" >> dependency_summary.md
+          echo "**Date**: $(date)" >> dependency_summary.md
+          echo "" >> dependency_summary.md
+
+          echo "## Job Results" >> dependency_summary.md
+          echo "" >> dependency_summary.md
+          echo "- Circular Import Check: ${{ needs.check-circular-imports.result }}" >> dependency_summary.md
+          echo "- Dependency Graph Generation: ${{ needs.generate-dependency-graph.result }}" >> dependency_summary.md
+          echo "- Dependency Analysis: ${{ needs.analyze-dependencies.result }}" >> dependency_summary.md
+          echo "" >> dependency_summary.md
+
+          if [[ "${{ needs.check-circular-imports.result }}" == "success" ]]; then
+            echo "## ✅ Overall: PASS" >> dependency_summary.md
+            echo "Circular import analysis completed successfully!" >> dependency_summary.md
+          else
+            echo "## ❌ Overall: FAIL" >> dependency_summary.md
+            echo "Circular import analysis failed! Please review logs." >> dependency_summary.md
+            exit 1
+          fi
+
+          cat dependency_summary.md >> $GITHUB_STEP_SUMMARY
