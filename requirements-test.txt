@@ -28,7 +28,7 @@ memory-profiler>=0.60.0
 
 # Security Testing (SAST)
 bandit>=1.7.5
-safety>=2.3.0
+safety==3.2.11  # Pinned version to avoid dependency resolution issues
 semgrep>=1.35.0
 
 # Mocking and Fixtures
