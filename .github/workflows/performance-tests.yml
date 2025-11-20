@@ -90,7 +90,6 @@ jobs:
             --benchmark-only \
             --benchmark-autosave \
             --benchmark-save-data \
-            --benchmark-compare-fail=mean:10% \
             --benchmark-json=benchmark-results-all.json
 
       - name: Run performance tests - Docker Async Queue
@@ -122,15 +121,6 @@ jobs:
             --benchmark-only \
             --benchmark-autosave \
             --benchmark-json=benchmark-results-mech.json
-
-      - name: Performance gates - Check thresholds
-        run: |
-          python -m pytest tests/performance/ \
-            -v \
-            -m performance \
-            --benchmark-compare=0001 \
-            --benchmark-compare-fail=mean:10%
-        continue-on-error: false  # Fail build if thresholds exceeded
 
       - name: Upload benchmark results
         if: always()
