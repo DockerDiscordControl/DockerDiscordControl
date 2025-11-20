@@ -1,0 +1,53 @@
+# -*- coding: utf-8 -*-
+# ============================================================================ #
+# DockerDiscordControl (DDC) - Docker Hub README Sync Workflow               #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                       #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
+#
+# Automatically syncs README.md to Docker Hub repository overview
+# Runs on every push to main that modifies README.md
+
+name: Sync README to Docker Hub
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'README.md'
+      - '.github/workflows/dockerhub-readme-sync.yml'
+
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: read  # Read repository content
+
+jobs:
+  sync-readme:
+    name: Sync README to Docker Hub
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Sync README to Docker Hub
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: dockerdiscordcontrol/dockerdiscordcontrol
+          short-description: 'Control Docker containers via Discord bot + Web UI. 80% test coverage, Alpine Linux, 200MB RAM. Perfect for Unraid!'
+          readme-filepath: ./README.md
+
+      - name: Summary
+        run: |
+          echo "## ✅ Docker Hub README Sync Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository**: dockerdiscordcontrol/dockerdiscordcontrol" >> $GITHUB_STEP_SUMMARY
+          echo "**Source**: README.md" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp**: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 View on Docker Hub: https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol" >> $GITHUB_STEP_SUMMARY
