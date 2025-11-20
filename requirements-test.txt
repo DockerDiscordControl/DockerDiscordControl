@@ -14,22 +14,24 @@ pytest-cov>=4.1.0,<6.0.0
 pytest-xdist>=3.3.0,<4.0.0  # Parallel test execution
 
 # Web UI Testing
-selenium>=4.11.0,<5.0.0
+# selenium>=4.11.0,<5.0.0  # Commented out - complex deps with trio, install separately if needed
 pytest-flask>=1.2.0,<2.0.0
 flask-testing>=0.8.1,<1.0.0
 
 # Docker Testing
-docker>=6.1.0,<8.0.0
-testcontainers>=3.7.0,<5.0.0  # Real Docker container testing
+docker>=6.1.0,<7.0.0
+# testcontainers>=3.7.0,<4.0.0  # Commented out - complex deps, install separately if needed
 
 # Performance Testing
-locust>=2.16.0,<3.0.0
+# locust>=2.16.0,<3.0.0  # Commented out - heavy deps with many transitive dependencies
 memory-profiler>=0.60.0,<1.0.0
 
 # Security Testing (SAST)
 bandit>=1.7.5,<2.0.0
-safety>=3.2.0,<4.0.0  # Allow minor updates within 3.x
-# Note: Semgrep removed - too complex dependency tree, run separately in CI
+# Note: safety and semgrep removed - too complex dependency trees
+# Run separately if needed:
+#   pip install safety && safety check
+#   pip install semgrep && semgrep --config=auto
 
 # Mocking and Fixtures
 responses>=0.23.0,<1.0.0
@@ -61,9 +63,10 @@ xenon>=0.9.0,<1.0.0          # Monitoring code complexity (radon wrapper)
 # Dependency Management
 graphviz>=0.20.0,<1.0.0      # Dependency graph visualization
 
-# Observability and Monitoring (Optional - can be commented out if causing issues)
-opentelemetry-api>=1.20.0,<2.0.0                    # OpenTelemetry tracing API
-opentelemetry-sdk>=1.20.0,<2.0.0                    # OpenTelemetry SDK
-opentelemetry-instrumentation>=0.41b0,<1.0.0        # Auto-instrumentation
-opentelemetry-exporter-otlp>=1.20.0,<2.0.0          # OTLP exporter for production
-opentelemetry-exporter-jaeger>=1.20.0,<2.0.0        # Jaeger exporter (optional)
+# Observability and Monitoring - Commented out due to complex dependency resolution
+# Uncomment if needed for production observability testing:
+# opentelemetry-api>=1.20.0,<1.30.0
+# opentelemetry-sdk>=1.20.0,<1.30.0
+# opentelemetry-instrumentation>=0.41b0,<0.50b0
+# opentelemetry-exporter-otlp>=1.20.0,<1.30.0
+# opentelemetry-exporter-jaeger>=1.20.0,<1.30.0
