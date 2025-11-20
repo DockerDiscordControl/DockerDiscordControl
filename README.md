@@ -183,6 +183,21 @@ The `v2.0` development branch includes:
 
 The `main` branch contains production-ready code with comprehensive test infrastructure.
 
+## ⚠️ Deployment Security
+
+**Important:** DDC is designed for **private network deployment** (LAN/VPN).
+
+- ✅ **Safe:** Deploy on private networks (192.168.x.x, 10.x.x.x) behind firewall
+- ✅ **Safe:** Access via VPN (Tailscale, WireGuard, OpenVPN)
+- ⚠️ **Not recommended:** Direct internet exposure without additional security
+
+**If you need internet access:**
+- Use a reverse proxy (nginx, Traefik, Caddy) with HTTPS
+- Enable additional authentication (OAuth, SSO)
+- Consider VPN access instead of public exposure
+
+DDC includes HTTP Basic Auth and rate limiting, but these are designed for trusted network environments.
+
 ## 🚀 Quick Start
 
 ### **Platform-Specific Installation (Recommended)**
