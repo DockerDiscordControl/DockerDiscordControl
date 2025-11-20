@@ -278,20 +278,13 @@ jobs:
 
       - name: Generate performance report
         run: |
-          echo "## Performance Dashboard" > PERFORMANCE_REPORT.md
-          echo "" >> PERFORMANCE_REPORT.md
-          echo "**Last Updated:** $(date)" >> PERFORMANCE_REPORT.md
-          echo "**Branch:** ${{ github.ref_name }}" >> PERFORMANCE_REPORT.md
-          echo "**Commit:** ${{ github.sha }}" >> PERFORMANCE_REPORT.md
-          echo "" >> PERFORMANCE_REPORT.md
-          echo "### Benchmark Results" >> PERFORMANCE_REPORT.md
-          echo "" >> PERFORMANCE_REPORT.md
-          # Add benchmark results parsing here if needed
-
-      - name: Commit performance report
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add PERFORMANCE_REPORT.md
-          git commit -m "📊 Update performance dashboard [skip ci]" || true
-          git push || true
+          echo "## Performance Dashboard" > performance-summary.txt
+          echo "" >> performance-summary.txt
+          echo "**Last Updated:** $(date)" >> performance-summary.txt
+          echo "**Branch:** ${{ github.ref_name }}" >> performance-summary.txt
+          echo "**Commit:** ${{ github.sha }}" >> performance-summary.txt
+          echo "" >> performance-summary.txt
+          echo "### Benchmark Results" >> performance-summary.txt
+          echo "" >> performance-summary.txt
+          # Performance reports are available as artifacts, no need to commit
+          cat performance-summary.txt
