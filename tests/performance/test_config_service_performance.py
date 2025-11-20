@@ -43,6 +43,52 @@ class TestConfigServicePerformance:
         import shutil
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
+    def _get_test_config_service(self):
+        """Get ConfigService instance configured for testing.
+
+        FIX: ConfigService is a singleton that doesn't accept config_dir parameter.
+        We override the paths after getting the singleton instance.
+        """
+        service = get_config_service()
+
+        # Override all directory paths
+        service.config_dir = self.config_dir
+        service.channels_dir = self.config_dir / "channels"
+        service.containers_dir = self.config_dir / "containers"
+
+        # Override modular config file paths
+        service.main_config_file = self.config_dir / "config.json"
+        service.auth_config_file = self.config_dir / "auth.json"
+        service.heartbeat_config_file = self.config_dir / "heartbeat.json"
+        service.web_ui_config_file = self.config_dir / "web_ui.json"
+        service.docker_settings_file = self.config_dir / "docker_settings.json"
+
+        # Override legacy config file paths
+        service.bot_config_file = self.config_dir / "bot_config.json"
+        service.docker_config_file = self.config_dir / "docker_config.json"
+        service.web_config_file = self.config_dir / "web_config.json"
+        service.channels_config_file = self.config_dir / "channels_config.json"
+
+        # Reinitialize loader with test paths
+        service._loader_service = ConfigLoaderService(
+            service.config_dir,
+            service.channels_dir,
+            service.containers_dir,
+            service.main_config_file,
+            service.auth_config_file,
+            service.heartbeat_config_file,
+            service.web_ui_config_file,
+            service.docker_settings_file,
+            service.bot_config_file,
+            service.docker_config_file,
+            service.web_config_file,
+            service.channels_config_file,
+            service._load_json_file,
+            service._validation_service
+        )
+
+        return service
+
     def _create_test_config_files(self):
         """Create test configuration files."""
         # Main config
@@ -85,7 +131,7 @@ class TestConfigServicePerformance:
     @pytest.mark.benchmark(group="config-load")
     def test_config_loading_performance(self, benchmark):
         """Benchmark configuration loading."""
-        service = ConfigService(config_dir=self.config_dir)
+        service = self._get_test_config_service()
 
         def load_config():
             return service.get_config(force_reload=True)
@@ -98,7 +144,7 @@ class TestConfigServicePerformance:
     @pytest.mark.benchmark(group="config-cache")
     def test_cached_config_performance(self, benchmark):
         """Benchmark cached configuration access."""
-        service = ConfigService(config_dir=self.config_dir)
+        service = self._get_test_config_service()
 
         # Prime the cache
         service.get_config(force_reload=True)
@@ -111,7 +157,7 @@ class TestConfigServicePerformance:
 
     def test_cache_vs_no_cache_performance(self):
         """Compare cached vs uncached config loading."""
-        service = ConfigService(config_dir=self.config_dir)
+        service = self._get_test_config_service()
 
         # Test without cache
         start_time = time.time()
@@ -141,7 +187,7 @@ class TestConfigServicePerformance:
         """Benchmark token encryption."""
         from werkzeug.security import generate_password_hash
 
-        service = ConfigService(config_dir=self.config_dir)
+        service = self._get_test_config_service()
         password_hash = generate_password_hash("test_password")
         plaintext_token = "MTIzNDU2Nzg5MDEyMzQ1Njc4OTA.ABC123.xyz789-example"
 
@@ -156,7 +202,7 @@ class TestConfigServicePerformance:
         """Benchmark token decryption."""
         from werkzeug.security import generate_password_hash
 
-        service = ConfigService(config_dir=self.config_dir)
+        service = self._get_test_config_service()
         password_hash = generate_password_hash("test_password")
         plaintext_token = "MTIzNDU2Nzg5MDEyMzQ1Njc4OTA.ABC123.xyz789-example"
 
@@ -171,7 +217,7 @@ class TestConfigServicePerformance:
 
     def test_concurrent_config_access(self):
         """Test performance under concurrent config access."""
-        service = ConfigService(config_dir=self.config_dir)
+        service = self._get_test_config_service()
         max_workers = 10
         reads_per_worker = 20
         results = []
@@ -221,7 +267,7 @@ class TestConfigServicePerformance:
 
     def test_config_reload_performance(self):
         """Test performance of force reload."""
-        service = ConfigService(config_dir=self.config_dir)
+        service = self._get_test_config_service()
 
         reload_times = []
 
@@ -252,7 +298,7 @@ class TestConfigServicePerformance:
         process = psutil.Process(os.getpid())
         initial_memory = process.memory_info().rss
 
-        service = ConfigService(config_dir=self.config_dir)
+        service = self._get_test_config_service()
 
         # Load config multiple times
         for _ in range(20):
@@ -273,7 +319,7 @@ class TestConfigServicePerformance:
     @pytest.mark.benchmark(group="container-filtering")
     def test_container_filtering_performance(self, benchmark):
         """Benchmark container filtering (active vs inactive)."""
-        service = ConfigService(config_dir=self.config_dir)
+        service = self._get_test_config_service()
         config = service.get_config(force_reload=True)
 
         def filter_containers():
@@ -311,7 +357,44 @@ class TestConfigServicePerformance:
                     "order": i
                 }))
 
-            service = ConfigService(config_dir=config_dir)
+            # FIX: ConfigService is singleton - override paths after getting instance
+            service = get_config_service()
+
+            # Override all directory paths
+            service.config_dir = config_dir
+            service.channels_dir = config_dir / "channels"
+            service.containers_dir = config_dir / "containers"
+
+            # Override modular config file paths
+            service.main_config_file = config_dir / "config.json"
+            service.auth_config_file = config_dir / "auth.json"
+            service.heartbeat_config_file = config_dir / "heartbeat.json"
+            service.web_ui_config_file = config_dir / "web_ui.json"
+            service.docker_settings_file = config_dir / "docker_settings.json"
+
+            # Override legacy config file paths
+            service.bot_config_file = config_dir / "bot_config.json"
+            service.docker_config_file = config_dir / "docker_config.json"
+            service.web_config_file = config_dir / "web_config.json"
+            service.channels_config_file = config_dir / "channels_config.json"
+
+            # Reinitialize loader with test paths
+            service._loader_service = ConfigLoaderService(
+                service.config_dir,
+                service.channels_dir,
+                service.containers_dir,
+                service.main_config_file,
+                service.auth_config_file,
+                service.heartbeat_config_file,
+                service.web_ui_config_file,
+                service.docker_settings_file,
+                service.bot_config_file,
+                service.docker_config_file,
+                service.web_config_file,
+                service.channels_config_file,
+                service._load_json_file,
+                service._validation_service
+            )
 
             # Measure performance
             start_time = time.time()
