@@ -87,6 +87,11 @@ class TestConfigServicePerformance:
             service._validation_service
         )
 
+        # CRITICAL: Invalidate all caches to ensure clean state for each test
+        # This prevents cached data from previous tests interfering with current test
+        service._cache_service.invalidate_cache()
+        service._cache_service.clear_token_cache()
+
         return service
 
     def _create_test_config_files(self):
@@ -395,6 +400,10 @@ class TestConfigServicePerformance:
                 service._load_json_file,
                 service._validation_service
             )
+
+            # CRITICAL: Invalidate all caches to ensure clean state for each iteration
+            service._cache_service.invalidate_cache()
+            service._cache_service.clear_token_cache()
 
             # Measure performance
             start_time = time.time()
