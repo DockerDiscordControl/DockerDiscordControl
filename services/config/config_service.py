@@ -424,9 +424,10 @@ class ConfigService:
             key = base64.urlsafe_b64encode(kdf.derive(password_hash.encode()))
 
             # Encrypt the token
+            # NOTE: Fernet.encrypt() already returns a base64-encoded token, no need for additional encoding
             fernet = Fernet(key)
             encrypted_bytes = fernet.encrypt(plaintext_token.encode())
-            return base64.urlsafe_b64encode(encrypted_bytes).decode()
+            return encrypted_bytes.decode('utf-8')
 
         except ValueError as e:
             logger.error(f"Token encryption failed - invalid input: {e}", exc_info=True)
