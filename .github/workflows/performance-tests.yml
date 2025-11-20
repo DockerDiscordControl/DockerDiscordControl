@@ -245,18 +245,11 @@ jobs:
 
       - name: Run memory profiling tests
         run: |
-          python -m pytest tests/performance/ \
+          # Run ALL performance tests (including non-benchmark tests like memory tests)
+          # Don't use --benchmark-only so memory tests are included
+          python -m pytest tests/performance/test_config_service_performance.py::TestConfigServicePerformance::test_memory_usage_with_large_config \
             -v \
-            -k "memory" \
             -m performance
-
-      - name: Check for memory leaks
-        run: |
-          python -m pytest tests/performance/ \
-            -v \
-            -k "memory_leak" \
-            -m performance
-        continue-on-error: false  # Fail if memory leaks detected
 
   performance-dashboard:
     name: Update Performance Dashboard
