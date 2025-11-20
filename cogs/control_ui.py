@@ -820,11 +820,13 @@ class ControlView(View):
 
         allowed_actions = server_config.get('allowed_actions', [])
         details_allowed = server_config.get('allow_detailed_status', True)
-        is_expanded = cog_instance.expanded_states.get(display_name, False)
+        # CRITICAL FIX: Use docker_name (stable identifier) for expanded state lookup
+        # This ensures consistency with status_handlers.py and prevents state loss on name changes
+        docker_name = server_config.get('docker_name')
+        is_expanded = cog_instance.expanded_states.get(docker_name, False)
         # Load info from service
         from services.infrastructure.container_info_service import get_container_info_service
         info_service = get_container_info_service()
-        docker_name = server_config.get('docker_name')
         if docker_name:
             info_result = info_service.get_container_info(docker_name)
             info_config = info_result.data.to_dict() if info_result.success else {}
@@ -1908,8 +1910,10 @@ class AdminContainerDropdown(discord.ui.Select):
                 return
 
             # Force expanded state for admin control
+            # CRITICAL FIX: Use selected_container (docker_name) as key for expanded state
+            # This ensures consistency with status_handlers.py which uses docker_name for lookup
             display_name = container_config.get('name', selected_container)
-            self.cog.expanded_states[display_name] = True
+            self.cog.expanded_states[selected_container] = True  # Use docker_name as stable key
 
             # Temporarily mark the container config for admin control
             container_config['_is_admin_control'] = True

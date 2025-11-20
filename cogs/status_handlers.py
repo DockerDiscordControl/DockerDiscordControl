@@ -614,7 +614,9 @@ class StatusHandlersMixin:
                 current_emoji = "🟢" if running else "🔴"
 
                 # Check if we should always collapse
-                is_expanded = self.expanded_states.get(display_name, False) and not force_collapse
+                # CRITICAL FIX: Use docker_name (stable identifier) instead of display_name for expanded state lookup
+                # This ensures consistency with how expanded states are set throughout the codebase
+                is_expanded = self.expanded_states.get(docker_name, False) and not force_collapse
 
                 # PERFORMANCE OPTIMIZATION: Use cached translations
                 cpu_text = cached_translations['cpu_text']
@@ -700,7 +702,9 @@ class StatusHandlersMixin:
             current_emoji = "🟢" if running else "🔴"
 
             # Check if we should always collapse
-            is_expanded = self.expanded_states.get(display_name, False) and not force_collapse
+            # CRITICAL FIX: Use docker_name (stable identifier) instead of display_name for expanded state lookup
+            # This ensures consistency with how expanded states are set throughout the codebase
+            is_expanded = self.expanded_states.get(docker_name, False) and not force_collapse
 
             # PERFORMANCE OPTIMIZATION: Use cached translations
             cpu_text = cached_translations['cpu_text']
@@ -851,6 +855,10 @@ class StatusHandlersMixin:
              logger.error("[SEND_STATUS] Server config missing name or docker_name.")
              return None
 
+        # CRITICAL FIX: Extract docker_name for stable dictionary keys
+        # Use docker_name for all state tracking (message IDs, timestamps) to prevent loss on name changes
+        docker_name = server_conf.get('docker_name', display_name)
+
         # DOCKER CONNECTIVITY CHECK: Check before attempting to get/send status
         from services.infrastructure.docker_connectivity_service import get_docker_connectivity_service, DockerConnectivityRequest, DockerErrorEmbedRequest
 
@@ -888,7 +896,7 @@ class StatusHandlersMixin:
             try:
                 existing_msg_id = None
                 if channel.id in self.channel_server_message_ids:
-                     existing_msg_id = self.channel_server_message_ids[channel.id].get(display_name)
+                     existing_msg_id = self.channel_server_message_ids[channel.id].get(docker_name)
                 should_edit = existing_msg_id is not None
 
                 if should_edit:
@@ -908,7 +916,7 @@ class StatusHandlersMixin:
                     msg = await channel.send(embed=embed, view=None)
                     if channel.id not in self.channel_server_message_ids:
                         self.channel_server_message_ids[channel.id] = {}
-                    self.channel_server_message_ids[channel.id][display_name] = msg.id
+                    self.channel_server_message_ids[channel.id][docker_name] = msg.id
                     logger.info(f"[SEND_STATUS] Sent new Docker connectivity error message {msg.id} for '{display_name}'")
 
             except (discord.HTTPException, discord.Forbidden, RuntimeError, KeyError) as e:
@@ -923,7 +931,7 @@ class StatusHandlersMixin:
             if embed:
                 existing_msg_id = None
                 if channel.id in self.channel_server_message_ids:
-                     existing_msg_id = self.channel_server_message_ids[channel.id].get(display_name)
+                     existing_msg_id = self.channel_server_message_ids[channel.id].get(docker_name)
                 should_edit = existing_msg_id is not None
 
                 if should_edit:
@@ -936,11 +944,11 @@ class StatusHandlersMixin:
                         # Update last edit time
                         if channel.id not in self.last_message_update_time:
                             self.last_message_update_time[channel.id] = {}
-                        self.last_message_update_time[channel.id][display_name] = datetime.now(timezone.utc)
+                        self.last_message_update_time[channel.id][docker_name] = datetime.now(timezone.utc)
                     except discord.NotFound:
                          logger.warning(f"[SEND_STATUS] Message {existing_msg_id} for '{display_name}' not found. Will send new.")
-                         if channel.id in self.channel_server_message_ids and display_name in self.channel_server_message_ids[channel.id]:
-                              del self.channel_server_message_ids[channel.id][display_name]
+                         if channel.id in self.channel_server_message_ids and docker_name in self.channel_server_message_ids[channel.id]:
+                              del self.channel_server_message_ids[channel.id][docker_name]
                          existing_msg_id = None
                     except (discord.HTTPException, discord.Forbidden, RuntimeError, KeyError) as e:
                          logger.error(f"[SEND_STATUS] Failed to edit message {existing_msg_id} for '{display_name}': {e}", exc_info=True)
@@ -951,13 +959,13 @@ class StatusHandlersMixin:
                           msg = await channel.send(embed=embed, view=view if view and view.children else None)
                           if channel.id not in self.channel_server_message_ids:
                                self.channel_server_message_ids[channel.id] = {}
-                          self.channel_server_message_ids[channel.id][display_name] = msg.id
+                          self.channel_server_message_ids[channel.id][docker_name] = msg.id
                           logger.info(f"[SEND_STATUS] Sent new message {msg.id} for '{display_name}' in channel {channel.id}")
-                          
+
                           # Set last edit time for new messages
                           if channel.id not in self.last_message_update_time:
                               self.last_message_update_time[channel.id] = {}
-                          self.last_message_update_time[channel.id][display_name] = datetime.now(timezone.utc)
+                          self.last_message_update_time[channel.id][docker_name] = datetime.now(timezone.utc)
                      except (discord.HTTPException, discord.Forbidden, RuntimeError, KeyError) as e:
                           logger.error(f"[SEND_STATUS] Failed to send new message for '{display_name}' in channel {channel.id}: {e}", exc_info=True)
             else:
@@ -971,10 +979,17 @@ class StatusHandlersMixin:
     async def _edit_single_message_wrapper(self, channel_id: int, display_name: str, message_id: int, current_config: dict, allow_toggle: bool):
         result = await self._edit_single_message(channel_id, display_name, message_id, current_config)
         if result is True:
+            # CRITICAL FIX: Use docker_name for stable dictionary keys
+            # Need to extract docker_name from server config
+            server_config_service = get_server_config_service()
+            servers = server_config_service.get_all_servers()
+            server_conf = next((s for s in servers if s.get('name', s.get('docker_name')) == display_name), None)
+            docker_name = server_conf.get('docker_name', display_name) if server_conf else display_name
+
             now = datetime.now(timezone.utc)
             if channel_id not in self.last_message_update_time:
                 self.last_message_update_time[channel_id] = {}
-            self.last_message_update_time[channel_id][display_name] = now
+            self.last_message_update_time[channel_id][docker_name] = now
         return result
 
     # =============================================================================
@@ -991,12 +1006,18 @@ class StatusHandlersMixin:
         # SERVICE FIRST: Use ServerConfigService instead of direct config access
         server_config_service = get_server_config_service()
         servers = server_config_service.get_all_servers()
-        server_conf = next((s for s in servers if s.get('name', s.get('docker_name')) == display_name), None)
+        # CRITICAL FIX: Match on both docker_name AND name fields to handle both identifiers
+        # Since we changed channel_server_message_ids keys to use docker_name, display_name param might be docker_name
+        server_conf = next((s for s in servers if s.get('docker_name') == display_name or s.get('name') == display_name), None)
         if not server_conf:
             logger.warning(f"[_EDIT_SINGLE] Config for '{display_name}' not found during edit.")
+            # CRITICAL FIX: Cannot extract docker_name without server_conf, use display_name as fallback
             if channel_id in self.channel_server_message_ids and display_name in self.channel_server_message_ids[channel_id]:
                 del self.channel_server_message_ids[channel_id][display_name]
             return False
+
+        # CRITICAL FIX: Extract docker_name for stable dictionary keys
+        docker_name = server_conf.get('docker_name', display_name)
 
         try:
             # Set flags based on channel permissions
@@ -1012,7 +1033,8 @@ class StatusHandlersMixin:
                 return None
 
             # ✨ CONDITIONAL UPDATE CHECK - Only edit if content changed
-            cache_key = f"{channel_id}:{display_name}"
+            # CRITICAL FIX: Use docker_name for stable cache key
+            cache_key = f"{channel_id}:{docker_name}"
 
             # Create a comparable content hash from embed + view
             current_content = {
@@ -1037,8 +1059,8 @@ class StatusHandlersMixin:
             
             if not isinstance(channel, discord.TextChannel):
                 logger.warning(f"_edit_single_message: Channel {channel_id} is not a text channel.")
-                if channel_id in self.channel_server_message_ids and display_name in self.channel_server_message_ids[channel_id]:
-                     del self.channel_server_message_ids[channel_id][display_name]
+                if channel_id in self.channel_server_message_ids and docker_name in self.channel_server_message_ids[channel_id]:
+                     del self.channel_server_message_ids[channel_id][docker_name]
                 return TypeError(f"Channel {channel_id} not text channel")
 
             # PERFORMANCE OPTIMIZATION: Use partial message instead of fetch
@@ -1075,8 +1097,8 @@ class StatusHandlersMixin:
 
         except discord.NotFound:
             logger.warning(f"_edit_single_message: Message {message_id} or Channel {channel_id} not found. Removing from cache.")
-            if channel_id in self.channel_server_message_ids and display_name in self.channel_server_message_ids[channel_id]:
-                del self.channel_server_message_ids[channel_id][display_name]
+            if channel_id in self.channel_server_message_ids and docker_name in self.channel_server_message_ids[channel_id]:
+                del self.channel_server_message_ids[channel_id][docker_name]
             return False # NotFound
         except discord.Forbidden:
             logger.error(f"_edit_single_message: Missing permissions to fetch/edit message {message_id} in channel {channel_id}.")

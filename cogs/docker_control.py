@@ -759,10 +759,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         result = await self._edit_single_message(channel_id, display_name, message_id, current_config) 
         
         if result is True:
-            # Always update the message update time
+            # CRITICAL FIX: Since channel_server_message_ids now uses docker_name as keys,
+            # the display_name parameter might actually be docker_name. Use it directly for consistency.
+            # This works because the wrapper is called with the same identifier used in channel_server_message_ids
             now_utc = datetime.now(timezone.utc)
             if channel_id not in self.last_message_update_time:
                 self.last_message_update_time[channel_id] = {}
+            # Use display_name directly (it's actually docker_name from the keys)
             self.last_message_update_time[channel_id][display_name] = now_utc
             logger.debug(f"Updated last_message_update_time for '{display_name}' in {channel_id} to {now_utc}")
             
