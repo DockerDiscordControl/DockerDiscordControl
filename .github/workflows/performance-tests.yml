@@ -41,6 +41,11 @@ on:
         required: false
         default: 'all'
 
+permissions:
+  contents: write       # Checkout code + push performance reports
+  actions: read        # Download artifacts
+  pull-requests: write # Comment on PRs
+
 jobs:
   performance-tests:
     name: Performance Tests (Python ${{ matrix.python-version }})

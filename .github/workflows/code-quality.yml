@@ -38,6 +38,12 @@ on:
 
   workflow_dispatch:  # Allow manual trigger
 
+permissions:
+  contents: read          # Checkout code
+  actions: read          # Download artifacts
+  pull-requests: write   # Comment on PRs
+  security-events: write # Upload SARIF for SonarCloud
+
 env:
   # Quality gates thresholds
   MIN_PYLINT_SCORE: "8.0"

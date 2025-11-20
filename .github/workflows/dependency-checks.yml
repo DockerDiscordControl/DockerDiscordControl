@@ -32,6 +32,11 @@ on:
 
   workflow_dispatch:  # Allow manual trigger
 
+permissions:
+  contents: read        # Checkout code
+  actions: read        # Work with artifacts
+  pull-requests: write # Comment on PRs
+
 jobs:
   check-circular-imports:
     name: Check Circular Imports

@@ -32,6 +32,12 @@ on:
 
   workflow_dispatch:  # Allow manual trigger
 
+permissions:
+  contents: read          # Checkout code
+  actions: read          # Download artifacts
+  pull-requests: write   # Comment on PRs
+  statuses: write        # Update check statuses
+
 jobs:
   unit-tests:
     name: Unit Tests (Python ${{ matrix.python-version }})
