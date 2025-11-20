@@ -474,208 +474,221 @@ class ScheduledTask:
             last_run_error=data.get("last_run_error")
         )
 
+    def _parse_task_time(self) -> Optional[tuple]:
+        """Parse time_str and return (hour, minute) tuple."""
+        if not self.time_str:
+            return None
+
+        try:
+            time_parts = self.time_str.split(':')
+            if len(time_parts) == 2 and time_parts[0].isdigit() and time_parts[1].isdigit():
+                # Fast path for standard HH:MM format
+                return int(time_parts[0]), int(time_parts[1])
+            else:
+                # Fallback to datetime parsing
+                time_obj = datetime.strptime(self.time_str, '%H:%M').time()
+                return time_obj.hour, time_obj.minute
+        except ValueError:
+            logger.error(f"Invalid time_str format '{self.time_str}' for task {self.task_id}")
+            return None
+
+    def _calculate_cron_next_run(self, tz) -> Optional[float]:
+        """Calculate next run for CRON cycle."""
+        try:
+            from croniter import croniter
+            now = datetime.now(tz)
+            if self.cron_string:
+                iter = croniter(self.cron_string, now)
+                next_dt = iter.get_next(datetime)
+                self.next_run_ts = next_dt.timestamp()
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(f"Task {self.task_id} - CRON - Next execution: {next_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                return self.next_run_ts
+        except ImportError:
+            logger.warning("Cron functionality requires croniter package. Run 'pip install croniter' to enable.")
+            return None
+        except (ValueError, TypeError, AttributeError) as e:
+            logger.error(f"Data error calculating cron next run for task {self.task_id}: {e}", exc_info=True)
+            return None
+
+    def _calculate_once_next_run(self, tz, now, task_hour, task_minute) -> Optional[datetime]:
+        """Calculate next run for ONCE cycle."""
+        if not (self.year_val and self.month_val and self.day_val):
+            return None
+        try:
+            month_int = int(self.month_val) if isinstance(self.month_val, str) and self.month_val.isdigit() else self.month_val
+            day_int = int(self.day_val) if isinstance(self.day_val, str) and self.day_val.isdigit() else self.day_val
+            naive_dt = datetime(int(self.year_val), month_int, day_int, task_hour, task_minute)
+            next_run_dt = tz.localize(naive_dt)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Task {self.task_id} - ONCE - Calculated time: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+            return next_run_dt if next_run_dt >= now else None
+        except (ValueError, TypeError) as e:
+            logger.error(f"Error creating date for ONCE task {self.task_id}: {e}")
+            return None
+
+    def _calculate_daily_next_run(self, now, task_hour, task_minute) -> datetime:
+        """Calculate next run for DAILY cycle."""
+        next_run_dt = now.replace(hour=task_hour, minute=task_minute, second=0, microsecond=0)
+        if next_run_dt <= now:
+            next_run_dt += timedelta(days=1)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Task {self.task_id} - DAILY - Time today already passed, using tomorrow: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f"Task {self.task_id} - DAILY - Calculated time: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        return next_run_dt
+
+    def _calculate_weekly_next_run(self, tz, now, task_hour, task_minute) -> Optional[datetime]:
+        """Calculate next run for WEEKLY cycle."""
+        target_weekday = -1
+        if isinstance(self.day_val, str):
+            try:
+                target_weekday = DAYS_OF_WEEK.index(self.day_val.lower())
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(f"Task {self.task_id} - WEEKLY - Weekday from string '{self.day_val}': {target_weekday}")
+            except ValueError:
+                return None
+        elif isinstance(self.weekday_val, int) and 0 <= self.weekday_val <= 6:
+            target_weekday = self.weekday_val
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Task {self.task_id} - WEEKLY - Weekday from weekday_val: {target_weekday}")
+        else:
+            return None
+
+        if self.last_run_ts:
+            # Calculate from last execution + 7 days
+            last_run_dt = datetime.fromtimestamp(self.last_run_ts, tz)
+            next_run_dt = last_run_dt.replace(hour=task_hour, minute=task_minute, second=0, microsecond=0) + timedelta(days=7)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Task {self.task_id} - WEEKLY - Calculated from last run: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        else:
+            # First time calculation
+            days_ahead = target_weekday - now.weekday()
+            if days_ahead < 0:
+                days_ahead += 7
+            elif days_ahead == 0 and now.time() >= datetime_time(task_hour, task_minute):
+                days_ahead += 7
+            next_run_dt = now.replace(hour=task_hour, minute=task_minute, second=0, microsecond=0) + timedelta(days=days_ahead)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Task {self.task_id} - WEEKLY - Calculated time: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')} (Days ahead: {days_ahead})")
+        return next_run_dt
+
+    def _calculate_monthly_next_run(self, tz, now, task_hour, task_minute) -> Optional[datetime]:
+        """Calculate next run for MONTHLY cycle."""
+        if not self.day_val:
+            return None
+        try:
+            day_int = int(self.day_val)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Task {self.task_id} - MONTHLY - Day of month: {day_int}")
+        except ValueError:
+            return None
+        if not (1 <= day_int <= 31):
+            return None
+
+        calc_month, calc_year = now.month, now.year
+        for _ in range(24):  # Max 2 years ahead
+            try:
+                naive_dt = datetime(calc_year, calc_month, day_int, task_hour, task_minute)
+                localized_dt = tz.localize(naive_dt)
+                if localized_dt > now:
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug(f"Task {self.task_id} - MONTHLY - Calculated time: {localized_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                    return localized_dt
+            except ValueError:
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(f"Task {self.task_id} - MONTHLY - Invalid day {day_int} in month {calc_month}/{calc_year}, trying next month")
+            calc_month += 1
+            if calc_month > 12:
+                calc_month = 1
+                calc_year += 1
+        return None
+
+    def _calculate_yearly_next_run(self, tz, now, task_hour, task_minute) -> Optional[datetime]:
+        """Calculate next run for YEARLY cycle."""
+        if not (self.month_val and self.day_val):
+            return None
+        try:
+            month_int = int(self.month_val) if isinstance(self.month_val, str) and self.month_val.isdigit() else self.month_val
+            day_int = int(self.day_val) if isinstance(self.day_val, str) and self.day_val.isdigit() else self.day_val
+            target_year = int(self.year_val) if self.year_val else now.year
+
+            try:
+                naive_dt = datetime(target_year, month_int, day_int, task_hour, task_minute)
+                next_run_dt = tz.localize(naive_dt)
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(f"Task {self.task_id} - YEARLY - Initial date: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+            except ValueError:
+                # Handle Feb 29 in non-leap years
+                if month_int == 2 and day_int == 29 and not calendar.isleap(target_year):
+                    naive_dt = datetime(target_year, 2, 28, task_hour, task_minute)
+                    next_run_dt = tz.localize(naive_dt)
+                    logger.info(f"Task {self.task_id} - YEARLY - Using Feb 28 instead of Feb 29 in non-leap year {target_year}")
+                else:
+                    logger.error(f"Task {self.task_id} - YEARLY - Invalid date: {target_year}-{month_int}-{day_int}")
+                    return None
+
+            # If date is in the past, use next occurrence
+            if next_run_dt < now:
+                if self.cycle == CYCLE_ONCE and self.year_val and int(self.year_val) < now.year:
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug(f"Task {self.task_id} - ONCE - Year in the past, task expired")
+                    return None
+
+                try:
+                    next_year = now.year + 1
+                    next_run_dt = next_run_dt.replace(year=next_year)
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug(f"Task {self.task_id} - YEARLY - Date already passed, using next year: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                except ValueError:
+                    if month_int == 2 and day_int == 29 and not calendar.isleap(next_year):
+                        next_run_dt = next_run_dt.replace(year=next_year, day=28)
+                        logger.info(f"Task {self.task_id} - YEARLY - Using Feb 28 instead of Feb 29 in non-leap year {next_year}")
+                    else:
+                        logger.error(f"Task {self.task_id} - YEARLY - Error adjusting to next year")
+                        return None
+            return next_run_dt
+        except (ValueError, TypeError) as e:
+            logger.error(f"Error creating date for YEARLY task {self.task_id}: {e}")
+            return None
+
     def calculate_next_run(self) -> Optional[float]:
         """Calculate the next execution time based on the cycle and details."""
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug(f"Calculating next run for task {self.task_id} with cycle {self.cycle} and details: cron='{self.cron_string}', time='{self.time_str}', day='{self.day_val}', month='{self.month_val}', year='{self.year_val}'")  
+            logger.debug(f"Calculating next run for task {self.task_id} with cycle {self.cycle} and details: cron='{self.cron_string}', time='{self.time_str}', day='{self.day_val}', month='{self.month_val}', year='{self.year_val}'")
+
+        # Handle CRON cycle (returns timestamp directly)
         if self.cycle == CYCLE_CRON:
-            try:
-                from croniter import croniter
-                # Use croniter for cron schedules
-                tz = _get_timezone(self.timezone_str)
-                now = datetime.now(tz)
-                if self.cron_string:
-                    iter = croniter(self.cron_string, now)
-                    next_dt = iter.get_next(datetime)
-                    self.next_run_ts = next_dt.timestamp()
-                    if logger.isEnabledFor(logging.DEBUG):
-                        logger.debug(f"Task {self.task_id} - CRON - Next execution: {next_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-                    return self.next_run_ts
-            except ImportError:
-                logger.warning("Cron functionality requires croniter package. Run 'pip install croniter' to enable.")
-                return None
-            except (ValueError, TypeError, AttributeError) as e:
-                # Data errors (cron expression parsing, datetime operations)
-                logger.error(f"Data error calculating cron next run for task {self.task_id}: {e}", exc_info=True)
-                return None
+            tz = _get_timezone(self.timezone_str)
+            return self._calculate_cron_next_run(tz)
 
         try:
-            # Initialize timezone - use cached timezone
+            # Initialize timezone and current time
             tz = _get_timezone(self.timezone_str)
             now = datetime.now(tz)
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Task {self.task_id} - Timezone: {self.timezone_str}, Current local time: {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-            
-            # Extract time, if present
-            task_hour, task_minute = -1, -1
-            if self.time_str:
-                try:
-                    # Important: Time is interpreted as local time in the specified timezone
-                    time_parts = self.time_str.split(':')
-                    if len(time_parts) == 2 and time_parts[0].isdigit() and time_parts[1].isdigit():
-                        # Fast path for standard HH:MM format - avoid datetime parsing overhead
-                        task_hour = int(time_parts[0])
-                        task_minute = int(time_parts[1])
-                    else:
-                        # Fallback to slower datetime parsing for complex formats
-                        time_obj = datetime.strptime(self.time_str, '%H:%M').time()
-                        task_hour, task_minute = time_obj.hour, time_obj.minute
-                    
-                    if logger.isEnabledFor(logging.DEBUG):
-                        logger.debug(f"Task {self.task_id} - Extracted time from time_str: {task_hour}:{task_minute} (interpreted as time in {self.timezone_str})")
-                except ValueError:
-                    logger.error(f"Invalid time_str format '{self.time_str}' for task {self.task_id}")
-                    return None
-            else: # Should be caught by is_valid() for non-cron cycles
+
+            # Parse task time
+            time_tuple = self._parse_task_time()
+            if time_tuple is None:
                 return None
+            task_hour, task_minute = time_tuple
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Task {self.task_id} - Extracted time: {task_hour}:{task_minute} (in {self.timezone_str})")
 
-            # Initialize variable for next execution
+            # Calculate next run based on cycle type
             next_run_dt = None
-            current_year = self.year_val or now.year
-            current_month = self.month_val # Can be string or int
-            current_day = self.day_val # Can be string or int
-
             if self.cycle == CYCLE_ONCE:
-                if not (self.year_val and self.month_val and self.day_val):
-                    return None
-                try:
-                    month_int = int(self.month_val) if isinstance(self.month_val, str) and self.month_val.isdigit() else self.month_val
-                    day_int = int(self.day_val) if isinstance(self.day_val, str) and self.day_val.isdigit() else self.day_val
-                    # Create a naive datetime and then add the timezone
-                    naive_dt = datetime(int(self.year_val), month_int, day_int, task_hour, task_minute)
-                    next_run_dt = tz.localize(naive_dt)
-                    if logger.isEnabledFor(logging.DEBUG):
-                        logger.debug(f"Task {self.task_id} - ONCE - Calculated time: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-                    if next_run_dt < now: return None
-                except (ValueError, TypeError) as e:
-                    logger.error(f"Error creating date for ONCE task {self.task_id}: {e}") 
-                    return None
-
+                next_run_dt = self._calculate_once_next_run(tz, now, task_hour, task_minute)
             elif self.cycle == CYCLE_DAILY:
-                # Daily cycle - just use the time of the next day if today's time has already passed
-                next_run_dt = now.replace(hour=task_hour, minute=task_minute, second=0, microsecond=0)
-                if next_run_dt <= now: 
-                    next_run_dt += timedelta(days=1)
-                    if logger.isEnabledFor(logging.DEBUG):
-                        logger.debug(f"Task {self.task_id} - DAILY - Time today already passed, using tomorrow: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-                if logger.isEnabledFor(logging.DEBUG):
-                    logger.debug(f"Task {self.task_id} - DAILY - Calculated time: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-
+                next_run_dt = self._calculate_daily_next_run(now, task_hour, task_minute)
             elif self.cycle == CYCLE_WEEKLY:
-                target_weekday = -1
-                if isinstance(self.day_val, str):
-                    try: 
-                        target_weekday = DAYS_OF_WEEK.index(self.day_val.lower())
-                        if logger.isEnabledFor(logging.DEBUG):
-                            logger.debug(f"Task {self.task_id} - WEEKLY - Weekday from string '{self.day_val}': {target_weekday}")
-                    except ValueError: return None
-                elif isinstance(self.weekday_val, int) and 0 <= self.weekday_val <= 6: # from Discord
-                     target_weekday = self.weekday_val
-                     if logger.isEnabledFor(logging.DEBUG):
-                         logger.debug(f"Task {self.task_id} - WEEKLY - Weekday from weekday_val: {target_weekday}")
-                else: return None
-                
-                # CRITICAL FIX: If we have a last_run_ts, calculate from there instead of now
-                # This prevents the task from being scheduled for "today" again after execution
-                if self.last_run_ts:
-                    # Task was executed, calculate next run from last execution + 7 days
-                    last_run_dt = datetime.fromtimestamp(self.last_run_ts, tz)
-                    next_run_dt = last_run_dt.replace(hour=task_hour, minute=task_minute, second=0, microsecond=0) + timedelta(days=7)
-                    if logger.isEnabledFor(logging.DEBUG):
-                        logger.debug(f"Task {self.task_id} - WEEKLY - Calculated from last run: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-                else:
-                    # First time calculation or manual calculation
-                    days_ahead = target_weekday - now.weekday()
-                    if days_ahead < 0 : days_ahead += 7 # Target is this week, but already passed
-                    elif days_ahead == 0 and now.time() >= datetime_time(task_hour, task_minute): days_ahead +=7 # Today, but time already passed
-                    
-                    next_run_dt = now.replace(hour=task_hour, minute=task_minute, second=0, microsecond=0) + timedelta(days=days_ahead)
-                    if logger.isEnabledFor(logging.DEBUG):
-                        logger.debug(f"Task {self.task_id} - WEEKLY - Calculated time: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')} (Days ahead: {days_ahead})")
-
+                next_run_dt = self._calculate_weekly_next_run(tz, now, task_hour, task_minute)
             elif self.cycle == CYCLE_MONTHLY:
-                if not self.day_val: return None
-                try: 
-                    day_int = int(self.day_val)
-                    if logger.isEnabledFor(logging.DEBUG):
-                        logger.debug(f"Task {self.task_id} - MONTHLY - Day of month: {day_int}")
-                except ValueError: return None
-                if not (1 <= day_int <= 31): return None
-
-                calc_month, calc_year = now.month, now.year
-                while True:
-                    try:
-                        # Create a naive datetime and then add the timezone
-                        naive_dt = datetime(calc_year, calc_month, day_int, task_hour, task_minute)
-                        localized_dt = tz.localize(naive_dt)
-                        if localized_dt > now: 
-                            next_run_dt = localized_dt
-                            if logger.isEnabledFor(logging.DEBUG):
-                                logger.debug(f"Task {self.task_id} - MONTHLY - Calculated time: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-                            break
-                    except ValueError: # Day doesn't exist in month (e.g., February 31)
-                        if logger.isEnabledFor(logging.DEBUG):
-                            logger.debug(f"Task {self.task_id} - MONTHLY - Invalid day {day_int} in month {calc_month}/{calc_year}, trying next month")
-                        pass 
-                    calc_month += 1
-                    if calc_month > 12: calc_month = 1; calc_year +=1
-                    if calc_year > now.year + 2: return None # Protection against infinite loop
-            
-            elif self.cycle == CYCLE_YEARLY: # Web UI specific
-                # For yearly tasks, we need month and day, but year is optional
-                if not (self.month_val and self.day_val): return None
-                try:
-                    month_int = int(self.month_val) if isinstance(self.month_val, str) and self.month_val.isdigit() else self.month_val
-                    day_int = int(self.day_val) if isinstance(self.day_val, str) and self.day_val.isdigit() else self.day_val
-                    
-                    # Use current year if no year specified, or the specified year
-                    target_year = int(self.year_val) if self.year_val else now.year
-                    
-                    # Create a naive datetime and then add the timezone
-                    try:
-                        naive_dt = datetime(target_year, month_int, day_int, task_hour, task_minute)
-                        next_run_dt = tz.localize(naive_dt)
-                        if logger.isEnabledFor(logging.DEBUG):
-                            logger.debug(f"Task {self.task_id} - YEARLY - Initial date: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-                    except ValueError:
-                        # Handle Feb 29 in non-leap years
-                        if month_int == 2 and day_int == 29 and not calendar.isleap(target_year):
-                            # Use Feb 28 instead
-                            naive_dt = datetime(target_year, 2, 28, task_hour, task_minute)
-                            next_run_dt = tz.localize(naive_dt)
-                            logger.info(f"Task {self.task_id} - YEARLY - Using Feb 28 instead of Feb 29 in non-leap year {target_year}")
-                        else:
-                            # Some other invalid date
-                            logger.error(f"Task {self.task_id} - YEARLY - Invalid date: {target_year}-{month_int}-{day_int}")
-                            return None
-                            
-                    # If date is in the past, use next occurrence
-                    if next_run_dt < now:
-                        # If explicit year in the past, and it's a one-time task, then expired
-                        if self.cycle == CYCLE_ONCE and self.year_val and int(self.year_val) < now.year: 
-                            if logger.isEnabledFor(logging.DEBUG):
-                                logger.debug(f"Task {self.task_id} - ONCE - Year in the past, task expired")
-                            return None
-                            
-                        # For yearly recurring tasks or one-time tasks with current year
-                        try: 
-                            # If date already passed this year, use next year
-                            next_year = now.year + 1
-                            next_run_dt = next_run_dt.replace(year=next_year)
-                            if logger.isEnabledFor(logging.DEBUG):
-                                logger.debug(f"Task {self.task_id} - YEARLY - Date already passed, using next year: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-                        except ValueError: 
-                            # Handle Feb 29 on next year if it's not a leap year
-                            if month_int == 2 and day_int == 29 and not calendar.isleap(next_year):
-                                # Use Feb 28 for non-leap years
-                                next_run_dt = next_run_dt.replace(year=next_year, day=28)
-                                logger.info(f"Task {self.task_id} - YEARLY - Using Feb 28 instead of Feb 29 in non-leap year {next_year}")
-                            else:
-                                logger.error(f"Task {self.task_id} - YEARLY - Error adjusting to next year")
-                                return None
-                except (ValueError, TypeError) as e: 
-                    logger.error(f"Error creating date for YEARLY task {self.task_id}: {e}")
-                    return None
+                next_run_dt = self._calculate_monthly_next_run(tz, now, task_hour, task_minute)
+            elif self.cycle == CYCLE_YEARLY:
+                next_run_dt = self._calculate_yearly_next_run(tz, now, task_hour, task_minute)
             else:
                 logger.error(f"Unknown cycle type '{self.cycle}' for task {self.task_id} in calculate_next_run")
                 return None
@@ -1509,74 +1522,102 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
 
 # --- Validation & Parsing Functions (Maintain and adjust if needed) ---
 
+def _validate_time_parameters(hour: Optional[int], minute: Optional[int]) -> Tuple[bool, str]:
+    """Validate hour and minute parameters."""
+    if hour is None or not (0 <= hour <= 23):
+        return False, "Hour must be between 0 and 23."
+    if minute is None or not (0 <= minute <= 59):
+        return False, "Minute must be between 0 and 59."
+    return True, ""
+
+def _validate_once_cycle(year: Optional[int], month: Optional[int], day: Optional[int],
+                         hour: int, minute: int) -> Tuple[bool, str]:
+    """Validate parameters for ONCE cycle."""
+    if year is None or not (2000 <= year <= 2100):
+        return False, "Year must be between 2000 and 2100 for one-time tasks."
+    if month is None or not (1 <= month <= 12):
+        return False, "Month must be between 1 and 12 for one-time tasks."
+    if day is None or not (1 <= day <= 31):
+        return False, "Day must be between 1 and 31 for one-time tasks."
+    try:
+        datetime(year, month, day, hour, minute)
+    except ValueError as e:
+        return False, f"Invalid date for one-time task: {e}"
+    return True, ""
+
+def _validate_yearly_cycle(month: Optional[int], day: Optional[int],
+                           hour: int, minute: int) -> Tuple[bool, str]:
+    """Validate parameters for YEARLY cycle."""
+    if month is None or not (1 <= month <= 12):
+        return False, "Month must be between 1 and 12 for yearly tasks."
+    if day is None or not (1 <= day <= 31):
+        return False, "Day must be between 1 and 31 for yearly tasks."
+    try:
+        current_year = datetime.now(timezone.utc).year
+        datetime(current_year, month, day, hour, minute)
+    except ValueError as e:
+        if month == 2 and day == 29:
+            return False, "February 29 is only valid in leap years. Use day 28 for yearly tasks."
+        return False, f"Invalid date for yearly task: {e}"
+    return True, ""
+
+def _validate_weekly_cycle(weekday: Optional[int]) -> Tuple[bool, str]:
+    """Validate parameters for WEEKLY cycle."""
+    if weekday is None or not (0 <= weekday <= 6):
+        return False, "Weekday for weekly tasks."
+    return True, ""
+
+def _validate_monthly_cycle(day: Optional[int]) -> Tuple[bool, str]:
+    """Validate parameters for MONTHLY cycle."""
+    if day is None or not (1 <= day <= 31):
+        return False, "Day for monthly tasks."
+    return True, ""
+
 def validate_new_task_input( # Primarily used by the Discord Bot
-    container_name: str, action: str, cycle: str, 
-    year: Optional[int] = None, month: Optional[int] = None, 
-    day: Optional[int] = None, hour: Optional[int] = None, 
+    container_name: str, action: str, cycle: str,
+    year: Optional[int] = None, month: Optional[int] = None,
+    day: Optional[int] = None, hour: Optional[int] = None,
     minute: Optional[int] = None, weekday: Optional[int] = None,
     cron_string: Optional[str] = None # Added for Cron tasks
 ) -> Tuple[bool, str]:
     """Validates the input for creating a new task."""
-    # Validating the basics: Container name, action, cycle
-    validation_errors = []
-    
+    # Validate container name
     if not container_name:
         return False, "Container name is required"
-    
-    # Import and validate container name format
+
     from utils.common_helpers import validate_container_name
     if not validate_container_name(container_name):
         return False, f"Invalid container name format: {container_name}"
-    
+
+    # Validate action
     if action not in VALID_ACTIONS:
         return False, f"Invalid action: {action}. Must be one of: {', '.join(VALID_ACTIONS)}"
-    
+
+    # Validate cycle
     if cycle not in VALID_CYCLES:
         return False, f"Invalid cycle: {cycle}. Must be one of: {', '.join(VALID_CYCLES)}"
-    
-    # Check parameters required for different cycles 
-    # but may be less used internally by ScheduledTask when time_str etc. are used directly.
-    
-    if hour is not None and (hour < 0 or hour > 23):
-        validation_errors.append(f"Hour must be between 0 and 23, not {hour}")
-    
-    if minute is not None and (minute < 0 or minute > 59):
-        validation_errors.append(f"Minute must be between 0 and 59, not {minute}")
 
+    # Validate CRON cycle
     if cycle == CYCLE_CRON:
         if not cron_string:
             return False, "Cron string is required for cron cycle."
-        # A basic validation for cron strings could be done here, but it's complex.
-    elif cycle not in VALID_CYCLES:
-        return False, f"Cycle must be one of {VALID_CYCLES} (or 'cron' with cron_string)."
-    
-    if cycle != CYCLE_CRON: # Time validation for non-Cron tasks
-        if hour is None or not (0 <= hour <= 23): return False, "Hour must be between 0 and 23."
-        if minute is None or not (0 <= minute <= 59): return False, "Minute must be between 0 and 59."
-        if cycle == CYCLE_ONCE:
-            # For once tasks, we need a specific year
-            if year is None or not (2000 <= year <= 2100): return False, f"Year must be between 2000 and 2100 for one-time tasks."
-            if month is None or not (1 <= month <= 12): return False, f"Month must be between 1 and 12 for one-time tasks."
-            if day is None or not (1 <= day <= 31): return False, f"Day must be between 1 and 31 for one-time tasks."
-            try: datetime(year, month, day, hour, minute)
-            except ValueError as e: return False, f"Invalid date for one-time task: {e}"
-        elif cycle == CYCLE_YEARLY:
-            # For yearly tasks, year is optional (will use current year or next year)
-            if month is None or not (1 <= month <= 12): return False, f"Month must be between 1 and 12 for yearly tasks."
-            if day is None or not (1 <= day <= 31): return False, f"Day must be between 1 and 31 for yearly tasks."
-            try: 
-                # Validate the date with current year to ensure it's valid (e.g., Feb 29 would fail in non-leap years)
-                current_year = datetime.now(timezone.utc).year
-                datetime(current_year, month, day, hour, minute)
-            except ValueError as e: 
-                # Check if it's Feb 29 in a non-leap year
-                if month == 2 and day == 29:
-                    return False, "February 29 is only valid in leap years. Use day 28 for yearly tasks."
-                return False, f"Invalid date for yearly task: {e}"
-        elif cycle == CYCLE_WEEKLY:
-            if weekday is None or not (0 <= weekday <= 6): return False, "Weekday for weekly tasks."
-        elif cycle == CYCLE_MONTHLY:
-            if day is None or not (1 <= day <= 31): return False, "Day for monthly tasks."
+        return True, ""
+
+    # Validate time parameters for non-CRON cycles
+    is_valid, error_msg = _validate_time_parameters(hour, minute)
+    if not is_valid:
+        return False, error_msg
+
+    # Validate cycle-specific parameters
+    if cycle == CYCLE_ONCE:
+        return _validate_once_cycle(year, month, day, hour, minute)
+    elif cycle == CYCLE_YEARLY:
+        return _validate_yearly_cycle(month, day, hour, minute)
+    elif cycle == CYCLE_WEEKLY:
+        return _validate_weekly_cycle(weekday)
+    elif cycle == CYCLE_MONTHLY:
+        return _validate_monthly_cycle(day)
+
     return True, ""
 
 # Add caching to validation and parsing methods

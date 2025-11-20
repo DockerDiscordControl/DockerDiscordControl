@@ -307,6 +307,78 @@ class ContainerStatusService:
                 error_message=f"Data error: {str(e)}"
             )
 
+    def _calculate_cpu_percent_from_stats(self, stats: dict, container_name: str) -> float:
+        """Calculate CPU percentage from Docker stats with fallback methods."""
+        try:
+            cpu_stats = stats.get('cpu_stats', {})
+            precpu_stats = stats.get('precpu_stats', {})
+
+            # Extract CPU usage values
+            cpu_usage = cpu_stats.get('cpu_usage', {}).get('total_usage', 0) if cpu_stats else 0
+            system_cpu_usage = cpu_stats.get('system_cpu_usage', 0) if cpu_stats else 0
+            previous_cpu = precpu_stats.get('cpu_usage', {}).get('total_usage', 0) if precpu_stats else 0
+            previous_system = precpu_stats.get('system_cpu_usage', 0) if precpu_stats else 0
+
+            # Calculate deltas
+            cpu_delta = max(0, cpu_usage - previous_cpu)
+            system_delta = max(0, system_cpu_usage - previous_system)
+
+            # Method 1: Standard delta calculation
+            if cpu_delta > 0 and system_delta > 0 and system_cpu_usage > 0:
+                # Get CPU count with fallback logic
+                online_cpus = cpu_stats.get('online_cpus')
+                if online_cpus is None or online_cpus <= 0:
+                    percpu_usage = cpu_stats.get('cpu_usage', {}).get('percpu_usage', [])
+                    if percpu_usage and len(percpu_usage) > 0:
+                        online_cpus = len(percpu_usage)
+                    else:
+                        import os
+                        online_cpus = os.cpu_count() or 1
+
+                cpu_percent = (cpu_delta / system_delta) * online_cpus * 100.0
+                cpu_percent = max(0.0, min(cpu_percent, 100.0 * online_cpus))
+                return cpu_percent if cpu_percent > 0.0 else 0.1
+
+            # Method 2: Fallback for running containers
+            if system_cpu_usage > 0 and cpu_usage > 0:
+                return 0.1
+
+            # Method 3: Minimal activity
+            return 0.1
+        except Exception as e:
+            self.logger.warning(f"CPU calculation error for {container_name}: {e}")
+            return 0.1
+
+    def _calculate_memory_from_stats(self, stats: dict, container_name: str) -> tuple:
+        """Calculate memory usage and limit from Docker stats. Returns (usage_mb, limit_mb)."""
+        try:
+            memory_stats = stats.get('memory_stats', {}) if stats else {}
+            if not memory_stats:
+                return 2.0, 1024.0
+
+            # Try different methods to get memory usage
+            memory_usage = memory_stats.get('usage', 0)
+            if memory_usage == 0:
+                memory_usage = memory_stats.get('max_usage', 0)
+            if memory_usage == 0 and 'stats' in memory_stats:
+                stats_detail = memory_stats['stats']
+                rss = stats_detail.get('rss', 0)
+                cache = stats_detail.get('cache', 0)
+                if rss > 0:
+                    memory_usage = rss + cache
+
+            # Get memory limit
+            memory_limit = memory_stats.get('limit', 0)
+
+            # Convert to MB with fallbacks
+            memory_usage_mb = memory_usage / (1024 * 1024) if memory_usage > 0 else 2.0
+            memory_limit_mb = memory_limit / (1024 * 1024) if memory_limit > 0 else 1024.0
+
+            return memory_usage_mb, memory_limit_mb
+        except Exception as e:
+            self.logger.warning(f"Memory calculation error for {container_name}: {e}")
+            return 2.0, 1024.0
+
     async def _fetch_container_status(self, request: ContainerStatusRequest) -> ContainerStatusResult:
         """Fetch fresh container status from Docker daemon."""
         start_time = time.time()
@@ -374,124 +446,19 @@ class ContainerStatusService:
                         # Get container stats (use stream=True with decode for single snapshot)
                         stats_generator = container.stats(stream=True, decode=True)
                         try:
-                            stats = next(stats_generator)  # Get first (and only needed) stats entry
+                            stats = next(stats_generator)
                         finally:
-                            # Close the generator to prevent resource leak
                             stats_generator.close()
 
-                        # ENHANCED CPU calculation with better fallback handling
-                        cpu_stats = stats.get('cpu_stats', {})
-                        precpu_stats = stats.get('precpu_stats', {})
+                        # Calculate CPU and memory using helper methods
+                        cpu_percent = self._calculate_cpu_percent_from_stats(stats, request.container_name)
+                        memory_usage_mb, memory_limit_mb = self._calculate_memory_from_stats(stats, request.container_name)
 
-                        # Extract CPU usage values with more robust defaults
-                        cpu_usage = cpu_stats.get('cpu_usage', {}).get('total_usage', 0) if cpu_stats else 0
-                        system_cpu_usage = cpu_stats.get('system_cpu_usage', 0) if cpu_stats else 0
-                        previous_cpu = precpu_stats.get('cpu_usage', {}).get('total_usage', 0) if precpu_stats else 0
-                        previous_system = precpu_stats.get('system_cpu_usage', 0) if precpu_stats else 0
-
-                        # Calculate deltas with better validation
-                        cpu_delta = max(0, cpu_usage - previous_cpu)
-                        system_delta = max(0, system_cpu_usage - previous_system)
-
-                        # CPU percentage calculation with improved logic
-                        if cpu_delta > 0 and system_delta > 0 and system_cpu_usage > 0:
-                            # Get CPU count with better fallback logic
-                            online_cpus = cpu_stats.get('online_cpus')
-                            if online_cpus is None or online_cpus <= 0:
-                                # Fallback 1: Try percpu_usage count
-                                percpu_usage = cpu_stats.get('cpu_usage', {}).get('percpu_usage', [])
-                                if percpu_usage and len(percpu_usage) > 0:
-                                    online_cpus = len(percpu_usage)
-                                else:
-                                    # Fallback 2: Read from /proc/cpuinfo equivalent
-                                    try:
-                                        # Try to get CPU count from system
-                                        import os
-                                        online_cpus = os.cpu_count() or 1
-                                    except:
-                                        online_cpus = 1
-
-                            # Calculate percentage
-                            cpu_percent = (cpu_delta / system_delta) * online_cpus * 100.0
-
-                            # Bounds check - allow up to 100% per CPU core
-                            cpu_percent = max(0.0, min(cpu_percent, 100.0 * online_cpus))
-
-                            # If we get exactly 0, set to minimal value for running containers
-                            if cpu_percent == 0.0:
-                                cpu_percent = 0.1
-
-                        else:
-                            # Better fallback: Try alternative CPU calculation methods
-                            if system_cpu_usage > 0 and cpu_usage > 0:
-                                # Method 2: Use absolute usage if available
-                                total_cpu_time = cpu_stats.get('cpu_usage', {}).get('total_usage', 0)
-                                if total_cpu_time > 0:
-                                    # Estimate minimal CPU usage for running container
-                                    cpu_percent = 0.1
-                                else:
-                                    cpu_percent = 0.05  # Very minimal usage
-                            else:
-                                # Method 3: Running container must have some CPU usage
-                                cpu_percent = 0.1  # Minimal but visible activity
-
-                        # ENHANCED Memory calculation with better validation
-                        memory_stats = stats.get('memory_stats', {}) if stats else {}
-
-                        # Try different memory fields (Docker API variations)
-                        memory_usage = 0
-                        memory_limit = 0
-
-                        if memory_stats:
-                            # Method 1: Standard 'usage' field
-                            memory_usage = memory_stats.get('usage', 0)
-
-                            # Method 2: Try 'max_usage' if 'usage' is 0
-                            if memory_usage == 0:
-                                memory_usage = memory_stats.get('max_usage', 0)
-
-                            # Method 3: Calculate from detailed stats
-                            if memory_usage == 0 and 'stats' in memory_stats:
-                                stats_detail = memory_stats['stats']
-                                # RSS + Cache as approximation
-                                rss = stats_detail.get('rss', 0)
-                                cache = stats_detail.get('cache', 0)
-                                if rss > 0:
-                                    memory_usage = rss + cache
-
-                            # Get memory limit
-                            memory_limit = memory_stats.get('limit', 0)
-
-                        # Convert to MB with better fallbacks
-                        if memory_usage > 0:
-                            memory_usage_mb = memory_usage / (1024 * 1024)
-                        else:
-                            # Running container must use some memory
-                            memory_usage_mb = 2.0  # Minimal realistic memory usage
-
-                        if memory_limit > 0:
-                            memory_limit_mb = memory_limit / (1024 * 1024)
-                        else:
-                            memory_limit_mb = 1024.0  # Default 1GB limit
-
-                        # Final validation: ensure non-zero values for running containers
-                        if cpu_percent <= 0.0:
-                            cpu_percent = 0.1
-                        if memory_usage_mb <= 0.0:
-                            memory_usage_mb = 2.0
-
-                    except (StopIteration, KeyError, AttributeError) as e:
+                    except (StopIteration, KeyError, AttributeError, ValueError, TypeError) as e:
                         self.logger.warning(f"Could not get stats for {request.container_name}: {e}")
-                        # More realistic fallback values for running containers
-                        cpu_percent = 0.1   # 0.1% CPU usage
-                        memory_usage_mb = 2.0  # 2MB memory usage
-                        memory_limit_mb = 1024.0  # 1GB limit
-                    except (ValueError, TypeError) as e:
-                        self.logger.warning(f"Stats data format error for {request.container_name}: {e}")
-                        # More realistic fallback values for running containers
-                        cpu_percent = 0.1   # 0.1% CPU usage
-                        memory_usage_mb = 2.0  # 2MB memory usage
-                        memory_limit_mb = 1024.0  # 1GB limit
+                        cpu_percent = 0.1
+                        memory_usage_mb = 2.0
+                        memory_limit_mb = 1024.0
 
                 duration_ms = (time.time() - start_time) * 1000
 
