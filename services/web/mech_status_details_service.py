@@ -16,6 +16,11 @@ import logging
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
 
+try:
+    import discord
+except ImportError:
+    discord = None  # Handle missing discord library gracefully
+
 logger = logging.getLogger(__name__)
 
 

@@ -17,6 +17,12 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 
+try:
+    import docker
+    import docker.errors
+except ImportError:
+    docker = None  # Handle missing docker library gracefully
+
 logger = logging.getLogger(__name__)
 
 

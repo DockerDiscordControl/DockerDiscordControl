@@ -36,7 +36,7 @@ def is_debug_mode_enabled() -> bool:
     Returns:
         bool: True if debug mode is enabled, otherwise False
     """
-    global _debug_mode_enabled, _temp_debug_mode_enabled, _temp_debug_expiry, _last_debug_status_log
+    global _debug_mode_enabled, _last_debug_status_log
 
     with _debug_mode_lock:
         # Recursion guard - prevent infinite loops during config loading
@@ -356,8 +356,6 @@ def get_temporary_debug_status():
     Returns:
         tuple: (is_enabled, expiry_time, remaining_seconds) - status info for temp debug
     """
-    global _temp_debug_mode_enabled, _temp_debug_expiry
-    
     current_time = time.time()
     is_enabled = _temp_debug_mode_enabled and current_time < _temp_debug_expiry
     remaining_seconds = max(0, _temp_debug_expiry - current_time) if is_enabled else 0
