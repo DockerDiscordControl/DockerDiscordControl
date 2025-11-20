@@ -70,3 +70,10 @@ graphviz>=0.20.0,<1.0.0      # Dependency graph visualization
 # opentelemetry-instrumentation>=0.41b0,<0.50b0
 # opentelemetry-exporter-otlp>=1.20.0,<1.30.0
 # opentelemetry-exporter-jaeger>=1.20.0,<1.30.0
+## Testing Dependencies Note
+
+Core testing dependencies have been optimized for fast pip resolution.
+Heavy packages (selenium, locust, testcontainers, safety, semgrep) have been 
+removed from requirements-test.txt to avoid dependency resolution issues.
+Install separately if needed for specific test scenarios.
+
