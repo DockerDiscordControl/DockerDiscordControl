@@ -645,16 +645,14 @@ class ConfigService:
     def validate_donation_key_service(self, request: ValidateDonationKeyRequest) -> ValidateDonationKeyResult:
         """SERVICE FIRST: Validate donation key with Request/Result pattern."""
         try:
-            # Load current config to check for donation_disable_key
-            config = self.get_config()
-            stored_key = config.get('donation_disable_key', '').strip()
+            # Validate against list of valid donation keys from key_crypto
+            from utils.key_crypto import get_valid_donation_keys
 
-            if not stored_key:
-                # No key set means donations are enabled (valid = False for disable key)
-                is_valid = False
-            else:
-                # Check if provided key matches stored key
-                is_valid = request.key.strip() == stored_key
+            valid_keys = get_valid_donation_keys()
+            provided_key = request.key.strip()
+
+            # Case-insensitive comparison with all valid keys
+            is_valid = any(provided_key.upper() == valid_key.upper() for valid_key in valid_keys)
 
             return ValidateDonationKeyResult(
                 success=True,

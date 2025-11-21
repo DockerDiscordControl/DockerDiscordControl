@@ -14,13 +14,21 @@ def is_donations_disabled() -> bool:
     """Check if donations are disabled by premium key (compatibility function)."""
     try:
         # SERVICE FIRST: Use Request/Result pattern for config access
-        from services.config.config_service import get_config_service, GetConfigRequest
+        from services.config.config_service import get_config_service, GetConfigRequest, ValidateDonationKeyRequest
         config_service = get_config_service()
         config_request = GetConfigRequest(force_reload=False)
         config_result = config_service.get_config_service(config_request)
 
         if config_result.success:
-            return bool(config_result.config.get('donation_disable_key'))
+            stored_key = config_result.config.get('donation_disable_key', '').strip()
+            if not stored_key:
+                return False
+
+            # Validate that the stored key is actually valid
+            validation_request = ValidateDonationKeyRequest(key=stored_key)
+            validation_result = config_service.validate_donation_key_service(validation_request)
+
+            return validation_result.success and validation_result.is_valid
         else:
             return False
     except (ValueError, TypeError, AttributeError, RuntimeError) as e:
