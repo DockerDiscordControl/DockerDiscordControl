@@ -1602,16 +1602,16 @@ def reset_mech_to_level_1():
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (mech reset service unavailable)
-        error_msg = f"Service dependency error during mech reset: {e}"
-        current_app.logger.error(error_msg, exc_info=True)
+        # Security: Log exception details server-side only, no intermediate variables
+        current_app.logger.error("Service dependency error during mech reset: %s", e, exc_info=True)
         return jsonify({
             'success': False,
             'error': 'Service error: Unable to reset mech system'
         }), 500
     except (ValueError, TypeError, KeyError) as e:
         # Data processing errors (status parsing, result formatting)
-        error_msg = f"Data error during mech reset: {e}"
-        current_app.logger.error(error_msg, exc_info=True)
+        # Security: Log exception details server-side only, no intermediate variables
+        current_app.logger.error("Data error during mech reset: %s", e, exc_info=True)
         return jsonify({
             'success': False,
             'error': 'Data error: Failed to process reset operation'
@@ -1688,16 +1688,16 @@ def get_mech_status():
 
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (mech reset service unavailable)
-        error_msg = f"Service dependency error getting mech status: {e}"
-        current_app.logger.error(error_msg, exc_info=True)
+        # Security: Log exception details server-side only, no intermediate variables
+        current_app.logger.error("Service dependency error getting mech status: %s", e, exc_info=True)
         return jsonify({
             'success': False,
             'error': 'Service error: Unable to get mech status'
         }), 500
     except (ValueError, TypeError, KeyError) as e:
         # Data processing errors (status formatting, datetime operations)
-        error_msg = f"Data error getting mech status: {e}"
-        current_app.logger.error(error_msg, exc_info=True)
+        # Security: Log exception details server-side only, no intermediate variables
+        current_app.logger.error("Data error getting mech status: %s", e, exc_info=True)
         return jsonify({
             'success': False,
             'error': 'Data error: Failed to format status'
