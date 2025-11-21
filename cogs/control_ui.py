@@ -17,8 +17,11 @@ import logging
 import time
 import io
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TYPE_CHECKING
 from discord.ui import View, Button
+
+if TYPE_CHECKING:
+    from .docker_control import DockerControlCog
 
 from utils.time_utils import format_datetime_with_timezone
 from .control_helpers import _channel_has_permission, _get_pending_embed
@@ -53,10 +56,6 @@ _description_templates = {
 
 def _clear_caches():
     """Clears all performance caches - called periodically."""
-    global _timestamp_format_cache, _permission_cache, _view_cache, \
-           _translation_cache, _box_element_cache, _container_static_data, \
-           _embed_pool, _view_template_cache
-    
     _timestamp_format_cache.clear()
     _permission_cache.clear()
     _view_cache.clear()

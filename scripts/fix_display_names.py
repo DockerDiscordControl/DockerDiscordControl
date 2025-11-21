@@ -7,6 +7,7 @@ This script cleans up recursive string conversions.
 import json
 import ast
 from pathlib import Path
+import docker
 
 def fix_display_name(display_name_raw, container_name=None):
     """Clean up a corrupted display_name field."""

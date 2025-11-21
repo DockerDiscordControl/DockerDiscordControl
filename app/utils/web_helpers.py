@@ -181,8 +181,6 @@ def get_docker_containers_live(logger, force_refresh=False, container_name=None)
     Returns:
         Tuple (container_list, error_message)
     """
-    global last_docker_query_time, background_refresh_thread
-    
     # Start background thread if not running and enabled
     if ENABLE_BACKGROUND_REFRESH and not docker_cache['bg_refresh_running'] and not background_refresh_thread:
         start_background_refresh(logger)

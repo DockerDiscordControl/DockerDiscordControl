@@ -9,7 +9,9 @@
 Simplified Container Info Modal - Single modal with dropdown selects
 """
 
+import asyncio
 import discord
+import docker
 import logging
 import os
 import re

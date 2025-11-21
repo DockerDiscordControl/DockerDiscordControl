@@ -6,6 +6,7 @@ This script adds the required fields for compatibility with status handlers.
 
 import json
 from pathlib import Path
+import docker
 
 def fix_container_files():
     """Add docker_name and name fields to all container JSON files."""

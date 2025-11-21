@@ -11,6 +11,7 @@ These functions provide dropdown suggestions for command arguments.
 """
 import logging
 import discord
+import docker
 from datetime import datetime, timezone
 from typing import List, Dict, Union, Optional, Callable, Any
 from functools import lru_cache
@@ -22,6 +23,7 @@ app_commands = get_app_commands()
 
 # Import utility functions
 from services.config.config_service import load_config
+from utils.config_cache import get_cached_servers
 from utils.logging_utils import setup_logger
 from services.docker_service.status_cache_runtime import get_docker_status_cache_runtime
 from services.scheduling.scheduler import (
@@ -85,8 +87,8 @@ async def schedule_container_select(
             for docker_name_cached, container_item in runtime.items():
                 if docker_name_cached and container_item and isinstance(container_item, dict) and 'data' in container_item:
                     active_docker_data_set.add(docker_name_cached)
-        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException):
-            logger.error(f"Error accessing docker status cache runtime: {cache_e}")
+        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+            logger.error(f"Error accessing docker status cache runtime: {e}")
 
     # Populate choices_to_cache from configured servers
     # We present all configured servers, their actual current status (running/stopped)

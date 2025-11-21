@@ -18,6 +18,7 @@ Or from root directory:
 import sys
 import os
 from pathlib import Path
+import discord
 
 # Add project root to Python path
 project_root = Path(__file__).parent.parent

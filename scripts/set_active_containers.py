@@ -7,6 +7,7 @@ This script marks containers as active/inactive based on current configuration.
 import json
 from pathlib import Path
 import sys
+import docker
 
 def set_active_containers(mark_all_active=False):
     """

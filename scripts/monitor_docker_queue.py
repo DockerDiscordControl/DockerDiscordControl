@@ -9,6 +9,7 @@ import sys
 import time
 import json
 from pathlib import Path
+import docker
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))

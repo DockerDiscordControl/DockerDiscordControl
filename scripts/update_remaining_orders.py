@@ -3,6 +3,7 @@
 
 import json
 from pathlib import Path
+import docker
 
 # Define the correct order for all containers
 correct_orders = {
