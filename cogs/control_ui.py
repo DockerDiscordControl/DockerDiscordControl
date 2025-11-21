@@ -921,8 +921,14 @@ class InfoButton(Button):
             config = load_config()
             channel_id = interaction.channel.id if interaction.channel else None
 
-            # Check if channel has info permission
-            if not self._channel_has_info_permission(channel_id, config):
+            # Check if user is admin (admins can access info in any channel)
+            from services.admin.admin_service import get_admin_service
+            admin_service = get_admin_service()
+            user_id = str(interaction.user.id)
+            is_admin = admin_service.is_user_admin(user_id)
+
+            # Check if channel has info permission (skip check for admins)
+            if not is_admin and not self._channel_has_info_permission(channel_id, config):
                 await interaction.followup.send(
                     "❌ You don't have permission to view container info in this channel.",
                     ephemeral=True
