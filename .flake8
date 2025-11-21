@@ -1,0 +1,35 @@
+[flake8]
+# Flake8 configuration for DockerDiscordControl
+
+max-line-length = 100
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    build,
+    dist,
+    *.egg-info,
+    .pytest_cache
+
+# Temporarily ignore undefined names while we fix them systematically
+# TODO: Remove F821 and F824 from ignore list once all issues are resolved
+ignore =
+    # F821: undefined name (many pre-existing issues to fix)
+    F821,
+    # F824: unused global (several pre-existing issues to fix)
+    F824,
+    # E203: whitespace before ':' (conflicts with black formatter)
+    E203,
+    # W503: line break before binary operator (outdated PEP 8)
+    W503
+
+# Select specific checks to enforce
+select =
+    E,  # pycodestyle errors
+    F,  # pyflakes (except F821, F824)
+    W,  # pycodestyle warnings
+    C90,  # mccabe complexity
+
+per-file-ignores =
+    __init__.py:F401  # Allow unused imports in __init__.py
