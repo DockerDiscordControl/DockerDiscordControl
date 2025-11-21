@@ -55,8 +55,9 @@ def register_routes(app: Flask) -> None:
                 return jsonify({"success": True})
             return jsonify({"success": False, "error": "Failed to save admin data"})
         except (RuntimeError) as e:
+            # Security: Log detailed error server-side only, return generic message
             app.logger.error("Error saving admin data: %s", e, exc_info=True)
-            return jsonify({"success": False, "error": str(e)})
+            return jsonify({"success": False, "error": "An internal error occurred while saving admin data"})
 
     @app.route("/health")
     def health_check():
