@@ -9,6 +9,8 @@
 
 from __future__ import annotations
 
+import docker
+
 from ..startup_context import StartupContext, as_step
 
 

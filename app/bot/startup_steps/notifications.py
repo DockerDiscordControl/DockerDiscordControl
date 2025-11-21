@@ -9,6 +9,9 @@
 
 from __future__ import annotations
 
+import asyncio
+import discord
+
 from ..startup_context import StartupContext, as_step
 
 
@@ -29,4 +32,4 @@ async def send_update_notification_step(context: StartupContext) -> None:
         else:
             logger.debug("No update notification needed")
     except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
-        logger.error("Error sending update notification: %s", exc, exc_info=True)
+        logger.error("Error sending update notification: %s", e, exc_info=True)

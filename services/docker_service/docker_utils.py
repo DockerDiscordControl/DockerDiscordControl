@@ -457,7 +457,7 @@ def release_docker_client(client=None):
             logger.debug(f"Error releasing client to pool: {e}")
     else:
         # Legacy client release
-        global _docker_client, _client_last_used
+        global _docker_client
 
         if _docker_client is not None and (time.time() - _client_last_used > _CLIENT_TIMEOUT):
             try:

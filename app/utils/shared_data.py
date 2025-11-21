@@ -10,6 +10,7 @@ Shared data for the Flask application.
 Used to share active containers and other data between different parts of the application.
 """
 
+import docker
 import os
 import json
 import glob

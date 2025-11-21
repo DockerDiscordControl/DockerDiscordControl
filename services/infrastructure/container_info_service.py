@@ -9,6 +9,7 @@
 Container Info Service - Manages container metadata with clean service architecture
 """
 
+import docker
 import os
 import json
 from typing import Dict, Any, Optional, List

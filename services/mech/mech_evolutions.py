@@ -11,6 +11,7 @@ Mech Evolution System - Maps donation amounts to evolution levels
 SERVICE FIRST: Unified evolution system replacing evolution_config_manager
 """
 
+import json
 import logging
 import math
 from pathlib import Path

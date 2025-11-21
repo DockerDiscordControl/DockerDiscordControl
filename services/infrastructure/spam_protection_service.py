@@ -14,6 +14,7 @@ import time
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Dict, Any, Optional
+import discord
 from utils.logging_utils import get_module_logger
 
 logger = get_module_logger('spam_protection_service')

@@ -9,6 +9,8 @@
 
 from __future__ import annotations
 
+import docker
+import json
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
@@ -53,8 +55,8 @@ def register_routes(app: Flask) -> None:
                 return jsonify({"success": True})
             return jsonify({"success": False, "error": "Failed to save admin data"})
         except (RuntimeError) as e:
-            app.logger.error("Error saving admin data: %s", exc, exc_info=True)
-            return jsonify({"success": False, "error": str(exc)})
+            app.logger.error("Error saving admin data: %s", e, exc_info=True)
+            return jsonify({"success": False, "error": str(e)})
 
     @app.route("/health")
     def health_check():
@@ -85,7 +87,7 @@ def register_routes(app: Flask) -> None:
 
             return jsonify(health_data), 200
         except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException, json.JSONDecodeError) as e:
-            app.logger.error("Health check failed: %s", exc, exc_info=True)
+            app.logger.error("Health check failed: %s", e, exc_info=True)
             error_data = {
                 "status": "error",
                 "service": "DockerDiscordControl",

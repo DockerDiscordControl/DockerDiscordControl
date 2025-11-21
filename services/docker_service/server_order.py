@@ -8,6 +8,7 @@
 """
 Utility for saving and loading server display order for DockerDiscordControl
 """
+import docker
 import os
 import json
 import logging

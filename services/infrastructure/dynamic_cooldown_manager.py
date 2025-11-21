@@ -10,6 +10,7 @@ Dynamic Cooldown Manager - Manages dynamic cooldowns for Discord commands
 """
 
 import logging
+import discord
 from discord.ext import commands
 from typing import Dict, Any, Optional
 from services.infrastructure.spam_protection_service import get_spam_protection_service
@@ -89,7 +90,7 @@ class DynamicCooldownManager:
                 cooldown_obj = commands.Cooldown(1, float(cooldown_seconds))
                 logger.debug(f"Created Cooldown using PyCord style for {config_key}: 1/{cooldown_seconds}s")
                 return cooldown_obj
-            except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+            except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e2:
                 logger.error(f"Could not create Cooldown object for {config_key} with either style: discord.py={e}, PyCord={e2}", exc_info=True)
                 return None
     

@@ -9,6 +9,7 @@
 Update Notification System - Shows new features after updates
 """
 
+import asyncio
 import json
 from services.config.config_service import load_config
 import logging

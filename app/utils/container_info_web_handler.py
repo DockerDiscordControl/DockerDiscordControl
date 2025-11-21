@@ -9,6 +9,7 @@
 Web UI handler for container info - saves to separate JSON files
 """
 
+import docker
 import logging
 from typing import Dict, Any
 from services.infrastructure.container_info_service import get_container_info_service, ContainerInfo

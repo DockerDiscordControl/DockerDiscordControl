@@ -10,6 +10,8 @@ Configuration Loader Service - Handles modular config loading
 Part of ConfigService refactoring for Single Responsibility Principle
 """
 
+import discord
+import docker
 import logging
 from pathlib import Path
 from typing import Dict, Any

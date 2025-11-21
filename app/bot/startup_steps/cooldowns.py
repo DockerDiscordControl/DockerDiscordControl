@@ -26,4 +26,4 @@ async def apply_dynamic_cooldowns_step(context: StartupContext) -> None:
         applicator(context.bot)
         logger.info("Dynamic cooldowns applied successfully")
     except (RuntimeError) as e:
-        logger.error("Error applying dynamic cooldowns: %s", exc, exc_info=True)
+        logger.error("Error applying dynamic cooldowns: %s", e, exc_info=True)

@@ -10,6 +10,8 @@
 from __future__ import annotations
 
 import asyncio
+import discord
+import docker
 import inspect
 
 from ..commands import list_registered_command_names, setup_schedule_commands
@@ -38,7 +40,7 @@ async def load_extensions_step(context: StartupContext) -> None:
                 "Successfully loaded extension: cogs.docker_control (PyCord sync)"
             )
     except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
-        logger.error("Failed to load extension 'cogs.docker_control': %s", exc, exc_info=True)
+        logger.error("Failed to load extension 'cogs.docker_control': %s", e, exc_info=True)
         raise
 
 
@@ -87,8 +89,8 @@ async def synchronize_commands_step(context: StartupContext) -> None:
             logger.info("Commands synchronized successfully")
         else:
             logger.info("Bot implementation does not provide sync_commands; skipping.")
-    except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound):
-        logger.error("Error syncing commands: %s", sync_error)
+    except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+        logger.error("Error syncing commands: %s", e)
         await _fallback_register_commands(bot, logger, guild_id)
 
     logger.info("App Commands synchronization process completed")
@@ -105,7 +107,7 @@ async def _fallback_register_commands(bot, logger, guild_id: int) -> None:
             try:
                 await bot.register_commands(guild_id=guild_id, commands=[cmd])
                 logger.info("Successfully registered command: %s", cmd.name)
-            except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound):
-                logger.error("Error registering command %s: %s", cmd.name, cmd_error)
-    except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound):
-        logger.error("Fallback registration failed: %s", fallback_error)
+            except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+                logger.error("Error registering command %s: %s", cmd.name, e)
+    except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+        logger.error("Fallback registration failed: %s", e)

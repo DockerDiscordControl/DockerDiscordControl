@@ -151,5 +151,5 @@ def ensure_token_security(logger: logging.Logger) -> bool:
         logger.debug("Token auto-encryption check completed")
         return True
     except (RuntimeError) as e:
-        logger.warning("Token auto-encryption failed: %s", exc)
+        logger.warning("Token auto-encryption failed: %s", e)
         return False

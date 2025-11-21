@@ -68,10 +68,10 @@ class DonationManagementService:
             mech_state_request = GetMechStateRequest(include_decimals=False)
             mech_state_result = mech_service.get_mech_state_service(mech_state_request)
             if not mech_state_result.success:
-                return DonationListResult(
+                return ServiceResult(
                     success=False,
                     error="Failed to get mech state",
-                    donations=[]
+                    data={"donations": [], "stats": None}
                 )
 
             # Create compatibility object for existing code
@@ -365,10 +365,10 @@ class DonationManagementService:
             mech_state_request = GetMechStateRequest(include_decimals=False)
             mech_state_result = mech_service.get_mech_state_service(mech_state_request)
             if not mech_state_result.success:
-                return DonationStatsResult(
+                return ServiceResult(
                     success=False,
                     error="Failed to get mech state",
-                    stats=None
+                    data=None
                 )
 
             # Get ALL donations directly from Progress Service Event Log

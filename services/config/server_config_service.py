@@ -9,6 +9,7 @@
 SERVICE FIRST: Server Configuration Service - SINGLE POINT OF TRUTH
 """
 
+import docker
 import logging
 import json
 from pathlib import Path

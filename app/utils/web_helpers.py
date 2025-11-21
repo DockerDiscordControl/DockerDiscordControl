@@ -172,16 +172,16 @@ def hash_container_data(container_data):
 def get_docker_containers_live(logger, force_refresh=False, container_name=None):
     """
     Enhanced function to retrieve Docker container information with advanced caching features.
-    
+
     Args:
         logger: The logger for logging
         force_refresh: Forces a refresh regardless of cache status
         container_name: Optional, specific container name (only filtered for the response)
-        
+
     Returns:
         Tuple (container_list, error_message)
     """
-    global last_docker_query_time, docker_cache, background_refresh_thread, stop_background_thread
+    global last_docker_query_time, background_refresh_thread
     
     # Start background thread if not running and enabled
     if ENABLE_BACKGROUND_REFRESH and not docker_cache['bg_refresh_running'] and not background_refresh_thread:
@@ -243,7 +243,7 @@ def get_docker_containers_live(logger, force_refresh=False, container_name=None)
 
 def update_docker_cache(logger):
     """Updates the Docker container cache with current data and memory optimization"""
-    global last_docker_query_time, docker_cache
+    global last_docker_query_time
     import gc
     
     logger.info("Updating Docker cache with memory optimization")
@@ -522,7 +522,7 @@ async def check_docker_connectivity(logger):
 
 def start_background_refresh(logger):
     """Starts the background thread for cache updates"""
-    global background_refresh_thread, stop_background_thread
+    global background_refresh_thread
 
     # Immediate Docker connectivity check (sync wrapper for async function)
     import asyncio
@@ -569,7 +569,7 @@ def start_background_refresh(logger):
 
 def stop_background_refresh(logger):
     """Stops the background thread for cache updates"""
-    global background_refresh_thread, stop_background_thread
+    global background_refresh_thread
     
     logger.info("Stopping background Docker cache refresh thread")
     
@@ -681,7 +681,7 @@ def mech_decay_worker(logger):
 
 def start_mech_decay_background(logger):
     """Starts the background thread for mech power decay calculation"""
-    global mech_decay_thread, stop_mech_decay_thread
+    global mech_decay_thread
 
     # Check if thread is already running
     if mech_decay_thread:
@@ -712,7 +712,7 @@ def start_mech_decay_background(logger):
 
 def stop_mech_decay_background(logger):
     """Stops the background thread for mech power decay calculation"""
-    global mech_decay_thread, stop_mech_decay_thread
+    global mech_decay_thread
 
     logger.info("Stopping mech decay background thread")
 

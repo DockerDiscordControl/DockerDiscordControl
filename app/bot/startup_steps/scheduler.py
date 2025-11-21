@@ -24,4 +24,4 @@ async def start_scheduler_step(context: StartupContext) -> None:
         else:
             logger.warning("Scheduler Service could not be started or was already running.")
     except (IOError, OSError, PermissionError, RuntimeError) as e:
-        logger.error("Error starting Scheduler Service: %s", exc, exc_info=True)
+        logger.error("Error starting Scheduler Service: %s", e, exc_info=True)

@@ -9,6 +9,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from app.utils.port_diagnostics import log_port_diagnostics
 
 from ..startup_context import StartupContext, as_step
@@ -21,4 +23,4 @@ async def run_port_diagnostics_step(context: StartupContext) -> None:
         logger.info("Running port diagnostics at Discord bot startup...")
         log_port_diagnostics()
     except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError) as e:
-        logger.error("Error running port diagnostics at startup: %s", exc, exc_info=True)
+        logger.error("Error running port diagnostics at startup: %s", e, exc_info=True)

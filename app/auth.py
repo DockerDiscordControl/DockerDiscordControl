@@ -12,6 +12,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from services.config.config_service import load_config
 from datetime import datetime, timedelta, timezone
 import threading
+import discord
 
 auth = HTTPBasicAuth()
 

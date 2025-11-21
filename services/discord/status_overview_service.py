@@ -21,6 +21,7 @@ import time
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Tuple, Any, Union
 from dataclasses import dataclass
+import discord
 
 logger = logging.getLogger(__name__)
 
