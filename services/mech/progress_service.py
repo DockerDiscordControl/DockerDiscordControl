@@ -1087,16 +1087,18 @@ class ProgressService:
         - All level-ups and costs are recalculated correctly
 
         Args:
-            donation_seq: The sequence number of the DonationAdded event to delete
+            donation_seq: The sequence number of the donation event to delete
+                         (supports DonationAdded, PowerGiftGranted, SystemDonationAdded, ExactHitBonusGranted)
 
         Returns:
             Updated ProgressState after rebuilding from events
         """
         with LOCK:
-            # Verify the donation exists
+            # Verify the donation exists (support all donation types)
             all_events = [e for e in read_events() if e.mech_id == self.mech_id]
             donation_event = next((e for e in all_events
-                                  if e.seq == donation_seq and e.type == "DonationAdded"), None)
+                                  if e.seq == donation_seq
+                                  and e.type in ["DonationAdded", "PowerGiftGranted", "SystemDonationAdded", "ExactHitBonusGranted"]), None)
 
             if not donation_event:
                 raise ValueError(f"Donation with seq {donation_seq} not found")
@@ -1109,6 +1111,25 @@ class ProgressService:
             if already_deleted:
                 raise ValueError(f"Donation seq {donation_seq} is already deleted")
 
+            # Extract donor name and amount based on event type
+            if donation_event.type == "DonationAdded":
+                donor = donation_event.payload.get("donor", "Anonymous")
+                units = donation_event.payload.get("units", 0)
+            elif donation_event.type == "PowerGiftGranted":
+                donor = "🎁 Power Gift"
+                units = donation_event.payload.get("power_units", 0)
+            elif donation_event.type == "SystemDonationAdded":
+                donor = f"🤖 {donation_event.payload.get('event_name', 'System Event')}"
+                units = donation_event.payload.get("power_units", 0)
+            elif donation_event.type == "ExactHitBonusGranted":
+                from_level = donation_event.payload.get('from_level', '?')
+                to_level = donation_event.payload.get('to_level', '?')
+                donor = f"🎯 Exact Hit Bonus (Level {from_level} → {to_level})"
+                units = donation_event.payload.get("power_units", 0)
+            else:
+                donor = "Unknown"
+                units = 0
+
             # Create DonationDeleted compensation event
             evt = Event(
                 seq=next_seq(),
@@ -1117,16 +1138,16 @@ class ProgressService:
                 mech_id=self.mech_id,
                 payload={
                     "deleted_seq": donation_seq,
-                    "donor": donation_event.payload.get("donor"),
-                    "units": donation_event.payload.get("units"),
-                    "reason": "admin_deletion"
+                    "donor": donor,
+                    "units": units,
+                    "reason": "admin_deletion",
+                    "original_type": donation_event.type  # Track original event type
                 }
             )
             append_event(evt)
 
             logger.info(f"Donation deletion event added for seq {donation_seq} "
-                       f"(${donation_event.payload.get('units', 0)/100:.2f} from "
-                       f"{donation_event.payload.get('donor', 'Unknown')})")
+                       f"(${units/100:.2f} from {donor}, type: {donation_event.type})")
 
             # Rebuild snapshot from scratch
             return self.rebuild_from_events()

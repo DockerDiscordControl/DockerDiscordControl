@@ -259,7 +259,8 @@ class DonationManagementService:
                     if not line.strip():
                         continue
                     event = json.loads(line)
-                    if event.get('type') in ['DonationAdded', 'DonationDeleted']:
+                    # Load ALL donation types (same as get_donation_history)
+                    if event.get('type') in ['DonationAdded', 'DonationDeleted', 'PowerGiftGranted', 'SystemDonationAdded', 'ExactHitBonusGranted']:
                         all_events.append(event)
 
             # Build the same nested structure as list_donations
@@ -267,14 +268,15 @@ class DonationManagementService:
             deletions_map = {}
 
             for event in all_events:
-                if event.get('type') == 'DonationAdded':
+                event_type = event.get('type')
+                if event_type in ['DonationAdded', 'PowerGiftGranted', 'SystemDonationAdded', 'ExactHitBonusGranted']:
                     seq = event.get('seq')
                     donations_map[seq] = {
                         'seq': seq,
-                        'type': 'DonationAdded',
+                        'type': event_type,
                         'deletion_events': []
                     }
-                elif event.get('type') == 'DonationDeleted':
+                elif event_type == 'DonationDeleted':
                     deleted_seq = event.get('payload', {}).get('deleted_seq')
                     if deleted_seq:
                         deletion_event = {
