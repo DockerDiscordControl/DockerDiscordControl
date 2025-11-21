@@ -13,6 +13,7 @@ import asyncio
 import json
 
 from services.member_count import get_member_count_service
+from services.mech.progress_paths import get_progress_paths
 
 from ..startup_context import StartupContext, as_step
 

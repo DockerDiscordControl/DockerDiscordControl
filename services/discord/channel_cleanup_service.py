@@ -21,6 +21,7 @@ Service-First Architecture:
 - Isolated, testable, and reusable
 """
 
+import asyncio
 import discord
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any, Callable
