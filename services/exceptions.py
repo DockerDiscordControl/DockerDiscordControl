@@ -38,39 +38,30 @@ class DDCBaseException(Exception):
 
 class ConfigServiceError(DDCBaseException):
     """Base exception for all configuration service errors."""
-    pass
 
 class ConfigLoadError(ConfigServiceError):
     """Raised when configuration loading fails."""
-    pass
 
 class ConfigSaveError(ConfigServiceError):
     """Raised when configuration saving fails."""
-    pass
 
 class ConfigValidationError(ConfigServiceError):
     """Raised when configuration validation fails."""
-    pass
 
 class ConfigMigrationError(ConfigServiceError):
     """Raised when configuration migration fails."""
-    pass
 
 class ConfigCacheError(ConfigServiceError):
     """Raised when configuration cache operations fail."""
-    pass
 
 class TokenEncryptionError(ConfigServiceError):
     """Raised when token encryption/decryption fails."""
-    pass
 
 class InvalidConfigFormatError(ConfigValidationError):
     """Raised when config file has invalid format."""
-    pass
 
 class MissingConfigError(ConfigLoadError):
     """Raised when required configuration is missing."""
-    pass
 
 
 # ============================================================================
@@ -79,35 +70,27 @@ class MissingConfigError(ConfigLoadError):
 
 class DockerServiceError(DDCBaseException):
     """Base exception for all Docker service errors."""
-    pass
 
 class DockerConnectionError(DockerServiceError):
     """Raised when Docker daemon connection fails."""
-    pass
 
 class DockerClientPoolExhausted(DockerServiceError):
     """Raised when Docker client pool has no available connections."""
-    pass
 
 class DockerCommandTimeoutError(DockerServiceError):
     """Raised when Docker command times out."""
-    pass
 
 class ContainerNotFoundError(DockerServiceError):
     """Raised when specified container doesn't exist."""
-    pass
 
 class ContainerActionError(DockerServiceError):
     """Raised when container action (start/stop/restart) fails."""
-    pass
 
 class ContainerLogError(DockerServiceError):
     """Raised when fetching container logs fails."""
-    pass
 
 class DockerImageError(DockerServiceError):
     """Raised when Docker image operations fail."""
-    pass
 
 
 # ============================================================================
@@ -116,23 +99,18 @@ class DockerImageError(DockerServiceError):
 
 class DonationServiceError(DDCBaseException):
     """Base exception for all donation service errors."""
-    pass
 
 class DonationKeyValidationError(DonationServiceError):
     """Raised when donation key validation fails."""
-    pass
 
 class DonationAPIError(DonationServiceError):
     """Raised when external donation API calls fail."""
-    pass
 
 class DonationDataError(DonationServiceError):
     """Raised when donation data processing fails."""
-    pass
 
 class DonationThresholdError(DonationServiceError):
     """Raised when donation threshold checks fail."""
-    pass
 
 
 # ============================================================================
@@ -141,27 +119,21 @@ class DonationThresholdError(DonationServiceError):
 
 class MechServiceError(DDCBaseException):
     """Base exception for all mech service errors."""
-    pass
 
 class MechStateError(MechServiceError):
     """Raised when mech state operations fail."""
-    pass
 
 class MechEvolutionError(MechServiceError):
     """Raised when evolution calculations fail."""
-    pass
 
 class MechAnimationError(MechServiceError):
     """Raised when animation generation fails."""
-    pass
 
 class MechPowerDecayError(MechServiceError):
     """Raised when power decay calculations fail."""
-    pass
 
 class MechLevelError(MechServiceError):
     """Raised when level calculations fail."""
-    pass
 
 
 # ============================================================================
@@ -170,27 +142,21 @@ class MechLevelError(MechServiceError):
 
 class WebServiceError(DDCBaseException):
     """Base exception for all web service errors."""
-    pass
 
 class AuthenticationError(WebServiceError):
     """Raised when authentication fails."""
-    pass
 
 class AuthorizationError(WebServiceError):
     """Raised when user lacks required permissions."""
-    pass
 
 class SessionError(WebServiceError):
     """Raised when session management fails."""
-    pass
 
 class FormValidationError(WebServiceError):
     """Raised when web form validation fails."""
-    pass
 
 class TemplateRenderError(WebServiceError):
     """Raised when template rendering fails."""
-    pass
 
 
 # ============================================================================
@@ -199,27 +165,21 @@ class TemplateRenderError(WebServiceError):
 
 class BotServiceError(DDCBaseException):
     """Base exception for all bot service errors."""
-    pass
 
 class BotConnectionError(BotServiceError):
     """Raised when bot connection to Discord fails."""
-    pass
 
 class CommandExecutionError(BotServiceError):
     """Raised when Discord command execution fails."""
-    pass
 
 class InteractionError(BotServiceError):
     """Raised when Discord interaction handling fails."""
-    pass
 
 class ChannelPermissionError(BotServiceError):
     """Raised when channel permission checks fail."""
-    pass
 
 class MessageUpdateError(BotServiceError):
     """Raised when message update/editing fails."""
-    pass
 
 
 # ============================================================================
@@ -228,19 +188,15 @@ class MessageUpdateError(BotServiceError):
 
 class SchedulerError(DDCBaseException):
     """Base exception for all scheduler errors."""
-    pass
 
 class TaskSchedulingError(SchedulerError):
     """Raised when task scheduling fails."""
-    pass
 
 class TaskExecutionError(SchedulerError):
     """Raised when scheduled task execution fails."""
-    pass
 
 class CronParseError(SchedulerError):
     """Raised when cron expression parsing fails."""
-    pass
 
 
 # ============================================================================
@@ -249,19 +205,15 @@ class CronParseError(SchedulerError):
 
 class StorageError(DDCBaseException):
     """Base exception for all storage/database errors."""
-    pass
 
 class FileStorageError(StorageError):
     """Raised when file storage operations fail."""
-    pass
 
 class DataIntegrityError(StorageError):
     """Raised when data integrity checks fail."""
-    pass
 
 class LockAcquisitionError(StorageError):
     """Raised when file/resource lock acquisition fails."""
-    pass
 
 
 # ============================================================================
@@ -270,15 +222,12 @@ class LockAcquisitionError(StorageError):
 
 class TranslationError(DDCBaseException):
     """Base exception for translation errors."""
-    pass
 
 class MissingTranslationError(TranslationError):
     """Raised when translation key is missing."""
-    pass
 
 class LanguageNotSupportedError(TranslationError):
     """Raised when requested language is not supported."""
-    pass
 
 
 # ============================================================================

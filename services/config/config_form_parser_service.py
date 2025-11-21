@@ -295,7 +295,7 @@ class ConfigFormParserService:
                     channel_service = get_channel_config_service()
                     channel_service.save_all_channels(channel_permissions)
                     logger.info(f"[PROCESS_DEBUG] Saved {len(channel_permissions)} channels via ChannelConfigService")
-                except (AttributeError, IOError, ImportError, KeyError, ModuleNotFoundError, OSError, PermissionError, RuntimeError, TypeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+                except (AttributeError, IOError, ImportError, KeyError, ModuleNotFoundError, OSError, PermissionError, RuntimeError, TypeError) as e:
                     logger.error(f"Error saving channels via ChannelConfigService: {e}", exc_info=True)
 
             # Process each form field
@@ -343,6 +343,6 @@ class ConfigFormParserService:
 
             return updated_config, result.success, result.message or "Configuration saved"
 
-        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+        except (RuntimeError, ValueError, TypeError) as e:
             logger.error(f"Error processing config form: {e}", exc_info=True)
             return current_config, False, str(e)

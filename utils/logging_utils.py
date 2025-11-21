@@ -12,7 +12,7 @@ import os
 import time
 import threading
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime
 
 # Constants for logging
 DEFAULT_LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -137,10 +137,7 @@ class TimezoneFormatter(logging.Formatter):
         """
         if datefmt is None:
             datefmt = self.datefmt or '%Y-%m-%d %H:%M:%S'
-        
-        # We use record creation time as UTC timestamp
-        ct = self.converter(record.created)
-        
+
         try:
             import pytz
             
@@ -160,7 +157,7 @@ class TimezoneFormatter(logging.Formatter):
             # Format with the correct timezone
             formatted_time = dt.strftime(datefmt) + f" {dt.tzname()}"
             return formatted_time
-        except (ImportError, AttributeError, TypeError, KeyError, ValueError) as e:
+        except (ImportError, AttributeError, TypeError, KeyError, ValueError):
             # Fall back to standard formatting on errors
             return super().formatTime(record, datefmt)
 
@@ -244,7 +241,7 @@ def refresh_debug_status():
         # Force cache invalidation to ensure we get the latest config
         try:
             from services.config.config_service import get_config_service as get_config_manager
-            get_config_manager()._cache_service.invalidate_cache()
+            get_config_manager()._cache_service.invalidate_cache()  # pylint: disable=protected-access
         except (ImportError, AttributeError, RuntimeError) as e:
             print(f"Failed to invalidate config cache: {e}")
         
@@ -288,7 +285,7 @@ def enable_temporary_debug(duration_minutes=10):
         # Print confirmation message
         expiry_time = datetime.fromtimestamp(_temp_debug_expiry).strftime('%Y-%m-%d %H:%M:%S')
         print(f"**** TEMPORARY DEBUG MODE ACTIVATED for {duration_minutes} minutes (until {expiry_time}) ****")
-        print(f"**** Debug mode will now show detailed logs until it expires ****")
+        print("**** Debug mode will now show detailed logs until it expires ****")
         
         # Create a special logger for this message to ensure it appears even before setup
         special_logger = logging.getLogger("ddc.config.temp_debug")
@@ -387,13 +384,13 @@ def setup_all_loggers(level: int = logging.INFO) -> None:
 
     root_logger.info("All loggers have been configured")
 
-class LoggerMixin:
+class LoggerMixin:  # pylint: disable=too-few-public-methods
     """
     Mixin class for classes that require a logger.
     Adds a self.logger attribute.
     """
 
-    def __init__(self, logger_name: Optional[str] = None, *args, **kwargs):
+    def __init__(self, logger_name: Optional[str] = None, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
         # Derive name from class name if not provided
         if logger_name is None:
             logger_name = f"ddc.{self.__class__.__name__}"

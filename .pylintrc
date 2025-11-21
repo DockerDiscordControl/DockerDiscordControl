@@ -1,0 +1,62 @@
+[MASTER]
+# Use multiple processes to speed up Pylint
+jobs=0
+
+# Pickle collected data for later comparisons
+persistent=yes
+
+[MESSAGES CONTROL]
+# Disable specific warnings that don't add value or are too noisy
+disable=
+    # Code duplication - too noisy for business logic
+    duplicate-code,
+    # Cyclic imports - unavoidable in complex service architecture
+    cyclic-import,
+    # Logging - f-strings are more readable than % formatting
+    logging-fstring-interpolation,
+    # Too many X - code complexity is managed via radon/xenon
+    too-many-locals,
+    too-many-branches,
+    too-many-statements,
+    too-many-return-statements,
+    too-many-boolean-expressions,
+    too-many-nested-blocks,
+    # Style preferences
+    no-else-return,
+    # Import organization - sometimes necessary for sys.path manipulation
+    import-outside-toplevel,
+    # Global statements - singleton pattern uses globals
+    global-statement,
+    # Line length - managed by formatter
+    line-too-long
+
+[FORMAT]
+# Maximum line length (PEP 8 standard)
+max-line-length=100
+
+[BASIC]
+# Good variable names
+good-names=i,j,k,ex,_,id,db,logger,e
+
+# Naming conventions
+const-naming-style=any
+variable-naming-style=snake_case
+function-naming-style=snake_case
+class-naming-style=PascalCase
+module-naming-style=snake_case
+
+[DESIGN]
+# Complexity limits (use radon/xenon for actual enforcement)
+max-args=10
+max-locals=20
+max-branches=15
+max-statements=60
+max-returns=8
+max-bool-expr=7
+max-nested-blocks=6
+
+[SIMILARITIES]
+# Minimum lines to be considered duplicate
+min-similarity-lines=10
+ignore-comments=yes
+ignore-docstrings=yes

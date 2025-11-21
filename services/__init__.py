@@ -27,6 +27,7 @@ if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
 # Infrastructure Services
+# pylint: disable=wrong-import-position  # Imports must come after sys.path setup
 from .infrastructure.container_info_service import get_container_info_service
 from .infrastructure.action_log_service import get_action_log_service
 from .infrastructure.spam_protection_service import get_spam_protection_service
