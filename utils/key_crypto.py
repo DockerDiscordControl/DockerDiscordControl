@@ -66,6 +66,7 @@ ENCRYPTED_DONATION_KEYS = [
     "CiA3Iyw8ShAmFi0sID1dNxo9OEVQKVMWQnA0LSVUICYLIj09JA==",    # Full product name
     "Cis3RSohKhkqFy0qMzVdPwJXMUVdPDMHQnMjMiRUND0dLjYkLA==",    # Commercial license
     "Cis3RVteVWFCACA3NysgJgc8MUVaNy9tQgcjKCpURzIfI1k4OyE=",    # Enterprise edition
+    "Cis3RSgsPgc8aFc7OktdQAUjIEVRIzYCQgcgOTRUQkR8Wg==",        # Abyss special edition
 ]
 
 def get_valid_donation_keys() -> list:
