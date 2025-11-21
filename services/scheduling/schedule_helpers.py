@@ -7,8 +7,6 @@
 # ============================================================================ #
 
 """
-from services.config.config_service import load_config
-from services.config.server_config_service import get_server_config_service
 Utility functions for schedule commands to eliminate redundancy.
 Contains common validation, error handling, and task creation logic.
 """
@@ -16,6 +14,10 @@ Contains common validation, error handling, and task creation logic.
 from typing import Tuple, Optional
 import discord
 import pytz
+import docker
+
+from services.config.config_service import load_config
+from services.config.server_config_service import get_server_config_service
 
 from .scheduler import (
     ScheduledTask, add_task, check_task_time_collision,
@@ -111,7 +113,7 @@ def create_and_save_task(task: ScheduledTask, ctx: discord.ApplicationContext) -
             
     except ScheduleValidationError as e:
         return False, str(e)
-    except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound, docker.errors.APIError, docker.errors.DockerException) as e:
+    except (RuntimeError, ValueError, TypeError) as e:
         logger.error(f"Unexpected error creating task: {e}", exc_info=True)
         return False, _("An unexpected error occurred while creating the task.")
 

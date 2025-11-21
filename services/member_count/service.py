@@ -15,6 +15,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, Optional, Set, Tuple
 
+try:
+    import discord
+except ImportError:
+    discord = None  # Discord.py not available (used for type checking only)
+
 from services.mech.progress_paths import get_progress_paths
 from utils.logging_utils import get_module_logger
 
@@ -248,8 +253,8 @@ class MemberCountService:
 
                 unique_members.add(member.id)
                 member_count += 1
-            except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
-                self._logger.debug("Error processing member: %s", exc)
+            except (RuntimeError, ValueError, TypeError) as e:
+                self._logger.debug("Error processing member: %s", e)
 
         self._logger.debug("  └─ #%s: %s non-bot members", getattr(channel, "name", "?"), member_count)
         return True

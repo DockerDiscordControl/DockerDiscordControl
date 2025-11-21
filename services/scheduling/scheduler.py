@@ -43,7 +43,6 @@ TASKS_FILE_PATH: Path = _runtime.tasks_file_path
 
 def initialize_logging():
     """Initialize or reinitialize the logger with the correct log level"""
-    global logger
     # Logger is already configured through get_module_logger
     logger.info("Scheduler logging initialized")
     
