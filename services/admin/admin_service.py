@@ -217,8 +217,14 @@ class AdminService:
             logger.info(f"Saved {len(admin_users)} admin users to {admins_file}")
             return True
 
+        except (IOError, OSError, PermissionError) as e:
+            logger.error(f"File I/O error saving admin data to {admins_file}: {e}", exc_info=True)
+            return False
+        except json.JSONEncodeError as e:
+            logger.error(f"JSON encoding error saving admin data: {e}", exc_info=True)
+            return False
         except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError) as e:
-            logger.error(f"Error saving admin data: {e}", exc_info=True)
+            logger.error(f"Runtime error saving admin data: {e}", exc_info=True)
             return False
 
     async def is_user_admin_async(self, user_id: Union[str, int], force_refresh: bool = False) -> bool:
