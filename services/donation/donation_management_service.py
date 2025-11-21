@@ -31,13 +31,13 @@ class DonationStats:
     total_power: float
     total_donations: int
     average_donation: float
-    
+
     @classmethod
     def from_data(cls, donations: List[Dict[str, Any]], total_power: float) -> 'DonationStats':
         """Create DonationStats from donation data."""
         total_donations = len(donations)
         average_donation = total_power / total_donations if total_donations > 0 else 0.0
-        
+
         return cls(
             total_power=total_power,
             total_donations=total_donations,
@@ -46,17 +46,17 @@ class DonationStats:
 
 class DonationManagementService:
     """Clean service for managing donation administration with proper separation of concerns."""
-    
+
     def __init__(self):
         """Initialize the donation management service."""
         logger.info("Donation management service initialized")
-    
+
     def get_donation_history(self, limit: int = 100) -> ServiceResult:
         """Get donation history with statistics using MechService.
-        
+
         Args:
             limit: Maximum number of donations to return
-            
+
         Returns:
             ServiceResult with donation data and stats
         """
@@ -205,7 +205,7 @@ class DonationManagementService:
                 total_donations=total_count,
                 average_donation=total_power / total_count if total_count > 0 else 0.0
             )
-            
+
             result_data = {
                 'donations': donations,
                 'stats': stats
@@ -229,7 +229,7 @@ class DonationManagementService:
             error_msg = f"Error processing donation data: {e}"
             logger.error(error_msg, exc_info=True)
             return ServiceResult(success=False, error=error_msg)
-    
+
     def delete_donation(self, index: int) -> ServiceResult:
         """
         Delete a donation OR restore a deleted donation using Event Sourcing compensation events.
@@ -353,7 +353,7 @@ class DonationManagementService:
 
     def get_donation_stats(self) -> ServiceResult:
         """Get donation statistics only using MechService.
-        
+
         Returns:
             ServiceResult with DonationStats
         """
@@ -412,7 +412,7 @@ class DonationManagementService:
                 total_donations=total_count,
                 average_donation=total_power / total_count if total_count > 0 else 0.0
             )
-            
+
             logger.debug(f"Generated MechService donation stats: {stats}")
             return ServiceResult(success=True, data=stats)
 
@@ -437,7 +437,7 @@ _donation_management_service = None
 
 def get_donation_management_service() -> DonationManagementService:
     """Get the global donation management service instance.
-    
+
     Returns:
         DonationManagementService instance
     """

@@ -26,21 +26,21 @@ ORDER_FILE = os.path.join(BASE_DIR, "config", "server_order.json")
 def save_server_order(server_order: List[str]) -> bool:
     """
     Save the server order to a persistent file
-    
+
     Args:
         server_order: List of docker container names in the desired display order
-        
+
     Returns:
         bool: True if successful, False otherwise
     """
     try:
         # Create directory if it doesn't exist
         os.makedirs(os.path.dirname(ORDER_FILE), exist_ok=True)
-        
+
         # Save to file
         with open(ORDER_FILE, 'w') as f:
             json.dump({"server_order": server_order}, f, indent=2)
-            
+
         logger.info(f"Server order saved: {server_order}")
         return True
     except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError) as e:
@@ -50,7 +50,7 @@ def save_server_order(server_order: List[str]) -> bool:
 def load_server_order() -> List[str]:
     """
     Load the server order from the persistent file
-    
+
     Returns:
         List[str]: List of docker container names in the saved display order
     """
@@ -58,11 +58,11 @@ def load_server_order() -> List[str]:
         if not os.path.exists(ORDER_FILE):
             logger.info("Server order file does not exist, returning empty list")
             return []
-            
+
         with open(ORDER_FILE, 'r') as f:
             data = json.load(f)
             server_order = data.get("server_order", [])
-            
+
         logger.info(f"Loaded server order: {server_order}")
         return server_order
     except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, json.JSONDecodeError) as e:
@@ -72,10 +72,10 @@ def load_server_order() -> List[str]:
 def update_server_order_from_config(config: Dict[str, Any]) -> bool:
     """
     Update the server order file from the main configuration
-    
+
     Args:
         config: The main configuration dictionary
-        
+
     Returns:
         bool: True if successful, False otherwise
     """
@@ -90,9 +90,9 @@ def update_server_order_from_config(config: Dict[str, Any]) -> bool:
             server_config_service = get_server_config_service()
             servers = server_config_service.get_all_servers()
             server_order = [s.get("docker_name") for s in servers if s.get("docker_name")]
-            
+
         # Save the order
         return save_server_order(server_order)
     except (AttributeError, KeyError, RuntimeError, TypeError, docker.errors.APIError, docker.errors.DockerException) as e:
         logger.error(f"Error updating server order from config: {e}", exc_info=True)
-        return False 
+        return False

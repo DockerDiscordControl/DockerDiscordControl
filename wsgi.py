@@ -19,7 +19,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import the Flask app factory
-from app.web_ui import create_app
+from app.web_ui import create_app  # pylint: disable=wrong-import-position
 
 # Create WSGI application
 application = create_app()

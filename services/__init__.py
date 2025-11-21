@@ -3,7 +3,7 @@
 Services Package - Clean service architecture for DDC
 
 This package contains professional business logic services organized by domain:
-- infrastructure: Core infrastructure services (logging, container info, spam protection)  
+- infrastructure: Core infrastructure services (logging, container info, spam protection)
 - config: Unified configuration service (replaces old config_loader/manager)
 - docker_service: Docker container management utilities
 - donation: Donation system and disable key management
@@ -42,7 +42,7 @@ from .mech.mech_service import get_mech_service
 __all__ = [
     # Infrastructure
     'get_container_info_service',
-    'get_action_log_service', 
+    'get_action_log_service',
     'get_spam_protection_service',
     # Config
     'get_config_service',

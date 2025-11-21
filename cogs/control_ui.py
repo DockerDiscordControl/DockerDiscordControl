@@ -8,16 +8,14 @@
 """Control UI components for Discord interaction."""
 
 import asyncio
-import json
 from collections import OrderedDict
 from services.config.config_service import load_config
 from services.config.server_config_service import get_server_config_service
 import discord
-import logging
 import time
 import io
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 from discord.ui import View, Button
 
 if TYPE_CHECKING:
@@ -147,12 +145,12 @@ def _get_container_static_data(display_name: str, docker_name: str) -> dict:
             'box_elements': _get_cached_box_elements(display_name, 28),
             'short_name': display_name[:20] + "..." if len(display_name) > 23 else display_name
         }
-        
+
         # Prevent cache from growing too large (keep last 100 containers)
         if len(_container_static_data) > 100:
             oldest_key = next(iter(_container_static_data))
             del _container_static_data[oldest_key]
-            
+
     return _container_static_data[display_name]
 
 # =============================================================================
@@ -176,7 +174,7 @@ def _get_recycled_embed(description: str, color: int) -> discord.Embed:
         embed.clear_fields()
     else:
         embed = discord.Embed(description=description, color=color)
-    
+
     embed.set_footer(text="https://ddc.bot")
     return embed
 
@@ -204,15 +202,15 @@ def _get_cached_channel_permission(channel_id: int, permission_key: str, current
     """Ultra-fast cached channel permission checking."""
     config_timestamp = current_config.get('_cache_timestamp', 0)
     cache_key = f"{channel_id}_{permission_key}_{config_timestamp}"
-    
+
     if cache_key not in _permission_cache:
         _permission_cache[cache_key] = _channel_has_permission(channel_id, permission_key, current_config)
-        
+
         if len(_permission_cache) > 50:
             keys_to_remove = list(_permission_cache.keys())[:10]
             for key in keys_to_remove:
                 del _permission_cache[key]
-    
+
     return _permission_cache[cache_key]
 
 # =============================================================================
@@ -229,11 +227,11 @@ class ActionButton(Button):
         self.server_config = server_config
         self.docker_name = server_config.get('docker_name')
         self.display_name = server_config.get('display_name', self.docker_name)
-        
+
         # Use cached static data for custom_id
         static_data = _get_container_static_data(self.display_name, self.docker_name)
         custom_id = static_data.get(f'custom_id_{action}', f"{action}_{self.docker_name}")
-        
+
         super().__init__(style=style, label=label, custom_id=custom_id, row=row, emoji=emoji)
 
     async def callback(self, interaction: discord.Interaction) -> None:
@@ -241,7 +239,7 @@ class ActionButton(Button):
         # Check button-specific spam protection
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_service = get_spam_protection_service()
-        
+
         if spam_service.is_enabled():
             try:
                 if spam_service.is_on_cooldown(interaction.user.id, self.action):
@@ -256,12 +254,12 @@ class ActionButton(Button):
                 spam_service.add_user_cooldown(interaction.user.id, self.action)
             except (RuntimeError, AttributeError, KeyError) as e:
                 logger.error(f"Spam protection error for button '{self.action}': {e}", exc_info=True)
-        
+
         config = load_config()
         if not config:
             await interaction.response.send_message(_("Error: Could not load configuration."), ephemeral=True)
             return
-            
+
         user = interaction.user
         await interaction.response.defer()
 
@@ -310,10 +308,10 @@ class ActionButton(Button):
             except (discord.NotFound, discord.HTTPException) as e:
                 logger.warning(f"[ACTION_BTN] Interaction expired/invalid for {self.display_name}: {e}")
                 return
-            
+
             log_user_action(
-                action=f"DOCKER_{self.action.upper()}", 
-                target=self.display_name, 
+                action=f"DOCKER_{self.action.upper()}",
+                target=self.display_name,
                 user=str(user),
                 source="Discord Button",
                 details=f"Container: {self.docker_name}"
@@ -391,7 +389,7 @@ class ActionButton(Button):
                                     logger.info(f"[ACTION_BTN] Status not yet updated, will retry...")
                             else:
                                 logger.error(f"[ACTION_BTN] Error getting status: {fresh_status}")
-                    
+
                     # Check if original message was Admin Control (needed for background update)
                     is_admin_message = False
                     try:
@@ -561,7 +559,7 @@ class ActionButton(Button):
             # Create task and handle exceptions properly
             task = asyncio.create_task(run_docker_action())
             task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
-            
+
         except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"[ACTION_BTN] Error handling {self.action} for '{self.display_name}': {e}", exc_info=True)
             # Remove from pending_actions - use docker_name as key!
@@ -583,14 +581,14 @@ class ToggleButton(Button):
         self.server_config = server_config
         # Use docker_name as key for expanded state (stable identifier)
         self.is_expanded = cog_instance.expanded_states.get(self.docker_name, False)
-        
+
         # Use cached static data
         static_data = _get_container_static_data(self.display_name, self.docker_name)
         custom_id = static_data['custom_id_toggle']
-        
+
         # Cache channel permissions for this button
         self._channel_permissions_cache = {}
-        
+
         emoji = "➖" if self.is_expanded else "➕"
         super().__init__(style=discord.ButtonStyle.primary, label=None, custom_id=custom_id, row=row, emoji=emoji, disabled=not is_running)
 
@@ -605,29 +603,29 @@ class ToggleButton(Button):
         # Note: Spam protection for toggle button was intentionally removed
 
         await interaction.response.defer()
-        
+
         start_time = time.time()
         self.is_expanded = not self.is_expanded
         # Use docker_name as key for expanded state (stable identifier)
         self.cog.expanded_states[self.docker_name] = self.is_expanded
-        
+
         # Removed debug log to reduce log spam - only log on errors
 
         channel_id = interaction.channel.id if interaction.channel else None
-        
+
         try:
             message = interaction.message
             if not message or not channel_id:
                 logger.error(f"[TOGGLE_BTN] Message or channel missing for '{self.display_name}'")
                 return
-            
+
             current_config = load_config()
             if not current_config:
                 logger.error("[ULTRA_FAST_TOGGLE] Could not load configuration for toggle.")
                 # Show a generic error to the user
                 await interaction.response.send_message(_("Error: Could not load configuration to process this action."), ephemeral=True)
                 return
-            
+
             # Check if container is in pending status - use docker_name as key
             is_pending = self.docker_name in self.cog.pending_actions
 
@@ -641,22 +639,22 @@ class ToggleButton(Button):
                     if elapsed_time > 100:
                         logger.warning(f"[TOGGLE_BTN] Pending message for '{self.display_name}' updated in {elapsed_time:.1f}ms (slow)")
                 return
-            
+
             # Use cached data for ultra-fast operation
             # CRITICAL: Use docker_name as cache key (not display_name!)
             cached_entry = self.cog.status_cache_service.get(self.docker_name)
-            
+
             if cached_entry and cached_entry.get('data'):
                 status_result = cached_entry['data']
-                
+
                 # This function call now receives the fresh config
                 embed, view = await self._generate_ultra_fast_toggle_embed_and_view(
-                    interaction.channel.id, 
-                    status_result, 
-                    current_config, 
+                    interaction.channel.id,
+                    status_result,
+                    current_config,
                     cached_entry
                 )
-                
+
                 if embed and view:
                     await message.edit(embed=embed, view=view)
                     elapsed_time = (time.time() - start_time) * 1000
@@ -670,23 +668,23 @@ class ToggleButton(Button):
             else:
                 # Show loading status if no cache available
                 logger.info(f"[TOGGLE_BTN] No cache entry for '{self.display_name}' - Background loop will update")
-                
+
                 temp_embed = discord.Embed(
                     description="```\n┌── Loading Status ───────────\n│ 🔄 Refreshing container data...\n│ ⏱️ Please wait a moment\n└─────────────────────────────\n```",
                     color=0x3498db
                 )
                 temp_embed.set_footer(text="Background update in progress • https://ddc.bot")
-                
+
                 temp_view = discord.ui.View(timeout=None)
                 await message.edit(embed=temp_embed, view=temp_view)
                 elapsed_time = (time.time() - start_time) * 1000
                 # Only log if loading message is slow
                 if elapsed_time > 100:
                     logger.warning(f"[TOGGLE_BTN] Loading message for '{self.display_name}' took {elapsed_time:.1f}ms (slow)")
-            
+
         except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"[TOGGLE_BTN] Error toggling '{self.display_name}': {e}", exc_info=True)
-        
+
         # Update channel activity timestamp
         if interaction.channel:
             self.cog.last_channel_activity[interaction.channel.id] = datetime.now(timezone.utc)
@@ -715,19 +713,19 @@ class ToggleButton(Button):
                 logger.warning(f"[ULTRA_FAST_TOGGLE] Invalid status_result format for '{self.display_name}': {type(status_result).__name__}")
                 return None, None
             status_color = 0x00b300 if running else 0xe74c3c
-            
+
             # OPTIMIZATION 2: Use cached translations (99% schneller)
             lang = current_config.get('language', 'de')
             translations = _get_cached_translations(lang)
-            
+
             # OPTIMIZATION 3: Use cached box elements (98% schneller)
             static_data = _get_container_static_data(self.display_name, self.docker_name)
             box_elements = static_data['box_elements']
-            
+
             status_text = translations['online_text'] if running else translations['offline_text']
             current_emoji = "🟢" if running else "🔴"
             is_expanded = self.is_expanded
-            
+
             # OPTIMIZATION 4: Template-based description generation (90% schneller)
             template_args = {
                 'header': box_elements['header_line'],
@@ -742,7 +740,7 @@ class ToggleButton(Button):
                 'ram': ram,
                 'uptime': uptime
             }
-            
+
             # Choose template based on state
             if running:
                 if details_allowed and is_expanded:
@@ -753,28 +751,28 @@ class ToggleButton(Button):
                     template_key = 'running_collapsed'
             else:
                 template_key = 'offline'
-            
+
             description = _get_description_ultra_fast(template_key, **template_args)
-            
+
             # OPTIMIZATION 1: Ultra-fast cached timestamp formatting (95% schneller)
             # Get timezone from config (format_datetime_with_timezone will handle fallbacks)
             timezone_str = current_config.get('timezone')
             current_time = _get_cached_formatted_timestamp(cached_entry['timestamp'], timezone_str)
             timestamp_line = f"{translations['last_update_text']}: {current_time}"
-            
+
             final_description = f"{timestamp_line}\n{description}"
-            
+
             # OPTIMIZATION 5: Embed recycling (90% schneller)
             embed = _get_recycled_embed(final_description, status_color)
-            
+
             # OPTIMIZATION 6: Ultra-fast cached channel permission (90% schneller)
             channel_has_control = self._get_cached_channel_permission_for_toggle(channel_id, current_config)
-            
+
             # Create optimized view
             view = self._create_ultra_optimized_control_view(running, channel_has_control)
-            
+
             return embed, view
-            
+
         except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"[ULTRA_FAST_TOGGLE] Error in ultra-fast toggle generation for '{self.display_name}': {e}", exc_info=True)
             return None, None
@@ -782,10 +780,10 @@ class ToggleButton(Button):
     def _create_ultra_optimized_control_view(self, is_running: bool, channel_has_control_permission: bool) -> 'ControlView':
         """Creates an ultra-optimized ControlView with all optimizations."""
         return ControlView(
-            self.cog, 
-            self.server_config, 
-            is_running, 
-            channel_has_control_permission=channel_has_control_permission, 
+            self.cog,
+            self.server_config,
+            is_running,
+            channel_has_control_permission=channel_has_control_permission,
             allow_toggle=True
         )
 
@@ -849,7 +847,7 @@ class ControlView(View):
                     self.add_item(ActionButton(cog_instance, server_config, "stop", discord.ButtonStyle.secondary, None, "⏹️", row=button_row))
                 if "restart" in allowed_actions:
                     self.add_item(ActionButton(cog_instance, server_config, "restart", discord.ButtonStyle.secondary, None, "🔄", row=button_row))
-                
+
                 # Info button comes AFTER action buttons (rightmost position)
                 # In control channels, show info button for all expanded containers (allows adding info)
                 if channel_has_info_permission:
@@ -858,12 +856,12 @@ class ControlView(View):
             # Start button for offline containers
             if channel_has_control_permission and "start" in allowed_actions:
                 self.add_item(ActionButton(cog_instance, server_config, "start", discord.ButtonStyle.secondary, None, "▶️", row=0))
-            
+
             # Info button for offline containers - rightmost position
             # In control channels, show info button for all expanded containers (allows adding info)
             if channel_has_info_permission:
                 self.add_item(InfoButton(cog_instance, server_config, row=0))
-    
+
     def _channel_has_info_permission(self, channel_has_control_permission: bool, config: dict) -> bool:
         """Check if channel has info permission (control permission also grants info access)."""
         from .control_helpers import _channel_has_permission
@@ -881,13 +879,13 @@ class ControlView(View):
 
 class InfoButton(Button):
     """Button for displaying container information."""
-    
+
     def __init__(self, cog_instance: 'DockerControlCog', server_config: dict, row: int):
         self.cog = cog_instance
         self.server_config = server_config
         self.docker_name = server_config.get('docker_name')
         self.display_name = server_config.get('name', self.docker_name)
-        
+
         super().__init__(
             style=discord.ButtonStyle.secondary,
             label=None,
@@ -895,13 +893,13 @@ class InfoButton(Button):
             custom_id=f"info_{self.docker_name}",
             row=row
         )
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Display container info with admin buttons in control channels."""
         # Check spam protection for info button
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_service = get_spam_protection_service()
-        
+
         if spam_service.is_enabled():
             try:
                 if spam_service.is_on_cooldown(interaction.user.id, "info"):
@@ -918,11 +916,11 @@ class InfoButton(Button):
                 logger.error(f"Spam protection error for info button: {e}", exc_info=True)
         try:
             await interaction.response.defer(ephemeral=True)
-            
-                        
+
+
             config = load_config()
             channel_id = interaction.channel.id if interaction.channel else None
-            
+
             # Check if channel has info permission
             if not self._channel_has_info_permission(channel_id, config):
                 await interaction.followup.send(
@@ -930,7 +928,7 @@ class InfoButton(Button):
                     ephemeral=True
                 )
                 return
-            
+
             # Get info configuration from service
             from services.infrastructure.container_info_service import get_container_info_service
             info_service = get_container_info_service()
@@ -956,7 +954,7 @@ class InfoButton(Button):
                 if has_control:
                     # Create empty info template with Edit/Log buttons
                     display_name = self.server_config.get('display_name', 'Unknown')
-                    
+
                     # Create default empty info config
                     empty_info_config = {
                         'enabled': True,
@@ -965,17 +963,17 @@ class InfoButton(Button):
                         'port': '',
                         'show_ip': False
                     }
-                    
+
                     # Generate info embed using the empty template
                     from .status_info_integration import StatusInfoButton, ContainerInfoAdminView
                     from .control_helpers import _channel_has_permission
-                    
+
                     info_button = StatusInfoButton(self.cog, self.server_config, empty_info_config)
 
                     # Use the has_control flag we already determined (includes is_admin_control check)
                     # Don't re-check channel permission as it would ignore admin control context
                     embed = await info_button._generate_info_embed(include_protected=has_control)
-                    
+
                     # Add admin buttons for editing
                     admin_view = ContainerInfoAdminView(self.cog, self.server_config, empty_info_config)
                     message = await interaction.followup.send(embed=embed, view=admin_view, ephemeral=True)
@@ -989,14 +987,14 @@ class InfoButton(Button):
                         ephemeral=True
                     )
                     return
-            
+
             # Use the same logic as StatusInfoButton for consistency
             from .status_info_integration import StatusInfoButton, ContainerInfoAdminView
             from .control_helpers import _channel_has_permission
-            
+
             # Generate info embed using StatusInfoButton logic
             info_button = StatusInfoButton(self.cog, self.server_config, info_config)
-            
+
             # Check if this is an admin control message (title contains "Admin Control")
             is_admin_control = False
             if interaction.message and interaction.message.embeds:
@@ -1006,10 +1004,10 @@ class InfoButton(Button):
             # Since this is in ControlView, we know it's a control channel, so add admin buttons
             # Admin control messages always have control permission
             has_control = is_admin_control or (_channel_has_permission(channel_id, 'control', config) if config else False)
-            
+
             # Generate embed with protected info if in control channel
             embed = await info_button._generate_info_embed(include_protected=has_control)
-            
+
             view = None
             if has_control:
                 view = ContainerInfoAdminView(self.cog, self.server_config, info_config)
@@ -1022,56 +1020,56 @@ class InfoButton(Button):
             else:
                 logger.warning(f"InfoButton (ControlView) no control permission for {docker_name} in channel {channel_id}")
                 await interaction.followup.send(embed=embed, ephemeral=True)
-            
+
         except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"[INFO_BTN] Error showing info for '{self.display_name}': {e}", exc_info=True)
             await interaction.followup.send(
                 "❌ An error occurred while loading container info.",
                 ephemeral=True
             )
-    
+
     async def _create_info_embed(self, info_config: dict, docker_name: str) -> discord.Embed:
         """Create info embed from container configuration."""
-        
+
         # Create embed with container branding
         embed = discord.Embed(
             title=f"📋 {self.display_name} - Container Info",
             color=0x3498db
         )
-        
+
         # Build description content
         description_parts = []
-        
+
         # Add custom text if provided
         custom_text = info_config.get('custom_text', '').strip()
         if custom_text:
             description_parts.append(f"```\n{custom_text}\n```")
-        
+
         # Add IP information if enabled
         if info_config.get('show_ip', False):
             ip_info = await self._get_ip_info(info_config)
             if ip_info:
                 description_parts.append(ip_info)
-        
+
         # Add container status info
         status_info = await self._get_status_info()
         if status_info:
             description_parts.append(status_info)
-        
+
         # Set description if we have any content
         if description_parts:
             embed.description = "\n".join(description_parts)
         else:
             embed.description = "*No information configured for this container.*"
-        
+
         embed.set_footer(text="https://ddc.bot")
         return embed
-    
+
     async def _get_ip_info(self, info_config: dict) -> str:
         """Get IP information for the container."""
         custom_ip = info_config.get('custom_ip', '').strip()
         custom_port = info_config.get('custom_port', '').strip()
-        
+
         if custom_ip:
             # Validate custom IP/hostname format for security
             if self._validate_custom_address(custom_ip):
@@ -1083,7 +1081,7 @@ class InfoButton(Button):
             else:
                 logger.warning(f"Invalid custom address format: {custom_ip}")
                 return "🔗 **Custom Address:** [Invalid Format]"
-        
+
         # Try to get WAN IP
         try:
             from utils.common_helpers import get_wan_ip_async
@@ -1096,17 +1094,17 @@ class InfoButton(Button):
                 return f"**Public IP:** {address}"
         except (OSError, RuntimeError, ValueError) as e:
             logger.debug(f"Could not get WAN IP: {e}")
-        
+
         return "**IP:** Auto-detection failed"
-    
+
     def _validate_custom_address(self, address: str) -> bool:
         """Validate custom IP/hostname format for security."""
         import re
-        
+
         # Limit length to prevent abuse
         if len(address) > 255:
             return False
-            
+
         # Allow IPs
         ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
         if re.match(ip_pattern, address):
@@ -1116,7 +1114,7 @@ class InfoButton(Button):
                 if int(octet) > 255:
                     return False
             return True
-        
+
         # Allow hostnames with ports
         hostname_pattern = r'^[a-zA-Z0-9.-]+(\:[0-9]{1,5})?$'
         if re.match(hostname_pattern, address):
@@ -1124,20 +1122,20 @@ class InfoButton(Button):
             if '..' in address or address.startswith('.') or address.endswith('.'):
                 return False
             return True
-            
+
         return False
-    
+
     async def _get_status_info(self) -> str:
         """Get current container status information."""
         # Status information (State/Uptime) is already displayed in the main status embed above,
         # so we don't need to duplicate it in the info section
         return ""
-    
+
     def _channel_has_info_permission(self, channel_id: int, config: dict) -> bool:
         """Check if channel has info permission."""
         from .control_helpers import _channel_has_permission
         return _channel_has_permission(channel_id, 'info', config)
-    
+
     def _channel_has_control_permission(self, channel_id: int, config: dict) -> bool:
         """Check if channel has control permission."""
         from .control_helpers import _channel_has_permission
@@ -1149,41 +1147,41 @@ class InfoButton(Button):
 
 class TaskDeleteButton(Button):
     """Button for deleting a specific scheduled task."""
-    
+
     def __init__(self, cog_instance: 'DockerControlCog', task_id: str, task_description: str, row: int):
         self.cog = cog_instance
         self.task_id = task_id
         self.task_description = task_description
-        
+
         super().__init__(
             style=discord.ButtonStyle.danger,
             label=task_description,
             custom_id=f"task_delete_{task_id}",
             row=row
         )
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Deletes the scheduled task."""
         # Check spam protection for task delete
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_service = get_spam_protection_service()
-        
+
         if spam_service.is_enabled():
             try:
                 if spam_service.is_on_cooldown(interaction.user.id, "task_delete"):
                     remaining_time = spam_service.get_remaining_cooldown(interaction.user.id, "task_delete")
                     await interaction.response.send_message(
-                        f"⏰ Please wait {remaining_time:.1f} seconds before deleting another task.", 
+                        f"⏰ Please wait {remaining_time:.1f} seconds before deleting another task.",
                         ephemeral=True
                     )
                     return
                 spam_service.add_user_cooldown(interaction.user.id, "task_delete")
             except (RuntimeError, AttributeError, KeyError) as e:
                 logger.error(f"Spam protection error for task delete button: {e}", exc_info=True)
-        
+
         user = interaction.user
         logger.info(f"[TASK_DELETE_BTN] Task deletion '{self.task_id}' triggered by {user.name}")
-        
+
         try:
             await interaction.response.defer(ephemeral=True)
 
@@ -1192,22 +1190,22 @@ class TaskDeleteButton(Button):
                 await interaction.followup.send(_("Error: Could not determine channel."), ephemeral=True)
                 return
 
-            from services.scheduling.scheduler import load_tasks, delete_task
+            from services.scheduling.scheduler import delete_task
 
             config = load_config()
             if not _get_cached_channel_permission(interaction.channel.id, 'schedule', config):
                 await interaction.followup.send(_("You do not have permission to delete tasks in this channel."), ephemeral=True)
                 return
-            
+
             if delete_task(self.task_id):
                 log_user_action(
-                    action="TASK_DELETE", 
-                    target=f"Task {self.task_id}", 
+                    action="TASK_DELETE",
+                    target=f"Task {self.task_id}",
                     user=str(user),
                     source="Discord Button",
                     details=f"Task: {self.task_description}"
                 )
-                
+
                 await interaction.followup.send(
                     _("✅ Task **{task_description}** has been deleted successfully.").format(task_description=self.task_description),
                     ephemeral=True
@@ -1219,40 +1217,40 @@ class TaskDeleteButton(Button):
                     ephemeral=True
                 )
                 logger.warning(f"[TASK_DELETE_BTN] Failed to delete task '{self.task_id}' for {user.name}")
-                
+
         except (discord.errors.DiscordException, RuntimeError, KeyError) as e:
             logger.error(f"[TASK_DELETE_BTN] Error deleting task '{self.task_id}': {e}", exc_info=True)
             await interaction.followup.send(_("An error occurred while deleting the task."), ephemeral=True)
 
 class TaskDeletePanelView(View):
     """View containing task delete buttons."""
-    
+
     def __init__(self, cog_instance: 'DockerControlCog', active_tasks: list):
         super().__init__(timeout=600)  # 10 minute timeout for task panels
         self.cog = cog_instance
-        
+
         # Add delete buttons for each task (max 25 due to Discord limits)
         max_tasks = min(len(active_tasks), 25)
         for i, task in enumerate(active_tasks[:max_tasks]):
             task_id = task.task_id
-            
+
             # Create abbreviated description for button
             container_name = task.container_name
             action = task.action.upper()
             cycle_abbrev = {
                 'once': 'O',
-                'daily': 'D', 
+                'daily': 'D',
                 'weekly': 'W',
                 'monthly': 'M',
                 'yearly': 'Y'
             }.get(task.cycle, '?')
-            
+
             task_description = f"{cycle_abbrev}: {container_name} {action}"
-            
+
             # Limit description length for button
             if len(task_description) > 40:
                 task_description = task_description[:37] + "..."
-            
+
             row = i // 5  # 5 buttons per row
             self.add_item(TaskDeleteButton(cog_instance, task_id, task_description, row))
 
@@ -1339,10 +1337,7 @@ class InfoDropdownButton(Button):
                 setattr(self, f'_last_click_{user_id}', current_time)
 
             # Get containers that have info enabled
-            from services.config.config_service import load_config, ConfigService
-            from services.infrastructure.container_info_service import get_container_info_service
-            import json
-            from pathlib import Path
+            from services.config.config_service import load_config
 
             # SERVICE FIRST: Use ServerConfigService instead of direct file access
             server_config_service = get_server_config_service()
@@ -1451,11 +1446,8 @@ class ContainerInfoDropdown(discord.ui.Select):
             selected_container = self.values[0]
 
             # Get container info and full container data
-            from services.infrastructure.container_info_service import get_container_info_service
             from services.config.config_service import load_config
             from .translation_manager import _
-            import json
-            from pathlib import Path
 
             # SERVICE FIRST: Use ServerConfigService to get container configuration
             server_config_service = get_server_config_service()
@@ -1712,7 +1704,6 @@ class AdminButton(Button):
 
             # Get active containers
             from pathlib import Path
-            import os
             from services.config.config_service import load_config
 
             # SERVICE FIRST: Use ServerConfigService to get active containers
@@ -1989,11 +1980,11 @@ class AdminContainerDropdown(discord.ui.Select):
 
 class HelpButton(Button):
     """Button to show help information from /ss messages."""
-    
+
     def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
         self.cog = cog_instance
         self.channel_id = channel_id
-        
+
         super().__init__(
             style=discord.ButtonStyle.secondary,
             label=None,
@@ -2001,7 +1992,7 @@ class HelpButton(Button):
             custom_id=f"help_button_{channel_id}",
             row=0
         )
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Show help information when clicked."""
         try:
@@ -2019,10 +2010,10 @@ class HelpButton(Button):
                     await interaction.response.send_message(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
                     return
                 setattr(self, f'_last_click_{user_id}', current_time)
-            
+
             # Call the help command implementation directly
             from .translation_manager import _
-            
+
             embed = discord.Embed(title=_("DDC Help & Information"), color=discord.Color.blue())
 
             # Commands
@@ -2039,14 +2030,14 @@ class HelpButton(Button):
 
             # Admin Panel Functions
             embed.add_field(name=f"**{_('Admin Panel')}**", value=f"📝 {_('Edit container info text')}\n📋 {_('View container logs')}\n🔄 {_('Restart All containers')}\n⏹️ {_('Stop All containers')}", inline=False)
-            
+
             embed.set_footer(text="https://ddc.bot")
-            
+
             # Send as ephemeral response
             await interaction.response.send_message(embed=embed, ephemeral=True)
-            
+
             logger.info(f"Help shown for user {interaction.user.name} in channel {self.channel_id}")
-            
+
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing help: {e}", exc_info=True)
             try:
@@ -2188,11 +2179,11 @@ class MechDetailsButton(Button):
 
 class MechExpandButton(Button):
     """Button to expand mech status details in /ss messages."""
-    
+
     def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
         self.cog = cog_instance
         self.channel_id = channel_id
-        
+
         super().__init__(
             style=discord.ButtonStyle.primary,
             label=None,
@@ -2200,7 +2191,7 @@ class MechExpandButton(Button):
             custom_id=f"mech_expand_{channel_id}",
             row=0
         )
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Expand mech status to show detailed information."""
         try:
@@ -2263,7 +2254,7 @@ class MechExpandButton(Button):
             except (discord.errors.HTTPException, discord.errors.NotFound):
                 # Interaction may have already expired
                 pass
-    
+
     async def _create_expanded_ss_embed(self):
         """Create the expanded /ss embed with detailed mech information."""
         # Get the current config and servers for the embed header
@@ -2273,24 +2264,24 @@ class MechExpandButton(Button):
             embed = discord.Embed(title="Server Overview", color=discord.Color.blue())
             embed.description = "Error: Could not load configuration."
             return embed, None
-            
+
         # SERVICE FIRST: Use ServerConfigService instead of direct config access
         server_config_service = get_server_config_service()
         servers = server_config_service.get_all_servers()
 
         # Sort servers by the 'order' field from container configurations
         ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
-        
+
         # Create the expanded embed with detailed mech information
         return await self.cog._create_overview_embed_expanded(ordered_servers, config)
 
 class MechCollapseButton(Button):
     """Button to collapse mech status details in /ss messages."""
-    
+
     def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
         self.cog = cog_instance
         self.channel_id = channel_id
-        
+
         super().__init__(
             style=discord.ButtonStyle.primary,
             label=None,
@@ -2298,7 +2289,7 @@ class MechCollapseButton(Button):
             custom_id=f"mech_collapse_{channel_id}",
             row=0  # Row 0: All buttons in one row
         )
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Collapse mech status to show only animation."""
         try:
@@ -2361,7 +2352,7 @@ class MechCollapseButton(Button):
             except (discord.errors.HTTPException, discord.errors.NotFound):
                 # Interaction may have already expired
                 pass
-    
+
     async def _create_collapsed_ss_embed(self):
         """Create the collapsed /ss embed with only mech animation."""
         # Get the current config and servers for the embed header
@@ -2371,37 +2362,37 @@ class MechCollapseButton(Button):
             embed = discord.Embed(title="Server Overview", color=discord.Color.blue())
             embed.description = "Error: Could not load configuration."
             return embed, None
-            
+
         # SERVICE FIRST: Use ServerConfigService instead of direct config access
         server_config_service = get_server_config_service()
         servers = server_config_service.get_all_servers()
 
         # Sort servers by the 'order' field from container configurations
         ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
-        
+
         # Create the collapsed embed (only mech animation, no details)
         return await self.cog._create_overview_embed_collapsed(ordered_servers, config)
 
 class MechDonateButton(Button):
     """Button to trigger donation functionality from expanded mech view."""
-    
+
     def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
         self.cog = cog_instance
         self.channel_id = channel_id
-        
+
         super().__init__(
             style=discord.ButtonStyle.green,
             label=_("Power/Donate"),
             custom_id=f"mech_donate_{channel_id}",
             row=0  # Row 0: All buttons in one row
         )
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Trigger the donate functionality."""
         try:
             # Call the existing donate interaction handler
             await self.cog._handle_donate_interaction(interaction)
-            
+
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in mech donate button: {e}", exc_info=True)
             try:
@@ -2416,7 +2407,7 @@ class MechDonateButton(Button):
                 pass
 
 # DonationView has been moved back to docker_control.py where it belongs
-    
+
 
 # =============================================================================
 # MECH HISTORY BUTTON FOR EXPANDED VIEW

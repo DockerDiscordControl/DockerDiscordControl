@@ -5,14 +5,18 @@
 # Copyright (c) 2025 MAX                                                  #
 # Licensed under the MIT License                                               #
 # ============================================================================ #
-import time
+"""
+Time utility functions for DockerDiscordControl.
+Provides timezone handling and datetime formatting utilities.
+"""
 import os
-import json
-import logging
-import pytz
+import time
 from datetime import datetime, timedelta, timezone
-from typing import Union, Tuple, List, Dict, Any, Optional
+from typing import Optional
 from zoneinfo import ZoneInfo
+
+import pytz
+
 from utils.logging_utils import setup_logger
 
 logger = setup_logger('ddc.time_utils')
@@ -63,7 +67,7 @@ def timestamp_to_datetime(timestamp: float, tz_name: Optional[str] = None) -> da
         Timezone-aware datetime object
     """
     dt = datetime.fromtimestamp(timestamp, timezone.utc)
-    
+
     if tz_name:
         try:
             target_tz = pytz.timezone(tz_name)
@@ -86,7 +90,7 @@ def datetime_to_timestamp(dt: datetime) -> float:
     # If naive datetime, interpret as UTC
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
-    
+
     return dt.timestamp()
 
 def format_duration(seconds: float) -> str:
@@ -101,22 +105,22 @@ def format_duration(seconds: float) -> str:
     """
     if seconds < 60:
         return f"{seconds:.1f}s"
-    
+
     minutes = int(seconds // 60)
     remaining_seconds = int(seconds % 60)
-    
+
     if minutes < 60:
         return f"{minutes}m {remaining_seconds}s"
-    
+
     hours = minutes // 60
     remaining_minutes = minutes % 60
-    
+
     if hours < 24:
         return f"{hours}h {remaining_minutes}m"
-    
+
     days = hours // 24
     remaining_hours = hours % 24
-    
+
     return f"{days}d {remaining_hours}h"
 
 def is_same_day(dt1: datetime, dt2: datetime, tz_name: Optional[str] = None) -> bool:
@@ -162,12 +166,12 @@ def get_timezone_offset(tz_name: str) -> str:
 def format_datetime_with_timezone(dt, timezone_name=None, time_only=False):
     """
     Format a datetime with timezone awareness and multiple fallback mechanisms.
-    
+
     Args:
         dt: The datetime to format
         timezone_name: Optional timezone name to use
         time_only: If True, return only the time part
-        
+
     Returns:
         Formatted datetime string
     """
@@ -188,7 +192,7 @@ def format_datetime_with_timezone(dt, timezone_name=None, time_only=False):
 
     # Get target timezone using the public API
     tz_name = timezone_name or get_configured_timezone()
-    
+
     try:
         # First attempt: Try zoneinfo (Python 3.9+)
         target_tz = ZoneInfo(tz_name)
@@ -296,7 +300,7 @@ def _get_timezone_safe():
     except (RuntimeError, SystemError) as e:
         logger.error(f"Critical error in _get_timezone_safe: {e}", exc_info=True)
         return 'UTC'
-            
+
 def clear_timezone_cache():
     """
     Clear the cached timezone to force a fresh load from config.
@@ -338,10 +342,10 @@ def parse_timestamp(timestamp_str: str) -> Optional[datetime]:
     """
     Parse a timestamp string into a datetime object.
     Supports multiple common formats.
-    
+
     Args:
         timestamp_str: String containing a timestamp
-        
+
     Returns:
         Datetime object or None if parsing fails
     """
@@ -354,7 +358,7 @@ def parse_timestamp(timestamp_str: str) -> Optional[datetime]:
         "%Y-%m-%d %H:%M",         # Date with hours and minutes
         "%Y-%m-%d",               # Just date
     ]
-    
+
     for fmt in formats:
         try:
             dt = datetime.strptime(timestamp_str, fmt)
@@ -364,7 +368,7 @@ def parse_timestamp(timestamp_str: str) -> Optional[datetime]:
             return dt
         except ValueError:
             continue
-            
+
     # If no format matched
     logger.warning(f"Could not parse timestamp string: {timestamp_str}")
-    return None 
+    return None

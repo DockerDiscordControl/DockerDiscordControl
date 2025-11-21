@@ -260,11 +260,11 @@ def get_speed_emoji(level: int) -> str:
 def get_translated_speed_description(level: int, language: str = "en") -> str:
     """
     Get translated speed description for a given level.
-    
+
     Args:
         level: Speed level (0-101)
         language: Language code ('en', 'de', 'fr')
-        
+
     Returns:
         Translated speed description
     """
@@ -278,27 +278,27 @@ def get_translated_speed_description(level: int, language: str = "en") -> str:
         except (KeyError, ValueError, TypeError) as e:
             # Dictionary access/data errors (missing translations, invalid keys)
             print(f"Data error getting translation for level {level}, language {language}: {e}")
-    
+
     # Fallback to English from SPEED_DESCRIPTIONS
     return SPEED_DESCRIPTIONS.get(level, SPEED_DESCRIPTIONS[0])[0]
 
 def get_combined_mech_status(Power_amount: float, total_donations_received: float = None, language: str = None) -> dict:
     """
     Get combined evolution and speed status for the mech.
-    
+
     Args:
         Power_amount: Current Power amount (for speed)
         total_donations_received: Total donations ever received (for evolution).
                                 If None, uses Power_amount for backwards compatibility.
         language: Language code ('en', 'de', 'fr'). If None, tries to get from config.
-        
+
     Returns:
         Dictionary with evolution info, speed info, and combined status
     """
     # If total_donations_received not provided, use Power_amount for backwards compatibility
     if total_donations_received is None:
         total_donations_received = Power_amount
-    
+
     # Import here to avoid circular imports
     try:
         from services.mech.mech_evolutions import get_evolution_info
@@ -315,7 +315,7 @@ def get_combined_mech_status(Power_amount: float, total_donations_received: floa
             'next_description': 'Basic repairs complete',
             'amount_needed': 20
         }
-    
+
     # Get language from config if not provided
     if language is None:
         try:
@@ -335,7 +335,7 @@ def get_combined_mech_status(Power_amount: float, total_donations_received: floa
             # Service/config access errors (config service unavailable, get failures)
             print(f"Error accessing config for language: {e}")
             language = 'en'
-    
+
     # Calculate speed level using helper (DRY)
     # IMPORTANT: Use total_donations_received for evolution level, Power_amount for speed calculation
     try:
@@ -364,7 +364,7 @@ def get_combined_mech_status(Power_amount: float, total_donations_received: floa
 
     # Get translated speed description
     translated_speed_description = get_translated_speed_description(speed_level, language)
-    
+
     return {
         'evolution': evolution_info,
         'speed': {

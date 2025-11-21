@@ -10,7 +10,6 @@
 Module containing status handler functions for Docker containers.
 These are implemented as a mixin class to be used with the main DockerControlCog.
 """
-import logging
 import asyncio
 import time
 from datetime import datetime, timezone
@@ -99,30 +98,30 @@ class StatusHandlersMixin:
             logger.info(f"[INTELLIGENT_BULK_FETCH] All {len(slow_containers)} containers classified as slow - using patient processing")
         else:
             logger.info(f"[INTELLIGENT_BULK_FETCH] All {len(fast_containers)} containers classified as fast - using parallel processing")
-        
+
         # Process containers with intelligent strategies
         all_results = []
-        
+
         # Phase 1: Process fast containers in parallel (if any)
         if fast_containers:
             logger.debug(f"[INTELLIGENT_BULK_FETCH] Phase 1: Processing {len(fast_containers)} fast containers in parallel")
-            
+
             # Use semaphore for controlled concurrency
             MAX_CONCURRENT_FAST = min(3, len(fast_containers))  # Max 3 concurrent to match Docker pool capacity
             semaphore = asyncio.Semaphore(MAX_CONCURRENT_FAST)
-            
+
             async def fetch_fast_container(container_name):
                 async with semaphore:
                     fetch_service = get_fetch_service()
                     return await fetch_service.fetch_with_retries(container_name)
-            
+
             fast_tasks = [fetch_fast_container(name) for name in fast_containers]
             fast_results = await asyncio.gather(*fast_tasks, return_exceptions=True)
             all_results.extend(fast_results)
-            
+
             fast_time = (time.time() - start_time) * 1000
             logger.info(f"[INTELLIGENT_BULK_FETCH] Phase 1 completed: {len(fast_containers)} fast containers in {fast_time:.1f}ms")
-        
+
         # Phase 2: Process slow containers individually with patience (if any)
         if slow_containers:
             phase2_start = time.time()
@@ -133,10 +132,10 @@ class StatusHandlersMixin:
                 result = await fetch_service.fetch_with_retries(container_name)
                 all_results.append(result)
                 # No per-container logging - only log phase completion to avoid spam
-            
+
             slow_time = (time.time() - phase2_start) * 1000
             logger.info(f"[INTELLIGENT_BULK_FETCH] Phase 2 completed: {len(slow_containers)} slow containers in {slow_time:.1f}ms")
-        
+
         # PERFORMANCE: Cache server configs before processing - avoid repeated lookups
         server_config_service = get_server_config_service()
         servers = server_config_service.get_all_servers()
@@ -157,16 +156,16 @@ class StatusHandlersMixin:
 
             # Find server config for this container (cached lookup)
             server_config = servers_by_docker_name.get(docker_name)
-            
+
             if not server_config:
                 logger.warning(f"[INTELLIGENT_BULK_FETCH] No server config found for {docker_name}")
                 failed_fetches += 1
                 continue
-            
+
             # Process the fetched data - ALWAYS COMPLETE DETAILS
             display_name = server_config.get('name', docker_name)
             details_allowed = server_config.get('allow_detailed_status', True)
-            
+
             if isinstance(info, Exception) or info is None:
                 # Container offline or error - still provide complete status structure
                 logger.debug(f"[INTELLIGENT_BULK_FETCH] {docker_name} appears offline or error: {info}")
@@ -177,13 +176,13 @@ class StatusHandlersMixin:
                 )
                 successful_fetches += 1  # Still a successful status determination
                 continue
-            
+
             # Process container info - COMPLETE DATA COLLECTION
             is_running = info.get('State', {}).get('Running', False)
             uptime = "N/A"
             cpu = "N/A"
             ram = "N/A"
-            
+
             if is_running:
                 # Calculate uptime from container start time
                 started_at_str = info.get('State', {}).get('StartedAt')
@@ -192,7 +191,7 @@ class StatusHandlersMixin:
                         started_at = datetime.fromisoformat(started_at_str.replace('Z', '+00:00'))
                         now = datetime.now(timezone.utc)
                         delta = now - started_at
-                        
+
                         days = delta.days
                         hours, remainder = divmod(delta.seconds, 3600)
                         minutes, _ = divmod(remainder, 60)
@@ -207,7 +206,7 @@ class StatusHandlersMixin:
                     except ValueError as e:
                         logger.error(f"[INTELLIGENT_BULK_FETCH] Could not parse StartedAt for {docker_name}: {e}")
                         uptime = "Error"
-                
+
                 # Process stats - ALWAYS COLLECT IF ALLOWED (never skip for performance)
                 if details_allowed:
                     # Try to get computed values from new SERVICE FIRST format first
@@ -252,12 +251,12 @@ class StatusHandlersMixin:
                 details_allowed=details_allowed
             )
             successful_fetches += 1
-        
+
         total_elapsed = (time.time() - start_time) * 1000
-        
+
         # Enhanced performance reporting
         success_rate = (successful_fetches / len(container_names)) * 100 if container_names else 0
-        
+
         if total_elapsed > 60000:  # Over 1 minute
             logger.info(f"[INTELLIGENT_BULK_FETCH] Completed adaptive fetch in {total_elapsed:.1f}ms: "
                        f"{successful_fetches}/{len(container_names)} successful ({success_rate:.1f}%), "
@@ -278,18 +277,18 @@ class StatusHandlersMixin:
         """
         if not container_names:
             return
-        
+
         # PERFORMANCE OPTIMIZATION: Only update completely missing cache entries
         # The 30-second status_update_loop handles regular cache updates
         now = datetime.now(timezone.utc)
         containers_needing_update = []
-        
+
         # Pre-process server configurations
         # SERVICE FIRST: Use ServerConfigService instead of direct config access
         server_config_service = get_server_config_service()
         servers = server_config_service.get_all_servers()
         servers_by_docker_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
-        
+
         for docker_name in container_names:
             server_config = servers_by_docker_name.get(docker_name)
             if not server_config:
@@ -306,13 +305,13 @@ class StatusHandlersMixin:
         if not containers_needing_update:
             # All containers cached - silent return (this is the expected happy path)
             return
-        
+
         logger.info(f"[BULK_UPDATE] Updating cache for {len(containers_needing_update)}/{len(container_names)} containers with missing cache")
-        
+
         try:
             # Bulk fetch only the containers with no cache
             bulk_results = await self.bulk_fetch_container_status(containers_needing_update)
-            
+
             # Update cache with results
             for docker_name, result in bulk_results.items():
                 server_config = servers_by_docker_name.get(docker_name)
@@ -427,7 +426,7 @@ class StatusHandlersMixin:
                 error=e,
                 error_type=type(e).__name__.lower()
             )
-    
+
     async def _generate_status_embed_and_view(self, channel_id: int, display_name: str,
                                        server_conf: Dict[str, Any], current_config: Dict[str, Any],
                                        allow_toggle: bool = True,
@@ -436,7 +435,7 @@ class StatusHandlersMixin:
         """
         Generates the status embed and view based on cache and settings.
         Returns: (embed, view, running_status)
-        
+
         Parameters:
         - channel_id: The ID of the channel where the embed will be displayed
         - display_name: The display name of the server to show
@@ -486,14 +485,14 @@ class StatusHandlersMixin:
             else:
                 # IMPROVED: Smart timeout - check if container status actually changed based on action
                 logger.info(f"[_GEN_EMBED] '{display_name}' pending timeout reached ({pending_duration:.1f}s). Checking if {pending_action} action succeeded...")
-                
+
                 # Try to get current container status to see if it changed
                 current_server_conf_for_check = next((s for s in all_servers_config if s.get('docker_name') == docker_name), None)
                 if current_server_conf_for_check:
                     fresh_status = await self.get_status(current_server_conf_for_check)
                     if fresh_status.success:
                         current_running_state = fresh_status.is_running
-                        
+
                         # ACTION-AWARE SUCCESS DETECTION
                         action_succeeded = False
                         if pending_action == 'start':
@@ -505,7 +504,7 @@ class StatusHandlersMixin:
                         elif pending_action == 'restart':
                             # Restart succeeds when container is running (after stop+start cycle)
                             action_succeeded = current_running_state
-                        
+
                         if action_succeeded:
                             logger.info(f"[_GEN_EMBED] '{display_name}' {pending_action} action succeeded - clearing pending state")
                             del self.pending_actions[docker_name]
@@ -537,7 +536,7 @@ class StatusHandlersMixin:
                     cache_age_indicator = f" ({int(cache_age/60)}m ago)"
                 else:
                     cache_age_indicator = f" ({int(cache_age/3600)}h ago)"
-            
+
             status_result = cached_entry['data']
             # Store cache age for later use in embed
             embed_cache_age = cache_age
@@ -578,8 +577,8 @@ class StatusHandlersMixin:
             else:
                 # Error status
                 embed = discord.Embed(
-                    title=f"⚠️ {display_name}", 
-                    description=_("Error: Could not retrieve status. Configuration missing or initial fetch failed."), 
+                    title=f"⚠️ {display_name}",
+                    description=_("Error: Could not retrieve status. Configuration missing or initial fetch failed."),
                     color=discord.Color.red()
                 )
             # running remains False, view remains None
@@ -692,7 +691,7 @@ class StatusHandlersMixin:
             # --- Valid Data: Generate Box Embed with Cache Age Info ---
             display_name_from_status, running, cpu, ram, uptime, details_allowed = status_result # 'running' is updated here
             status_color = 0x00b300 if running else 0xe74c3c
-            
+
             # PERFORMANCE OPTIMIZATION: Use cached translations
             embed_helper = get_embed_helper_service()
             cached_translations = embed_helper.get_translations(lang)
@@ -711,14 +710,14 @@ class StatusHandlersMixin:
             ram_text = cached_translations['ram_text']
             uptime_text = cached_translations['uptime_text']
             detail_denied_text = cached_translations['detail_denied_text']
-            
+
             # PERFORMANCE OPTIMIZATION: Use cached box elements
             BOX_WIDTH = 28
             embed_helper = get_embed_helper_service()
             cached_box = embed_helper.get_box_elements(display_name, BOX_WIDTH)
             header_line = cached_box['header_line']
             footer_line = cached_box['footer_line']
-            
+
             # String builder for description - more efficient than multiple concatenations
             description_parts = [
                 "```\n",
@@ -749,9 +748,9 @@ class StatusHandlersMixin:
                     description_parts.append(f"\n{footer_line}")
             else:  # Offline
                 description_parts.append(f"\n{footer_line}")
-            
+
             description_parts.append("\n```")
-            
+
             # Combine description
             description = "".join(description_parts)
 
@@ -769,15 +768,15 @@ class StatusHandlersMixin:
             last_update_text = cached_translations['last_update_text']
             # Get formatted time using the new time_only parameter
             current_time = format_datetime_with_timezone(now_footer, timezone_str, time_only=True)
-            
+
             # Enhanced timestamp with cache age info
             if 'embed_cache_age' in locals() and embed_cache_age > self.cache_ttl_seconds:
                 timestamp_line = f"{last_update_text}: {current_time} (data: {int(embed_cache_age)}s alt)"
             else:
                 timestamp_line = f"{last_update_text}: {current_time}"
-            
+
             embed.description = f"{timestamp_line}\n{description}" # Place timestamp before the description
-            
+
             # Adjusted footer: Only the URL now
             embed.set_footer(text=f"https://ddc.bot")
             # --- End Valid Data Embed ---
@@ -785,8 +784,8 @@ class StatusHandlersMixin:
             # Fallback for any other unexpected type of status_result
             logger.error(f"[_GEN_EMBED] Unexpected data type for status_result for '{display_name}': {type(status_result)}")
             embed = discord.Embed(
-                title=f"⚠️ {display_name}", 
-                description=_("Internal error: Unexpected data format for server status."), 
+                title=f"⚠️ {display_name}",
+                description=_("Internal error: Unexpected data format for server status."),
                 color=discord.Color.orange()
             )
             # running remains False, view remains None
@@ -834,7 +833,7 @@ class StatusHandlersMixin:
             view = None # Ensure view is None if server_conf is missing or critical error
 
         return embed, view, running
-        
+
     async def send_server_status(self, channel: discord.TextChannel, server_conf: Dict[str, Any], current_config: dict, allow_toggle: bool = True, force_collapse: bool = False) -> Optional[discord.Message]:
         """
         Sends or updates status information for a server in a channel.
@@ -1002,7 +1001,7 @@ class StatusHandlersMixin:
 
         # Get conditional cache service
         cache_service = get_conditional_cache_service()
-        
+
         # SERVICE FIRST: Use ServerConfigService instead of direct config access
         server_config_service = get_server_config_service()
         servers = server_config_service.get_all_servers()
@@ -1049,14 +1048,14 @@ class StatusHandlersMixin:
                 # Content unchanged - skip Discord API call (silent skip, no logging)
                 # This is the HAPPY PATH and happens very frequently - don't spam logs
                 return True  # Return success without actual edit
-            
+
             # Content changed or first time - proceed with edit
             # PERFORMANCE OPTIMIZATION: Use cached channel object instead of fetch
             channel = self.bot.get_channel(channel_id)  # Uses bot's internal cache, no API call
             if not channel:
                 # Fallback to fetch if not in cache (rare case - no logging needed)
                 channel = await self.bot.fetch_channel(channel_id)
-            
+
             if not isinstance(channel, discord.TextChannel):
                 logger.warning(f"_edit_single_message: Channel {channel_id} is not a text channel.")
                 if channel_id in self.channel_server_message_ids and docker_name in self.channel_server_message_ids[channel_id]:
@@ -1090,7 +1089,7 @@ class StatusHandlersMixin:
             elif elapsed_time > 500:  # Over 500ms - warning
                 logger.warning(f"_edit_single_message: SLOW edit for '{display_name}' took {elapsed_time:.1f}ms")
             # Fast/normal operations (<500ms) are silent - this is the expected behavior
-            
+
             # REMOVED: await asyncio.sleep(0.2) - This was blocking true parallelization
             # Discord API rate limiting is handled by py-cord internally
             return True # Success
@@ -1106,4 +1105,4 @@ class StatusHandlersMixin:
         except (discord.HTTPException, RuntimeError, asyncio.CancelledError, KeyError, TypeError, ValueError) as e:
             elapsed_time = (time.time() - start_time) * 1000
             logger.error(f"_edit_single_message: Failed to edit message {message_id} for '{display_name}' after {elapsed_time:.1f}ms: {e}", exc_info=True)
-            return e 
+            return e

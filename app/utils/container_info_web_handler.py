@@ -10,7 +10,6 @@ Web UI handler for container info - saves to separate JSON files
 """
 
 import docker
-import logging
 from typing import Dict, Any
 from services.infrastructure.container_info_service import get_container_info_service, ContainerInfo
 from utils.logging_utils import get_module_logger
@@ -20,17 +19,17 @@ logger = get_module_logger('container_info_web_handler')
 def save_container_info_from_web(form_data: Dict[str, Any], container_names: list) -> Dict[str, bool]:
     """
     Save container info from Web UI form data to separate JSON files.
-    
+
     Args:
         form_data: Form data from Web UI
         container_names: List of container names to process
-        
+
     Returns:
         Dict with container names as keys and success status as values
     """
     info_service = get_container_info_service()
     results = {}
-    
+
     for container_name in container_names:
         try:
             # Extract and create ContainerInfo object with all required parameters
@@ -45,35 +44,35 @@ def save_container_info_from_web(form_data: Dict[str, Any], container_names: lis
                 protected_content=form_data.get(f'info_protected_content_{container_name}', '').strip(),
                 protected_password=form_data.get(f'info_protected_password_{container_name}', '').strip()
             )
-            
+
             # Save via service
             result = info_service.save_container_info(container_name, container_info)
             results[container_name] = result.success
-            
+
             if result.success:
                 logger.info(f"Saved container info for {container_name} from Web UI")
             else:
                 logger.error(f"Failed to save container info for {container_name} from Web UI: {result.error}")
-                
+
         except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
             logger.error(f"Error processing container info for {container_name}: {e}", exc_info=True)
             results[container_name] = False
-    
+
     return results
 
 def load_container_info_for_web(container_names: list) -> Dict[str, Dict[str, Any]]:
     """
     Load container info from JSON files for Web UI display.
-    
+
     Args:
         container_names: List of container names to load
-        
+
     Returns:
         Dict with container names as keys and info dicts as values
     """
     info_service = get_container_info_service()
     results = {}
-    
+
     for container_name in container_names:
         try:
             result = info_service.get_container_info(container_name)

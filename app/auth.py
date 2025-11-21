@@ -8,7 +8,7 @@
 
 from flask import current_app, jsonify, request
 from flask_httpauth import HTTPBasicAuth
-from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.security import check_password_hash
 from services.config.config_service import load_config
 from datetime import datetime, timedelta, timezone
 import threading
@@ -23,29 +23,29 @@ class SimpleRateLimiter:
         self.window = per_seconds
         self.ip_dict = {}
         self.lock = threading.Lock()
-    
+
     def is_rate_limited(self, ip):
         """Checks if an IP has exceeded the rate limit"""
         now = datetime.now(timezone.utc)
         with self.lock:
             # Delete old entries
             self.cleanup_old_entries(now)
-            
+
             # Initialize if IP is not in dict
             if ip not in self.ip_dict:
                 self.ip_dict[ip] = []
-            
+
             # Count the number of requests in the last period
             count = len(self.ip_dict[ip])
-            
+
             # If the limit is already reached, reject
             if count >= self.limit:
                 return True
-            
+
             # Otherwise add request and allow
             self.ip_dict[ip].append(now)
             return False
-    
+
     def cleanup_old_entries(self, now):
         """Removes old entries from the rate limiter"""
         cutoff = now - timedelta(seconds=self.window)
@@ -66,11 +66,11 @@ def init_limiter(app):
         # Exclude static resources from rate limiting
         if request.path.startswith('/static/'):
             return None
-            
+
         # Exclude status endpoints from rate limiting (they need frequent access)
         if request.path.startswith('/api/donation/status') or request.path.startswith('/health'):
             return None
-            
+
         # Only limit authentication requests (but allow setup page)
         if 'Authorization' in request.headers and not request.path.startswith('/setup'):
             client_ip = request.remote_addr
@@ -82,9 +82,9 @@ def init_limiter(app):
 def verify_password(username, password):
     logger = current_app.logger
     config = load_config()
-    stored_user = config.get('web_ui_user', "admin") 
+    stored_user = config.get('web_ui_user', "admin")
     stored_hash = config.get('web_ui_password_hash')
-    
+
     if stored_hash is None:
         # FIRST TIME SETUP: Allow special setup password for initial configuration
         if username == "admin" and password == "setup":
@@ -93,13 +93,13 @@ def verify_password(username, password):
             from flask import session
             session['setup_mode'] = True
             return username
-        
+
         # SECURITY FIX: Never fall back to default credentials for normal access
         logger.error("SECURITY: No password hash configured - authentication disabled for safety")
         logger.error("FIRST TIME SETUP: Use admin/setup to access setup page, then set your password")
         return None  # Fail securely - no authentication possible without configured password
     elif username == stored_user and check_password_hash(stored_hash, password):
-        return username 
+        return username
     logger.warning(f"Failed login attempt for user: {username}")
     return None
 
@@ -107,7 +107,7 @@ def verify_password(username, password):
 def auth_error(status):
     """Enhanced auth error handler with Unraid-friendly setup instructions."""
     from services.config.config_service import load_config
-    
+
     # Check if this is a first-time setup issue
     try:
         config = load_config()
@@ -135,5 +135,5 @@ def auth_error(status):
             }), 401
     except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound):
         pass  # Continue with normal auth error
-    
-    return jsonify(message="Authentication Required"), status 
+
+    return jsonify(message="Authentication Required"), status

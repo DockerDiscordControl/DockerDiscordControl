@@ -7,32 +7,15 @@
 # ============================================================================ #
 
 from flask import (
-    Blueprint, render_template, request, redirect, url_for, flash, 
+    Blueprint, render_template, request, redirect, url_for, flash,
     jsonify, session, current_app, send_file, Response
 )
-from datetime import datetime, timezone, timedelta # Added datetime for config_page
-import os
+from datetime import datetime
 import io
-import time
-import json
 
 # Import auth from app.auth
-from app.auth import auth 
+from app.auth import auth
 from services.config.config_service import load_config, save_config
-from app.utils.container_info_web_handler import save_container_info_from_web, load_container_info_for_web
-from app.utils.web_helpers import (
-    get_docker_containers_live,
-    docker_cache
-)
-from app.utils.port_diagnostics import run_port_diagnostics
-# NEW: Import shared_data
-from app.utils.shared_data import get_active_containers, load_active_containers_from_config
-from app.constants import COMMON_TIMEZONES # Import from new constants file
-# Import scheduler functions for the main page
-from services.scheduling.scheduler import (
-    load_tasks, 
-    DAYS_OF_WEEK
-)
 from services.infrastructure.action_logger import log_user_action
 from services.infrastructure.spam_protection_service import get_spam_protection_service
 
@@ -555,13 +538,13 @@ def save_spam_protection():
         settings = request.get_json()
         if not settings:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
-        
+
         spam_service = get_spam_protection_service()
         from services.infrastructure.spam_protection_service import SpamProtectionConfig
         config = SpamProtectionConfig.from_dict(settings)
         result = spam_service.save_config(config)
         success = result.success
-        
+
         if success:
             # Log the action
             log_user_action(
@@ -573,7 +556,7 @@ def save_spam_protection():
             return jsonify({'success': True})
         else:
             return jsonify({'success': False, 'error': 'Failed to save settings'}), 500
-            
+
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (spam protection service unavailable)
         current_app.logger.error(f"Service dependency error saving spam protection settings: {e}", exc_info=True)
@@ -698,7 +681,7 @@ def add_test_power():
 
                 # Calculate new power (ensure it doesn't go below 0)
                 new_power = max(0, current_state.Power + amount)
-                
+
                 # Since we can't directly set power, we add a donation that results in the desired power
                 # This is a workaround for testing purposes
                 if new_power < current_state.Power:
@@ -713,12 +696,12 @@ def add_test_power():
                         'total_donated': current_state.total_donated,
                         'message': f'Power reduction not supported (would be ${new_power})'
                     })
-                    
+
                 result_state = current_state
                 current_app.logger.info(f"NEW SERVICE: Attempted to reduce Power by ${abs(amount)}, but not supported")
-                
+
             return jsonify({
-                'success': True, 
+                'success': True,
                 'Power': result_state.Power,
                 'level': result_state.level,
                 'level_name': result_state.level_name,
@@ -726,7 +709,7 @@ def add_test_power():
             })
         else:
             return jsonify({'success': False, 'error': 'Amount must be non-zero'}), 400
-            
+
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (unified donation service unavailable)
         current_app.logger.error(f"Service dependency error adding test Power: {e}", exc_info=True)
@@ -737,7 +720,7 @@ def add_test_power():
         return jsonify({'success': False, 'error': 'Data error: Invalid donation amount'}), 400
 
 @main_bp.route('/api/donation/reset-power', methods=['POST'])
-@auth.login_required  
+@auth.login_required
 def reset_power():
     """Reset Power to 0 for testing (requires auth) - USING NEW MECH SERVICE."""
     try:
@@ -750,18 +733,18 @@ def reset_power():
             # Log detailed error but return generic message to user
             current_app.logger.error(f"Failed to reset donations: {reset_result.error_message}")
             return jsonify({'success': False, 'error': 'Failed to reset donations'})
-        
+
         # Get new state (should be Level 1, 0 Power) using CACHE FOR PERFORMANCE
         # PERFORMANCE OPTIMIZATION: Use cached mech state (will be fresh since we just reset)
         reset_state = _get_cached_mech_state(include_decimals=False)
         if not reset_state:
             current_app.logger.error("Failed to get reset state")
             return jsonify({'success': False, 'error': 'Failed to get reset state'})
-        
+
         current_app.logger.info(f"NEW SERVICE: Power reset - Level {reset_state.level}, Power ${reset_state.Power}")
-        
+
         return jsonify({
-            'success': True, 
+            'success': True,
             'message': 'Power reset to 0 using new MechService',
             'level': reset_state.level,
             'level_name': reset_state.level_name,
@@ -782,18 +765,18 @@ def consume_Power():
         current_state = _get_cached_mech_state(include_decimals=False)
         if not current_state:
             return jsonify({'success': False, 'error': 'Failed to get current state'})
-        
+
         # Removed frequent Power consumption log to reduce noise in DEBUG mode
         # current_app.logger.debug(f"NEW SERVICE: Power consumption check - current Power: ${current_state.Power}")
-        
+
         return jsonify({
-            'success': True, 
+            'success': True,
             'new_Power': max(0, current_state.Power),
             'level': current_state.level,
             'level_name': current_state.level_name,
             'message': 'Power decay calculated automatically by new service'
         })
-        
+
     except (RuntimeError, AttributeError) as e:
         # Service/cache errors (mech state retrieval failures)
         current_app.logger.error(f"Service error consuming Power: {e}", exc_info=True)
@@ -1115,10 +1098,10 @@ def donations_api():
     try:
         from services.donation.donation_management_service import get_donation_management_service
         donation_service = get_donation_management_service()
-        
+
         # Get donation history and stats using service
         result = donation_service.get_donation_history(limit=100)
-        
+
         if not result.success:
             # Log detailed error server-side, return generic message to user
             current_app.logger.error(f"Failed to load donations: {result.error}", exc_info=True)
@@ -1126,10 +1109,10 @@ def donations_api():
                 'success': False,
                 'error': 'Failed to load donations'
             })
-        
+
         donations = result.data['donations']
         stats = result.data['stats']
-        
+
         return jsonify({
             'success': True,
             'donations': donations,
@@ -1139,7 +1122,7 @@ def donations_api():
                 'average_donation': stats.average_donation
             }
         })
-        
+
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (donation management service unavailable)
         current_app.logger.error(f"Service dependency error loading donations API: {e}", exc_info=True)
@@ -1217,67 +1200,67 @@ def delete_donation(index):
 def setup_page():
     """First-time setup page - only works if no password is configured."""
     config = load_config()
-    
+
     # Only allow setup if no password hash exists
     if config.get('web_ui_password_hash') is not None:
         flash('Setup is only available for first-time installation. System is already configured.', 'error')
         return redirect(url_for('main_bp.config_page'))
-    
+
     return render_template('setup.html')
 
 @main_bp.route('/setup', methods=['POST'])
 def setup_save():
     """Save the initial setup configuration."""
     config = load_config()
-    
+
     # Security check: only allow if no password is set
     if config.get('web_ui_password_hash') is not None:
         return jsonify({
             'success': False,
             'error': 'Setup is not allowed when password is already configured'
         })
-    
+
     try:
         from werkzeug.security import generate_password_hash
-        
+
         # Get form data
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
-        
+
         # Validation
         if not password or not confirm_password:
             return jsonify({
                 'success': False,
                 'error': 'Both password fields are required'
             })
-        
+
         if password != confirm_password:
             return jsonify({
                 'success': False,
                 'error': 'Passwords do not match'
             })
-        
+
         if len(password) < 6:
             return jsonify({
                 'success': False,
                 'error': 'Password must be at least 6 characters long'
             })
-        
+
         # Create secure password hash
         password_hash = generate_password_hash(password, method="pbkdf2:sha256:600000")
-        
+
         # Update config
         config['web_ui_password_hash'] = password_hash
         config['web_ui_user'] = 'admin'
-        
+
         # Save config
         success = save_config(config)
-        
+
         if success:
             # Log the setup completion
             current_app.logger.info("First-time setup completed successfully")
             log_user_action("admin", "setup", "First-time password setup completed")
-            
+
             return jsonify({
                 'success': True,
                 'message': 'Setup completed! You can now login with username "admin" and your password.'
@@ -1287,7 +1270,7 @@ def setup_save():
                 'success': False,
                 'error': 'Failed to save configuration'
             })
-            
+
     except (ImportError, AttributeError) as e:
         # Dependency errors (werkzeug unavailable)
         current_app.logger.error(f"Dependency error in setup: {e}", exc_info=True)

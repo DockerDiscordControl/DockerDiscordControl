@@ -9,40 +9,35 @@ import os
 import logging
 import time
 import docker
-from threading import Lock, Thread
+from threading import Thread
 import threading
-from flask import current_app # For logging within set_initial_password_from_env if needed
 from werkzeug.security import check_password_hash, generate_password_hash
-import json
-from datetime import datetime, timedelta
-import flask
 
 # Gevent-compatible Thread/Lock implementation
 try:
     import gevent
-    from gevent import monkey
     from gevent.event import Event as GEvent
     from gevent.lock import BoundedSemaphore as GLock
     from gevent import Greenlet
-    
+
     def create_thread(target, args, daemon=True, name=None):
         return Greenlet(target, *args)
-        
+
     def create_event():
         return GEvent()
-    
+
     HAS_GEVENT = True
 except ImportError:
     # Fallback to standard threading
     from threading import Lock as GLock
     from threading import Thread, Event
-    
+
     def create_thread(target, args, daemon=True, name=None):
         return Thread(target=target, args=args, daemon=daemon, name=name)
-        
+
     def create_event():
         return Event()
-        
+
     HAS_GEVENT = False
 
 # --- Global Variables / Constants needed by helpers ---
@@ -140,13 +135,13 @@ def setup_action_logger(app_instance):
     try:
         # Import the central logger
         from services.infrastructure.action_logger import user_action_logger, _ACTION_LOG_FILE
-        
+
         # Check if the configuration was successful
         if not any(isinstance(h, logging.FileHandler) for h in user_action_logger.handlers):
             app_instance.logger.warning("Action logger has no FileHandler configured! Check utils/action_logger.py")
         else:
             app_instance.logger.info(f"Action logger verified: Logging to {_ACTION_LOG_FILE}")
-            
+
         return user_action_logger
     except ImportError as e:
         # Import errors (action_logger module unavailable)
@@ -184,13 +179,13 @@ def get_docker_containers_live(logger, force_refresh=False, container_name=None)
     # Start background thread if not running and enabled
     if ENABLE_BACKGROUND_REFRESH and not docker_cache['bg_refresh_running'] and not background_refresh_thread:
         start_background_refresh(logger)
-    
+
     current_time = time.time()
     with cache_lock:
         # 1. Check if cache is valid (if not force_refresh)
         if not force_refresh and docker_cache['global_timestamp']:
             cache_age = current_time - docker_cache['global_timestamp']
-            
+
             # If the general cache is still fresh
             if cache_age < DEFAULT_CACHE_DURATION:
                 # If a specific container was requested, just filter the output
@@ -200,7 +195,7 @@ def get_docker_containers_live(logger, force_refresh=False, container_name=None)
                         logger.debug(f"Returning filtered cached data for container '{container_name}' (cache age: {cache_age:.1f}s)")
                         return matching_containers, docker_cache['error']
                     logger.debug(f"Container '{container_name}' not found in cache, returning all cached data")
-                
+
                 logger.debug(f"Returning fresh docker cache (age: {cache_age:.1f}s)")
                 # Apply display limit for Web UI
                 containers_to_return = docker_cache['containers'][:MAX_CONTAINERS_DISPLAY] if len(docker_cache['containers']) > MAX_CONTAINERS_DISPLAY else docker_cache['containers']
@@ -211,17 +206,17 @@ def get_docker_containers_live(logger, force_refresh=False, container_name=None)
             elif cache_age > MAX_CACHE_AGE:
                 logger.info(f"Cache too old ({cache_age:.1f}s > {MAX_CACHE_AGE}s), forcing refresh")
                 force_refresh = True
-        
+
         # 2. Rate limiting check
         time_since_last_query = current_time - last_docker_query_time
         if not force_refresh and time_since_last_query < DOCKER_QUERY_COOLDOWN:
             logger.debug(f"Rate limiting Docker query - within cooldown period ({time_since_last_query:.2f}s < {DOCKER_QUERY_COOLDOWN}s)")
             return list(docker_cache['containers']), docker_cache['error']
-    
+
     # 3. Query Docker API (only if necessary)
     if force_refresh or not docker_cache['global_timestamp']:
         update_docker_cache(logger)
-    
+
     # 4. Updated data to return
     with cache_lock:
         if container_name:
@@ -243,23 +238,23 @@ def update_docker_cache(logger):
     """Updates the Docker container cache with current data and memory optimization"""
     global last_docker_query_time
     import gc
-    
+
     logger.info("Updating Docker cache with memory optimization")
     last_docker_query_time = time.time()  # Update query time immediately
-    
+
     client = None
     try:
         client = docker.from_env()
-        
+
         # Retrieve either all containers or just a specific one with timeout
         import signal
         from contextlib import contextmanager
-        
+
         @contextmanager
         def timeout(seconds):
             def timeout_handler(signum, frame):
                 raise TimeoutError(f"Operation timed out after {seconds} seconds")
-            
+
             # Only use signal-based timeout on Unix-like systems
             if hasattr(signal, 'SIGALRM'):
                 old_handler = signal.signal(signal.SIGALRM, timeout_handler)
@@ -272,34 +267,34 @@ def update_docker_cache(logger):
             else:
                 # On Windows or if SIGALRM not available, just yield without timeout
                 yield
-        
+
         try:
             with timeout(BACKGROUND_REFRESH_TIMEOUT):
                 containers_to_process = client.containers.list(all=True)
         except TimeoutError as te:
             logger.error(f"Container list operation timed out after {BACKGROUND_REFRESH_TIMEOUT} seconds")
             containers_to_process = []
-        
+
         # Process containers and update cache
         with cache_lock:
             # Increment access counter for optimization tracking
             docker_cache['access_count'] += 1
-            
+
             # Perform periodic cleanup every 50 cache updates
             if docker_cache['access_count'] % 50 == 0:
                 _cleanup_docker_cache(logger, time.time())
-            
+
             # Empty the list for a complete refresh
             old_container_count = len(docker_cache['containers'])
             docker_cache['containers'] = []
-            
+
             # Apply both background refresh limit and max cache limit
             # Use the smaller of the two limits
             effective_limit = min(BACKGROUND_REFRESH_LIMIT, MAX_CACHED_CONTAINERS)
             containers_limited = containers_to_process[:effective_limit] if len(containers_to_process) > effective_limit else containers_to_process
             if len(containers_to_process) > effective_limit:
                 logger.warning(f"Docker cache: Limiting to {effective_limit} containers (found {len(containers_to_process)}, refresh_limit={BACKGROUND_REFRESH_LIMIT}, cache_limit={MAX_CACHED_CONTAINERS})")
-            
+
             current_time = time.time()
             for container in containers_limited:
                 # Create optimized container data (only essential fields)
@@ -309,34 +304,34 @@ def update_docker_cache(logger):
                     'status': container.status,
                     'image': container.image.tags[0] if container.image.tags else container.image.id[:12]
                 }
-                
+
                 # Calculate a hash for change detection
                 container_hash = hash_container_data(container_data)
                 old_hash = docker_cache['container_hashes'].get(container.name)
-                
+
                 # Update timestamp and hash only if something has changed
                 if old_hash != container_hash:
                     docker_cache['container_timestamps'][container.name] = current_time
                     docker_cache['container_hashes'][container.name] = container_hash
-                
+
                 docker_cache['containers'].append(container_data)
-            
+
             # Sort containers by name
             docker_cache['containers'] = sorted(docker_cache['containers'], key=lambda x: x.get('name', '').lower())
-            
+
             # Update global timestamp only for complete refresh
             docker_cache['global_timestamp'] = current_time
-            
+
             docker_cache['error'] = None
-            
+
             container_count = len(docker_cache['containers'])
             memory_saved = old_container_count - container_count if old_container_count > container_count else 0
             logger.info(f"Docker cache updated with {container_count} containers (memory optimization: {memory_saved} containers removed)")
-            
+
             # Force garbage collection periodically
             if docker_cache['access_count'] % 20 == 0:
                 gc.collect()
-            
+
     except docker.errors.DockerException as e_outer:
         error_msg = f"Docker connection error during live query: {str(e_outer)}"
         logger.error(error_msg)
@@ -390,32 +385,32 @@ def _cleanup_docker_cache(logger, current_time):
     if not docker_cache.get('last_cleanup'):
         docker_cache['last_cleanup'] = current_time
         return
-    
+
     # Only cleanup if enough time has passed
     if current_time - docker_cache['last_cleanup'] < CACHE_CLEANUP_INTERVAL:
         return
-    
+
     logger.info("Performing Docker cache memory cleanup")
-    
+
     # Clean up old container timestamps and hashes
     # Use longer cutoff for cleanup (10 minutes) since this is just memory management
     cutoff_time = current_time - 600  # Keep data for 10 minutes
-    
+
     old_timestamps = docker_cache['container_timestamps'].copy()
     old_hashes = docker_cache['container_hashes'].copy()
-    
+
     # Remove old entries
     for container_name in list(old_timestamps.keys()):
         if old_timestamps[container_name] < cutoff_time:
             docker_cache['container_timestamps'].pop(container_name, None)
             docker_cache['container_hashes'].pop(container_name, None)
-    
+
     removed_count = len(old_timestamps) - len(docker_cache['container_timestamps'])
     if removed_count > 0:
         logger.info(f"Docker cache cleanup: Removed {removed_count} old container entries")
-    
+
     docker_cache['last_cleanup'] = current_time
-    
+
     # Force garbage collection after cleanup
     import gc
     gc.collect()
@@ -423,24 +418,24 @@ def _cleanup_docker_cache(logger, current_time):
 def background_refresh_worker(logger):
     """Background worker for regular Docker cache updates"""
     logger.info("Starting background Docker cache refresh worker")
-    
+
     thread_name = threading.current_thread().name if hasattr(threading.current_thread(), 'name') else "Greenlet"
     logger.debug(f"Background worker running in thread '{thread_name}'")
-    
+
     with cache_lock:
         docker_cache['bg_refresh_running'] = True
-    
+
     try:
         while not stop_background_thread.is_set():
             try:
                 # Update the cache
                 update_docker_cache(logger)
-                
+
                 # Wait for the configured time, but check regularly for stop signal
                 # Shorten the interval to notice the stop signal faster
                 check_interval = min(BACKGROUND_REFRESH_INTERVAL, 5) # Max. 5 seconds without checking the stop signal
                 remaining_time = BACKGROUND_REFRESH_INTERVAL
-                
+
                 while remaining_time > 0 and not stop_background_thread.is_set():
                     wait_time = min(check_interval, remaining_time)
                     if HAS_GEVENT:
@@ -568,29 +563,29 @@ def start_background_refresh(logger):
 def stop_background_refresh(logger):
     """Stops the background thread for cache updates"""
     global background_refresh_thread
-    
+
     logger.info("Stopping background Docker cache refresh thread")
-    
+
     # Set signal to stop
     stop_background_thread.set()
-    
+
     # If no thread is active, exit immediately
     if background_refresh_thread is None:
         logger.debug("No background thread to stop")
         return
-    
+
     try:
         # Copy thread reference for safety
         thread_to_join = background_refresh_thread
-        
+
         # Delete thread reference immediately to avoid an assertion in gevent.threading._ForkHooks
         # This must happen BEFORE the thread join
         background_refresh_thread = None
-        
+
         # Ensure the cache flag is reset
         with cache_lock:
             docker_cache['bg_refresh_running'] = False
-        
+
         # In Gevent-environment simply use greenlet.kill()
         if HAS_GEVENT and not thread_to_join.dead:
             try:
@@ -603,7 +598,7 @@ def stop_background_refresh(logger):
             try:
                 # Max 1 second wait - extended wait time can lead to blocking
                 thread_to_join.join(timeout=1.0)
-                
+
                 # Warning if thread does not end
                 if thread_to_join.is_alive():
                     logger.warning("Background thread did not terminate within timeout")
@@ -772,13 +767,13 @@ def set_initial_password_from_env():
     try:
         # Attempt to import config_loader dynamically, as it might also be refactored
         from services.config.config_service import load_config, save_config
-        
+
         config_path_check = os.path.join(_PROJECT_ROOT_HELPER, "config", "config.json")
         init_pass_logger.info(f"Attempting to load config from: {config_path_check} for initial password set.")
 
         config = load_config() # Assumes load_config knows its path or is configured
         current_hash = config.get('web_ui_password_hash')
-        
+
         # Check if password is the default "admin" or not set
         # The original check was: check_password_hash(current_hash, 'admin')
         # This requires a hash to be present. A safer check is if it's None or if it matches 'admin'.
@@ -801,7 +796,7 @@ def set_initial_password_from_env():
             init_pass_logger.info("Web UI password hash has been updated from environment variable.")
         else:
             init_pass_logger.debug("Web UI password already set to a non-default value. Skipping update from env var.")
-            
+
     except ImportError as e_imp:
         # Import errors (config service unavailable)
         init_pass_logger.error(f"Import error loading config service for initial password set: {e_imp}", exc_info=True)
@@ -810,4 +805,4 @@ def set_initial_password_from_env():
         init_pass_logger.error(f"Config file not found during initial password set: {e_fnf}", exc_info=True)
     except (ValueError, TypeError, KeyError, AttributeError, RuntimeError) as e:
         # Data/service errors (invalid config data, hash generation failures, save failures)
-        init_pass_logger.error(f"Error setting initial password: {e}", exc_info=True) 
+        init_pass_logger.error(f"Error setting initial password: {e}", exc_info=True)

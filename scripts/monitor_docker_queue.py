@@ -7,7 +7,6 @@ Displays real-time queue statistics for debugging and optimization.
 
 import sys
 import time
-import json
 from pathlib import Path
 import docker
 
@@ -19,21 +18,21 @@ def monitor_queue():
     try:
         from services.docker_service.docker_utils import USE_CONNECTION_POOL
         from services.docker_service.docker_client_pool import get_docker_client_service
-        
+
         if not USE_CONNECTION_POOL:
             print("❌ Connection pool not available")
             return
-        
+
         pool = get_docker_client_service()
         print("🔍 Docker Queue Monitor - Press Ctrl+C to exit")
         print("=" * 60)
-        
+
         while True:
             stats = pool.get_queue_stats()
-            
+
             # Clear screen (works on most terminals)
             print("\033[H\033[J", end="")
-            
+
             print(f"🔍 Docker Queue Statistics - {time.strftime('%H:%M:%S')}")
             print("=" * 60)
             print(f"📊 Pool Status:")
@@ -49,7 +48,7 @@ def monitor_queue():
             print(f"  • Average wait time:     {stats['average_wait_time']:.3f}s")
             print(f"  • Timeouts:              {stats['timeouts']}")
             print()
-            
+
             # Status indicator
             if stats['current_queue_size'] == 0:
                 status = "🟢 IDLE"
@@ -59,14 +58,14 @@ def monitor_queue():
                 status = "🟠 HIGH LOAD"
             else:
                 status = "🔴 VERY HIGH LOAD"
-            
+
             print(f"Status: {status}")
-            
+
             if stats['timeouts'] > 0:
                 print(f"⚠️  Warning: {stats['timeouts']} requests timed out")
-            
+
             time.sleep(2)  # Update every 2 seconds
-            
+
     except KeyboardInterrupt:
         print("\n\n👋 Monitoring stopped")
     except ImportError:

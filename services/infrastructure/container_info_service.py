@@ -32,7 +32,7 @@ class ContainerInfo:
     protected_enabled: bool
     protected_content: str
     protected_password: str
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'ContainerInfo':
         """Create ContainerInfo from dictionary data."""
@@ -46,7 +46,7 @@ class ContainerInfo:
             protected_content=str(data.get('protected_content', ''))[:250],  # Max 250 chars
             protected_password=str(data.get('protected_password', ''))[:60]   # Max 60 chars
         )
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert ContainerInfo to dictionary for storage."""
         return {
@@ -80,7 +80,7 @@ class ContainerInfoService:
         self.containers_dir = Path(base_dir) / "config" / "containers"
         self.config_file = Path(base_dir) / "config" / "docker_config.json"  # Keep for backward compatibility
         logger.info(f"Container info service initialized using container files in: {self.containers_dir}")
-    
+
     def get_container_info(self, container_name: str) -> ServiceResult:
         """Get container information by name from individual container JSON file.
 
@@ -133,7 +133,7 @@ class ContainerInfoService:
             error_msg = f"Error loading info for {container_name}: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
-    
+
     def save_container_info(self, container_name: str, container_info: ContainerInfo) -> ServiceResult:
         """Save container information to individual container JSON file.
 
@@ -185,7 +185,7 @@ class ContainerInfoService:
             error_msg = f"Error saving info for {container_name}: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
-    
+
     def delete_container_info(self, container_name: str) -> ServiceResult:
         """Reset container information to defaults in individual container JSON file.
 
@@ -244,7 +244,7 @@ class ContainerInfoService:
             error_msg = f"Error resetting info for {container_name}: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
-    
+
     def list_all_containers(self) -> ServiceResult:
         """List all containers from docker_config.json servers array.
 
@@ -284,7 +284,7 @@ _container_info_service = None
 
 def get_container_info_service() -> ContainerInfoService:
     """Get the global container info service instance.
-    
+
     Returns:
         ContainerInfoService instance
     """

@@ -14,4 +14,4 @@ COMMON_TIMEZONES = [
     "Asia/Tokyo", "Asia/Shanghai", "Australia/Sydney"
 ]
 
-# Add other global constants here as needed in the future 
+# Add other global constants here as needed in the future

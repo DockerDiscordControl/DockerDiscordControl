@@ -8,44 +8,43 @@
 
 import socket
 import subprocess
-import json
 import logging
 import os
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 class PortDiagnostics:
     """Diagnose port-related issues and provide solutions"""
-    
+
     EXPECTED_WEB_PORT = 9374  # Internal container port
     COMMON_EXTERNAL_PORTS = [8374, 9374, 8080, 8000]
-    
+
     def __init__(self):
         self.container_name = self._detect_container_name()
         self.host_info = self._get_host_info()
-    
+
     def _detect_container_name(self) -> Optional[str]:
         """Detect the current container name"""
         try:
             # Try to read from hostname (Docker sets this to container ID/name)
             with open('/etc/hostname', 'r') as f:
                 hostname = f.read().strip()
-            
+
             # Try to get container name from Docker API (if docker command is available)
             try:
                 result = subprocess.run([
                     'docker', 'inspect', hostname, '--format', '{{.Name}}'
                 ], capture_output=True, text=True, timeout=5)
-                
+
                 if result.returncode == 0:
                     name = result.stdout.strip().lstrip('/')
                     return name
             except (FileNotFoundError, subprocess.TimeoutExpired):
                 # Docker command not available or timeout - this is normal inside containers
                 pass
-            
+
             # Fall back to hostname or default name
             return hostname if hostname else "dockerdiscordcontrol"
         except (IOError, OSError) as e:
@@ -56,7 +55,7 @@ class PortDiagnostics:
             # Subprocess errors (docker inspect command failures)
             logger.debug(f"Subprocess error detecting container name: {e}", exc_info=True)
             return "dockerdiscordcontrol"
-    
+
     def _get_python_version(self) -> str:
         """Get Python version string."""
         try:
@@ -229,7 +228,7 @@ class PortDiagnostics:
             info['ddc_image_size'] = self._get_ddc_image_size()
 
         return info
-    
+
     def check_port_binding(self) -> Dict:
         """Check current port bindings for this container"""
         result = {
@@ -239,20 +238,20 @@ class PortDiagnostics:
             'issues': [],
             'solutions': []
         }
-        
+
         # Check if internal port is listening
         result['internal_port_listening'] = self._is_port_listening(self.EXPECTED_WEB_PORT)
-        
+
         if not result['internal_port_listening']:
             result['issues'].append(f"Web UI service not listening on internal port {self.EXPECTED_WEB_PORT}")
             result['solutions'].append("Check if gunicorn/web service is running: supervisorctl status webui")
             return result
-        
+
         # Get Docker port mappings if possible
         if self.container_name:
             mappings = self._get_docker_port_mappings()
             result['port_mappings'] = mappings
-            
+
             # Check for proper mapping
             web_port_mapped = False
             for internal_port, external_ports in mappings.items():
@@ -260,7 +259,7 @@ class PortDiagnostics:
                     web_port_mapped = True
                     result['external_ports'] = external_ports
                     break
-            
+
             if not web_port_mapped:
                 result['issues'].append(f"Port {self.EXPECTED_WEB_PORT} not mapped to any external port")
                 if self.host_info['is_unraid']:
@@ -273,9 +272,9 @@ class PortDiagnostics:
                     if not self._is_external_port_accessible(ext_port):
                         result['issues'].append(f"External port {ext_port} not accessible")
                         result['solutions'].append(f"Check firewall or host port conflicts for port {ext_port}")
-        
+
         return result
-    
+
     def _is_port_listening(self, port: int) -> bool:
         """Check if a port is listening locally"""
         try:
@@ -287,28 +286,28 @@ class PortDiagnostics:
             # Socket errors (connection failed)
             logger.debug(f"Socket error checking port {port}: {e}", exc_info=True)
             return False
-    
+
     def _is_external_port_accessible(self, port: int) -> bool:
         """Check if external port is accessible from outside"""
         # This would require more complex networking checks
         # For now, just return True if port mapping exists
         return True
-    
+
     def _get_docker_port_mappings(self) -> Dict:
         """Get Docker port mappings for this container"""
         try:
             if not self.container_name:
                 return {}
-            
+
             # Docker command may not be available inside container
             try:
                 result = subprocess.run([
                     'docker', 'port', self.container_name
                 ], capture_output=True, text=True, timeout=5)
-                
+
                 if result.returncode != 0:
                     return {}
-                
+
                 mappings = {}
                 for line in result.stdout.strip().split('\n'):
                     if line.strip():
@@ -318,14 +317,14 @@ class PortDiagnostics:
                             internal_port = match.group(1)
                             external_host = match.group(2)
                             external_port = match.group(3)
-                            
+
                             if internal_port not in mappings:
                                 mappings[internal_port] = []
                             mappings[internal_port].append({
                                 'host': external_host,
                                 'port': external_port
                             })
-                
+
                 return mappings
             except (FileNotFoundError, subprocess.TimeoutExpired):
                 # Docker command not available - this is normal inside containers
@@ -339,7 +338,7 @@ class PortDiagnostics:
             # Data parsing errors (port mapping parsing)
             logger.debug(f"Data parsing error parsing port mappings: {e}", exc_info=True)
             return {}
-    
+
     def _get_unraid_solutions(self) -> List[str]:
         """Get Unraid-specific solutions"""
         return [
@@ -348,7 +347,7 @@ class PortDiagnostics:
             "UNRAID FIX: Verify template shows: WebUI Port - Host: 8374, Container: 9374",
             f"UNRAID MANUAL: docker run -d --name {self.container_name or 'dockerdiscordcontrol'} -p 8374:9374 -v /var/run/docker.sock:/var/run/docker.sock dockerdiscordcontrol/dockerdiscordcontrol:latest"
         ]
-    
+
     def _get_docker_solutions(self) -> List[str]:
         """Get generic Docker solutions"""
         return [
@@ -357,7 +356,7 @@ class PortDiagnostics:
             "DOCKER FIX: Check if port 8374 is already in use: netstat -tlnp | grep 8374",
             "DOCKER FIX: Try alternative port: -p 8375:9374 or -p 8000:9374"
         ]
-    
+
     def get_diagnostic_report(self) -> Dict:
         """Generate complete diagnostic report"""
         report = {
@@ -367,7 +366,7 @@ class PortDiagnostics:
             'port_check': self.check_port_binding(),
             'recommendations': []
         }
-        
+
         # Add platform-specific recommendations
         if self.host_info['is_unraid']:
             report['recommendations'].extend([
@@ -381,38 +380,38 @@ class PortDiagnostics:
                 "Check firewall settings for port 8374",
                 "Access Web UI at: http://localhost:8374 (default: admin/admin)"
             ])
-        
+
         return report
-    
+
     def log_startup_diagnostics(self):
         """Log diagnostic information at startup"""
         report = self.get_diagnostic_report()
-        
+
         logger.info("=== DDC Port Diagnostics ===")
         logger.info(f"Container: {report['container_name'] or 'Unknown'}")
         logger.info(f"Platform: {report['host_info']['platform']}")
         logger.info(f"Internal Web UI Port {self.EXPECTED_WEB_PORT}: {'LISTENING' if report['port_check']['internal_port_listening'] else 'NOT LISTENING'}")
-        
+
         if report['port_check']['port_mappings']:
             logger.info(f"Port Mappings: {report['port_check']['port_mappings']}")
         else:
             logger.warning("No port mappings detected - Web UI may not be accessible externally")
-        
+
         # Log issues and solutions
         if report['port_check']['issues']:
             logger.warning("PORT ISSUES DETECTED:")
             for issue in report['port_check']['issues']:
                 logger.warning(f"  WARNING: {issue}")
-            
+
             logger.info("SUGGESTED SOLUTIONS:")
             for solution in report['port_check']['solutions']:
                 logger.info(f"  SOLUTION: {solution}")
         else:
             logger.info("Port configuration appears correct")
-        
+
         # Log access information with actual IP resolution
         actual_host_ip = self._get_actual_host_ip()
-        
+
         if report['port_check']['external_ports']:
             for port_info in report['port_check']['external_ports']:
                 if isinstance(port_info, dict):
@@ -432,11 +431,11 @@ class PortDiagnostics:
         else:
             host = actual_host_ip or 'localhost'
             logger.info(f"Web UI should be accessible at: http://{host}:8374")
-        
+
         logger.info("=== End Diagnostics ===")
-        
+
         return report
-    
+
     def _try_environment_variable_ip(self) -> Optional[str]:
         """Try to get host IP from environment variables."""
         import os
@@ -552,7 +551,7 @@ class PortDiagnostics:
             logger.debug(f"Error during host IP detection: {e}", exc_info=True)
 
         return None
-    
+
     def _test_if_this_is_our_host(self, ip: str) -> bool:
         """Test if the given IP is likely our Docker host by trying to connect to our web service."""
         try:
@@ -569,7 +568,7 @@ class PortDiagnostics:
                     except (socket.error, OSError):
                         # Socket errors (connection failed)
                         continue
-                        
+
             # Alternative: Try to see if this IP responds to HTTP on our expected ports
             import subprocess
             try:

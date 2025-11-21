@@ -271,4 +271,4 @@ def clear_logs():
     except (ValueError, TypeError, KeyError) as e:
         # Data errors (invalid request parameters, response processing failures, JSON parsing)
         current_app.logger.error(f"Data error in clear_logs route: {e}", exc_info=True)
-        return jsonify({'success': False, 'message': 'Data error occurred'}), 500 
+        return jsonify({'success': False, 'message': 'Data error occurred'}), 500

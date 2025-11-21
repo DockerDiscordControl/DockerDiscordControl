@@ -183,7 +183,7 @@ def update_task_status():
     except (ValueError, TypeError, KeyError) as e:
         # Data errors (invalid request data, JSON parsing, task data processing)
         current_app.logger.error(f"Data error in update_task_status route: {e}", exc_info=True)
-        return jsonify({"success": False, "error": "Data error updating task status"}), 500 
+        return jsonify({"success": False, "error": "Data error updating task status"}), 500
 
 @tasks_bp.route('/delete/<task_id>', methods=['DELETE'])
 def delete_task_route(task_id):
@@ -290,4 +290,4 @@ def edit_task_route(task_id):
     except (ValueError, TypeError, KeyError) as e:
         # Data errors (invalid request data, JSON parsing, task data processing)
         current_app.logger.error(f"Data error in edit_task_route: {e}", exc_info=True)
-        return jsonify({"success": False, "error": "Data error editing task"}), 500 
+        return jsonify({"success": False, "error": "Data error editing task"}), 500

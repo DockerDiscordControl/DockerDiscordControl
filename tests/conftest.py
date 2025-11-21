@@ -46,7 +46,7 @@ def temp_config_dir():
 def mock_docker_client():
     """Mock Docker client for testing without real Docker daemon."""
     mock_client = Mock()
-    
+
     # Mock containers list
     mock_container = Mock()
     mock_container.name = "test_container"
@@ -56,10 +56,10 @@ def mock_docker_client():
         "Config": {"Image": "nginx:latest"},
         "NetworkSettings": {"IPAddress": "172.17.0.2"}
     }
-    
+
     mock_client.containers.list.return_value = [mock_container]
     mock_client.containers.get.return_value = mock_container
-    
+
     return mock_client
 
 
@@ -112,12 +112,12 @@ def sample_mech_state():
 def mock_flask_app():
     """Mock Flask application for Web UI testing."""
     from flask import Flask
-    
+
     app = Flask(__name__)
     app.config['TESTING'] = True
     app.config['SECRET_KEY'] = 'test-secret-key'
     app.config['WTF_CSRF_ENABLED'] = False
-    
+
     with app.app_context():
         yield app
 
@@ -151,7 +151,7 @@ def performance_containers(request):
     """Generate mock containers for performance testing."""
     container_count = getattr(request, 'param', 50)
     containers = []
-    
+
     for i in range(container_count):
         container = Mock()
         container.name = f"test_container_{i:03d}"
@@ -165,7 +165,7 @@ def performance_containers(request):
             "NetworkSettings": {"IPAddress": f"172.17.0.{i + 2}"}
         }
         containers.append(container)
-    
+
     return containers
 
 

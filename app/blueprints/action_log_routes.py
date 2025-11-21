@@ -21,27 +21,27 @@ except ImportError:
     # Simple rate limiting for log requests
     _last_log_request = {}  # IP -> timestamp
     _min_request_interval = 60.0  # Increased to 60 seconds to match client-side auto-refresh interval
-    
+
     def rate_limit(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             # Get client IP (simplified)
             client_ip = request.remote_addr if 'request' in globals() else 'unknown'
-            
+
             # Check if the last request from this IP was too recent
             current_time = time.time()
             if client_ip in _last_log_request:
                 elapsed = current_time - _last_log_request[client_ip]
                 if elapsed < _min_request_interval:
                     return Response(
-                        "TOO MANY REQUESTS: Please wait before requesting logs again.", 
-                        status=429, 
+                        "TOO MANY REQUESTS: Please wait before requesting logs again.",
+                        status=429,
                         mimetype='text/plain'
                     )
-            
+
             # Update the timestamp of the last request
             _last_log_request[client_ip] = current_time
-            
+
             return f(*args, **kwargs)
         return decorated_function
 
@@ -84,7 +84,7 @@ def download_action_log():
         flash('Action log file not found. Cannot download.', 'error')
         # Redirect to a relevant page, e.g., the main config page or a dedicated logs page
         # Assuming 'main_bp.config_page' is the route for '/'. Adjust if namespace/name is different after BP registration.
-        return redirect(url_for('main_bp.config_page')) 
+        return redirect(url_for('main_bp.config_page'))
 
 @action_log_bp.route('/clear-action-log', methods=['POST'])
 @auth.login_required
@@ -107,4 +107,4 @@ def clear_action_log():
         # Data errors (encoding issues, timestamp formatting, session data issues)
         logger.error(f"Data error clearing action log: {e}", exc_info=True)
         flash('Error clearing action log. Please check the logs for details.', 'error')
-        return jsonify({'success': False, 'message': 'Error clearing action log. Please check the logs for details.'}) 
+        return jsonify({'success': False, 'message': 'Error clearing action log. Please check the logs for details.'})

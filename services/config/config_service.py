@@ -128,10 +128,10 @@ class ConfigService:
         * :class:`ConfigCacheService` - Configuration caching
         * :class:`ConfigMigrationService` - Configuration migration
     """
-    
+
     _instance = None
     _lock = Lock()
-    
+
     def __new__(cls):
         if cls._instance is None:
             with cls._lock:
@@ -139,7 +139,7 @@ class ConfigService:
                     cls._instance = super(ConfigService, cls).__new__(cls)
                     cls._instance._initialized = False
         return cls._instance
-    
+
     def __init__(self):
         if self._initialized:
             return
@@ -201,10 +201,10 @@ class ConfigService:
             self._load_json_file,
             self._save_json_file
         )
-    
-    
+
+
     # === Core Configuration Methods ===
-    
+
     def get_config(self, force_reload: bool = False) -> Dict[str, Any]:
         """Get unified configuration from all config files.
 
@@ -289,7 +289,7 @@ class ConfigService:
         self._cache_service.set_cached_config(cache_key, config, self.config_dir)
 
         return config
-    
+
     def save_config(self, config: Dict[str, Any]) -> ConfigServiceResult:
         """
         Save main configuration to config/config.json using atomic write pattern.
@@ -404,9 +404,9 @@ class ConfigService:
                     error_code="CONFIG_SAVE_DATA_ERROR",
                     details={'config_keys': list(config.keys()) if config else []}
                 )
-    
+
     # === Token Encryption Methods ===
-    
+
     def encrypt_token(self, plaintext_token: str, password_hash: str) -> Optional[str]:
         """Encrypt a Discord bot token using password hash."""
         if not plaintext_token or not password_hash:
@@ -443,7 +443,7 @@ class ConfigService:
                 error_code="TOKEN_ENCRYPTION_TYPE_ERROR",
                 details={'error': str(e)}
             )
-    
+
     def decrypt_token(self, encrypted_token: str, password_hash: str) -> Optional[str]:
         """Decrypt a Discord bot token using password hash."""
         if not encrypted_token or not password_hash:
@@ -505,9 +505,9 @@ class ConfigService:
                 error_code="TOKEN_DECRYPTION_TYPE_ERROR",
                 details={'error': str(e)}
             )
-    
+
     # === Private Helper Methods ===
-    
+
     def _load_json_file(self, file_path: Path, default: Dict[str, Any]) -> Dict[str, Any]:
         """Load JSON file with fallback to defaults."""
         try:
@@ -531,7 +531,7 @@ class ConfigService:
             logger.error(f"Data format error loading {file_path}: {e}", exc_info=True)
             # Return defaults on data format errors
             return default.copy()
-    
+
     def _save_json_file(self, file_path: Path, data: Dict[str, Any]) -> None:
         """Save data to JSON file atomically to prevent corruption."""
         # Create temp file in same directory as target file
@@ -561,7 +561,7 @@ class ConfigService:
                 except OSError:
                     pass  # Best effort cleanup
             raise
-    
+
     def _decrypt_token_if_needed(self, token: str, password_hash: Optional[str]) -> Optional[str]:
         """Decrypt token if it's encrypted, otherwise return as-is."""
         if not token:
@@ -581,7 +581,7 @@ class ConfigService:
 
         # Return plaintext token as-is if it looks like a Discord token
         return token
-    
+
     def _migrate_legacy_config_if_needed(self) -> None:
         """
         Migrate v1.1.x config.json to v2.0 modular structure.
@@ -595,8 +595,8 @@ class ConfigService:
             self._validation_service.extract_web_config,
             self._validation_service.extract_channels_config
         )
-    
-    
+
+
 
     # === SERVICE FIRST Methods ===
 

@@ -33,7 +33,7 @@ class ContainerInfoAdminView(discord.ui.View):
     """
     Admin view for container info with Edit and Debug buttons (control channels only).
     """
-    
+
     def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any], message=None):
         # Set timeout to maximum (just under Discord's 15-minute limit)
         super().__init__(timeout=890)  # 14.8 minutes timeout
@@ -43,16 +43,16 @@ class ContainerInfoAdminView(discord.ui.View):
         self.container_name = server_config.get('docker_name')
         self.message = message  # Store reference to the message for auto-delete
         self.auto_delete_task = None
-        
+
         # Add Edit Info button
         self.add_item(EditInfoButton(cog_instance, server_config, info_config))
-        
+
         # Add Protected Info Edit button (for editing protected info settings)
         self.add_item(ProtectedInfoEditButton(cog_instance, server_config, info_config))
-        
+
         # Add Task Management button
         self.add_item(TaskManagementButton(cog_instance, server_config))
-        
+
         # Add Debug button
         self.add_item(DebugLogsButton(cog_instance, server_config))
 
@@ -62,7 +62,7 @@ class ContainerInfoAdminView(discord.ui.View):
             # Cancel auto-delete task if it exists
             if self.auto_delete_task and not self.auto_delete_task.done():
                 self.auto_delete_task.cancel()
-            
+
             # Delete the message when timeout occurs
             if self.message:
                 logger.info("ContainerInfoAdminView timeout reached, deleting message to prevent inactive buttons")
@@ -74,7 +74,7 @@ class ContainerInfoAdminView(discord.ui.View):
                     logger.error(f"Error deleting info message on timeout: {e}", exc_info=True)
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in ContainerInfoAdminView.on_timeout: {e}", exc_info=True)
-    
+
     async def start_auto_delete_timer(self):
         """Start the auto-delete timer that runs shortly before timeout."""
         try:
@@ -93,11 +93,11 @@ class ContainerInfoAdminView(discord.ui.View):
             logger.debug("Auto-delete timer cancelled")
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in auto-delete timer: {e}", exc_info=True)
-        
+
 
 class ProtectedInfoEditButton(discord.ui.Button):
     """Protected Info Edit button for managing protected container information."""
-    
+
     def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any]):
         super().__init__(
             style=discord.ButtonStyle.secondary,
@@ -109,13 +109,13 @@ class ProtectedInfoEditButton(discord.ui.Button):
         self.server_config = server_config
         self.info_config = info_config
         self.container_name = server_config.get('docker_name')
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle protected info edit button click."""
-        # Check button cooldown first  
+        # Check button cooldown first
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
-        
+
         if spam_manager.is_enabled():
             cooldown_seconds = spam_manager.get_button_cooldown("info")
             current_time = time.time()
@@ -142,19 +142,19 @@ class ProtectedInfoEditButton(discord.ui.Button):
         try:
             # Import modal from enhanced_info_modal_simple
             from .enhanced_info_modal_simple import ProtectedInfoModal
-            
+
             # Get display name
             display_name = self.server_config.get('name', self.container_name)
-            
+
             modal = ProtectedInfoModal(
                 self.cog,
                 container_name=self.container_name,
                 display_name=display_name
             )
-            
+
             await interaction.response.send_modal(modal)
             logger.info(f"Opened protected info edit modal for {self.container_name} for user {interaction.user.id}")
-            
+
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error opening protected info edit modal for {self.container_name}: {e}", exc_info=True)
             try:
@@ -167,7 +167,7 @@ class ProtectedInfoEditButton(discord.ui.Button):
 
 class EditInfoButton(discord.ui.Button):
     """Edit Info button for container info admin view."""
-    
+
     def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any]):
         super().__init__(
             style=discord.ButtonStyle.secondary,
@@ -179,13 +179,13 @@ class EditInfoButton(discord.ui.Button):
         self.server_config = server_config
         self.info_config = info_config
         self.container_name = server_config.get('docker_name')
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle edit info button click."""
-        # Check button cooldown first  
+        # Check button cooldown first
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
-        
+
         if spam_manager.is_enabled():
             cooldown_seconds = spam_manager.get_button_cooldown("info")
             current_time = time.time()
@@ -212,19 +212,19 @@ class EditInfoButton(discord.ui.Button):
         try:
             # Import modal from enhanced_info_modal_simple
             from .enhanced_info_modal_simple import SimplifiedContainerInfoModal
-            
+
             # Get display name
             display_name = self.server_config.get('name', self.container_name)
-            
+
             modal = SimplifiedContainerInfoModal(
                 self.cog,
                 container_name=self.container_name,
                 display_name=display_name
             )
-            
+
             await interaction.response.send_modal(modal)
             logger.info(f"Opened edit info modal for {self.container_name} for user {interaction.user.id}")
-            
+
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error opening edit info modal for {self.container_name}: {e}", exc_info=True)
             try:
@@ -237,13 +237,13 @@ class EditInfoButton(discord.ui.Button):
 
 class LiveLogView(discord.ui.View):
     """View for live-updating debug logs with refresh controls."""
-    
+
     def __init__(self, container_name: str, auto_refresh: bool = False):
         # Get configuration from environment variables
         timeout_seconds = int(os.getenv('DDC_LIVE_LOGS_TIMEOUT', '120'))
         self.refresh_interval = int(os.getenv('DDC_LIVE_LOGS_REFRESH_INTERVAL', '5'))
         self.max_refreshes = int(os.getenv('DDC_LIVE_LOGS_MAX_REFRESHES', '12'))
-        
+
         # Set timeout to 5 minutes, but auto-recreate before timeout
         super().__init__(timeout=300)
         self.container_name = container_name
@@ -253,18 +253,18 @@ class LiveLogView(discord.ui.View):
         self.message_ref = None  # Store message reference
         self.cog_instance = None  # Will be set when needed
         self.recreation_task = None  # Task for auto-recreation
-        
+
         # Create all buttons in the correct order
         self._create_all_buttons()
-        
+
         # Start auto-recreation task (recreate 30 seconds before timeout)
         self._start_auto_recreation()
-    
+
     def _create_all_buttons(self):
         """Create all buttons in the correct order: Refresh, Start/Stop, Close."""
         # Clear all existing buttons
         self.clear_items()
-        
+
         # 1. Refresh Button (Manual refresh)
         refresh_button = discord.ui.Button(
             emoji="🔄",
@@ -273,7 +273,7 @@ class LiveLogView(discord.ui.View):
         )
         refresh_button.callback = self.manual_refresh
         self.add_item(refresh_button)
-        
+
         # 2. Start/Stop Toggle Button
         if self.auto_refresh_enabled:
             # Auto-refresh is ON - show STOP button
@@ -283,7 +283,7 @@ class LiveLogView(discord.ui.View):
             # Auto-refresh is OFF - show PLAY button
             button_emoji = "▶️"
             button_style = discord.ButtonStyle.secondary
-        
+
         toggle_button = discord.ui.Button(
             emoji=button_emoji,
             style=button_style,
@@ -291,46 +291,46 @@ class LiveLogView(discord.ui.View):
         )
         toggle_button.callback = self.toggle_updates
         self.add_item(toggle_button)
-        
-    
+
+
     def _start_auto_recreation(self):
         """Start auto-recreation task to refresh the view before timeout."""
         import asyncio
         # Recreate 30 seconds before timeout (300s - 30s = 270s)
         self.recreation_task = asyncio.create_task(self._auto_recreation_loop())
-    
+
     async def _auto_recreation_loop(self):
         """Auto-recreation loop that refreshes the view before timeout."""
         import asyncio
         try:
             # Wait for 270 seconds (30 seconds before timeout)
             await asyncio.sleep(270)
-            
+
             # Only recreate if we have a message reference and the view is still active
             if self.message_ref and not self.is_finished():
                 await self._recreate_view()
-                
+
         except asyncio.CancelledError:
             logger.debug("Auto-recreation cancelled")
         except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"Auto-recreation error: {e}", exc_info=True)
-    
+
     async def _recreate_view(self):
         """Recreate the Live Logs message with a fresh view."""
         try:
             if not self.message_ref:
                 return
-            
+
             logger.info(f"Auto-recreating Live Logs view for container {self.container_name}")
-            
+
             # Get current logs
             logs = await self._get_container_logs()
-            
+
             # Create new view with same state
             new_view = LiveLogView(self.container_name, self.auto_refresh_enabled)
             new_view.refresh_count = self.refresh_count
             new_view.cog_instance = self.cog_instance
-            
+
             # Determine embed based on current state
             if self.auto_refresh_enabled and self.auto_refresh_task and not self.auto_refresh_task.done():
                 # Auto-refresh is currently running
@@ -351,54 +351,54 @@ class LiveLogView(discord.ui.View):
                     timestamp=datetime.now(timezone.utc)
                 )
                 embed.set_footer(text="📄 Static logs • Click ▶️ to start live updates")
-            
+
             # Edit the message with new view
             await self.message_ref.edit(embed=embed, view=new_view)
-            
+
             # Transfer message reference to new view
             new_view.message_ref = self.message_ref
-            
+
             # Transfer auto-refresh task if running
             if self.auto_refresh_enabled and self.auto_refresh_task and not self.auto_refresh_task.done():
                 # Cancel old task and start new one on new view
                 self.auto_refresh_task.cancel()
                 await new_view.start_auto_refresh(self.message_ref)
-            
+
             # Cancel our own tasks since we're being replaced
             if self.auto_refresh_task:
                 self.auto_refresh_task.cancel()
             if self.recreation_task:
                 self.recreation_task.cancel()
-                
+
             logger.info(f"Successfully recreated Live Logs view for container {self.container_name}")
-            
+
         except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"Failed to recreate Live Logs view for {self.container_name}: {e}", exc_info=True)
-    
+
     async def start_auto_refresh(self, message):
         """Start auto-refresh task for live updates."""
         if not self.auto_refresh_enabled:
             return
-            
+
         import asyncio
         self.message_ref = message
         self.auto_refresh_task = asyncio.create_task(
             self._auto_refresh_loop()
         )
-    
+
     async def _auto_refresh_loop(self):
         """Auto-refresh loop that updates logs at configured intervals."""
         import asyncio
-        
+
         try:
             while self.refresh_count < self.max_refreshes and self.auto_refresh_enabled:
                 await asyncio.sleep(self.refresh_interval)  # Wait configured interval
-                
+
                 self.refresh_count += 1
-                
+
                 # Get updated logs
                 logs = await self._get_container_logs()
-                
+
                 if logs and self.message_ref:
                     # Update embed
                     embed = discord.Embed(
@@ -407,9 +407,9 @@ class LiveLogView(discord.ui.View):
                         color=0x00ff00,
                         timestamp=datetime.now(timezone.utc)
                     )
-                    
+
                     remaining = self.max_refreshes - self.refresh_count
-                    
+
                     if remaining > 0:
                         embed.set_footer(text=f"🔄 Auto-refreshing every {self.refresh_interval}s • {remaining} updates remaining")
                     else:
@@ -419,7 +419,7 @@ class LiveLogView(discord.ui.View):
                         self.auto_refresh_task = None  # Clear task reference
                         # Recreate all buttons with correct state (Stop -> Play)
                         self._create_all_buttons()
-                    
+
                     # Update message
                     try:
                         logger.debug(f"Auto-refresh updating message {self.message_ref.id} for container {self.container_name}")
@@ -427,7 +427,7 @@ class LiveLogView(discord.ui.View):
                     except (discord.errors.DiscordException, RuntimeError, OSError) as e:
                         logger.error(f"Auto-refresh update failed for message {self.message_ref.id}: {e}", exc_info=True)
                         break
-            
+
             # Ensure cleanup after loop ends
             if self.auto_refresh_enabled:
                 self.auto_refresh_enabled = False
@@ -439,47 +439,47 @@ class LiveLogView(discord.ui.View):
                         await self.message_ref.edit(view=self)
                     except (discord.errors.HTTPException, discord.errors.NotFound) as e:
                         logger.debug(f"Failed to update buttons after auto-refresh end: {e}")
-                        
+
         except asyncio.CancelledError:
             logger.debug("Auto-refresh cancelled")
         except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"Auto-refresh error: {e}", exc_info=True)
-    
+
     async def manual_refresh(self, interaction: discord.Interaction):
         """Manual refresh button."""
         # Check button cooldown first
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
-        
+
         if spam_manager.is_enabled():
             cooldown_seconds = spam_manager.get_button_cooldown("live_refresh")
             current_time = time.time()
             cooldown_key = f"button_refresh_{interaction.user.id}"
-            
+
             # Simple cooldown tracking on the view
             if not hasattr(self, '_button_cooldowns'):
                 self._button_cooldowns = {}
-            
+
             if cooldown_key in self._button_cooldowns:
                 last_use = self._button_cooldowns[cooldown_key]
                 if current_time - last_use < cooldown_seconds:
                     remaining = cooldown_seconds - (current_time - last_use)
                     await interaction.response.send_message(
-                        f"⏰ Please wait {remaining:.1f} more seconds before refreshing again.", 
+                        f"⏰ Please wait {remaining:.1f} more seconds before refreshing again.",
                         ephemeral=True
                     )
                     return
-            
+
             # Record button use
             self._button_cooldowns[cooldown_key] = current_time
-        
+
         try:
             # Immediately send response to avoid timeout
             await interaction.response.send_message(_("🔄 Refreshing logs..."), ephemeral=True, delete_after=1)
-            
+
             # Get updated logs
             logs = await self._get_container_logs()
-            
+
             if logs and self.message_ref:
                 # Update the existing message for public messages
                 embed = discord.Embed(
@@ -489,7 +489,7 @@ class LiveLogView(discord.ui.View):
                     timestamp=datetime.now(timezone.utc)
                 )
                 embed.set_footer(text="🔄 Manually refreshed • Click again to update")
-                
+
                 try:
                     await self.message_ref.edit(embed=embed, view=self)
                     # Log refresh is visible in the message update, no additional confirmation needed
@@ -497,25 +497,25 @@ class LiveLogView(discord.ui.View):
                     logger.debug(f"Manual refresh edit failed: {edit_error}")
             else:
                 logger.warning("Manual refresh failed - no logs retrieved")
-                
+
         except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"Manual refresh error: {e}", exc_info=True)
-    
+
     async def toggle_updates(self, interaction: discord.Interaction):
         """Toggle auto-refresh updates - stop or start based on current state."""
         try:
             # Immediately send response to avoid timeout
             await interaction.response.send_message(_("⏳ Updating..."), ephemeral=True, delete_after=1)
-            
+
             # Check current state and toggle
             if self.auto_refresh_enabled and self.auto_refresh_task:
                 # Currently running - STOP
                 self.auto_refresh_task.cancel()
                 self.auto_refresh_enabled = False
-                
+
                 # Update button state
                 self._create_all_buttons()
-                
+
                 # Update embed
                 if self.message_ref:
                     logs = await self._get_container_logs()
@@ -526,22 +526,22 @@ class LiveLogView(discord.ui.View):
                         timestamp=datetime.now(timezone.utc)
                     )
                     embed.set_footer(text="⏹️ Auto-refresh stopped • Click Start to restart")
-                    
+
                     try:
                         await self.message_ref.edit(embed=embed, view=self)
                     except (discord.errors.HTTPException, discord.errors.NotFound) as e:
                         logger.debug(f"Failed to update message after stop: {e}")
                 else:
                     logger.debug("Auto-refresh stopped but no message reference")
-                    
+
             else:
                 # Currently stopped - START
                 self.refresh_count = 0
                 self.auto_refresh_enabled = True
-                
+
                 # Update button state
                 self._create_all_buttons()
-                
+
                 # Update embed and restart auto-refresh
                 if self.message_ref:
                     logs = await self._get_container_logs()
@@ -552,26 +552,26 @@ class LiveLogView(discord.ui.View):
                         timestamp=datetime.now(timezone.utc)
                     )
                     embed.set_footer(text=f"▶️ Auto-refresh restarted • Updating every {self.refresh_interval} seconds")
-                    
+
                     try:
                         await self.message_ref.edit(embed=embed, view=self)
-                        
+
                         # Restart auto-refresh task
                         import asyncio
                         self.auto_refresh_task = asyncio.create_task(
                             self._auto_refresh_loop()
                         )
-                        
+
                         pass  # Successful restart is visible in the message update
                     except (discord.errors.HTTPException, discord.errors.NotFound) as e:
                         logger.debug(f"Failed to update message after restart: {e}")
                 else:
                     logger.debug("Auto-refresh restarted but no message reference")
-            
+
         except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"Toggle updates error: {e}", exc_info=True)
-    
-    
+
+
     async def on_timeout(self):
         """Handle view timeout by disabling buttons."""
         try:
@@ -579,16 +579,16 @@ class LiveLogView(discord.ui.View):
             if self.auto_refresh_task:
                 self.auto_refresh_task.cancel()
                 self.auto_refresh_enabled = False
-            
+
             # Cancel recreation task if running
             if self.recreation_task:
                 self.recreation_task.cancel()
-            
+
             # Disable all buttons to show the view has timed out
             for item in self.children:
                 if hasattr(item, 'disabled'):
                     item.disabled = True
-            
+
             # Update the message to show buttons are disabled
             if self.message_ref:
                 try:
@@ -603,7 +603,7 @@ class LiveLogView(discord.ui.View):
                     logger.debug(f"Failed to update message on timeout: {e}")
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in on_timeout: {e}", exc_info=True)
-    
+
     async def _get_container_logs(self) -> str:
         """Get the last 50 log lines for the container."""
         try:
@@ -644,7 +644,7 @@ class LiveLogView(discord.ui.View):
 
 class DebugLogsButton(discord.ui.Button):
     """Debug logs button for container info admin view with live updates."""
-    
+
     def __init__(self, cog_instance, server_config: Dict[str, Any]):
         super().__init__(
             style=discord.ButtonStyle.secondary,
@@ -655,7 +655,7 @@ class DebugLogsButton(discord.ui.Button):
         self.cog = cog_instance
         self.server_config = server_config
         self.container_name = server_config.get('docker_name')
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle debug logs button click with live-updating response."""
         try:
@@ -706,20 +706,20 @@ class DebugLogsButton(discord.ui.Button):
                     ephemeral=True
                 )
                 return
-            
+
             logger.info(f"Live debug logs (ephemeral) requested for container: {self.container_name}")
-            
+
             # Check if auto-start is enabled via environment variable
             auto_start_enabled = os.getenv('DDC_LIVE_LOGS_AUTO_START', 'false').lower() in ['true', '1', 'on', 'yes']
-            
+
             # Get initial logs
             log_lines = await self._get_container_logs()
-            
+
             if log_lines:
                 # Create live log view - auto-refresh based on setting
                 view = LiveLogView(self.container_name, auto_refresh=auto_start_enabled)
                 view.cog_instance = self.cog  # Set cog reference for recreation
-                
+
                 # Create debug embed with appropriate title and color
                 if auto_start_enabled:
                     # Auto-start enabled - show live indicator
@@ -737,10 +737,10 @@ class DebugLogsButton(discord.ui.Button):
                         color=0x808080  # Gray for static
                     )
                     embed.set_footer(text=_("https://ddc.bot • Click ▶️ to start live updates"))
-                
+
                 # Send ephemeral message
                 message = await interaction.followup.send(embed=embed, view=view, ephemeral=True)
-                
+
                 if auto_start_enabled:
                     logger.info(f"Created live debug message (ephemeral) with auto-refresh for container {self.container_name}")
                     # Start auto-refresh
@@ -749,14 +749,14 @@ class DebugLogsButton(discord.ui.Button):
                     logger.info(f"Created static debug message (ephemeral) for container {self.container_name} - auto-start disabled")
                     # Store message reference for manual start later
                     view.message_ref = message
-                
+
                 logger.info(f"Debug logs displayed for {self.container_name} for user {interaction.user.id} (auto-start: {auto_start_enabled})")
             else:
                 await interaction.followup.send(
                     "❌ Could not retrieve debug logs for this container.",
                     ephemeral=True
                 )
-            
+
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error getting live debug logs for {self.container_name}: {e}", exc_info=True)
             try:
@@ -772,7 +772,7 @@ class DebugLogsButton(discord.ui.Button):
                     )
             except:
                 pass
-    
+
     async def _get_container_logs(self) -> str:
         """Get the last 50 log lines for the container."""
         try:
@@ -816,23 +816,23 @@ class StatusInfoView(discord.ui.View):
     View for status-only channels that provides info display without control buttons.
     Only shows info button when container has info enabled.
     """
-    
+
     def __init__(self, cog_instance, server_config: Dict[str, Any], is_running: bool):
         super().__init__(timeout=None)  # Persistent view
         self.cog = cog_instance
         self.server_config = server_config
         self.is_running = is_running
         self.container_name = server_config.get('docker_name')
-        
+
         # Load container info to check if info is enabled
         info_service = get_container_info_service()
         info_result = info_service.get_container_info(self.container_name)
         self.info_config = info_result.data.to_dict() if info_result.success else {}
-        
+
         # Only add info button if info is enabled
         if self.info_config.get('enabled', False):
             self.add_item(StatusInfoButton(cog_instance, server_config, self.info_config))
-        
+
         # Add Protected Info button if protected info is enabled (for password validation)
         if self.info_config.get('protected_enabled', False):
             self.add_item(ProtectedInfoButton(cog_instance, server_config, self.info_config))
@@ -841,27 +841,27 @@ class ProtectedInfoOnlyView(discord.ui.View):
     """
     View for /info command in status channels that only shows protected info button.
     """
-    
+
     def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any]):
         super().__init__(timeout=1800)  # 30 minute timeout
         self.cog = cog_instance
         self.server_config = server_config
         self.info_config = info_config
-        
+
         # Only add Protected Info button (no regular info button since we're already showing info)
         if self.info_config.get('protected_enabled', False):
             self.add_item(ProtectedInfoButton(cog_instance, server_config, self.info_config))
-    
+
 class StatusInfoButton(discord.ui.Button):
     """
     Info button for status channels - shows container info in ephemeral message.
     """
-    
+
     def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any]):
         # Truncate container name for mobile display (max 20 chars)
         display_name = server_config.get('name', server_config.get('docker_name', 'Container'))
         truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
-        
+
         super().__init__(
             style=discord.ButtonStyle.secondary,
             emoji="ℹ️",
@@ -872,21 +872,21 @@ class StatusInfoButton(discord.ui.Button):
         self.server_config = server_config
         self.info_config = info_config
         self.container_name = server_config.get('docker_name')
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle info button click - show ephemeral info embed."""
         try:
             await interaction.response.defer(ephemeral=True)
-            
+
             # Check if this is a control channel
             from .control_helpers import _channel_has_permission
-                        
+
             config = load_config()
             has_control = _channel_has_permission(interaction.channel_id, 'control', config) if config else False
-            
+
             # Generate info embed (with protected info if in control channel)
             embed = await self._generate_info_embed(include_protected=has_control)
-            
+
             # Enhanced debug logging
             logger.info(f"StatusInfoButton callback - Channel ID: {interaction.channel_id} (type: {type(interaction.channel_id)}), has_control: {has_control}")
             if config:
@@ -898,7 +898,7 @@ class StatusInfoButton(discord.ui.Button):
                 logger.info(f"Direct _channel_has_permission test result: {test_result}")
             else:
                 logger.warning("Config is None or empty!")
-            
+
             # Create view with admin buttons if in control channel
             view = None
             if has_control:
@@ -913,7 +913,7 @@ class StatusInfoButton(discord.ui.Button):
             else:
                 await interaction.followup.send(embed=embed, ephemeral=True)
             logger.info(f"Displayed container info for {self.container_name} to user {interaction.user.id} (control: {has_control})")
-            
+
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in status info callback for {self.container_name}: {e}", exc_info=True)
             try:
@@ -925,65 +925,65 @@ class StatusInfoButton(discord.ui.Button):
                 await interaction.followup.send(embed=error_embed, ephemeral=True)
             except:
                 pass  # Ignore errors in error handling
-    
+
     async def _generate_info_embed(self, include_protected: bool = False) -> discord.Embed:
         """Generate the container info embed for display.
-        
+
         Args:
             include_protected: Whether to include protected information (for control channels)
         """
         display_name = self.server_config.get('name', self.container_name)
-        
+
         # Load fresh container info data to get latest protected info
         from services.infrastructure.container_info_service import get_container_info_service
         info_service = get_container_info_service()
         info_result = info_service.get_container_info(self.container_name)
         fresh_info_config = info_result.data.to_dict() if info_result.success else self.info_config
-        
+
         # Create embed with container branding
         embed = discord.Embed(
             title=f"📋 {display_name} - Container Info",
             color=0x3498db
         )
-        
+
         # Build description content
         description_parts = []
-        
+
         # Add custom text if provided
         custom_text = fresh_info_config.get('custom_text', '').strip()
         if custom_text:
             description_parts.append(f"{custom_text}")
-        
+
         # Add IP information if enabled
         if fresh_info_config.get('show_ip', False):
             ip_info = await self._get_ip_info(fresh_info_config)
             if ip_info:
                 description_parts.append(ip_info)
-        
+
         # Add protected information if in control channel and enabled
         if include_protected and fresh_info_config.get('protected_enabled', False):
             protected_content = fresh_info_config.get('protected_content', '').strip()
             if protected_content:
                 description_parts.append("\n**🔐 Protected Information:**")
                 description_parts.append(protected_content)
-        
+
         # Add container status info
         status_info = self._get_status_info()
         if status_info:
             description_parts.append(status_info)
-        
+
         # Set description if we have any content
         if description_parts:
             embed.description = "\n".join(description_parts)
-        
+
         embed.set_footer(text="https://ddc.bot")
         return embed
-    
+
     async def _get_ip_info(self, info_config: dict) -> Optional[str]:
         """Get IP information for the container."""
         custom_ip = info_config.get('custom_ip', '').strip()
         custom_port = info_config.get('custom_port', '').strip()
-        
+
         if custom_ip:
             # Validate custom IP/hostname format for security
             if self._validate_custom_address(custom_ip):
@@ -995,7 +995,7 @@ class StatusInfoButton(discord.ui.Button):
             else:
                 logger.warning(f"Invalid custom address format: {custom_ip}")
                 return "🔗 **Custom Address:** [Invalid Format]"
-        
+
         # Try to get WAN IP
         try:
             from utils.common_helpers import get_wan_ip_async
@@ -1008,18 +1008,18 @@ class StatusInfoButton(discord.ui.Button):
                 return f"**Public IP:** {address}"
         except (OSError, RuntimeError, ValueError) as e:
             logger.debug(f"Could not get WAN IP for {self.container_name}: {e}")
-        
+
         return "**IP:** Auto-detection failed"
-    
-    
+
+
     def _validate_custom_address(self, address: str) -> bool:
         """Validate custom IP/hostname format for security."""
         import re
-        
+
         # Limit length to prevent abuse
         if len(address) > 255:
             return False
-            
+
         # Allow IPs
         ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
         if re.match(ip_pattern, address):
@@ -1029,7 +1029,7 @@ class StatusInfoButton(discord.ui.Button):
                 if int(octet) > 255:
                     return False
             return True
-        
+
         # Allow hostnames with ports
         hostname_pattern = r'^[a-zA-Z0-9.-]+(\:[0-9]{1,5})?$'
         if re.match(hostname_pattern, address):
@@ -1037,9 +1037,9 @@ class StatusInfoButton(discord.ui.Button):
             if '..' in address or address.startswith('.') or address.endswith('.'):
                 return False
             return True
-            
+
         return False
-    
+
     def _get_status_info(self) -> Optional[str]:
         """Get current container status information."""
         # Status information (State/Uptime) is already displayed in the main status embed above,
@@ -1050,7 +1050,7 @@ class ProtectedInfoButton(discord.ui.Button):
     """
     Protected Info button for status-only channels - opens password validation modal.
     """
-    
+
     def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any]):
         super().__init__(
             style=discord.ButtonStyle.secondary,
@@ -1062,18 +1062,18 @@ class ProtectedInfoButton(discord.ui.Button):
         self.server_config = server_config
         self.info_config = info_config
         self.container_name = server_config.get('docker_name')
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle protected info button click - open password validation modal."""
-        # Check button cooldown first  
+        # Check button cooldown first
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
-        
+
         if spam_manager.is_enabled():
             cooldown_seconds = spam_manager.get_button_cooldown("info")
             current_time = time.time()
             cooldown_key = f"button_protected_{interaction.user.id}"
-            
+
             if hasattr(self.cog, '_button_cooldowns'):
                 if cooldown_key in self.cog._button_cooldowns:
                     last_use = self.cog._button_cooldowns[cooldown_key]
@@ -1095,20 +1095,20 @@ class ProtectedInfoButton(discord.ui.Button):
         try:
             # Import password validation modal from enhanced_info_modal_simple
             from .enhanced_info_modal_simple import PasswordValidationModal
-            
+
             # Get display name
             display_name = self.server_config.get('name', self.container_name)
-            
+
             modal = PasswordValidationModal(
                 self.cog,
                 container_name=self.container_name,
                 display_name=display_name,
                 container_info=self.info_config
             )
-            
+
             await interaction.response.send_modal(modal)
             logger.info(f"Opened password validation modal for {self.container_name} for user {interaction.user.id}")
-            
+
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error opening password validation modal for {self.container_name}: {e}", exc_info=True)
             try:
@@ -1120,8 +1120,8 @@ class ProtectedInfoButton(discord.ui.Button):
                 pass
 
 def create_enhanced_status_embed(
-    original_embed: discord.Embed, 
-    server_config: Dict[str, Any], 
+    original_embed: discord.Embed,
+    server_config: Dict[str, Any],
     info_indicator: bool = False
 ) -> discord.Embed:
     """
@@ -1141,32 +1141,32 @@ def create_enhanced_status_embed(
     # Skip enrichments for Admin Control messages
     if server_config.get('_is_admin_control', False):
         return original_embed
-    
+
     try:
         # Load container info
         container_name = server_config.get('docker_name')
         info_service = get_container_info_service()
         info_result = info_service.get_container_info(container_name)
         info_config = info_result.data.to_dict() if info_result.success else {}
-        
+
         if not info_config.get('enabled', False):
             return original_embed
-        
+
         # Add info indicator to embed description
         if original_embed.description:
             # Look for the closing ``` to insert info indicator
             description = original_embed.description
-            
+
             # Find the last occurrence of ``` (closing code block)
             last_code_block = description.rfind('```')
             if last_code_block != -1:
                 # Insert info indicator before closing code block
                 before_closing = description[:last_code_block]
                 after_closing = description[last_code_block:]
-                
+
                 # Add info line inside the box
                 info_line = "│ ℹ️ *Additional info available*\n"
-                
+
                 # Insert before the footer line (look for └ character)
                 footer_pos = before_closing.rfind('└')
                 if footer_pos != -1:
@@ -1180,7 +1180,7 @@ def create_enhanced_status_embed(
                             after_closing
                         )
                         original_embed.description = enhanced_description
-        
+
         # Add subtle footer enhancement
         current_footer = original_embed.footer.text if original_embed.footer else ""
 
@@ -1202,17 +1202,17 @@ def create_enhanced_status_embed(
                 prefix = current_footer.removesuffix(" https://ddc.bot")
                 enhanced_footer = prefix + " ℹ️ Info Available • https://ddc.bot"
             original_embed.set_footer(text=enhanced_footer)
-        
+
         logger.debug(f"Enhanced status embed with info indicator for {container_name}")
-        
+
     except (KeyError, ValueError, RuntimeError) as e:
         logger.error(f"Error enhancing status embed: {e}", exc_info=True)
-    
+
     return original_embed
 
 class TaskManagementButton(discord.ui.Button):
     """Task Management button for container info admin view."""
-    
+
     def __init__(self, cog_instance, server_config: Dict[str, Any]):
         super().__init__(
             style=discord.ButtonStyle.secondary,
@@ -1223,7 +1223,7 @@ class TaskManagementButton(discord.ui.Button):
         self.cog = cog_instance
         self.server_config = server_config
         self.container_name = server_config.get('docker_name')
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle task management button click."""
         try:
@@ -1258,14 +1258,14 @@ class TaskManagementButton(discord.ui.Button):
 
             # Show task list directly
             await self._show_task_list(interaction)
-            
+
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in task management button: {e}", exc_info=True)
             try:
                 await interaction.followup.send("❌ Error opening task management.", ephemeral=True)
             except:
                 pass
-    
+
     async def _show_task_list(self, interaction: discord.Interaction):
         """Show task list for this container."""
         try:
@@ -1273,9 +1273,9 @@ class TaskManagementButton(discord.ui.Button):
 
             # Get all tasks for this container
             from services.scheduling.scheduler import load_tasks, get_tasks_for_container
-            
+
             tasks = get_tasks_for_container(self.container_name)
-            
+
             if not tasks:
                 embed = discord.Embed(
                     title=f"⏰ No Tasks for {self.container_name}",
@@ -1285,13 +1285,13 @@ class TaskManagementButton(discord.ui.Button):
                 view = TaskManagementView(self.cog, self.container_name)
                 await interaction.followup.send(embed=embed, view=view, ephemeral=True)
                 return
-            
+
             # Create task list embed
             embed = discord.Embed(
                 title=f"⏰ {_('Scheduled Tasks for {container}').format(container=self.container_name)}",
                 color=discord.Color.blue()
             )
-            
+
             for i, task in enumerate(tasks[:10]):  # Limit to 10 tasks to avoid embed size limits
                 # Format last run
                 last_run_str = _("Never")
@@ -1302,30 +1302,30 @@ class TaskManagementButton(discord.ui.Button):
                     if task.last_run_success is not None:
                         status_icon = "✅" if task.last_run_success else "❌"
                         last_run_str += f" {status_icon}"
-                
+
                 # Format next run
                 next_run_str = _("Not scheduled")
                 if task.next_run_ts:
                     from datetime import datetime
                     next_run_dt = datetime.fromtimestamp(task.next_run_ts)
                     next_run_str = next_run_dt.strftime("%Y-%m-%d %H:%M")
-                
+
                 # Active status
                 status_icon = "🟢" if task.is_active else "🔴"
-                
+
                 embed.add_field(
                     name=f"{status_icon} {task.action.upper()} - {task.cycle}",
                     value=f"**{_('Last Run')}:** {last_run_str}\n**{_('Next Run')}:** {next_run_str}\n**{_('ID')}:** `{task.task_id}`",
                     inline=False
                 )
-            
+
             if len(tasks) > 10:
                 embed.set_footer(text=f"{_('Showing first {count} of {total} tasks').format(count=10, total=len(tasks))}")
-            
+
             # Add management buttons
             view = TaskManagementView(self.cog, self.container_name)
             await interaction.followup.send(embed=embed, view=view, ephemeral=True)
-            
+
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing task list: {e}", exc_info=True)
             try:
@@ -1335,21 +1335,21 @@ class TaskManagementButton(discord.ui.Button):
 
 class TaskManagementView(discord.ui.View):
     """View with buttons for task management (Add Task, Delete Tasks)."""
-    
+
     def __init__(self, cog_instance, container_name: str):
         super().__init__(timeout=300)  # 5 minute timeout
         self.cog = cog_instance
         self.container_name = container_name
-        
+
         # Add Task button
         self.add_item(AddTaskButton(cog_instance, container_name))
-        
-        # Delete Tasks button  
+
+        # Delete Tasks button
         self.add_item(DeleteTasksButton(cog_instance, container_name))
 
 class AddTaskButton(discord.ui.Button):
     """Button to add a new scheduled task."""
-    
+
     def __init__(self, cog_instance, container_name: str):
         super().__init__(
             style=discord.ButtonStyle.green,
@@ -1358,40 +1358,40 @@ class AddTaskButton(discord.ui.Button):
         )
         self.cog = cog_instance
         self.container_name = container_name
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Show task creation with dropdowns."""
         try:
             logger.info(f"AddTaskButton clicked for container: {self.container_name}")
-            
+
             # Create dropdown-based task creation
             view = TaskCreationView(self.cog, self.container_name)
-            
+
             embed = discord.Embed(
                 title=f"⏰ {_('Create Task: {container}').format(container=self.container_name)}",
                 description=_("Use the dropdowns below to configure your task:"),
                 color=discord.Color.green()
             )
-            
+
             embed.add_field(
                 name=f"📋 {_('Instructions')}",
                 value=_("1. Select Cycle Type\n2. Select Action\n3. Select Time and day/date\n4. Click 'Create Task'"),
                 inline=False
             )
-            
+
             await interaction.response.send_message(
                 embed=embed,
                 view=view,
                 ephemeral=True
             )
-            
+
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in add task button: {e}", exc_info=True)
             await interaction.response.send_message(f"❌ {_('Error showing task help.')}", ephemeral=True)
 
 class DeleteTasksButton(discord.ui.Button):
     """Button to open task delete panel."""
-    
+
     def __init__(self, cog_instance, container_name: str):
         super().__init__(
             style=discord.ButtonStyle.red,
@@ -1400,61 +1400,61 @@ class DeleteTasksButton(discord.ui.Button):
         )
         self.cog = cog_instance
         self.container_name = container_name
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Open task delete panel using existing /task_delete_panel functionality."""
         try:
             await interaction.response.defer(ephemeral=True)
-            
+
             # Call the existing task delete panel functionality
             # This will use the same logic as the /task_delete_panel command
             from services.scheduling.scheduler import load_tasks, get_tasks_for_container
-            
+
             tasks = get_tasks_for_container(self.container_name)
-            
+
             if not tasks:
                 await interaction.followup.send(
                     f"⏰ No tasks found for {self.container_name} to delete.",
                     ephemeral=True
                 )
                 return
-            
+
             # Create container-specific task delete view
             view = ContainerTaskDeleteView(self.cog, tasks, self.container_name)
-            
+
             embed = discord.Embed(
                 title=f"❌ {_('Delete Tasks: {container}').format(container=self.container_name)}",
                 description=f"{_('Click any button below to delete the corresponding task for **{container}**:').format(container=self.container_name)}",
                 color=discord.Color.red()
             )
-            
+
             # Add legend
             embed.add_field(
                 name=_("Legend"),
                 value=_("O = Once, D = Daily, W = Weekly, M = Monthly, Y = Yearly"),
                 inline=False
             )
-            
+
             embed.add_field(
                 name=_("Found Tasks"),
                 value=f"{_('{count} active tasks for {container}').format(count=len(tasks), container=self.container_name)}",
                 inline=False
             )
-            
+
             await interaction.followup.send(embed=embed, view=view, ephemeral=True)
-            
+
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in delete tasks button: {e}", exc_info=True)
             await interaction.followup.send(f"❌ {_('Error opening task delete panel.')}", ephemeral=True)
 
 class TaskCreationView(discord.ui.View):
     """View for task creation using sequential dropdowns."""
-    
+
     def __init__(self, cog_instance, container_name: str):
         super().__init__(timeout=300)
         self.cog = cog_instance
         self.container_name = container_name
-        
+
         # Task configuration state
         self.selected_cycle = None
         self.selected_action = None
@@ -1462,15 +1462,15 @@ class TaskCreationView(discord.ui.View):
         self.selected_day = None
         self.selected_month = None
         self.selected_year = None
-        
+
         # Start with only cycle dropdown
         self.add_item(CycleDropdown())
-        
+
         # Add create button (initially disabled and hidden)
         self.create_button = CreateTaskButton(self.cog, self.container_name)
         self.create_button.disabled = True
         self.create_button.row = 4  # Always on the last row
-        
+
     def check_ready(self):
         """Check if all required fields are selected and enable create button."""
         if self.selected_cycle == 'daily':
@@ -1485,7 +1485,7 @@ class TaskCreationView(discord.ui.View):
             ready = self.selected_action and self.selected_day and self.selected_month and self.selected_year and self.selected_time
         else:
             ready = False
-            
+
         # Add or update create button
         if ready:
             if self.create_button not in self.children:
@@ -1495,7 +1495,7 @@ class TaskCreationView(discord.ui.View):
         else:
             if self.create_button in self.children:
                 self.create_button.disabled = True
-                
+
     def clear_dropdowns_after(self, keep_until_row: int):
         """Remove all dropdowns after a certain row."""
         items_to_remove = []
@@ -1504,7 +1504,7 @@ class TaskCreationView(discord.ui.View):
                 items_to_remove.append(item)
         for item in items_to_remove:
             self.remove_item(item)
-            
+
     def get_next_available_row(self):
         """Get the next available row for a dropdown."""
         # Find the highest row number in use
@@ -1513,7 +1513,7 @@ class TaskCreationView(discord.ui.View):
             if item != self.create_button and not isinstance(item, discord.ui.Button):
                 if hasattr(item, 'row') and item.row is not None:
                     max_row = max(max_row, item.row)
-        
+
         # Return the next row (but max 3 for dropdowns, keeping 4 for button)
         next_row = max_row + 1
         if next_row > 3:
@@ -1521,11 +1521,11 @@ class TaskCreationView(discord.ui.View):
             logger.warning(f"No more rows available! Max row in use: {max_row}")
             return 3
         return next_row
-        
+
 
 class CycleDropdown(discord.ui.Select):
     """Dropdown for selecting task cycle."""
-    
+
     def __init__(self):
         options = [
             discord.SelectOption(label=_("Daily"), description=_("Run every day"), emoji="📅", value="daily"),
@@ -1534,61 +1534,61 @@ class CycleDropdown(discord.ui.Select):
             discord.SelectOption(label=_("Yearly"), description=_("Run yearly on specific date"), emoji="📊", value="yearly"),
             discord.SelectOption(label=_("Once"), description=_("Run once at specific date"), emoji="⚡", value="once")
         ]
-        
+
         super().__init__(placeholder=_("Choose cycle type..."), options=options, row=0)
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle cycle selection and show action dropdown."""
         self.view.selected_cycle = self.values[0]
-        
+
         # Clear any existing dropdowns after this one
         self.view.clear_dropdowns_after(0)
-        
+
         # Reset selections
         self.view.selected_action = None
         self.view.selected_day = None
         self.view.selected_month = None
         self.view.selected_year = None
         self.view.selected_time = None
-        
+
         # Add action dropdown
         action_dropdown = ActionDropdown()
         action_dropdown.row = self.view.get_next_available_row()
         self.view.add_item(action_dropdown)
-        
+
         embed = discord.Embed(
             title=f"⏰ Create Task: {self.view.container_name}",
             description=f"✅ **Cycle:** {self.values[0].title()}\n\nNow choose the action...",
             color=discord.Color.blue()
         )
-        
+
         await interaction.response.edit_message(embed=embed, view=self.view)
 
 class ActionDropdown(discord.ui.Select):
     """Dropdown for selecting task action."""
-    
+
     def __init__(self):
         options = [
             discord.SelectOption(label=_("Start"), description=_("Start the container"), emoji="▶️", value="start"),
             discord.SelectOption(label=_("Stop"), description=_("Stop the container"), emoji="⏹️", value="stop"),
             discord.SelectOption(label=_("Restart"), description=_("Restart the container"), emoji="🔄", value="restart")
         ]
-        
+
         super().__init__(placeholder=_("Choose action..."), options=options, row=1)
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle action selection and show next dropdown based on cycle."""
         self.view.selected_action = self.values[0]
-        
+
         # Clear any existing dropdowns after this one
         self.view.clear_dropdowns_after(self.row if hasattr(self, 'row') else 1)
-        
+
         # Reset subsequent selections
         self.view.selected_day = None
         self.view.selected_month = None
         self.view.selected_year = None
         self.view.selected_time = None
-        
+
         # Add next dropdown based on cycle type
         if self.view.selected_cycle == 'daily':
             # Daily only needs time
@@ -1615,18 +1615,18 @@ class ActionDropdown(discord.ui.Select):
             day_dropdown = SimpleMonthdayDropdown()
             day_dropdown.row = self.view.get_next_available_row()
             self.view.add_item(day_dropdown)
-        
+
         embed = discord.Embed(
             title=f"⏰ Create Task: {self.view.container_name}",
             description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.values[0].title()}\n\nContinue with the next selection...",
             color=discord.Color.blue()
         )
-        
+
         await interaction.response.edit_message(embed=embed, view=self.view)
 
 class SimpleMonthdayDropdown(discord.ui.Select):
     """Simple dropdown for selecting day of month (1-31 excluding some days)."""
-    
+
     def __init__(self):
         # Days to include (excluding 5,6,11,17,18,26,29)
         days = [1,2,3,4,7,8,9,10,12,13,14,15,16,19,20,21,22,23,24,25,27,28,30,31]
@@ -1636,23 +1636,23 @@ class SimpleMonthdayDropdown(discord.ui.Select):
                 label=f"{day:02d}",
                 value=str(day)
             ))
-        
+
         # Dynamic row assignment to avoid conflicts
         super().__init__(placeholder=_("Choose day..."), options=options[:25])
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle day selection."""
         self.view.selected_day = self.values[0]
-        
+
         # Clear any existing dropdowns after this one
         self.view.clear_dropdowns_after(self.row if hasattr(self, 'row') else 2)
-        
+
         # Add next dropdown based on cycle
         if self.view.selected_cycle == 'monthly':
             # Monthly: after day comes time
             # Remove day dropdown to make room (value already saved)
             self.view.remove_item(self)
-            
+
             time_dropdown = TimeDropdown()
             time_dropdown.row = self.view.get_next_available_row()
             self.view.add_item(time_dropdown)
@@ -1666,41 +1666,41 @@ class SimpleMonthdayDropdown(discord.ui.Select):
             month_dropdown = MonthDropdown()
             month_dropdown.row = self.view.get_next_available_row()
             self.view.add_item(month_dropdown)
-        
+
         embed = discord.Embed(
             title=f"⏰ Create Task: {self.view.container_name}",
             description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.view.selected_action.title()}\n✅ **Day:** {self.values[0]}\n\nContinue...",
             color=discord.Color.blue()
         )
-        
+
         await interaction.response.edit_message(embed=embed, view=self.view)
 
 class MonthDropdown(discord.ui.Select):
     """Dropdown for selecting month."""
-    
+
     def __init__(self):
         months = [
             _("January"), _("February"), _("March"), _("April"), _("May"), _("June"),
             _("July"), _("August"), _("September"), _("October"), _("November"), _("December")
         ]
-        
+
         options = []
         for i, month in enumerate(months, 1):
             options.append(discord.SelectOption(
                 label=month,
                 value=str(i)
             ))
-        
+
         # Dynamic row assignment
         super().__init__(placeholder=_("Choose month..."), options=options)
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle month selection."""
         self.view.selected_month = self.values[0]
-        
+
         # Clear any existing dropdowns after this one
         self.view.clear_dropdowns_after(self.row if hasattr(self, 'row') else 3)
-        
+
         # Add next dropdown based on cycle
         if self.view.selected_cycle == 'yearly':
             # Yearly: after month comes time
@@ -1711,7 +1711,7 @@ class MonthDropdown(discord.ui.Select):
                     items_to_remove.append(item)
             for item in items_to_remove:
                 self.view.remove_item(item)
-            
+
             # Now add time dropdown
             time_dropdown = TimeDropdown()
             time_dropdown.row = self.view.get_next_available_row()
@@ -1725,40 +1725,40 @@ class MonthDropdown(discord.ui.Select):
                     items_to_remove.append(item)
             for item in items_to_remove:
                 self.view.remove_item(item)
-            
+
             year_dropdown = YearDropdown()
             year_dropdown.row = self.view.get_next_available_row()
             self.view.add_item(year_dropdown)
-        
+
         embed = discord.Embed(
             title=f"⏰ Create Task: {self.view.container_name}",
             description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.view.selected_action.title()}\n✅ **Day:** {self.view.selected_day}\n✅ **Month:** {self.values[0]}\n\nContinue...",
             color=discord.Color.blue()
         )
-        
+
         await interaction.response.edit_message(embed=embed, view=self.view)
 
 class YearDropdown(discord.ui.Select):
     """Dropdown for selecting year."""
-    
+
     def __init__(self):
         from datetime import datetime
         current_year = datetime.now().year
-        
+
         options = []
         for year in range(current_year, current_year + 11):  # Current year + 10 years
             options.append(discord.SelectOption(
                 label=str(year),
                 value=str(year)
             ))
-        
+
         # Dynamic row assignment
         super().__init__(placeholder=_("Choose year..."), options=options)
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle year selection."""
         self.view.selected_year = self.values[0]
-        
+
         # After year comes time (for once)
         # Remove previous dropdowns to make room (values already saved)
         items_to_remove = []
@@ -1767,22 +1767,22 @@ class YearDropdown(discord.ui.Select):
                 items_to_remove.append(item)
         for item in items_to_remove:
             self.view.remove_item(item)
-            
+
         time_dropdown = TimeDropdown()
         time_dropdown.row = self.view.get_next_available_row()
         self.view.add_item(time_dropdown)
-        
+
         embed = discord.Embed(
             title=f"⏰ Create Task: {self.view.container_name}",
             description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.view.selected_action.title()}\n✅ **Day:** {self.view.selected_day}\n✅ **Month:** {self.view.selected_month}\n✅ **Year:** {self.values[0]}\n\nNow choose the time...",
             color=discord.Color.blue()
         )
-        
+
         await interaction.response.edit_message(embed=embed, view=self.view)
 
 class TimeDropdown(discord.ui.Select):
     """Dropdown for selecting task time."""
-    
+
     def __init__(self):
         # Common times throughout the day
         times = []
@@ -1790,47 +1790,47 @@ class TimeDropdown(discord.ui.Select):
             time_str = f"{hour:02d}:00"
             label = f"{time_str}"
             times.append(discord.SelectOption(label=label, value=time_str))
-        
+
         # Dynamic row assignment
         super().__init__(placeholder=_("Choose time..."), options=times[:24])
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle time selection - final step."""
         self.view.selected_time = self.values[0]
         self.view.check_ready()
-        
+
         # Build summary of selections
         summary = [f"✅ **{_('Cycle:')}** {_(self.view.selected_cycle.title())}"]
         summary.append(f"✅ **{_('Action:')}** {_(self.view.selected_action.title())}")
-        
+
         if self.view.selected_cycle == 'weekly':
             summary.append(f"✅ **{_('Weekday:')}** {_(self.view.selected_day.title())}")
         elif self.view.selected_cycle in ['monthly', 'yearly', 'once']:
             summary.append(f"✅ **{_('Day:')}** {self.view.selected_day}")
-        
+
         if self.view.selected_cycle in ['yearly', 'once']:
             # Get month name
             months = [_("January"), _("February"), _("March"), _("April"), _("May"), _("June"),
                      _("July"), _("August"), _("September"), _("October"), _("November"), _("December")]
             month_name = months[int(self.view.selected_month) - 1]
             summary.append(f"✅ **{_('Month:')}** {month_name}")
-        
+
         if self.view.selected_cycle == 'once':
             summary.append(f"✅ **{_('Year:')}** {self.view.selected_year}")
-            
+
         summary.append(f"✅ **{_('Time:')}** {self.values[0]}")
-        
+
         embed = discord.Embed(
             title=f"⏰ {_('Create Task: {container}').format(container=self.view.container_name)}",
             description="\n".join(summary) + f"\n\n**{_('Task configuration complete! Click Create Task to save.')}**",
             color=discord.Color.green()
         )
-        
+
         await interaction.response.edit_message(embed=embed, view=self.view)
 
 class WeekdayDropdown(discord.ui.Select):
     """Dropdown for selecting weekday."""
-    
+
     def __init__(self):
         options = [
             discord.SelectOption(label=_("Monday"), value="monday"),
@@ -1841,120 +1841,120 @@ class WeekdayDropdown(discord.ui.Select):
             discord.SelectOption(label=_("Saturday"), value="saturday"),
             discord.SelectOption(label=_("Sunday"), value="sunday")
         ]
-        
+
         # Dynamic row assignment
         super().__init__(placeholder=_("Choose weekday..."), options=options)
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle weekday selection."""
         self.view.selected_day = self.values[0]
-        
+
         # Clear any existing dropdowns after this one
         self.view.clear_dropdowns_after(self.row if hasattr(self, 'row') else 2)
-        
+
         # Add time dropdown (final step for weekly)
         # Remove weekday dropdown to make room (value already saved)
         self.view.remove_item(self)
-        
+
         time_dropdown = TimeDropdown()
         time_dropdown.row = self.view.get_next_available_row()
         self.view.add_item(time_dropdown)
-        
+
         embed = discord.Embed(
             title=f"⏰ Create Task: {self.view.container_name}",
             description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.view.selected_action.title()}\n✅ **Weekday:** {self.values[0].title()}\n\nNow choose the time...",
             color=discord.Color.blue()
         )
-        
+
         await interaction.response.edit_message(embed=embed, view=self.view)
 
 class MonthdayDropdown(discord.ui.Select):
     """Dropdown for selecting day of month."""
-    
+
     def __init__(self):
         options = []
         for day in range(1, 32):  # 1-31
             suffix = "st" if day in [1, 21, 31] else "nd" if day in [2, 22] else "rd" if day in [3, 23] else "th"
             options.append(discord.SelectOption(label=f"{day}{suffix} of month", value=str(day)))
-        
+
         super().__init__(placeholder="📅 Choose day of month...", options=options[:25], row=3)  # Max 25
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle monthday selection."""
         self.view.selected_day = self.values[0]
         self.view.check_ready()
-        
+
         embed = discord.Embed(
             title=f"⏰ Create Task: {self.view.container_name}",
             description=f"✅ All settings configured!\n\n**Cycle:** {self.view.selected_cycle.title()}\n**Action:** {self.view.selected_action.title()}\n**Time:** {self.view.selected_time}\n**Day:** {self.values[0]}",
             color=discord.Color.green()
         )
-        
+
         await interaction.response.edit_message(embed=embed, view=self.view)
 
 class YeardayDropdown(discord.ui.Select):
     """Dropdown for selecting date input method for yearly tasks."""
-    
+
     def __init__(self):
         options = [
             discord.SelectOption(
-                label="Manual Date Entry", 
-                description="Enter custom DD.MM date", 
-                emoji="✏️", 
+                label="Manual Date Entry",
+                description="Enter custom DD.MM date",
+                emoji="✏️",
                 value="manual"
             ),
             discord.SelectOption(
-                label="01.01 - New Year's Day", 
-                description="January 1st", 
-                emoji="🎊", 
+                label="01.01 - New Year's Day",
+                description="January 1st",
+                emoji="🎊",
                 value="01.01"
             ),
             discord.SelectOption(
-                label="14.02 - Valentine's Day", 
-                description="February 14th", 
-                emoji="💝", 
+                label="14.02 - Valentine's Day",
+                description="February 14th",
+                emoji="💝",
                 value="14.02"
             ),
             discord.SelectOption(
-                label="01.04 - April 1st", 
-                description="April Fools Day", 
-                emoji="🃏", 
+                label="01.04 - April 1st",
+                description="April Fools Day",
+                emoji="🃏",
                 value="01.04"
             ),
             discord.SelectOption(
-                label="01.05 - May Day", 
-                description="May 1st", 
-                emoji="🌸", 
+                label="01.05 - May Day",
+                description="May 1st",
+                emoji="🌸",
                 value="01.05"
             ),
             discord.SelectOption(
-                label="31.10 - Halloween", 
-                description="October 31st", 
-                emoji="🎃", 
+                label="31.10 - Halloween",
+                description="October 31st",
+                emoji="🎃",
                 value="31.10"
             ),
             discord.SelectOption(
-                label="24.12 - Christmas Eve", 
-                description="December 24th", 
-                emoji="🎄", 
+                label="24.12 - Christmas Eve",
+                description="December 24th",
+                emoji="🎄",
                 value="24.12"
             ),
             discord.SelectOption(
-                label="25.12 - Christmas Day", 
-                description="December 25th", 
-                emoji="🎁", 
+                label="25.12 - Christmas Day",
+                description="December 25th",
+                emoji="🎁",
                 value="25.12"
             ),
             discord.SelectOption(
-                label="31.12 - New Year's Eve", 
-                description="December 31st", 
-                emoji="🎆", 
+                label="31.12 - New Year's Eve",
+                description="December 31st",
+                emoji="🎆",
                 value="31.12"
             )
         ]
-        
+
         super().__init__(placeholder="📅 Choose yearly date or manual entry...", options=options[:25], row=3)
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle yearly date selection or show manual input."""
         if self.values[0] == "manual":
@@ -1964,22 +1964,22 @@ class YeardayDropdown(discord.ui.Select):
                 description="Please enter the date in **DD.MM** format",
                 color=discord.Color.blue()
             )
-            
+
             embed.add_field(
                 name="📝 Instructions",
                 value="Type your date below in this format:\n`25.12` for December 25th\n`01.01` for January 1st\n`15.06` for June 15th",
                 inline=False
             )
-            
+
             embed.add_field(
                 name="⚠️ Important",
                 value="After typing your date, click the button below to confirm.",
                 inline=False
             )
-            
+
             # Create a view with a text select for manual date input
             manual_view = ManualDateView(self.view)
-            
+
             await interaction.response.send_message(
                 embed=embed,
                 view=manual_view,
@@ -1989,34 +1989,34 @@ class YeardayDropdown(discord.ui.Select):
             # Use predefined date
             self.view.selected_day = self.values[0]
             self.view.check_ready()
-            
+
             embed = discord.Embed(
                 title=f"⏰ Create Task: {self.view.container_name}",
                 description=f"✅ All settings configured!\n\n**Cycle:** {self.view.selected_cycle.title()}\n**Action:** {self.view.selected_action.title()}\n**Time:** {self.view.selected_time}\n**Date:** {self.values[0]}",
                 color=discord.Color.green()
             )
-            
+
             await interaction.response.edit_message(embed=embed, view=self.view)
 
 class ManualDateView(discord.ui.View):
     """View for manual date entry using dropdowns instead of modal."""
-    
+
     def __init__(self, task_view):
         super().__init__(timeout=300)
         self.task_view = task_view
-        
+
         # Add day dropdown (1-31)
         self.add_item(DaySelectDropdown())
-        
+
         # Add month dropdown (1-12)
         self.add_item(MonthSelectDropdown())
-        
+
         # Add confirm button
         self.add_item(ConfirmDateButton())
 
 class DaySelectDropdown(discord.ui.Select):
     """Dropdown for selecting day of month."""
-    
+
     def __init__(self):
         options = []
         for day in range(1, 32):
@@ -2024,50 +2024,50 @@ class DaySelectDropdown(discord.ui.Select):
                 label=f"{day:02d}",
                 value=str(day)
             ))
-        
+
         super().__init__(placeholder="📅 Select Day (1-31)...", options=options[:25], row=0)
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle day selection."""
         self.view.selected_day_part = self.values[0].zfill(2)
-        
+
         # Check if both parts are selected
         if hasattr(self.view, 'selected_month_part'):
             self.view.children[-1].disabled = False  # Enable confirm button
-        
+
         await interaction.response.edit_message(view=self.view)
 
 class MonthSelectDropdown(discord.ui.Select):
     """Dropdown for selecting month."""
-    
+
     def __init__(self):
         months = [
             "January", "February", "March", "April", "May", "June",
             "July", "August", "September", "October", "November", "December"
         ]
-        
+
         options = []
         for i, month in enumerate(months, 1):
             options.append(discord.SelectOption(
                 label=f"{i:02d} - {month}",
                 value=str(i)
             ))
-        
+
         super().__init__(placeholder="📅 Select Month...", options=options, row=1)
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle month selection."""
         self.view.selected_month_part = self.values[0].zfill(2)
-        
+
         # Check if both parts are selected
         if hasattr(self.view, 'selected_day_part'):
             self.view.children[-1].disabled = False  # Enable confirm button
-        
+
         await interaction.response.edit_message(view=self.view)
 
 class ConfirmDateButton(discord.ui.Button):
     """Button to confirm the manual date entry."""
-    
+
     def __init__(self):
         super().__init__(
             style=discord.ButtonStyle.primary,
@@ -2076,17 +2076,17 @@ class ConfirmDateButton(discord.ui.Button):
             disabled=True,
             row=2
         )
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Confirm the date and update task view."""
         # Combine day and month
         date_str = f"{self.view.selected_day_part}.{self.view.selected_month_part}"
-        
+
         # Validate the date
         try:
             day = int(self.view.selected_day_part)
             month = int(self.view.selected_month_part)
-            
+
             import calendar
             if day > calendar.monthrange(2025, month)[1]:
                 await interaction.response.send_message(
@@ -2100,17 +2100,17 @@ class ConfirmDateButton(discord.ui.Button):
                 ephemeral=True
             )
             return
-        
+
         # Update the task view
         self.view.task_view.selected_day = date_str
         self.view.task_view.check_ready()
-        
+
         embed = discord.Embed(
             title=f"⏰ Create Task: {self.view.task_view.container_name}",
             description=f"✅ Date configured: **{date_str}**\n\n**Cycle:** {self.view.task_view.selected_cycle.title()}\n**Action:** {self.view.task_view.selected_action.title()}\n**Time:** {self.view.task_view.selected_time}\n**Date:** {date_str}",
             color=discord.Color.green()
         )
-        
+
         await interaction.response.send_message(
             embed=embed,
             view=self.view.task_view,
@@ -2119,14 +2119,14 @@ class ConfirmDateButton(discord.ui.Button):
 
 class DateDropdown(discord.ui.Select):
     """Dropdown for selecting specific date for once tasks."""
-    
+
     def __init__(self):
         from datetime import datetime, timedelta
-        
+
         # Generate dates for next few months
         today = datetime.now()
         options = []
-        
+
         for days_ahead in range(1, 61):  # Next 60 days
             date = today + timedelta(days=days_ahead)
             date_str = date.strftime("%d.%m.%Y")
@@ -2135,28 +2135,28 @@ class DateDropdown(discord.ui.Select):
                 label=f"{date_str} ({day_name})",
                 value=date_str
             ))
-            
+
             if len(options) >= 25:  # Discord limit
                 break
-        
+
         super().__init__(placeholder="📅 Choose specific date...", options=options, row=3)
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle specific date selection."""
         self.view.selected_day = self.values[0]
         self.view.check_ready()
-        
+
         embed = discord.Embed(
             title=f"⏰ Create Task: {self.view.container_name}",
             description=f"✅ All settings configured!\n\n**Cycle:** {self.view.selected_cycle.title()}\n**Action:** {self.view.selected_action.title()}\n**Time:** {self.view.selected_time}\n**Date:** {self.values[0]}",
             color=discord.Color.green()
         )
-        
+
         await interaction.response.edit_message(embed=embed, view=self.view)
 
 class CreateTaskButton(discord.ui.Button):
     """Button to directly create the task."""
-    
+
     def __init__(self, cog_instance, container_name: str):
         super().__init__(
             style=discord.ButtonStyle.primary,
@@ -2166,7 +2166,7 @@ class CreateTaskButton(discord.ui.Button):
         )
         self.cog = cog_instance
         self.container_name = container_name
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Directly create task with selected parameters."""
         # Validate all required fields
@@ -2174,35 +2174,35 @@ class CreateTaskButton(discord.ui.Button):
         if not self.view.selected_cycle:
             missing.append(_("Cycle"))
         if not self.view.selected_action:
-            missing.append(_("Action")) 
+            missing.append(_("Action"))
         if not self.view.selected_time:
             missing.append(_("Time"))
         if self.view.selected_cycle in ['weekly', 'monthly', 'yearly', 'once'] and not self.view.selected_day:
             missing.append(_("Day/Date"))
-            
+
         if missing:
             await interaction.response.send_message(f"❌ {_('Please select: {missing}').format(missing=', '.join(missing))}", ephemeral=True)
             return
-        
+
         try:
             await interaction.response.defer(ephemeral=True)
-            
+
             # Import required modules
             from services.scheduling.scheduler import ScheduledTask, add_task, parse_time_string, parse_weekday_string
             from services.scheduling.schedule_helpers import validate_task_before_creation
             from services.infrastructure.action_logger import log_user_action
             import uuid
             import time
-            
+
             # Parse time
             hour, minute = parse_time_string(self.view.selected_time)
-            
+
             # Parse day/date based on cycle type
             day_val = None
             weekday_val = None
             month_val = None
             year_val = None
-            
+
             if self.view.selected_cycle == 'weekly':
                 weekday_val = parse_weekday_string(self.view.selected_day)
             elif self.view.selected_cycle == 'monthly':
@@ -2216,7 +2216,7 @@ class CreateTaskButton(discord.ui.Button):
                 day_val = int(self.view.selected_day)
                 month_val = int(self.view.selected_month)
                 year_val = int(self.view.selected_year)
-            
+
             # Create ScheduledTask
             task = ScheduledTask(
                 task_id=str(uuid.uuid4()),
@@ -2233,13 +2233,13 @@ class CreateTaskButton(discord.ui.Button):
                 created_at=time.time(),
                 timezone_str="Europe/Berlin"
             )
-            
+
             # Calculate next run time
             task.calculate_next_run()
-            
+
             # Validate and save
             validate_task_before_creation(task)
-            
+
             if add_task(task):
                 # Log the action
                 log_user_action(
@@ -2249,14 +2249,14 @@ class CreateTaskButton(discord.ui.Button):
                     source="Task Button",
                     details=f"Action: {self.view.selected_action}, Cycle: {self.view.selected_cycle}, Time: {self.view.selected_time}"
                 )
-                
+
                 # Success embed
                 embed = discord.Embed(
                     title=f"✅ {_('Task Created Successfully!')}",
                     description=f"{_('Task has been created for **{container}**').format(container=self.container_name)}",
                     color=discord.Color.green()
                 )
-                
+
                 embed.add_field(
                     name=f"📋 {_('Configuration')}",
                     value=f"**{_('Action')}:** {_(self.view.selected_action.title())}\n"
@@ -2265,7 +2265,7 @@ class CreateTaskButton(discord.ui.Button):
                           (f"**{_('Day/Date')}:** {self.view.selected_day}" if self.view.selected_day else ""),
                     inline=False
                 )
-                
+
                 # Format next run time
                 if task.next_run_ts:
                     from datetime import datetime
@@ -2277,21 +2277,21 @@ class CreateTaskButton(discord.ui.Button):
                         value=f"`{next_run}`",
                         inline=True
                     )
-                
+
                 embed.add_field(
                     name=f"🔍 {_('Task ID')}",
                     value=f"`{task.task_id}`",
                     inline=True
                 )
-                
+
                 await interaction.followup.send(embed=embed, ephemeral=True)
-                
+
             else:
                 await interaction.followup.send(
                     f"❌ {_('Failed to create task. Please check for time conflicts or try again.')}",
                     ephemeral=True
                 )
-                
+
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error creating task: {e}", exc_info=True)
             error_msg = str(e)
@@ -2314,19 +2314,19 @@ class CreateTaskButton(discord.ui.Button):
 def should_show_info_in_status_channel(channel_id: int, config: Dict[str, Any]) -> bool:
     """
     Check if info integration should be shown in a status channel.
-    
+
     Args:
         channel_id: Discord channel ID
         config: Bot configuration
-        
+
     Returns:
         True if info should be shown in this status channel
     """
     from .control_helpers import _channel_has_permission
-    
+
     # Check if this channel has control permission
     has_control = _channel_has_permission(channel_id, 'control', config)
-    
+
     # For now, show info integration in all status channels where containers are displayed
     # This includes both control channels (as additional feature) and status-only channels
     # The StatusInfoView will be used only for status-only channels, control channels use ControlView
@@ -2334,35 +2334,35 @@ def should_show_info_in_status_channel(channel_id: int, config: Dict[str, Any]) 
 
 class ContainerTaskDeleteView(discord.ui.View):
     """View for deleting tasks specific to a container."""
-    
+
     def __init__(self, cog_instance, tasks: list, container_name: str):
         super().__init__(timeout=300)  # 5 minute timeout
         self.cog = cog_instance
         self.container_name = container_name
-        
+
         # Add delete buttons for each task (max 25 due to Discord limits)
         max_tasks = min(len(tasks), 25)
         for i, task in enumerate(tasks[:max_tasks]):
             task_id = task.task_id
-            
+
             # Create detailed description for button
             action = task.action.upper()
             cycle_abbrev = {
                 'once': 'O',
-                'daily': 'D', 
+                'daily': 'D',
                 'weekly': 'W',
                 'monthly': 'M',
                 'yearly': 'Y'
             }.get(task.cycle, '?')
-            
+
             # Get action emoji
             action_emojis = {
                 'START': '▶️',
-                'STOP': '⏹️', 
+                'STOP': '⏹️',
                 'RESTART': '🔄'
             }
             action_emoji = action_emojis.get(action, '⚙️')
-            
+
             # Build detailed time and date info
             time_info = ""
             if hasattr(task, 'next_run_ts') and task.next_run_ts:
@@ -2370,7 +2370,7 @@ class ContainerTaskDeleteView(discord.ui.View):
                 import pytz
                 tz = pytz.timezone("Europe/Berlin")
                 next_run = datetime.fromtimestamp(task.next_run_ts, tz)
-                
+
                 if task.cycle == 'once':
                     # For once: show full date and time "O:13.08.27 14h"
                     time_info = f":{next_run.strftime('%d.%m.%y %Hh')}"
@@ -2378,7 +2378,7 @@ class ContainerTaskDeleteView(discord.ui.View):
                     # For daily: show hour "D:17h"
                     time_info = f":{next_run.strftime('%Hh')}"
                 elif task.cycle == 'weekly':
-                    # For weekly: show day and hour "W:Mo 17h"  
+                    # For weekly: show day and hour "W:Mo 17h"
                     weekday_abbrev = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'][next_run.weekday()]
                     time_info = f":{weekday_abbrev} {next_run.strftime('%Hh')}"
                 elif task.cycle == 'monthly':
@@ -2393,19 +2393,19 @@ class ContainerTaskDeleteView(discord.ui.View):
             elif hasattr(task, 'time_str') and task.time_str:
                 # Fallback to time_str if available
                 time_info = f":{task.time_str}"
-            
+
             task_description = f"{cycle_abbrev}{time_info} {action_emoji}"
-            
+
             # Limit description length for button
             if len(task_description) > 35:
                 task_description = task_description[:32] + "..."
-            
+
             row = i // 5  # 5 buttons per row
             self.add_item(ContainerTaskDeleteButton(cog_instance, task_id, task_description, row))
 
 class ContainerTaskDeleteButton(discord.ui.Button):
     """Button to delete a specific task."""
-    
+
     def __init__(self, cog_instance, task_id: str, description: str, row: int):
         super().__init__(
             style=discord.ButtonStyle.red,
@@ -2416,15 +2416,15 @@ class ContainerTaskDeleteButton(discord.ui.Button):
         self.cog = cog_instance
         self.task_id = task_id
         self.description = description
-    
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Delete the task."""
         try:
             await interaction.response.defer(ephemeral=True)
-            
+
             from services.scheduling.scheduler import delete_task, find_task_by_id
             from services.infrastructure.action_logger import log_user_action
-            
+
             # Find the task first to get info for logging
             task = find_task_by_id(self.task_id)
             if not task:
@@ -2433,10 +2433,10 @@ class ContainerTaskDeleteButton(discord.ui.Button):
                     ephemeral=True
                 )
                 return
-            
+
             # Delete the task
             success = delete_task(self.task_id)
-            
+
             if success:
                 # Log the action
                 log_user_action(
@@ -2446,38 +2446,38 @@ class ContainerTaskDeleteButton(discord.ui.Button):
                     source="Task Delete Button",
                     details=f"Deleted task: {task.cycle} {task.action} for {task.container_name}"
                 )
-                
+
                 # Success response
                 embed = discord.Embed(
                     title=f"✅ {_('Task Deleted')}",
                     description=f"{_('Successfully deleted task: **{description}**').format(description=self.description)}",
                     color=discord.Color.green()
                 )
-                
+
                 embed.add_field(
                     name=_('Task Details'),
                     value=f"{_('Container')}: {task.container_name}\n{_('Action')}: {_(task.action.title())}\n{_('Cycle')}: {_(task.cycle.title())}",
                     inline=False
                 )
-                
+
                 await interaction.followup.send(embed=embed, ephemeral=True)
-                
+
                 # Remove this button from the view
                 self.view.remove_item(self)
-                
+
                 # Update the original message to remove the deleted task button
                 try:
                     await interaction.edit_original_response(view=self.view)
                 except:
                     # If editing fails, it's not critical
                     pass
-                
+
             else:
                 await interaction.followup.send(
                     f"❌ {_('Failed to delete task: **{description}**').format(description=self.description)}",
                     ephemeral=True
                 )
-                
+
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error deleting task {self.task_id}: {e}", exc_info=True)
             await interaction.followup.send(

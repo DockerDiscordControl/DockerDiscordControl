@@ -23,10 +23,10 @@ logger = get_module_logger('update_notifier')
 
 class UpdateNotifier:
     """Manages update notifications for new features."""
-    
+
     def __init__(self, config_dir: str = "config"):
         """Initialize the update notifier.
-        
+
         Args:
             config_dir: Directory where update_status.json will be stored
         """
@@ -34,24 +34,24 @@ class UpdateNotifier:
         self.config_dir.mkdir(parents=True, exist_ok=True)
         self.status_file = self.config_dir / "update_status.json"
         self.current_version = "2025.01.07"  # Update this with each release
-        
+
     def get_update_status(self) -> Dict[str, Any]:
         """Get current update notification status."""
         default_status = {
             "last_notified_version": None,
             "notifications_shown": []
         }
-        
+
         if not self.status_file.exists():
             return default_status
-            
+
         try:
             with open(self.status_file, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except (json.JSONDecodeError, IOError) as e:
             logger.error(f"Error loading update status: {e}")
             return default_status
-    
+
     def save_update_status(self, status: Dict[str, Any]) -> bool:
         """Save update notification status."""
         try:
@@ -61,15 +61,15 @@ class UpdateNotifier:
         except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError) as e:
             logger.error(f"Error saving update status: {e}", exc_info=True)
             return False
-    
+
     def should_show_update_notification(self) -> bool:
         """Check if update notification should be shown."""
         status = self.get_update_status()
         last_version = status.get("last_notified_version")
-        
+
         # Show notification if this is a new version
         return last_version != self.current_version
-    
+
     def mark_notification_shown(self):
         """Mark update notification as shown."""
         status = self.get_update_status()
@@ -77,7 +77,7 @@ class UpdateNotifier:
         if self.current_version not in status["notifications_shown"]:
             status["notifications_shown"].append(self.current_version)
         self.save_update_status(status)
-    
+
     def create_update_embed(self) -> discord.Embed:
         """Create the update notification embed."""
         embed = discord.Embed(
@@ -122,17 +122,17 @@ class UpdateNotifier:
 
         embed.set_footer(text=_("This message is only shown once • https://ddc.bot"))
         return embed
-    
+
     async def send_update_notification(self, bot) -> bool:
         """Send update notification to control channels."""
         if not self.should_show_update_notification():
             logger.debug("Update notification already shown for this version")
             return False
-            
+
         try:
             config = load_config()
             control_channels = []
-            
+
             # Find control channels - check both old and new config formats
             # New format: channel_permissions
             channel_permissions = config.get('channel_permissions', {})
@@ -142,7 +142,7 @@ class UpdateNotifier:
                         control_channels.append(int(channel_id))
                     except ValueError:
                         logger.debug(f"Invalid channel ID: {channel_id}")
-            
+
             # Old format fallback: channels array
             if not control_channels:
                 for channel_config in config.get('channels', []):
@@ -151,16 +151,16 @@ class UpdateNotifier:
                             control_channels.append(int(channel_config['channel_id']))
                         except (ValueError, KeyError):
                             pass
-            
+
             if not control_channels:
                 logger.info("No control channels configured - skipping update notification")
                 # Mark as shown anyway to avoid repeated attempts
                 self.mark_update_notification_shown()
                 return False
-            
+
             embed = self.create_update_embed()
             sent_count = 0
-            
+
             # Send to all control channels
             for channel_id in control_channels:
                 try:
@@ -173,7 +173,7 @@ class UpdateNotifier:
                         logger.warning(f"Could not find channel {channel_id}")
                 except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
                     logger.error(f"Error sending update notification to channel {channel_id}: {e}", exc_info=True)
-            
+
             if sent_count > 0:
                 # Mark as shown only if at least one message was sent
                 self.mark_notification_shown()
@@ -182,7 +182,7 @@ class UpdateNotifier:
             else:
                 logger.error("Failed to send update notification to any channel")
                 return False
-                
+
         except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
             logger.error(f"Error in send_update_notification: {e}", exc_info=True)
             return False

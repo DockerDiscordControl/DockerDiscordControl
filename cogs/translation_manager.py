@@ -49,13 +49,13 @@ class TranslationManager:
                 "Shows detailed information about a specific container.": "Zeigt detaillierte Informationen über einen bestimmten Container.",
                 "Commands are organized by channel type:": "Commands sind nach Kanal-Typ organisiert:",
                 "General Commands": "Allgemeine Commands",
-                "Status Channel Commands": "Status-Kanal Commands", 
+                "Status Channel Commands": "Status-Kanal Commands",
                 "Control Channel Commands": "Control-Kanal Commands",
                 "Controls a specific Docker container. Actions: start, stop, restart. Requires permissions.": "Steuert einen bestimmten Docker-Container. Aktionen: start, stop, restart. Benötigt Berechtigungen.",
                 "Checks the bot latency.": "Überprüft die Bot-Latenz.",
                 "Use /info <servername> to get detailed information about containers with ℹ️ indicators.": "Verwenden Sie /info <servername> um detaillierte Informationen über Container mit ℹ️ Indikatoren zu erhalten.",
                 "Use **/help** for more information about available commands.": "Verwenden Sie **/help** für weitere Informationen über verfügbare Befehle.",
-                "Status Indicators": "Status-Indikatoren", 
+                "Status Indicators": "Status-Indikatoren",
                 "Container is online": "Container ist online",
                 "Container is offline": "Container ist offline",
                 "Container status loading": "Container-Status wird geladen",
@@ -77,7 +77,7 @@ class TranslationManager:
                 "Text too long ({length}/250 characters). Please shorten it.": "Text zu lang ({length}/250 Zeichen). Bitte kürzen Sie ihn.",
                 "Error displaying container info. Please try again.": "Fehler beim Anzeigen der Container-Informationen. Bitte versuchen Sie es erneut.",
                 "Error saving container info. Please try again.": "Fehler beim Speichern der Container-Informationen. Bitte versuchen Sie es erneut.",
-                
+
                 # New /info command translations
                 "This channel doesn't have permission to use the info command.": "Dieser Kanal hat keine Berechtigung, den Info-Befehl zu verwenden.",
                 "This channel needs either status or control permissions to use the info command.": "Dieser Kanal benötigt entweder Status- oder Kontroll-Berechtigungen, um den Info-Befehl zu verwenden.",
@@ -85,7 +85,7 @@ class TranslationManager:
                 "No additional information is configured for container '{}'.": "Keine zusätzlichen Informationen sind für Container '{}' konfiguriert.",
                 "An error occurred while retrieving container information. Please try again later.": "Ein Fehler ist beim Abrufen der Container-Informationen aufgetreten. Bitte versuchen Sie es später erneut.",
                 "Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.": "Verwenden Sie `/info <servername>` um detaillierte Informationen über Container mit ℹ️ Indikatoren zu erhalten.",
-                
+
                 # Info Edit Modal translations
                 "📝 Info Text": "📝 Info-Text",
                 "🌐 IP/URL": "🌐 IP/URL",
@@ -95,7 +95,7 @@ class TranslationManager:
                 "mydomain.com:7777 or 192.168.1.100:8080": "meinedomain.de:7777 oder 192.168.1.100:8080",
                 "Type 'X' to enable, leave empty to disable": "'X' eingeben zum Teilen, leer lassen zum nicht Teilen",
                 "Type 'X' to show IP, leave empty to hide": "Tippe 'X' um IP anzuzeigen, leer lassen zum Verstecken",
-                
+
                 # Protected Info translations
                 "🔐 Geschützte Informationen aktivieren": "🔐 Geschützte Informationen aktivieren",
                 "'X' eingeben zum Aktivieren, leer lassen zum Deaktivieren": "'X' eingeben zum Aktivieren, leer lassen zum Deaktivieren",
@@ -125,7 +125,7 @@ class TranslationManager:
                 "8080": "8080",
                 "❌ Port must contain only numbers.": "❌ Port darf nur Zahlen enthalten.",
                 "❌ Port must be between 1 and 65535.": "❌ Port muss zwischen 1 und 65535 liegen.",
-                
+
                 # Spam Protection translations
                 "Spam Protection Settings": "Spam-Schutz Einstellungen",
                 "Configure rate limiting to prevent spam and abuse of bot commands.": "Konfigurieren Sie Rate-Limiting, um Spam und Missbrauch von Bot-Befehlen zu verhindern.",
@@ -145,7 +145,7 @@ class TranslationManager:
                 "Refresh Button": "Aktualisieren-Button",
                 "Spam protection settings saved successfully!": "Spam-Schutz Einstellungen erfolgreich gespeichert!",
                 "Failed to save container info. Please try again.": "Container-Informationen konnten nicht gespeichert werden. Bitte versuchen Sie es erneut.",
-                
+
                 # Update notifications
                 "DockerDiscordControl Update": "DockerDiscordControl Update",
                 "New features available!": "Neue Features verfügbar!",
@@ -166,7 +166,7 @@ class TranslationManager:
                 "Click here for PayPal": "Klick hier für PayPal",
                 "Donations help with": "Spenden helfen bei:",
                 "Server and hosting costs": "Server- und Hosting-Kosten",
-                "Development time for new features": "Entwicklungszeit für neue Features", 
+                "Development time for new features": "Entwicklungszeit für neue Features",
                 "Bug fixes and support": "Bug-Fixes und Support",
                 "Documentation improvements": "Verbesserung der Dokumentation",
                 "This message is only shown every 2nd Sunday of the month": "Diese Nachricht wird nur jeden 2. Sonntag im Monat gepostet",
@@ -207,7 +207,7 @@ class TranslationManager:
                 "❌ Error sending donation broadcast. Please try again later.": "❌ Fehler beim Senden der Spendenankündigung. Bitte später erneut versuchen.",
                 "Thank you for your support!": "Vielen Dank für deine Unterstützung!",
                 "Error generating server status overview.": "Fehler beim Erstellen der Server-Status-Übersicht.",
-                
+
                 "DockerDiscordControl": "DockerDiscordSteuerung",
                 "This command is not allowed in this channel.": "Dieser Befehl ist in diesem Kanal nicht erlaubt.",
                 "Force update initiated. All status messages will be regenerated.": "Forciertes Update initiiert. Alle Statusnachrichten werden neu generiert.",
@@ -353,7 +353,7 @@ class TranslationManager:
                 "Note on Day Selection": "Hinweis zur Tagesauswahl",
                 "Due to Discord's 25-option limit for autocomplete, only a strategic selection of days (1-5, 7, 9, 10, 12-15, 17, 18, 20-22, 24-28, 30, 31) is shown initially. You can still type any day number manually.": "Aufgrund von Discords 25-Optionen-Limit für Autovervollständigung wird anfänglich nur eine strategische Auswahl von Tagen (1-5, 7, 9, 10, 12-15, 17, 18, 20-22, 24-28, 30, 31) angezeigt. Du kannst trotzdem manuell jede Tageszahl eingeben.",
                 "Shows information about all scheduled tasks.": "Zeigt Informationen zu allen geplanten Aufgaben an.",
-                
+
                 # Container Info Modal translations (German)
                 "📝 Info Text": "📝 Info Text",
                 "☑️ Enable Info Button": "☑️ Info teilen in Status Kanälen",
@@ -367,7 +367,7 @@ class TranslationManager:
                 "mydomain.com:7777 or 192.168.1.100:8080": "mydomain.com:7777 oder 192.168.1.100:8080",
                 "Currently: {status}, IP {ip_status}": "Aktuell: {status}, IP {ip_status}",
                 "enabled": "aktiviert",
-                "disabled": "deaktiviert", 
+                "disabled": "deaktiviert",
                 "shown": "angezeigt",
                 "hidden": "versteckt",
                 "⚙️ Settings": "⚙️ Einstellungen",
@@ -388,7 +388,7 @@ class TranslationManager:
                 "❌ Failed to save container info for **{name}**. Check permissions on config directory.": "❌ Fehler beim Speichern für **{name}**. Prüfe Berechtigungen im config-Verzeichnis.",
                 "❌ An error occurred while saving container info: {error}": "❌ Fehler beim Speichern der Container-Info: {error}",
                 "❌ An error occurred while saving container info. Please try again.": "❌ Fehler beim Speichern der Container-Info. Bitte erneut versuchen.",
-                
+
                 # Mech System translations (German)
                 "Mech-onate": "Mech-oniere",
                 "Donation Engine": "Spendergie",
@@ -411,21 +411,21 @@ class TranslationManager:
                 "The Power system has been reset and rePowered with the remaining surplus of ${surplus:.2f}.": "Das Energie-System wurde zurückgesetzt und mit dem verbliebenen Überschuss von ${surplus:.2f} aufgeladen.",
                 "Significant Glvl change detected": "Signifikante Glvl-Änderung erkannt",
                 "Upgrading to force_recreate=True due to significant Glvl change": "Upgrade auf force_recreate=True aufgrund signifikanter Glvl-Änderung",
-                
+
                 # Evolution Names (German)
                 "SCRAP MECH": "SCHROTT MECH",
-                "REPAIRED MECH": "REPARIERTER MECH", 
+                "REPAIRED MECH": "REPARIERTER MECH",
                 "STANDARD MECH": "STANDARD MECH",
                 "ENHANCED MECH": "VERSTÄRKTER MECH",
                 "ADVANCED MECH": "FORTGESCHRITTENER MECH",
                 "ELITE MECH": "ELITE MECH",
                 "CYBER MECH": "CYBER MECH",
                 "PLASMA MECH": "PLASMA MECH",
-                "QUANTUM MECH": "QUANTUM MECH", 
+                "QUANTUM MECH": "QUANTUM MECH",
                 "DIVINE MECH": "GÖTTLICHER MECH",
                 "OMEGA MECH": "OMEGA MECH",
                 "MAX EVOLUTION REACHED!": "MAXIMALE EVOLUTION ERREICHT!",
-                
+
                 # Period texts for schedule_info
                 "all": "alle",
                 "next_week": "nächste_woche",
@@ -441,13 +441,13 @@ class TranslationManager:
                 "No active scheduled tasks found for the specified period.": "Keine aktiven geplanten Aufgaben für den angegebenen Zeitraum gefunden.",
                 "All tasks have been marked as expired or inactive.": "Alle Aufgaben wurden als abgelaufen oder inaktiv markiert.",
                 "An error occurred while fetching scheduled tasks. Please check the logs.": "Beim Abrufen der geplanten Aufgaben ist ein Fehler aufgetreten. Bitte überprüfe die Logs.",
-                
+
                 # Task descriptions
                 "Weekly {action} on {weekday_name} at {hour:02d}:{minute:02d}": "Wöchentliches {action} am {weekday_name} um {hour:02d}:{minute:02d}",
 
                 # Ping Command
                 "Pong! Latency: {latency:.2f} ms": "Pong! Latenz: {latency:.2f} ms",
-                
+
                 # Help Command
                 "DockerDiscordControl - Help": "DockerDiscordControl - Hilfe",
                 "Here are the available commands:": "Hier sind die verfügbaren Befehle:",
@@ -508,7 +508,7 @@ class TranslationManager:
 
                 # Task command names (updated from schedule to task)
                 "Schedule a one-time task": "Plane eine einmalige Aufgabe",
-                "Schedule a daily task": "Plane eine tägliche Aufgabe", 
+                "Schedule a daily task": "Plane eine tägliche Aufgabe",
                 "Schedule a weekly task": "Plane eine wöchentliche Aufgabe",
                 "Schedule a monthly task": "Plane eine monatliche Aufgabe",
                 "Schedule a yearly task": "Plane eine jährliche Aufgabe",
@@ -516,7 +516,7 @@ class TranslationManager:
                 # Task UI translations
                 "Add Task": "Aufgabe hinzufügen",
                 "Delete Tasks": "Aufgaben löschen",
-                "Create Task": "Aufgabe erstellen", 
+                "Create Task": "Aufgabe erstellen",
                 "Scheduled Tasks for {container}": "Geplante Aufgaben für {container}",
                 "Create Task: {container}": "Aufgabe erstellen: {container}",
                 "Delete Tasks: {container}": "Aufgaben löschen: {container}",
@@ -525,24 +525,24 @@ class TranslationManager:
                 "Instructions": "Anweisungen",
                 "1. Select Cycle Type\n2. Select Action\n3. Select Time and day/date\n4. Click 'Create Task'": "1. Zyklus-Typ wählen\n2. Aktion wählen\n3. Zeit und Tag/Datum wählen\n4. 'Aufgabe erstellen' klicken",
                 "Choose cycle type...": "Zyklus-Typ wählen...",
-                "Choose action...": "Aktion wählen...", 
+                "Choose action...": "Aktion wählen...",
                 "Choose time...": "Zeit wählen...",
                 "Choose weekday...": "Wochentag wählen...",
                 "Choose day...": "Tag wählen...",
                 "Choose month...": "Monat wählen...",
                 "Choose year...": "Jahr wählen...",
                 "Daily": "Täglich",
-                "Weekly": "Wöchentlich", 
+                "Weekly": "Wöchentlich",
                 "Monthly": "Monatlich",
                 "Yearly": "Jährlich",
                 "Once": "Einmalig",
                 "Run every day": "Täglich ausführen",
                 "Run weekly on specific day": "Wöchentlich an bestimmtem Tag ausführen",
-                "Run monthly on specific day": "Monatlich an bestimmtem Tag ausführen", 
+                "Run monthly on specific day": "Monatlich an bestimmtem Tag ausführen",
                 "Run yearly on specific date": "Jährlich an bestimmtem Datum ausführen",
                 "Run once at specific date": "Einmalig an bestimmtem Datum ausführen",
                 "Start": "Starten",
-                "Stop": "Stoppen", 
+                "Stop": "Stoppen",
                 "Restart": "Neustarten",
                 "Start the container": "Container starten",
                 "Stop the container": "Container stoppen",
@@ -563,7 +563,7 @@ class TranslationManager:
                 "Year:": "Jahr:",
                 "Date:": "Datum:",
                 "Monday": "Montag",
-                "Tuesday": "Dienstag", 
+                "Tuesday": "Dienstag",
                 "Wednesday": "Mittwoch",
                 "Thursday": "Donnerstag",
                 "Friday": "Freitag",
@@ -571,7 +571,7 @@ class TranslationManager:
                 "Sunday": "Sonntag",
                 "January": "Januar",
                 "February": "Februar",
-                "March": "März", 
+                "March": "März",
                 "April": "April",
                 "May": "Mai",
                 "June": "Juni",
@@ -579,11 +579,11 @@ class TranslationManager:
                 "August": "August",
                 "September": "September",
                 "October": "Oktober",
-                "November": "November", 
+                "November": "November",
                 "December": "Dezember",
                 "No Tasks for {container}": "Keine Aufgaben für {container}",
                 "No scheduled tasks found for this container.": "Keine geplanten Aufgaben für diesen Container gefunden.",
-                "Legend": "Legende", 
+                "Legend": "Legende",
                 "O = Once, D = Daily, W = Weekly, M = Monthly, Y = Yearly": "O = Einmalig, D = Täglich, W = Wöchentlich, M = Monatlich, Y = Jährlich",
                 "Found Tasks": "Gefundene Aufgaben",
                 "{count} active tasks for {container}": "{count} aktive Aufgaben für {container}",
@@ -591,11 +591,11 @@ class TranslationManager:
                 "Click to manage scheduled tasks": "Klicken um geplante Aufgaben zu verwalten",
                 "Schedule container actions (daily, weekly, monthly, yearly, once)": "Container-Aktionen planen (täglich, wöchentlich, monatlich, jährlich, einmalig)",
                 "Remove scheduled tasks for the container": "Geplante Aufgaben für den Container entfernen",
-                
+
                 # Task system status and error messages
                 "Task Deleted": "Aufgabe gelöscht",
                 "Successfully deleted task: **{description}**": "Aufgabe erfolgreich gelöscht: **{description}**",
-                "Task Details": "Aufgaben-Details", 
+                "Task Details": "Aufgaben-Details",
                 "Container": "Container",
                 "Failed to delete task: **{description}**": "Aufgabe konnte nicht gelöscht werden: **{description}**",
                 "Task not found (may have already been deleted)": "Aufgabe nicht gefunden (möglicherweise bereits gelöscht)",
@@ -611,7 +611,7 @@ class TranslationManager:
                 "Failed to create task. Please check for time conflicts or try again.": "Aufgabe konnte nicht erstellt werden. Bitte prüfen Sie Zeitkonflikte oder versuchen Sie es erneut.",
                 "Time Conflict": "Zeitkonflikt",
                 "Another task is already scheduled within 10 minutes of this time for {container}": "Eine andere Aufgabe ist bereits innerhalb von 10 Minuten zu dieser Zeit für {container} geplant",
-                "Invalid Time": "Ungültige Zeit", 
+                "Invalid Time": "Ungültige Zeit",
                 "The scheduled time is in the past. Please select a future time.": "Die geplante Zeit liegt in der Vergangenheit. Bitte wählen Sie eine zukünftige Zeit.",
                 "Never": "Nie",
                 "Not scheduled": "Nicht geplant",
@@ -864,7 +864,7 @@ class TranslationManager:
                 "Use **/help** for more information about available commands.": "Utilisez **/help** pour plus d'informations sur les commandes disponibles.",
                 "Status Indicators": "Indicateurs de statut",
                 "Container is online": "Le conteneur est en ligne",
-                "Container is offline": "Le conteneur est hors ligne", 
+                "Container is offline": "Le conteneur est hors ligne",
                 "Container status loading": "Chargement du statut du conteneur",
                 "Info System": "Système d'info",
                 "Click for container details": "Cliquer pour les détails du conteneur",
@@ -1031,7 +1031,7 @@ class TranslationManager:
                 "Note on Day Selection": "Note sur la sélection de jour",
                 "Due to Discord's 25-option limit for autocomplete, only a strategic selection of days (1-5, 7, 9, 10, 12-15, 17, 18, 20-22, 24-28, 30, 31) is shown initially. You can still type any day number manually.": "En raison de la limite de 25 options de Discord pour l'autocomplétion, seule une sélection stratégique de jours (1-5, 7, 9, 10, 12-15, 17, 18, 20-22, 24-28, 30, 31) est initialement affichée. Vous pouvez toujours taper manuellement n'importe quel numéro de jour.",
                 "Shows information about all scheduled tasks.": "Affiche des informations sur toutes les tâches planifiées.",
-                
+
                 # Container Info Modal translations (French)
                 "📝 Info Text": "📝 Texte d'info",
                 "☑️ Enable Info Button": "☑️ Partager info dans canaux status",
@@ -1045,7 +1045,7 @@ class TranslationManager:
                 "mydomain.com:7777 or 192.168.1.100:8080": "mydomain.com:7777 ou 192.168.1.100:8080",
                 "Currently: {status}, IP {ip_status}": "Actuellement: {status}, IP {ip_status}",
                 "enabled": "activé",
-                "disabled": "désactivé", 
+                "disabled": "désactivé",
                 "shown": "affiché",
                 "hidden": "caché",
                 "⚙️ Settings": "⚙️ Paramètres",
@@ -1066,7 +1066,7 @@ class TranslationManager:
                 "❌ Failed to save container info for **{name}**. Check permissions on config directory.": "❌ Échec de sauvegarde pour **{name}**. Vérifiez les permissions du répertoire config.",
                 "❌ An error occurred while saving container info: {error}": "❌ Erreur lors de la sauvegarde des infos du conteneur: {error}",
                 "❌ An error occurred while saving container info. Please try again.": "❌ Une erreur s'est produite lors de la sauvegarde. Veuillez réessayer.",
-                
+
                 # Period texts for schedule_info
                 "all": "tous",
                 "next_week": "semaine_prochaine",
@@ -1082,13 +1082,13 @@ class TranslationManager:
                 "No active scheduled tasks found for the specified period.": "Aucune tâche planifiée active trouvée pour la période spécifiée.",
                 "All tasks have been marked as expired or inactive.": "Toutes les tâches ont été marquées comme expirées ou inactives.",
                 "An error occurred while fetching scheduled tasks. Please check the logs.": "Une erreur s'est produite lors de la récupération des tâches planifiées. Veuillez consulter les journaux.",
-                
+
                 # Task descriptions
                 "Weekly {action} on {weekday_name} at {hour:02d}:{minute:02d}": "Action {action} hebdomadaire le {weekday_name} à {hour:02d}:{minute:02d}",
 
                 # Ping Command
                 "Pong! Latency: {latency:.2f} ms": "Pong! Latence: {latency:.2f} ms",
-                
+
                 # Help Command
                 "DockerDiscordControl - Help": "ContrôleDiscordDocker - Aide",
                 "Here are the available commands:": "Voici les commandes disponibles:",
@@ -1149,7 +1149,7 @@ class TranslationManager:
 
                 # Task command names (updated from schedule to task)
                 "Schedule a one-time task": "Plane une tâche unique",
-                "Schedule a daily task": "Plane une tâche quotidienne", 
+                "Schedule a daily task": "Plane une tâche quotidienne",
                 "Schedule a weekly task": "Plane une tâche hebdomadaire",
                 "Schedule a monthly task": "Plane une tâche mensuelle",
                 "Schedule a yearly task": "Plane une tâche annuelle",
@@ -1157,7 +1157,7 @@ class TranslationManager:
                 # Task UI translations
                 "Add Task": "Ajouter une tâche",
                 "Delete Tasks": "Supprimer des tâches",
-                "Create Task": "Créer une tâche", 
+                "Create Task": "Créer une tâche",
                 "Scheduled Tasks for {container}": "Tâches programmées pour {container}",
                 "Create Task: {container}": "Créer une tâche: {container}",
                 "Delete Tasks: {container}": "Supprimer des tâches: {container}",
@@ -1166,24 +1166,24 @@ class TranslationManager:
                 "Instructions": "Instructions",
                 "1. Select Cycle Type\n2. Select Action\n3. Select Time and day/date\n4. Click 'Create Task'": "1. Sélectionner le type de cycle\n2. Sélectionner l'action\n3. Sélectionner l'heure et le jour/date\n4. Cliquer sur 'Créer une tâche'",
                 "Choose cycle type...": "Choisir le type de cycle...",
-                "Choose action...": "Choisir l'action...", 
+                "Choose action...": "Choisir l'action...",
                 "Choose time...": "Choisir l'heure...",
                 "Choose weekday...": "Choisir le jour de la semaine...",
                 "Choose day...": "Choisir le jour...",
                 "Choose month...": "Choisir le mois...",
                 "Choose year...": "Choisir l'année...",
                 "Daily": "Quotidien",
-                "Weekly": "Hebdomadaire", 
+                "Weekly": "Hebdomadaire",
                 "Monthly": "Mensuel",
                 "Yearly": "Annuel",
                 "Once": "Une fois",
                 "Run every day": "Exécuter tous les jours",
                 "Run weekly on specific day": "Exécuter hebdomadairement un jour spécifique",
-                "Run monthly on specific day": "Exécuter mensuellement un jour spécifique", 
+                "Run monthly on specific day": "Exécuter mensuellement un jour spécifique",
                 "Run yearly on specific date": "Exécuter annuellement à une date spécifique",
                 "Run once at specific date": "Exécuter une fois à une date spécifique",
                 "Start": "Démarrer",
-                "Stop": "Arrêter", 
+                "Stop": "Arrêter",
                 "Restart": "Redémarrer",
                 "Start the container": "Démarrer le conteneur",
                 "Stop the container": "Arrêter le conteneur",
@@ -1204,7 +1204,7 @@ class TranslationManager:
                 "Year:": "Année:",
                 "Date:": "Date:",
                 "Monday": "Lundi",
-                "Tuesday": "Mardi", 
+                "Tuesday": "Mardi",
                 "Wednesday": "Mercredi",
                 "Thursday": "Jeudi",
                 "Friday": "Vendredi",
@@ -1212,7 +1212,7 @@ class TranslationManager:
                 "Sunday": "Dimanche",
                 "January": "Janvier",
                 "February": "Février",
-                "March": "Mars", 
+                "March": "Mars",
                 "April": "Avril",
                 "May": "Mai",
                 "June": "Juin",
@@ -1220,11 +1220,11 @@ class TranslationManager:
                 "August": "Août",
                 "September": "Septembre",
                 "October": "Octobre",
-                "November": "Novembre", 
+                "November": "Novembre",
                 "December": "Décembre",
                 "No Tasks for {container}": "Aucune tâche pour {container}",
                 "No scheduled tasks found for this container.": "Aucune tâche programmée trouvée pour ce conteneur.",
-                "Legend": "Légende", 
+                "Legend": "Légende",
                 "O = Once, D = Daily, W = Weekly, M = Monthly, Y = Yearly": "O = Une fois, D = Quotidien, W = Hebdomadaire, M = Mensuel, Y = Annuel",
                 "Found Tasks": "Tâches trouvées",
                 "{count} active tasks for {container}": "{count} tâches actives pour {container}",
@@ -1232,11 +1232,11 @@ class TranslationManager:
                 "Click to manage scheduled tasks": "Cliquer pour gérer les tâches programmées",
                 "Schedule container actions (daily, weekly, monthly, yearly, once)": "Programmer les actions de conteneur (quotidien, hebdomadaire, mensuel, annuel, une fois)",
                 "Remove scheduled tasks for the container": "Supprimer les tâches programmées pour le conteneur",
-                
+
                 # Task system status and error messages
                 "Task Deleted": "Tâche supprimée",
                 "Successfully deleted task: **{description}**": "Tâche supprimée avec succès : **{description}**",
-                "Task Details": "Détails de la tâche", 
+                "Task Details": "Détails de la tâche",
                 "Container": "Conteneur",
                 "Failed to delete task: **{description}**": "Échec de suppression de la tâche : **{description}**",
                 "Task not found (may have already been deleted)": "Tâche introuvable (peut avoir déjà été supprimée)",
@@ -1252,7 +1252,7 @@ class TranslationManager:
                 "Failed to create task. Please check for time conflicts or try again.": "Échec de création de la tâche. Vérifiez les conflits d'horaire ou réessayez.",
                 "Time Conflict": "Conflit d'horaire",
                 "Another task is already scheduled within 10 minutes of this time for {container}": "Une autre tâche est déjà programmée dans les 10 minutes de cette heure pour {container}",
-                "Invalid Time": "Heure invalide", 
+                "Invalid Time": "Heure invalide",
                 "The scheduled time is in the past. Please select a future time.": "L'heure programmée est dans le passé. Veuillez sélectionner une heure future.",
                 "Never": "Jamais",
                 "Not scheduled": "Non programmé",
@@ -1269,7 +1269,7 @@ class TranslationManager:
 
                 # Error messages
                 "Error during execution: {error}": "Erreur pendant l'exécution: {error}",
-                
+
                 # New /info command translations
                 "This channel doesn't have permission to use the info command.": "Ce canal n'a pas la permission d'utiliser la commande info.",
                 "This channel needs either status or control permissions to use the info command.": "Ce canal nécessite des permissions de statut ou de contrôle pour utiliser la commande info.",
@@ -1277,7 +1277,7 @@ class TranslationManager:
                 "No additional information is configured for container '{}'.": "Aucune information supplémentaire n'est configurée pour le conteneur '{}'.",
                 "An error occurred while retrieving container information. Please try again later.": "Une erreur s'est produite lors de la récupération des informations du conteneur. Veuillez réessayer plus tard.",
                 "Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.": "Utilisez `/info <nomserveur>` pour obtenir des informations détaillées sur les conteneurs avec indicateurs ℹ️.",
-                
+
                 # Info Edit Modal translations
                 "📝 Info Text": "📝 Texte d'info",
                 "🌐 IP/URL": "🌐 IP/URL",
@@ -1287,7 +1287,7 @@ class TranslationManager:
                 "mydomain.com:7777 or 192.168.1.100:8080": "mondomaine.fr:7777 ou 192.168.1.100:8080",
                 "Type 'X' to enable, leave empty to disable": "Tapez 'X' pour partager, laissez vide pour ne pas partager",
                 "Type 'X' to show IP, leave empty to hide": "Tapez 'X' pour afficher l'IP, laissez vide pour masquer",
-                
+
                 # Protected Info translations
                 "🔐 Geschützte Informationen aktivieren": "🔐 Activer les informations protégées",
                 "'X' eingeben zum Aktivieren, leer lassen zum Deaktivieren": "Tapez 'X' pour activer, laissez vide pour désactiver",
@@ -1317,7 +1317,7 @@ class TranslationManager:
                 "8080": "8080",
                 "❌ Port must contain only numbers.": "❌ Le port ne doit contenir que des chiffres.",
                 "❌ Port must be between 1 and 65535.": "❌ Le port doit être entre 1 et 65535.",
-                
+
                 # Spam Protection translations
                 "Spam Protection Settings": "Paramètres de protection anti-spam",
                 "Configure rate limiting to prevent spam and abuse of bot commands.": "Configurez la limitation de débit pour éviter le spam et l'abus des commandes du bot.",
@@ -1336,7 +1336,7 @@ class TranslationManager:
                 "Info Button": "Bouton Info",
                 "Refresh Button": "Bouton Actualiser",
                 "Spam protection settings saved successfully!": "Paramètres de protection anti-spam enregistrés avec succès!",
-                
+
                 # Donation messages
                 "Show donation information to support the project": "Afficher les informations de don pour soutenir le projet",
                 "An error occurred while showing donation information. Please try again later.": "Une erreur s'est produite lors de l'affichage des informations de don. Veuillez réessayer plus tard.",
@@ -1353,7 +1353,7 @@ class TranslationManager:
                 "Bug fixes and support": "Corrections de bugs et support",
                 "Documentation improvements": "Améliorations de la documentation",
                 "This message is only shown every 2nd Sunday of the month": "Ce message n'est affiché que chaque 2ème dimanche du mois",
-                # New donation broadcast translations  
+                # New donation broadcast translations
                 "If DDC helps you, please consider supporting ongoing development. Donations help cover hosting, CI, maintenance, and feature work.": "Avec votre don, vous ne soutenez pas seulement l'hébergement, CI, la maintenance et le développement – vous rechargez aussi le système énergétique et aidez le Mech communautaire à atteindre de nouveaux niveaux d'évolution.\nChaque don = plus d'énergie → le Mech devient plus rapide et évolue.",
                 "Choose your preferred method:": "Choisissez votre méthode préférée :",
                 "Click one of the buttons below to support DDC development": "Cliquez sur l'un des boutons ci-dessous pour soutenir le développement de DDC. Cliquez ensuite sur **Partager & Recharger** pour recharger le Mech et optionnellement partager votre don dans les canaux.",
@@ -1390,8 +1390,8 @@ class TranslationManager:
                 "❌ Error sending donation broadcast. Please try again later.": "❌ Erreur lors de l'envoi de l'annonce de don. Veuillez réessayer plus tard.",
                 "Thank you for your support!": "Merci pour votre soutien !",
                 "Error generating server status overview.": "Erreur lors de la génération du résumé d'état du serveur.",
-                
-                
+
+
                 # Mech System translations (French)
                 "Mech-onate": "Mech-onner",
                 "Donation Engine": "Donergie",
@@ -1414,11 +1414,11 @@ class TranslationManager:
                 "The Power system has been reset and rePowered with the remaining surplus of ${surplus:.2f}.": "Le système d'énergie a été réinitialisé et rechargé avec le surplus restant de ${surplus:.2f}.",
                 "Significant Glvl change detected": "Changement significatif de Glvl détecté",
                 "Upgrading to force_recreate=True due to significant Glvl change": "Mise à niveau vers force_recreate=True en raison d'un changement significatif de Glvl",
-                
+
                 # Evolution Names (French)
                 "SCRAP MECH": "MECH FERRAILLE",
                 "REPAIRED MECH": "MECH RÉPARÉ",
-                "STANDARD MECH": "MECH STANDARD", 
+                "STANDARD MECH": "MECH STANDARD",
                 "ENHANCED MECH": "MECH AMÉLIORÉ",
                 "ADVANCED MECH": "MECH AVANCÉ",
                 "ELITE MECH": "MECH ÉLITE",
@@ -1662,28 +1662,28 @@ class TranslationManager:
                 "Shows server status (shortcut: /ss)": "Shows server status (shortcut: /ss)",
                 "Directly control a container": "Directly control a container",
                 "Shows help about available commands": "Shows help about available commands",
-                "Shows the bot response time": "Shows the bot response time", 
+                "Shows the bot response time": "Shows the bot response time",
                 "Shows donation information to support the project.": "Shows donation information to support the project.",
                 "(Re)generates the main control panel message in channels configured for it.": "(Re)generates the main control panel message in channels configured for it.",
                 "Shows detailed information about a specific container.": "Shows detailed information about a specific container.",
                 "Commands are organized by channel type:": "Commands are organized by channel type:",
                 "General Commands": "General Commands",
                 "Status Channel Commands": "Status Channel Commands",
-                "Control Channel Commands": "Control Channel Commands", 
+                "Control Channel Commands": "Control Channel Commands",
                 "Controls a specific Docker container. Actions: start, stop, restart. Requires permissions.": "Controls a specific Docker container. Actions: start, stop, restart. Requires permissions.",
                 "Checks the bot latency.": "Checks the bot latency.",
                 "Use /info <servername> to get detailed information about containers with ℹ️ indicators.": "Use /info <servername> to get detailed information about containers with ℹ️ indicators.",
                 "Use **/help** for more information about available commands.": "Use **/help** for more information about available commands.",
                 "Status Indicators": "Status Indicators",
-                "Container is online": "Container is online", 
+                "Container is online": "Container is online",
                 "Container is offline": "Container is offline",
                 "Container status loading": "Container status loading",
                 "Info System": "Info System",
                 "Click for container details": "Click for container details",
-                "Protected info (control channels only)": "Protected info (control channels only)", 
+                "Protected info (control channels only)": "Protected info (control channels only)",
                 "Public info available": "Public info available",
                 "Control Buttons (Admin Channels)": "Control Buttons (Admin Channels)",
-                "Edit container info text": "Edit container info text", 
+                "Edit container info text": "Edit container info text",
                 "View container logs": "View container logs",
                 "Help information is temporarily unavailable.": "Help information is temporarily unavailable.",
                 "Edit container information": "Edit container information",
@@ -1696,7 +1696,7 @@ class TranslationManager:
                 "Text too long ({length}/250 characters). Please shorten it.": "Text too long ({length}/250 characters). Please shorten it.",
                 "Error displaying container info. Please try again.": "Error displaying container info. Please try again.",
                 "Error saving container info. Please try again.": "Error saving container info. Please try again.",
-                
+
                 # New /info command translations
                 "This channel doesn't have permission to use the info command.": "This channel doesn't have permission to use the info command.",
                 "This channel needs either status or control permissions to use the info command.": "This channel needs either status or control permissions to use the info command.",
@@ -1704,7 +1704,7 @@ class TranslationManager:
                 "No additional information is configured for container '{}'.": "No additional information is configured for container '{}'.",
                 "An error occurred while retrieving container information. Please try again later.": "An error occurred while retrieving container information. Please try again later.",
                 "Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.": "Use `/info <servername>` to get detailed information about containers with ℹ️ indicators.",
-                
+
                 # Info Edit Modal translations
                 "📝 Info Text": "📝 Info Text",
                 "🌐 IP/URL": "🌐 IP/URL",
@@ -1714,7 +1714,7 @@ class TranslationManager:
                 "mydomain.com:7777 or 192.168.1.100:8080": "mydomain.com:7777 or 192.168.1.100:8080",
                 "Type 'X' to enable, leave empty to disable": "Type 'X' to share, leave empty to not share",
                 "Type 'X' to show IP, leave empty to hide": "Type 'X' to show IP, leave empty to hide",
-                
+
                 # Protected Info translations
                 "🔐 Geschützte Informationen aktivieren": "🔐 Enable Protected Information",
                 "'X' eingeben zum Aktivieren, leer lassen zum Deaktivieren": "Type 'X' to enable, leave empty to disable",
@@ -1744,11 +1744,11 @@ class TranslationManager:
                 "8080": "8080",
                 "❌ Port must contain only numbers.": "❌ Port must contain only numbers.",
                 "❌ Port must be between 1 and 65535.": "❌ Port must be between 1 and 65535.",
-                
+
                 # Spam Protection translations
                 "Spam Protection Settings": "Spam Protection Settings",
                 "Configure rate limiting to prevent spam and abuse of bot commands.": "Configure rate limiting to prevent spam and abuse of bot commands.",
-                "Global Settings": "Global Settings", 
+                "Global Settings": "Global Settings",
                 "Enable Spam Protection": "Enable Spam Protection",
                 "Show Cooldown Messages": "Show Cooldown Messages",
                 "Log Rate Limit Violations": "Log Rate Limit Violations",
@@ -1962,7 +1962,7 @@ class TranslationManager:
                 "Note on Day Selection": "Note on Day Selection",
                 "Due to Discord's 25-option limit for autocomplete, only a strategic selection of days (1-5, 7, 9, 10, 12-15, 17, 18, 20-22, 24-28, 30, 31) is shown initially. You can still type any day number manually.": "Due to Discord's 25-option limit for autocomplete, only a strategic selection of days (1-5, 7, 9, 10, 12-15, 17, 18, 20-22, 24-28, 30, 31) is shown initially. You can still type any day number manually.",
                 "Shows information about all scheduled tasks.": "Shows information about all scheduled tasks.",
-                
+
                 # Container Info Modal translations (English - defaults)
                 "📝 Info Text": "📝 Info Text",
                 "☑️ Enable Info Button": "☑️ Share info in status channels",
@@ -1976,7 +1976,7 @@ class TranslationManager:
                 "mydomain.com:7777 or 192.168.1.100:8080": "mydomain.com:7777 or 192.168.1.100:8080",
                 "Currently: {status}, IP {ip_status}": "Currently: {status}, IP {ip_status}",
                 "enabled": "enabled",
-                "disabled": "disabled", 
+                "disabled": "disabled",
                 "shown": "shown",
                 "hidden": "hidden",
                 "⚙️ Settings": "⚙️ Settings",
@@ -1997,7 +1997,7 @@ class TranslationManager:
                 "❌ Failed to save container info for **{name}**. Check permissions on config directory.": "❌ Failed to save container info for **{name}**. Check permissions on config directory.",
                 "❌ An error occurred while saving container info: {error}": "❌ An error occurred while saving container info: {error}",
                 "❌ An error occurred while saving container info. Please try again.": "❌ An error occurred while saving container info. Please try again.",
-                
+
                 # Period texts for schedule_info
                 "all": "all",
                 "next_week": "next_week",
@@ -2013,13 +2013,13 @@ class TranslationManager:
                 "No active scheduled tasks found for the specified period.": "No active scheduled tasks found for the specified period.",
                 "All tasks have been marked as expired or inactive.": "All tasks have been marked as expired or inactive.",
                 "An error occurred while fetching scheduled tasks. Please check the logs.": "An error occurred while fetching scheduled tasks. Please check the logs.",
-                
+
                 # Task descriptions
                 "Weekly {action} on {weekday_name} at {hour:02d}:{minute:02d}": "Weekly {action} on {weekday_name} at {hour:02d}:{minute:02d}",
 
                 # Ping Command
                 "Pong! Latency: {latency:.2f} ms": "Pong! Latency: {latency:.2f} ms",
-                
+
                 # Help Command
                 "DockerDiscordControl - Help": "DockerDiscordControl - Help",
                 "Here are the available commands:": "Here are the available commands:",
@@ -2046,37 +2046,37 @@ class TranslationManager:
                 "Donation received - updating status": "Donation received - updating status",
                 "Donation recorded - updating Power status": "Donation recorded - updating Power status",
                 "MECH EVOLUTION ACHIEVED!": "MECH EVOLUTION ACHIEVED!",
-                
-                
+
+
                 "Your Mech has ascended to the next evolution stage: {evolution_name}": "Your Mech has ascended to the next evolution stage: {evolution_name}",
                 "The Power system has been reset and rePowered with the remaining surplus of ${surplus:.2f}.": "The Power system has been reset and rePowered with the remaining surplus of ${surplus:.2f}.",
                 "Significant Glvl change detected": "Significant Glvl change detected",
                 "Upgrading to force_recreate=True due to significant Glvl change": "Upgrading to force_recreate=True due to significant Glvl change",
-                
-                # Evolution Names (English) 
+
+                # Evolution Names (English)
                 "SCRAP MECH": "SCRAP MECH",
                 "REPAIRED MECH": "REPAIRED MECH",
                 "STANDARD MECH": "STANDARD MECH",
-                "ENHANCED MECH": "ENHANCED MECH", 
+                "ENHANCED MECH": "ENHANCED MECH",
                 "ADVANCED MECH": "ADVANCED MECH",
                 "ELITE MECH": "ELITE MECH",
                 "CYBER MECH": "CYBER MECH",
                 "PLASMA MECH": "PLASMA MECH",
                 "QUANTUM MECH": "QUANTUM MECH",
-                "DIVINE MECH": "DIVINE MECH", 
+                "DIVINE MECH": "DIVINE MECH",
                 "OMEGA MECH": "OMEGA MECH",
                 "MAX EVOLUTION REACHED!": "MAX EVOLUTION REACHED!",
-                
-                # Task command names (updated from schedule to task)  
+
+                # Task command names (updated from schedule to task)
                 "Schedule a one-time task": "Schedule a one-time task",
-                "Schedule a daily task": "Schedule a daily task", 
+                "Schedule a daily task": "Schedule a daily task",
                 "Schedule a weekly task": "Schedule a weekly task",
                 "Schedule a monthly task": "Schedule a monthly task",
                 "Schedule a yearly task": "Schedule a yearly task",
 
                 # Task UI translations
                 "Add Task": "Add Task",
-                "Delete Tasks": "Delete Tasks", 
+                "Delete Tasks": "Delete Tasks",
                 "Create Task": "Create Task",
                 "Scheduled Tasks for {container}": "Scheduled Tasks for {container}",
                 "Create Task: {container}": "Create Task: {container}",
@@ -2094,19 +2094,19 @@ class TranslationManager:
                 "Choose year...": "Choose year...",
                 "Daily": "Daily",
                 "Weekly": "Weekly",
-                "Monthly": "Monthly", 
+                "Monthly": "Monthly",
                 "Yearly": "Yearly",
                 "Once": "Once",
                 "Run every day": "Run every day",
                 "Run weekly on specific day": "Run weekly on specific day",
                 "Run monthly on specific day": "Run monthly on specific day",
-                "Run yearly on specific date": "Run yearly on specific date", 
+                "Run yearly on specific date": "Run yearly on specific date",
                 "Run once at specific date": "Run once at specific date",
                 "Start": "Start",
                 "Stop": "Stop",
                 "Restart": "Restart",
                 "Start the container": "Start the container",
-                "Stop the container": "Stop the container", 
+                "Stop the container": "Stop the container",
                 "Restart the container": "Restart the container",
                 "Now choose the action...": "Now choose the action...",
                 "Continue with the next selection...": "Continue with the next selection...",
@@ -2116,7 +2116,7 @@ class TranslationManager:
                 "All settings configured!": "All settings configured!",
                 "Task configuration complete! Click Create Task to save.": "Task configuration complete! Click Create Task to save.",
                 "Cycle:": "Cycle:",
-                "Action:": "Action:", 
+                "Action:": "Action:",
                 "Time:": "Time:",
                 "Weekday:": "Weekday:",
                 "Day:": "Day:",
@@ -2124,7 +2124,7 @@ class TranslationManager:
                 "Year:": "Year:",
                 "None": "None",
                 "Monday": "Monday",
-                "Tuesday": "Tuesday", 
+                "Tuesday": "Tuesday",
                 "Wednesday": "Wednesday",
                 "Thursday": "Thursday",
                 "Friday": "Friday",
@@ -2134,10 +2134,10 @@ class TranslationManager:
                 "February": "February",
                 "March": "March",
                 "April": "April",
-                "May": "May", 
+                "May": "May",
                 "June": "June",
                 "July": "July",
-                "August": "August", 
+                "August": "August",
                 "September": "September",
                 "October": "October",
                 "November": "November",
@@ -2152,11 +2152,11 @@ class TranslationManager:
                 "Click to manage scheduled tasks": "Click to manage scheduled tasks",
                 "Schedule container actions (daily, weekly, monthly, yearly, once)": "Schedule container actions (daily, weekly, monthly, yearly, once)",
                 "Remove scheduled tasks for the container": "Remove scheduled tasks for the container",
-                
+
                 # Task system status and error messages
                 "Task Deleted": "Task Deleted",
                 "Successfully deleted task: **{description}**": "Successfully deleted task: **{description}**",
-                "Task Details": "Task Details", 
+                "Task Details": "Task Details",
                 "Container": "Container",
                 "Failed to delete task: **{description}**": "Failed to delete task: **{description}**",
                 "Task not found (may have already been deleted)": "Task not found (may have already been deleted)",
@@ -2172,7 +2172,7 @@ class TranslationManager:
                 "Failed to create task. Please check for time conflicts or try again.": "Failed to create task. Please check for time conflicts or try again.",
                 "Time Conflict": "Time Conflict",
                 "Another task is already scheduled within 10 minutes of this time for {container}": "Another task is already scheduled within 10 minutes of this time for {container}",
-                "Invalid Time": "Invalid Time", 
+                "Invalid Time": "Invalid Time",
                 "The scheduled time is in the past. Please select a future time.": "The scheduled time is in the past. Please select a future time.",
                 "Never": "Never",
                 "Not scheduled": "Not scheduled",
@@ -2416,9 +2416,9 @@ class TranslationManager:
         except ImportError:
             # Fallback to direct config loading if cache is not available
             config = load_config()
-        
+
         # Ensure the default is 'en'
-        lang_from_config = config.get('language', 'en') 
+        lang_from_config = config.get('language', 'en')
         self._current_language = lang_from_config
         # Ensure the language exists in our translations, default to 'en' otherwise
         if self._current_language not in self._translations:
@@ -2434,7 +2434,7 @@ class TranslationManager:
             # Language changed, clear the translation cache
             self._.cache_clear()
         self._cached_language = current_lang
-        
+
         language = current_lang
 
         # Try the specific language
@@ -2463,4 +2463,4 @@ def _(text):
 @lru_cache(maxsize=1)
 def get_translations():
     """Returns the translation dictionary with all languages (cached)"""
-    return translation_manager._translations 
+    return translation_manager._translations

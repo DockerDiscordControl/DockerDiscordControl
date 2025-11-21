@@ -29,7 +29,7 @@ class SpamProtectionConfig:
     max_buttons_per_minute: int
     cooldown_message: bool
     log_violations: bool
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'SpamProtectionConfig':
         """Create SpamProtectionConfig from dictionary data."""
@@ -42,7 +42,7 @@ class SpamProtectionConfig:
             cooldown_message=bool(data.get('global_settings', {}).get('cooldown_message', True)),
             log_violations=bool(data.get('global_settings', {}).get('log_violations', True))
         )
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert SpamProtectionConfig to dictionary for storage."""
         return {
@@ -66,27 +66,27 @@ class ServiceResult:
 
 class SpamProtectionService:
     """Clean service for managing spam protection and rate limiting."""
-    
+
     def __init__(self, config_dir: Optional[str] = None):
         """Initialize the spam protection service.
-        
+
         Args:
             config_dir: Directory to store config files. Defaults to config/
         """
         if config_dir is None:
             base_dir = Path(__file__).parent.parent.parent
             config_dir = base_dir / "config"
-        
+
         self.config_dir = Path(config_dir)
         self.config_dir.mkdir(parents=True, exist_ok=True)
         # Updated: Use channels_config.json as single source for spam protection
         self.config_file = self.config_dir / "channels_config.json"
-        
+
         # In-memory cooldown tracking
         self._user_cooldowns: Dict[str, float] = {}
-        
+
         logger.info(f"Spam protection service initialized: {self.config_dir}")
-    
+
     def get_config(self) -> ServiceResult:
         """Get spam protection configuration from channels_config.json.
 
@@ -106,12 +106,12 @@ class SpamProtectionService:
             spam_data = channels_data.get('spam_protection', {})
             config = SpamProtectionConfig.from_dict(spam_data)
             return ServiceResult(success=True, data=config)
-            
+
         except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, discord.Forbidden, discord.HTTPException, discord.NotFound, json.JSONDecodeError) as e:
             error_msg = f"Error loading spam protection config: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
-    
+
     def save_config(self, config: SpamProtectionConfig) -> ServiceResult:
         """Save spam protection configuration to channels_config.json.
 
@@ -140,26 +140,26 @@ class SpamProtectionService:
 
             logger.info("Saved spam protection configuration to channels_config.json")
             return ServiceResult(success=True, data=config)
-            
+
         except (IOError, OSError, PermissionError, RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound, json.JSONDecodeError) as e:
             error_msg = f"Error saving spam protection config: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
-    
+
     def is_enabled(self) -> bool:
         """Check if spam protection is enabled."""
         config_result = self.get_config()
         if config_result.success:
             return config_result.data.global_enabled
         return True  # Default to enabled if config can't be loaded
-    
+
     def get_command_cooldown(self, command_name: str) -> int:
         """Get cooldown for a specific command."""
         config_result = self.get_config()
         if config_result.success:
             return config_result.data.command_cooldowns.get(command_name, 5)
         return 5
-    
+
     def get_button_cooldown(self, button_name: str) -> int:
         """Get cooldown for a specific button."""
         config_result = self.get_config()
@@ -180,19 +180,19 @@ class SpamProtectionService:
             # Default cooldown
             return 5
         return 5
-    
+
     def load_settings(self) -> ServiceResult:
         """Reload spam protection settings from config file.
-        
+
         This method provides compatibility with the old manager interface.
         The service automatically loads settings on each access, so this just
         forces a config reload and returns the result.
-        
+
         Returns:
             ServiceResult indicating success or failure
         """
         return self.get_config()
-    
+
     def is_on_cooldown(self, user_id: int, action_type: str) -> bool:
         """Check if user is on cooldown for specific action.
 
@@ -219,7 +219,7 @@ class SpamProtectionService:
             cooldown_duration = self.get_button_cooldown(action_type)
 
         return (current_time - last_used) < cooldown_duration
-    
+
     def get_remaining_cooldown(self, user_id: int, action_type: str) -> float:
         """Get remaining cooldown time for user action.
 
@@ -247,27 +247,27 @@ class SpamProtectionService:
 
         remaining = cooldown_duration - (current_time - last_used)
         return max(0.0, remaining)
-    
+
     def add_user_cooldown(self, user_id: int, action_type: str) -> None:
         """Add user to cooldown for specific action.
-        
+
         Args:
             user_id: Discord user ID
             action_type: Type of action (command or button name)
         """
         if not self.is_enabled():
             return
-        
+
         cooldown_key = f"{user_id}:{action_type}"
         self._user_cooldowns[cooldown_key] = time.time()
-        
+
         # Clean old cooldowns (older than 5 minutes)
         current_time = time.time()
-        old_keys = [key for key, timestamp in self._user_cooldowns.items() 
+        old_keys = [key for key, timestamp in self._user_cooldowns.items()
                    if current_time - timestamp > 300]
         for key in old_keys:
             del self._user_cooldowns[key]
-    
+
     def _get_default_config(self) -> SpamProtectionConfig:
         """Get default spam protection configuration."""
         return SpamProtectionConfig(
@@ -316,7 +316,7 @@ _spam_protection_service = None
 
 def get_spam_protection_service() -> SpamProtectionService:
     """Get the global spam protection service instance.
-    
+
     Returns:
         SpamProtectionService instance
     """

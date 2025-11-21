@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 import discord
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Union
 from services.config.config_service import load_config
 from .translation_manager import _ # Import the translation function
 from utils.time_utils import format_datetime_with_timezone, get_datetime_imports # Import time helper
@@ -70,7 +70,7 @@ async def container_select(original_ctx, original_current):
         search_text = ""
 
     logger.info(f"[container_select] Determined search_text: '{search_text}'")
-    
+
     servers = get_cached_servers()  # Performance optimization: use cache instead of load_config()
     if not servers:
         logger.warning("[container_select] No servers found in configuration (or servers list is empty). Returning empty list.")
@@ -78,7 +78,7 @@ async def container_select(original_ctx, original_current):
 
     initial_container_names = [server.get('docker_name') for server in servers if server.get('docker_name')]
     logger.info(f"[container_select] Initial unfiltered container names from config: {initial_container_names}")
-    
+
     container_names_to_return = []
     if not search_text:
         logger.debug("[container_select] No search_text, will return all initial_container_names.")
@@ -88,7 +88,7 @@ async def container_select(original_ctx, original_current):
         logger.debug(f"[container_select] Filtering with search_text_lower: '{search_text_lower}'")
         container_names_to_return = [name for name in initial_container_names if search_text_lower in name.lower()]
         logger.info(f"[container_select] Filtered container names: {container_names_to_return}")
-    
+
     logger.info(f"[container_select] EXIT. Returning {len(container_names_to_return)} items: {container_names_to_return[:25]}")
     return container_names_to_return[:25]
 
@@ -96,7 +96,7 @@ def _channel_has_permission(channel_id: int, permission_key: str, config: dict =
     """Checks if a channel has a specific permission."""
     if config is None:
         config = load_config()  # Performance optimization: use cache if no config provided
-    
+
     channel_permissions = config.get('channel_permissions', {})
     channel_config = channel_permissions.get(str(channel_id))
 
@@ -141,7 +141,7 @@ def _get_pending_embed(display_name: str) -> discord.Embed:
     last_update_text = _("Pending since")
     # Get timezone from config (format_datetime_with_timezone will handle fallbacks)
     current_time = format_datetime_with_timezone(now_footer, config.get('timezone'), time_only=True)
-    
+
     # Insert timestamp above the code block
     timestamp_line = f"{last_update_text}: {current_time}"
     embed.description = f"{timestamp_line}\n{description}"
@@ -149,4 +149,4 @@ def _get_pending_embed(display_name: str) -> discord.Embed:
     # Adjusted footer: Only the URL
     embed.set_footer(text=f"https://ddc.bot")
     # --- End: Adjusted box formatting for Pending --- #
-    return embed 
+    return embed

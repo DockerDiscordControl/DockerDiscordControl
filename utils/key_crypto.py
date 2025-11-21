@@ -16,23 +16,23 @@ import base64
 def decrypt_key(encrypted_key: str, crypto_key: str = "NothingToEncrypt") -> str:
     """
     Decrypt a donation key using simple XOR encryption.
-    
+
     Args:
         encrypted_key: Base64 encoded encrypted key
         crypto_key: Encryption key (default: "NothingToEncrypt")
-        
+
     Returns:
         str: Decrypted donation key
     """
     try:
         key_bytes = crypto_key.encode()
         encrypted_bytes = base64.b64decode(encrypted_key.encode())
-        
+
         decrypted = []
         for i, byte in enumerate(encrypted_bytes):
             key_byte = key_bytes[i % len(key_bytes)]
             decrypted.append(byte ^ key_byte)
-        
+
         return bytes(decrypted).decode()
     except (RuntimeError):
         # If decryption fails, return empty string (invalid key)
@@ -41,22 +41,22 @@ def decrypt_key(encrypted_key: str, crypto_key: str = "NothingToEncrypt") -> str
 def encrypt_key(plain_key: str, crypto_key: str = "NothingToEncrypt") -> str:
     """
     Encrypt a donation key using simple XOR encryption.
-    
+
     Args:
         plain_key: Plain text donation key
         crypto_key: Encryption key (default: "NothingToEncrypt")
-        
+
     Returns:
         str: Base64 encoded encrypted key
     """
     key_bytes = crypto_key.encode()
     text_bytes = plain_key.encode()
-    
+
     encrypted = []
     for i, byte in enumerate(text_bytes):
         key_byte = key_bytes[i % len(key_bytes)]
         encrypted.append(byte ^ key_byte)
-    
+
     return base64.b64encode(bytes(encrypted)).decode()
 
 # Encrypted donation keys (use decrypt_key() to get actual keys)
@@ -71,7 +71,7 @@ ENCRYPTED_DONATION_KEYS = [
 def get_valid_donation_keys() -> list:
     """
     Get list of valid donation keys (decrypted).
-    
+
     Returns:
         list: List of valid donation key strings
     """
