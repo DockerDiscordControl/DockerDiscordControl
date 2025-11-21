@@ -1395,6 +1395,70 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
             update_task(task)
             return True  # Return true so it reschedules normally
 
+        # Execute donation message task
+        try:
+            from services.scheduling.donation_message_service import execute_donation_message_task, get_bot_instance
+
+            # Get bot instance
+            bot = get_bot_instance()
+            if not bot:
+                logger.warning("Bot instance not available for donation message task")
+
+            # Execute the donation message task
+            result = await execute_donation_message_task(bot=bot)
+
+            execution_time = time.time() - execution_start
+            if result:
+                logger.info(f"Donation message task {task.task_id} completed successfully in {execution_time:.2f}s")
+                task.last_run_success = True
+                task.last_run_error = None
+
+                # Log in User Action Log
+                log_user_action(
+                    action="DONATION_MESSAGE",
+                    target="SYSTEM",
+                    user="Scheduled Task",
+                    source="Scheduled Task",
+                    details=f"Task ID: {task.task_id}, Result: Success, Duration: {execution_time:.2f}s"
+                )
+            else:
+                logger.error(f"Donation message task {task.task_id} failed")
+                task.last_run_success = False
+                task.last_run_error = "Donation message execution failed"
+
+                # Log in User Action Log
+                log_user_action(
+                    action="DONATION_MESSAGE_FAILED",
+                    target="SYSTEM",
+                    user="Scheduled Task",
+                    source="Scheduled Task",
+                    details=f"Task ID: {task.task_id}, Error: Execution failed"
+                )
+
+            task.update_after_execution()
+            update_task(task)
+            return result
+
+        except (ImportError, AttributeError, RuntimeError) as e:
+            execution_time = time.time() - execution_start
+            error_msg = f"Error executing donation message task: {e}"
+            logger.error(error_msg, exc_info=True)
+
+            task.last_run_success = False
+            task.last_run_error = str(e)
+
+            log_user_action(
+                action="DONATION_MESSAGE_ERROR",
+                target="SYSTEM",
+                user="Scheduled Task",
+                source="Scheduled Task",
+                details=f"Task ID: {task.task_id}, Duration: {execution_time:.2f}s, Error: {str(e)}"
+            )
+
+            task.update_after_execution()
+            update_task(task)
+            return False
+
     try:
         # Create a timeout for the docker action
         try:
