@@ -208,6 +208,13 @@ class TranslationManager:
                 "Thank you for your support!": "Vielen Dank für deine Unterstützung!",
                 "Error generating server status overview.": "Fehler beim Erstellen der Server-Status-Übersicht.",
 
+                # Scheduled donation message translations
+                "🔋 Mech Motor Maintenance": "🔋 Mech Motor-Wartung",
+                "The Mech's power reached 0, but we've given it **$1.00** to keep the motor running! ⚡\n\n**Help us keep the Mech alive and evolving!**\nEvery donation adds Power (movement) and Evolution Progress (leveling up).\n\n💝 Support DDC and power the community Mech: https://ddc.bot": "Die Power des Mechs erreichte 0, aber wir haben ihm **$1,00** gegeben, um den Motor am Laufen zu halten! ⚡\n\n**Hilf uns, den Mech am Leben und in der Evolution zu halten!**\nJede Spende fügt Power (Bewegung) und Evolution-Fortschritt (Levelaufstieg) hinzu.\n\n💝 Unterstütze DDC und lade den Community-Mech auf: https://ddc.bot",
+                "💝 Support DDC & Power the Mech": "💝 Unterstütze DDC & lade den Mech auf",
+                "**The community Mech needs your help to keep evolving!**\n\nEvery donation:\n• ⚡ Adds **Power** (keeps the Mech moving)\n• 📊 Increases **Evolution Progress** (levels up)\n• 💪 Supports DDC development\n\nThank you for being part of our community! 🙏\n💝 Donate: https://ddc.bot": "**Der Community-Mech braucht deine Hilfe, um weiter zu evolvieren!**\n\nJede Spende:\n• ⚡ Fügt **Power** hinzu (hält den Mech in Bewegung)\n• 📊 Erhöht den **Evolution-Fortschritt** (Levelaufstieg)\n• 💪 Unterstützt die DDC-Entwicklung\n\nDanke, dass du Teil unserer Community bist! 🙏\n💝 Spenden: https://ddc.bot",
+                "Monthly Donation Appeal": "Monatlicher Spendenaufruf",
+
                 "DockerDiscordControl": "DockerDiscordSteuerung",
                 "This command is not allowed in this channel.": "Dieser Befehl ist in diesem Kanal nicht erlaubt.",
                 "Force update initiated. All status messages will be regenerated.": "Forciertes Update initiiert. Alle Statusnachrichten werden neu generiert.",
@@ -1391,6 +1398,12 @@ class TranslationManager:
                 "Thank you for your support!": "Merci pour votre soutien !",
                 "Error generating server status overview.": "Erreur lors de la génération du résumé d'état du serveur.",
 
+                # Scheduled donation message translations
+                "🔋 Mech Motor Maintenance": "🔋 Maintenance du moteur Mech",
+                "The Mech's power reached 0, but we've given it **$1.00** to keep the motor running! ⚡\n\n**Help us keep the Mech alive and evolving!**\nEvery donation adds Power (movement) and Evolution Progress (leveling up).\n\n💝 Support DDC and power the community Mech: https://ddc.bot": "La puissance du Mech a atteint 0, mais nous lui avons donné **$1,00** pour faire tourner le moteur! ⚡\n\n**Aidez-nous à garder le Mech en vie et en évolution!**\nChaque don ajoute de la Puissance (mouvement) et des Progrès d'Évolution (montée de niveau).\n\n💝 Soutenez DDC et rechargez le Mech communautaire: https://ddc.bot",
+                "💝 Support DDC & Power the Mech": "💝 Soutenez DDC & rechargez le Mech",
+                "**The community Mech needs your help to keep evolving!**\n\nEvery donation:\n• ⚡ Adds **Power** (keeps the Mech moving)\n• 📊 Increases **Evolution Progress** (levels up)\n• 💪 Supports DDC development\n\nThank you for being part of our community! 🙏\n💝 Donate: https://ddc.bot": "**Le Mech communautaire a besoin de votre aide pour continuer à évoluer!**\n\nChaque don:\n• ⚡ Ajoute de la **Puissance** (garde le Mech en mouvement)\n• 📊 Augmente les **Progrès d'Évolution** (montée de niveau)\n• 💪 Soutient le développement DDC\n\nMerci de faire partie de notre communauté! 🙏\n💝 Faire un don: https://ddc.bot",
+                "Monthly Donation Appeal": "Appel aux dons mensuel",
 
                 # Mech System translations (French)
                 "Mech-onate": "Mech-onner",
@@ -1817,6 +1830,14 @@ class TranslationManager:
                 "❌ Error sending donation broadcast. Please try again later.": "❌ Error sending donation broadcast. Please try again later.",
                 "Thank you for your support!": "Thank you for your support!",
                 "Error generating server status overview.": "Error generating server status overview.",
+
+                # Scheduled donation message translations
+                "🔋 Mech Motor Maintenance": "🔋 Mech Motor Maintenance",
+                "The Mech's power reached 0, but we've given it **$1.00** to keep the motor running! ⚡\n\n**Help us keep the Mech alive and evolving!**\nEvery donation adds Power (movement) and Evolution Progress (leveling up).\n\n💝 Support DDC and power the community Mech: https://ddc.bot": "The Mech's power reached 0, but we've given it **$1.00** to keep the motor running! ⚡\n\n**Help us keep the Mech alive and evolving!**\nEvery donation adds Power (movement) and Evolution Progress (leveling up).\n\n💝 Support DDC and power the community Mech: https://ddc.bot",
+                "💝 Support DDC & Power the Mech": "💝 Support DDC & Power the Mech",
+                "**The community Mech needs your help to keep evolving!**\n\nEvery donation:\n• ⚡ Adds **Power** (keeps the Mech moving)\n• 📊 Increases **Evolution Progress** (levels up)\n• 💪 Supports DDC development\n\nThank you for being part of our community! 🙏\n💝 Donate: https://ddc.bot": "**The community Mech needs your help to keep evolving!**\n\nEvery donation:\n• ⚡ Adds **Power** (keeps the Mech moving)\n• 📊 Increases **Evolution Progress** (levels up)\n• 💪 Supports DDC development\n\nThank you for being part of our community! 🙏\n💝 Donate: https://ddc.bot",
+                "Monthly Donation Appeal": "Monthly Donation Appeal",
+
                 "DockerDiscordControl": "DockerDiscordControl",
                 "This command is not allowed in this channel.": "This command is not allowed in this channel.",
                 "Force update initiated. All status messages will be regenerated.": "Force update initiated. All status messages will be regenerated.",

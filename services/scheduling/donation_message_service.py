@@ -123,7 +123,7 @@ async def execute_donation_message_task(bot: Optional[Any] = None) -> bool:
                         )
                         embed.add_field(name=_("Mech Status"), value=state_info, inline=False)
 
-                        embed.set_footer(text="https://ddc.bot | Monthly Donation Appeal")
+                        embed.set_footer(text=f"https://ddc.bot | {_('Monthly Donation Appeal')}")
 
                         await channel.send(embed=embed)
                         sent_count += 1
