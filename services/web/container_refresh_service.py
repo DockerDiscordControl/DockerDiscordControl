@@ -17,11 +17,7 @@ import pytz
 from datetime import datetime
 from typing import Optional
 from dataclasses import dataclass
-
-try:
-    import docker
-except ImportError:
-    docker = None  # Docker SDK not available
+import docker
 
 logger = logging.getLogger(__name__)
 
