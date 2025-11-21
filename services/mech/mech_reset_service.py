@@ -324,19 +324,19 @@ class MechResetService:
         except (IOError, OSError) as e:
             # File I/O errors (reading donations, state files)
             logger.error(f"File I/O error getting Mech status: {e}", exc_info=True)
-            return {"error": f"File I/O error: {str(e)}"}
+            return {"error": "File I/O error"}
         except json.JSONDecodeError as e:
             # JSON parsing errors (corrupted files)
             logger.error(f"JSON parsing error getting Mech status: {e}", exc_info=True)
-            return {"error": f"JSON parsing error: {str(e)}"}
+            return {"error": "JSON parsing error"}
         except (ImportError, AttributeError) as e:
             # Service dependency errors (mech_service import)
             logger.error(f"Service dependency error getting Mech status: {e}", exc_info=True)
-            return {"error": f"Service dependency error: {str(e)}"}
+            return {"error": "Service dependency error"}
         except (ValueError, TypeError, KeyError) as e:
             # Data calculation/access errors (sum, dict access)
             logger.error(f"Data processing error getting Mech status: {e}", exc_info=True)
-            return {"error": f"Data processing error: {str(e)}"}
+            return {"error": "Data processing error"}
 
 
 # Singleton instance
