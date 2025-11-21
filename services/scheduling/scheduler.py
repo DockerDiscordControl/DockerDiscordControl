@@ -838,13 +838,21 @@ class ScheduledTask:
 # --- System Task Management Functions ---
 
 def create_donation_system_task() -> ScheduledTask:
-    """Create the hard-coded donation system task."""
+    """Create the hard-coded donation system task.
+
+    The task is always created but marked as inactive if donations are disabled
+    via premium key. This allows the task to appear in the Web UI but prevents
+    execution.
+    """
     try:
-        # Check if donations are disabled
+        # Check if donations are disabled via premium key
         from services.donation.donation_utils import is_donations_disabled
-        if is_donations_disabled():
-            logger.debug("Donation system task skipped - donations disabled by premium key")
-            return None
+        donations_disabled = is_donations_disabled()
+
+        if donations_disabled:
+            logger.info("Donation system task created but marked INACTIVE - donations disabled by premium key")
+        else:
+            logger.debug("Donation system task created and ACTIVE")
 
         # Get configured timezone or fall back to default
         try:
@@ -862,18 +870,23 @@ def create_donation_system_task() -> ScheduledTask:
             container_name="SYSTEM",  # Special container name for system tasks
             action="donation_message",
             cycle=CYCLE_MONTHLY,  # Display as monthly
-            description="Automatic donation message (2nd Sunday @ 13:37)",
+            description="Automatic donation message (2nd Sunday @ 13:37)" +
+                       (" [DISABLED by premium key]" if donations_disabled else ""),
             created_by="SYSTEM",
             timezone_str=timezone_str,
             schedule_details={"time": "13:37", "day": "2nd Sunday"}  # Special display for donation task
         )
 
-        # Mark as system task and active
-        task.is_active = True
-        task.status = "active"
+        # Set active status based on whether donations are disabled
+        task.is_active = not donations_disabled  # Active only if donations NOT disabled
+        task.status = "active" if not donations_disabled else "disabled"
 
-        # Use our special donation calculation
-        task._calculate_next_donation_run()
+        # Use our special donation calculation (only if active)
+        if task.is_active:
+            task._calculate_next_donation_run()
+        else:
+            # Set next_run to None if inactive to prevent scheduling
+            task.next_run_ts = None
 
         return task
     except (ImportError, AttributeError, RuntimeError) as e:
