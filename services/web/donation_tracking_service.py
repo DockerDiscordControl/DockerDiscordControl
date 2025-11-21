@@ -78,7 +78,7 @@ class DonationTrackingService:
                 timestamp=current_timestamp
             )
 
-        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+        except (RuntimeError, ValueError, TypeError) as e:
             self.logger.error(f"Error recording donation click: {e}", exc_info=True)
             return DonationClickResult(
                 success=False,

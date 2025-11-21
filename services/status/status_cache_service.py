@@ -14,6 +14,11 @@ from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime, timezone
 from copy import deepcopy
 
+try:
+    import docker
+except ImportError:
+    docker = None  # Docker SDK not available
+
 logger = logging.getLogger('ddc.status_cache_service')
 
 class StatusCacheService:

@@ -36,7 +36,7 @@ def is_debug_mode_enabled() -> bool:
     Returns:
         bool: True if debug mode is enabled, otherwise False
     """
-    global _debug_mode_enabled, _last_debug_status_log, _temp_debug_mode_enabled, _temp_debug_expiry
+    global _debug_mode_enabled, _last_debug_status_log, _temp_debug_mode_enabled
 
     with _debug_mode_lock:
         # Recursion guard - prevent infinite loops during config loading
