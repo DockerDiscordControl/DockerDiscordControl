@@ -1631,7 +1631,8 @@ def get_mech_status():
         # Security: Check for error in status (service returns {"error": "..."} on exceptions)
         if isinstance(status, dict) and "error" in status:
             # Service encountered an error - log detailed error, return generic message
-            current_app.logger.error(f"Mech status service error: {status['error']}", exc_info=True)
+            # Security: Log exception details server-side only, no f-strings with error data
+            current_app.logger.error("Mech status service error: %s", status.get('error', 'Unknown'), exc_info=True)
             return jsonify({
                 'success': False,
                 'error': 'Failed to retrieve mech status'
