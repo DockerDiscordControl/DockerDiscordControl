@@ -27,6 +27,7 @@ from .sequence import run_startup_sequence
 
 STARTUP_STEPS: Sequence[StartupStep] = (
     run_port_diagnostics_step,
+    grant_power_gift_step,          # MUST run before load_extensions to ensure power is set before status messages
     load_extensions_step,
     prepare_schedule_commands_step,
     synchronize_commands_step,
@@ -34,7 +35,6 @@ STARTUP_STEPS: Sequence[StartupStep] = (
     start_scheduler_step,
     send_update_notification_step,
     initialize_member_count_step,
-    grant_power_gift_step,
 )
 
 __all__ = [
