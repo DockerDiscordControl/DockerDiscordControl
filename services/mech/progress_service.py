@@ -981,90 +981,141 @@ class ProgressService:
 
     def rebuild_from_events(self) -> ProgressState:
         """
-        Rebuild snapshot from scratch by replaying all events.
+        Rebuild snapshot from scratch by replaying all events CHRONOLOGICALLY.
 
-        This is used when donations are deleted - we replay the entire
-        event log, skipping deleted donations, and recalculate everything:
-        - Level-ups happen at different times
-        - Member counts get frozen at different moments
-        - All costs recalculate based on when level-ups actually happen
+        SIMPLE TIME-AWARE APPROACH:
+        1. Go through events chronologically (by timestamp, not seq!)
+        2. Calculate decay since last event
+        3. Apply event (Donation, PowerGift, etc.)
+        4. apply_donation_units handles level-ups and power reset
+        5. System donations ignored (except initial $3)
 
-        This is the EVENT SOURCING way: state is derived from events.
+        This correctly handles decay over 3+ years by simulating time progression.
         """
         with LOCK:
             # Read all events for this mech
             all_events = [e for e in read_events() if e.mech_id == self.mech_id]
 
-            # Track which sequences are deleted (both donations AND deletions can be deleted!)
-            # This supports the full Event Sourcing pattern:
-            # - DonationDeleted #5 with deleted_seq=3 → Deletes DonationAdded #3
-            # - DonationDeleted #8 with deleted_seq=5 → Deletes DonationDeleted #5 → Restores DonationAdded #3!
+            # Calculate deleted_seqs (restoration support)
             deleted_seqs = set()
             for evt in all_events:
                 if evt.type == "DonationDeleted":
-                    deleted_seq = evt.payload.get("deleted_seq")
+                    payload = evt.payload or {}
+                    deleted_seq = payload.get("deleted_seq")
                     if deleted_seq:
-                        deleted_seqs.add(deleted_seq)
-                        logger.info(f"Marking event seq {deleted_seq} as deleted (type will be determined during replay)")
+                        # Check if THIS deletion event is itself deleted (restoration!)
+                        is_this_deletion_deleted = any(
+                            e.type == "DonationDeleted" and
+                            (e.payload or {}).get("deleted_seq") == evt.seq
+                            for e in all_events
+                        )
+                        if not is_this_deletion_deleted:
+                            deleted_seqs.add(deleted_seq)
+                            logger.info(f"Marking event seq {deleted_seq} as deleted")
+                        else:
+                            logger.info(f"DonationDeleted seq {evt.seq} is itself deleted → Restoring seq {deleted_seq}")
 
             # Create fresh snapshot at Level 1
             snap = Snapshot(mech_id=self.mech_id)
             set_new_goal_for_next_level(snap, user_count=0)
             snap.last_decay_day = today_local_str()
 
-            # Replay all events in order
+            # Track last event timestamp for decay calculation
+            last_timestamp = None
+            dpp = decay_per_day(snap.mech_type)
+
+            # Replay all events in CHRONOLOGICAL ORDER (by timestamp!)
             last_seq = 0
-            for evt in sorted(all_events, key=lambda e: e.seq):
+            for evt in sorted(all_events, key=lambda e: e.ts):
                 last_seq = max(last_seq, evt.seq)
 
+                # Skip deleted events
+                if evt.seq in deleted_seqs:
+                    continue
+
+                # Skip DonationDeleted events (metadata, not actual events to replay)
+                if evt.type == "DonationDeleted":
+                    continue
+
+                # STEP 1: Calculate decay since last event
+                if last_timestamp and evt.ts:
+                    try:
+                        from datetime import datetime
+                        from zoneinfo import ZoneInfo
+
+                        # Parse timestamps
+                        last_time = datetime.fromisoformat(last_timestamp.replace('Z', '+00:00'))
+                        current_time = datetime.fromisoformat(evt.ts.replace('Z', '+00:00'))
+
+                        # Calculate elapsed time
+                        elapsed_seconds = (current_time - last_time).total_seconds()
+                        elapsed_days = elapsed_seconds / 86400.0
+
+                        # Calculate decay amount
+                        decay_amount = int(elapsed_days * dpp)
+
+                        # Apply decay to power
+                        if decay_amount > 0:
+                            snap.power_acc = max(0, snap.power_acc - decay_amount)
+                            logger.debug(f"Applied decay: {elapsed_days:.2f} days = ${decay_amount/100:.2f} "
+                                       f"(power: ${snap.power_acc/100:.2f})")
+                    except (ValueError, AttributeError, ImportError) as e:
+                        logger.warning(f"Could not calculate decay between events: {e}")
+
+                # STEP 2: Apply event based on type
+                payload = evt.payload or {}
+
                 if evt.type == "DonationAdded":
-                    # Skip if this donation was deleted
-                    if evt.seq in deleted_seqs:
-                        logger.debug(f"Skipping deleted donation seq {evt.seq}")
-                        continue
-
-                    # Apply donation
-                    units_cents = evt.payload.get("units", 0)
-
-                    # CRITICAL: Apply donation which may trigger level-up
-                    # Level-ups will freeze member count at this moment
+                    # Apply user donation (affects both power and evolution)
+                    units_cents = payload.get("units", 0)
                     snap, lvl_evt, bonus_evt = apply_donation_units(snap, units_cents)
-
-                elif evt.type == "LevelUpCommitted":
-                    # Level-up events are generated during apply_donation_units
-                    # We don't need to replay them separately, they're side-effects
-                    pass
-
-                elif evt.type == "MemberCountUpdated":
-                    # Update member count sample
-                    new_count = evt.payload.get("member_count", 0)
-                    snap.last_user_count_sample = new_count
+                    logger.debug(f"Applied DonationAdded: ${units_cents/100:.2f} "
+                               f"(power: ${snap.power_acc/100:.2f}, evo: ${snap.evo_acc/100:.2f}, level: {snap.level})")
 
                 elif evt.type == "SystemDonationAdded":
-                    # Apply system donation: Power ONLY, no evolution progress!
-                    power_units = evt.payload.get("power_units", 0)
-                    event_name = evt.payload.get("event_name", "Unknown Event")
-
-                    snap.power_acc += power_units  # Add to power
-                    snap.cumulative_donations_cents += power_units  # Track total
-
-                    logger.debug(f"Replayed SystemDonation: +${power_units/100:.2f} power "
-                                f"from '{event_name}' (evo unchanged)")
+                    # System donations: Ignore ALL except initial $3
+                    is_initial = payload.get("is_initial", False)
+                    if is_initial:
+                        initial_power = payload.get("power_units", 300)  # $3 default
+                        snap.power_acc += initial_power
+                        logger.debug(f"Applied initial SystemDonation: ${initial_power/100:.2f}")
+                    else:
+                        logger.debug("Skipping non-initial SystemDonation")
 
                 elif evt.type == "PowerGiftGranted":
-                    # Apply power gift
-                    gift_cents = evt.payload.get("power_units", 0)
+                    # Power gift: Power ONLY, no evolution
+                    gift_cents = payload.get("power_units", 0)
                     snap.power_acc += gift_cents
+                    logger.debug(f"Applied PowerGift: ${gift_cents/100:.2f}")
 
-                elif evt.type == "DonationDeleted":
-                    # Skip if THIS deletion event itself was deleted (restoration!)
-                    if evt.seq in deleted_seqs:
-                        deleted_donation_seq = evt.payload.get("deleted_seq")
-                        logger.info(f"Skipping deleted DonationDeleted event seq {evt.seq} "
-                                   f"→ Restoring donation seq {deleted_donation_seq}")
-                        continue
-                    # Otherwise, this deletion is active (already processed above in deleted_seqs collection)
+                elif evt.type == "ExactHitBonusGranted":
+                    # Exact hit bonus: Power + counts as donation
+                    bonus_cents = payload.get("power_units", 0)
+                    snap.power_acc += bonus_cents
+                    snap.cumulative_donations_cents += bonus_cents
+                    logger.debug(f"Applied ExactHitBonus: ${bonus_cents/100:.2f}")
+
+                elif evt.type == "MemberCountUpdated":
+                    # Update member count
+                    new_count = payload.get("member_count", 0)
+                    snap.last_user_count_sample = new_count
+
+                elif evt.type == "LevelUpCommitted":
+                    # Skip - these are generated during apply_donation_units
                     pass
+
+                # Update last_timestamp for next iteration
+                if evt.ts:
+                    last_timestamp = evt.ts
+
+            # Set goal_started_at to last event timestamp
+            # This allows compute_ui_state to calculate decay from last event to NOW
+            if last_timestamp:
+                snap.goal_started_at = last_timestamp
+                logger.info(f"Set goal_started_at to last event timestamp: {last_timestamp}")
+            else:
+                snap.goal_started_at = now_utc_iso()
+                logger.info("No events with timestamp, using current time")
 
             # Update snapshot metadata
             snap.version += 1
@@ -1072,7 +1123,8 @@ class ProgressService:
             persist_snapshot(snap)
 
             logger.info(f"Rebuilt snapshot from {len(all_events)} events "
-                       f"(skipped {len(deleted_seqs)} deleted donations)")
+                       f"(skipped {len(deleted_seqs)} deleted, final: power=${snap.power_acc/100:.2f}, "
+                       f"evo=${snap.evo_acc/100:.2f}, level={snap.level})")
 
             return compute_ui_state(snap)
 
