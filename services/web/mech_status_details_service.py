@@ -95,9 +95,10 @@ class MechStatusDetailsService:
             power_decimal = data_result.current_power
 
             # Get speed description from MechDataStore using get_combined_mech_status (Single Point of Truth)
-            # SPECIAL CASE: Level 11 is maximum level - always show "Göttlich" (no more speed changes)
+            # SPECIAL CASE: Level 11 is maximum level - always show "Divine" (translated) (no more speed changes)
             if data_result.current_level >= 11:
-                speed_description = "Göttlich"  # Level 11 is final level with static divine speed
+                from cogs.translation_manager import _
+                speed_description = _("Divine")  # Level 11 is final level with static divine speed
             else:
                 # Use get_combined_mech_status for correct speed calculation
                 from services.mech.speed_levels import get_combined_mech_status
@@ -134,8 +135,9 @@ class MechStatusDetailsService:
                     data_result.bars.Power_max_for_level
                 )
 
-            # Format speed text
-            speed_text = f"Geschwindigkeit: {speed_description}"
+            # Format speed text (use translation)
+            from cogs.translation_manager import _
+            speed_text = f"{_('Speed:')} {speed_description}"
 
             # Format power with decimals
             power_text = f"⚡{power_decimal:.2f}"
@@ -147,9 +149,10 @@ class MechStatusDetailsService:
             else:
                 # Get dynamic decay rate from evolution config (SERVICE FIRST: unified evolution system)
                 from services.mech.mech_evolutions import get_evolution_level_info
+                from cogs.translation_manager import _
                 evolution_info = get_evolution_level_info(current_level)
                 decay_per_day = evolution_info.decay_per_day if evolution_info else 1.0
-                energy_consumption = f"Energieverbrauch: 🔻 {decay_per_day}/t"
+                energy_consumption = f"{_('Energy consumption:')} 🔻 {decay_per_day}{_('per_day_suffix')}"
 
             # Format next evolution
             next_evolution = None

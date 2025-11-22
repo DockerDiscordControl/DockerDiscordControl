@@ -2131,7 +2131,7 @@ class MechDetailsButton(Button):
                 truncated_description = full_description
 
             embed = discord.Embed(
-                title="Mech Status",
+                title=_("Mech Status"),
                 description=truncated_description,
                 color=0x00ff88
             )
@@ -3151,7 +3151,7 @@ class MechPrivateDonateButton(Button):
     def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
         super().__init__(
             style=discord.ButtonStyle.green,
-            label="Spenden / Aufladen",
+            label=_("Power/Donate"),
             custom_id=f"mech_private_donate_{channel_id}"
         )
         self.cog = cog_instance
@@ -3190,7 +3190,7 @@ class MechPrivateHistoryButton(Button):
     def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
         super().__init__(
             style=discord.ButtonStyle.secondary,
-            label="Mech History",
+            label=_("Mech History"),
             custom_id=f"mech_private_history_{channel_id}"
         )
         self.cog = cog_instance

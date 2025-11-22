@@ -410,6 +410,10 @@ class TranslationManager:
                 "per_day_suffix": "/t",  # German: täglich
                 "Glvl": "Glvl",
                 "Power/Donate": "Spenden / Aufladen",
+                "Speed:": "Geschwindigkeit:",
+                "Energy consumption:": "Energieverbrauch:",
+                "Divine": "Göttlich",
+                "Mech History": "Mech Verlauf",
                 "Evolution level up - updating mech animation": "Evolution Level-Up - Mech Animation wird aktualisiert",
                 "Donation received - updating status": "Spende erhalten - Status wird aktualisiert",
                 "Donation recorded - updating Power status": "Spende erfasst - Energie-Status wird aktualisiert",
@@ -1419,6 +1423,10 @@ class TranslationManager:
                 "per_day_suffix": "/j",  # French: jour (day)
                 "Glvl": "Glvl",
                 "Power/Donate": "Don / Recharge",
+                "Speed:": "Vitesse:",
+                "Energy consumption:": "Consommation d'énergie:",
+                "Divine": "Divin",
+                "Mech History": "Historique du Mech",
                 "Evolution level up - updating mech animation": "Montée de niveau d'évolution - mise à jour de l'animation du mech",
                 "Donation received - updating status": "Don reçu - mise à jour du statut",
                 "Donation recorded - updating Power status": "Don enregistré - mise à jour du statut d'énergie",
@@ -2063,6 +2071,10 @@ class TranslationManager:
                 "per_day_suffix": "/d",  # English: day
                 "Glvl": "Glvl",
                 "Power/Donate": "Donate / Charge",
+                "Speed:": "Speed:",
+                "Energy consumption:": "Energy consumption:",
+                "Divine": "Divine",
+                "Mech History": "Mech History",
                 "Evolution level up - updating mech animation": "Evolution level up - updating mech animation",
                 "Donation received - updating status": "Donation received - updating status",
                 "Donation recorded - updating Power status": "Donation recorded - updating Power status",
