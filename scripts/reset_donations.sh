@@ -52,7 +52,7 @@ echo "✅ Sequenz zurückgesetzt"
 
 echo ""
 echo "🔄 Starte Container neu..."
-docker restart ddc
+docker restart dockerdiscordcontrol
 
 echo ""
 echo "✅ Reset abgeschlossen!"
