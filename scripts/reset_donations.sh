@@ -47,7 +47,7 @@ echo "✅ Snapshot gelöscht"
 
 echo ""
 echo "🔄 Starte Container neu..."
-docker restart DockerDiscordControl
+docker restart ddc
 
 echo ""
 echo "✅ Reset abgeschlossen!"
