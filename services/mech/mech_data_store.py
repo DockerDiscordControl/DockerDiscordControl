@@ -526,7 +526,7 @@ class MechDataStore:
             result = mech_service.get_mech_state_service(request)
 
             if not result.success:
-                return {'success': False, 'error': f'Failed to get mech state: {result.error_message}'}
+                return {'success': False, 'error': f'Failed to get mech state: {result.error}'}
 
             return {
                 'success': True,

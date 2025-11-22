@@ -236,8 +236,16 @@ def snapshot_path(mech_id: str) -> Path:
 def load_snapshot(mech_id: str) -> Snapshot:
     p = snapshot_path(mech_id)
     if p.exists():
-        with open(p, "r", encoding="utf-8") as f:
-            return Snapshot.from_json(json.load(f))
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return Snapshot.from_json(json.load(f))
+        except (json.JSONDecodeError, ValueError, KeyError) as e:
+            # Corrupted snapshot file - log warning and recreate from events
+            logger.warning(f"Corrupted snapshot file detected ({e}), rebuilding from events...")
+            # Delete corrupted file and let rebuild_from_events create a fresh one
+            p.unlink(missing_ok=True)
+            # Fall through to create new snapshot below
+
     # First-time snapshot → initialize goal for level 1
     snap = Snapshot(mech_id=mech_id)
     set_new_goal_for_next_level(snap, user_count=0)
