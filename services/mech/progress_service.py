@@ -255,9 +255,43 @@ def load_snapshot(mech_id: str) -> Snapshot:
 
 
 def persist_snapshot(snap: Snapshot) -> None:
+    """
+    Persist snapshot to disk using atomic write to prevent corruption.
+
+    CRITICAL: Uses atomic rename to ensure snapshot is never left in corrupted state.
+    If write fails mid-operation, original snapshot remains intact.
+    """
+    import tempfile
+    import shutil
+
     p = snapshot_path(snap.mech_id)
-    with open(p, "w", encoding="utf-8") as f:
-        json.dump(snap.to_json(), f, indent=2)
+
+    # Write to temporary file first (atomic write pattern)
+    # Create temp file in same directory to ensure atomic rename works (same filesystem)
+    temp_fd, temp_path = tempfile.mkstemp(
+        dir=p.parent,
+        prefix=f".{p.name}.",
+        suffix=".tmp"
+    )
+
+    try:
+        # Write JSON to temp file
+        with os.fdopen(temp_fd, "w", encoding="utf-8") as f:
+            json.dump(snap.to_json(), f, indent=2)
+            f.flush()  # Ensure data is written to OS buffer
+            os.fsync(f.fileno())  # Force write to disk (prevent data loss on crash)
+
+        # Atomic rename: if this succeeds, snapshot is guaranteed to be valid
+        # If this fails, original snapshot is untouched
+        shutil.move(temp_path, p)
+
+    except Exception:
+        # Cleanup temp file on error
+        try:
+            os.unlink(temp_path)
+        except OSError:
+            pass
+        raise  # Re-raise original exception
 
 
 # ---------------------
