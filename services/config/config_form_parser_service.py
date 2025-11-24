@@ -13,6 +13,8 @@ Part of ConfigService refactoring for Single Responsibility Principle
 import logging
 from typing import Dict, Any, Tuple
 
+import discord
+
 logger = logging.getLogger('ddc.config_form_parser')
 
 
