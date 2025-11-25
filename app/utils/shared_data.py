@@ -15,6 +15,10 @@ import os
 import json
 import glob
 from threading import Lock
+from utils.logging_utils import get_module_logger
+
+# Setup logger
+logger = get_module_logger('shared_data')
 
 # Shared data with lock for thread safety
 _shared_data_lock = Lock()
@@ -41,14 +45,14 @@ def load_active_containers_from_config():
     try:
         # Check if containers directory exists
         if not os.path.exists(CONTAINERS_DIR):
-            print(f"SHARED_DATA: Containers directory {CONTAINERS_DIR} not found.")
+            logger.warning(f"Containers directory {CONTAINERS_DIR} not found.")
             return []
 
         # Find all JSON files in containers directory
         container_files = glob.glob(os.path.join(CONTAINERS_DIR, "*.json"))
 
         if not container_files:
-            print(f"SHARED_DATA: No container configuration files found in {CONTAINERS_DIR}.")
+            logger.warning(f"No container configuration files found in {CONTAINERS_DIR}.")
             return []
 
         containers = []
@@ -67,23 +71,23 @@ def load_active_containers_from_config():
                 if container_name:
                     if is_active:
                         containers.append(container_name)
-                        print(f"SHARED_DATA: Loaded ACTIVE container '{container_name}' from {os.path.basename(config_file)}")
+                        logger.info(f"Loaded ACTIVE container '{container_name}' from {os.path.basename(config_file)}")
                     else:
-                        print(f"SHARED_DATA: Skipped INACTIVE container '{container_name}' from {os.path.basename(config_file)}")
+                        logger.info(f"Skipped INACTIVE container '{container_name}' from {os.path.basename(config_file)}")
                 else:
-                    print(f"SHARED_DATA: Warning - No container_name found in {os.path.basename(config_file)}")
+                    logger.warning(f"No container_name found in {os.path.basename(config_file)}")
 
             except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
-                print(f"SHARED_DATA: Error loading container config {os.path.basename(config_file)}: {e}")
+                logger.error(f"Error loading container config {os.path.basename(config_file)}: {e}")
                 continue
 
         total_files = len(container_files)
-        print(f"SHARED_DATA: {len(containers)} ACTIVE containers loaded from {total_files} total container files.")
+        logger.info(f"{len(containers)} ACTIVE containers loaded from {total_files} total container files.")
         set_active_containers(containers)
         return containers
 
     except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
-        print(f"SHARED_DATA: Error loading active containers: {e}")
+        logger.error(f"Error loading active containers: {e}")
         return []
 
 # Load the active containers when importing the module

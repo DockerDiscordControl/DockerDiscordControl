@@ -280,12 +280,14 @@ class MechResetService:
 
                 # Calculate next level info
                 if current_level < 11:
-                    from services.mech.mech_service import MECH_LEVELS
-                    if current_level < len(MECH_LEVELS):
-                        next_level_threshold = MECH_LEVELS[current_level].threshold
+                    from services.mech.mech_evolutions import get_evolution_level_info
+                    next_info = get_evolution_level_info(current_level + 1)
+                    
+                    if next_info:
+                        next_level_threshold = next_info.base_cost
                         status["next_level_threshold"] = next_level_threshold
                         status["amount_needed"] = max(0, next_level_threshold - total_donated)
-                        status["next_level_name"] = MECH_LEVELS[current_level].name
+                        status["next_level_name"] = next_info.name
                     else:
                         status["next_level_threshold"] = None
                         status["amount_needed"] = 0
