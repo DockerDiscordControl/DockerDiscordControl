@@ -343,12 +343,10 @@ class MechWebService:
             return 20.0  # Fallback default
 
     def _create_donation_animation(self, total_donations: float, donor_name: str, amount: str) -> Optional[bytes]:
-        """Create donation animation using MechDataStore and unified service."""
+        """Create donation animation using internal methods (no circular deps)."""
         try:
-            from services.mech.png_to_webp_service import get_png_to_webp_service
             from services.mech.mech_data_store import get_mech_data_store, PowerDataRequest
 
-            animation_service = get_png_to_webp_service()
             data_store = get_mech_data_store()
 
             # MECHDATASTORE: Get power info with decimals for proper animation
@@ -361,16 +359,19 @@ class MechWebService:
 
             # Get current Power and total donated for proper animation
             current_power = power_result.current_power
-            total_donated = power_result.total_donated
+            total_donated = power_result.total_donated or total_donations
 
-            # Create animation bytes synchronously using unified service
-            animation_bytes = animation_service.create_donation_animation_sync(
-                donor_name=donor_name,
-                amount=amount,
-                total_donations=total_donated or total_donations
+            # DIRECT CALL: Use self.get_live_animation instead of circular PngToWebpService
+            request = MechAnimationRequest(
+                force_power=total_donated,  # Use donation amount as power context
+                resolution="small"
             )
+            
+            result = self.get_live_animation(request)
 
-            return animation_bytes
+            if result.success:
+                return result.animation_bytes
+            return None
 
         except (ImportError, AttributeError, TypeError, ValueError, KeyError) as e:
             # Service/data errors (missing services, invalid types, missing attributes/keys)
@@ -534,17 +535,23 @@ class MechWebService:
                 )
 
             from services.mech.mech_service import get_mech_service
-            from services.mech.simple_evolution_service import get_simple_evolution_service
+            # FIX: Use mech_evolutions directly instead of missing simple_evolution_service
+            from services.mech.mech_evolutions import get_evolution_level, get_evolution_level_info
 
             mech_service = get_mech_service()
-            simple_service = get_simple_evolution_service()
 
             # Set evolution mode to static with custom difficulty
             mech_service.set_evolution_mode(use_dynamic=False, difficulty_multiplier=multiplier)
 
-            # Get updated simple evolution state
+            # Get updated simple evolution state (Reconstructed manually)
             total_donated = self._get_total_donations()
-            simple_state = simple_service.get_current_state(total_donated, multiplier)
+            current_level = get_evolution_level(total_donated)
+            
+            next_level_info = get_evolution_level_info(current_level + 1)
+            if next_level_info:
+                next_level_cost = int(next_level_info.base_cost * multiplier)
+            else:
+                next_level_cost = 0
 
             # Log the action
             self._log_user_action(
@@ -561,10 +568,10 @@ class MechWebService:
                     'status': 'manual',
                     'message': f'Evolution set to static mode with {multiplier}x difficulty',
                     'simple_evolution': {
-                        'current_level': simple_state.current_level,
-                        'next_level_cost': simple_state.next_level_cost,
-                        'total_donated': simple_state.total_donated,
-                        'cost_change': f'Next level now costs ${simple_state.next_level_cost}'
+                        'current_level': current_level,
+                        'next_level_cost': next_level_cost,
+                        'total_donated': total_donated,
+                        'cost_change': f'Next level now costs ${next_level_cost}'
                     }
                 }
             )

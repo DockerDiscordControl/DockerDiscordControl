@@ -4366,92 +4366,83 @@ def setup(bot):
     async def check_donation_notifications():
         """Check for donation notifications from Web UI"""
         try:
-            import json
-            import os
-            notification_file = "/app/config/donation_notification.json"
+            # SERVICE FIRST: Use notification service instead of direct file access
+            from services.donation.notification_service import get_donation_notification_service
+            
+            service = get_donation_notification_service()
+            # This handles file check, reading, JSON parsing, and deletion atomically
+            notification = service.check_and_retrieve_notification()
 
-            logger.debug(f"Checking for donation notification file: {notification_file}")
+            if notification and notification.get('type') == 'donation':
+                donor_name = notification.get('donor', 'Anonymous')
+                amount = notification.get('amount', 0)
 
-            if os.path.exists(notification_file):
-                logger.info(f"Found donation notification file!")
-                with open(notification_file, 'r') as f:
-                    notification = json.load(f)
+                logger.info(f"🔔 Processing donation notification: {donor_name} ${amount}")
 
-                logger.info(f"🔔 Notification data: {notification}")
-
-                if notification.get('type') == 'donation':
-                    donor_name = notification.get('donor', 'Anonymous')
-                    amount = notification.get('amount', 0)
-
-                    logger.info(f"🔔 Processing donation notification: {donor_name} ${amount}")
-
+                try:
+                    # Create broadcast message (same as /donate) using configured Discord bot language
                     try:
-                        # Create broadcast message (same as /donate) using configured Discord bot language
-                        try:
-                            from cogs.translation_manager import get_translation
-                            _ = get_translation()
-                        except:
-                            # Fallback if translation fails
-                            def _(text):
-                                return text
+                        from cogs.translation_manager import get_translation
+                        _ = get_translation()
+                    except:
+                        # Fallback if translation fails
+                        def _(text):
+                            return text
 
-                        if amount:
-                            # Format amount exactly like /donate command: $X.XX
-                            formatted_amount = f"${float(amount):.2f}"
-                            broadcast_text = _("{donor_name} donated {amount} to DDC – thank you so much ❤️").format(
-                                donor_name=f"**{donor_name}**",
-                                amount=f"**{formatted_amount}**"
-                            )
-                        else:
-                            broadcast_text = _("{donor_name} supports DDC – thank you so much ❤️").format(
-                                donor_name=f"**{donor_name}**"
-                            )
-
-                        # Create embed (same style as /donate)
-                        embed = discord.Embed(
-                            title=_("💝 Donation received"),
-                            description=broadcast_text,
-                            color=0x00ff41
+                    if amount:
+                        # Format amount exactly like /donate command: $X.XX
+                        formatted_amount = f"${float(amount):.2f}"
+                        broadcast_text = _("{donor_name} donated {amount} to DDC – thank you so much ❤️").format(
+                            donor_name=f"**{donor_name}**",
+                            amount=f"**{formatted_amount}**"
                         )
-                        embed.set_footer(text="https://ddc.bot")
+                    else:
+                        broadcast_text = _("{donor_name} supports DDC – thank you so much ❤️").format(
+                            donor_name=f"**{donor_name}**"
+                        )
 
-                        logger.info(f"🔔 Created donation embed for {donor_name} ${amount}")
+                    # Create embed (same style as /donate)
+                    embed = discord.Embed(
+                        title=_("💝 Donation received"),
+                        description=broadcast_text,
+                        color=0x00ff41
+                    )
+                    embed.set_footer(text="https://ddc.bot")
 
-                        # Send to configured Status and Control channels from Web UI (like /donate command)
-                        sent_count = 0
-                        config = load_config()
-                        channels_config = config.get('channel_permissions', {})
+                    logger.info(f"🔔 Created donation embed for {donor_name} ${amount}")
 
-                        logger.info(f"🔔 Found {len(channels_config)} configured channels in Web UI")
+                    # Send to configured Status and Control channels from Web UI (like /donate command)
+                    sent_count = 0
+                    config = load_config()
+                    channels_config = config.get('channel_permissions', {})
 
-                        for channel_id_str, channel_info in channels_config.items():
-                            try:
-                                channel = bot.get_channel(int(channel_id_str))
-                                donation_broadcasts = channel_info.get('donation_broadcasts', True)
+                    logger.info(f"🔔 Found {len(channels_config)} configured channels in Web UI")
 
-                                logger.info(f"🔔 Channel {channel_id_str}: found={channel is not None}, broadcasts={donation_broadcasts}")
+                    for channel_id_str, channel_info in channels_config.items():
+                        try:
+                            channel = bot.get_channel(int(channel_id_str))
+                            donation_broadcasts = channel_info.get('donation_broadcasts', True)
 
-                                if channel and donation_broadcasts:
-                                    await channel.send(embed=embed)
-                                    sent_count += 1
-                                    logger.info(f"🔔 Successfully sent to channel {channel.name} ({channel_id_str})")
-                                else:
-                                    if not channel:
-                                        logger.debug(f"🔔 Channel {channel_id_str} not found")
-                                    elif not donation_broadcasts:
-                                        logger.debug(f"🔔 Donation broadcasts disabled for {channel_id_str}")
-                            except (discord.errors.DiscordException, RuntimeError) as channel_error:
-                                logger.error(f"🔔 Error sending to channel {channel_id_str}: {channel_error}", exc_info=True)
+                            logger.info(f"🔔 Channel {channel_id_str}: found={channel is not None}, broadcasts={donation_broadcasts}")
 
-                        logger.info(f"🔔 Processed Web UI donation: {donor_name} ${amount} - sent to {sent_count} channels")
+                            if channel and donation_broadcasts:
+                                await channel.send(embed=embed)
+                                sent_count += 1
+                                logger.info(f"🔔 Successfully sent to channel {channel.name} ({channel_id_str})")
+                            else:
+                                if not channel:
+                                    logger.debug(f"🔔 Channel {channel_id_str} not found")
+                                elif not donation_broadcasts:
+                                    logger.debug(f"🔔 Donation broadcasts disabled for {channel_id_str}")
+                        except (discord.errors.DiscordException, RuntimeError) as channel_error:
+                            logger.error(f"🔔 Error sending to channel {channel_id_str}: {channel_error}", exc_info=True)
 
-                    except (discord.errors.DiscordException, RuntimeError, ValueError) as embed_error:
-                        logger.error(f"🔔 Error creating/sending donation embed: {embed_error}", exc_info=True)
+                    logger.info(f"🔔 Processed Web UI donation: {donor_name} ${amount} - sent to {sent_count} channels")
 
-                # Delete file after processing
-                os.remove(notification_file)
+                except (discord.errors.DiscordException, RuntimeError, ValueError) as embed_error:
+                    logger.error(f"🔔 Error creating/sending donation embed: {embed_error}", exc_info=True)
 
-        except (OSError, ValueError, RuntimeError) as e:
+        except (ImportError, AttributeError, RuntimeError) as e:
             logger.debug(f"Error checking donation notifications: {e}")
 
     # Start the task and add to cog

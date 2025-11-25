@@ -19,12 +19,18 @@ from dataclasses import dataclass
 from typing import Optional, TYPE_CHECKING
 
 from .progress_service import get_progress_service, ProgressState
-from .mech_levels import get_level_name
+from .mech_evolutions import get_evolution_level_info
 
 if TYPE_CHECKING:
     import discord
 
 logger = logging.getLogger('ddc.mech_service_adapter')
+
+
+def get_level_name(level: int) -> str:
+    """Get level name using unified evolution system (local helper)."""
+    info = get_evolution_level_info(level)
+    return info.name if info else f"Level {level}"
 
 
 @dataclass
@@ -61,7 +67,6 @@ class MechState:
     @property
     def level_name(self) -> str:
         """Get level name (backward compatibility)"""
-        from .mech_levels import get_level_name
         return get_level_name(self.evolution_level)
 
 

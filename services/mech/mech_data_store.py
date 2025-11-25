@@ -549,7 +549,8 @@ class MechDataStore:
         try:
             # Get data from progress service (NEW dynamic evolution system)
             from services.mech.progress_service import get_progress_service
-            from services.mech.mech_levels import get_level_name
+            # Use unified evolution system instead of mech_levels (Single Point of Truth)
+            from services.mech.mech_evolutions import get_evolution_level_info
 
             prog_service = get_progress_service()
             prog_state = prog_service.get_state()
@@ -557,10 +558,17 @@ class MechDataStore:
             current_level = prog_state.level
             next_level = min(current_level + 1, 11)
 
+            # Fetch names from unified config
+            current_info = get_evolution_level_info(current_level)
+            next_info = get_evolution_level_info(next_level)
+            
+            level_name = current_info.name if current_info else f"Level {current_level}"
+            next_level_name = next_info.name if next_info else f"Level {next_level}"
+
             return {
-                'level_name': get_level_name(current_level),
+                'level_name': level_name,
                 'next_level': next_level,
-                'next_level_name': get_level_name(next_level),
+                'next_level_name': next_level_name,
                 'next_threshold': prog_state.evo_max,  # Dynamic threshold from progress service
                 'amount_needed': max(0, prog_state.evo_max - prog_state.evo_current)
             }
