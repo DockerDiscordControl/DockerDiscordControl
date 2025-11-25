@@ -1,44 +1,63 @@
 #!/bin/sh
-# Entrypoint script for DockerDiscordControl
-# Ensures proper permissions for non-root user 'ddc'
+# ============================================================================ #
+# DockerDiscordControl (DDC)                                                  #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                      #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
 
-echo "Starting DockerDiscordControl as user: $(whoami) (UID: $(id -u), GID: $(id -g))"
-echo "Groups: $(groups)"
+# Fail on error
+set -e
 
-# Check Docker socket access
-if [ -S /var/run/docker.sock ]; then
-    echo "Docker socket found at /var/run/docker.sock"
-    
-    # Get socket group ownership
-    SOCKET_GID=$(stat -c '%g' /var/run/docker.sock 2>/dev/null || stat -f '%g' /var/run/docker.sock 2>/dev/null)
-    
-    if [ -n "$SOCKET_GID" ]; then
-        echo "Docker socket GID: $SOCKET_GID"
-        
-        # Check if we're in the docker group
-        if groups | grep -q docker; then
-            echo "User 'ddc' is in docker group - container control should work"
-        else
-            echo "WARNING: User 'ddc' is not in docker group - container control may not work"
-        fi
+echo "==============================================================="
+echo "   DockerDiscordControl (DDC) - Container Startup              "
+echo "==============================================================="
+echo "   Version: 2.5.0 (Optimized)"
+echo "   Architecture: Single Process (Waitress + Bot)"
+echo "==============================================================="
+
+# Function to check directory permissions
+check_permissions() {
+    local dir=$1
+    if [ ! -w "$dir" ]; then
+        echo "ERROR: No write permission for $dir"
+        echo "Current user: $(id)"
+        ls -ld "$dir"
+        return 1
     fi
-    
-    # Test Docker access using Python SDK (no docker-cli binary needed)
-    if python3 -c "import docker; docker.from_env().ping()" > /dev/null 2>&1; then
-        echo "✓ Docker daemon accessible via Python SDK"
-    else
-        echo "⚠ WARNING: Cannot access Docker daemon - container control will not work"
-        echo "  Make sure the Docker socket is mounted and accessible"
-    fi
-else
-    echo "⚠ WARNING: Docker socket not found at /var/run/docker.sock"
-    echo "  Container control features will not work"
+}
+
+# Ensure config directory exists and is writable
+if [ ! -d "/app/config" ]; then
+    echo "Creating config directory..."
+    mkdir -p /app/config
+fi
+check_permissions "/app/config"
+
+# Ensure logs directory exists and is writable
+if [ ! -d "/app/logs" ]; then
+    echo "Creating logs directory..."
+    mkdir -p /app/logs
+fi
+check_permissions "/app/logs"
+
+# Ensure cached_displays directory exists and is writable
+if [ ! -d "/app/cached_displays" ]; then
+    echo "Creating cached_displays directory..."
+    mkdir -p /app/cached_displays
+fi
+check_permissions "/app/cached_displays"
+
+# Unraid/Docker permission fix
+# If running as root (UID 0), try to switch to ddc user (UID 1000)
+# But if the mounted volumes are owned by nobody/users (99:100), we might need to adjust
+if [ "$(id -u)" = "0" ]; then
+    echo "Running as root, fixing permissions..."
+    chown -R ddc:ddc /app/config /app/logs /app/cached_displays
+    echo "Switching to user ddc..."
+    exec su-exec ddc "$0" "$@"
 fi
 
-# Ensure directories exist with correct permissions
-mkdir -p /app/config /app/logs /app/config/info /app/config/tasks
-echo "Directory permissions set"
-
-# Start supervisord to manage both bot and web UI
-echo "Starting supervisord..."
-exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+# Start the application via the single entry point
+echo "Starting application (run.py)..."
+exec python3 run.py

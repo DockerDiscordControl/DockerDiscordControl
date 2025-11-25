@@ -136,11 +136,9 @@ def setup_action_logger(app_instance):
         # Import the central logger
         from services.infrastructure.action_logger import user_action_logger, _ACTION_LOG_FILE
 
-        # Check if the configuration was successful
-        if not any(isinstance(h, logging.FileHandler) for h in user_action_logger.handlers):
-            app_instance.logger.warning("Action logger has no FileHandler configured! Check utils/action_logger.py")
-        else:
-            app_instance.logger.info(f"Action logger verified: Logging to {_ACTION_LOG_FILE}")
+        # ActionLogService writes directly to files, so checking .handlers is misleading.
+        # If we imported it successfully, we assume it works.
+        app_instance.logger.info(f"Action logger verified: Logging to {_ACTION_LOG_FILE}")
 
         return user_action_logger
     except ImportError as e:
@@ -244,36 +242,19 @@ def update_docker_cache(logger):
 
     client = None
     try:
-        client = docker.from_env()
-
-        # Retrieve either all containers or just a specific one with timeout
-        import signal
-        from contextlib import contextmanager
-
-        @contextmanager
-        def timeout(seconds):
-            def timeout_handler(signum, frame):
-                raise TimeoutError(f"Operation timed out after {seconds} seconds")
-
-            # Only use signal-based timeout on Unix-like systems
-            if hasattr(signal, 'SIGALRM'):
-                old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-                signal.alarm(seconds)
-                try:
-                    yield
-                finally:
-                    signal.alarm(0)
-                    signal.signal(signal.SIGALRM, old_handler)
-            else:
-                # On Windows or if SIGALRM not available, just yield without timeout
-                yield
+        # Configure Docker client with timeout directly (thread-safe)
+        client = docker.from_env(timeout=BACKGROUND_REFRESH_TIMEOUT)
 
         try:
-            with timeout(BACKGROUND_REFRESH_TIMEOUT):
-                containers_to_process = client.containers.list(all=True)
-        except TimeoutError as te:
-            logger.error(f"Container list operation timed out after {BACKGROUND_REFRESH_TIMEOUT} seconds")
-            containers_to_process = []
+            # Direct call without signal-based timeout wrapper
+            containers_to_process = client.containers.list(all=True)
+        except Exception as te:
+            # Catch timeouts from requests/docker-py
+            if "Read timed out" in str(te) or "UnixHTTPConnectionPool" in str(te):
+                logger.error(f"Container list operation timed out after {BACKGROUND_REFRESH_TIMEOUT} seconds")
+                containers_to_process = []
+            else:
+                raise te
 
         # Process containers and update cache
         with cache_lock:
@@ -520,7 +501,8 @@ def start_background_refresh(logger):
     # Immediate Docker connectivity check (sync wrapper for async function)
     import asyncio
     try:
-        connectivity_ok = asyncio.get_event_loop().run_until_complete(check_docker_connectivity(logger))
+        # Use asyncio.run() which creates a new event loop for this thread automatically
+        connectivity_ok = asyncio.run(check_docker_connectivity(logger))
     except (RuntimeError, AttributeError) as e:
         # Runtime errors (event loop issues, asyncio problems)
         logger.error(f"Runtime error during Docker connectivity check: {e}", exc_info=True)

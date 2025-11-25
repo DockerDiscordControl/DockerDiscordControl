@@ -83,6 +83,12 @@ def _ensure_timezone(runtime_logger: logging.Logger) -> None:
 def main() -> None:
     """Main entry point for the Discord bot."""
 
+    # Ensure event loop exists before creating bot (required for py-cord)
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        _prepare_event_loop()
+
     configure_environment()
     config = load_main_configuration()
     runtime = build_runtime(config)

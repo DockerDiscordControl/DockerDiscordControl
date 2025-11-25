@@ -81,22 +81,21 @@ FROM alpine:3.22.2
 WORKDIR /app
 
 # Install ONLY runtime dependencies
-# Note: docker-cli removed - we use Docker Python SDK (docker-py) which communicates
-#       directly with Docker socket, no CLI binary needed. Eliminates CVE-2025-58187.
+# Added back: tzdata (required for timezone selection support)
+# Note: docker-cli removed - we use Docker Python SDK (docker-py)
 RUN apk add --no-cache \
     python3 \
     ca-certificates \
-    tzdata \
     jpeg \
     zlib \
-    freetype && \
-    # Install supervisor 4.3.0+ from edge repo to fix CVE-2023-27482
-    apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main supervisor
+    freetype \
+    tzdata
 
 # Copy cleaned venv from builder
 COPY --from=builder /runtime/site-packages /opt/runtime/site-packages
 
 # Strip CPython test suite and ensurepip to reduce the base image size further
+# Aggressive stripping: Added pydoc_data, unittest, distutils
 RUN python3 - <<'PY'
 from __future__ import annotations
 
@@ -112,13 +111,20 @@ for relative in (
     'tkinter',
     'turtledemo',
     'lib2to3',
+    'pydoc_data',
+    'unittest',
+    'distutils',
+    'xmlrpc',
+    'email/test',
+    'ctypes/test',
+    'sqlite3/test'
 ):
     target = stdlib / relative
     if target.exists():
         shutil.rmtree(target, ignore_errors=True)
 
 dynload = stdlib / 'lib-dynload'
-for module in ('_tkinter', '_tkinter_impl', 'tkinter'):  # defensive clean-up
+for module in ('_tkinter', '_tkinter_impl', 'tkinter', 'readline'):  # defensive clean-up
     for candidate in dynload.glob(f'{module}*.so'):
         candidate.unlink(missing_ok=True)
 
@@ -143,22 +149,20 @@ RUN addgroup -g 1000 -S ddc && \
     adduser ddc docker
 
 # Copy application code
+COPY --chown=ddc:ddc run.py .
 COPY --chown=ddc:ddc bot.py .
 COPY --chown=ddc:ddc app/ app/
 COPY --chown=ddc:ddc utils/ utils/
 COPY --chown=ddc:ddc cogs/ cogs/
 COPY --chown=ddc:ddc services/ services/
 COPY --chown=ddc:ddc encrypted_assets/ encrypted_assets/
-# V2.0 Cache-Only: Only copy cached animations, PNG sources excluded via .dockerignore
+# V2.0 Cache-Only: Only copy cached animations
 COPY --chown=ddc:ddc cached_animations/ cached_animations/
 COPY --chown=ddc:ddc cached_displays/ cached_displays/
-COPY --chown=ddc:ddc gunicorn_config.py .
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY --chown=ddc:ddc scripts/entrypoint.sh /app/entrypoint.sh
 
 # Setup permissions
 RUN chmod +x /app/entrypoint.sh && \
-    chmod 644 /etc/supervisor/conf.d/supervisord.conf && \
     mkdir -p /app/config /app/logs /app/scripts && \
     mkdir -p /app/config/info /app/config/tasks && \
     mkdir -p /app/cached_displays && \
@@ -168,12 +172,13 @@ RUN chmod +x /app/entrypoint.sh && \
     find /app -type d -name '__pycache__' -prune -exec rm -rf {} +
 
 # Environment
-ENV PYTHONPATH="/opt/runtime/site-packages" \
+ENV PYTHONPATH="/app:/opt/runtime/site-packages" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONOPTIMIZE=1 \
     TZ="Europe/Berlin"
 
+# Set default timezone
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 USER ddc

@@ -441,11 +441,11 @@ class MechWebService:
         """Get current mech evolution difficulty multiplier using MechDataStore and evolution config."""
         try:
             from services.mech.mech_data_store import get_mech_data_store, EvolutionDataRequest
-            from services.mech.simple_evolution_service import get_simple_evolution_service
+            # FIX: Use mech_evolutions directly instead of missing simple_evolution_service
+            from services.mech.mech_evolutions import get_evolution_config_service, get_evolution_level, get_evolution_level_info
 
             data_store = get_mech_data_store()
-            simple_service = get_simple_evolution_service()
-
+            
             # MECHDATASTORE: Get evolution information
             evolution_request = EvolutionDataRequest()
             evolution_result = data_store.get_evolution_info(evolution_request)
@@ -457,13 +457,43 @@ class MechWebService:
             multiplier = evolution_result.difficulty_multiplier
             is_auto = evolution_result.evolution_mode == 'dynamic'
 
-            # Get current mech state for evolution display using MechDataStore
-            total_donated = evolution_result.amount_needed  # This might need adjustment
-            total_donated = self._get_total_donations()  # Keep this for compatibility
-            simple_state = simple_service.get_current_state(total_donated, multiplier)
+            # Get total donations (handling compatibility)
+            # evolution_result.amount_needed is actually "amount needed for next level", not total donated
+            # We should use our internal helper or trust data store
+            total_donated = self._get_total_donations()
 
-            # Get difficulty presets for Web UI buttons
-            presets = simple_service.get_difficulty_presets()
+            # --- Reconstruct Simple Evolution State ---
+            current_level = get_evolution_level(total_donated)
+            
+            # Calculate next level cost
+            next_level_info = get_evolution_level_info(current_level + 1)
+            if next_level_info:
+                # Simple estimation: Base Cost * Multiplier
+                # Note: This ignores community size scaling for this specific view, 
+                # but provides a consistent baseline for difficulty settings.
+                next_level_cost = int(next_level_info.base_cost * multiplier)
+            else:
+                next_level_cost = 0 # Max level reached
+
+            # Build achieved levels map
+            achieved_levels = {}
+            for lvl in range(1, 12): # Levels 1-11
+                info = get_evolution_level_info(lvl)
+                if info:
+                    achieved_levels[str(lvl)] = {
+                        'level': lvl,
+                        'name': info.name,
+                        'cost': int(info.base_cost * multiplier),
+                        'achieved': lvl <= current_level
+                    }
+
+            # Difficulty Presets (Hardcoded standard values)
+            presets = {
+                "EASY": 0.5,
+                "NORMAL": 1.0,
+                "HARD": 1.5,
+                "EXTREME": 2.0
+            }
 
             return MechConfigResult(
                 success=True,
@@ -471,30 +501,20 @@ class MechWebService:
                     'multiplier': multiplier,
                     'is_auto': is_auto,
                     'status': 'auto' if is_auto else 'manual',
-                    'manual_override': not is_auto,  # Frontend expects manual_override boolean: dynamic=False, static=True
+                    'manual_override': not is_auto,
                     'simple_evolution': {
-                        'current_level': simple_state.current_level,
-                        'next_level_cost': simple_state.next_level_cost,
-                        'total_donated': simple_state.total_donated,
-                        'achieved_levels': {str(k): {
-                            'level': v.level,
-                            'cost': v.cost,
-                            'achieved': v.achieved,
-                            'locked': v.locked
-                        } for k, v in simple_state.achieved_levels.items()}
+                        'current_level': current_level,
+                        'next_level_cost': next_level_cost,
+                        'total_donated': total_donated,
+                        'achieved_levels': achieved_levels
                     },
                     'presets': presets
                 }
             )
 
-        except (ImportError, AttributeError, TypeError, ValueError, KeyError) as e:
-            # Service/data errors (missing services, invalid types, missing attributes/keys)
-            self.logger.error(f"Service error getting difficulty: {e}", exc_info=True)
-            return MechConfigResult(
-                success=False,
-                error=str(e),
-                status_code=500
-            )
+        except (ImportError, AttributeError, ValueError, TypeError) as e:
+            self.logger.error(f"Error getting difficulty settings: {e}", exc_info=True)
+            return MechConfigResult(success=False, error=f"Configuration error: {e}", status_code=500)
 
     def _set_difficulty(self, multiplier: Optional[float]) -> MechConfigResult:
         """Set mech evolution difficulty multiplier using MechService evolution mode."""
