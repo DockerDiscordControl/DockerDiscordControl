@@ -152,7 +152,7 @@ function renderRuleItem(rule) {
             </small>
         </div>
         <div class="text-end text-muted small">
-            <div>Triggers: ${rule.metadata?.trigger_count || 0}</div>
+            <div><i class="bi bi-lightning-charge"></i> ${rule.metadata?.trigger_count || 0}</div>
             <i class="bi bi-chevron-right"></i>
         </div>
     </div>

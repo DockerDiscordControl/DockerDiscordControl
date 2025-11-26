@@ -528,6 +528,30 @@ class AutoActionConfigService:
             return ConfigResult(success=True, data=current)
         return ConfigResult(success=False, error="Failed to save config file")
 
+    def increment_trigger_count(self, rule_id: str) -> bool:
+        """Increment the trigger count for a rule after successful execution."""
+        try:
+            config = self._load_config_file()
+            rules = config.get('auto_actions', [])
+
+            for rule in rules:
+                if rule.get('id') == rule_id:
+                    if 'metadata' not in rule:
+                        rule['metadata'] = {'trigger_count': 0}
+                    rule['metadata']['trigger_count'] = rule['metadata'].get('trigger_count', 0) + 1
+                    rule['metadata']['last_triggered'] = datetime.utcnow().isoformat()
+
+                    if self._save_config_file(config):
+                        logger.debug(f"AAS: Incremented trigger count for rule {rule_id}")
+                        return True
+                    return False
+
+            logger.warning(f"AAS: Rule {rule_id} not found for trigger count increment")
+            return False
+        except Exception as e:
+            logger.error(f"AAS: Error incrementing trigger count: {e}")
+            return False
+
 
 # Singleton instance
 _service_instance = None

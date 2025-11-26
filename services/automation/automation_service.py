@@ -320,6 +320,10 @@ class AutomationService:
                         f"⚠️ `{action_type}` **{container}** failed — *{rule.name}*"
                     )
 
+        # Increment trigger count if at least one action succeeded
+        if success_count > 0:
+            self.config_service.increment_trigger_count(rule.id)
+
         return success_count > 0
 
     async def _send_feedback(self, bot, channel_id, message):
