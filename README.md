@@ -17,6 +17,7 @@ Control your Docker containers directly from Discord! This application provides 
 - **NEW:** 🔗 **Universal Webhook Control** - Trigger container actions from ANY external event: CI/CD pipelines, monitoring alerts, GitHub Actions, home automation, or custom scripts
 - **NEW:** 📝 **Flexible Triggers** - Match Discord messages by keywords (with fuzzy search) or regex patterns
 - **NEW:** 🛡️ **Built-in Safety** - Cooldowns prevent spam, protected containers can't be accidentally stopped, atomic locking ensures clean operations
+- **🔒 Zero Docker Exposure** - Full automation power without exposing your Docker environment. DDC acts as secure gateway - external systems never touch Docker directly!
 
 🔔 **Status Watchdog (Dead Man's Switch):**
 - **NEW:** Get alerts when DDC goes offline via external monitoring
@@ -114,6 +115,7 @@ Control your Docker containers directly from Discord! This application provides 
 ### 🤖 Auto-Action System (AAS) - Intelligent Container Automation
 - **🎮 Game Server Auto-Updates**: Palworld, Valheim, Minecraft, or any game server - automatically restart when Discord update bots announce new versions. Set it and forget it!
 - **🔗 Universal Webhook Control**: Control containers from ANY external system - CI/CD pipelines (Jenkins, GitLab), monitoring alerts (Grafana, Prometheus), GitHub Actions, Home Assistant, IFTTT, or your own scripts. One webhook URL, endless possibilities!
+- **🔒 Zero Docker Exposure**: Maximum automation, maximum security! DDC acts as a secure gateway - external systems trigger actions via Discord or webhooks, but never touch Docker directly. Your Docker socket stays protected.
 - **📝 Flexible Triggers**: Match Discord messages by keywords ("update available", "new version") with optional fuzzy matching, or use regex for complex patterns
 - **🛡️ Built-in Safety**: Cooldowns prevent trigger spam, mark containers as protected to prevent accidental stops, atomic locking ensures clean operations
 - **🎯 Multi-Container Actions**: Restart your entire game server stack (game + database + proxy) with a single trigger
