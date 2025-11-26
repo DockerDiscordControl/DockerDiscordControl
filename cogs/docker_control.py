@@ -807,6 +807,98 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     async def _start_periodic_message_edit_loop_safely(self):
         await self._start_loop_safely(self.periodic_message_edit_loop, "Periodic Message Edit Loop (Direct Cog)")
 
+    async def trigger_status_refresh(self, container_name: str, delay_seconds: int = 5):
+        """
+        Trigger a status refresh for a specific container after an action.
+        Called by AAS (Auto-Action System) after automated container actions.
+
+        Args:
+            container_name: Docker container name
+            delay_seconds: Delay before refresh (default 5s for container to stabilize)
+        """
+        async def _delayed_refresh():
+            try:
+                logger.info(f"[AAS_REFRESH] Waiting {delay_seconds}s before refreshing status for {container_name}")
+                await asyncio.sleep(delay_seconds)
+
+                # Invalidate caches
+                if self.status_cache_service.get(container_name):
+                    self.status_cache_service.remove(container_name)
+                    logger.info(f"[AAS_REFRESH] Invalidated StatusCacheService for {container_name}")
+
+                from services.infrastructure.container_status_service import get_container_status_service
+                container_status_service = get_container_status_service()
+                container_status_service.invalidate_container(container_name)
+                logger.info(f"[AAS_REFRESH] Invalidated ContainerStatusService for {container_name}")
+
+                # Find display_name for this container
+                config = load_config()
+                servers = config.get('servers', {})
+                display_name = None
+                server_config = None
+                for name, srv_config in servers.items():
+                    if srv_config.get('docker_name') == container_name:
+                        display_name = name
+                        server_config = srv_config
+                        break
+
+                if not display_name:
+                    logger.warning(f"[AAS_REFRESH] Container {container_name} not found in config")
+                    return
+
+                # Get fresh status
+                if server_config:
+                    fresh_status = await self.get_status(server_config)
+                    if fresh_status.success:
+                        self.status_cache_service.set(container_name, fresh_status, datetime.now(timezone.utc))
+
+                # Update tracked status messages (Server Overview individual containers)
+                if hasattr(self, 'tracked_status_messages'):
+                    for channel_id, messages in self.tracked_status_messages.items():
+                        for msg_data in messages:
+                            if msg_data.get('display_name') == display_name:
+                                try:
+                                    channel = self.bot.get_channel(channel_id)
+                                    if channel:
+                                        message = await channel.fetch_message(msg_data['message_id'])
+                                        if message:
+                                            embed, view, _ = await self._generate_status_embed_and_view(
+                                                channel_id, display_name, server_config, config,
+                                                allow_toggle=True, force_collapse=False, show_cache_age=False
+                                            )
+                                            if embed:
+                                                await message.edit(embed=embed, view=view)
+                                                logger.info(f"[AAS_REFRESH] Updated status message for {display_name}")
+                                except Exception as e:
+                                    logger.error(f"[AAS_REFRESH] Failed to update status message: {e}")
+
+                # Update overview messages (Server Overview collapsed view)
+                if hasattr(self, 'channel_server_message_ids'):
+                    for channel_id, server_messages in self.channel_server_message_ids.items():
+                        if 'overview' in server_messages:
+                            try:
+                                await self._update_overview_message(channel_id, server_messages['overview'], 'overview')
+                                logger.info(f"[AAS_REFRESH] Updated overview in channel {channel_id}")
+                            except Exception as e:
+                                logger.error(f"[AAS_REFRESH] Failed to update overview: {e}")
+
+                        # Also update admin_overview if exists
+                        if 'admin_overview' in server_messages:
+                            try:
+                                await self._update_overview_message(channel_id, server_messages['admin_overview'], 'admin_overview')
+                                logger.info(f"[AAS_REFRESH] Updated admin_overview in channel {channel_id}")
+                            except Exception as e:
+                                logger.error(f"[AAS_REFRESH] Failed to update admin_overview: {e}")
+
+                logger.info(f"[AAS_REFRESH] Status refresh complete for {container_name}")
+
+            except Exception as e:
+                logger.error(f"[AAS_REFRESH] Error refreshing status for {container_name}: {e}", exc_info=True)
+
+        # Run as background task
+        task = asyncio.create_task(_delayed_refresh())
+        task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
+
     async def _clean_sweep_bot_messages(self, channel, reason: str):
         """Clean sweep: Delete all bot messages in channel using ChannelCleanupService."""
         try:

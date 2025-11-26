@@ -307,9 +307,11 @@ class AutomationService:
             self.state_service.record_trigger(
                 rule.id, rule.name, container, action_type, status, error_detail
             )
-            
+
             if result:
                 success_count += 1
+                # Trigger status refresh after successful action
+                await self._trigger_status_refresh(bot, container)
             else:
                 # Question 11: Force Kill logic would go here in V2
                 if not rule.action.silent and bot:
@@ -328,6 +330,19 @@ class AutomationService:
                 await channel.send(message)
         except Exception as e:
             logger.warning(f"Failed to send AAS feedback: {e}")
+
+    async def _trigger_status_refresh(self, bot, container_name: str):
+        """Trigger status refresh after AAS action via DockerControlCog."""
+        try:
+            # Get DockerControlCog from bot
+            docker_cog = bot.get_cog('DockerControlCog')
+            if docker_cog and hasattr(docker_cog, 'trigger_status_refresh'):
+                await docker_cog.trigger_status_refresh(container_name, delay_seconds=5)
+                logger.info(f"AAS: Triggered status refresh for {container_name}")
+            else:
+                logger.warning(f"AAS: DockerControlCog not available for status refresh")
+        except Exception as e:
+            logger.warning(f"AAS: Failed to trigger status refresh: {e}")
 
 # Singleton
 _automation_service = None
