@@ -300,33 +300,33 @@ class ConfigFormParserService:
                 except (AttributeError, IOError, ImportError, KeyError, ModuleNotFoundError, OSError, PermissionError, RuntimeError, TypeError) as e:
                     logger.error(f"Error saving channels via ChannelConfigService: {e}", exc_info=True)
 
-            # Process heartbeat settings into nested object
-            heartbeat_config = updated_config.get('heartbeat', {})
-            if not isinstance(heartbeat_config, dict):
-                heartbeat_config = {}
+            # Process heartbeat (Status Watchdog) settings
+            heartbeat_config = {}
 
-            # Extract heartbeat-related fields
-            hb_channel_id = form_data.get('heartbeat_channel_id', '')
-            if isinstance(hb_channel_id, str):
-                hb_channel_id = hb_channel_id.strip()
+            # Get ping URL
+            ping_url = form_data.get('heartbeat_ping_url', '')
+            if isinstance(ping_url, str):
+                ping_url = ping_url.strip()
 
-            if hb_channel_id and hb_channel_id.isdigit():
+            # Only enable if valid HTTPS URL is provided
+            if ping_url and ping_url.startswith('https://'):
                 heartbeat_config['enabled'] = True
-                heartbeat_config['channel_id'] = hb_channel_id
-                heartbeat_config['method'] = 'channel'
+                heartbeat_config['ping_url'] = ping_url
 
-                # Get interval (default 1 minute)
+                # Get interval (default 5 minutes)
                 try:
-                    interval = int(form_data.get('heartbeat_interval', 1))
+                    interval = int(form_data.get('heartbeat_interval', 5))
                     heartbeat_config['interval'] = max(1, min(60, interval))  # Clamp 1-60
                 except (ValueError, TypeError):
-                    heartbeat_config['interval'] = 1
+                    heartbeat_config['interval'] = 5
             else:
                 heartbeat_config['enabled'] = False
+                heartbeat_config['ping_url'] = ''
+                heartbeat_config['interval'] = 5
 
             updated_config['heartbeat'] = heartbeat_config
-            # Also keep legacy field for backwards compatibility
-            updated_config['heartbeat_channel_id'] = hb_channel_id if hb_channel_id else None
+            # Remove legacy fields if present
+            updated_config.pop('heartbeat_channel_id', None)
 
             # Process each form field
             for key, value in form_data.items():
@@ -343,7 +343,7 @@ class ConfigFormParserService:
                     continue
 
                 # Skip heartbeat fields (already processed above)
-                if key in ['heartbeat_channel_id', 'heartbeat_interval', 'monitor_bot_token']:
+                if key in ['heartbeat_ping_url', 'heartbeat_interval', 'enableHeartbeatSection']:
                     continue
 
                 if key == 'donation_disable_key':

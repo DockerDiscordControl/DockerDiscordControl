@@ -423,25 +423,18 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
             # Member count updates moved to on-demand (during level-ups only)
 
-            # Start heartbeat loop if enabled (supports legacy and new config)
+            # Start Status Watchdog loop if enabled
             heartbeat_enabled = False
             try:
-                # Prefer latest cached config (reflects Web UI changes)
                 latest_config = load_config() or {}
+                heartbeat_cfg = latest_config.get('heartbeat', {})
+                if isinstance(heartbeat_cfg, dict):
+                    heartbeat_enabled = bool(heartbeat_cfg.get('enabled', False))
+                    # Also check if ping_url is actually set
+                    if heartbeat_enabled and not heartbeat_cfg.get('ping_url', '').strip():
+                        heartbeat_enabled = False
             except (OSError, KeyError, ValueError):
-                latest_config = {}
-
-            # New format
-            heartbeat_cfg_obj = latest_config.get('heartbeat') if isinstance(latest_config, dict) else None
-            if isinstance(heartbeat_cfg_obj, dict):
-                heartbeat_enabled = bool(heartbeat_cfg_obj.get('enabled', False))
-
-            # Legacy enable if a numeric channel id exists at root
-            legacy_channel_id = (latest_config or self.config).get('heartbeat_channel_id')
-            if not heartbeat_enabled and legacy_channel_id is not None:
-                legacy_str = str(legacy_channel_id)
-                if legacy_str.isdigit():
-                    heartbeat_enabled = True
+                heartbeat_enabled = False
 
             if heartbeat_enabled:
                 heartbeat_task = self.bot.loop.create_task(
@@ -3061,110 +3054,77 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         """Edit-only update for /ss messages (used for expand/collapse)"""
         await self._auto_update_ss_messages(reason, force_recreate=False)
 
-    # --- Heartbeat Loop ---
-    @tasks.loop(minutes=1)
+    # --- Status Watchdog (Heartbeat) Loop ---
+    @tasks.loop(minutes=5)
     async def heartbeat_send_loop(self):
-        """[BETA] Sends a heartbeat signal if enabled in config.
+        """
+        Status Watchdog: Pings an external monitoring URL periodically.
 
-        This feature is in BETA and allows the bot to send periodic heartbeat messages
-        to a specified Discord channel. These messages can be monitored by an external
-        script to check if the bot is still operational.
+        This implements a "Dead Man's Switch" pattern - if DDC stops running,
+        the monitoring service (e.g., Healthchecks.io, Uptime Kuma) will detect
+        the missing ping and send an alert.
 
-        The heartbeat configuration is loaded from the bot's config and can be configured
-        through the web UI.
+        Security: Only outbound HTTPS requests, no tokens or data shared.
         """
         try:
-            # Load the heartbeat configuration from latest cache (fallback to initial config)
+            import aiohttp
+
+            # Load heartbeat configuration
             current_config = load_config() or self.config or {}
+            heartbeat_config = current_config.get('heartbeat', {})
 
-            # First check legacy format with 'heartbeat_channel_id' at root level
-            heartbeat_channel_id = current_config.get('heartbeat_channel_id')
-
-            # Initialize heartbeat config with defaults
-            heartbeat_config = {
-                'enabled': bool(str(heartbeat_channel_id).isdigit()) if heartbeat_channel_id is not None else False,
-                'method': 'channel',
-                'interval': 60,
-                'channel_id': heartbeat_channel_id
-            }
-
-            # Override with nested config if it exists (new format)
-            if 'heartbeat' in current_config:
-                nested_config = current_config.get('heartbeat', {})
-                if isinstance(nested_config, dict):
-                    heartbeat_config.update(nested_config)
-
-            # Check if heartbeat is enabled
-            if not heartbeat_config.get('enabled', False):
-                logger.debug("Heartbeat monitoring disabled in config.")
+            if not isinstance(heartbeat_config, dict):
                 return
 
-            # Get the heartbeat method and interval
-            method = heartbeat_config.get('method', 'channel')
-            try:
-                interval_minutes = int(heartbeat_config.get('interval', 60))
-            except (ValueError, TypeError):
-                logger.warning(f"Invalid heartbeat interval, using default 60 minutes")
-                interval_minutes = 60
+            # Check if enabled
+            if not heartbeat_config.get('enabled', False):
+                return
 
-            # Dynamically change interval if needed
+            # Get ping URL
+            ping_url = heartbeat_config.get('ping_url', '').strip()
+            if not ping_url:
+                return
+
+            # Security: Only allow HTTPS
+            if not ping_url.startswith('https://'):
+                logger.warning("[Watchdog] Monitoring URL must use HTTPS - skipping ping")
+                return
+
+            # Get interval and update loop if needed
+            try:
+                interval_minutes = int(heartbeat_config.get('interval', 5))
+                interval_minutes = max(1, min(60, interval_minutes))  # Clamp 1-60
+            except (ValueError, TypeError):
+                interval_minutes = 5
+
             if self.heartbeat_send_loop.minutes != interval_minutes:
                 try:
                     self.heartbeat_send_loop.change_interval(minutes=interval_minutes)
-                    logger.info(f"[BETA] Heartbeat interval updated to {interval_minutes} minutes.")
-                except (discord.errors.DiscordException, RuntimeError, OSError) as e:
-                    logger.error(f"[BETA] Failed to update heartbeat interval: {e}", exc_info=True)
+                    logger.info(f"[Watchdog] Interval updated to {interval_minutes} minutes")
+                except Exception as e:
+                    logger.warning(f"[Watchdog] Failed to update interval: {e}")
 
-            logger.debug("[BETA] Heartbeat loop running.")
+            # Ping the monitoring URL
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(ping_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                        if resp.status == 200:
+                            logger.debug(f"[Watchdog] Ping successful")
+                        else:
+                            logger.warning(f"[Watchdog] Ping returned status {resp.status}")
+            except aiohttp.ClientError as e:
+                logger.warning(f"[Watchdog] Ping failed: {e}")
+            except Exception as e:
+                logger.error(f"[Watchdog] Unexpected error during ping: {e}")
 
-            # Handle different heartbeat methods
-            if method == 'channel':
-                # Get the channel ID from either nested config or root config
-                channel_id_str = heartbeat_config.get('channel_id') or heartbeat_channel_id
-
-                if not channel_id_str:
-                    logger.error("[BETA] Heartbeat method is 'channel' but no channel_id is configured.")
-                    return
-
-                if not str(channel_id_str).isdigit():
-                    logger.error(f"[BETA] Heartbeat channel ID '{channel_id_str}' is not a valid numeric ID.")
-                    return
-
-                channel_id = int(channel_id_str)
-                try:
-                    # Fetch the channel
-                    channel = await self.bot.fetch_channel(channel_id)
-
-                    if not isinstance(channel, discord.TextChannel):
-                        logger.warning(f"[BETA] Heartbeat channel ID {channel_id} is not a text channel.")
-                        return
-
-                    # Send the heartbeat message with timestamp
-                    timestamp = datetime.now(timezone.utc).isoformat()
-                    await channel.send(_("❤️ Heartbeat signal at {timestamp}").format(timestamp=timestamp))
-                    logger.info(f"[BETA] Heartbeat sent to channel {channel_id}.")
-
-                except discord.NotFound:
-                    logger.error(f"[BETA] Heartbeat channel ID {channel_id} not found. Please check your configuration.")
-                except discord.Forbidden:
-                    logger.error(f"[BETA] Missing permissions to send heartbeat message to channel {channel_id}.")
-                except discord.HTTPException as http_err:
-                    logger.error(f"[BETA] HTTP error sending heartbeat to channel {channel_id}: {http_err}")
-                except (discord.errors.DiscordException, RuntimeError, OSError) as e:
-                    logger.error(f"[BETA] Error sending heartbeat to channel {channel_id}: {e}", exc_info=True)
-            elif method == 'api':
-                # API method is not implemented yet
-                logger.warning("[BETA] API heartbeat method is not yet implemented.")
-            else:
-                logger.warning(f"[BETA] Unknown heartbeat method specified in config: '{method}'. Supported methods: 'channel'")
-        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
-            logger.error(f"[BETA] Error in heartbeat_send_loop: {e}", exc_info=True)
+        except Exception as e:
+            logger.error(f"[Watchdog] Error in heartbeat loop: {e}", exc_info=True)
 
     @heartbeat_send_loop.before_loop
     async def before_heartbeat_loop(self):
-       """Wait until the bot is ready before starting the heartbeat loop."""
-       await self.bot.wait_until_ready()
-       logger.info("[BETA] Heartbeat monitoring loop is ready to start.")
+        """Wait until the bot is ready before starting the watchdog loop."""
+        await self.bot.wait_until_ready()
+        logger.info("[Watchdog] Status monitoring loop ready")
 
     # --- Status Cache Update Loop ---
     @tasks.loop(seconds=30)
