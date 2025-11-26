@@ -136,22 +136,29 @@ async function loadAASRules() {
 function renderRuleItem(rule) {
     const badgeClass = rule.enabled ? 'bg-success' : 'bg-secondary';
     const statusText = rule.enabled ? 'Active' : 'Disabled';
-    
+    const checkedAttr = rule.enabled ? 'checked' : '';
+
     return `
-    <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" onclick="openRuleEditor('${rule.id}')">
-        <div>
-            <div class="d-flex align-items-center gap-2">
-                <h6 class="mb-0">${escapeHtml(rule.name)}</h6>
-                <span class="badge ${badgeClass} rounded-pill">${statusText}</span>
-                <span class="badge bg-light text-dark border">Priority: ${rule.priority}</span>
+    <div class="list-group-item d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-3">
+            <div class="form-check form-switch mb-0" onclick="event.stopPropagation()">
+                <input class="form-check-input" type="checkbox" id="toggle_${rule.id}" ${checkedAttr}
+                       onchange="toggleRuleEnabled('${rule.id}', this.checked)">
             </div>
-            <small class="text-muted">
-                <i class="bi bi-chat-left-text"></i> ${rule.trigger.keywords.length} Keywords 
-                &bull; 
-                <i class="bi bi-box-seam"></i> ${rule.action.type} -> ${rule.action.containers.join(', ')}
-            </small>
+            <div class="cursor-pointer" onclick="openRuleEditor('${rule.id}')" style="cursor: pointer;">
+                <div class="d-flex align-items-center gap-2">
+                    <h6 class="mb-0">${escapeHtml(rule.name)}</h6>
+                    <span class="badge ${badgeClass} rounded-pill">${statusText}</span>
+                    <span class="badge bg-light text-dark border">Priority: ${rule.priority}</span>
+                </div>
+                <small class="text-muted">
+                    <i class="bi bi-chat-left-text"></i> ${rule.trigger.keywords.length} Keywords
+                    &bull;
+                    <i class="bi bi-box-seam"></i> ${rule.action.type} -> ${rule.action.containers.join(', ')}
+                </small>
+            </div>
         </div>
-        <div class="text-end text-muted small">
+        <div class="text-end text-muted small" onclick="openRuleEditor('${rule.id}')" style="cursor: pointer;">
             <div><i class="bi bi-lightning-charge"></i> ${rule.metadata?.trigger_count || 0}</div>
             <i class="bi bi-chevron-right"></i>
         </div>
@@ -178,6 +185,33 @@ function filterAASRules() {
         const text = item.textContent.toLowerCase();
         item.style.display = text.includes(searchTerm) ? '' : 'none';
     });
+}
+
+async function toggleRuleEnabled(ruleId, enabled) {
+    const checkbox = document.getElementById(`toggle_${ruleId}`);
+
+    try {
+        const response = await fetch(`/api/automation/rules/${ruleId}/toggle`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Reload the rules list to update badges
+            loadAASRules();
+        } else {
+            // Revert checkbox on error
+            if (checkbox) checkbox.checked = !enabled;
+            alert('Failed to toggle rule: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error toggling rule:', error);
+        // Revert checkbox on error
+        if (checkbox) checkbox.checked = !enabled;
+        alert('Failed to toggle rule');
+    }
 }
 
 // --- Editor ---

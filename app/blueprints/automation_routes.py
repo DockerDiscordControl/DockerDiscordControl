@@ -63,9 +63,28 @@ def delete_rule(rule_id):
     """Delete an auto-action rule."""
     config_service = get_auto_action_config_service()
     result = config_service.delete_rule(rule_id)
-    
+
     if result.success:
         return jsonify({'success': True})
+    return jsonify({'success': False, 'error': result.error}), 400
+
+
+@automation_bp.route('/api/automation/rules/<rule_id>/toggle', methods=['POST'])
+@auth.login_required
+def toggle_rule(rule_id):
+    """Toggle a rule's enabled state."""
+    config_service = get_auto_action_config_service()
+    rule = config_service.get_rule(rule_id)
+
+    if not rule:
+        return jsonify({'success': False, 'error': 'Rule not found'}), 404
+
+    # Toggle the enabled state
+    rule['enabled'] = not rule.get('enabled', True)
+    result = config_service.update_rule(rule_id, rule)
+
+    if result.success:
+        return jsonify({'success': True, 'enabled': rule['enabled']})
     return jsonify({'success': False, 'error': result.error}), 400
 
 # --- Global Settings ---
