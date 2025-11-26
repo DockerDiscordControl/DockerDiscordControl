@@ -79,12 +79,13 @@ def toggle_rule(rule_id):
     if not rule:
         return jsonify({'success': False, 'error': 'Rule not found'}), 404
 
-    # Toggle the enabled state
-    rule['enabled'] = not rule.get('enabled', True)
-    result = config_service.update_rule(rule_id, rule)
+    # Convert to dict, toggle enabled, and update
+    rule_data = rule.to_dict()
+    rule_data['enabled'] = not rule_data.get('enabled', True)
+    result = config_service.update_rule(rule_id, rule_data)
 
     if result.success:
-        return jsonify({'success': True, 'enabled': rule['enabled']})
+        return jsonify({'success': True, 'enabled': rule_data['enabled']})
     return jsonify({'success': False, 'error': result.error}), 400
 
 # --- Global Settings ---
