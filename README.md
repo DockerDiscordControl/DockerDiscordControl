@@ -12,12 +12,11 @@ Control your Docker containers directly from Discord! This application provides 
 
 ### ✅ **v2.1.0 (2025-11-26) - Auto-Action System & Status Watchdog**
 
-🤖 **Auto-Action System (AAS):**
-- **NEW:** Intelligent automation that monitors Discord channels for triggers
-- **NEW:** Automatic container restarts when update bots announce new versions
-- **NEW:** Keyword & Regex matching with fuzzy search support
-- **NEW:** Webhook triggers for external integrations
-- Safety features: Cooldowns, protected containers, atomic locking
+🤖 **Auto-Action System (AAS) - Intelligent Container Automation:**
+- **NEW:** 🎮 **Game Server Auto-Updates** - Your Minecraft/Valheim/Palworld server restarts automatically when update bots announce new versions. No more manual restarts!
+- **NEW:** 🔗 **Universal Webhook Control** - Trigger container actions from ANY external event: CI/CD pipelines, monitoring alerts, GitHub Actions, home automation, or custom scripts
+- **NEW:** 📝 **Flexible Triggers** - Match Discord messages by keywords (with fuzzy search) or regex patterns
+- **NEW:** 🛡️ **Built-in Safety** - Cooldowns prevent spam, protected containers can't be accidentally stopped, atomic locking ensures clean operations
 
 🔔 **Status Watchdog (Dead Man's Switch):**
 - **NEW:** Get alerts when DDC goes offline via external monitoring
@@ -112,13 +111,12 @@ Control your Docker containers directly from Discord! This application provides 
 
 ## Features - EVERYTHING via Discord! 🚀
 
-### 🤖 Auto-Action System (AAS)
-- **Automatic Updates**: Restart servers when update bots announce new versions
-- **Keyword Triggers**: Match messages by keywords with optional fuzzy matching
-- **Regex Patterns**: Advanced pattern matching for complex trigger conditions
-- **Webhook Support**: Trigger actions from external services via webhooks
-- **Safety Features**: Cooldowns, protected containers, and atomic locking prevent accidents
-- **Multi-Container**: Target multiple containers with a single trigger
+### 🤖 Auto-Action System (AAS) - Intelligent Container Automation
+- **🎮 Game Server Auto-Updates**: Palworld, Valheim, Minecraft, or any game server - automatically restart when Discord update bots announce new versions. Set it and forget it!
+- **🔗 Universal Webhook Control**: Control containers from ANY external system - CI/CD pipelines (Jenkins, GitLab), monitoring alerts (Grafana, Prometheus), GitHub Actions, Home Assistant, IFTTT, or your own scripts. One webhook URL, endless possibilities!
+- **📝 Flexible Triggers**: Match Discord messages by keywords ("update available", "new version") with optional fuzzy matching, or use regex for complex patterns
+- **🛡️ Built-in Safety**: Cooldowns prevent trigger spam, mark containers as protected to prevent accidental stops, atomic locking ensures clean operations
+- **🎯 Multi-Container Actions**: Restart your entire game server stack (game + database + proxy) with a single trigger
 
 ### 🔔 Status Watchdog
 - **Dead Man's Switch**: Get alerts when DDC goes offline
