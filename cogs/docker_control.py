@@ -2382,11 +2382,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     except (ValueError, AttributeError):
                         ram_formatted = "—GB"
 
-                    # Build single-line: "🟢 Name · cpu% • ramGB ⓘ"
-                    # Use middot (·) as separator, smaller info icon (ⓘ)
+                    # Build single-line: "🟢 Name · cpu% • ramGB ⁱ"
+                    # Use middot (·) as separator, superscript i for info (doesn't affect line height)
                     container_line = f"{status_emoji} {truncated_name} · {cpu_formatted} • {ram_formatted}"
                     if has_info:
-                        container_line += " ⓘ"  # Small circled i
+                        container_line += " ⁱ"  # Superscript i - consistent line height
                 else:
                     # Container is stopped: "🔴 Name · offline"
                     container_line = f"{status_emoji} {truncated_name} · {translate('offline')}"
@@ -2407,7 +2407,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Single-line format: "🔄 Name"
                 container_line = f"{status_emoji} {truncated_name}"
                 if has_info:
-                    container_line += " ⓘ"  # Small circled i
+                    container_line += " ⁱ"  # Superscript i - consistent line height
 
                 # Add to container lines list
                 container_lines.append(container_line)
@@ -2415,8 +2415,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         # Format the counts in the header line
         header_lines[1] = translate("Container: {total} • Online: {online} • Offline: {offline}").format(total=total_containers, online=online_count, offline=offline_count)
 
-        # Build final description with spacing between container lines to handle ⓘ height differences
-        # Join container lines with double newline for consistent spacing (fixes mobile layout issue)
+        # Build final description with consistent spacing between container lines
+        # Join container lines with double newline for better readability on mobile
         container_section = "\n\n".join(container_lines) if container_lines else ""
 
         # Combine header and container section
