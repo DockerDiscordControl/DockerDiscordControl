@@ -182,8 +182,9 @@ def test_rule():
         # No event loop, create one
         results = asyncio.run(check_all_rules())
     except Exception as e:
-        logger.error(f"Error in test_rule: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error in test_rule: {e}", exc_info=True)
+        # Return generic error to prevent information exposure (CodeQL py/stack-trace-exposure)
+        return jsonify({'error': 'An internal error occurred while testing the rule'}), 500
 
     return jsonify({
         'input_summary': {
@@ -239,4 +240,5 @@ def get_channels():
     except Exception as e:
         logger.error(f"Error fetching channels: {e}", exc_info=True)
         # Edge Case: Return empty list on error to prevent UI crash
-        return jsonify({'channels': [], 'error': str(e)})
+        # Return generic error to prevent information exposure (CodeQL py/stack-trace-exposure)
+        return jsonify({'channels': [], 'error': 'Failed to fetch channels'})
