@@ -1,6 +1,6 @@
-# DockerDiscordControl v2.0 🐳
+# DockerDiscordControl v2.1 🐳
 
-[![Version](https://img.shields.io/badge/Version-v2.0.0-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.0.0) [![Python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.22.2-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-Passing-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-80%25-brightgreen?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
+[![Version](https://img.shields.io/badge/Version-v2.1.0-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.1.0) [![Python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.22.2-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-Passing-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-80%25-brightgreen?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
 
 A powerful Discord bot and web interface to manage Docker containers remotely. This application bridges the gap between Discord and your Docker environment, allowing container monitoring and control directly through Discord channels.
 
@@ -9,6 +9,29 @@ A powerful Discord bot and web interface to manage Docker containers remotely. T
 Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is an ultra-optimized Alpine Linux build with the latest security patches and enhanced performance.
 
 ## 🆕 Latest Updates
+
+### ✅ **v2.1.0 (2025-11-26) - Auto-Action System & Status Watchdog**
+
+🤖 **Auto-Action System (AAS):**
+- **NEW:** Intelligent automation that monitors Discord channels for triggers
+- **NEW:** Automatic container restarts when update bots announce new versions
+- **NEW:** Keyword & Regex matching with fuzzy search support
+- **NEW:** Webhook triggers for external integrations
+- Safety features: Cooldowns, protected containers, atomic locking
+
+🔔 **Status Watchdog (Dead Man's Switch):**
+- **NEW:** Get alerts when DDC goes offline via external monitoring
+- **NEW:** Simple setup - just paste a URL from Healthchecks.io or Uptime Kuma
+- **SECURE:** Only outbound HTTPS pings - no tokens shared, no incoming connections
+- Compatible with 20+ monitoring services
+
+🏗️ **Architecture Improvements:**
+- **IMPROVED:** Single-process architecture (removed supervisord & gunicorn)
+- **IMPROVED:** Unified logging system with consistent formatting
+- **IMPROVED:** Service-first architecture with single point of truth
+- Cleaner codebase with reduced complexity
+
+---
 
 ### ✅ **v2.0.0 (2025-11-18) - MAJOR UPDATE - Complete Rewrite**
 
@@ -55,7 +78,7 @@ Control your Docker containers directly from Discord! This application provides 
 - Container control reliability improvements
 - Web UI configuration persistence
 
-**🚀 Ready for Unraid Community Applications! Complete rewrite with multi-language support, performance optimizations, and production-ready deployment!**
+**🚀 Ready for Unraid Community Applications! Now with Auto-Action System for automatic updates and Status Watchdog for offline alerts!**
 
 ## Platform Selection
 
@@ -87,6 +110,21 @@ Control your Docker containers directly from Discord! This application provides 
 - **Complete Functionality**: All features preserved while dramatically reducing resource usage
 
 ## Features - EVERYTHING via Discord! 🚀
+
+### 🤖 Auto-Action System (AAS)
+- **Automatic Updates**: Restart servers when update bots announce new versions
+- **Keyword Triggers**: Match messages by keywords with optional fuzzy matching
+- **Regex Patterns**: Advanced pattern matching for complex trigger conditions
+- **Webhook Support**: Trigger actions from external services via webhooks
+- **Safety Features**: Cooldowns, protected containers, and atomic locking prevent accidents
+- **Multi-Container**: Target multiple containers with a single trigger
+
+### 🔔 Status Watchdog
+- **Dead Man's Switch**: Get alerts when DDC goes offline
+- **External Monitoring**: Works with Healthchecks.io, Uptime Kuma, Cronitor, and more
+- **Secure Design**: Only outbound HTTPS pings - no tokens shared, no incoming connections
+- **Simple Setup**: Just paste a monitoring URL from your preferred service
+- **Flexible Intervals**: Configure ping frequency from 1-60 minutes
 
 ### 🎮 Discord Container Control
 - **Start, Stop, Restart** individual containers or **ALL containers at once**
@@ -463,6 +501,8 @@ docker pull dockerdiscordcontrol/dockerdiscordcontrol:latest
 |-------|-------------|
 | [Installation Guide](../../wiki/Installation‐Guide) | Detailed setup for all platforms |
 | [Configuration](../../wiki/Configuration) | Web UI, permissions, channels |
+| [Auto-Action System](../../wiki/Auto‐Action‐System) | Automatic triggers, keywords, regex, webhooks |
+| [Status Watchdog](../../wiki/Status‐Watchdog) | Dead Man's Switch monitoring setup |
 | [Task System](../../wiki/Task‐System) | Automated scheduling system |
 | [Performance](../../wiki/Performance‐and‐Architecture) | V3.0 optimizations & monitoring |
 | [Alpine Migration](../../wiki/Alpine‐Linux‐Migration) | Benefits, security, optimization |
