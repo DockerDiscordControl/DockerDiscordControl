@@ -83,14 +83,16 @@ WORKDIR /app
 # Install ONLY runtime dependencies
 # Added back: tzdata (required for timezone selection support)
 # Note: docker-cli removed - we use Docker Python SDK (docker-py)
-RUN apk add --no-cache \
+RUN apk update && \
+    apk add --no-cache \
     python3 \
     ca-certificates \
     jpeg \
     zlib \
     freetype \
     tzdata && \
-    apk upgrade --no-cache libpng
+    apk upgrade --no-cache && \
+    rm -rf /var/cache/apk/*
 
 # Copy cleaned venv from builder
 COPY --from=builder /runtime/site-packages /opt/runtime/site-packages
