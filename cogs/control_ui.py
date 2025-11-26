@@ -1459,7 +1459,7 @@ class ContainerInfoDropdown(discord.ui.Select):
             options.append(option)
 
         super().__init__(
-            placeholder="Select a container...",
+            placeholder=_("Select a container..."),
             options=options,
             min_values=1,
             max_values=1,
@@ -1647,7 +1647,7 @@ class PasswordButton(Button):
 
         super().__init__(
             style=discord.ButtonStyle.primary,
-            label="Enter Password",
+            label=_("Enter Password"),
             emoji="🔐",
             custom_id="password_button"
         )
@@ -1873,7 +1873,7 @@ class AdminContainerDropdown(discord.ui.Select):
             options.append(option)
 
         super().__init__(
-            placeholder="Select a container to control...",
+            placeholder=_("Select a container to control..."),
             options=options,
             min_values=1,
             max_values=1,
