@@ -133,6 +133,7 @@ def test_rule():
     ctx = TriggerContext(
         message_id="test-msg-id",
         channel_id=str(data.get('channel_id', '0')),
+        guild_id=str(data.get('guild_id', '0')),
         user_id=str(data.get('user_id', '0')),
         username=data.get('username', 'Test User'),
         is_webhook=data.get('is_webhook', False),

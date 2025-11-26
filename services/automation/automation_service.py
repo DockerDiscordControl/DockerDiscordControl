@@ -27,16 +27,22 @@ class TriggerContext:
     """Context object for the trigger event."""
     message_id: str
     channel_id: str
+    guild_id: str
     user_id: str
     username: str
     is_webhook: bool
     content: str
     embeds_text: str  # Consolidated text from embeds
-    
+
     @property
     def full_text(self) -> str:
         """Combined content and embeds for searching."""
         return f"{self.content}\n{self.embeds_text}".lower()
+
+    @property
+    def message_link(self) -> str:
+        """Discord message link."""
+        return f"https://discord.com/channels/{self.guild_id}/{self.channel_id}/{self.message_id}"
 
 class AutomationService:
     """Core logic for Auto-Actions."""
@@ -272,12 +278,12 @@ class AutomationService:
             # Send Feedback Message (Question 12)
             notification_channel_id = rule.action.notification_channel_id or ctx.channel_id
             if not rule.action.silent and bot:
-                # Professional compact format
+                # Professional compact format with trigger link
                 delay_info = f" ({rule.action.delay_seconds}s delay)" if rule.action.delay_seconds > 0 else ""
                 await self._send_feedback(
                     bot,
                     notification_channel_id,
-                    f"⚡ `{action_type}` **{container}**{delay_info} — *{rule.name}*"
+                    f"⚡ `{action_type}` **{container}**{delay_info} — *{rule.name}* · [Trigger]({ctx.message_link})"
                 )
 
             # Handle Delay

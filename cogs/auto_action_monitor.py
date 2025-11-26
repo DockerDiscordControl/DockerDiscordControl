@@ -55,6 +55,7 @@ class AutoActionMonitor(commands.Cog):
             ctx = TriggerContext(
                 message_id=str(message.id),
                 channel_id=str(message.channel.id),
+                guild_id=str(message.guild.id),
                 user_id=str(message.author.id),
                 username=message.author.name,
                 is_webhook=is_webhook,
