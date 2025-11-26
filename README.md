@@ -27,6 +27,7 @@ Control your Docker containers directly from Discord! This application provides 
 
 🏗️ **Architecture Improvements:**
 - **IMPROVED:** Single-process architecture (removed supervisord & gunicorn)
+- **IMPROVED:** 65% RAM reduction - from ~200MB to 60-70MB typical usage
 - **IMPROVED:** Unified logging system with consistent formatting
 - **IMPROVED:** Service-first architecture with single point of truth
 - Cleaner codebase with reduced complexity
@@ -164,7 +165,8 @@ Control your Docker containers directly from Discord! This application provides 
 ### ⚡ Performance & Optimization
 - **16x Faster Docker Cache**: Optimized from 500ms to 31ms response time
 - **7x Faster Processing**: Through async optimization and smart queue system
-- **Alpine Linux 3.22.2**: 94% fewer vulnerabilities, less than 200MB RAM usage
+- **Ultra-Low Memory**: Only 60-70MB RAM usage (65% reduction in v2.1.0)
+- **Alpine Linux 3.22.2**: 94% fewer vulnerabilities, minimal footprint
 - **Production Ready**: Supports 50 containers across 15 Discord channels
 - **Intelligent Caching**: Background refresh for real-time data
 
@@ -472,7 +474,7 @@ docker pull dockerdiscordcontrol/dockerdiscordcontrol:latest
 
 ### **Minimum Requirements**
 - **CPU**: 1 core (1.5 cores recommended)
-- **RAM**: 150MB (200MB limit, <200MB typical usage)
+- **RAM**: 60-70MB typical usage (65% reduction in v2.1.0)
 - **Storage**: 100MB for application + config/logs space
 - **Docker**: Docker Engine 20.10+ and Docker Compose 2.0+
 
