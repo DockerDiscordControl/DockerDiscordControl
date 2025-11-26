@@ -2424,8 +2424,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         header_lines[1] = translate("Container: {total} • Online: {online} • Offline: {offline}").format(total=total_containers, online=online_count, offline=offline_count)
 
         # Build final description with consistent spacing between container lines
-        # Single newline now works since Hangul filler ensures consistent line height
-        container_section = "\n".join(container_lines) if container_lines else ""
+        # Double newline for better readability, Hangul filler ensures consistent line height
+        container_section = "\n\n".join(container_lines) if container_lines else ""
 
         # Combine header and container section
         embed.description = "\n".join(header_lines) + "\n\n" + container_section
