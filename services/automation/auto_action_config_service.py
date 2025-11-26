@@ -81,9 +81,12 @@ def sanitize_string(value: str, max_length: int = 100) -> str:
     """Sanitize a string by removing potentially dangerous characters."""
     if not value:
         return ""
-    # Remove HTML tags
-    clean = re.sub(r'<[^>]+>', '', str(value))
-    # Limit length
+    # Limit length FIRST to prevent ReDoS attacks (CodeQL py/polynomial-redos)
+    truncated = str(value)[:max_length * 2]
+    # Remove HTML tags using simple character replacement (ReDoS-safe)
+    # Instead of regex, strip < and > characters entirely
+    clean = truncated.replace('<', '').replace('>', '')
+    # Final length limit
     return clean[:max_length].strip()
 
 
