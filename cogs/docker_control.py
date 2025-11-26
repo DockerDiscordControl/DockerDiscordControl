@@ -2382,14 +2382,20 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     except (ValueError, AttributeError):
                         ram_formatted = "—GB"
 
-                    # Build single-line: "🟢 Name · cpu% • ramGB ⁱ"
-                    # Use middot (·) as separator, superscript i for info (doesn't affect line height)
+                    # Build single-line: "🟢 Name · cpu% • ramGB ⓘ"
+                    # Use middot (·) as separator, ⓘ for info, ㅤ (Hangul filler) as invisible placeholder
                     container_line = f"{status_emoji} {truncated_name} · {cpu_formatted} • {ram_formatted}"
                     if has_info:
-                        container_line += " ⁱ"  # Superscript i - consistent line height
+                        container_line += " ⓘ"
+                    else:
+                        container_line += " ㅤ"  # Hangul filler (U+3164) - invisible, same height
                 else:
                     # Container is stopped: "🔴 Name · offline"
                     container_line = f"{status_emoji} {truncated_name} · {translate('offline')}"
+                    if has_info:
+                        container_line += " ⓘ"
+                    else:
+                        container_line += " ㅤ"  # Hangul filler (U+3164) - invisible, same height
 
                 # Add to container lines list
                 container_lines.append(container_line)
@@ -2407,7 +2413,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Single-line format: "🔄 Name"
                 container_line = f"{status_emoji} {truncated_name}"
                 if has_info:
-                    container_line += " ⁱ"  # Superscript i - consistent line height
+                    container_line += " ⓘ"
+                else:
+                    container_line += " ㅤ"  # Hangul filler (U+3164) - invisible, same height
 
                 # Add to container lines list
                 container_lines.append(container_line)
@@ -2416,8 +2424,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         header_lines[1] = translate("Container: {total} • Online: {online} • Offline: {offline}").format(total=total_containers, online=online_count, offline=offline_count)
 
         # Build final description with consistent spacing between container lines
-        # Join container lines with double newline for better readability on mobile
-        container_section = "\n\n".join(container_lines) if container_lines else ""
+        # Single newline now works since Hangul filler ensures consistent line height
+        container_section = "\n".join(container_lines) if container_lines else ""
 
         # Combine header and container section
         embed.description = "\n".join(header_lines) + "\n\n" + container_section
