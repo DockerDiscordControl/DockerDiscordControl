@@ -557,7 +557,7 @@ function testAASRule() {
             // ALL keywords must match
             if (matchedItems.length === keywords.length) {
                 isMatch = true;
-                matchReason = `All trigger keywords matched: <code>${matchedItems.join('</code>, <code>')}</code>`;
+                matchReason = `All trigger keywords matched: <code>${matchedItems.map(k => escapeHtml(k)).join('</code>, <code>')}</code>`;
             } else {
                 matchReason = `Only ${matchedItems.length}/${keywords.length} trigger keywords matched`;
             }
@@ -565,7 +565,7 @@ function testAASRule() {
             // ANY keyword must match
             if (matchedItems.length > 0) {
                 isMatch = true;
-                matchReason = `Trigger keyword matched: <code>${matchedItems[0]}</code>`;
+                matchReason = `Trigger keyword matched: <code>${escapeHtml(matchedItems[0])}</code>`;
             } else {
                 matchReason = 'No trigger keywords matched';
             }
@@ -575,14 +575,14 @@ function testAASRule() {
     // 5. If only required keywords (no trigger keywords/regex), that's enough
     if (!isMatch && requiredKeywords.length > 0 && keywords.length === 0 && !regexPattern) {
         isMatch = true;
-        matchReason = `Required keyword(s) matched: <code>${requiredKeywords.join('</code>, <code>')}</code>`;
+        matchReason = `Required keyword(s) matched: <code>${requiredKeywords.map(k => escapeHtml(k)).join('</code>, <code>')}</code>`;
     }
 
     // 6. Display Result
     if (isMatch) {
         let fullReason = matchReason;
         if (requiredKeywords.length > 0 && keywords.length > 0) {
-            fullReason = `Required: <code>${requiredKeywords.join('</code>, <code>')}</code> ✓ + ${matchReason}`;
+            fullReason = `Required: <code>${requiredKeywords.map(k => escapeHtml(k)).join('</code>, <code>')}</code> ✓ + ${matchReason}`;
         }
         resultDiv.innerHTML = `
             <div class="alert alert-success py-2 px-3 mb-0">
