@@ -523,7 +523,7 @@ function testAASRule() {
                         <strong><i class="bi bi-x-circle"></i> ${escapeHtml(ruleName)}</strong>
                         <span class="badge bg-danger">NO MATCH</span>
                     </div>
-                    <small>Missing required keyword(s): <code>${missingRequired.join('</code>, <code>')}</code></small>
+                    <small>Missing required keyword(s): <code>${missingRequired.map(k => escapeHtml(k)).join('</code>, <code>')}</code></small>
                 </div>
             `;
             return;
