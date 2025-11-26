@@ -26,6 +26,7 @@ from utils.common_helpers import get_public_ip
 from .translation_manager import _
 import asyncio
 import aiohttp
+from services.automation import get_auto_action_config_service
 
 logger = get_module_logger('status_info_integration')
 
@@ -1334,18 +1335,21 @@ class TaskManagementButton(discord.ui.Button):
                 pass  # Interaction might have expired
 
 class TaskManagementView(discord.ui.View):
-    """View with buttons for task management (Add Task, Delete Tasks)."""
+    """View with buttons for task management (Add Task, Delete Tasks, Auto-Action)."""
 
     def __init__(self, cog_instance, container_name: str):
         super().__init__(timeout=300)  # 5 minute timeout
         self.cog = cog_instance
         self.container_name = container_name
 
-        # Add Task button
+        # Add Task button (green)
         self.add_item(AddTaskButton(cog_instance, container_name))
 
-        # Delete Tasks button
+        # Delete Tasks button (red)
         self.add_item(DeleteTasksButton(cog_instance, container_name))
+
+        # Auto-Action button (blue)
+        self.add_item(AutoActionButton(cog_instance, container_name))
 
 class AddTaskButton(discord.ui.Button):
     """Button to add a new scheduled task."""
@@ -1446,6 +1450,98 @@ class DeleteTasksButton(discord.ui.Button):
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in delete tasks button: {e}", exc_info=True)
             await interaction.followup.send(f"❌ {_('Error opening task delete panel.')}", ephemeral=True)
+
+
+class AutoActionButton(discord.ui.Button):
+    """Button to show Auto-Actions affecting this container."""
+
+    def __init__(self, cog_instance, container_name: str):
+        super().__init__(
+            style=discord.ButtonStyle.blurple,
+            label=_("Auto-Action"),
+            custom_id=f"auto_action_{container_name}"
+        )
+        self.cog = cog_instance
+        self.container_name = container_name
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Show all Auto-Actions that affect this container."""
+        try:
+            await interaction.response.defer(ephemeral=True)
+
+            # Get Auto-Action rules from config service
+            config_service = get_auto_action_config_service()
+            all_rules = config_service.get_rules()
+
+            # Filter rules that target this container
+            matching_rules = [
+                rule for rule in all_rules
+                if self.container_name in rule.action.containers
+            ]
+
+            if not matching_rules:
+                embed = discord.Embed(
+                    title=f"🤖 {_('Auto-Actions for {container}').format(container=self.container_name)}",
+                    description=_("No Auto-Actions configured for this container."),
+                    color=discord.Color.orange()
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
+
+            # Create embed with matching rules
+            embed = discord.Embed(
+                title=f"🤖 {_('Auto-Actions for {container}').format(container=self.container_name)}",
+                description=f"{_('Found {count} Auto-Action(s) targeting this container:').format(count=len(matching_rules))}",
+                color=discord.Color.blue()
+            )
+
+            for rule in matching_rules[:10]:  # Limit to 10 rules
+                # Status icon
+                status_icon = "🟢" if rule.enabled else "🔴"
+
+                # Action emoji
+                action_emojis = {
+                    "RESTART": "🔄",
+                    "STOP": "⏹️",
+                    "START": "▶️",
+                    "NOTIFY": "📢"
+                }
+                action_emoji = action_emojis.get(rule.action.type, "⚡")
+
+                # Keywords preview (max 3)
+                keywords_preview = ", ".join(rule.trigger.keywords[:3])
+                if len(rule.trigger.keywords) > 3:
+                    keywords_preview += f" (+{len(rule.trigger.keywords) - 3})"
+
+                # Build field value
+                field_value = (
+                    f"**{_('Action')}:** {action_emoji} {rule.action.type}\n"
+                    f"**{_('Keywords')}:** `{keywords_preview or _('None')}`\n"
+                    f"**{_('Cooldown')}:** {rule.cooldown_minutes} min\n"
+                    f"**{_('Priority')}:** {rule.priority}"
+                )
+
+                if rule.trigger.regex_pattern:
+                    regex_preview = rule.trigger.regex_pattern[:30]
+                    if len(rule.trigger.regex_pattern) > 30:
+                        regex_preview += "..."
+                    field_value += f"\n**Regex:** `{regex_preview}`"
+
+                embed.add_field(
+                    name=f"{status_icon} {rule.name}",
+                    value=field_value,
+                    inline=True
+                )
+
+            # Add footer with hint
+            embed.set_footer(text=_("Manage Auto-Actions in the Web UI"))
+
+            await interaction.followup.send(embed=embed, ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"Error in auto action button: {e}", exc_info=True)
+            await interaction.followup.send(f"❌ {_('Error loading Auto-Actions.')}", ephemeral=True)
+
 
 class TaskCreationView(discord.ui.View):
     """View for task creation using sequential dropdowns."""

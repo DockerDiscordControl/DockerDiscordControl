@@ -23,25 +23,31 @@ async def load_extensions_step(context: StartupContext) -> None:
     bot = context.bot
     logger = context.logger
 
-    try:
-        logger.info("Loading extensions...")
-        if "cogs.docker_control" in bot.extensions:
-            logger.info("Extension cogs.docker_control already loaded, skipping")
-            return
+    extensions = [
+        "cogs.docker_control",
+        "cogs.auto_action_monitor"
+    ]
 
-        if inspect.iscoroutinefunction(bot.load_extension):
-            await bot.load_extension("cogs.docker_control")
-            logger.info(
-                "Successfully loaded extension: cogs.docker_control (discord.py async)"
-            )
-        else:
-            bot.load_extension("cogs.docker_control")
-            logger.info(
-                "Successfully loaded extension: cogs.docker_control (PyCord sync)"
-            )
-    except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
-        logger.error("Failed to load extension 'cogs.docker_control': %s", e, exc_info=True)
-        raise
+    logger.info("Loading extensions...")
+    
+    for ext in extensions:
+        try:
+            if ext in bot.extensions:
+                logger.info(f"Extension {ext} already loaded, skipping")
+                continue
+
+            if inspect.iscoroutinefunction(bot.load_extension):
+                await bot.load_extension(ext)
+                logger.info(f"Successfully loaded extension: {ext} (discord.py async)")
+            else:
+                bot.load_extension(ext)
+                logger.info(f"Successfully loaded extension: {ext} (PyCord sync)")
+        except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+            logger.error(f"Failed to load extension '{ext}': {e}", exc_info=True)
+            # We don't raise here to allow other extensions to load (e.g. if one fails)
+            # But docker_control is critical, so we might want to re-evaluate
+            if ext == "cogs.docker_control":
+                raise
 
 
 @as_step

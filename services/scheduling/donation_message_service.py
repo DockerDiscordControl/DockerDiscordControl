@@ -20,6 +20,21 @@ import discord
 
 logger = logging.getLogger('ddc.donation_message_service')
 
+_bot_instance: Optional[Any] = None
+
+def set_bot_instance(bot_obj: Any) -> None:
+    """Set the global bot instance."""
+    global _bot_instance
+    _bot_instance = bot_obj
+
+def get_bot_instance() -> Optional[Any]:
+    """
+    Get the global bot instance.
+
+    Returns:
+        Bot instance or None if not available
+    """
+    return _bot_instance
 
 async def execute_donation_message_task(bot: Optional[Any] = None) -> bool:
     """

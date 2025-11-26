@@ -1,3 +1,240 @@
 {% block navbar %}
-{# Navigation was removed #}
-{% endblock %} 
+{# Floating Mini-Nav - Appears on scroll #}
+<nav id="floatingNav" class="floating-nav">
+    <a href="#top" class="nav-dot" data-tooltip="Top">
+        <i class="bi bi-chevron-up"></i>
+    </a>
+    <div class="nav-divider"></div>
+    <a href="#donationSection" class="nav-dot" data-tooltip="Mech">
+        <i class="bi bi-robot"></i>
+    </a>
+    <a href="#discord-settings" class="nav-dot" data-tooltip="Discord">
+        <i class="bi bi-discord"></i>
+    </a>
+    <a href="#channel-settings" class="nav-dot" data-tooltip="Channels">
+        <i class="bi bi-hash"></i>
+    </a>
+    <a href="#permissions-table" class="nav-dot" data-tooltip="Permissions">
+        <i class="bi bi-shield-lock"></i>
+    </a>
+    <a href="#server-selection" class="nav-dot" data-tooltip="Containers">
+        <i class="bi bi-box-seam"></i>
+    </a>
+    <div class="nav-divider"></div>
+    <a href="#task-scheduler" class="nav-dot" data-tooltip="Scheduler">
+        <i class="bi bi-clock-history"></i>
+    </a>
+    <a href="#aas-section" class="nav-dot" data-tooltip="Auto-Actions">
+        <i class="bi bi-lightning-charge"></i>
+    </a>
+    <div class="nav-divider"></div>
+    <a href="#language-settings" class="nav-dot" data-tooltip="Language">
+        <i class="bi bi-globe2"></i>
+    </a>
+    <a href="#auth-settings" class="nav-dot" data-tooltip="Auth">
+        <i class="bi bi-key"></i>
+    </a>
+    <a href="#heartbeat-section" class="nav-dot" data-tooltip="Heartbeat">
+        <i class="bi bi-heart-pulse"></i>
+    </a>
+    <a href="#log-section" class="nav-dot" data-tooltip="Logs">
+        <i class="bi bi-terminal"></i>
+    </a>
+</nav>
+
+<style>
+/* Floating Navigation - Glassmorphism */
+.floating-nav {
+    position: fixed;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1040;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 6px;
+    background: rgba(30, 33, 37, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease, background 0.3s ease, border-color 0.3s ease;
+}
+
+.floating-nav:hover {
+    background: rgba(30, 33, 37, 0.85);
+    border-color: rgba(54, 207, 255, 0.2);
+}
+
+.nav-dot {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    position: relative;
+    font-size: 14px;
+}
+
+.nav-dot:hover {
+    color: #36cfff;
+    background: rgba(54, 207, 255, 0.15);
+    transform: scale(1.1);
+}
+
+.nav-dot.active {
+    color: #36cfff;
+    background: rgba(54, 207, 255, 0.2);
+}
+
+/* Tooltip */
+.nav-dot::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    right: 100%;
+    margin-right: 10px;
+    padding: 4px 10px;
+    background: rgba(0, 0, 0, 0.9);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    border-radius: 4px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(5px);
+    transition: all 0.2s ease;
+    pointer-events: none;
+}
+
+.nav-dot:hover::before {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+}
+
+.nav-divider {
+    width: 16px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 4px 0;
+}
+
+/* Pulse animation for active section */
+@keyframes navPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(54, 207, 255, 0.4); }
+    50% { box-shadow: 0 0 0 4px rgba(54, 207, 255, 0); }
+}
+
+.nav-dot.active {
+    animation: navPulse 2s ease-in-out infinite;
+}
+
+/* Hide on mobile - too small */
+@media (max-width: 768px) {
+    .floating-nav {
+        display: none;
+    }
+}
+
+/* Compact on smaller screens */
+@media (max-height: 700px) {
+    .floating-nav {
+        gap: 2px;
+        padding: 6px 4px;
+    }
+    .nav-dot {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+    .nav-divider {
+        margin: 2px 0;
+    }
+}
+</style>
+
+<script>
+(function() {
+    const nav = document.getElementById('floatingNav');
+    if (!nav) return;
+
+    // Throttled scroll handler for active section tracking
+    let ticking = false;
+    window.addEventListener('scroll', function() {
+        if (!ticking) {
+            window.requestAnimationFrame(function() {
+                updateActiveSection();
+                ticking = false;
+            });
+            ticking = true;
+        }
+    });
+
+    // Smooth scroll to sections
+    nav.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href');
+
+            if (targetId === '#top') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                const target = document.querySelector(targetId);
+                if (target) {
+                    const offset = 20;
+                    const targetPosition = target.getBoundingClientRect().top + window.scrollY - offset;
+                    window.scrollTo({ top: targetPosition, behavior: 'smooth' });
+                }
+            }
+        });
+    });
+
+    // Update active section indicator
+    function updateActiveSection() {
+        const sections = [
+            'donationSection', 'discord-settings', 'channel-settings',
+            'permissions-table', 'server-selection', 'task-scheduler',
+            'aas-section', 'language-settings', 'auth-settings',
+            'heartbeat-section', 'log-section'
+        ];
+
+        const scrollPos = window.scrollY + 150;
+        let activeId = null;
+
+        sections.forEach(id => {
+            const section = document.getElementById(id);
+            if (section) {
+                const top = section.offsetTop;
+                const height = section.offsetHeight;
+                if (scrollPos >= top && scrollPos < top + height) {
+                    activeId = id;
+                }
+            }
+        });
+
+        // Update active class
+        nav.querySelectorAll('.nav-dot').forEach(dot => {
+            const href = dot.getAttribute('href');
+            if (activeId && href === '#' + activeId) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        });
+    }
+
+    // Initial check
+    updateActiveSection();
+})();
+</script>
+{% endblock %}

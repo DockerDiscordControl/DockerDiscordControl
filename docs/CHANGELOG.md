@@ -2,6 +2,104 @@
 
 All notable changes to DockerDiscordControl will be documented in this file.
 
+## v2.5.2 - 2025-11-26
+
+### Auto-Action System (AAS) - Critical Fixes & Hardening
+
+#### 🔴 Critical Bug Fixes + Additional Hardening
+
+**State File Migration** (`auto_action_state_service.py`)
+- Fixed key mismatch: `global_cooldown_last_triggered` → `global_last_triggered`
+- Added automatic migration logic for existing installations
+- Added missing `container_cooldowns` key to state file structure
+- Cooldowns now properly persist across service restarts
+
+**Async Route Handler Fix** (`automation_routes.py`)
+- Fixed async/sync mismatch in Flask route `/api/automation/test`
+- Converted to synchronous handler with proper asyncio.run() wrapper
+- Added 30-second timeout for safety
+- Prevents potential blocking of Flask event loop
+
+**Race Condition Prevention** (`auto_action_state_service.py`)
+- NEW: `acquire_execution_lock()` - Atomic check-and-set for cooldowns
+- NEW: `release_execution_lock()` - Cleanup on execution failure
+- Prevents duplicate rule execution from rapid concurrent messages
+- Updated `automation_service.py` to use atomic locking
+
+#### 🟠 Security Hardening
+
+**Comprehensive Input Validation** (`auto_action_config_service.py`)
+- Discord Snowflake ID validation (17-19 digits)
+- ReDoS prevention for regex patterns (detects catastrophic backtracking)
+- Priority range validation (1-100)
+- Cooldown range validation (1-10080 minutes)
+- Delay range validation (0-3600 seconds)
+- Keyword count limit (max 50)
+- HTML/XSS sanitization for rule names
+- Action type validation (RESTART, STOP, START, RECREATE, NOTIFY)
+
+**Protected Container Warnings**
+- Validation now warns when rules target protected containers (ddc, portainer)
+- Warnings stored in rule metadata for visibility
+- Runtime protection remains unchanged (blocks execution)
+
+**Regex Timeout Protection** (`automation_service.py`)
+- Added 500ms timeout to regex execution via `asyncio.wait_for()`
+- Prevents ReDoS attacks from hanging the message processing
+- Graceful fallback: logs warning and continues to keyword matching (if available)
+- Regex-only rules return clear "Regex timeout" message on failure
+
+**Improved Error Handling** (`auto_action_state_service.py`)
+- Added explicit SKIPPED result handling in `record_trigger()`
+- Added debug logging for cooldown releases on failed executions
+- Clearer distinction between SUCCESS, FAILED, and SKIPPED states
+
+**Better Error Messages** (`automation_service.py`)
+- Regex-only rules now return "Regex pattern did not match" instead of "No keywords"
+- "No trigger conditions configured" instead of generic "No keywords" message
+- Truncated regex pattern in error messages (max 50 chars) for readability
+
+#### 🔧 Frontend Improvements
+
+**Form Data Preservation** (`auto_actions.js`)
+- Fixed bug: `allowed_usernames` no longer lost on rule edit/save
+- Preserved `enabled` state when editing existing rules
+- Added `currentRuleData` variable to track full rule state
+
+#### 📝 Technical Details
+
+**Files Modified:**
+- `services/automation/auto_action_state_service.py` - Migration, atomic locking
+- `services/automation/auto_action_config_service.py` - Validation functions
+- `services/automation/automation_service.py` - Use atomic locking
+- `app/blueprints/automation_routes.py` - Sync route handler
+- `app/static/js/auto_actions.js` - Form data preservation
+- `config/auto_actions_state.json` - Corrected key names
+
+**Validation Constants Added:**
+```python
+MAX_RULE_NAME_LENGTH = 100
+MAX_KEYWORDS = 50
+MAX_KEYWORD_LENGTH = 100
+MIN_PRIORITY = 1, MAX_PRIORITY = 100
+MIN_COOLDOWN_MINUTES = 1, MAX_COOLDOWN_MINUTES = 10080
+MIN_DELAY_SECONDS = 0, MAX_DELAY_SECONDS = 3600
+```
+
+---
+
+## v2.5.1 - 2025-11-26
+
+### Unified Logging & Cleanup
+
+- Enhanced logging across all services with unified logging_utils
+- Removed obsolete mech config files (evolution_config.json, speed_translations.json)
+- Removed hardcoded story files (now loaded dynamically via service)
+- Improved token security and web helper functions
+- Standardized logging patterns across infrastructure services
+
+---
+
 ## v2.0.0 - 2025-11-18
 
 ### Major Release - Complete Rewrite

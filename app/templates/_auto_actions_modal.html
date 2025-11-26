@@ -1,0 +1,431 @@
+<!-- Auto-Actions Main Modal -->
+<div class="modal fade" id="autoActionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-robot"></i> Auto-Action System (AAS)</h5>
+                <div class="ms-auto">
+                    <div class="form-check form-switch d-inline-block me-3">
+                        <input class="form-check-input" type="checkbox" id="aasGlobalToggle" onchange="toggleGlobalAAS()">
+                        <label class="form-check-label" for="aasGlobalToggle">System Enabled</label>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0">
+                <!-- Tabs -->
+                <ul class="nav nav-tabs nav-fill bg-secondary" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="aas-rules-tab" data-bs-toggle="tab" href="#aas-rules-view" role="tab">
+                            <i class="bi bi-list-task"></i> Rules
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="aas-history-tab" data-bs-toggle="tab" href="#aas-history-view" role="tab" onclick="loadAASHistory()">
+                            <i class="bi bi-clock-history"></i> Execution History
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="aas-settings-tab" data-bs-toggle="tab" href="#aas-settings-view" role="tab">
+                            <i class="bi bi-gear"></i> Global Settings
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="tab-content p-3">
+                    <!-- Rules Tab -->
+                    <div class="tab-pane fade show active" id="aas-rules-view" role="tabpanel">
+                        <div class="d-flex justify-content-between mb-3">
+                            <div class="input-group w-50">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" id="aasRuleSearch" placeholder="Search rules..." onkeyup="filterAASRules()">
+                            </div>
+                            <button class="btn btn-primary" onclick="openRuleEditor()">
+                                <i class="bi bi-plus-lg"></i> Add New Rule
+                            </button>
+                        </div>
+                        <div id="aasRulesList" class="list-group">
+                            <!-- Rules will be loaded here via JS -->
+                            <div class="text-center py-5 text-muted">
+                                <div class="spinner-border text-primary mb-2" role="status"></div>
+                                <div>Loading Auto-Actions...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- History Tab -->
+                    <div class="tab-pane fade" id="aas-history-view" role="tabpanel">
+                        <div class="d-flex justify-content-end mb-2">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="loadAASHistory()">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Rule</th>
+                                        <th>Container</th>
+                                        <th>Action</th>
+                                        <th>Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="aasHistoryTable">
+                                    <!-- History rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Settings Tab -->
+                    <div class="tab-pane fade" id="aas-settings-view" role="tabpanel">
+                        <form id="aasGlobalSettingsForm">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Global Cooldown (Seconds)</label>
+                                    <input type="number" class="form-control" id="aasGlobalCooldown" min="0" value="30">
+                                    <div class="form-text">Minimum time between ANY auto-action executions. Prevents spam.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Audit Log Channel</label>
+                                    <select class="form-select" id="aasAuditChannelSelect">
+                                        <option value="">(None)</option>
+                                        <!-- Options loaded via JS -->
+                                    </select>
+                                    <div class="form-text">Channel where all AAS events will be logged.</div>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Protected Containers</label>
+                                    <input type="text" class="form-control" id="aasProtectedContainers" value="ddc,portainer">
+                                    <div class="form-text">Comma-separated list of containers that AAS cannot touch (case-insensitive).</div>
+                                </div>
+                                <div class="col-12 mt-4">
+                                    <button type="button" class="btn btn-success" onclick="saveAASGlobalSettings()">
+                                        <i class="bi bi-save"></i> Save Global Settings
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Rule Editor Modal (Nested) -->
+<div class="modal fade" id="aasRuleEditorModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content bg-dark text-light border-primary">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="aasEditorTitle">Edit Auto-Action</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="aasRuleForm">
+                    <input type="hidden" id="aasRuleId">
+                    
+                    <!-- Section: Basic Info -->
+                    <h6 class="border-bottom pb-2 mb-3 text-primary">1. Basic Info</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">Rule Name</label>
+                            <input type="text" class="form-control" id="aasRuleName" placeholder="e.g. Icarus Update Watcher" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Priority</label>
+                            <input type="number" class="form-control" id="aasRulePriority" value="10" min="1" max="100">
+                            <div class="form-text">Higher executes first</div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Trigger -->
+                    <h6 class="border-bottom pb-2 mb-3 text-primary">2. Trigger Conditions</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">
+                                Monitored Channel ID(s)
+                                <i class="bi bi-info-circle text-info ms-1"
+                                   data-bs-toggle="tooltip"
+                                   data-bs-placement="top"
+                                   title="We recommend using a dedicated channel for Auto-Actions, especially when not using Allowed User IDs. This prevents unintended triggers from other messages."></i>
+                            </label>
+                            <input type="text" class="form-control" id="aasRuleChannelIds" placeholder="e.g. 1234567890123456789" required>
+                            <div class="form-text">Discord Channel ID(s) to monitor (comma-separated)</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Allowed User IDs (Whitelist)
+                                <i class="bi bi-info-circle text-info ms-1"
+                                   data-bs-toggle="tooltip"
+                                   data-bs-placement="top"
+                                   title="Discord User/Bot ID (not username). Right-click user → Copy ID. Enable Developer Mode in Discord settings if needed."></i>
+                            </label>
+                            <input type="text" class="form-control" id="aasRuleUsers" placeholder="Optional: Specific Bot/User ID">
+                            <div class="form-text">Only trigger if message is from these users (comma-separated)</div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">
+                                Required Keyword(s)
+                                <i class="bi bi-info-circle text-info ms-1"
+                                   data-bs-toggle="tooltip"
+                                   data-bs-placement="top"
+                                   title="Use your product/game name here (e.g. 'Icarus'). This prevents false triggers from other sources. The message title/embed is also searched."></i>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-key"></i></span>
+                                <input type="text" class="form-control" id="aasRuleRequiredKeywords" placeholder="e.g. Icarus">
+                            </div>
+                            <div class="form-text">Must ALL match (AND logic)</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Trigger Keywords</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-tags"></i></span>
+                                <input type="text" class="form-control" id="aasRuleKeywords" placeholder="update, released, patch">
+                            </div>
+                            <div class="form-text">At least one must match (OR logic)</div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <a class="text-decoration-none text-info" data-bs-toggle="collapse" href="#aasAdvancedTrigger" role="button">
+                                <i class="bi bi-gear"></i> Advanced Trigger Options
+                            </a>
+                            <div class="collapse mt-2" id="aasAdvancedTrigger">
+                                <div class="card card-body bg-secondary">
+                                    <div class="row g-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Match Mode</label>
+                                            <select class="form-select" id="aasRuleMatchMode">
+                                                <option value="any">Any Keyword (OR)</option>
+                                                <option value="all">All Keywords (AND)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">
+                                                Ignore Keywords (Blacklist)
+                                                <i class="bi bi-info-circle text-info ms-1"
+                                                   data-bs-toggle="tooltip"
+                                                   data-bs-placement="top"
+                                                   title="Prevents false triggers. E.g. 'driver issue', 'hotfix failed', 'rollback' won't trigger even if other keywords match."></i>
+                                            </label>
+                                            <input type="text" class="form-control" id="aasRuleIgnore" placeholder="driver, issue">
+                                        </div>
+                                        <div class="col-12 mt-2">
+                                            <label class="form-label">Regex Pattern (Python)</label>
+                                            <input type="text" class="form-control font-monospace" id="aasRuleRegex" placeholder="e.g. v\d+\.\d+">
+                                        </div>
+                                        <div class="col-12 mt-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="aasRuleIsWebhook">
+                                                <label class="form-check-label" for="aasRuleIsWebhook">
+                                                    Only trigger on Webhook messages (e.g. Discohook)
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Action -->
+                    <h6 class="border-bottom pb-2 mb-3 text-primary">3. Action & Execution</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Action Type</label>
+                            <select class="form-select" id="aasRuleActionType">
+                                <option value="RESTART">RESTART Container</option>
+                                <option value="STOP">STOP Container</option>
+                                <option value="START">START Container</option>
+                                <option value="NOTIFY">Notification Only</option>
+                                <option value="RECREATE" disabled>Recreate (Coming Soon)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">Target Container(s)</label>
+                            <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto; background-color: #2d3238;" id="aasRuleTargetContainersWrapper">
+                                <!-- Populated via JS with checkboxes -->
+                            </div>
+                            <div class="form-text">Select one or more containers to apply the action to.</div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Delay (Seconds)
+                                <i class="bi bi-info-circle text-info ms-1"
+                                   data-bs-toggle="tooltip"
+                                   data-bs-placement="top"
+                                   title="Wait time before action executes. Useful when server needs time to save data before restart."></i>
+                            </label>
+                            <input type="number" class="form-control" id="aasRuleDelay" value="0" min="0">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Feedback Channel(s)</label>
+                            <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto; background-color: #2d3238;" id="aasRuleFeedbackChannelsWrapper">
+                                <!-- Populated via JS with checkboxes -->
+                            </div>
+                            <div class="form-text">Select one or more channels for action feedback.</div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Safety -->
+                    <h6 class="border-bottom pb-2 mb-3 text-primary">4. Safety Settings</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Cooldown (Minutes)
+                                <i class="bi bi-info-circle text-info ms-1"
+                                   data-bs-toggle="tooltip"
+                                   data-bs-placement="top"
+                                   title="Prevents spam from rapid updates. After triggering, the rule won't fire again for this duration."></i>
+                            </label>
+                            <input type="number" class="form-control" id="aasRuleCooldown" value="1440" min="1">
+                            <div class="form-text">Prevents re-triggering on same container (Default: 24h)</div>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-center">
+                            <div class="form-check mt-3">
+                                <input class="form-check-input" type="checkbox" id="aasRuleOnlyRunning" checked>
+                                <label class="form-check-label" for="aasRuleOnlyRunning">
+                                    Only execute if container is RUNNING
+                                    <i class="bi bi-info-circle text-info ms-1"
+                                       data-bs-toggle="tooltip"
+                                       data-bs-placement="top"
+                                       title="Safety feature: Prevents accidentally starting containers that were intentionally stopped for maintenance."></i>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Test Box -->
+                    <div class="alert alert-dark border border-secondary mb-0">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong><i class="bi bi-bug"></i> Test Match Logic (Dry Run)</strong>
+                            <button type="button" class="btn btn-sm btn-outline-light" onclick="testAASRule()">Check Match</button>
+                        </div>
+                        <textarea class="form-control bg-dark text-light border-secondary mb-2" id="aasTestContent" rows="2" placeholder="Paste example Discord message here..."></textarea>
+                        <div id="aasTestResult" class="small"></div>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger me-auto" id="aasDeleteBtn" onclick="deleteAASRule()" style="display:none;">
+                    <i class="bi bi-trash"></i> Delete Rule
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveAASRule()">
+                    <i class="bi bi-save"></i> Save Rule
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dark Theme Styling for AAS Modals -->
+<style>
+/* AAS Main Modal - Dark Theme */
+#autoActionsModal .modal-body {
+    background-color: #212529;
+}
+
+#autoActionsModal .nav-tabs {
+    border-bottom: 1px solid #495057;
+}
+
+#autoActionsModal .nav-tabs .nav-link {
+    color: #adb5bd;
+    border-color: transparent;
+}
+
+#autoActionsModal .nav-tabs .nav-link:hover {
+    color: #fff;
+    background-color: #495057;
+    border-color: transparent;
+}
+
+#autoActionsModal .nav-tabs .nav-link.active {
+    color: #fff;
+    background-color: #343a40;
+    border-color: #495057 #495057 #343a40;
+}
+
+#autoActionsModal .tab-content {
+    background-color: #343a40;
+}
+
+#autoActionsModal .form-control,
+#autoActionsModal .form-select {
+    background-color: #2d3238;
+    border-color: #495057;
+    color: #fff;
+}
+
+#autoActionsModal .form-control:focus,
+#autoActionsModal .form-select:focus {
+    background-color: #2d3238;
+    border-color: #0d6efd;
+    color: #fff;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+#autoActionsModal .form-control::placeholder {
+    color: #6c757d;
+}
+
+#autoActionsModal .input-group-text {
+    background-color: #495057;
+    border-color: #495057;
+    color: #adb5bd;
+}
+
+#autoActionsModal .list-group-item {
+    background-color: #343a40;
+    border-color: #495057;
+    color: #fff;
+}
+
+#autoActionsModal .list-group-item:hover {
+    background-color: #495057;
+}
+
+/* AAS Rule Editor Modal - Dark Theme */
+#aasRuleEditorModal .form-control,
+#aasRuleEditorModal .form-select {
+    background-color: #2d3238;
+    border-color: #495057;
+    color: #fff;
+}
+
+#aasRuleEditorModal .form-control:focus,
+#aasRuleEditorModal .form-select:focus {
+    background-color: #2d3238;
+    border-color: #0d6efd;
+    color: #fff;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+#aasRuleEditorModal .form-control::placeholder {
+    color: #6c757d;
+}
+
+#aasRuleEditorModal .form-text {
+    color: #adb5bd;
+}
+
+#aasRuleEditorModal .border-bottom {
+    border-color: #495057 !important;
+}
+
+#aasRuleEditorModal .input-group-text {
+    background-color: #495057;
+    border-color: #495057;
+    color: #adb5bd;
+}
+
+#aasRuleEditorModal .font-monospace {
+    font-family: 'Courier New', monospace;
+}
+</style>

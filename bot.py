@@ -98,6 +98,10 @@ def main() -> None:
     bot = create_bot(runtime)
     register_event_handlers(bot, runtime)
 
+    # Set global bot instance for Web UI access
+    from services.scheduling.donation_message_service import set_bot_instance
+    set_bot_instance(bot)
+
     # Retry loop for missing token with countdown
     retry_interval = int(os.getenv("DDC_TOKEN_RETRY_INTERVAL", "60"))
     max_retries = int(os.getenv("DDC_TOKEN_MAX_RETRIES", "0"))  # 0 = infinite

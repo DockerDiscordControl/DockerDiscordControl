@@ -7,6 +7,10 @@
 *   **Docker Control via Discord**: Start, stop, and restart containers using simple buttons or commands.
 *   **Real-time Status**: Get live updates on container status with visual indicators.
 *   **Web Dashboard**: A comprehensive web interface for advanced management, logs, and configuration.
+*   **Auto-Action System (AAS)**: Intelligent automation that monitors Discord channels and automatically triggers container actions based on keywords, regex, or webhooks.
+    *   **Automatic Updates**: Restart servers when update bots announce new versions.
+    *   **Keyword & Regex Matching**: Flexible trigger conditions with fuzzy matching support.
+    *   **Safety Features**: Cooldowns, protected containers, and atomic locking.
 *   **Mech Evolution System**: A unique gamification layer where a virtual Mech evolves based on donations and community interaction.
     *   **Dynamic Speed**: The Mech's animation speed changes based on its "Power" level.
     *   **Visual Progression**: Watch the Mech grow from a scrappy Level 1 robot to a divine Level 11 entity.
@@ -23,6 +27,9 @@ Comprehensive guide to environment variables, configuration files, and default v
 ### [Web UI Settings](WebUI_Settings.md)
 Detailed explanation of all settings available in the Web Dashboard, including Spam Protection and Advanced Settings.
 
+### [Auto-Action System](Auto_Action_System.md)
+Complete guide to the automation layer: Keyword matching, regex triggers, cooldowns, and use cases for automatic server updates.
+
 ### [Mech System](Mech_System.md)
 Deep dive into the gamification mechanics: Evolution levels, Power decay, and Animation dynamics.
 
@@ -30,4 +37,4 @@ Deep dive into the gamification mechanics: Evolution levels, Power decay, and An
 Information about authentication, permissions, and security best practices.
 
 ---
-*Last updated: November 20, 2025*
+*Last updated: November 26, 2025*
