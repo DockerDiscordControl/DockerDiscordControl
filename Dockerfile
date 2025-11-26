@@ -4,10 +4,11 @@ FROM alpine:3.22.2 AS builder
 WORKDIR /build
 
 # Install build dependencies only
+# Note: freetype-dev removed - pulls vulnerable libpng, we don't use fonts
 RUN apk add --no-cache \
     python3 python3-dev py3-pip \
     gcc musl-dev libffi-dev openssl-dev \
-    jpeg-dev zlib-dev freetype-dev
+    jpeg-dev zlib-dev
 
 # Create venv and install Python packages
 RUN python3 -m venv /venv
@@ -83,13 +84,13 @@ WORKDIR /app
 # Install ONLY runtime dependencies
 # Added back: tzdata (required for timezone selection support)
 # Note: docker-cli removed - we use Docker Python SDK (docker-py)
+# Note: freetype removed - pulls vulnerable libpng, we don't use fonts
 RUN apk update && \
     apk add --no-cache \
     python3 \
     ca-certificates \
     jpeg \
     zlib \
-    freetype \
     tzdata && \
     apk upgrade --no-cache && \
     rm -rf /var/cache/apk/*
