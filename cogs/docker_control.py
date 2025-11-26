@@ -2383,19 +2383,15 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         ram_formatted = "—GB"
 
                     # Build single-line: "🟢 Name · cpu% • ramGB ⓘ"
-                    # Use middot (·) as separator, ⓘ for info, ㅤ (Hangul filler) as invisible placeholder
+                    # Use middot (·) as separator, ⓘ only if has info
                     container_line = f"{status_emoji} {truncated_name} · {cpu_formatted} • {ram_formatted}"
                     if has_info:
                         container_line += " ⓘ"
-                    else:
-                        container_line += " ㅤ"  # Hangul filler (U+3164) - invisible, same height
                 else:
                     # Container is stopped: "🔴 Name · offline"
                     container_line = f"{status_emoji} {truncated_name} · {translate('offline')}"
                     if has_info:
                         container_line += " ⓘ"
-                    else:
-                        container_line += " ㅤ"  # Hangul filler (U+3164) - invisible, same height
 
                 # Add to container lines list
                 container_lines.append(container_line)
@@ -2414,8 +2410,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 container_line = f"{status_emoji} {truncated_name}"
                 if has_info:
                     container_line += " ⓘ"
-                else:
-                    container_line += " ㅤ"  # Hangul filler (U+3164) - invisible, same height
 
                 # Add to container lines list
                 container_lines.append(container_line)
@@ -2424,8 +2418,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         header_lines[1] = translate("Container: {total} • Online: {online} • Offline: {offline}").format(total=total_containers, online=online_count, offline=offline_count)
 
         # Build final description with consistent spacing between container lines
-        # Double newline for better readability, Hangul filler ensures consistent line height
-        container_section = "\n\n".join(container_lines) if container_lines else ""
+        # Use Hangul filler (ㅤ U+3164) on separator line to match ⓘ height
+        container_section = "\nㅤ\n".join(container_lines) if container_lines else ""
 
         # Combine header and container section
         embed.description = "\n".join(header_lines) + "\n\n" + container_section
