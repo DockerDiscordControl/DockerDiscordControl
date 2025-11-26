@@ -11,6 +11,9 @@
     *   **Automatic Updates**: Restart servers when update bots announce new versions.
     *   **Keyword & Regex Matching**: Flexible trigger conditions with fuzzy matching support.
     *   **Safety Features**: Cooldowns, protected containers, and atomic locking.
+*   **Status Watchdog**: Dead Man's Switch monitoring that alerts you when DDC goes offline.
+    *   **Simple Setup**: Just paste a monitoring URL from Healthchecks.io or Uptime Kuma.
+    *   **Secure**: No tokens shared - only outbound HTTPS pings.
 *   **Mech Evolution System**: A unique gamification layer where a virtual Mech evolves based on donations and community interaction.
     *   **Dynamic Speed**: The Mech's animation speed changes based on its "Power" level.
     *   **Visual Progression**: Watch the Mech grow from a scrappy Level 1 robot to a divine Level 11 entity.
@@ -29,6 +32,9 @@ Detailed explanation of all settings available in the Web Dashboard, including S
 
 ### [Auto-Action System](Auto_Action_System.md)
 Complete guide to the automation layer: Keyword matching, regex triggers, cooldowns, and use cases for automatic server updates.
+
+### [Status Watchdog](Status_Watchdog.md)
+Dead Man's Switch monitoring: Get alerts when DDC goes offline. Setup guides for Healthchecks.io and Uptime Kuma.
 
 ### [Mech System](Mech_System.md)
 Deep dive into the gamification mechanics: Evolution levels, Power decay, and Animation dynamics.
