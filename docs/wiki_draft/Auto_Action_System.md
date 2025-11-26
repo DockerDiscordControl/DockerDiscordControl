@@ -21,6 +21,8 @@ Discord Message → AutoActionMonitor → AutomationService → Docker Action
 - **Multi-Container Actions**: Apply actions to multiple containers per rule
 - **Cooldown System**: Atomic per-container cooldowns to prevent spam
 - **Protected Containers**: Global blacklist that AAS cannot touch
+- **Auto-Refresh**: Automatically updates Server Overview & Admin Overview after actions
+- **Professional Notifications**: Clean, single-line feedback messages in Discord
 
 ---
 
@@ -203,6 +205,47 @@ In the container task management view, each container has a blue "Auto-Action" b
 - Cooldown and priority
 
 *Source: `cogs/status_info_integration.py:1455`*
+
+### Feedback Notifications
+
+When an action is triggered, AAS sends a clean, professional notification to the configured feedback channel (or the source channel if none specified):
+
+```
+⚡ `RESTART` **icarus-server** (30s delay) — *Icarus Update Watcher*
+```
+
+Format: `⚡ `ACTION` **container** (delay if >0) — *rule name*`
+
+Error notifications follow the same pattern:
+```
+⚠️ `RESTART` **icarus-server** failed — *Icarus Update Watcher*
+⚠️ Container `icarus-server` not found — *Icarus Update Watcher*
+```
+
+Set **Silent Mode** in the rule configuration to suppress all notifications.
+
+### Auto-Refresh After Action
+
+After a successful action, AAS automatically refreshes all status displays:
+
+```
+Action Complete
+      ↓
+5 second delay (container stabilization)
+      ↓
+Cache invalidation (both StatusCache and ContainerStatusService)
+      ↓
+Fresh status fetch
+      ↓
+Update all displays:
+├── Individual container status messages
+├── Server Overview (collapsed view)
+└── Admin Overview (control channels)
+```
+
+This ensures all Discord status displays reflect the new container state without manual refresh.
+
+*Source: `cogs/docker_control.py:810` - `trigger_status_refresh()`*
 
 ---
 
