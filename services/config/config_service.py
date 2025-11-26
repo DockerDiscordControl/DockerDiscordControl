@@ -675,7 +675,7 @@ class ConfigService:
         """SERVICE FIRST: Get evolution mode configuration with Request/Result pattern."""
         try:
             # SERVICE FIRST: Use internal helper for consistent file loading
-            config_path = Path("config/evolution_mode.json")
+            config_path = self.config_dir / "evolution_mode.json"
 
             # Default fallback
             default_config = {

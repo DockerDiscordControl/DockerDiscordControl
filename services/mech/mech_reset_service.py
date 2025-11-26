@@ -46,9 +46,6 @@ class MechResetService:
         else:
             self.config_dir = Path(config_dir)
 
-        # SINGLE POINT OF TRUTH: Only donations file needed now
-        self.donations_file = self.config_dir / "mech_donations.json"
-
         # Optional files that may exist
         self.mech_state_file = self.config_dir / "mech_state.json"
         self.evolution_mode_file = self.config_dir / "evolution_mode.json"
@@ -62,7 +59,7 @@ class MechResetService:
         """
         SINGLE POINT OF TRUTH: Perform a complete Mech reset to Level 1.
 
-        With the new architecture, we only need to clear donations!
+        With the new architecture, we reset donations via Event Sourcing!
         All level information is derived from donation history.
 
         Returns:
@@ -71,9 +68,15 @@ class MechResetService:
         try:
             results = []
 
-            # SINGLE POINT OF TRUTH: Only need to clear donations
-            donations_result = self.clear_all_donations()
-            results.append(f"Donations: {donations_result.message}")
+            # Step 1: Reset donations using UnifiedDonationService (Event Sourcing)
+            # This is the CORRECT way to reset donations in the new architecture
+            from services.donation.unified_donation_service import reset_all_donations
+            donation_result = reset_all_donations(source='mech_reset_service')
+            
+            if not donation_result.success:
+                return ResetResult(success=False, message=f"Donation reset failed: {donation_result.error_message}")
+                
+            results.append(f"Donations: {donation_result.message}")
 
             # Optional: Reset mech state (for Discord channel states)
             state_result = self.reset_mech_state()
@@ -87,7 +90,7 @@ class MechResetService:
             cleanup_result = self.cleanup_deprecated_files()
             results.append(f"Cleanup: {cleanup_result.message}")
 
-            success = all([donations_result.success, state_result.success,
+            success = all([donation_result.success, state_result.success,
                           evolution_result.success, cleanup_result.success])
 
             if success:
@@ -102,37 +105,14 @@ class MechResetService:
                 message=message,
                 details={
                     "operations": results,
-                    "architecture": "Single Point of Truth - donations only",
+                    "architecture": "Unified Donation Service + UI State Reset",
                     "timestamp": datetime.now().isoformat()
                 }
             )
 
-        except (RuntimeError, AttributeError) as e:
+        except (RuntimeError, AttributeError, ImportError) as e:
             # Orchestration errors (method call failures, attribute access)
             error_msg = f"❌ Error during full Mech reset: {e}"
-            logger.error(error_msg, exc_info=True)
-            return ResetResult(success=False, message=error_msg)
-
-    def clear_all_donations(self) -> ResetResult:
-        """Clear all donations from mech_donations.json.
-
-        Returns:
-            ResetResult with success status
-        """
-        try:
-            donations_data = {
-                "donations": []
-            }
-
-            with open(self.donations_file, 'w', encoding='utf-8') as f:
-                json.dump(donations_data, f, indent=2, ensure_ascii=False)
-
-            logger.info("Cleared all Mech donations")
-            return ResetResult(success=True, message="All donations cleared")
-
-        except (IOError, OSError) as e:
-            # File I/O errors (writing donations file)
-            error_msg = f"Error clearing donations: {e}"
             logger.error(error_msg, exc_info=True)
             return ResetResult(success=False, message=error_msg)
 
@@ -255,56 +235,38 @@ class MechResetService:
         try:
             status = {}
 
-            # Load donations (Single Point of Truth)
-            if self.donations_file.exists():
-                with open(self.donations_file, 'r', encoding='utf-8') as f:
-                    donations_data = json.load(f)
-                donations = donations_data.get("donations", [])
+            # Get current state from ProgressService (Single Point of Truth)
+            from services.mech.progress_service import get_progress_service
+            progress_service = get_progress_service()
+            state = progress_service.get_state()
 
-                status["donations_count"] = len(donations)
+            # Basic stats
+            status["total_donated"] = state.total_donated
+            status["current_level"] = state.level
+            
+            # We don't track "donations_count" or "level_upgrades_count" directly in state anymore
+            # but we can get donations count from history if needed (omitted for performance)
+            status["donations_count"] = "N/A (Event Sourcing)"
+            status["level_upgrades_count"] = state.level - 1
 
-                # Calculate total donated amount
-                total_donated = sum(int(d.get("amount", 0)) for d in donations)
-                status["total_donated"] = total_donated
-
-                # Calculate current level from donations
-                current_level = 1
-                level_upgrades = 0
-                for donation in donations:
-                    if donation.get('level_upgrade') and donation.get('level_reached'):
-                        current_level = max(current_level, donation['level_reached'])
-                        level_upgrades += 1
-
-                status["current_level"] = current_level
-                status["level_upgrades_count"] = level_upgrades
-
-                # Calculate next level info
-                if current_level < 11:
-                    from services.mech.mech_evolutions import get_evolution_level_info
-                    next_info = get_evolution_level_info(current_level + 1)
-                    
-                    if next_info:
-                        next_level_threshold = next_info.base_cost
-                        status["next_level_threshold"] = next_level_threshold
-                        status["amount_needed"] = max(0, next_level_threshold - total_donated)
-                        status["next_level_name"] = next_info.name
-                    else:
-                        status["next_level_threshold"] = None
-                        status["amount_needed"] = 0
-                        status["next_level_name"] = "MAX LEVEL"
+            # Calculate next level info
+            if state.level < 11:
+                from services.mech.mech_evolutions import get_evolution_level_info
+                next_info = get_evolution_level_info(state.level + 1)
+                
+                if next_info:
+                    # Use actual requirement from state (includes dynamic costs)
+                    status["next_level_threshold"] = state.evo_max * 100  # Convert to cents for consistency
+                    status["amount_needed"] = max(0, (state.evo_max - state.evo_current) * 100)
+                    status["next_level_name"] = next_info.name
                 else:
                     status["next_level_threshold"] = None
                     status["amount_needed"] = 0
-                    status["next_level_name"] = "OMEGA MECH (MAX)"
-
+                    status["next_level_name"] = "MAX LEVEL"
             else:
-                status["donations_count"] = 0
-                status["total_donated"] = 0
-                status["current_level"] = 1
-                status["level_upgrades_count"] = 0
-                status["next_level_threshold"] = 20
-                status["amount_needed"] = 20
-                status["next_level_name"] = "The Battle-Scarred Survivor"
+                status["next_level_threshold"] = None
+                status["amount_needed"] = 0
+                status["next_level_name"] = "OMEGA MECH (MAX)"
 
             # Check mech state (Discord channel tracking)
             if self.mech_state_file.exists():
@@ -318,7 +280,7 @@ class MechResetService:
                 status["glvl_values"] = []
 
             # Add architecture info
-            status["architecture"] = "Single Point of Truth"
+            status["architecture"] = "Unified Donation Service (Event Sourcing)"
             status["deprecated_files_exist"] = self.achieved_levels_file.exists()
 
             return status

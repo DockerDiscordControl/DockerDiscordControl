@@ -36,16 +36,23 @@ def resolve_secret_key(env: Mapping[str, str]) -> str:
     return candidate
 
 
+from pathlib import Path
+
 def build_config(env: Mapping[str, str], overrides: Optional[Mapping[str, object]] = None) -> MutableMapping[str, object]:
     """Construct the Flask configuration dictionary."""
     config: MutableMapping[str, object] = dict(DEFAULTS)
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    # Robust absolute path relative to project root
+    try:
+        project_root = Path(__file__).parents[2]
+    except Exception:
+        project_root = Path(".")
+        
     config.update(
         SECRET_KEY=resolve_secret_key(env),
         DOCKER_SOCKET=env.get("DOCKER_SOCKET", DEFAULTS["DOCKER_SOCKET"]),
         LOG_LEVEL=env.get("LOG_LEVEL", DEFAULTS["LOG_LEVEL"]),
         HOST_DOCKER_PATH=env.get("HOST_DOCKER_PATH", DEFAULTS["HOST_DOCKER_PATH"]),
-        CONFIG_FILE=os.path.join(project_root, "config", "config.json"),
+        CONFIG_FILE=str(project_root / "config" / "config.json"),
     )
 
     if overrides:

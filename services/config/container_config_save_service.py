@@ -27,9 +27,9 @@ class ContainerConfigSaveService:
 
     def __init__(self):
         """Initialize the ContainerConfigSaveService."""
-        # Get base directory
-        self.base_dir = os.environ.get('DDC_BASE_DIR', os.getcwd() if os.path.exists('config/containers') else '/app')
-        self.containers_dir = Path(self.base_dir) / 'config' / 'containers'
+        # Robust absolute path relative to project root (3 levels up from services/config/container_config_save_service.py)
+        self.base_dir = Path(__file__).parents[2]
+        self.containers_dir = self.base_dir / 'config' / 'containers'
 
         # Ensure containers directory exists
         self.containers_dir.mkdir(parents=True, exist_ok=True)

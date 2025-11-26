@@ -17,6 +17,8 @@ from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
 
+from pathlib import Path
+
 class TokenSecurityManager:
     """Manages bot token encryption and security operations."""
 
@@ -39,12 +41,17 @@ class TokenSecurityManager:
             bool: True if encryption was successful or not needed, False if failed
         """
         try:
-            config_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            bot_config_file = os.path.join(config_dir, "config", "bot_config.json")
-            web_config_file = os.path.join(config_dir, "config", "web_config.json")
+            # Robust absolute path relative to project root
+            try:
+                config_dir = Path(__file__).parents[1] / "config"
+            except Exception:
+                config_dir = Path("config")
+                
+            bot_config_file = config_dir / "bot_config.json"
+            web_config_file = config_dir / "web_config.json"
 
             # Check if files exist
-            if not os.path.exists(bot_config_file) or not os.path.exists(web_config_file):
+            if not bot_config_file.exists() or not web_config_file.exists():
                 logger.debug("Config files not found, skipping token encryption migration")
                 return True
 
@@ -122,11 +129,16 @@ class TokenSecurityManager:
                 return status
 
             # Check config files
-            config_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            bot_config_file = os.path.join(config_dir, "config", "bot_config.json")
-            web_config_file = os.path.join(config_dir, "config", "web_config.json")
+            # Robust absolute path relative to project root
+            try:
+                config_dir = Path(__file__).parents[1] / "config"
+            except Exception:
+                config_dir = Path("config")
+                
+            bot_config_file = config_dir / "bot_config.json"
+            web_config_file = config_dir / "web_config.json"
 
-            if os.path.exists(bot_config_file):
+            if bot_config_file.exists():
                 with open(bot_config_file, 'r', encoding='utf-8') as f:
                     bot_config = json.load(f)
 
@@ -135,7 +147,7 @@ class TokenSecurityManager:
                     status['token_exists'] = True
                     status['is_encrypted'] = current_token.startswith('gAAAAA')
 
-            if os.path.exists(web_config_file):
+            if web_config_file.exists():
                 with open(web_config_file, 'r', encoding='utf-8') as f:
                     web_config = json.load(f)
 

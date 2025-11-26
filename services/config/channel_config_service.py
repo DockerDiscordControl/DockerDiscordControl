@@ -27,9 +27,10 @@ class ChannelConfigService:
 
     def __init__(self):
         """Initialize the ChannelConfigService."""
-        self.base_dir = os.environ.get('DDC_BASE_DIR', os.getcwd() if os.path.exists('config') else '/app')
-        self.channels_dir = Path(self.base_dir) / 'config' / 'channels'
-        self.config_file = Path(self.base_dir) / 'config' / 'config.json'
+        # Robust absolute path relative to project root (3 levels up from services/config/channel_config_service.py)
+        self.base_dir = Path(__file__).parents[2]
+        self.channels_dir = self.base_dir / 'config' / 'channels'
+        self.config_file = self.base_dir / 'config' / 'config.json'
 
         # Ensure channels directory exists
         self.channels_dir.mkdir(parents=True, exist_ok=True)

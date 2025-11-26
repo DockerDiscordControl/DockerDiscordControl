@@ -74,10 +74,16 @@ class SpamProtectionService:
             config_dir: Directory to store config files. Defaults to config/
         """
         if config_dir is None:
-            base_dir = Path(__file__).parent.parent.parent
-            config_dir = base_dir / "config"
+            # Robust absolute path relative to project root
+            try:
+                base_dir = Path(__file__).parents[2]
+                config_dir = base_dir / "config"
+            except Exception:
+                config_dir = Path("config")
+        else:
+            config_dir = Path(config_dir)
 
-        self.config_dir = Path(config_dir)
+        self.config_dir = config_dir
         self.config_dir.mkdir(parents=True, exist_ok=True)
         # Updated: Use channels_config.json as single source for spam protection
         self.config_file = self.config_dir / "channels_config.json"

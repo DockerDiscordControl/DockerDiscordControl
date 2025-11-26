@@ -13,6 +13,7 @@ import os
 import json
 import logging
 from typing import List, Dict, Any
+from pathlib import Path
 
 # Setup logger
 from utils.logging_utils import setup_logger
@@ -20,8 +21,11 @@ from services.config.server_config_service import get_server_config_service
 logger = setup_logger('ddc.server_order', level=logging.DEBUG)
 
 # Base directory - should point to project root
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-ORDER_FILE = os.path.join(BASE_DIR, "config", "server_order.json")
+# Robust absolute path relative to project root
+try:
+    ORDER_FILE = Path(__file__).parents[2] / "config" / "server_order.json"
+except Exception:
+    ORDER_FILE = Path("config/server_order.json")
 
 def save_server_order(server_order: List[str]) -> bool:
     """

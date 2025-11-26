@@ -16,23 +16,19 @@ import json
 import os
 from pathlib import Path
 
-# Load translations
-def load_speed_translations():
-    """Load speed translations from JSON file."""
-    try:
-        translations_file = Path(__file__).parent / "speed_translations.json"
-        with open(translations_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except (IOError, OSError) as e:
-        # File I/O errors (file not found, read errors)
-        print(f"Warning: File I/O error loading speed translations: {e}")
-        return None
-    except json.JSONDecodeError as e:
-        # JSON parsing errors (corrupted file)
-        print(f"Warning: JSON parsing error loading speed translations: {e}")
-        return None
-
-SPEED_TRANSLATIONS = load_speed_translations()
+# Load speed translations from JSON
+try:
+    # Robust absolute path relative to project root
+    translations_path = Path(__file__).parents[2] / "config" / "mech" / "speed_translations.json"
+    if translations_path.exists():
+        with open(translations_path, "r", encoding="utf-8") as f:
+            SPEED_TRANSLATIONS = json.load(f)
+    else:
+        # Fallback to empty if file missing
+        SPEED_TRANSLATIONS = {}
+except Exception as e:
+    logger.error(f"Error loading speed translations: {e}")
+    SPEED_TRANSLATIONS = {}
 
 SPEED_DESCRIPTIONS = {
     0: ("OFFLINE", "#888888"),

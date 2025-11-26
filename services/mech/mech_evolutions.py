@@ -35,8 +35,13 @@ class EvolutionLevelInfo:
 class EvolutionConfigService:
     """SERVICE FIRST: Unified evolution configuration service."""
 
-    def __init__(self, config_path: str = "services/mech/evolution_config.json"):
-        self.config_path = Path(config_path)
+    def __init__(self, config_path: str = None):
+        if config_path:
+            self.config_path = Path(config_path)
+        else:
+            # Robust default path relative to project root
+            self.config_path = Path(__file__).parents[2] / "config" / "mech" / "evolution.json"
+            
         # Use central ConfigService for robust JSON handling
         from services.config.config_service import get_config_service
         self._central_config_service = get_config_service()
@@ -306,6 +311,23 @@ def get_evolution_level_info(level: int) -> Optional[EvolutionLevelInfo]:
     if not level_data:
         return None
 
+    # Load decay from separate config file (config/mech/decay.json)
+    # This ensures consistency with progress_service logic
+    decay_val = level_data.get("decay_per_day", 1.0)
+    try:
+        # Robust absolute path relative to project root
+        decay_path = Path(__file__).parents[2] / "config" / "mech" / "decay.json"
+        if decay_path.exists():
+            with open(decay_path, "r") as f:
+                d_cfg = json.load(f)
+                # Value is in cents, convert to dollars
+                decay_cents = d_cfg.get("levels", {}).get(str(level))
+                if decay_cents is None:
+                    decay_cents = d_cfg.get("default", 100)
+                decay_val = float(decay_cents) / 100.0
+    except Exception as e:
+        logger.error(f"Error loading decay config in evolutions: {e}")
+
     return EvolutionLevelInfo(
         level=level,
         name=level_data.get("name", f"Level {level}"),
@@ -313,7 +335,7 @@ def get_evolution_level_info(level: int) -> Optional[EvolutionLevelInfo]:
         color=level_data.get("color", "#888888"),
         base_cost=level_data.get("cost", 0),
         power_max=level_data.get("power_max", 100),
-        decay_per_day=level_data.get("decay_per_day", 1.0)
+        decay_per_day=decay_val
     )
 
 def calculate_dynamic_cost(level: int, member_count: int, community_multiplier: float = None) -> Tuple[int, float]:

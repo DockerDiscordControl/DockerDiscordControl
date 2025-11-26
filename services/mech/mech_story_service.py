@@ -23,105 +23,80 @@ logger = logging.getLogger(__name__)
 class MechStoryService:
     """Service for managing mech evolution story content across multiple languages."""
 
-    def __init__(self):
-        self.story_dir = Path(__file__).parent
+    def __init__(self, story_dir: str = None):
+        if story_dir:
+            self.story_dir = Path(story_dir)
+        else:
+            # Robust absolute path relative to project root
+            self.story_dir = Path(__file__).parents[2] / "config" / "mech" / "stories"
+            
         self.language_files = {
-            'en': 'mech_story.txt',
-            'de': 'mech_story_de.txt',
-            'fr': 'mech_story_fr.txt'
+            'en': 'en.txt',
+            'de': 'de.txt',
+            'fr': 'fr.txt'
         }
         self._story_cache = {}
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.info(f"MechStoryService initialized with story dir: {self.story_dir}")
 
-    def get_chapter_for_level(self, level: int, language: str = None) -> Optional[str]:
+    def get_story_chapter(self, level: int, language: str = 'en') -> Optional[str]:
         """
         Get the story chapter for a specific mech level.
 
         Args:
             level: Mech level (1-11)
-            language: Language code (en/de/fr), auto-detected if None
+            language: Language code ('en', 'de', 'fr')
 
         Returns:
-            Story chapter content or None if not found
+            Story text or None if not found
         """
-        if language is None:
-            language = self._get_current_language()
+        chapter_key = self._get_chapter_key_for_level(level)
+        if not chapter_key:
+            return None
 
-        chapters = self.get_all_chapters(language)
-        chapter_key = self._level_to_chapter_key(level)
+        story_content = self._get_story_content(language)
+        return story_content.get(chapter_key)
 
-        return chapters.get(chapter_key)
+    def clear_cache(self):
+        """Clear the story cache to force reload from disk."""
+        self._story_cache = {}
+        self.logger.info("Mech story cache cleared - content will be reloaded on next access")
 
-    def get_all_chapters(self, language: str = None) -> Dict[str, str]:
-        """
-        Get all story chapters for a language.
+    def get_chapter_key(self, level: int) -> Optional[str]:
+        """Get the story chapter key for a specific mech level (public method)."""
+        return self._get_chapter_key_for_level(level)
 
-        Args:
-            language: Language code (en/de/fr), auto-detected if None
-
-        Returns:
-            Dictionary of chapter_key -> chapter_content
-        """
-        if language is None:
-            language = self._get_current_language()
-
-        # Check cache first
+    def _get_story_content(self, language: str) -> Dict[str, str]:
+        """Load and parse story content for a language (cached)."""
         if language in self._story_cache:
             return self._story_cache[language]
 
-        # Load and parse story content
-        story_content = self._load_story_content(language)
-        chapters = self._parse_story_chapters(story_content, language)
-
-        # Cache the result
-        self._story_cache[language] = chapters
-
-        return chapters
-
-    def reload_stories(self) -> None:
-        """Clear cache and force reload of all story content."""
-        self._story_cache.clear()
-        logger.info("Mech story cache cleared - content will be reloaded on next access")
-
-    def get_chapter_key_for_level(self, level: int) -> str:
-        """Get the story chapter key for a specific mech level (public method)."""
-        return self._level_to_chapter_key(level)
-
-    def _load_story_content(self, language: str) -> str:
-        """Load story content from file with fallback to English."""
-        # Try to load the requested language
-        story_file = self.story_dir / self.language_files.get(language, 'mech_story.txt')
+        story_file = self.story_dir / self.language_files.get(language, 'en.txt')
+        content = {}
 
         try:
-            with open(story_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                logger.debug(f"Loaded mech story for language: {language}")
-                return content
-        except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
-            logger.warning(f"Failed to load mech story for {language}: {e}")
+            if story_file.exists():
+                with open(story_file, 'r', encoding='utf-8') as f:
+                    raw_text = f.read()
+                    content = self._parse_story_file(raw_text)
+                self.logger.debug(f"Loaded mech story for language: {language}")
+            else:
+                self.logger.warning(f"Story file not found: {story_file}")
+        except Exception as e:
+            self.logger.warning(f"Failed to load mech story for {language}: {e}")
 
-            # Fallback to English if not already trying English
-            if language != 'en':
-                try:
-                    fallback_file = self.story_dir / self.language_files['en']
-                    with open(fallback_file, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                        logger.info(f"Using English fallback for language: {language}")
-                        return content
-                except (IOError, OSError) as fallback_error:
-                    # File I/O errors (fallback file access)
-                    logger.error(f"File I/O error loading English fallback: {fallback_error}", exc_info=True)
+        self._story_cache[language] = content
+        return content
 
-            # Ultimate fallback
-            return "Error: Story content could not be loaded."
-
-    def _parse_story_chapters(self, content: str, language: str) -> Dict[str, str]:
-        """Parse story content into chapters, supporting EN/DE/FR headers."""
+    def _parse_story_file(self, content: str) -> Dict[str, str]:
+        """Parse story file content into chapters."""
         chapters = {}
+        # Split by double newlines to separate sections roughly
         sections = content.split('\n\n')
         current_chapter = None
         current_content = []
 
-        # Language-specific header patterns
+        # Language-independent header patterns (should work for EN/DE/FR files)
         header_patterns = {
             'prologue1': ['Prologue I:', 'Prolog I:'],
             'prologue2': ['Prologue II:', 'Prolog II:'],
@@ -134,7 +109,7 @@ class MechStoryService:
             'chapter7': ['Chapter VII:', 'Kapitel VII:', 'Chapitre VII'],
             'chapter8': ['Chapter VIII:', 'Kapitel VIII:', 'Chapitre VIII'],
             'chapter9': ['Chapter IX:', 'Kapitel IX:', 'Chapitre IX'],
-            'epilogue': ['Epilogue:', 'Epilog:', 'Épilogue:', '3p!l0gu3:']  # Include corrupted variant
+            'epilogue': ['Epilogue:', 'Epilog:', 'Épilogue:', '3p!l0gu3:']
         }
 
         for section in sections:
@@ -166,10 +141,9 @@ class MechStoryService:
         if current_chapter and current_content:
             chapters[current_chapter] = '\n'.join(current_content)
 
-        logger.debug(f"Parsed {len(chapters)} chapters for language: {language}")
         return chapters
 
-    def _level_to_chapter_key(self, level: int) -> str:
+    def _get_chapter_key_for_level(self, level: int) -> str:
         """Map mech level to story chapter key."""
         level_mapping = {
             1: "prologue1",     # The Rustborn Husk
@@ -186,16 +160,6 @@ class MechStoryService:
         }
 
         return level_mapping.get(level, "prologue1")
-
-    def _get_current_language(self) -> str:
-        """Get current language from translation manager."""
-        try:
-            from cogs.translation_manager import translation_manager
-            return translation_manager.get_current_language()
-        except (ImportError, AttributeError) as e:
-            # Translation manager errors (import failure, manager unavailable)
-            logger.warning(f"Translation manager error getting current language: {e}")
-            return 'en'  # Default to English
 
 
 # Singleton instance

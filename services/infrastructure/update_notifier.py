@@ -24,13 +24,18 @@ logger = get_module_logger('update_notifier')
 class UpdateNotifier:
     """Manages update notifications for new features."""
 
-    def __init__(self, config_dir: str = "config"):
+    def __init__(self, config_dir: str = None):
         """Initialize the update notifier.
 
         Args:
             config_dir: Directory where update_status.json will be stored
         """
-        self.config_dir = Path(config_dir)
+        if config_dir:
+            self.config_dir = Path(config_dir)
+        else:
+            # Robust absolute path relative to project root
+            self.config_dir = Path(__file__).parents[2] / "config"
+            
         self.config_dir.mkdir(parents=True, exist_ok=True)
         self.status_file = self.config_dir / "update_status.json"
         self.current_version = "2025.01.07"  # Update this with each release

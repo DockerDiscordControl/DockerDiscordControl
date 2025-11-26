@@ -11,6 +11,7 @@ Action Logger Compatibility Layer - Maintains existing API while using new servi
 
 import os
 import logging
+from pathlib import Path
 from services.infrastructure.action_log_service import get_action_log_service
 from typing import Dict, Any, List
 
@@ -20,7 +21,12 @@ user_action_logger.setLevel(logging.INFO)
 user_action_logger.propagate = False
 
 # Compatibility: Export ACTION_LOG_FILE path constant
-_ACTION_LOG_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs', 'action_log.json')
+# Robust absolute path relative to project root
+try:
+    _ACTION_LOG_FILE = str(Path(__file__).parents[2] / "logs" / "action_log.json")
+except Exception:
+    _ACTION_LOG_FILE = os.path.join("logs", "action_log.json")
+    
 ACTION_LOG_FILE = _ACTION_LOG_FILE  # Both names for compatibility
 
 def log_user_action(action: str, target: str, user: str = "System",

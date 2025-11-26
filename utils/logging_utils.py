@@ -13,6 +13,7 @@ import time
 import threading
 from typing import Optional
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 
 # Constants for logging
 DEFAULT_LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -212,7 +213,12 @@ def setup_logger(name: str, level=logging.INFO, log_to_console=True, log_to_file
             # Create log file path
             log_file_path = os.path.join(logs_dir, f"{name.replace('.', '_')}.log")
 
-            file_handler = logging.FileHandler(log_file_path, encoding='utf-8')
+            file_handler = RotatingFileHandler(
+                log_file_path,
+                maxBytes=5*1024*1024,  # 5MB per file
+                backupCount=3,         # Keep 3 backups
+                encoding='utf-8'
+            )
             file_handler.setLevel(level)
             file_handler.setFormatter(formatter)
 

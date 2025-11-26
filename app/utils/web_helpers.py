@@ -40,14 +40,20 @@ except ImportError:
 
     HAS_GEVENT = False
 
+from pathlib import Path
+
 # --- Global Variables / Constants needed by helpers ---
-_APP_DIR_HELPER = os.path.dirname(os.path.abspath(__file__))
-_PROJECT_ROOT_HELPER = os.path.abspath(os.path.join(_APP_DIR_HELPER, "..", "..")) # Adjusted path to project root
+try:
+    _APP_DIR_HELPER = Path(__file__).parent
+    _PROJECT_ROOT_HELPER = Path(__file__).parents[2]
+except Exception:
+    _APP_DIR_HELPER = Path("app/utils")
+    _PROJECT_ROOT_HELPER = Path(".")
 
 # Constants - keep paths in sync with utils/action_logger.py
-LOG_DIR = os.path.join(_PROJECT_ROOT_HELPER, 'logs')
-ACTION_LOG_FILE = os.path.join(LOG_DIR, 'user_actions.log')
-DISCORD_LOG_FILE = os.path.join(LOG_DIR, 'discord.log')
+LOG_DIR = _PROJECT_ROOT_HELPER / 'logs'
+ACTION_LOG_FILE = LOG_DIR / 'user_actions.log'
+DISCORD_LOG_FILE = LOG_DIR / 'discord.log'
 
 # Helper function to get advanced settings from config
 def _get_advanced_setting(key: str, default_value, value_type=int):
@@ -750,7 +756,7 @@ def set_initial_password_from_env():
         # Attempt to import config_loader dynamically, as it might also be refactored
         from services.config.config_service import load_config, save_config
 
-        config_path_check = os.path.join(_PROJECT_ROOT_HELPER, "config", "config.json")
+        config_path_check = _PROJECT_ROOT_HELPER / "config" / "config.json"
         init_pass_logger.info(f"Attempting to load config from: {config_path_check} for initial password set.")
 
         config = load_config() # Assumes load_config knows its path or is configured

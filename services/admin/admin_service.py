@@ -38,13 +38,9 @@ class AdminService:
         try:
             # Get base directory from config
             from services.config.config_service import load_config
-            config = load_config()
-            if not config:
-                logger.warning("Config unavailable, returning empty admin list")
-                return []
-
-            base_dir = config.get('base_dir', '/app')
-            admins_file = Path(base_dir) / 'config' / 'admins.json'
+            # Robust absolute path relative to project root
+            base_dir = Path(__file__).parents[2]
+            admins_file = base_dir / 'config' / 'admins.json'
 
             if not admins_file.exists():
                 logger.info("admins.json not found, no admins configured")
@@ -153,11 +149,9 @@ class AdminService:
         try:
             from services.config.config_service import load_config
             config = load_config()
-            if not config:
-                return {'discord_admin_users': [], 'admin_notes': {}}
-
-            base_dir = config.get('base_dir', '/app')
-            admins_file = Path(base_dir) / 'config' / 'admins.json'
+            # Robust absolute path relative to project root
+            base_dir = Path(__file__).parents[2]
+            admins_file = base_dir / 'config' / 'admins.json'
 
             if not admins_file.exists():
                 return {'discord_admin_users': [], 'admin_notes': {}}
@@ -194,8 +188,9 @@ class AdminService:
                 logger.error("Config unavailable, cannot save admin data")
                 return False
 
-            base_dir = config.get('base_dir', '/app')
-            admins_file = Path(base_dir) / 'config' / 'admins.json'
+            # Robust absolute path relative to project root
+            base_dir = Path(__file__).parents[2]
+            admins_file = base_dir / 'config' / 'admins.json'
 
             # Ensure directory exists
             admins_file.parent.mkdir(parents=True, exist_ok=True)

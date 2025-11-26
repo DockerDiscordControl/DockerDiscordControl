@@ -82,10 +82,14 @@ class ActionLogService:
             logs_dir: Directory to store log files. Defaults to logs/
         """
         if logs_dir is None:
-            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            logs_dir = os.path.join(base_dir, "logs")
+            # Robust absolute path relative to project root
+            try:
+                self.logs_dir = Path(__file__).parents[2] / "logs"
+            except Exception:
+                self.logs_dir = Path("logs")
+        else:
+            self.logs_dir = Path(logs_dir)
 
-        self.logs_dir = Path(logs_dir)
         self.logs_dir.mkdir(parents=True, exist_ok=True)
 
         self.json_log_file = self.logs_dir / 'user_actions.json'

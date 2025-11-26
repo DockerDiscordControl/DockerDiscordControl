@@ -32,6 +32,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import time
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -465,8 +466,39 @@ def requirement_for_level_and_bin(level: int, b: int, member_count: int = None) 
     return total
 
 
-def decay_per_day(mech_type: str) -> int:
-    return int(CFG["mech_power_decay_per_day"].get(mech_type, CFG["mech_power_decay_per_day"]["default"]))
+# Cache for decay config to prevent disk I/O spam during event replay
+_decay_config_cache = {"data": None, "last_load": 0}
+
+def get_decay_config_data() -> dict:
+    """Load decay config with simple caching (10s TTL)."""
+    global _decay_config_cache
+    now = time.time()
+    
+    if _decay_config_cache["data"] and (now - _decay_config_cache["last_load"] < 10):
+        return _decay_config_cache["data"]
+        
+    try:
+        # Robust absolute path relative to project root
+        config_path = Path(__file__).parents[2] / "config" / "mech" / "decay.json"
+        if config_path.exists():
+            with open(config_path, "r") as f:
+                data = json.load(f)
+                _decay_config_cache["data"] = data
+                _decay_config_cache["last_load"] = now
+                return data
+    except Exception as e:
+        logger.error(f"Error loading decay config: {e}")
+    
+    return {"default": 100}
+
+
+def decay_per_day(level: int) -> int:
+    """Load decay per day from JSON config based on level (cached)."""
+    decay_cfg = get_decay_config_data()
+    val = decay_cfg.get("levels", {}).get(str(level))
+    if val is not None:
+        return int(val)
+    return int(decay_cfg.get("default", 100))
 
 
 def bin_to_tier_name(b: int) -> str:
@@ -507,7 +539,7 @@ def set_new_goal_for_next_level(snap: Snapshot, user_count: int) -> None:
     snap.difficulty_bin = b
     snap.goal_requirement = req
     snap.goal_started_at = now_utc_iso()
-    snap.power_decay_per_day = decay_per_day(snap.mech_type)
+    snap.power_decay_per_day = decay_per_day(snap.level)
     snap.last_user_count_sample = user_count
 
     # Get base and dynamic costs for logging
@@ -531,7 +563,7 @@ def compute_ui_state(snap: Snapshot) -> ProgressState:
             now = datetime.now(ZoneInfo("UTC"))
             elapsed_seconds = (now - goal_time).total_seconds()
 
-            dpp = decay_per_day(snap.mech_type)
+            dpp = decay_per_day(snap.level)
             decay_amount = (elapsed_seconds / 86400.0) * dpp
             power_acc_with_decay = max(0, snap.power_acc - int(decay_amount))
         except ImportError as e:
@@ -1064,7 +1096,7 @@ class ProgressService:
 
             # Track last event timestamp for decay calculation
             last_timestamp = None
-            dpp = decay_per_day(snap.mech_type)
+            # dpp is now dynamic based on level, so we don't pre-calculate it
 
             # Replay all events in CHRONOLOGICAL ORDER (by timestamp!)
             last_seq = 0
@@ -1093,7 +1125,8 @@ class ProgressService:
                         elapsed_seconds = (current_time - last_time).total_seconds()
                         elapsed_days = elapsed_seconds / 86400.0
 
-                        # Calculate decay amount
+                        # Calculate decay amount using dynamic dpp for current level
+                        dpp = decay_per_day(snap.level)
                         decay_amount = int(elapsed_days * dpp)
 
                         # Apply decay to power

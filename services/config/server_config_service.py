@@ -45,10 +45,9 @@ class ServerConfigService:
                 logger.warning("Config unavailable, cannot load container configs")
                 return []
 
-            # Use environment variable or current directory in development
-            import os
-            base_dir = os.environ.get('DDC_BASE_DIR', config.get('base_dir', os.getcwd() if os.path.exists('config/containers') else '/app'))
-            containers_dir = Path(base_dir) / 'config' / 'containers'
+            # Use robust absolute path relative to project root
+            base_dir = Path(__file__).parents[2]
+            containers_dir = base_dir / 'config' / 'containers'
 
             if not containers_dir.exists():
                 logger.warning(f"Containers directory not found: {containers_dir}")

@@ -149,10 +149,15 @@ def load_custom_timeout_config():
         return _custom_timeout_config
 
     _custom_config_loaded = True
-    config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'container_timeouts.json')
+    # Robust absolute path relative to project root
+    try:
+        config_path = Path(__file__).parents[2] / "config" / "container_timeouts.json"
+    except Exception:
+        # Fallback if path resolution fails
+        config_path = Path("config/container_timeouts.json")
 
     try:
-        if os.path.exists(config_path):
+        if config_path.exists():
             with open(config_path, 'r', encoding='utf-8') as f:
                 _custom_timeout_config = json.load(f)
                 logger.info(f"Loaded custom container timeout configuration from {config_path}")

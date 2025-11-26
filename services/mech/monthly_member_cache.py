@@ -17,11 +17,13 @@ from typing import Dict, Any
 
 logger = logging.getLogger('ddc.monthly_member_cache')
 
+from pathlib import Path
+
 class MonthlyMemberCache:
     """Simple wrapper for monthly member cache data."""
 
     def __init__(self):
-        self.cache_file = os.path.join(os.path.dirname(__file__), 'monthly_member_cache.json')
+        self.cache_file = Path(__file__).parent / 'monthly_member_cache.json'
         self._cache_data = None
 
     def _load_cache(self) -> Dict[str, Any]:
@@ -30,7 +32,7 @@ class MonthlyMemberCache:
             return self._cache_data
 
         try:
-            if os.path.exists(self.cache_file):
+            if self.cache_file.exists():
                 with open(self.cache_file, 'r', encoding='utf-8') as f:
                     self._cache_data = json.load(f)
             else:
