@@ -254,16 +254,16 @@ class ConfigMigrationService:
                     "enable_debug": False
                 }
             }
+            # Add Status Watchdog config (new format - replaces old heartbeat system)
+            # Old heartbeat_channel_id is no longer used - Status Watchdog uses external ping URLs
+            main_config["heartbeat"] = {
+                "enabled": False,
+                "ping_url": "",
+                "interval": 5
+            }
             save_json_func(self.main_config_file, main_config)
 
-            # Create heartbeat.json
-            heartbeat_config = {
-                "heartbeat_channel_id": bot_data.get("heartbeat_channel_id"),
-                "enabled": bot_data.get("heartbeat_channel_id") is not None,
-                "interval_minutes": 30,
-                "message_template": "🤖 DDC Heartbeat - All systems operational"
-            }
-            save_json_func(self.heartbeat_config_file, heartbeat_config)
+            # Note: heartbeat.json is no longer created - Status Watchdog config is in main config.json
 
             # Create auth.json
             auth_config = {
@@ -272,7 +272,7 @@ class ConfigMigrationService:
             }
             save_json_func(self.auth_config_file, auth_config)
 
-            logger.info("✅ Migrated system configs (config.json, heartbeat.json, auth.json)")
+            logger.info("✅ Migrated system configs (config.json, auth.json)")
 
         except (OSError, IOError, PermissionError, TypeError, ValueError, KeyError) as e:
             # Migration errors (file I/O, permissions, JSON serialization, data errors)

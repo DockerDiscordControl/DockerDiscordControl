@@ -47,7 +47,7 @@ class ConfigValidationService:
                 'guild_id': str(config.get('guild_id', '')) if config.get('guild_id') else None,
                 'language': str(config.get('language', 'en')),
                 'timezone': str(config.get('timezone', 'UTC')),
-                'heartbeat_channel_id': str(config.get('heartbeat_channel_id', '')) if config.get('heartbeat_channel_id') else None
+                'heartbeat': config.get('heartbeat', {'enabled': False, 'ping_url': '', 'interval': 5})
             }
         except (TypeError, ValueError) as e:
             logger.warning(f"Type conversion error in bot config: {e}")
@@ -106,7 +106,11 @@ class ConfigValidationService:
             'guild_id': None,
             'language': 'en',
             'timezone': 'UTC',
-            'heartbeat_channel_id': None
+            'heartbeat': {
+                'enabled': False,
+                'ping_url': '',
+                'interval': 5
+            }
         }
 
     @staticmethod

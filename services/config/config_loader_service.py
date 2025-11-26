@@ -81,10 +81,8 @@ class ConfigLoaderService:
             auth_config = self._load_json_file(self.auth_config_file, {})
             config.update(auth_config)
 
-        # 3. Load heartbeat config
-        if self.heartbeat_config_file.exists():
-            heartbeat_config = self._load_json_file(self.heartbeat_config_file, {})
-            config.update(heartbeat_config)
+        # 3. Heartbeat config (Status Watchdog) - now stored in main config.json
+        # Legacy heartbeat.json is no longer used - cleanup removes it during migration
 
         # 4. Load web UI config
         if self.web_ui_config_file.exists():
@@ -188,10 +186,13 @@ class ConfigLoaderService:
                 'bot_token': bot_config.get('bot_token')
             })
 
-            # Extract heartbeat settings (virtual heartbeat.json)
-            config.update({
-                'heartbeat_channel_id': bot_config.get('heartbeat_channel_id')
-            })
+            # Status Watchdog config - new format (old heartbeat_channel_id no longer used)
+            if 'heartbeat' not in config:
+                config['heartbeat'] = {
+                    'enabled': False,
+                    'ping_url': '',
+                    'interval': 5
+                }
 
         # 2. Docker config (contains: servers + docker settings)
         if self.docker_config_file.exists():
