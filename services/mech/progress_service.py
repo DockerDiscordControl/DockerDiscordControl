@@ -471,7 +471,7 @@ _decay_config_cache = {"data": None, "last_load": 0}
 
 def get_decay_config_data() -> dict:
     """Load decay config with simple caching (10s TTL)."""
-    global _decay_config_cache
+    # Note: No global needed - we only modify dict contents, not reassign
     now = time.time()
     
     if _decay_config_cache["data"] and (now - _decay_config_cache["last_load"] < 10):

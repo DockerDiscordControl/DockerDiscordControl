@@ -26,8 +26,8 @@ try:
     else:
         # Fallback to empty if file missing
         SPEED_TRANSLATIONS = {}
-except Exception as e:
-    logger.error(f"Error loading speed translations: {e}")
+except Exception:
+    # Silent fallback - logging not available at module load time
     SPEED_TRANSLATIONS = {}
 
 SPEED_DESCRIPTIONS = {
