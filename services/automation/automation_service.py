@@ -263,21 +263,21 @@ class AutomationService:
                 )
                 if not rule.action.silent and bot:
                     await self._send_feedback(
-                        bot, 
-                        rule.action.notification_channel_id or ctx.channel_id, 
-                        f"⚠️ **AAS Error:** Container `{container}` not found."
+                        bot,
+                        rule.action.notification_channel_id or ctx.channel_id,
+                        f"⚠️ Container `{container}` not found — *{rule.name}*"
                     )
                 continue
 
             # Send Feedback Message (Question 12)
             notification_channel_id = rule.action.notification_channel_id or ctx.channel_id
             if not rule.action.silent and bot:
+                # Professional compact format
+                delay_info = f" ({rule.action.delay_seconds}s delay)" if rule.action.delay_seconds > 0 else ""
                 await self._send_feedback(
-                    bot, 
-                    notification_channel_id, 
-                    f"🤖 **AAS Triggered:** '{rule.name}' detected update.\n"
-                    f"⚙️ Action: `{action_type}` on `{container}`\n"
-                    f"⏳ Delay: {rule.action.delay_seconds}s"
+                    bot,
+                    notification_channel_id,
+                    f"⚡ `{action_type}` **{container}**{delay_info} — *{rule.name}*"
                 )
 
             # Handle Delay
@@ -313,8 +313,10 @@ class AutomationService:
             else:
                 # Question 11: Force Kill logic would go here in V2
                 if not rule.action.silent and bot:
-                     await self._send_feedback(bot, notification_channel_id, 
-                                             f"⚠️ **AAS Error:** Failed to {action_type} `{container}`.")
+                    await self._send_feedback(
+                        bot, notification_channel_id,
+                        f"⚠️ `{action_type}` **{container}** failed — *{rule.name}*"
+                    )
 
         return success_count > 0
 
