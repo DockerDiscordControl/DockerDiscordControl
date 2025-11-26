@@ -89,7 +89,8 @@ RUN apk add --no-cache \
     jpeg \
     zlib \
     freetype \
-    tzdata
+    tzdata && \
+    apk upgrade --no-cache libpng
 
 # Copy cleaned venv from builder
 COPY --from=builder /runtime/site-packages /opt/runtime/site-packages
