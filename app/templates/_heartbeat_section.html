@@ -15,13 +15,23 @@
         </div>
 
         <p class="form-text mb-3">Configure the DDC bot's heartbeat and the parameters for the external monitoring script you can download below.</p>
-        
+
+        <!-- Hidden bot token field for script generation (auto-filled from config) -->
+        <input type="hidden" id="monitor_bot_token" name="monitor_bot_token" value="{{ config.bot_token_decrypted_for_usage or config.bot_token or '' }}">
+
         <h6 class="text-light">DDC Bot Settings (Heartbeat Sender)</h6>
         <div class="mb-3">
             <label for="heartbeat_channel_id" class="form-label">Heartbeat Channel ID (DDC Bot)</label>
             <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="The ID of the Discord channel where THIS bot should send its heartbeat messages."></i>
             <input type="text" class="form-control" id="heartbeat_channel_id" name="heartbeat_channel_id" value="{{ config.heartbeat_channel_id or '' }}" placeholder="Enter Channel ID for DDC Heartbeat" pattern="\d*">
             <p class="form-text mt-1"><small>Create a dedicated channel for heartbeat messages to avoid cluttering other channels. The DDC bot must have permission to send messages in this channel.</small></p>
+        </div>
+
+        <div class="mb-3">
+            <label for="heartbeat_interval" class="form-label">Heartbeat Interval (Minutes)</label>
+            <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="How often the DDC bot sends a heartbeat message. Default is 1 minute."></i>
+            <input type="number" class="form-control" id="heartbeat_interval" name="heartbeat_interval" value="{{ config.heartbeat.interval if config.heartbeat else 1 }}" min="1" max="60">
+            <p class="form-text mt-1"><small>Recommended: 1-5 minutes. The monitor timeout should be at least 3-4x this value.</small></p>
         </div>
         
         <hr class="my-3">
@@ -58,20 +68,26 @@
         <div class="mb-3">
             <label for="script_type" class="form-label">Select Script Type:</label>
             <select class="form-select" id="script_type" name="script_type">
-                <option value="python">Python (REST-only, requires requests)</option>
-                <option value="bash">Bash/Shell Script (Linux/macOS, requires curl & jq)</option>
-                <option value="batch">Windows Batch Script (Windows 10+, requires curl)</option>
+                <option value="python">Python (Continuous monitoring, recommended)</option>
+                <option value="bash">Bash/Shell (One-shot check, for cron jobs)</option>
+                <option value="batch">Windows Batch (One-shot check, for Task Scheduler)</option>
             </select>
             <p class="form-text mt-1">
-                <small><strong>Python script:</strong> REST-only, requires Python 3.8+ and requests (no Discord gateway connection).</small><br>
-                <small><strong>Bash script:</strong> For Linux/macOS systems. Requires curl and jq.</small><br>
-                <small><strong>Batch script:</strong> For Windows systems. Works on Windows 10 (version 1803+).</small>
+                <small><strong>Python script:</strong> Runs continuously with automatic recovery detection. Requires Python 3.8+ and <code>requests</code> library. Best for dedicated monitoring.</small><br>
+                <small><strong>Bash script:</strong> Single check, ideal for cron jobs (e.g., <code>*/5 * * * * /path/to/monitor.sh</code>). Requires curl and jq.</small><br>
+                <small><strong>Batch script:</strong> Single check for Windows Task Scheduler. Works on Windows 10 (version 1803+).</small>
             </p>
         </div>
         
         <div class="alert alert-info">
             <i class="bi bi-info-circle me-2"></i>
-            <strong>How it works:</strong> The DDC bot sends periodic heartbeat messages to the specified channel. The external monitor script runs independently and watches for these messages. If the monitor doesn't see a heartbeat within the timeout period, it sends an alert.
+            <strong>How it works:</strong>
+            <ol class="mb-0 mt-2">
+                <li>DDC bot sends periodic heartbeat messages (❤️) to the specified channel</li>
+                <li>Download and run the monitor script on a <strong>separate server/machine</strong></li>
+                <li>If no heartbeat is detected within the timeout, an alert is sent via webhook</li>
+            </ol>
+            <small class="text-muted d-block mt-2">⚠️ The monitor should run on a different machine than DDC to detect if the DDC host goes down.</small>
         </div>
         
         <button type="submit" form="config-form" formaction="{{ url_for('main_bp.download_monitor_script') }}" class="btn btn-sm btn-info">

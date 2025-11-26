@@ -1,12 +1,22 @@
-# DDC Heartbeat Monitor (Extras)
+# DDC Heartbeat Monitor
 
-This directory contains the standalone heartbeat monitoring tool. It is not part of the container runtime and can be used on a separate host to monitor the DDC bot.
+This folder previously contained standalone heartbeat monitoring scripts.
 
-Moved from `heartbeat_monitor/` to `extras/heartbeat_monitor/` for clearer separation.
+**The monitor scripts are now generated dynamically through the Web UI.**
 
-Quick start:
-1. `pip install discord.py`
-2. Copy `config.json.example` to `config.json` and edit values
-3. `python ddc_heartbeat_monitor.py`
+## How to use
 
+1. Go to DDC Web UI → Configuration → Heartbeat Monitoring section
+2. Configure your heartbeat channel and timeout settings
+3. Click "Download Monitor Script" to get a pre-configured script
+4. Run the script on a **separate server/machine** (not on the same host as DDC)
 
+## Script Types
+
+- **Python**: Continuous monitoring with recovery detection (recommended)
+- **Bash**: One-shot check, ideal for cron jobs
+- **Windows Batch**: One-shot check for Task Scheduler
+
+## Why separate machine?
+
+The monitor should run on a different machine than DDC to detect if the DDC host goes down entirely.

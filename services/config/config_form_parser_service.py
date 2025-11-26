@@ -300,6 +300,34 @@ class ConfigFormParserService:
                 except (AttributeError, IOError, ImportError, KeyError, ModuleNotFoundError, OSError, PermissionError, RuntimeError, TypeError) as e:
                     logger.error(f"Error saving channels via ChannelConfigService: {e}", exc_info=True)
 
+            # Process heartbeat settings into nested object
+            heartbeat_config = updated_config.get('heartbeat', {})
+            if not isinstance(heartbeat_config, dict):
+                heartbeat_config = {}
+
+            # Extract heartbeat-related fields
+            hb_channel_id = form_data.get('heartbeat_channel_id', '')
+            if isinstance(hb_channel_id, str):
+                hb_channel_id = hb_channel_id.strip()
+
+            if hb_channel_id and hb_channel_id.isdigit():
+                heartbeat_config['enabled'] = True
+                heartbeat_config['channel_id'] = hb_channel_id
+                heartbeat_config['method'] = 'channel'
+
+                # Get interval (default 1 minute)
+                try:
+                    interval = int(form_data.get('heartbeat_interval', 1))
+                    heartbeat_config['interval'] = max(1, min(60, interval))  # Clamp 1-60
+                except (ValueError, TypeError):
+                    heartbeat_config['interval'] = 1
+            else:
+                heartbeat_config['enabled'] = False
+
+            updated_config['heartbeat'] = heartbeat_config
+            # Also keep legacy field for backwards compatibility
+            updated_config['heartbeat_channel_id'] = hb_channel_id if hb_channel_id else None
+
             # Process each form field
             for key, value in form_data.items():
                 # Skip server-related fields (already processed above)
@@ -312,6 +340,10 @@ class ConfigFormParserService:
                 if key.startswith('status_channel_') or key.startswith('control_channel_') or \
                    key.startswith('status_') or key.startswith('control_') or \
                    key.startswith('old_status_channel_') or key.startswith('old_control_channel_'):
+                    continue
+
+                # Skip heartbeat fields (already processed above)
+                if key in ['heartbeat_channel_id', 'heartbeat_interval', 'monitor_bot_token']:
                     continue
 
                 if key == 'donation_disable_key':
