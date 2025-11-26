@@ -543,6 +543,26 @@ class ActionButton(Button):
                                                             logger.info(f"[ACTION_BTN] Updated status overview message for {self.display_name} in channel {channel_id}")
                                             except (discord.errors.DiscordException, RuntimeError) as e:
                                                 logger.error(f"[ACTION_BTN] Failed to update status message: {e}", exc_info=True)
+
+                            # THIRD: Update Overview and Admin Overview messages
+                            if hasattr(self.cog, 'channel_server_message_ids'):
+                                for channel_id, server_messages in self.cog.channel_server_message_ids.items():
+                                    # Update Server Overview (collapsed view)
+                                    if 'overview' in server_messages:
+                                        try:
+                                            await self.cog._update_overview_message(channel_id, server_messages['overview'], 'overview')
+                                            logger.info(f"[ACTION_BTN] Updated overview in channel {channel_id}")
+                                        except Exception as e:
+                                            logger.error(f"[ACTION_BTN] Failed to update overview: {e}")
+
+                                    # Update Admin Overview
+                                    if 'admin_overview' in server_messages:
+                                        try:
+                                            await self.cog._update_overview_message(channel_id, server_messages['admin_overview'], 'admin_overview')
+                                            logger.info(f"[ACTION_BTN] Updated admin_overview in channel {channel_id}")
+                                        except Exception as e:
+                                            logger.error(f"[ACTION_BTN] Failed to update admin_overview: {e}")
+
                         except (discord.errors.DiscordException, RuntimeError) as e:
                             logger.error(f"[ACTION_BTN] Error in update_all_views: {e}", exc_info=True)
 
