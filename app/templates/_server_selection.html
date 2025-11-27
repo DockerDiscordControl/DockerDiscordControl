@@ -26,16 +26,16 @@
                         <tr data-container-id="{{ container.id }}" data-container-name="{{ container.name }}">
                             <td class="text-center align-middle">
                                 <span class="order-number me-1"></span>
-                                <button type="button" class="btn btn-sm btn-outline-secondary move-up-btn requires-restart" title="Move Up (+)" {% if loop.first %}disabled{% endif %}>
+                                <button type="button" class="btn btn-sm btn-outline-secondary move-up-btn" data-immediate-effect="true" title="Move Up (+)" {% if loop.first %}disabled{% endif %}>
                                     +
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary move-down-btn requires-restart" title="Move Down (-)" {% if loop.last %}disabled{% endif %}>
+                                <button type="button" class="btn btn-sm btn-outline-secondary move-down-btn" data-immediate-effect="true" title="Move Down (-)" {% if loop.last %}disabled{% endif %}>
                                     -
                                 </button>
                             </td>
                             <td class="text-center">
                                 <div class="form-check">
-                                    <input class="form-check-input server-checkbox requires-restart" type="checkbox" name="selected_servers" value="{{ container.name }}" id="select_{{ container.id }}" {% if is_selected %}checked{% endif %}>
+                                    <input class="form-check-input server-checkbox" data-immediate-effect="true" type="checkbox" name="selected_servers" value="{{ container.name }}" id="select_{{ container.id }}" {% if is_selected %}checked{% endif %}>
                                     <label class="form-check-label visually-hidden" for="select_{{ container.id }}">Select</label>
                                 </div>
                             </td>

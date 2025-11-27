@@ -75,7 +75,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
         # Basic initialization
         self.bot = bot
-        self.config = config
+        self._initial_config = config  # Only for startup, use self.config property for live access
+        self._config_service = None  # Lazy-loaded ConfigService reference
 
         # Check if donations are disabled and remove donation commands
         try:
@@ -269,6 +270,24 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
         # Track if background loops have been started (to avoid double-start on reconnect)
         self._background_loops_started = False
+
+    @property
+    def config(self) -> dict:
+        """
+        Live configuration property - always returns fresh config from ConfigService.
+
+        This enables hot-reload of configuration without container restart.
+        Changes to channel_permissions, servers, admin_users etc. take effect immediately.
+        """
+        try:
+            if self._config_service is None:
+                from services.config.config_service import get_config_service
+                self._config_service = get_config_service()
+            return self._config_service.get_config()
+        except Exception as e:
+            # Fallback to initial config if ConfigService fails
+            logger.warning(f"ConfigService unavailable, using initial config: {e}")
+            return self._initial_config
 
     @commands.Cog.listener()
     async def on_ready(self):
