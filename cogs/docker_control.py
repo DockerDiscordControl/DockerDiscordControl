@@ -1411,12 +1411,15 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # Import translation function locally to ensure it's accessible
             from .translation_manager import _ as translate
 
-            # Check if the channel has serverstatus permission
+            # Check if the channel has serverstatus permission AND is NOT a control channel
+            # Status commands (/ss, /serverstatus) should ONLY work in status channels
             channel_has_status_perm = _channel_has_permission(ctx.channel.id, 'serverstatus', self.config)
-            if not channel_has_status_perm:
+            channel_is_control = _channel_has_permission(ctx.channel.id, 'control', self.config)
+
+            if not channel_has_status_perm or channel_is_control:
                 embed = discord.Embed(
                     title=translate("⚠️ Permission Denied"),
-                    description=translate("You cannot use this command in this channel."),
+                    description=translate("The /serverstatus command is only allowed in status channels, not in control channels."),
                     color=discord.Color.red()
                 )
                 await ctx.followup.send(embed=embed, ephemeral=True)
@@ -1568,11 +1571,15 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # Defer the response to prevent timeout
             await ctx.defer(ephemeral=False)  # Not ephemeral, like /ss
 
-            # Check if the channel has control permission
-            if not _channel_has_permission(ctx.channel.id, 'control', self.config):
+            # Check if the channel has control permission AND is NOT a status channel
+            # Control commands should ONLY work in control channels
+            channel_has_control_perm = _channel_has_permission(ctx.channel.id, 'control', self.config)
+            channel_is_status = _channel_has_permission(ctx.channel.id, 'serverstatus', self.config)
+
+            if not channel_has_control_perm or channel_is_status:
                 embed = discord.Embed(
                     title=_("⚠️ Permission Denied"),
-                    description=_("The /control command is not allowed in this channel. Please use a control channel."),
+                    description=_("The /control command is only allowed in control channels, not in status channels."),
                     color=discord.Color.red()
                 )
                 await ctx.followup.send(embed=embed, ephemeral=True)
