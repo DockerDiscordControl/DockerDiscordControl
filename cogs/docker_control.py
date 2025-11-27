@@ -1568,6 +1568,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # Defer the response to prevent timeout
             await ctx.defer(ephemeral=False)  # Not ephemeral, like /ss
 
+            # Check if the channel has control permission
+            if not _channel_has_permission(ctx.channel.id, 'control', self.config):
+                embed = discord.Embed(
+                    title=_("⚠️ Permission Denied"),
+                    description=_("The /control command is not allowed in this channel. Please use a control channel."),
+                    color=discord.Color.red()
+                )
+                await ctx.followup.send(embed=embed, ephemeral=True)
+                return
+
             # Load configuration
             config = load_config()
             if not config:
