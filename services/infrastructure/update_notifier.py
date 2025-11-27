@@ -160,7 +160,7 @@ class UpdateNotifier:
             if not control_channels:
                 logger.info("No control channels configured - skipping update notification")
                 # Mark as shown anyway to avoid repeated attempts
-                self.mark_update_notification_shown()
+                self.mark_notification_shown()
                 return False
 
             embed = self.create_update_embed()

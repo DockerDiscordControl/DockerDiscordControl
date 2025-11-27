@@ -490,17 +490,12 @@ class ConfigurationPageService:
             }
 
     def _get_default_configuration(self) -> Dict[str, Any]:
-        """Get default configuration for template compatibility."""
-        try:
-            from services.config.config_service import get_config_service
-            config_service = get_config_service()
-            return {
-                'default_channel_permissions': config_service._get_default_channels_config()['default_channel_permissions']
-            }
-        except (ImportError, AttributeError, TypeError, KeyError, RuntimeError) as e:
-            # Config service errors (missing service, attribute/type/key errors, runtime errors)
-            self.logger.warning(f"Could not get default configuration: {e}")
-            return {'default_channel_permissions': {}}
+        """Get default configuration for template compatibility.
+
+        Returns default channel permissions structure for the template.
+        """
+        # Return default structure - channels are configured per-channel, not globally
+        return {'default_channel_permissions': {}}
 
     def _assemble_template_data(self, config: Dict[str, Any], timestamp: str, docker_data: Dict[str, Any],
                                server_data: Dict[str, Any], timezone_data: Dict[str, Any],

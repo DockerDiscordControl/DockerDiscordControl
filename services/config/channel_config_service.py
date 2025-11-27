@@ -70,8 +70,53 @@ class ChannelConfigService:
                     pass  # Best effort cleanup
             raise
 
+    def _is_valid_discord_id(self, value: str) -> bool:
+        """Check if a string is a valid Discord Snowflake ID.
+
+        Discord IDs are 17-19 digit numbers (Snowflake format).
+
+        Args:
+            value: String to validate
+
+        Returns:
+            True if valid Discord ID format, False otherwise
+        """
+        if not value or not isinstance(value, str):
+            return False
+        return value.isdigit() and 17 <= len(value) <= 19
+
+    def _extract_channel_id_from_data(self, channel_data: Dict[str, Any], filename: str) -> Optional[str]:
+        """Try to extract a valid channel ID from channel data.
+
+        Checks 'channel_id' field first, then 'name' field.
+
+        Args:
+            channel_data: Channel configuration dictionary
+            filename: Original filename (without .json) for logging
+
+        Returns:
+            Valid channel ID string, or None if not found
+        """
+        # First try explicit channel_id field
+        if 'channel_id' in channel_data:
+            candidate = str(channel_data['channel_id']).strip()
+            if self._is_valid_discord_id(candidate):
+                logger.info(f"Found valid channel ID in 'channel_id' field: {candidate} (file: {filename})")
+                return candidate
+
+        # Then try name field (sometimes ID is stored there by mistake)
+        if 'name' in channel_data:
+            candidate = str(channel_data['name']).strip()
+            if self._is_valid_discord_id(candidate):
+                logger.info(f"Found valid channel ID in 'name' field: {candidate} (file: {filename})")
+                return candidate
+
+        return None
+
     def get_all_channels(self) -> Dict[str, Dict[str, Any]]:
         """Get all channel configurations from individual JSON files.
+
+        Includes validation and auto-migration for incorrectly named files.
 
         Returns:
             Dict with channel IDs as keys and config dicts as values
@@ -82,11 +127,50 @@ class ChannelConfigService:
             # Read each JSON file in channels directory
             for json_file in self.channels_dir.glob('*.json'):
                 try:
-                    channel_id = json_file.stem  # filename without .json
+                    filename = json_file.stem  # filename without .json
                     with open(json_file, 'r') as f:
                         channel_data = json.load(f)
-                        channels[channel_id] = channel_data
-                        logger.debug(f"Loaded channel config: {channel_id}")
+
+                    # Validate: Is the filename a valid Discord channel ID?
+                    if self._is_valid_discord_id(filename):
+                        # Filename is a valid ID - use it directly
+                        channel_id = filename
+                    else:
+                        # Filename is NOT a valid ID (e.g., "Control" instead of "1234567890123456789")
+                        # Try to extract the real ID from the data
+                        extracted_id = self._extract_channel_id_from_data(channel_data, filename)
+
+                        if extracted_id:
+                            channel_id = extracted_id
+                            logger.warning(
+                                f"Channel file '{filename}.json' has invalid name. "
+                                f"Using extracted ID: {channel_id}. "
+                                f"Auto-migrating file..."
+                            )
+
+                            # Auto-migrate: rename file to correct name
+                            try:
+                                new_file = self.channels_dir / f"{channel_id}.json"
+                                if not new_file.exists():
+                                    json_file.rename(new_file)
+                                    logger.info(f"Migrated: {filename}.json -> {channel_id}.json")
+                                else:
+                                    # Target file exists - delete the incorrectly named one
+                                    json_file.unlink()
+                                    logger.info(f"Removed duplicate incorrectly-named file: {filename}.json")
+                            except (OSError, PermissionError) as rename_error:
+                                logger.warning(f"Could not auto-migrate file: {rename_error}")
+                        else:
+                            # No valid ID found anywhere - skip this file with warning
+                            logger.warning(
+                                f"Invalid channel ID: {filename} - "
+                                f"File '{filename}.json' has no valid Discord ID. "
+                                f"Please manually fix or remove this file."
+                            )
+                            continue
+
+                    channels[channel_id] = channel_data
+                    logger.debug(f"Loaded channel config: {channel_id}")
 
                 except json.JSONDecodeError as e:
                     logger.error(f"Invalid JSON in {json_file}: {e}")
@@ -132,6 +216,14 @@ class ChannelConfigService:
             True if successful, False otherwise
         """
         try:
+            # Validate channel_id is a proper Discord ID
+            if not self._is_valid_discord_id(channel_id):
+                logger.error(
+                    f"Refusing to save channel config: '{channel_id}' is not a valid Discord ID. "
+                    f"Discord IDs must be 17-19 digit numbers."
+                )
+                return False
+
             # Save to individual channel file atomically
             config_file = self.channels_dir / f"{channel_id}.json"
             self._atomic_write_json(config_file, config)
