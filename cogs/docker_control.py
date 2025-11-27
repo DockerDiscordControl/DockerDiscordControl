@@ -1571,12 +1571,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # Defer the response to prevent timeout
             await ctx.defer(ephemeral=False)  # Not ephemeral, like /ss
 
-            # Check if the channel has control permission AND is NOT a status channel
-            # Control commands should ONLY work in control channels
+            # Check if the channel has control permission
+            # Control commands work in channels with control=True (regardless of serverstatus setting)
             channel_has_control_perm = _channel_has_permission(ctx.channel.id, 'control', self.config)
-            channel_is_status = _channel_has_permission(ctx.channel.id, 'serverstatus', self.config)
 
-            if not channel_has_control_perm or channel_is_status:
+            if not channel_has_control_perm:
                 embed = discord.Embed(
                     title=_("⚠️ Permission Denied"),
                     description=_("The /control command is only allowed in control channels, not in status channels."),
@@ -3431,7 +3430,22 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                             continue
 
                         # Check if the last message is from our bot
-                        if history[0].author.id == self.bot.user.id:
+                        # Safety check: ensure bot.user is available
+                        if self.bot.user is None:
+                            logger.warning(f"Bot user is None, cannot check message author. Skipping channel {channel_id}")
+                            continue
+
+                        last_msg = history[0]
+                        bot_user_id = self.bot.user.id
+
+                        # Log detailed info for debugging recreation issues
+                        logger.debug(f"Channel {channel.name}: Last message author={last_msg.author.id} ({last_msg.author.name}), bot_id={bot_user_id}")
+
+                        # Check if last message is from our bot (by user ID or application ID)
+                        is_from_bot = (last_msg.author.id == bot_user_id or
+                                      (hasattr(last_msg, 'application_id') and last_msg.application_id == self.bot.application_id))
+
+                        if is_from_bot:
                             # If the last message is from our bot, we should not regenerate
                             # Reset the timer instead, since the bot was the last to post
                             self.last_channel_activity[channel_id] = now_utc
@@ -3439,7 +3453,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                             continue
 
                         # The last message is not from our bot, regenerate
-                        logger.info(f"Last message in channel {channel.name} is NOT from our bot. Will regenerate")
+                        logger.info(f"Last message in channel {channel.name} is NOT from our bot (author_id={last_msg.author.id}, bot_id={bot_user_id}). Will regenerate")
 
                         # Determine the mode: control or status
                         has_control_permission = _channel_has_permission(channel_id, 'control', config)
