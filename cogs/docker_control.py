@@ -3442,8 +3442,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         logger.debug(f"Channel {channel.name}: Last message author={last_msg.author.id} ({last_msg.author.name}), bot_id={bot_user_id}")
 
                         # Check if last message is from our bot (by user ID or application ID)
+                        bot_app_id = getattr(self.bot, 'application_id', None)
                         is_from_bot = (last_msg.author.id == bot_user_id or
-                                      (hasattr(last_msg, 'application_id') and last_msg.application_id == self.bot.application_id))
+                                      (hasattr(last_msg, 'application_id') and bot_app_id and last_msg.application_id == bot_app_id))
 
                         if is_from_bot:
                             # If the last message is from our bot, we should not regenerate
