@@ -852,6 +852,21 @@ class TranslationManager:
                 # Agent 7: Final Missing Code Strings (Priority Group 4: User Feedback & Errors)
                 "An error occurred while generating the overview.": "Ein Fehler ist beim Generieren der Übersicht aufgetreten.",
                 "Your donation has been recorded and helps power the Donation Engine.": "Ihre Spende wurde erfasst und hilft, die Spenden-Engine zu betreiben.",
+
+                # /addadmin Command Translations
+                "Add a user to the admin list": "Einen Benutzer zur Admin-Liste hinzufügen",
+                "Only admins can add new admins in status channels. Use this command in a control channel or ask an existing admin.": "Nur Admins können in Status-Kanälen neue Admins hinzufügen. Verwenden Sie diesen Befehl in einem Control-Kanal oder fragen Sie einen bestehenden Admin.",
+                "The /addadmin command can only be used in control or status channels.": "Der /addadmin Befehl kann nur in Control- oder Status-Kanälen verwendet werden.",
+                "❌ An error occurred. Please try again.": "❌ Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+                "➕ Add Admin User": "➕ Admin-Benutzer hinzufügen",
+                "Discord User ID": "Discord Benutzer-ID",
+                "Enter the Discord User ID (e.g., 123456789012345678)": "Discord Benutzer-ID eingeben (z.B. 123456789012345678)",
+                "❌ Invalid User ID. Please enter only numbers (e.g., 123456789012345678).": "❌ Ungültige Benutzer-ID. Bitte geben Sie nur Zahlen ein (z.B. 123456789012345678).",
+                "❌ Invalid Discord User ID. The ID appears to be too small.": "❌ Ungültige Discord Benutzer-ID. Die ID scheint zu klein zu sein.",
+                "⚠️ This user is already an admin.": "⚠️ Dieser Benutzer ist bereits ein Admin.",
+                "✅ Admin added successfully!\n\nUser ID: `{user_id}`\nTotal admins: {count}": "✅ Admin erfolgreich hinzugefügt!\n\nBenutzer-ID: `{user_id}`\nAnzahl Admins: {count}",
+                "❌ Failed to save admin data. Please try again.": "❌ Admin-Daten konnten nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+                "❌ An error occurred while adding the admin. Please try again.": "❌ Beim Hinzufügen des Admins ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
             },
 
             # French
@@ -1645,6 +1660,21 @@ class TranslationManager:
                 # Agent 7: Final Missing Code Strings (Priority Group 4: User Feedback & Errors)
                 "An error occurred while generating the overview.": "Une erreur s'est produite lors de la génération de l'aperçu.",
                 "Your donation has been recorded and helps power the Donation Engine.": "Votre don a été enregistré et aide à alimenter le moteur de dons.",
+
+                # /addadmin Command Translations
+                "Add a user to the admin list": "Ajouter un utilisateur à la liste des administrateurs",
+                "Only admins can add new admins in status channels. Use this command in a control channel or ask an existing admin.": "Seuls les administrateurs peuvent ajouter de nouveaux administrateurs dans les canaux de statut. Utilisez cette commande dans un canal de contrôle ou demandez à un administrateur existant.",
+                "The /addadmin command can only be used in control or status channels.": "La commande /addadmin ne peut être utilisée que dans les canaux de contrôle ou de statut.",
+                "❌ An error occurred. Please try again.": "❌ Une erreur s'est produite. Veuillez réessayer.",
+                "➕ Add Admin User": "➕ Ajouter un administrateur",
+                "Discord User ID": "ID utilisateur Discord",
+                "Enter the Discord User ID (e.g., 123456789012345678)": "Entrez l'ID utilisateur Discord (ex: 123456789012345678)",
+                "❌ Invalid User ID. Please enter only numbers (e.g., 123456789012345678).": "❌ ID utilisateur invalide. Veuillez entrer uniquement des chiffres (ex: 123456789012345678).",
+                "❌ Invalid Discord User ID. The ID appears to be too small.": "❌ ID utilisateur Discord invalide. L'ID semble être trop petit.",
+                "⚠️ This user is already an admin.": "⚠️ Cet utilisateur est déjà administrateur.",
+                "✅ Admin added successfully!\n\nUser ID: `{user_id}`\nTotal admins: {count}": "✅ Administrateur ajouté avec succès !\n\nID utilisateur : `{user_id}`\nNombre total d'admins : {count}",
+                "❌ Failed to save admin data. Please try again.": "❌ Échec de l'enregistrement des données administrateur. Veuillez réessayer.",
+                "❌ An error occurred while adding the admin. Please try again.": "❌ Une erreur s'est produite lors de l'ajout de l'administrateur. Veuillez réessayer.",
 
                 # Agent 8: Mech Evolution System (moved from English section)
                 "Error during execution: {error}": "Erreur lors de l'exécution : {error}",

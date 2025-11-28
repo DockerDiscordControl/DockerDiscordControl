@@ -1639,6 +1639,60 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
     # /info_edit command removed - info editing now handled through UI buttons
 
+    @commands.slash_command(name="addadmin", description=_("Add a user to the admin list"), guild_ids=get_guild_id())
+    async def addadmin(self, ctx: discord.ApplicationContext):
+        """Add a Discord user to the admin list via modal."""
+        try:
+            # Import translation function locally to ensure it's accessible
+            from .translation_manager import _ as translate
+
+            # Check channel permissions
+            channel_has_control_perm = _channel_has_permission(ctx.channel.id, 'control', self.config)
+            channel_has_status_perm = _channel_has_permission(ctx.channel.id, 'serverstatus', self.config)
+
+            # Determine if user can use this command
+            if channel_has_control_perm:
+                # Control channel: any user in control channel can add admins
+                # (Control channels are already restricted to admins by design)
+                pass
+            elif channel_has_status_perm:
+                # Status channel: only existing admins can add new admins
+                from services.admin.admin_service import get_admin_service
+                admin_service = get_admin_service()
+                user_is_admin = admin_service.is_user_admin(ctx.author.id)
+
+                if not user_is_admin:
+                    embed = discord.Embed(
+                        title=translate("⚠️ Permission Denied"),
+                        description=translate("Only admins can add new admins in status channels. Use this command in a control channel or ask an existing admin."),
+                        color=discord.Color.red()
+                    )
+                    await ctx.respond(embed=embed, ephemeral=True)
+                    return
+            else:
+                # Neither control nor status channel
+                embed = discord.Embed(
+                    title=translate("⚠️ Permission Denied"),
+                    description=translate("The /addadmin command can only be used in control or status channels."),
+                    color=discord.Color.red()
+                )
+                await ctx.respond(embed=embed, ephemeral=True)
+                return
+
+            # Show the modal to add admin
+            modal = AddAdminModal()
+            await ctx.send_modal(modal)
+
+        except Exception as e:
+            logger.error(f"Error in /addadmin command: {e}", exc_info=True)
+            try:
+                from .translation_manager import _ as translate
+                if not ctx.response.is_done():
+                    await ctx.respond(translate("❌ An error occurred. Please try again."), ephemeral=True)
+                else:
+                    await ctx.followup.send(translate("❌ An error occurred. Please try again."), ephemeral=True)
+            except (discord.errors.DiscordException, RuntimeError):
+                pass
 
     # Decorator adjusted
     @commands.slash_command(name="help", description=_("Displays help for available commands"), guild_ids=get_guild_id())
@@ -4439,6 +4493,102 @@ class DonationBroadcastModal(discord.ui.Modal):
                 )
             except (discord.errors.HTTPException, discord.errors.Forbidden) as edit_error:
                 logger.error(f"Could not send error response: {edit_error}", exc_info=True)
+
+
+class AddAdminModal(discord.ui.Modal):
+    """Modal for adding a new admin user."""
+
+    def __init__(self):
+        from .translation_manager import _
+        super().__init__(title=_("➕ Add Admin User"))
+
+        # Discord User ID field
+        self.user_id_input = discord.ui.InputText(
+            label=_("Discord User ID"),
+            placeholder=_("Enter the Discord User ID (e.g., 123456789012345678)"),
+            style=discord.InputTextStyle.short,
+            required=True,
+            min_length=17,
+            max_length=20
+        )
+        self.add_item(self.user_id_input)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Handle modal submission."""
+        from .translation_manager import _
+        logger.info(f"=== ADD ADMIN MODAL CALLBACK STARTED ===")
+        logger.info(f"User: {interaction.user.name}, Raw input: user_id={self.user_id_input.value}")
+
+        try:
+            # Get and validate the user ID
+            raw_user_id = self.user_id_input.value.strip()
+
+            # Validate: must be numeric and valid Discord snowflake format
+            if not raw_user_id.isdigit():
+                await interaction.response.send_message(
+                    _("❌ Invalid User ID. Please enter only numbers (e.g., 123456789012345678)."),
+                    ephemeral=True
+                )
+                return
+
+            user_id = raw_user_id
+
+            # Check if ID is in valid Discord snowflake range (>= Discord epoch)
+            if int(user_id) < 21154535154122752:  # Minimum valid Discord snowflake
+                await interaction.response.send_message(
+                    _("❌ Invalid Discord User ID. The ID appears to be too small."),
+                    ephemeral=True
+                )
+                return
+
+            # Get admin service and current admins
+            from services.admin.admin_service import get_admin_service
+            admin_service = get_admin_service()
+            admin_data = admin_service.get_admin_data(force_refresh=True)
+            current_admins = admin_data.get('discord_admin_users', [])
+            admin_notes = admin_data.get('admin_notes', {})
+
+            # Check if user is already an admin
+            if user_id in current_admins:
+                await interaction.response.send_message(
+                    _("⚠️ This user is already an admin."),
+                    ephemeral=True
+                )
+                return
+
+            # Add the new admin
+            current_admins.append(user_id)
+
+            # Save the updated admin list
+            success = admin_service.save_admin_data(current_admins, admin_notes)
+
+            if success:
+                logger.info(f"Admin added successfully: {user_id} by {interaction.user.id}")
+                await interaction.response.send_message(
+                    _("✅ Admin added successfully!\n\nUser ID: `{user_id}`\nTotal admins: {count}").format(
+                        user_id=user_id,
+                        count=len(current_admins)
+                    ),
+                    ephemeral=True
+                )
+            else:
+                logger.error(f"Failed to save admin data when adding {user_id}")
+                await interaction.response.send_message(
+                    _("❌ Failed to save admin data. Please try again."),
+                    ephemeral=True
+                )
+
+        except Exception as e:
+            logger.error(f"Error in AddAdminModal callback: {e}", exc_info=True)
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(
+                        _("❌ An error occurred while adding the admin. Please try again."),
+                        ephemeral=True
+                    )
+            except (discord.errors.DiscordException, RuntimeError):
+                pass
+
 
 # Setup function required for extension loading
 def setup(bot):
