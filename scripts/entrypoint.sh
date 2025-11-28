@@ -108,9 +108,12 @@ validate_ids() {
         log_fatal "PUID must be between $MIN_UID and $MAX_UID, got: $puid"
     fi
 
-    # Check PGID range (0 is allowed for root group)
+    # Check PGID range (0 is allowed for root group, but warn)
     # Note: is_valid_id already ensures pgid contains only digits, so it can't be negative
-    if [ "$pgid" -gt "$MAX_UID" ]; then
+    if [ "$pgid" -eq 0 ]; then
+        log_warn "PGID=0 detected - using ROOT group!"
+        log_warn "This may expose sensitive files. Consider using a non-root group."
+    elif [ "$pgid" -gt "$MAX_UID" ]; then
         log_fatal "PGID must be between 0 and $MAX_UID, got: $pgid"
     fi
 
@@ -674,14 +677,15 @@ main() {
     PUID=$(printf '%s' "$PUID" | tr -d '[:space:]')
     PGID=$(printf '%s' "$PGID" | tr -d '[:space:]')
 
-    # Sanitize: remove leading zeros to avoid octal interpretation issues
-    # (though POSIX sh doesn't interpret leading zeros as octal in arithmetic)
-    PUID=$(printf '%s' "$PUID" | sed 's/^0*//' | grep . || echo "0")
-    PGID=$(printf '%s' "$PGID" | sed 's/^0*//' | grep . || echo "0")
-
-    # Use defaults if empty after sanitization
+    # SECURITY: Use defaults if empty after whitespace removal
+    # This prevents PUID=" " (whitespace only) from becoming root (0)
     [ -z "$PUID" ] && PUID="$DEFAULT_UID"
     [ -z "$PGID" ] && PGID="$DEFAULT_GID"
+
+    # Sanitize: remove leading zeros to avoid octal interpretation issues
+    # "0099" -> "99", "0000" -> "0", "0" -> "0"
+    PUID=$(printf '%s' "$PUID" | sed 's/^0*//' | grep . || echo "0")
+    PGID=$(printf '%s' "$PGID" | sed 's/^0*//' | grep . || echo "0")
 
     # Validate IDs before proceeding
     validate_ids "$PUID" "$PGID"
