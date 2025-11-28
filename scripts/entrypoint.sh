@@ -12,7 +12,7 @@ set -e
 echo "==============================================================="
 echo "   DockerDiscordControl (DDC) - Container Startup              "
 echo "==============================================================="
-echo "   Version: 2.5.1 (Optimized)"
+echo "   Version: 2.1.2 (Optimized)"
 echo "   Architecture: Single Process (Waitress + Bot)"
 echo "==============================================================="
 
