@@ -96,6 +96,12 @@ validate_ids() {
         log_fatal "PGID must be a positive integer, got: '$pgid'"
     fi
 
+    # SECURITY: Check length to prevent integer overflow in shell arithmetic
+    # Max valid UID is 65534 (5 digits), reject anything longer
+    if [ "${#puid}" -gt 5 ] || [ "${#pgid}" -gt 5 ]; then
+        log_fatal "PUID/PGID too large (max 65534). Got: PUID=$puid, PGID=$pgid"
+    fi
+
     # Special handling for root (UID 0) - allow with warning
     if [ "$puid" -eq 0 ]; then
         log_warn "=================================================="
