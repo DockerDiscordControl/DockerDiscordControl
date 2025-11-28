@@ -116,12 +116,13 @@ ports:
 
 ### Authentication
 *   **Login Required**: The Web UI is protected by a login page.
-*   **Single Admin User**: Currently, DDC supports a single admin user (default: `admin`).
-*   **Password Hashing**: Passwords are never stored in plain text. They are hashed using secure algorithms before storage in `web_config.json`.
+*   **Single Admin User**: DDC supports a single admin user (username: `admin`).
+*   **Password Setup**: Set via `DDC_ADMIN_PASSWORD` environment variable (recommended) or temporary default `setup`.
+*   **Password Hashing**: Passwords are hashed using PBKDF2-SHA256 (600,000 iterations) before storage.
 *   **Session Timeout**: Sessions automatically expire after a configurable time (Default: `3600s` / 1 hour).
 
 ### Best Practices
-*   **Change Default Password**: Always change the default password immediately after installation.
+*   **Set Password via Environment**: Use `DDC_ADMIN_PASSWORD` in docker-compose.yml for secure setup.
 *   **Keep it Local**: DDC is designed to run on your local network only. There is **no need** to expose it to the internet.
 *   **Bind to LAN IP**: Use `192.168.x.x:9374:9374` in your Docker port mapping instead of `0.0.0.0:9374:9374`.
 *   **Use Discord for Remote Access**: Control containers via Discord from anywhere - no VPN or port forwarding needed.

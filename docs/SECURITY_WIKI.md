@@ -262,7 +262,8 @@ docker logs ddc 2>&1 | grep -i "error\|failed"
 ## Security Hardening Checklist
 
 ### Initial Setup
-- [ ] Change default Web UI password (`admin` / `setup`)
+- [ ] Set `DDC_ADMIN_PASSWORD` environment variable (recommended)
+- [ ] Or change temporary password `admin` / `setup` immediately
 - [ ] Generate and set `FLASK_SECRET_KEY`
 - [ ] Configure Discord bot token (environment variable recommended)
 - [ ] Configure firewall rules
@@ -323,8 +324,8 @@ docker logs ddc 2>&1 | grep -i "error\|failed"
 - Trusted environment required
 
 ⚠️ **Default Credentials:**
-- Initial setup uses `admin` / `setup`
-- Must be changed immediately
+- Set `DDC_ADMIN_PASSWORD` environment variable before first start (recommended)
+- If not set, temporary password is `admin` / `setup` - change immediately
 - No lockout on failed attempts (yet)
 
 ⚠️ **Web UI Exposure:**
