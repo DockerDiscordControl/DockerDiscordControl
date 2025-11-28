@@ -53,6 +53,12 @@
   <Category>Tools:System Network:Management HomeAutomation:</Category>
   <WebUI>http://[IP]:[PORT:9374]</WebUI>
   <Changes>
+###v2.1.2 (2025-11-28)
+**UNRAID FIX - Permission Handling**
+- NEW: PUID/PGID environment variables for NAS permission compatibility
+- FIXED: "No write permission for /app/config" error on Unraid systems
+- IMPROVED: Automatic permission handling for Unraid, Synology, TrueNAS, QNAP
+
 ###v2.0.0 (2025-11-18)
 **MAJOR UPDATE - Complete Rewrite**
 - NEW: Multi-language support (German, French, English) - Full Discord UI translation
@@ -78,6 +84,8 @@
   <DonateText>Support DDC Development ☕</DonateText>
   <DonateLink>https://buymeacoffee.com/dockerdiscordcontrol</DonateLink>
   <Requires>Docker socket access for container management</Requires>
+  <Config Name="PUID" Target="PUID" Default="99" Mode="" Description="User ID for file permissions. Unraid default: 99 (nobody). Check with: ls -ln /mnt/user/appdata" Type="Variable" Display="always" Required="false" Mask="false">99</Config>
+  <Config Name="PGID" Target="PGID" Default="100" Mode="" Description="Group ID for file permissions. Unraid default: 100 (users). Check with: ls -ln /mnt/user/appdata" Type="Variable" Display="always" Required="false" Mask="false">100</Config>
   <Config Name="Web UI Port" Target="9374" Default="9374" Mode="tcp" Description="Port for DDC web interface (host port, mapped to container port 9374)." Type="Port" Display="always" Required="true" Mask="false">9374</Config>
   <Config Name="Admin Password" Target="DDC_ADMIN_PASSWORD" Default="" Mode="" Description="Password for web UI admin user (username: admin). REQUIRED: Set a secure password during installation." Type="Variable" Display="always" Required="true" Mask="true"/>
   <Config Name="Flask Secret Key" Target="FLASK_SECRET_KEY" Default="" Mode="" Description="Secret key for web UI security. RECOMMENDED: Generate with 'openssl rand -hex 32' for persistent sessions. If not set, a random key is generated (sessions reset on restart)." Type="Variable" Display="always" Required="false" Mask="true"/>
