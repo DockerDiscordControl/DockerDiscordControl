@@ -306,10 +306,9 @@ docker exec ddc ls -la /var/run/docker.sock
    FLASK_SECRET_KEY="$(openssl rand -hex 32)"
    ```
 
-2. **Change default admin password** immediately after first login:
-   - Default username: admin
-   - Default password: setup
-   - Change via Web UI Settings
+2. **Set admin password:**
+   - **Recommended:** Set `DDC_ADMIN_PASSWORD` environment variable before first start
+   - **Alternative:** If not set, temporary password is `setup` - change immediately via Web UI
 
 3. **Enable HTTPS** in production environments (recommended)
 
@@ -332,10 +331,10 @@ openssl rand -hex 32
 ```
 
 ### 3. First-Time Setup:
-1. Start container: `docker-compose up -d`
-2. Access Web UI: `http://your-server:9374`
-3. Login with: admin / setup
-4. Immediately change password in Settings
+1. Set `DDC_ADMIN_PASSWORD` in your docker-compose.yml or .env file
+2. Start container: `docker-compose up -d`
+3. Access Web UI: `http://your-server:9374`
+4. Login with: `admin` / your `DDC_ADMIN_PASSWORD`
 5. Configure Discord bot token
 6. Save configuration
 

@@ -5,15 +5,14 @@ This means values in `config/*.json` files take precedence, followed by Environm
 
 ## Environment Variables
 
-### Web Server (Gunicorn)
-Settings for the internal web server hosting the dashboard.
+### Permission Settings (NAS/Unraid)
+Settings for file permission handling on NAS systems.
 
 | Variable | Default | Description |
 | :--- | :--- | :--- |
-| `GUNICORN_WORKERS` | `1` | Number of worker processes. Optimized for low RAM usage. |
-| `GUNICORN_TIMEOUT` | `45` | Request timeout in seconds. |
-| `GUNICORN_MAX_REQUESTS` | `300` | Requests before a worker is recycled (prevents memory leaks). |
-| `GUNICORN_LOG_LEVEL` | `info` | Logging verbosity (`debug`, `info`, `warning`, `error`). |
+| `PUID` | `1000` | User ID for file permissions. Unraid: `99`, Synology: `1026`. |
+| `PGID` | `1000` | Group ID for file permissions. Unraid: `100`, Synology: `100`. |
+| `DDC_ADMIN_PASSWORD` | - | **Required.** Password for web UI admin user. |
 
 ### Application Settings (DDC)
 Advanced settings for tuning application behavior.

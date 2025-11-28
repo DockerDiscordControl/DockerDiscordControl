@@ -35,8 +35,8 @@ New to DDC? Start here:
 
 **First-Time Setup:**
 - Default Web UI: `http://your-server:9374`
-- Default credentials: `admin` / `setup`
-- Change password immediately after first login
+- Set `DDC_ADMIN_PASSWORD` before starting (recommended)
+- Or use temporary credentials `admin` / `setup` and change immediately
 
 **Configuration:**
 - Primary method: Web UI at port 9374
@@ -149,9 +149,9 @@ See [CHANGELOG.md](CHANGELOG.md) for complete release history.
 
 ### Community
 
-- **GitHub Repository:** https://github.com/maxzeichen/dockerdiscordcontrol
-- **Docker Hub:** https://hub.docker.com/r/maxzeichen/dockerdiscordcontrol
-- **Issues:** https://github.com/maxzeichen/dockerdiscordcontrol/issues
+- **GitHub Repository:** https://github.com/DockerDiscordControl/DockerDiscordControl
+- **Docker Hub:** https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol
+- **Issues:** https://github.com/DockerDiscordControl/DockerDiscordControl/issues
 
 ## Project Structure
 

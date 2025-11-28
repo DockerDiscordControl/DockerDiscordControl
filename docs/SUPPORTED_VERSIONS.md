@@ -22,14 +22,14 @@
 
 **Docker Hub:**
 ```bash
-docker pull maxzeichen/dockerdiscordcontrol:latest
+docker pull dockerdiscordcontrol/dockerdiscordcontrol:latest
 docker-compose up -d
 ```
 
 **From Source:**
 ```bash
-git clone https://github.com/maxzeichen/dockerdiscordcontrol.git
-cd dockerdiscordcontrol
+git clone https://github.com/DockerDiscordControl/DockerDiscordControl.git
+cd DockerDiscordControl
 docker-compose up -d
 ```
 
@@ -74,7 +74,7 @@ Security fixes are released as needed. To stay updated:
 
 ```bash
 # Check for updates
-docker pull maxzeichen/dockerdiscordcontrol:latest
+docker pull dockerdiscordcontrol/dockerdiscordcontrol:latest
 
 # Apply updates
 docker-compose down

@@ -428,14 +428,12 @@ DDC_MAX_CONCURRENT_TASKS=3             # Maximum concurrent tasks (default: 3)
 DDC_TASK_BATCH_SIZE=5                  # Task batch processing size (default: 5)
 ```
 
-#### Web Server Optimization
+#### Permission Settings (NAS/Unraid)
 ```bash
-# Gunicorn Settings
-GUNICORN_WORKERS=2                     # Number of worker processes (default: adaptive 1-3)
-GUNICORN_MAX_REQUESTS=300              # Requests per worker before recycling (default: 300)
-GUNICORN_MAX_REQUESTS_JITTER=30        # Random jitter for worker recycling (default: 30)
-GUNICORN_TIMEOUT=45                    # Request timeout in seconds (default: 45)
-GUNICORN_LOG_LEVEL=info                # Logging level (default: info)
+# User/Group mapping for NAS systems
+PUID=99                                # User ID (Unraid: 99, Synology: 1026)
+PGID=100                               # Group ID (Unraid: 100, Synology: 100)
+DDC_ADMIN_PASSWORD=your_password       # Required: Admin password for Web UI
 ```
 
 #### Cache Control

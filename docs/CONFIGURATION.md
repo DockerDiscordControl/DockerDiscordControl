@@ -23,11 +23,11 @@ DDC supports two primary configuration methods:
    http://your-server:9374
    ```
 
-3. **Login with default credentials:**
+3. **Login:**
    - Username: `admin`
-   - Password: `setup`
+   - Password: Your `DDC_ADMIN_PASSWORD` (or `setup` if not set)
 
-4. **Change password immediately** (Web UI → Settings)
+4. **If using default password:** Change immediately (Web UI → Settings)
 
 5. **Configure Discord bot token** (Web UI → Configuration)
 
@@ -141,7 +141,7 @@ version: '3.8'
 
 services:
   ddc:
-    image: maxzeichen/dockerdiscordcontrol:latest
+    image: dockerdiscordcontrol/dockerdiscordcontrol:latest
     container_name: ddc
     restart: unless-stopped
     ports:
@@ -149,11 +149,15 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./config:/app/config
+      - ./logs:/app/logs
     environment:
       FLASK_SECRET_KEY: "${FLASK_SECRET_KEY}"
       DISCORD_BOT_TOKEN: "${DISCORD_BOT_TOKEN}"
+      DDC_ADMIN_PASSWORD: "${DDC_ADMIN_PASSWORD}"
       TZ: "Europe/Berlin"
-    user: "1000:1000"
+      # For NAS systems (Unraid, Synology, etc.):
+      # PUID: 99   # Unraid default
+      # PGID: 100  # Unraid default
 ```
 
 ## Configuration Storage
