@@ -696,7 +696,8 @@ main() {
         log_info "Target: UID=$PUID, GID=$PGID"
 
         # Setup user/group if PUID/PGID differ from image defaults
-        if [ "$PUID" != "$DEFAULT_UID" ] || [ "$PGID" != "$DEFAULT_GID" ]; then
+        # Also setup if default user doesn't exist (handles corrupt/modified images)
+        if [ "$PUID" != "$DEFAULT_UID" ] || [ "$PGID" != "$DEFAULT_GID" ] || ! user_exists "$APP_USER"; then
             if ! setup_user_and_group "$PUID" "$PGID"; then
                 log_warn "User setup had issues, attempting to continue..."
             fi
