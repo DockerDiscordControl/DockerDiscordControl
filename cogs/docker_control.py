@@ -1571,14 +1571,17 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # Defer the response to prevent timeout
             await ctx.defer(ephemeral=False)  # Not ephemeral, like /ss
 
+            # Import translation function locally to ensure it's accessible
+            from .translation_manager import _ as translate
+
             # Check if the channel has control permission
             # Control commands work in channels with control=True (regardless of serverstatus setting)
             channel_has_control_perm = _channel_has_permission(ctx.channel.id, 'control', self.config)
 
             if not channel_has_control_perm:
                 embed = discord.Embed(
-                    title=_("⚠️ Permission Denied"),
-                    description=_("The /control command is only allowed in control channels, not in status channels."),
+                    title=translate("⚠️ Permission Denied"),
+                    description=translate("The /control command is only allowed in control channels, not in status channels."),
                     color=discord.Color.red()
                 )
                 await ctx.followup.send(embed=embed, ephemeral=True)
