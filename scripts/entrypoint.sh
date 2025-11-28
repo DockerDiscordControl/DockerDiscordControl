@@ -109,7 +109,8 @@ validate_ids() {
     fi
 
     # Check PGID range (0 is allowed for root group)
-    if [ "$pgid" -lt 0 ] 2>/dev/null || [ "$pgid" -gt "$MAX_UID" ]; then
+    # Note: is_valid_id already ensures pgid contains only digits, so it can't be negative
+    if [ "$pgid" -gt "$MAX_UID" ]; then
         log_fatal "PGID must be between 0 and $MAX_UID, got: $pgid"
     fi
 
@@ -362,17 +363,22 @@ setup_docker_socket_access() {
 
     if [ -z "$sock_group" ]; then
         # No group exists with this GID - create one
-        sock_group="dockersock"
+        # Try several name variants to avoid collision
+        local try_names="dockersock docker$sock_gid ddc_docker$sock_gid"
+        local created=0
 
-        # Check if 'dockersock' name is already taken
-        if group_exists_by_name "$sock_group"; then
-            # Name taken, use a different name
-            sock_group="docker$sock_gid"
-        fi
+        for try_name in $try_names; do
+            if ! group_exists_by_name "$try_name"; then
+                if addgroup -g "$sock_gid" -S "$try_name" 2>/dev/null; then
+                    sock_group="$try_name"
+                    log_info "Created group $sock_group with GID $sock_gid"
+                    created=1
+                    break
+                fi
+            fi
+        done
 
-        if addgroup -g "$sock_gid" -S "$sock_group" 2>/dev/null; then
-            log_info "Created group $sock_group with GID $sock_gid"
-        else
+        if [ "$created" -ne 1 ]; then
             log_warn "Could not create group for Docker socket GID $sock_gid"
             log_warn "Docker operations may fail"
             return 0
@@ -429,18 +435,28 @@ fix_permissions() {
 
     log_info "Checking/fixing ownership of data directories..."
 
-    # Check if permissions are already correct (optimization for restarts)
-    local config_uid=$(get_file_uid "/app/config")
-    local config_gid=$(get_file_gid "/app/config")
+    # Check if ALL directories have correct permissions (optimization for restarts)
+    local all_correct=1
+    local dir_uid dir_gid
 
-    if [ "$config_uid" = "$target_uid" ] && [ "$config_gid" = "$target_gid" ]; then
-        log_info "Permissions already correct (UID=$config_uid, GID=$config_gid)"
+    for dir in $DATA_DIRS; do
+        if [ -d "$dir" ]; then
+            dir_uid=$(get_file_uid "$dir")
+            dir_gid=$(get_file_gid "$dir")
+            if [ "$dir_uid" != "$target_uid" ] || [ "$dir_gid" != "$target_gid" ]; then
+                log_info "$dir: UID=$dir_uid, GID=$dir_gid (needs fix)"
+                all_correct=0
+            fi
+        fi
+    done
+
+    if [ "$all_correct" = "1" ]; then
+        log_info "All directories already have correct ownership (UID=$target_uid, GID=$target_gid)"
         return 0
     fi
 
-    log_info "Current: UID=$config_uid, GID=$config_gid -> Target: UID=$target_uid, GID=$target_gid"
-
     # Try to fix permissions
+    log_info "Fixing ownership to UID=$target_uid, GID=$target_gid..."
     local chown_failed=0
 
     for dir in $DATA_DIRS; do
