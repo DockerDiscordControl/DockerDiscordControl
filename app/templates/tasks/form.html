@@ -363,8 +363,10 @@ document.getElementById('createTaskButton').addEventListener('click', function()
             responseMessageDiv.textContent = 'Task added successfully: ' + JSON.stringify(data.body.task);
             responseMessageDiv.classList.add('alert', 'alert-success');
             resetTaskForm();
-            // Optional: Reload task list here by calling fetchTasks()
-            if (typeof fetchTasks === 'function') { fetchTasks(); }
+            // Reload task list
+            if (window.taskManager && typeof window.taskManager.fetchTasks === 'function') {
+                window.taskManager.fetchTasks();
+            }
         } else {
             responseMessageDiv.textContent = 'Error: ' + (data.body.error || 'Unknown error');
             responseMessageDiv.classList.add('alert', 'alert-danger');
