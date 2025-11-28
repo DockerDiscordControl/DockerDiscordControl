@@ -43,8 +43,8 @@ docker run -d \
 # Check container logs
 docker logs dockerdiscordcontrol
 
-# Check if gunicorn is running
-docker exec dockerdiscordcontrol ps aux | grep gunicorn
+# Check if python/waitress is running (single process architecture)
+docker exec dockerdiscordcontrol ps aux | grep python
 
 # Check if port 9374 is open inside container
 docker exec dockerdiscordcontrol netstat -tlnp | grep 9374
@@ -53,21 +53,31 @@ docker exec dockerdiscordcontrol netstat -tlnp | grep 9374
 ### Expected Logs
 When working correctly, you should see:
 ```
-INFO spawned: 'webui' with pid X
-INFO spawned: 'discordbot' with pid Y
-INFO success: webui entered RUNNING state
-INFO success: discordbot entered RUNNING state
+===============================================================
+   DockerDiscordControl (DDC) - Container Startup
+===============================================================
+✓ Permissions OK
+✓ Docker socket accessible
+🚀 Starting DDC application...
 ```
 
 ### Common Issues
 
-#### Issue: "spawnerr: can't find command '/venv/bin/gunicorn'"
-**Fix:** Container build failed. Rebuild with: `./scripts/rebuild.sh`
+#### Issue: "No write permission for /app/config"
+**Fix (v2.1.2+):** Set PUID/PGID environment variables:
+```
+PUID=99   # Unraid default
+PGID=100  # Unraid default
+```
+Or quick fix via Unraid terminal:
+```bash
+chown -R 1000:1000 /mnt/user/appdata/dockerdiscordcontrol
+```
 
 #### Issue: Web UI starts but crashes immediately
 **Fix:** Check permissions:
 ```bash
-docker exec dockerdiscordcontrol chown -R ddcuser:ddcuser /app/config /app/logs
+docker exec -u root dockerdiscordcontrol chown -R ddc:ddc /app/config /app/logs
 ```
 
 #### Issue: Port already in use
@@ -82,12 +92,11 @@ Container Port: 9374 (keep this!)
 After fixing, test with:
 ```bash
 # From Unraid console
-curl -I http://localhost:8374
+curl -I http://localhost:9374
 
 # Should return:
-HTTP/1.1 401 Unauthorized
-WWW-Authenticate: Basic realm="Authentication Required"
-Server: gunicorn
+HTTP/1.1 302 Found
+# (Redirect to login page)
 ```
 
 ### Automatic Port Diagnostics

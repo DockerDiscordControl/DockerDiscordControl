@@ -52,19 +52,39 @@ WebUI: http://[IP]:9374
 
 ### **Environment Variables**
 ```
-FLASK_SECRET_KEY=your-secure-random-key-here
-DDC_DISCORD_SKIP_TOKEN_LOCK=true
-LOGGING_LEVEL=INFO
-DDC_MAX_CONTAINERS=50
-DDC_MAX_CHANNELS=15
+PUID=99                                  # Unraid default (nobody)
+PGID=100                                 # Unraid default (users)
+DDC_ADMIN_PASSWORD=your-secure-password  # REQUIRED - set during installation
+FLASK_SECRET_KEY=your-secure-random-key  # Recommended for persistent sessions
 ```
+
+### **Permission Variables (PUID/PGID)**
+
+DDC v2.1.2+ automatically handles Unraid permissions via PUID/PGID:
+
+| Variable | Unraid Default | Description |
+|----------|----------------|-------------|
+| `PUID` | `99` | User ID (Unraid's `nobody` user) |
+| `PGID` | `100` | Group ID (Unraid's `users` group) |
+
+**How to find your values:**
+```bash
+# In Unraid terminal:
+ls -ln /mnt/user/appdata
+# Look at the UID (3rd column) and GID (4th column)
+```
+
+The container automatically:
+1. Creates a user with the specified PUID/PGID
+2. Fixes volume permissions on startup
+3. Drops privileges to the unprivileged user
 
 ## 🚀 First-Time Setup
 
 1. **Install the container** using Community Applications or manually
-2. **Access Web UI** at `http://[UNRAID-IP]:9374`
-3. **Default login**: `admin` / `admin` 
-4. **⚠️ IMPORTANT**: Change default password immediately!
+2. **Set admin password** via `DDC_ADMIN_PASSWORD` environment variable (REQUIRED)
+3. **Access Web UI** at `http://[UNRAID-IP]:9374`
+4. **Login**: Username `admin`, password = your `DDC_ADMIN_PASSWORD`
 5. **Configure Discord bot** in the Settings tab
 6. **Set up Discord channels** in Channel Configuration
 

@@ -178,25 +178,37 @@ docker exec ddc ls -la /app/config/
 
 ### 6. Permission Errors on Different Systems
 
+**Recommended Solution (v2.1.2+):** Use PUID/PGID environment variables:
+
+| System | PUID | PGID |
+|--------|------|------|
+| Unraid | 99 | 100 |
+| Synology | 1026 | 100 |
+| TrueNAS | 568 | 568 |
+| Standard Linux | 1000 | 1000 |
+
+```yaml
+environment:
+  - PUID=99    # Change to match your system
+  - PGID=100
+```
+
+The container automatically fixes volume permissions on startup.
+
+**Manual Fix (older versions):**
+
 **Unraid:**
 ```bash
-# Typical Unraid permissions
-chown -R nobody:users /mnt/user/appdata/dockerdiscordcontrol
-chmod -R 755 /mnt/user/appdata/dockerdiscordcontrol
+chown -R 1000:1000 /mnt/user/appdata/dockerdiscordcontrol
 ```
 
 **Synology:**
 ```bash
-# Check current permissions
-ls -la /volume1/docker/ddc/config/
-
-# Adjust to match Docker user
 chown -R 1000:1000 /volume1/docker/ddc/config/
 ```
 
 **Standard Linux:**
 ```bash
-# DDC runs as UID 1000, GID 1000
 chown -R 1000:1000 /path/to/config
 ```
 
@@ -294,7 +306,7 @@ tar czf ddc_backup.tar.gz config/
 
 # Stop and remove container
 docker-compose down
-docker rmi maxzeichen/dockerdiscordcontrol:latest
+docker rmi dockerdiscordcontrol/dockerdiscordcontrol:latest
 
 # Remove old data (careful!)
 rm -rf config/
