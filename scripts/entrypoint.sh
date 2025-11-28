@@ -73,7 +73,7 @@ print_banner() {
 # VALIDATION FUNCTIONS
 # ============================================================================ #
 
-# Check if a value is a positive integer
+# Check if a value is a positive integer (including 0)
 is_valid_id() {
     case "$1" in
         ''|*[!0-9]*) return 1 ;;  # Empty or contains non-digits
@@ -96,20 +96,21 @@ validate_ids() {
         log_fatal "PGID must be a positive integer, got: '$pgid'"
     fi
 
-    # Check PUID range
-    if [ "$puid" -lt "$MIN_UID" ] || [ "$puid" -gt "$MAX_UID" ]; then
+    # Special handling for root (UID 0) - allow with warning
+    if [ "$puid" -eq 0 ]; then
+        log_warn "=================================================="
+        log_warn "PUID=0 detected - running as ROOT user!"
+        log_warn "This is a SECURITY RISK and not recommended."
+        log_warn "Consider using a non-root user (PUID=1000)."
+        log_warn "=================================================="
+        # Don't exit - allow it but warn strongly
+    elif [ "$puid" -lt "$MIN_UID" ] || [ "$puid" -gt "$MAX_UID" ]; then
         log_fatal "PUID must be between $MIN_UID and $MAX_UID, got: $puid"
     fi
 
-    # Check PGID range
-    if [ "$pgid" -lt "$MIN_UID" ] || [ "$pgid" -gt "$MAX_UID" ]; then
-        log_fatal "PGID must be between $MIN_UID and $MAX_UID, got: $pgid"
-    fi
-
-    # Warn if running as root
-    if [ "$puid" -eq 0 ]; then
-        log_warn "PUID=0 will run the application as root - this is not recommended!"
-        log_warn "Consider using a non-root user for better security."
+    # Check PGID range (0 is allowed for root group)
+    if [ "$pgid" -lt 0 ] 2>/dev/null || [ "$pgid" -gt "$MAX_UID" ]; then
+        log_fatal "PGID must be between 0 and $MAX_UID, got: $pgid"
     fi
 
     return 0
@@ -133,7 +134,7 @@ get_file_gid() {
         return 1
     fi
 
-    # Try GNU stat first, then busybox stat, then ls fallback
+    # Try GNU/BusyBox stat first, then BSD stat, then ls fallback
     gid=$(stat -c %g "$file" 2>/dev/null) || \
     gid=$(stat -f %g "$file" 2>/dev/null) || \
     gid=$(ls -ln "$file" 2>/dev/null | awk '{print $4}')
@@ -182,28 +183,21 @@ user_exists() {
     id "$1" >/dev/null 2>&1
 }
 
-# Check if group exists
-group_exists() {
+# Check if group exists by name
+group_exists_by_name() {
     getent group "$1" >/dev/null 2>&1 || grep -q "^$1:" /etc/group 2>/dev/null
+}
+
+# Check if group exists by GID
+group_exists_by_gid() {
+    local gid="$1"
+    [ -n "$(get_group_name_by_gid "$gid")" ]
 }
 
 # Check if directory is writable
 is_writable() {
     local dir="$1"
     [ -d "$dir" ] && [ -w "$dir" ]
-}
-
-# Check if directory is on a read-only filesystem
-is_readonly_fs() {
-    local dir="$1"
-    local test_file="$dir/.ro_test_$$"
-
-    # Try to create a file
-    if touch "$test_file" 2>/dev/null; then
-        rm -f "$test_file" 2>/dev/null
-        return 1  # Not read-only
-    fi
-    return 0  # Read-only
 }
 
 # ============================================================================ #
@@ -216,69 +210,111 @@ setup_user_and_group() {
 
     log_info "Setting up user $APP_USER with UID=$target_uid, GID=$target_gid"
 
-    # Check for UID/GID conflicts
-    local existing_user=$(get_user_name_by_uid "$target_uid")
-    local existing_group=$(get_group_name_by_gid "$target_gid")
+    # Check for existing users/groups with target UID/GID
+    local existing_user_with_uid=$(get_user_name_by_uid "$target_uid")
+    local existing_group_with_gid=$(get_group_name_by_gid "$target_gid")
 
-    # Handle GID - create or reuse existing group
-    if [ -n "$existing_group" ]; then
-        if [ "$existing_group" != "$APP_USER" ]; then
-            log_info "GID $target_gid already used by group '$existing_group', will use it"
-            # We'll add our user to this existing group
+    # =========================================
+    # STEP 1: Handle the primary group
+    # =========================================
+    local primary_group=""
+
+    if [ -n "$existing_group_with_gid" ]; then
+        # A group with this GID already exists - reuse it
+        primary_group="$existing_group_with_gid"
+        if [ "$existing_group_with_gid" != "$APP_USER" ]; then
+            log_info "GID $target_gid belongs to group '$existing_group_with_gid', will use it"
         fi
     else
-        # Need to create group with this GID
-        # First remove old ddc group if it exists with different GID
-        if group_exists "$APP_USER"; then
+        # No group with this GID exists - create one
+        # First, remove old ddc group if it exists (might have different GID)
+        if group_exists_by_name "$APP_USER"; then
+            log_info "Removing existing $APP_USER group (different GID)"
             delgroup "$APP_USER" 2>/dev/null || true
         fi
-        addgroup -g "$target_gid" -S "$APP_USER" 2>/dev/null || {
-            log_warn "Could not create group $APP_USER with GID $target_gid"
-            # Try without specific GID as fallback
-            addgroup -S "$APP_USER" 2>/dev/null || true
-        }
-        existing_group="$APP_USER"
+
+        # Create the group with target GID
+        if addgroup -g "$target_gid" -S "$APP_USER" 2>/dev/null; then
+            primary_group="$APP_USER"
+            log_info "Created group $APP_USER with GID $target_gid"
+        else
+            # GID creation failed - try without specific GID
+            log_warn "Could not create group with GID $target_gid"
+            if addgroup -S "$APP_USER" 2>/dev/null; then
+                primary_group="$APP_USER"
+                log_warn "Created group $APP_USER with auto-assigned GID"
+            else
+                log_error "Failed to create group $APP_USER"
+                # Try to continue with existing group if any
+                if group_exists_by_name "$APP_USER"; then
+                    primary_group="$APP_USER"
+                else
+                    return 1
+                fi
+            fi
+        fi
     fi
 
-    # Handle UID - create or modify user
-    if [ -n "$existing_user" ] && [ "$existing_user" != "$APP_USER" ]; then
-        log_warn "UID $target_uid already used by user '$existing_user'"
+    # Verify we have a primary group
+    if [ -z "$primary_group" ]; then
+        log_error "No primary group available for user creation"
+        return 1
+    fi
+
+    # =========================================
+    # STEP 2: Handle the user
+    # =========================================
+
+    # Warn if UID is already used by another user
+    if [ -n "$existing_user_with_uid" ] && [ "$existing_user_with_uid" != "$APP_USER" ]; then
+        log_warn "UID $target_uid is already used by user '$existing_user_with_uid'"
         log_warn "This may cause permission issues. Consider using a different PUID."
     fi
 
-    # Remove existing ddc user if present
+    # Remove existing ddc user if present (to recreate with correct UID/GID)
     if user_exists "$APP_USER"; then
+        log_info "Removing existing $APP_USER user"
         deluser "$APP_USER" 2>/dev/null || true
     fi
 
-    # Determine which group to use
-    local primary_group="$APP_USER"
-    if [ -n "$existing_group" ] && [ "$existing_group" != "$APP_USER" ]; then
-        primary_group="$existing_group"
+    # Create user with target UID
+    local user_created=0
+    if adduser -u "$target_uid" -G "$primary_group" -D -H -s /sbin/nologin "$APP_USER" 2>/dev/null; then
+        user_created=1
+    else
+        # UID might be taken, try without specific UID
+        log_warn "Could not create user with UID $target_uid, trying without specific UID"
+        if adduser -G "$primary_group" -D -H -s /sbin/nologin "$APP_USER" 2>/dev/null; then
+            user_created=1
+        fi
     fi
 
-    # Create user with target UID
-    adduser -u "$target_uid" -G "$primary_group" -D -H -s /sbin/nologin "$APP_USER" 2>/dev/null || {
-        # Fallback: try without specific UID
-        log_warn "Could not create user with UID $target_uid, trying without specific UID"
-        adduser -G "$primary_group" -D -H -s /sbin/nologin "$APP_USER" 2>/dev/null || {
-            log_error "Failed to create user $APP_USER"
-            return 1
-        }
-    }
-
-    # Verify user was created correctly
-    if user_exists "$APP_USER"; then
-        local actual_uid=$(id -u "$APP_USER" 2>/dev/null)
-        local actual_gid=$(id -g "$APP_USER" 2>/dev/null)
-        log_info "User $APP_USER created: UID=$actual_uid, GID=$actual_gid"
-
-        if [ "$actual_uid" != "$target_uid" ]; then
-            log_warn "Actual UID ($actual_uid) differs from requested ($target_uid)"
-        fi
-    else
-        log_error "User $APP_USER does not exist after creation attempt"
+    if [ "$user_created" -ne 1 ]; then
+        log_error "Failed to create user $APP_USER"
         return 1
+    fi
+
+    # =========================================
+    # STEP 3: Verify user was created correctly
+    # =========================================
+    if ! user_exists "$APP_USER"; then
+        log_error "User $APP_USER does not exist after creation"
+        return 1
+    fi
+
+    local actual_uid=$(id -u "$APP_USER" 2>/dev/null)
+    local actual_gid=$(id -g "$APP_USER" 2>/dev/null)
+
+    log_info "User $APP_USER ready: UID=$actual_uid, GID=$actual_gid"
+
+    # Warn if actual differs from requested (but don't fail)
+    if [ "$actual_uid" != "$target_uid" ]; then
+        log_warn "Actual UID ($actual_uid) differs from requested ($target_uid)"
+        log_warn "This is usually fine if permissions match."
+    fi
+    if [ "$actual_gid" != "$target_gid" ]; then
+        log_warn "Actual GID ($actual_gid) differs from requested ($target_gid)"
+        log_warn "This is usually fine if permissions match."
     fi
 
     return 0
@@ -291,50 +327,66 @@ setup_user_and_group() {
 setup_docker_socket_access() {
     local docker_sock="/var/run/docker.sock"
 
+    # Check if socket exists
     if [ ! -S "$docker_sock" ]; then
         log_warn "Docker socket not found at $docker_sock"
-        log_warn "Docker operations will not work. Mount the socket with:"
-        log_warn "  -v /var/run/docker.sock:/var/run/docker.sock"
-        return 0  # Not fatal - user might be testing without Docker
+        log_warn "Docker operations will not work!"
+        log_warn "Mount the socket with: -v /var/run/docker.sock:/var/run/docker.sock"
+        return 0  # Not fatal - continue startup to show the error in web UI
     fi
 
+    # Get socket's group ID
     local sock_gid=$(get_file_gid "$docker_sock")
 
     if [ -z "$sock_gid" ]; then
         log_warn "Could not determine Docker socket GID"
+        log_warn "Docker operations may fail"
         return 0
     fi
 
     log_info "Docker socket GID: $sock_gid"
 
-    # Don't add to root group (GID 0) - that's a security risk
+    # Handle root group (GID 0) specially
     if [ "$sock_gid" = "0" ]; then
-        log_warn "Docker socket is owned by root group (GID 0)"
-        log_warn "Consider running Docker with a dedicated docker group"
+        log_warn "Docker socket owned by root group (GID 0)"
+        log_warn "User will need root group membership or socket mode 666"
+        # Check if socket is world-readable
+        if [ -r "$docker_sock" ] 2>/dev/null; then
+            log_info "Docker socket appears to be world-accessible"
+        fi
         return 0
     fi
 
-    # Find or create a group with the socket's GID
+    # Find existing group with socket's GID or create one
     local sock_group=$(get_group_name_by_gid "$sock_gid")
 
     if [ -z "$sock_group" ]; then
-        # Create a new group for the socket
+        # No group exists with this GID - create one
         sock_group="dockersock"
-        addgroup -g "$sock_gid" -S "$sock_group" 2>/dev/null || {
-            # GID might be taken, try with auto GID
-            log_warn "Could not create group with GID $sock_gid"
+
+        # Check if 'dockersock' name is already taken
+        if group_exists_by_name "$sock_group"; then
+            # Name taken, use a different name
+            sock_group="docker$sock_gid"
+        fi
+
+        if addgroup -g "$sock_gid" -S "$sock_group" 2>/dev/null; then
+            log_info "Created group $sock_group with GID $sock_gid"
+        else
+            log_warn "Could not create group for Docker socket GID $sock_gid"
+            log_warn "Docker operations may fail"
             return 0
-        }
-        log_info "Created group $sock_group with GID $sock_gid"
+        fi
     fi
 
-    # Add user to the socket group
-    addgroup "$APP_USER" "$sock_group" 2>/dev/null || {
+    # Add our user to the socket group
+    if ! addgroup "$APP_USER" "$sock_group" 2>/dev/null; then
         log_warn "Could not add $APP_USER to group $sock_group"
+        log_warn "Docker operations may fail"
         return 0
-    }
+    fi
 
-    log_info "Added $APP_USER to docker group ($sock_group)"
+    log_info "Added $APP_USER to docker group ($sock_group, GID $sock_gid)"
     return 0
 }
 
@@ -345,12 +397,17 @@ setup_docker_socket_access() {
 setup_directories() {
     log_info "Setting up data directories..."
 
+    local failed=0
+
     # Create main data directories
     for dir in $DATA_DIRS; do
         if [ ! -d "$dir" ]; then
-            mkdir -p "$dir" 2>/dev/null || {
+            if mkdir -p "$dir" 2>/dev/null; then
+                log_info "Created directory $dir"
+            else
                 log_warn "Could not create directory $dir"
-            }
+                failed=1
+            fi
         fi
     done
 
@@ -361,40 +418,48 @@ setup_directories() {
             mkdir -p "$full_path" 2>/dev/null || true
         fi
     done
+
+    # Return status (0 = all ok, 1 = some failures)
+    return $failed
 }
 
 fix_permissions() {
     local target_uid="$1"
     local target_gid="$2"
 
-    log_info "Fixing ownership of data directories..."
+    log_info "Checking/fixing ownership of data directories..."
 
     # Check if permissions are already correct (optimization for restarts)
     local config_uid=$(get_file_uid "/app/config")
     local config_gid=$(get_file_gid "/app/config")
 
     if [ "$config_uid" = "$target_uid" ] && [ "$config_gid" = "$target_gid" ]; then
-        log_info "Permissions already correct, skipping chown"
+        log_info "Permissions already correct (UID=$config_uid, GID=$config_gid)"
         return 0
     fi
+
+    log_info "Current: UID=$config_uid, GID=$config_gid -> Target: UID=$target_uid, GID=$target_gid"
 
     # Try to fix permissions
     local chown_failed=0
 
     for dir in $DATA_DIRS; do
         if [ -d "$dir" ]; then
-            chown -R "$target_uid:$target_gid" "$dir" 2>/dev/null || {
-                log_warn "chown failed for $dir (might be NFS/SMB with restrictions)"
+            if chown -R "$target_uid:$target_gid" "$dir" 2>/dev/null; then
+                log_info "Fixed ownership of $dir"
+            else
+                log_warn "chown failed for $dir (NFS/SMB restrictions?)"
                 chown_failed=1
-            }
+            fi
         fi
     done
 
-    # Also try to chown /app itself for any temp files
+    # Also try to chown /app itself (for any temp files)
     chown "$target_uid:$target_gid" /app 2>/dev/null || true
 
     if [ "$chown_failed" = "1" ]; then
-        log_warn "Some chown operations failed - will verify with write test"
+        log_warn "Some chown operations failed"
+        log_warn "Will verify actual write access next..."
     fi
 
     return 0
@@ -403,59 +468,74 @@ fix_permissions() {
 verify_write_access() {
     local target_uid="$1"
     local target_gid="$2"
-    local test_file="/app/config/.permission_test_$$"
+    local test_file="/app/config/.ddc_permission_test"
 
-    log_info "Verifying write access..."
+    log_info "Verifying write access as UID $target_uid..."
 
-    # Clean up any stale test files from previous runs
+    # Clean up stale test files from previous runs
+    rm -f /app/config/.ddc_permission_test* 2>/dev/null || true
     rm -f /app/config/.permission_test_* 2>/dev/null || true
 
     # Check if su-exec is available
     if ! command_exists su-exec; then
-        log_error "su-exec not found - cannot verify permissions safely"
-        log_error "The container image may be corrupted. Please pull a fresh image."
+        log_error "su-exec not found!"
+        log_error "The container image may be corrupted."
+        log_error "Please pull a fresh image: docker pull dockerdiscordcontrol/dockerdiscordcontrol"
         return 1
     fi
 
-    # Try to write as the target user
-    if su-exec "$target_uid:$target_gid" touch "$test_file" 2>/dev/null; then
+    # First verify the user exists for su-exec
+    if ! user_exists "$APP_USER"; then
+        log_error "User $APP_USER does not exist!"
+        log_error "User creation must have failed. Check earlier log messages."
+        return 1
+    fi
+
+    # Try to write as the target user using su-exec
+    # Note: We use the APP_USER name, not UID, for better su-exec compatibility
+    local write_result
+    write_result=$(su-exec "$APP_USER" sh -c "touch '$test_file' 2>&1 && echo SUCCESS || echo FAILED")
+
+    if echo "$write_result" | grep -q "SUCCESS"; then
         rm -f "$test_file" 2>/dev/null || true
-        log_info "Write access verified successfully"
+        log_info "Write access: OK"
         return 0
     fi
 
-    # Write test failed - provide detailed help
+    # Write test failed - provide detailed diagnostics
     echo ""
     echo "==============================================================="
     echo "   PERMISSION ERROR - CANNOT WRITE TO CONFIG                   "
     echo "==============================================================="
     echo ""
-    echo "The container cannot write to /app/config as UID $target_uid."
+    echo "User $APP_USER (UID $target_uid) cannot write to /app/config"
     echo ""
-    echo "Current volume permissions:"
-    ls -ld /app/config 2>/dev/null || echo "  (could not read)"
+    echo "Diagnostic information:"
+    echo "  User info: $(id "$APP_USER" 2>/dev/null || echo "user lookup failed")"
+    echo "  Volume:    $(ls -ld /app/config 2>/dev/null || echo "cannot read")"
     echo ""
-    echo "This commonly happens on NAS systems (Unraid, Synology, QNAP)"
-    echo "where volumes are owned by a specific user."
+    echo "This commonly occurs on NAS systems where volumes are owned"
+    echo "by a specific user (e.g., 'nobody' on Unraid)."
     echo ""
     echo "SOLUTIONS (try in order):"
     echo ""
-    echo "  1. Match PUID/PGID to your volume owner:"
-    echo "     Check owner: ls -ln /path/to/your/appdata/ddc"
-    echo "     Then set environment variables:"
-    echo "       PUID=<owner_uid>  (e.g., 99 for Unraid nobody)"
-    echo "       PGID=<owner_gid>  (e.g., 100 for Unraid users)"
+    echo "  1. Set PUID/PGID to match your volume owner:"
+    echo "     - Check owner: ls -ln /path/to/your/appdata/ddc"
+    echo "     - Set environment variables to match:"
+    echo "         PUID=<owner_uid>"
+    echo "         PGID=<owner_gid>"
     echo ""
     echo "  2. Fix permissions on the host:"
     echo "     chown -R $target_uid:$target_gid /path/to/your/appdata/ddc"
     echo ""
-    echo "  3. Last resort - permissive mode (less secure):"
+    echo "  3. Last resort (less secure):"
     echo "     chmod -R 777 /path/to/your/appdata/ddc"
     echo ""
     echo "Common NAS defaults:"
-    echo "  Unraid:   PUID=99   PGID=100"
+    echo "  Unraid:   PUID=99   PGID=100  (nobody:users)"
     echo "  Synology: PUID=1026 PGID=100"
-    echo "  TrueNAS:  PUID=568  PGID=568"
+    echo "  TrueNAS:  PUID=568  PGID=568  (apps:apps)"
+    echo "  QNAP:     PUID=1000 PGID=1000"
     echo ""
     echo "==============================================================="
 
@@ -469,17 +549,31 @@ verify_write_access() {
 drop_privileges() {
     local target_uid="$1"
     local target_gid="$2"
+    shift 2  # Remove uid and gid from args
 
     log_info "Dropping privileges to $APP_USER (UID=$target_uid)..."
 
     if ! command_exists su-exec; then
         log_fatal "su-exec not found - cannot drop privileges safely.
-Please ensure the container image includes su-exec.
-As a workaround, you can run with --user $target_uid:$target_gid"
+
+The container image appears to be corrupted or modified.
+Please pull a fresh image:
+  docker pull dockerdiscordcontrol/dockerdiscordcontrol
+
+Workaround: Run container with --user $target_uid:$target_gid
+(Note: This skips permission setup and may cause issues)"
+    fi
+
+    # Verify user exists before trying to switch
+    if ! user_exists "$APP_USER"; then
+        log_fatal "Cannot drop privileges - user $APP_USER does not exist!
+
+User creation must have failed. Please check the logs above."
     fi
 
     # Re-execute this script as the target user
-    exec su-exec "$target_uid:$target_gid" "$0" "$@"
+    # Use user name instead of UID for better compatibility
+    exec su-exec "$APP_USER" "$0" "$@"
 }
 
 # ============================================================================ #
@@ -487,23 +581,36 @@ As a workaround, you can run with --user $target_uid:$target_gid"
 # ============================================================================ #
 
 start_as_user() {
+    local current_uid=$(id -u)
+    local current_gid=$(id -g)
+
     log_info "Running as: $(id)"
+
+    # Check if PUID/PGID were set but we're running as different user
+    # (happens when someone uses both --user and PUID/PGID)
+    if [ -n "$PUID" ] && [ "$PUID" != "$current_uid" ]; then
+        log_warn "PUID=$PUID was set but running as UID $current_uid"
+        log_warn "PUID/PGID are ignored when using --user flag"
+    fi
 
     # Verify docker socket access
     local docker_sock="/var/run/docker.sock"
     if [ -S "$docker_sock" ]; then
         if [ -r "$docker_sock" ] && [ -w "$docker_sock" ]; then
-            log_info "Docker socket: read/write access OK"
+            log_info "Docker socket: read/write OK"
         elif [ -r "$docker_sock" ]; then
-            log_warn "Docker socket: read-only access (some operations may fail)"
+            log_warn "Docker socket: read-only (some operations may fail)"
         else
-            log_warn "Docker socket: NO ACCESS"
-            log_warn "Container operations will fail!"
-            log_warn "Check that the socket is mounted and has correct permissions"
+            log_error "Docker socket: NO ACCESS"
+            log_error "Container control will not work!"
+            log_error "Check socket permissions or add user to docker group"
         fi
+    else
+        log_error "Docker socket not mounted!"
+        log_error "Container control will not work!"
     fi
 
-    # Final write test
+    # Final write test for config directory
     if ! is_writable "/app/config"; then
         echo ""
         echo "==============================================================="
@@ -511,19 +618,28 @@ start_as_user() {
         echo "==============================================================="
         echo "Cannot write to /app/config as $(id)"
         echo ""
-        echo "Try setting PUID/PGID environment variables."
-        echo "On Unraid: PUID=99 PGID=100"
+        echo "If you used --user flag, ensure the volume has correct permissions."
+        echo "Otherwise, set PUID/PGID environment variables."
+        echo ""
+        echo "Example for Unraid: PUID=99 PGID=100"
         echo "==============================================================="
         exit 1
     fi
 
-    # Warn about logs if not writable
+    # Check logs directory (warn but don't fail)
     if ! is_writable "/app/logs"; then
-        log_warn "Cannot write to /app/logs - logging to file will fail"
+        log_warn "Cannot write to /app/logs"
+        log_warn "File logging will be disabled"
     fi
 
-    # Start the application
-    log_info "Starting DDC application..."
+    # Check cached_displays directory
+    if ! is_writable "/app/cached_displays"; then
+        log_warn "Cannot write to /app/cached_displays"
+        log_warn "Display caching may not work"
+    fi
+
+    # All checks passed - start the application
+    log_info "All checks passed - starting DDC..."
     exec python3 run.py
 }
 
@@ -538,49 +654,62 @@ main() {
     PUID="${PUID:-$DEFAULT_UID}"
     PGID="${PGID:-$DEFAULT_GID}"
 
-    # Trim whitespace (handles "PUID= 1000" edge case)
-    PUID=$(echo "$PUID" | tr -d '[:space:]')
-    PGID=$(echo "$PGID" | tr -d '[:space:]')
+    # Sanitize: trim whitespace (handles "PUID= 1000" edge case)
+    PUID=$(printf '%s' "$PUID" | tr -d '[:space:]')
+    PGID=$(printf '%s' "$PGID" | tr -d '[:space:]')
 
-    # Use defaults if empty after trimming
+    # Sanitize: remove leading zeros to avoid octal interpretation issues
+    # (though POSIX sh doesn't interpret leading zeros as octal in arithmetic)
+    PUID=$(printf '%s' "$PUID" | sed 's/^0*//' | grep . || echo "0")
+    PGID=$(printf '%s' "$PGID" | sed 's/^0*//' | grep . || echo "0")
+
+    # Use defaults if empty after sanitization
     [ -z "$PUID" ] && PUID="$DEFAULT_UID"
     [ -z "$PGID" ] && PGID="$DEFAULT_GID"
 
-    # Validate IDs
+    # Validate IDs before proceeding
     validate_ids "$PUID" "$PGID"
 
     # Check if we're running as root
     if [ "$(id -u)" = "0" ]; then
         log_info "Running as root, setting up environment..."
-        log_info "Target UID: $PUID, Target GID: $PGID"
+        log_info "Target: UID=$PUID, GID=$PGID"
 
-        # Only modify user if PUID/PGID differ from defaults
+        # Setup user/group if PUID/PGID differ from image defaults
         if [ "$PUID" != "$DEFAULT_UID" ] || [ "$PGID" != "$DEFAULT_GID" ]; then
-            setup_user_and_group "$PUID" "$PGID" || {
-                log_warn "User setup had issues, continuing anyway..."
-            }
+            if ! setup_user_and_group "$PUID" "$PGID"; then
+                log_warn "User setup had issues, attempting to continue..."
+            fi
+        else
+            log_info "Using default user (UID=$DEFAULT_UID, GID=$DEFAULT_GID)"
         fi
 
-        # Setup docker socket access
+        # Setup docker socket access (always, even with default UID)
         setup_docker_socket_access
 
-        # Create and fix directories
+        # Create directories (if they don't exist)
         setup_directories
+
+        # Fix permissions
         fix_permissions "$PUID" "$PGID"
 
-        # Verify we can actually write
+        # Verify write access before dropping privileges
         if ! verify_write_access "$PUID" "$PGID"; then
-            exit 1
+            log_fatal "Cannot continue without write access to config directory"
         fi
 
-        # Drop privileges and re-run this script
+        # Drop privileges and re-execute this script
         drop_privileges "$PUID" "$PGID" "$@"
 
     else
-        # Already running as non-root (after privilege drop or started with --user)
+        # Already running as non-root
+        # This happens after privilege drop OR when started with --user
         start_as_user
     fi
 }
 
-# Run main function
+# ============================================================================ #
+# ENTRY POINT
+# ============================================================================ #
+
 main "$@"
