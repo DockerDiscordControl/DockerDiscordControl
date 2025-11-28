@@ -85,13 +85,15 @@ WORKDIR /app
 # Added back: tzdata (required for timezone selection support)
 # Note: docker-cli removed - we use Docker Python SDK (docker-py)
 # Note: freetype removed - pulls vulnerable libpng, we don't use fonts
+# Note: su-exec added for permission handling on Unraid/NAS systems
 RUN apk update && \
     apk add --no-cache \
     python3 \
     ca-certificates \
     jpeg \
     zlib \
-    tzdata && \
+    tzdata \
+    su-exec && \
     apk upgrade --no-cache && \
     rm -rf /var/cache/apk/*
 
@@ -185,6 +187,7 @@ ENV PYTHONPATH="/app:/opt/runtime/site-packages" \
 # Set default timezone
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-USER ddc
+# Note: We start as root to fix volume permissions on Unraid/NAS systems
+# The entrypoint.sh will drop privileges to 'ddc' user after fixing permissions
 EXPOSE 9374
 ENTRYPOINT ["/app/entrypoint.sh"]
