@@ -502,11 +502,72 @@
 
         /* Mobile Responsive */
         @media (max-width: 768px) {
-            .terminal-text, .cursor { 
-                font-size: 14px; 
+            .terminal-text, .cursor {
+                font-size: 14px;
             }
             .terminal-content {
                 padding: 15px;
+            }
+
+            /* Mech Container: Stack vertically on mobile */
+            .donator-mech-container {
+                flex-direction: column !important;
+                padding: 12px;
+                max-width: 100%;
+            }
+
+            .mech-section {
+                min-width: unset;
+                width: 100%;
+                margin-right: 0;
+                margin-bottom: 16px;
+            }
+
+            .gauge-container {
+                min-width: unset;
+                width: 100%;
+                padding: 0 8px;
+            }
+
+            .bar-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+
+            .bar-wrapper {
+                flex: unset;
+                width: 100%;
+            }
+
+            .power-bar, .evolution-bar {
+                width: 100%;
+            }
+
+            .bar-label {
+                width: 100%;
+                text-align: center;
+            }
+
+            .bar-label span {
+                flex-direction: row !important;
+                gap: 8px;
+            }
+        }
+
+        /* Extra small devices */
+        @media (max-width: 480px) {
+            .donator-mech-container {
+                padding: 8px;
+            }
+
+            .mech-display img {
+                max-height: 80px !important;
+                max-width: 160px !important;
+            }
+
+            .donation-button img {
+                height: 35px !important;
             }
         }
     </style>

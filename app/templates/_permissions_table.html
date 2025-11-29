@@ -9,10 +9,11 @@
         <br>• <strong>All users:</strong> Can use <code>/serverstatus</code> command to view container status
         <br>• <strong>Admin users:</strong> Full access to Start, Stop, Restart buttons, <code>/task</code> commands, Info system, and Admin Control Panel
     </div>
-    <div class="d-flex justify-content-between mb-3">
+    <div class="d-flex justify-content-between flex-wrap gap-2 mb-3">
         <button type="button" class="btn btn-success btn-sm" onclick="addStatusChannelRow()">+ Add Channel</button>
         <button type="button" class="btn btn-warning btn-sm" onclick="openAdminModal()">👤 Admin Users</button>
     </div>
+    <div class="table-responsive">
     <table class="table table-dark table-sm small table-hover" id="status-channels-table">
         <thead>
             <tr>
@@ -103,6 +104,7 @@
             {% endif %}
         </tbody>
     </table>
+    </div><!-- table-responsive -->
 </div>
 
 <!-- Control Channels Section -->
@@ -115,6 +117,7 @@
     <div class="mb-3">
         <button type="button" class="btn btn-success btn-sm" onclick="addControlChannelRow()">+ Add Channel</button>
     </div>
+    <div class="table-responsive">
     <table class="table table-dark table-sm small table-hover" id="control-channels-table">
         <thead>
             <tr>
@@ -203,6 +206,7 @@
             {% endif %}
         </tbody>
     </table>
+    </div><!-- table-responsive -->
 </div>
 
 <!-- Admin Users Modal -->
