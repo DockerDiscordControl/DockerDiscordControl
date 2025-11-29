@@ -2,101 +2,125 @@
 
 All notable changes to DockerDiscordControl will be documented in this file.
 
-## v2.5.2 - 2025-11-26
+---
 
-### Auto-Action System (AAS) - Critical Fixes & Hardening
+## v2.1.2 - 2025-11-28
 
-#### 🔴 Critical Bug Fixes + Additional Hardening
+### Unraid/NAS Permission Fix + Mobile UI
 
-**State File Migration** (`auto_action_state_service.py`)
-- Fixed key mismatch: `global_cooldown_last_triggered` → `global_last_triggered`
-- Added automatic migration logic for existing installations
-- Added missing `container_cooldowns` key to state file structure
-- Cooldowns now properly persist across service restarts
+#### 🔧 Permission Handling (Hardened)
 
-**Async Route Handler Fix** (`automation_routes.py`)
-- Fixed async/sync mismatch in Flask route `/api/automation/test`
-- Converted to synchronous handler with proper asyncio.run() wrapper
-- Added 30-second timeout for safety
-- Prevents potential blocking of Flask event loop
+**PUID/PGID Support:**
+- NEW: PUID/PGID environment variables for custom user/group mapping
+- NEW: Automatic permission fixing at container startup
+- FIXED: Container failed to start on Unraid due to volume permission issues
+- IMPROVED: Clear error messages with NAS-specific guidance
 
-**Race Condition Prevention** (`auto_action_state_service.py`)
-- NEW: `acquire_execution_lock()` - Atomic check-and-set for cooldowns
-- NEW: `release_execution_lock()` - Cleanup on execution failure
-- Prevents duplicate rule execution from rapid concurrent messages
-- Updated `automation_service.py` to use atomic locking
+**Supported NAS Systems:**
+| System | PUID | PGID |
+|--------|------|------|
+| Unraid | 99 | 100 |
+| Synology | 1026 | 100 |
+| TrueNAS | 568 | 568 |
+| QNAP | 1000 | 1000 |
 
-#### 🟠 Security Hardening
+**Entrypoint Hardening:**
+- Input validation for PUID/PGID (numeric, 1-65534)
+- Handles UID/GID conflicts with existing system users
+- Reuses existing groups if GID matches
+- Graceful fallbacks for edge cases
+- NFS `root_squash` handling
 
-**Comprehensive Input Validation** (`auto_action_config_service.py`)
-- Discord Snowflake ID validation (17-19 digits)
-- ReDoS prevention for regex patterns (detects catastrophic backtracking)
-- Priority range validation (1-100)
-- Cooldown range validation (1-10080 minutes)
-- Delay range validation (0-3600 seconds)
-- Keyword count limit (max 50)
-- HTML/XSS sanitization for rule names
-- Action type validation (RESTART, STOP, START, RECREATE, NOTIFY)
+#### 🎮 New Discord Command
 
-**Protected Container Warnings**
-- Validation now warns when rules target protected containers (ddc, portainer)
-- Warnings stored in rule metadata for visibility
-- Runtime protection remains unchanged (blocks execution)
+- **`/addadmin`** - Add admin users directly from Discord
+  - Opens modal to enter Discord User ID
+  - In Control channels: Any user can add admins
+  - In Status channels: Only existing admins can add new admins
+  - Full German and French translations
 
-**Regex Timeout Protection** (`automation_service.py`)
-- Added 500ms timeout to regex execution via `asyncio.wait_for()`
-- Prevents ReDoS attacks from hanging the message processing
-- Graceful fallback: logs warning and continues to keyword matching (if available)
-- Regex-only rules return clear "Regex timeout" message on failure
+#### 📱 Mobile UI Improvements
 
-**Improved Error Handling** (`auto_action_state_service.py`)
-- Added explicit SKIPPED result handling in `record_trigger()`
-- Added debug logging for cooldown releases on failed executions
-- Clearer distinction between SUCCESS, FAILED, and SKIPPED states
-
-**Better Error Messages** (`automation_service.py`)
-- Regex-only rules now return "Regex pattern did not match" instead of "No keywords"
-- "No trigger conditions configured" instead of generic "No keywords" message
-- Truncated regex pattern in error messages (max 50 chars) for readability
-
-#### 🔧 Frontend Improvements
-
-**Form Data Preservation** (`auto_actions.js`)
-- Fixed bug: `allowed_usernames` no longer lost on rule edit/save
-- Preserved `enabled` state when editing existing rules
-- Added `currentRuleData` variable to track full rule state
-
-#### 📝 Technical Details
-
-**Files Modified:**
-- `services/automation/auto_action_state_service.py` - Migration, atomic locking
-- `services/automation/auto_action_config_service.py` - Validation functions
-- `services/automation/automation_service.py` - Use atomic locking
-- `app/blueprints/automation_routes.py` - Sync route handler
-- `app/static/js/auto_actions.js` - Form data preservation
-- `config/auto_actions_state.json` - Corrected key names
-
-**Validation Constants Added:**
-```python
-MAX_RULE_NAME_LENGTH = 100
-MAX_KEYWORDS = 50
-MAX_KEYWORD_LENGTH = 100
-MIN_PRIORITY = 1, MAX_PRIORITY = 100
-MIN_COOLDOWN_MINUTES = 1, MAX_COOLDOWN_MINUTES = 10080
-MIN_DELAY_SECONDS = 0, MAX_DELAY_SECONDS = 3600
-```
+- Web UI now fully responsive on mobile devices
+- Mech display stacks vertically on small screens
+- Channel tables scroll horizontally on mobile
+- Log buttons wrap properly on narrow screens
+- Donation buttons stack with spacing on mobile
 
 ---
 
-## v2.5.1 - 2025-11-26
+## v2.1.1 - 2025-11-27
 
-### Unified Logging & Cleanup
+### Hot-Reload & Bug Fixes
 
-- Enhanced logging across all services with unified logging_utils
-- Removed obsolete mech config files (evolution_config.json, speed_translations.json)
-- Removed hardcoded story files (now loaded dynamically via service)
-- Improved token security and web helper functions
-- Standardized logging patterns across infrastructure services
+#### 🔥 Hot-Reload Configuration
+
+Most settings now take effect immediately without container restart:
+
+**Hot-Reload Supported:**
+- Container selection, order, display names, actions
+- Channel permissions and admin users list
+- Web UI password, language, and timezone
+- Spam protection settings
+
+**Requires Restart:**
+- Bot Token changes
+- Guild ID changes
+
+#### 🔒 Security & Permissions
+
+- IMPROVED: Strict channel separation
+  - `/ss` only works in status channels
+  - `/control` only works in control channels
+- FIXED: Missing permission check for `/control` command
+
+#### 🐛 Bug Fixes
+
+- FIXED: Channel config files saved with name instead of Discord ID
+- FIXED: UpdateNotifier wrong method name (`mark_notification_shown`)
+- FIXED: ConfigService missing `_get_default_channels_config` attribute
+- IMPROVED: Recreation logic with better bot message detection
+- IMPROVED: Safety checks for `bot.user` and `application_id`
+
+---
+
+## v2.1.0 - 2025-11-26
+
+### Auto-Action System & Status Watchdog
+
+#### 🤖 Auto-Action System (AAS)
+
+Intelligent container automation that monitors Discord channels and triggers actions:
+
+**Features:**
+- 🎮 Game Server Auto-Updates - Restart when update bots announce new versions
+- 🔗 Universal Webhook Control - Trigger from CI/CD, monitoring, GitHub Actions
+- 📝 Flexible Triggers - Keywords (with fuzzy search) or regex patterns
+- 🛡️ Built-in Safety - Cooldowns, protected containers, atomic locking
+- 🔒 Zero Attack Surface - Outbound only, no exposed APIs
+
+**Technical Implementation:**
+- State file migration with automatic key correction
+- Atomic check-and-set for cooldowns (`acquire_execution_lock`)
+- 500ms regex timeout protection (ReDoS prevention)
+- Comprehensive input validation (Snowflake IDs, regex patterns, ranges)
+- Form data preservation in Web UI
+
+#### 🔔 Status Watchdog
+
+Dead Man's Switch monitoring:
+- Get alerts when DDC goes offline
+- Simple setup with Healthchecks.io or Uptime Kuma
+- Only outbound HTTPS pings - no tokens shared
+- Compatible with 20+ monitoring services
+
+#### 🏗️ Architecture Improvements
+
+- Single-process architecture (removed supervisord & gunicorn)
+- 65% RAM reduction - from ~200MB to 60-70MB typical usage
+- Unified logging system with consistent formatting
+- Service-first architecture with single point of truth
+- Cleaner codebase with reduced complexity
 
 ---
 
@@ -106,58 +130,48 @@ MIN_DELAY_SECONDS = 0, MAX_DELAY_SECONDS = 3600
 
 Production-ready release with multi-language support, performance improvements, and security enhancements.
 
-#### Multi-Language Support
+#### 🎮 EVERYTHING via Discord
+
+- Live Logs Viewer - Monitor container output in real-time
+- Task System - Create, view, delete tasks (Once, Daily, Weekly, Monthly, Yearly)
+- Container Info System - Custom info and password-protected info
+- Public IP Display - Automatic WAN IP detection with custom port support
+- Full container management (start, stop, restart, bulk operations)
+
+#### 🌍 Multi-Language Support
+
 - Full Discord UI translation in German, French, and English
 - Complete language coverage for all buttons, messages, and interactions
 - Dynamic language switching via Web UI settings
 - 100% translation coverage across entire bot interface
 
-#### Mech Evolution System
+#### 🤖 Mech Evolution System
+
 - 11-stage Mech Evolution with animated WebP graphics
 - Continuous power decay system for fair donation tracking
 - Premium key system for power users
 - Visual feedback with stage-specific animations
 
-#### Performance Improvements
-- 16x faster Docker status cache (500ms to 31ms)
+#### ⚡ Performance Improvements
+
+- 16x faster Docker status cache (500ms → 31ms)
 - 7x faster container processing through async optimization
 - Smart queue system with fair request processing
 - Ultra-compact image (less than 200MB RAM usage)
 
-#### Modern UI/UX
-- Beautiful Discord embeds with consistent styling
-- Advanced spam protection with configurable cooldowns
-- Enhanced container information system
-- Real-time monitoring and status updates
+#### 🔒 Security & Infrastructure
 
-#### Security & Infrastructure
-- Alpine Linux 3.22.1 base (94% fewer vulnerabilities)
+- Alpine Linux 3.22.2 base (94% fewer vulnerabilities)
 - Production-ready security hardening
 - Enhanced token encryption and validation
 - Flask 3.1.1 and Werkzeug 3.1.3 (all CVEs resolved)
 
-#### Critical Fixes
-- Port mapping consistency (9374) for Unraid deployment
-- Interaction timeout issues with defer() pattern
-- Container control reliability improvements
-- Web UI configuration persistence
+#### 🔐 Security Fixes
 
-#### Security Fixes (2025-11-18)
-Eight CodeQL security alerts resolved affecting 35+ locations:
-- DOM-based XSS vulnerability - alert messages in Web UI (High severity)
-- DOM-based XSS vulnerability - container info modal (High severity)
-- Information exposure through exceptions - 18 API endpoints (Medium severity)
-- Information exposure through exceptions - Mech reset endpoint (Medium severity)
-- Information exposure through exceptions - Mech status endpoint (Medium severity)
-- Information exposure through exceptions - 12 additional endpoints (Medium severity)
-- Incomplete URL substring sanitization - validation check (Medium severity)
-- Incomplete URL substring sanitization - replace method (Medium severity)
-
-#### Production Release Changes
-- Removed development infrastructure from main branch
-- Main branch is now production-only
-- Development continues in v2.0 branch
-- 132 development files archived
+Eight CodeQL security alerts resolved:
+- DOM-based XSS vulnerabilities in Web UI (High)
+- Information exposure through exceptions (Medium)
+- Incomplete URL substring sanitization (Medium)
 
 ---
 
@@ -165,4 +179,4 @@ Eight CodeQL security alerts resolved affecting 35+ locations:
 
 Previous versions (v1.x) were development releases. Version 2.0.0 is the first production-ready release.
 
-For detailed development history and older versions, see the v2.0 development branch.
+For detailed development history, see the repository commit history.
