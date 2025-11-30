@@ -2,12 +2,15 @@
 
 <!-- Status Channels Section -->
 <div id="permissions-table" class="mb-4 card p-3">
-    <h4>Status Channels</h4>
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <h4 class="mb-0">Status Channels</h4>
+        <span class="handwritten-note">← For the community</span>
+    </div>
     <p class="form-text">Status channels display container status messages with restricted control access.</p>
     <div class="alert alert-info small">
         <strong>Permissions:</strong>
         <br>• <strong>All users:</strong> Can use <code>/serverstatus</code> command to view container status
-        <br>• <strong>Admin users:</strong> Full access to Start, Stop, Restart buttons, <code>/task</code> commands, Info system, and Admin Control Panel
+        <br>• <strong>Admin users:</strong> Full access to Start, Stop, Restart buttons, Task system, Info system, and Admin Control Panel
     </div>
     <div class="d-flex justify-content-between flex-wrap gap-2 mb-3">
         <button type="button" class="btn btn-success btn-sm" onclick="addStatusChannelRow()">+ Add Channel</button>
@@ -109,10 +112,13 @@
 
 <!-- Control Channels Section -->
 <div class="mb-3 card p-3">
-    <h4>Control Channels</h4>
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <h4 class="mb-0">Control Channels</h4>
+        <span class="handwritten-note">← For Admins</span>
+    </div>
     <p class="form-text">Control channels provide full container management capabilities to ALL users in the channel.</p>
     <div class="alert alert-warning small">
-        <strong>🚨 Security Warning:</strong> ALL users in control channels have unrestricted access to ALL container management functions including Start, Stop, Restart, /task commands, and Info editing. Only add trusted channels here!
+        <strong>🚨 Security Warning:</strong> ALL users in control channels have unrestricted access to ALL container management functions including Start, Stop, Restart, Task system, and Info editing. Only add trusted channels here!
     </div>
     <div class="mb-3">
         <button type="button" class="btn btn-success btn-sm" onclick="addControlChannelRow()">+ Add Channel</button>
@@ -218,7 +224,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted">Admin users have full container control in Status Channels, including Start/Stop/Restart buttons, /task commands, Info system, and Admin Control Panel (🛠️ button).</p>
+                <p class="text-muted">Admin users have full container control in Status Channels, including Start/Stop/Restart buttons, Task system, Info system, and Admin Control Panel (🛠️ button).</p>
                 <div class="alert alert-info small">
                     <strong>Note:</strong> This only affects Status Channels. In Control Channels, ALL users have full access regardless of admin status.
                 </div>
@@ -244,3 +250,15 @@
         </div>
     </div>
 </div>
+
+<style>
+/* Handwritten note style for channel hints */
+.handwritten-note {
+    font-family: 'Comic Sans MS', 'Chalkboard', 'Bradley Hand', cursive;
+    font-size: 0.9em;
+    color: #ffc107;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    transform: rotate(-3deg);
+    display: inline-block;
+}
+</style>
