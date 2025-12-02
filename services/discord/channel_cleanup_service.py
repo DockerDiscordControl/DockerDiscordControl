@@ -125,10 +125,11 @@ class ChannelCleanupService:
         message_limit: int = 200
     ) -> ChannelCleanupResult:
         """
-        Delete bot messages while preserving Live Log messages.
+        Delete bot messages while preserving Live Log and AAS messages.
 
         This method replicates the complex Live Log preservation logic
-        from the original delete_bot_messages method.
+        from the original delete_bot_messages method, and also preserves
+        Auto-Action System (AAS) notification messages.
 
         Args:
             channel: Discord text channel to clean
@@ -139,8 +140,8 @@ class ChannelCleanupService:
             ChannelCleanupResult with detailed operation statistics
         """
 
-        def is_bot_but_not_live_logs(message: discord.Message) -> bool:
-            """Filter function that excludes Live Log messages."""
+        def is_bot_but_not_preserved(message: discord.Message) -> bool:
+            """Filter function that excludes Live Log and AAS messages."""
             if message.author != self.bot.user:
                 return False
 
@@ -161,6 +162,15 @@ class ChannelCleanupService:
                         logger.debug(f"Preserving Live Log message {message.id} with footer: {embed.footer.text}")
                         return False
 
+            # Check if this is an AAS (Auto-Action System) notification message
+            # AAS messages have pattern: "⚡ `action` **container** — *RuleName*" or "⚠️ ... — *RuleName*"
+            if message.content:
+                content = message.content
+                # AAS messages start with ⚡ or ⚠️ and contain " — *" (rule name in italics)
+                if (content.startswith("⚡") or content.startswith("⚠️")) and " — *" in content:
+                    logger.debug(f"Preserving AAS message {message.id}: {content[:50]}...")
+                    return False
+
             return True
 
         request = ChannelCleanupRequest(
@@ -169,7 +179,7 @@ class ChannelCleanupService:
             message_limit=message_limit,
             bot_only=True,
             target_author=self.bot.user,
-            custom_filter=is_bot_but_not_live_logs,
+            custom_filter=is_bot_but_not_preserved,
             use_purge=True,  # Use purge for efficiency like original method
             purge_timeout=30.0
         )
