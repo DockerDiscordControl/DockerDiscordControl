@@ -14,6 +14,7 @@ APScheduler==3.10.4
 python-dotenv==1.0.1
 PyYAML==6.0.1
 requests==2.32.4
+urllib3>=2.6.0  # Security fix for GHSA-s4qh-5xfq-xqjg
 aiohttp>=3.12.14
 Flask-HTTPAuth==4.8.0
 Jinja2>=3.1.4
