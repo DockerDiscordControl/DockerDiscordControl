@@ -1,6 +1,6 @@
 # DDC PRODUCTION REQUIREMENTS (minimal)
 Flask==3.1.1
-Werkzeug==3.1.4
+Werkzeug>=3.1.5  # Security fix for GHSA-hgf8-39gv-g3f2
 py-cord==2.6.1
 waitress==3.0.2
 cryptography>=45.0.5
