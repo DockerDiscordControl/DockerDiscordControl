@@ -705,6 +705,11 @@ class AnimationCacheService:
             logger.debug(f"Animation already cached for evolution {evolution_level} ({animation_type}, {resolution})")
             return
 
+        # V2.0 Cache-Only: Cannot generate new animations without PNG sources
+        if self.assets_dir is None:
+            logger.warning(f"V2.0 Cache-Only: Cannot generate {animation_type} animation for evolution {evolution_level} ({resolution}) - PNG sources not available")
+            return
+
         logger.info(f"Pre-generating {animation_type} animation for evolution level {evolution_level} ({resolution} resolution)")
 
         try:
