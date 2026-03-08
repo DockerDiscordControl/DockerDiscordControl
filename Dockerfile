@@ -95,7 +95,10 @@ RUN apk update && \
     tzdata \
     su-exec && \
     apk upgrade --no-cache && \
-    rm -rf /var/cache/apk/*
+    rm -rf /var/cache/apk/* && \
+    # Remove busybox wget applet (CVE-2025-60876 - HTTP header injection)
+    # Not needed: Python requests/aiohttp handle all HTTP in DDC
+    rm -f /usr/bin/wget
 
 # Copy cleaned venv from builder
 COPY --from=builder /runtime/site-packages /opt/runtime/site-packages
