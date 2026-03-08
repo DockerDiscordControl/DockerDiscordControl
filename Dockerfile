@@ -95,10 +95,7 @@ RUN apk update && \
     tzdata \
     su-exec && \
     apk upgrade --no-cache && \
-    rm -rf /var/cache/apk/* && \
-    # Remove busybox wget applet (CVE-2025-60876 - HTTP header injection)
-    # Not needed: Python requests/aiohttp handle all HTTP in DDC
-    rm -f /usr/bin/wget
+    rm -rf /var/cache/apk/*
 
 # Copy cleaned venv from builder
 COPY --from=builder /runtime/site-packages /opt/runtime/site-packages
@@ -149,7 +146,10 @@ RUN apk add --no-cache --virtual .strip-deps binutils && \
     strip --strip-unneeded /usr/bin/python3 && \
     strip --strip-unneeded /usr/lib/libpython3.* && \
     find /usr/lib/python3.*/lib-dynload -type f -name "*.so" -exec strip --strip-unneeded {} + && \
-    apk del .strip-deps
+    apk del .strip-deps && \
+    # Remove busybox wget applet AFTER all apk operations
+    # (CVE-2025-60876 - HTTP header injection, not needed by DDC)
+    rm -f /usr/bin/wget
 
 # Create user
 RUN addgroup -g 1000 -S ddc && \
