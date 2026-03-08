@@ -7,11 +7,13 @@
 # ============================================================================ #
 
 from flask import Blueprint, request, jsonify, current_app, render_template
+from app.auth import auth
 
 tasks_bp = Blueprint('tasks_bp', __name__, url_prefix='/tasks')
 
 
 @tasks_bp.route('/add', methods=['POST'])
+@auth.login_required
 def add_task():
     """Adds a new task using TaskManagementService."""
     try:
@@ -65,6 +67,7 @@ def add_task():
         return jsonify({"error": "Data error handling add_task request."}), 500
 
 @tasks_bp.route('/list', methods=['GET'])
+@auth.login_required
 def list_tasks():
     """Returns the list of saved tasks using TaskManagementService."""
     try:
@@ -94,6 +97,7 @@ def list_tasks():
         return jsonify({"error": "Data error listing tasks."}), 500
 
 @tasks_bp.route('/form', methods=['GET'])
+@auth.login_required
 def show_task_form():
     """Shows the form for creating tasks using TaskManagementService."""
     try:
@@ -135,6 +139,7 @@ def show_task_form():
 
 
 @tasks_bp.route('/update_status', methods=['POST'])
+@auth.login_required
 def update_task_status():
     """Updates the active status of a task using TaskManagementService."""
     try:
@@ -186,6 +191,7 @@ def update_task_status():
         return jsonify({"success": False, "error": "Data error updating task status"}), 500
 
 @tasks_bp.route('/delete/<task_id>', methods=['DELETE'])
+@auth.login_required
 def delete_task_route(task_id):
     """Deletes a specific task by ID using TaskManagementService."""
     try:
@@ -223,6 +229,7 @@ def delete_task_route(task_id):
         return jsonify({"success": False, "error": "Data error deleting task"}), 500
 
 @tasks_bp.route('/edit/<task_id>', methods=['GET', 'PUT'])
+@auth.login_required
 def edit_task_route(task_id):
     """Gets or updates a specific task by ID using TaskManagementService."""
     try:

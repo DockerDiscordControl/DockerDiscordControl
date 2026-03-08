@@ -259,12 +259,21 @@ Licensed under the MIT License
                 const result = await response.json();
                 
                 if (result.success) {
-                    showAlert(result.message, 'success');
-                    
-                    // Redirect to login after 2 seconds
+                    showAlert(result.message + ' Redirecting...', 'success');
+
+                    // Auto-login: pre-authenticate with the new credentials
+                    // so the browser caches Basic Auth and skips the login prompt
                     setTimeout(() => {
-                        window.location.href = '/';
-                    }, 2000);
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('GET', '/', true, 'admin', password);
+                        xhr.onload = function() {
+                            window.location.href = '/';
+                        };
+                        xhr.onerror = function() {
+                            window.location.href = '/';
+                        };
+                        xhr.send();
+                    }, 1500);
                 } else {
                     showAlert(result.error || 'Setup failed', 'danger');
                 }

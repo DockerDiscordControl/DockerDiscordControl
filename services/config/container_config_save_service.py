@@ -11,12 +11,24 @@ SERVICE FIRST: Container Configuration Save Service - SINGLE POINT OF TRUTH
 
 import logging
 import json
+import re
 import tempfile
 from pathlib import Path
 from typing import Dict, Any
 import os
 
 logger = logging.getLogger('ddc.container_config_save_service')
+
+_SAFE_NAME_RE = re.compile(r'^[a-zA-Z0-9][a-zA-Z0-9_.-]*$')
+
+
+def _validate_path_safety(name: str, base_dir: Path) -> None:
+    """Validate that a name is safe and the resulting path stays within base_dir."""
+    if not _SAFE_NAME_RE.match(name):
+        raise ValueError(f"Invalid container name: {name!r}")
+    resolved = (base_dir / f"{name}.json").resolve()
+    if not str(resolved).startswith(str(base_dir.resolve())):
+        raise ValueError(f"Path traversal detected: {name!r}")
 
 class ContainerConfigSaveService:
     """Service First implementation for saving container configurations.
@@ -46,6 +58,8 @@ class ContainerConfigSaveService:
             True if successful, False otherwise
         """
         try:
+            _validate_path_safety(container_name, self.containers_dir)
+
             # Determine file path
             config_file = self.containers_dir / f"{container_name}.json"
 
@@ -94,6 +108,8 @@ class ContainerConfigSaveService:
             True if successful or file doesn't exist, False on error
         """
         try:
+            _validate_path_safety(container_name, self.containers_dir)
+
             config_file = self.containers_dir / f"{container_name}.json"
 
             if config_file.exists():

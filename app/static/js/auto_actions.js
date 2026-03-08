@@ -138,28 +138,33 @@ function renderRuleItem(rule) {
     const statusText = rule.enabled ? 'Active' : 'Disabled';
     const checkedAttr = rule.enabled ? 'checked' : '';
 
+    const safeId = escapeHtml(rule.id);
+    const safePriority = escapeHtml(String(rule.priority));
+    const safeContainers = rule.action.containers.map(c => escapeHtml(c)).join(', ');
+    const safeTriggerCount = escapeHtml(String(rule.metadata?.trigger_count || 0));
+
     return `
     <div class="list-group-item d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-3">
             <div class="form-check form-switch mb-0" onclick="event.stopPropagation()">
-                <input class="form-check-input" type="checkbox" id="toggle_${rule.id}" ${checkedAttr}
-                       onchange="toggleRuleEnabled('${rule.id}', this.checked)">
+                <input class="form-check-input" type="checkbox" id="toggle_${safeId}" ${checkedAttr}
+                       onchange="toggleRuleEnabled('${safeId}', this.checked)">
             </div>
-            <div class="cursor-pointer" onclick="openRuleEditor('${rule.id}')" style="cursor: pointer;">
+            <div class="cursor-pointer" onclick="openRuleEditor('${safeId}')" style="cursor: pointer;">
                 <div class="d-flex align-items-center gap-2">
                     <h6 class="mb-0">${escapeHtml(rule.name)}</h6>
                     <span class="badge ${badgeClass} rounded-pill">${statusText}</span>
-                    <span class="badge bg-light text-dark border">Priority: ${rule.priority}</span>
+                    <span class="badge bg-light text-dark border">Priority: ${safePriority}</span>
                 </div>
                 <small class="text-muted">
                     <i class="bi bi-chat-left-text"></i> ${rule.trigger.keywords.length} Keywords
                     &bull;
-                    <i class="bi bi-box-seam"></i> ${rule.action.type} -> ${rule.action.containers.join(', ')}
+                    <i class="bi bi-box-seam"></i> ${escapeHtml(rule.action.type)} -> ${safeContainers}
                 </small>
             </div>
         </div>
-        <div class="text-end text-muted small" onclick="openRuleEditor('${rule.id}')" style="cursor: pointer;">
-            <div><i class="bi bi-lightning-charge"></i> ${rule.metadata?.trigger_count || 0}</div>
+        <div class="text-end text-muted small" onclick="openRuleEditor('${safeId}')" style="cursor: pointer;">
+            <div><i class="bi bi-lightning-charge"></i> ${safeTriggerCount}</div>
             <i class="bi bi-chevron-right"></i>
         </div>
     </div>
@@ -567,6 +572,10 @@ function testAASRule() {
     // 3. Check Regex Pattern
     if (regexPattern) {
         try {
+            if (regexPattern.length > 200) {
+                resultDiv.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle"></i> Regex too long (max 200 chars)</span>`;
+                return;
+            }
             const regex = new RegExp(regexPattern, 'i');
             if (regex.test(testContent)) {
                 isMatch = true;
@@ -729,9 +738,9 @@ async function loadAASHistory() {
                 <td><small>${date}</small></td>
                 <td>${escapeHtml(entry.rule_name)}</td>
                 <td><code>${escapeHtml(entry.container)}</code></td>
-                <td>${entry.action}</td>
+                <td>${escapeHtml(entry.action)}</td>
                 <td>
-                    <span class="badge ${resultBadge}">${entry.result}</span>
+                    <span class="badge ${resultBadge}">${escapeHtml(entry.result)}</span>
                     ${entry.details ? `<br><small class="text-muted">${escapeHtml(entry.details)}</small>` : ''}
                 </td>
             </tr>

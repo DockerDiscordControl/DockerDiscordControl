@@ -11,6 +11,7 @@ Container Info Service - Manages container metadata with clean service architect
 
 import docker
 import os
+import re
 import json
 from typing import Dict, Any, Optional, List
 from pathlib import Path
@@ -19,6 +20,17 @@ from utils.logging_utils import get_module_logger
 from services.config.server_config_service import get_server_config_service
 
 logger = get_module_logger('container_info_service')
+
+_SAFE_NAME_RE = re.compile(r'^[a-zA-Z0-9][a-zA-Z0-9_.-]*$')
+
+
+def _validate_path_safety(name: str, base_dir: Path) -> None:
+    """Validate that a name is safe and the resulting path stays within base_dir."""
+    if not _SAFE_NAME_RE.match(name):
+        raise ValueError(f"Invalid container name: {name!r}")
+    resolved = (base_dir / f"{name}.json").resolve()
+    if not str(resolved).startswith(str(base_dir.resolve())):
+        raise ValueError(f"Path traversal detected: {name!r}")
 
 @dataclass(frozen=True)
 class ContainerInfo:
@@ -91,6 +103,8 @@ class ContainerInfoService:
             ServiceResult with ContainerInfo data or error
         """
         try:
+            _validate_path_safety(container_name, self.containers_dir)
+
             # Try to find container JSON file
             container_file = self.containers_dir / f"{container_name}.json"
 
@@ -145,6 +159,8 @@ class ContainerInfoService:
             ServiceResult indicating success or failure
         """
         try:
+            _validate_path_safety(container_name, self.containers_dir)
+
             # Find container JSON file
             container_file = self.containers_dir / f"{container_name}.json"
 
@@ -196,6 +212,8 @@ class ContainerInfoService:
             ServiceResult indicating success or failure
         """
         try:
+            _validate_path_safety(container_name, self.containers_dir)
+
             # Find container JSON file
             container_file = self.containers_dir / f"{container_name}.json"
 

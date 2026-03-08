@@ -1,5 +1,5 @@
 # Multi-stage build for ultra-small production image
-FROM alpine:3.22.2 AS builder
+FROM alpine:3.23.3 AS builder
 
 WORKDIR /build
 
@@ -38,7 +38,7 @@ for package in ('pip', 'setuptools', 'wheel'):
         shutil.rmtree(metadata, ignore_errors=True)
 
 bin_dir = Path('/venv/bin')
-for script in ('pip', 'pip3', 'pip3.12'):
+for script in ('pip', 'pip3', 'pip3.12', 'pip3.13'):
     target = bin_dir / script
     if target.exists():
         target.unlink()
@@ -77,7 +77,7 @@ for pth_file in runtime.glob('*.pth'):
 PY
 
 # Production stage - minimal runtime
-FROM alpine:3.22.2
+FROM alpine:3.23.3
 
 WORKDIR /app
 
@@ -145,7 +145,7 @@ PY
 RUN apk add --no-cache --virtual .strip-deps binutils && \
     strip --strip-unneeded /usr/bin/python3 && \
     strip --strip-unneeded /usr/lib/libpython3.* && \
-    find /usr/lib/python3.12/lib-dynload -type f -name "*.so" -exec strip --strip-unneeded {} + && \
+    find /usr/lib/python3.*/lib-dynload -type f -name "*.so" -exec strip --strip-unneeded {} + && \
     apk del .strip-deps
 
 # Create user
@@ -174,7 +174,7 @@ RUN chmod +x /app/entrypoint.sh && \
     mkdir -p /app/cached_displays && \
     chown -R ddc:ddc /app && \
     chmod -R 755 /app && \
-    chmod -R 775 /app/config /app/logs /app/cached_displays && \
+    chmod -R 750 /app/config /app/logs /app/cached_displays && \
     find /app -type d -name '__pycache__' -prune -exec rm -rf {} +
 
 # Environment

@@ -1,3 +1,14 @@
+// HTML escaping utility to prevent XSS
+function escapeHtmlConfigUI(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 // Container Info Modal functionality - Vanilla JavaScript (no jQuery)
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize order numbers on page load
@@ -297,7 +308,7 @@ function showToast(message, type = 'info') {
     toast.innerHTML = `
         <div class="toast show" role="alert">
             <div class="toast-body ${toastClass}">
-                <i class="bi ${iconClass}"></i> ${message}
+                <i class="bi ${iconClass}"></i> ${escapeHtmlConfigUI(message)}
             </div>
         </div>
     `;
@@ -444,8 +455,8 @@ function renderAdminUsers() {
         item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center bg-dark text-white';
         item.innerHTML = `
             <div>
-                <strong>${userId}</strong>
-                ${note ? `<span class="text-muted ms-2">(${note})</span>` : ''}
+                <strong>${escapeHtmlConfigUI(userId)}</strong>
+                ${note ? `<span class="text-muted ms-2">(${escapeHtmlConfigUI(note)})</span>` : ''}
             </div>
             <button class="btn btn-sm btn-danger" onclick="removeAdminUser(${index})">Remove</button>
         `;

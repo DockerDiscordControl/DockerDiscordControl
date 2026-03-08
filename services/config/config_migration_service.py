@@ -12,12 +12,16 @@ Part of ConfigService refactoring for Single Responsibility Principle
 
 import json
 import logging
+import re
 import shutil
 from pathlib import Path
 from typing import Dict, Any
 from datetime import datetime
 
 logger = logging.getLogger('ddc.config_migration')
+
+_SAFE_NAME_RE = re.compile(r'^[a-zA-Z0-9][a-zA-Z0-9_.-]*$')
+_SAFE_DISCORD_ID_RE = re.compile(r'^\d{17,19}$|^default$')
 
 
 class ConfigMigrationService:
@@ -177,6 +181,9 @@ class ConfigMigrationService:
             channel_permissions = channels_data.get("channel_permissions", {})
 
             for channel_id, channel_config in channel_permissions.items():
+                if not _SAFE_DISCORD_ID_RE.match(str(channel_id)):
+                    logger.warning(f"Skipping invalid channel ID during migration: {channel_id!r}")
+                    continue
                 channel_file = self.channels_dir / f"{channel_id}.json"
                 channel_config["channel_id"] = channel_id
                 save_json_func(channel_file, channel_config)
@@ -216,6 +223,9 @@ class ConfigMigrationService:
 
             for server in servers:
                 container_name = server.get("docker_name", server.get("name", "unknown"))
+                if not _SAFE_NAME_RE.match(container_name):
+                    logger.warning(f"Skipping invalid container name during migration: {container_name!r}")
+                    continue
                 container_file = self.containers_dir / f"{container_name}.json"
                 save_json_func(container_file, server)
                 logger.info(f"✅ Migrated container: {container_name}")

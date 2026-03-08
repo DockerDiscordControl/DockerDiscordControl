@@ -86,8 +86,8 @@ class ProgressPaths:
 
     def snapshot_for(self, mech_id: str) -> Path:
         """Return the snapshot path for ``mech_id``."""
-
-        return self.snapshot_dir / f"{mech_id}.json"
+        safe = mech_id.replace("/", "_").replace("..", "_")
+        return self.snapshot_dir / f"{safe}.json"
 
 
 _paths_cache: Optional[ProgressPaths] = None

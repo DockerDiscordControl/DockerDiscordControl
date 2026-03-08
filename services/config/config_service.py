@@ -45,7 +45,7 @@ from services.exceptions import (
 
 # Token encryption constants
 _TOKEN_ENCRYPTION_SALT = b'ddc-salt-for-token-encryption-key-v1'
-_PBKDF2_ITERATIONS = 260000
+_PBKDF2_ITERATIONS = 600000
 
 logger = logging.getLogger('ddc.config_service')
 
@@ -312,6 +312,7 @@ class ConfigService:
             try:
                 import json
                 import os
+                import shutil
                 import tempfile
                 from pathlib import Path
 
@@ -323,12 +324,38 @@ class ConfigService:
                 for field in fields_saved_separately:
                     main_config.pop(field, None)
 
+                # === Critical Field Protection ===
+                # Merge with existing config to prevent accidental loss of
+                # critical fields (bot_token, guild_id) when a partial config
+                # is saved (e.g. from the setup handler).
+                _critical_fields = ('bot_token', 'guild_id', 'encrypted_bot_token')
+                if self.main_config_file.exists():
+                    try:
+                        existing = self._load_json_file(self.main_config_file, {})
+                        for field in _critical_fields:
+                            if field in existing and existing[field] and field not in main_config:
+                                main_config[field] = existing[field]
+                                logger.info(f"Preserved critical field '{field}' from existing config")
+                    except (IOError, OSError, ValueError) as merge_err:
+                        logger.warning(f"Could not read existing config for merge: {merge_err}")
+
                 logger.info(f"save_config called - saving main config with {len(main_config)} fields")
                 logger.debug(f"Main config keys: {list(main_config.keys())}")
 
                 # Ensure config directory exists
                 config_dir = Path(self.main_config_file).parent
                 config_dir.mkdir(parents=True, exist_ok=True)
+
+                # === Backup Before Save ===
+                # Keep a rolling backup so data can be recovered if a save
+                # produces a corrupt or incomplete config.
+                backup_path = self.main_config_file.with_suffix('.json.bak')
+                if self.main_config_file.exists():
+                    try:
+                        shutil.copy2(str(self.main_config_file), str(backup_path))
+                        logger.debug(f"Config backup created: {backup_path}")
+                    except (IOError, OSError) as bak_err:
+                        logger.warning(f"Could not create config backup: {bak_err}")
 
                 # === Atomic Write Pattern (Best Practice) ===
                 # Write to temp file first, then atomically rename to prevent corruption
@@ -404,6 +431,42 @@ class ConfigService:
                     error_code="CONFIG_SAVE_DATA_ERROR",
                     details={'config_keys': list(config.keys()) if config else []}
                 )
+
+    def update_config_fields(self, updates: Dict[str, Any]) -> ConfigServiceResult:
+        """Update only specific fields in config.json without touching other fields.
+
+        This is safer than save_config() for targeted updates (e.g. setting a
+        password hash) because it reads the existing config first and merges
+        the updates, preventing accidental loss of unrelated fields.
+
+        Args:
+            updates: Dictionary of field names and values to update.
+
+        Returns:
+            ConfigServiceResult with success status.
+        """
+        with self._save_lock:
+            try:
+                import json
+
+                # Load existing config from disk (not from cache)
+                existing = {}
+                if self.main_config_file.exists():
+                    existing = self._load_json_file(self.main_config_file, {})
+
+                # Apply updates
+                existing.update(updates)
+
+                logger.info(f"update_config_fields: updating {list(updates.keys())}")
+            except (IOError, OSError, ValueError) as e:
+                logger.error(f"Error reading config for field update: {e}", exc_info=True)
+                return ConfigServiceResult(
+                    success=False,
+                    message=f"Failed to read existing config: {e}"
+                )
+
+        # Delegate to save_config (which handles backup + atomic write)
+        return self.save_config(existing)
 
     # === Token Encryption Methods ===
 
@@ -741,6 +804,11 @@ def load_config() -> Dict[str, Any]:
 def save_config(config: Dict[str, Any]) -> bool:
     """Legacy compatibility: Save configuration."""
     result = get_config_service().save_config(config)
+    return result.success
+
+def update_config_fields(updates: Dict[str, Any]) -> bool:
+    """Legacy compatibility: Update specific fields without overwriting others."""
+    result = get_config_service().update_config_fields(updates)
     return result.success
 
 # === Form Parsing Functions (delegated to ConfigFormParserService) ===

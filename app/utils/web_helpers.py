@@ -504,18 +504,19 @@ def start_background_refresh(logger):
     """Starts the background thread for cache updates"""
     global background_refresh_thread
 
-    # Immediate Docker connectivity check (sync wrapper for async function)
-    import asyncio
+    # Synchronous Docker connectivity check (avoids asyncio conflicts with
+    # py-cord's event loop and gevent's monkey-patching)
     try:
-        # Use asyncio.run() which creates a new event loop for this thread automatically
-        connectivity_ok = asyncio.run(check_docker_connectivity(logger))
-    except (RuntimeError, AttributeError) as e:
-        # Runtime errors (event loop issues, asyncio problems)
-        logger.error(f"Runtime error during Docker connectivity check: {e}", exc_info=True)
-        connectivity_ok = False
-    except (ImportError, ValueError) as e:
-        # Import/data errors (service unavailable, invalid parameters)
-        logger.error(f"Service error during Docker connectivity check: {e}", exc_info=True)
+        import docker as _docker
+        _client = _docker.DockerClient(
+            base_url='unix:///var/run/docker.sock', timeout=5
+        )
+        _client.ping()
+        _client.close()
+        connectivity_ok = True
+        logger.info("Docker connectivity check: OK")
+    except Exception as e:
+        logger.error(f"Docker connectivity check failed: {e}")
         connectivity_ok = False
 
     if not connectivity_ok:
@@ -779,7 +780,7 @@ def set_initial_password_from_env():
 
         if is_default_or_unset:
             init_pass_logger.info("Setting initial Web UI password from DDC_ADMIN_PASSWORD env var...")
-            config['web_ui_password_hash'] = generate_password_hash(env_password, method="pbkdf2:sha256")
+            config['web_ui_password_hash'] = generate_password_hash(env_password, method="pbkdf2:sha256:600000")
             save_config(config) # Assumes save_config knows its path or is configured
             init_pass_logger.info("Web UI password hash has been updated from environment variable.")
         else:

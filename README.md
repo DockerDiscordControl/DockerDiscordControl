@@ -1,6 +1,6 @@
-# DockerDiscordControl v2.1.4 🐳
+# DockerDiscordControl v2.1.5 🐳
 
-[![Version](https://img.shields.io/badge/Version-v2.1.4-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.1.4) [![Python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.22.2-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-Passing-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-80%25-brightgreen?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
+[![Version](https://img.shields.io/badge/Version-v2.1.5-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.1.5) [![Python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.23.3-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-Passing-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-80%25-brightgreen?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
 
 A powerful Discord bot and web interface to manage Docker containers remotely. This application bridges the gap between Discord and your Docker environment, allowing container monitoring and control directly through Discord channels.
 
@@ -9,6 +9,25 @@ A powerful Discord bot and web interface to manage Docker containers remotely. T
 Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is an ultra-optimized Alpine Linux build with the latest security patches and enhanced performance.
 
 ## 🆕 Latest Updates
+
+### ✅ **v2.1.5 (2026-03-08) - Security Hardening & Stability**
+
+🔒 **Security Hardening:**
+- **Dependencies**: Flask 3.1.3, Werkzeug 3.1.6, cryptography 46.0.5, Pillow 12.1.1, gevent 25.5.1
+- **Path Traversal Protection**: Regex whitelist + resolve() boundary checks on all file-based services
+- **XSS Prevention**: HTML escaping in config-ui, auto-actions, and toast notifications
+- **Auth Hardening**: Tasks blueprint now requires login, setup credentials removed from error responses
+- **PBKDF2 Iterations**: Standardized to 600,000 across all password hashing
+- **Docker Hardening**: `no-new-privileges`, `cap_drop: ALL`, health check in docker-compose
+- **Alpine 3.23.3**: Updated base image in both builder and runtime stages
+
+✨ **Improvements:**
+- **Config Save Protection**: Automatic backup before every save, critical field preservation (bot_token, guild_id)
+- **Targeted Config Updates**: New `update_config_fields()` prevents accidental data loss during partial saves
+- **Setup Auto-Login**: Automatic redirect and authentication after first-time password setup
+- **Docker Connectivity**: Replaced async check with synchronous Docker SDK (fixes gevent/asyncio conflict)
+
+---
 
 ### ✅ **v2.1.4 (2025-01-20) - Security & Mech Evolution**
 
@@ -137,7 +156,7 @@ environment:
 - Real-time monitoring and status updates
 
 🔒 **Security & Optimization:**
-- **IMPROVED:** Alpine Linux 3.22.2 base (94% fewer vulnerabilities)
+- **IMPROVED:** Alpine Linux 3.23.3 base (94% fewer vulnerabilities)
 - Ultra-compact image (<200MB RAM usage)
 - Production-ready security hardening
 - Enhanced token encryption and validation
@@ -173,7 +192,7 @@ environment:
 ## v1.1.2-alpine: Ultra-Optimized & Secure
 
 **Release v1.1.2-alpine brings massive performance improvements with an ultra-optimized Alpine Linux image.**
-- **78% Size Reduction**: From 924MB to ~200MB - ultra-optimized Alpine Linux 3.22.2
+- **78% Size Reduction**: From 924MB to ~200MB - ultra-optimized Alpine Linux 3.23.3
 - **Latest Security Patches**: Upgraded to Flask 3.1.1 and Werkzeug 3.1.3 to resolve all critical and high-severity CVEs
 - **Enhanced Performance**: Faster startup times and reduced memory footprint
 - **Docker Socket Fixes**: Resolved permissions and volume mount issues
@@ -235,13 +254,13 @@ environment:
 - **16x Faster Docker Cache**: Optimized from 500ms to 31ms response time
 - **7x Faster Processing**: Through async optimization and smart queue system
 - **Ultra-Low Memory**: Only 60-70MB RAM usage (65% reduction in v2.1.0)
-- **Alpine Linux 3.22.2**: 94% fewer vulnerabilities, minimal footprint
+- **Alpine Linux 3.23.3**: 94% fewer vulnerabilities, minimal footprint
 - **Production Ready**: Supports 50 containers across 15 Discord channels
 - **Intelligent Caching**: Background refresh for real-time data
 
 **New in v1.1.2-alpine:** The default build is now an ultra-optimized ~200MB Alpine Linux image with 78% size reduction while maintaining full functionality and improving security.
 
-**Latest Updates:** Upgraded to Flask 3.1.1 and Werkzeug 3.1.3, resolved all security vulnerabilities, and achieved massive optimization with Alpine Linux 3.22.2 base image.
+**Latest Updates:** Upgraded to Flask 3.1.1 and Werkzeug 3.1.3, resolved all security vulnerabilities, and achieved massive optimization with Alpine Linux 3.23.3 base image.
 
 ## 🧪 Testing & Quality Assurance
 
@@ -525,7 +544,7 @@ The default build for this repository is now the stable, optimized Alpine image.
 
 **Ultra-optimized Alpine Linux image:**
 - **Size:** 176MB with multi-stage build optimization
-- **Base:** Alpine Linux 3.22.2 (latest secure version)  
+- **Base:** Alpine Linux 3.23.3 (latest secure version)  
 - **Architecture:** Service-oriented modular design (v2.0)
 - **Security:** Latest dependencies with all CVEs fixed
 - **Performance:** Optimized for minimal resource usage and fast startup

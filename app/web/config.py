@@ -18,7 +18,7 @@ DEFAULTS = {
     "SESSION_COOKIE_SECURE": False,
     "SESSION_COOKIE_HTTPONLY": True,
     "SESSION_COOKIE_SAMESITE": "Lax",
-    "PERMANENT_SESSION_LIFETIME": timedelta(days=30),
+    "PERMANENT_SESSION_LIFETIME": timedelta(days=7),
     "SESSION_REFRESH_EACH_REQUEST": True,
     "JSON_AS_ASCII": False,
     "DOCKER_SOCKET": "/var/run/docker.sock",

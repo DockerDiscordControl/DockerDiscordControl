@@ -11,12 +11,15 @@ SERVICE FIRST: Channel Configuration Service - SINGLE POINT OF TRUTH
 
 import logging
 import json
+import re
 import tempfile
 from pathlib import Path
 from typing import Dict, Any, Optional
 import os
 
 logger = logging.getLogger('ddc.channel_config_service')
+
+_SAFE_DISCORD_ID_RE = re.compile(r'^\d{17,19}$')
 
 class ChannelConfigService:
     """Service First implementation for channel configuration management.
@@ -196,6 +199,9 @@ class ChannelConfigService:
             Channel configuration dict or None if not found
         """
         try:
+            if not _SAFE_DISCORD_ID_RE.match(str(channel_id)):
+                logger.error(f"Invalid channel ID format: {channel_id!r}")
+                return None
             config_file = self.channels_dir / f"{channel_id}.json"
             if config_file.exists():
                 with open(config_file, 'r') as f:
@@ -249,6 +255,9 @@ class ChannelConfigService:
             True if successful or file doesn't exist, False on error
         """
         try:
+            if not _SAFE_DISCORD_ID_RE.match(str(channel_id)):
+                logger.error(f"Invalid channel ID format for deletion: {channel_id!r}")
+                return False
             config_file = self.channels_dir / f"{channel_id}.json"
             if config_file.exists():
                 config_file.unlink()

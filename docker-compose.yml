@@ -34,6 +34,18 @@ services:
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
       # Uncomment and set this to change the default admin password (admin)
       # DDC_ADMIN_PASSWORD: ${DDC_ADMIN_PASSWORD}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9374/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     logging: # Equivalent to --log-driver and --log-opt
       driver: json-file
       options:

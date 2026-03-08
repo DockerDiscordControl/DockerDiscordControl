@@ -15,7 +15,7 @@ import io
 
 # Import auth from app.auth
 from app.auth import auth
-from services.config.config_service import load_config, save_config
+from services.config.config_service import load_config, save_config, update_config_fields
 from services.infrastructure.action_logger import log_user_action
 from services.infrastructure.spam_protection_service import get_spam_protection_service
 
@@ -1141,12 +1141,12 @@ def setup_save():
         # Create secure password hash
         password_hash = generate_password_hash(password, method="pbkdf2:sha256:600000")
 
-        # Update config
-        config['web_ui_password_hash'] = password_hash
-        config['web_ui_user'] = 'admin'
-
-        # Save config
-        success = save_config(config)
+        # Use targeted field update to avoid overwriting unrelated config
+        # (e.g. bot_token, guild_id) that a full load+save could lose.
+        success = update_config_fields({
+            'web_ui_password_hash': password_hash,
+            'web_ui_user': 'admin',
+        })
 
         if success:
             # Log the setup completion

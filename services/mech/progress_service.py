@@ -230,7 +230,7 @@ def next_seq() -> int:
 
 
 def snapshot_path(mech_id: str) -> Path:
-    safe = mech_id.replace("/", "_")
+    safe = mech_id.replace("/", "_").replace("..", "_")
     return SNAPSHOT_DIR / f"{safe}.json"
 
 

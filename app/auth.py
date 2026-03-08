@@ -113,25 +113,9 @@ def auth_error(status):
         config = load_config()
         if config.get('web_ui_password_hash') is None:
             return jsonify({
-                "message": "🚀 First Time Setup Required - DockerDiscordControl",
+                "message": "First Time Setup Required",
                 "error": "No admin password configured yet",
-                "setup_options": {
-                    "easy_setup": {
-                        "description": "🎯 RECOMMENDED: Web-based setup",
-                        "action": "Visit /setup in your browser for easy configuration",
-                        "url": "/setup"
-                    },
-                    "temp_credentials": {
-                        "description": "🔑 Or use temporary credentials",
-                        "username": "admin",
-                        "password": "setup",
-                        "note": "Works only for first-time setup"
-                    },
-                    "advanced": {
-                        "description": "⚙️ Environment variable method",
-                        "method": "Set DDC_ADMIN_PASSWORD environment variable and restart"
-                    }
-                }
+                "setup_url": "/setup"
             }), 401
     except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound):
         pass  # Continue with normal auth error
