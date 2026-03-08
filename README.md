@@ -18,14 +18,16 @@ Control your Docker containers directly from Discord! This application provides 
 - **XSS Prevention**: HTML escaping in config-ui, auto-actions, and toast notifications
 - **Auth Hardening**: Tasks blueprint now requires login, setup credentials removed from error responses
 - **PBKDF2 Iterations**: Standardized to 600,000 across all password hashing
-- **Docker Hardening**: `no-new-privileges`, `cap_drop: ALL`, health check in docker-compose
+- **Docker Hardening**: `no-new-privileges` + health check in docker-compose
 - **Alpine 3.23.3**: Updated base image in both builder and runtime stages
+- **CVE-2025-60876**: Removed busybox wget applet (HTTP header injection)
 
 ✨ **Improvements:**
 - **Config Save Protection**: Automatic backup before every save, critical field preservation (bot_token, guild_id)
 - **Targeted Config Updates**: New `update_config_fields()` prevents accidental data loss during partial saves
 - **Setup Auto-Login**: Automatic redirect and authentication after first-time password setup
 - **Docker Connectivity**: Replaced async check with synchronous Docker SDK (fixes gevent/asyncio conflict)
+- **CI**: Test matrix updated to Python 3.10, 3.11, 3.12 (dropped EOL 3.9)
 
 ---
 
