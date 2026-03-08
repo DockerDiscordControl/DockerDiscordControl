@@ -103,26 +103,11 @@ class ContainerLogService:
                     status_code=400
                 )
 
-            # Step 2 & 3: Get logs using SERVICE FIRST pattern (async internally)
-            try:
-                # Check if we're in an async context
-                loop = asyncio.get_running_loop()
-                # We're in an async context but this method is sync
-                # Use run_in_executor to run the async function
-                import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    logs_content = executor.submit(
-                        lambda: asyncio.run(self._get_container_logs_service_first(
-                            request.container_name,
-                            request.max_lines
-                        ))
-                    ).result()
-            except RuntimeError:
-                # No event loop running (gevent thread), use asyncio.run() directly
-                logs_content = asyncio.run(self._get_container_logs_service_first(
-                    request.container_name,
-                    request.max_lines
-                ))
+            # Step 2: Get logs synchronously (avoids asyncio/gevent conflicts)
+            logs_content = self._get_container_logs_sync(
+                request.container_name,
+                request.max_lines
+            )
 
             if logs_content is None:
                 return LogResult(
@@ -240,6 +225,29 @@ class ContainerLogService:
     # ========================================================================
     # Private Helper Methods
     # ========================================================================
+
+    def _get_container_logs_sync(self, container_name: str, max_lines: int) -> Optional[str]:
+        """Get container logs using synchronous Docker SDK (avoids asyncio/gevent conflicts)."""
+        try:
+            import docker as _docker
+            client = _docker.DockerClient(
+                base_url='unix:///var/run/docker.sock', timeout=30
+            )
+            try:
+                container = client.containers.get(container_name)
+                logs = container.logs(tail=max_lines, stdout=True, stderr=True)
+                return logs.decode('utf-8', errors='replace')
+            except _docker.errors.NotFound:
+                self.logger.warning(f"Log request for non-existent container: {container_name}")
+                return None
+            except _docker.errors.APIError as e:
+                self.logger.error(f"Docker API error when fetching logs for {container_name}: {e}")
+                return None
+            finally:
+                client.close()
+        except Exception as e:
+            self.logger.error(f"Failed to get Docker logs synchronously: {e}", exc_info=True)
+            return None
 
     def _validate_container_name(self, container_name: str) -> bool:
         """Validate container name to prevent injection attacks."""
@@ -378,17 +386,8 @@ class ContainerLogService:
     def _get_filtered_container_logs(self, max_lines: int, filter_patterns: List[str], no_logs_message: str) -> LogResult:
         """Get filtered logs from default container."""
         try:
-            # Get logs using SERVICE FIRST pattern (async internally)
             # Get more logs to ensure we have enough after filtering
-            try:
-                # Try to get current event loop
-                loop = asyncio.get_running_loop()
-                # Create task for existing loop
-                task = loop.create_task(self._get_container_logs_service_first(self.default_container, max_lines * 2))
-                logs_str = asyncio.run_coroutine_threadsafe(task, loop).result()
-            except RuntimeError:
-                # No event loop running, use asyncio.run()
-                logs_str = asyncio.run(self._get_container_logs_service_first(self.default_container, max_lines * 2))
+            logs_str = self._get_container_logs_sync(self.default_container, max_lines * 2)
             if logs_str is None:
                 return LogResult(success=False, error="Container not found", status_code=404)
 
