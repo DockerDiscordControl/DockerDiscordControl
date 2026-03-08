@@ -57,6 +57,14 @@ class MechStoryService:
         story_content = self._get_story_content(language)
         return story_content.get(chapter_key)
 
+    def get_all_chapters(self, language: str = 'de') -> Dict[str, str]:
+        """Return all story chapters for the given language as a dict keyed by chapter key."""
+        return self._get_story_content(language)
+
+    def get_chapter_key_for_level(self, level: int) -> str:
+        """Get the story chapter key for a specific mech level (alias)."""
+        return self._get_chapter_key_for_level(level)
+
     def clear_cache(self):
         """Clear the story cache to force reload from disk."""
         self._story_cache = {}
