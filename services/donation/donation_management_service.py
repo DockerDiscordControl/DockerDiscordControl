@@ -176,10 +176,11 @@ class DonationManagementService:
                             deletions_map[deleted_seq] = []
                         deletions_map[deleted_seq].append(deletion_event)
 
-            # Mark deleted donations and attach deletion events
+            # Mark deleted donations using toggle pattern (odd count = deleted, even = active)
             for deleted_seq, deletion_events in deletions_map.items():
                 if deleted_seq in donations_map:
-                    donations_map[deleted_seq]['is_deleted'] = True
+                    # Toggle: odd number of deletion events = currently deleted
+                    donations_map[deleted_seq]['is_deleted'] = len(deletion_events) % 2 == 1
                     donations_map[deleted_seq]['deletion_events'] = deletion_events
 
             # Convert to flat list for display (newest first, with nested deletions)
@@ -312,10 +313,18 @@ class DonationManagementService:
             from services.mech.progress_service import get_progress_service
             progress_service = get_progress_service()
 
-            # Delete event (adds compensation event and rebuilds)
-            progress_service.delete_donation(item_seq)
+            if item_type == 'DonationDeleted':
+                # Restore: the item is a deletion event — pass the original
+                # donation's seq so progress_service can find the DonationAdded.
+                target_seq = item.get('deleted_seq', item_seq)
+            else:
+                # Delete: the item is a donation event — pass its seq directly.
+                target_seq = item_seq
 
-            action = "Deleted" if item_type == 'DonationAdded' else "Restored"
+            # Delete/restore event (adds compensation event and rebuilds)
+            progress_service.delete_donation(target_seq)
+
+            action = "Deleted" if item_type != 'DonationDeleted' else "Restored"
             logger.info(f"{action} event at index {index} (seq {item_seq}, type {item_type})")
 
             return ServiceResult(
@@ -398,12 +407,12 @@ class DonationManagementService:
                         elif event_type == 'DonationDeleted':
                             deleted_seq = event.get('payload', {}).get('deleted_seq')
                             if deleted_seq:
-                                deletions_map[deleted_seq] = True
+                                deletions_map[deleted_seq] = deletions_map.get(deleted_seq, 0) + 1
 
-            # Mark deleted donations
-            for deleted_seq in deletions_map:
+            # Mark deleted donations using toggle pattern (odd count = deleted)
+            for deleted_seq, count in deletions_map.items():
                 if deleted_seq in donations_map:
-                    donations_map[deleted_seq]['is_deleted'] = True
+                    donations_map[deleted_seq]['is_deleted'] = count % 2 == 1
 
             # Calculate total power from ALL event types (excluding deleted)
             total_power = sum(d['amount'] for d in donations_map.values() if not d['is_deleted'])

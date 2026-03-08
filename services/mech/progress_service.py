@@ -1070,24 +1070,24 @@ class ProgressService:
             # Read all events for this mech
             all_events = [e for e in read_events() if e.mech_id == self.mech_id]
 
-            # Calculate deleted_seqs (restoration support)
-            deleted_seqs = set()
+            # Calculate deleted_seqs using toggle pattern:
+            # Each DonationDeleted with the same deleted_seq toggles the state.
+            # Odd count = deleted, even count = active/restored.
+            deletion_counts: dict[int, int] = {}
             for evt in all_events:
                 if evt.type == "DonationDeleted":
                     payload = evt.payload or {}
                     deleted_seq = payload.get("deleted_seq")
                     if deleted_seq:
-                        # Check if THIS deletion event is itself deleted (restoration!)
-                        is_this_deletion_deleted = any(
-                            e.type == "DonationDeleted" and
-                            (e.payload or {}).get("deleted_seq") == evt.seq
-                            for e in all_events
-                        )
-                        if not is_this_deletion_deleted:
-                            deleted_seqs.add(deleted_seq)
-                            logger.info(f"Marking event seq {deleted_seq} as deleted")
-                        else:
-                            logger.info(f"DonationDeleted seq {evt.seq} is itself deleted → Restoring seq {deleted_seq}")
+                        deletion_counts[deleted_seq] = deletion_counts.get(deleted_seq, 0) + 1
+
+            deleted_seqs = set()
+            for seq, count in deletion_counts.items():
+                if count % 2 == 1:  # odd = currently deleted
+                    deleted_seqs.add(seq)
+                    logger.info(f"Marking event seq {seq} as deleted (toggle count: {count})")
+                else:
+                    logger.info(f"Event seq {seq} restored (toggle count: {count})")
 
             # Create fresh snapshot at Level 1
             snap = Snapshot(mech_id=self.mech_id)
@@ -1230,13 +1230,11 @@ class ProgressService:
             if not donation_event:
                 raise ValueError(f"Donation with seq {donation_seq} not found")
 
-            # Check if already deleted
-            already_deleted = any(e for e in all_events
-                                 if e.type == "DonationDeleted"
-                                 and e.payload.get("deleted_seq") == donation_seq)
-
-            if already_deleted:
-                raise ValueError(f"Donation seq {donation_seq} is already deleted")
+            # Check current deletion state (toggle pattern: odd count = deleted, even = active)
+            deletion_count = sum(1 for e in all_events
+                                if e.type == "DonationDeleted"
+                                and e.payload.get("deleted_seq") == donation_seq)
+            currently_deleted = deletion_count % 2 == 1
 
             # Extract donor name and amount based on event type
             if donation_event.type == "DonationAdded":
@@ -1257,7 +1255,8 @@ class ProgressService:
                 donor = "Unknown"
                 units = 0
 
-            # Create DonationDeleted compensation event
+            # Create DonationDeleted compensation event (toggle: delete or restore)
+            reason = "admin_restore" if currently_deleted else "admin_deletion"
             evt = Event(
                 seq=next_seq(),
                 ts=now_utc_iso(),
@@ -1267,13 +1266,14 @@ class ProgressService:
                     "deleted_seq": donation_seq,
                     "donor": donor,
                     "units": units,
-                    "reason": "admin_deletion",
+                    "reason": reason,
                     "original_type": donation_event.type  # Track original event type
                 }
             )
             append_event(evt)
 
-            logger.info(f"Donation deletion event added for seq {donation_seq} "
+            action = "restored" if currently_deleted else "deleted"
+            logger.info(f"Donation {action} event added for seq {donation_seq} "
                        f"(${units/100:.2f} from {donor}, type: {donation_event.type})")
 
             # Rebuild snapshot from scratch
