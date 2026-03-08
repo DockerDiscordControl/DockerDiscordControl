@@ -36,10 +36,8 @@ services:
       # DDC_ADMIN_PASSWORD: ${DDC_ADMIN_PASSWORD}
     security_opt:
       - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - NET_BIND_SERVICE
+    # Note: cap_drop/cap_add removed — entrypoint needs root to fix
+    # volume permissions (chown) before dropping to the ddc user via su-exec.
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9374/health')"]
       interval: 30s
