@@ -1181,7 +1181,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
             logger.info("Proceeding with initial status send")
 
-            current_config = load_config()
+            # Force reload to ensure we get fresh config (not stale cache from bootstrap)
+            from services.config.config_service import get_config_service
+            current_config = get_config_service().get_config(force_reload=True)
             if not current_config:
                 logger.error("Could not load configuration for initial status send.")
                 return

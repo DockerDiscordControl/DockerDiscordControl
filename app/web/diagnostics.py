@@ -11,11 +11,15 @@ from __future__ import annotations
 
 from flask import Flask
 
-from app.utils.port_diagnostics import log_port_diagnostics
-
 
 def run_startup_diagnostics(app: Flask) -> None:
-    """Refresh debug status and execute port diagnostics inside the app context."""
+    """Refresh debug status inside the app context.
+
+    Note: Port diagnostics are intentionally NOT run here because the web
+    server (Waitress) has not started listening yet at this point.  The port
+    check is performed later during the Discord bot startup step
+    (app/bot/startup_steps/diagnostics.py) when the web server is already up.
+    """
     with app.app_context():
         try:
             from utils.logging_utils import refresh_debug_status
@@ -24,9 +28,3 @@ def run_startup_diagnostics(app: Flask) -> None:
             app.logger.info("Application startup: Debug mode is %s", "ENABLED" if debug_status else "DISABLED")
         except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError) as e:
             app.logger.error("Error refreshing debug status on application startup: %s", e, exc_info=True)
-
-        try:
-            app.logger.info("Running port diagnostics...")
-            log_port_diagnostics()
-        except (RuntimeError) as e:
-            app.logger.error("Error running port diagnostics: %s", e, exc_info=True)

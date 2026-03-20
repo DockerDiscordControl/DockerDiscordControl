@@ -295,8 +295,11 @@ class ConfigFormParserService:
                 try:
                     from services.config.channel_config_service import get_channel_config_service
                     channel_service = get_channel_config_service()
-                    channel_service.save_all_channels(channel_permissions)
-                    logger.info(f"[PROCESS_DEBUG] Saved {len(channel_permissions)} channels via ChannelConfigService")
+                    save_result = channel_service.save_all_channels(channel_permissions)
+                    if save_result:
+                        logger.info(f"[PROCESS_DEBUG] Saved {len(channel_permissions)} channels via ChannelConfigService")
+                    else:
+                        logger.error(f"[PROCESS_DEBUG] ChannelConfigService.save_all_channels returned False - some channels may not have been saved!")
                 except (AttributeError, IOError, ImportError, KeyError, ModuleNotFoundError, OSError, PermissionError, RuntimeError, TypeError) as e:
                     logger.error(f"Error saving channels via ChannelConfigService: {e}", exc_info=True)
 

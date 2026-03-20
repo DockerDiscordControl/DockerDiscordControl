@@ -284,24 +284,77 @@ class ChannelConfigService:
         """
         success = True
 
-        # First, remove channels that are no longer in the new config
+        # SAFETY: Save new/updated channels FIRST, before deleting old ones.
+        # This prevents data loss if saves fail.
+        # Use _save_channel_file() to avoid N redundant config.json writes —
+        # we do a single bulk update at the end instead.
+        saved_channels = set()
+        for channel_id, config in channels.items():
+            if self._save_channel_file(channel_id, config):
+                saved_channels.add(channel_id)
+            else:
+                success = False
+                logger.warning(f"Failed to save channel {channel_id}")
+
+        # Determine which old files to remove
         existing_files = set(f.stem for f in self.channels_dir.glob('*.json'))
         new_channels = set(channels.keys())
         to_remove = existing_files - new_channels
 
-        for channel_id in to_remove:
-            if not self.delete_channel(channel_id):
-                success = False
+        if to_remove:
+            # Safety check: don't delete existing files if no new channels were saved
+            # AND there were channels to save (prevents empty-dict edge case too)
+            if not saved_channels:
+                if channels:
+                    logger.error(
+                        f"Refusing to delete {len(to_remove)} existing channel files "
+                        f"because no new channels were saved successfully"
+                    )
+                else:
+                    logger.error(
+                        f"Refusing to delete {len(to_remove)} existing channel files "
+                        f"because save was called with empty channels dict"
+                    )
+                return False
 
-        # Then save all new/updated channels
-        for channel_id, config in channels.items():
-            if not self.save_channel(channel_id, config):
-                success = False
+            for channel_id in to_remove:
+                if not self.delete_channel(channel_id):
+                    success = False
 
-        # Update main config with all channels
+        # Single bulk update to main config.json (instead of N+1 individual writes)
         self._update_main_config_bulk(channels)
 
+        logger.info(f"save_all_channels completed: {len(saved_channels)}/{len(channels)} saved, {len(to_remove)} removed")
         return success
+
+    def _save_channel_file(self, channel_id: str, config: Dict[str, Any]) -> bool:
+        """Save a channel's individual JSON file WITHOUT updating main config.json.
+
+        Used by save_all_channels() to avoid redundant config.json writes.
+
+        Args:
+            channel_id: The Discord channel ID
+            config: Configuration dictionary to save
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            if not self._is_valid_discord_id(channel_id):
+                logger.error(
+                    f"Refusing to save channel config: '{channel_id}' is not a valid Discord ID. "
+                    f"Discord IDs must be 17-19 digit numbers."
+                )
+                return False
+
+            config_file = self.channels_dir / f"{channel_id}.json"
+            self._atomic_write_json(config_file, config)
+            logger.info(f"Saved channel config for {channel_id}")
+            return True
+
+        except (IOError, OSError, PermissionError, TypeError, ValueError) as e:
+            logger.error(f"File/JSON error saving channel {channel_id}: {e}")
+            return False
 
     def _update_main_config(self, channel_id: str, channel_config: Dict[str, Any]) -> None:
         """Update the main config.json with channel configuration.

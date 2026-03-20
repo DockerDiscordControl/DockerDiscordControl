@@ -104,12 +104,54 @@ class ConfigLoaderService:
 
         # 8. Load all channels from individual files
         channel_data = self.load_all_channels_from_files()
+        # Preserve any channel_permissions from config.json (step 1) as a fallback
+        main_config_channels = config.get('channel_permissions', {})
         config.update(channel_data)
+
+        # 8b. Fallback: If no individual channel files found, try other sources
+        # This handles migration from virtual modular (channels_config.json) to real modular,
+        # and recovery if individual channel files are lost but config.json still has them
+        if not channel_data.get('channel_permissions'):
+            # First try: config.json might have channel_permissions
+            if main_config_channels:
+                logger.info(f"No individual channel files found - recovered {len(main_config_channels)} channels from config.json")
+                config['channel_permissions'] = main_config_channels
+
+                # Auto-migrate to individual files
+                try:
+                    from services.config.channel_config_service import get_channel_config_service
+                    channel_service = get_channel_config_service()
+                    if not channel_service.save_all_channels(main_config_channels):
+                        logger.warning("Auto-migration from config.json partially failed - some channels may not have been saved")
+                    else:
+                        logger.info(f"Auto-migrated {len(main_config_channels)} channels from config.json to individual files")
+                except (AttributeError, ImportError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, ValueError) as migrate_err:
+                    logger.warning(f"Could not auto-migrate channels from config.json: {migrate_err}")
+
+            # Second try: channels_config.json (legacy virtual modular)
+            elif self.channels_config_file.exists():
+                channels_config = self._load_json_file(self.channels_config_file, {})
+                fallback_permissions = channels_config.get('channel_permissions', {})
+                if fallback_permissions:
+                    logger.info(f"No individual channel files found - loaded {len(fallback_permissions)} channels from {self.channels_config_file.name} (migration fallback)")
+                    config['channel_permissions'] = fallback_permissions
+                    config['default_channel_permissions'] = channels_config.get('default_channel_permissions', {})
+
+                    # Auto-migrate: save to individual files for next load
+                    try:
+                        from services.config.channel_config_service import get_channel_config_service
+                        channel_service = get_channel_config_service()
+                        if not channel_service.save_all_channels(fallback_permissions):
+                            logger.warning("Auto-migration from channels_config.json partially failed - some channels may not have been saved")
+                        else:
+                            logger.info(f"Auto-migrated {len(fallback_permissions)} channels to individual files")
+                    except (AttributeError, ImportError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, ValueError) as migrate_err:
+                        logger.warning(f"Could not auto-migrate channels to individual files: {migrate_err}")
 
         # 9. Load other existing configs
         self.load_existing_configs_virtual(config)
 
-        logger.debug(f"Real modular config loaded: {len(servers)} servers, {len(channel_data.get('channel_permissions', {}))} channels")
+        logger.info(f"Real modular config loaded: {len(servers)} servers, {len(config.get('channel_permissions', {}))} channels")
         return config
 
     def load_all_containers_from_files(self) -> list:
@@ -144,9 +186,13 @@ class ConfigLoaderService:
         }
 
         if not self.channels_dir.exists():
+            logger.info(f"Channels directory does not exist: {self.channels_dir}")
             return channel_data
 
-        for channel_file in self.channels_dir.glob("*.json"):
+        json_files = list(self.channels_dir.glob("*.json"))
+        logger.info(f"Found {len(json_files)} JSON files in {self.channels_dir}")
+
+        for channel_file in json_files:
             try:
                 channel_config = self._load_json_file(channel_file, {})
 
@@ -164,6 +210,7 @@ class ConfigLoaderService:
             except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
                 logger.error(f"Error loading channel {channel_file}: {e}", exc_info=True)
 
+        logger.info(f"Loaded {len(channel_data['channel_permissions'])} channel configurations from individual files")
         return channel_data
 
     def load_virtual_modular_config(self) -> Dict[str, Any]:
