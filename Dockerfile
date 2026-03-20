@@ -93,7 +93,8 @@ RUN apk update && \
     jpeg \
     zlib \
     tzdata \
-    su-exec && \
+    su-exec \
+    expat && \
     apk upgrade --no-cache && \
     rm -rf /var/cache/apk/*
 
