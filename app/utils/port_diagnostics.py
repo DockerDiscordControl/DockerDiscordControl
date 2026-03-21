@@ -390,24 +390,23 @@ class PortDiagnostics:
         logger.info("=== DDC Port Diagnostics ===")
         logger.info(f"Container: {report['container_name'] or 'Unknown'}")
         logger.info(f"Platform: {report['host_info']['platform']}")
-        logger.info(f"Internal Web UI Port {self.EXPECTED_WEB_PORT}: {'LISTENING' if report['port_check']['internal_port_listening'] else 'NOT LISTENING'}")
 
-        if report['port_check']['port_mappings']:
-            logger.info(f"Port Mappings: {report['port_check']['port_mappings']}")
+        internal_listening = report['port_check']['internal_port_listening']
+        logger.info(f"Internal Web UI Port {self.EXPECTED_WEB_PORT}: {'LISTENING' if internal_listening else 'NOT LISTENING'}")
+
+        if not internal_listening:
+            # Only warn if the port is genuinely not listening
+            logger.warning(f"Web UI service is not listening on port {self.EXPECTED_WEB_PORT}")
+            logger.info("This may indicate a startup issue. Check if the web server process started correctly.")
         else:
-            logger.warning("No port mappings detected - Web UI may not be accessible externally")
+            # Port is listening, report success
+            if report['port_check']['port_mappings']:
+                logger.info(f"Port Mappings: {report['port_check']['port_mappings']}")
+            else:
+                # Port mapping detection often fails from inside containers, this is normal
+                logger.debug("Port mapping detection not available from inside container (normal)")
 
-        # Log issues and solutions
-        if report['port_check']['issues']:
-            logger.warning("PORT ISSUES DETECTED:")
-            for issue in report['port_check']['issues']:
-                logger.warning(f"  WARNING: {issue}")
-
-            logger.info("SUGGESTED SOLUTIONS:")
-            for solution in report['port_check']['solutions']:
-                logger.info(f"  SOLUTION: {solution}")
-        else:
-            logger.info("Port configuration appears correct")
+            logger.info("Port configuration OK")
 
         # Log access information with actual IP resolution
         actual_host_ip = self._get_actual_host_ip()
@@ -415,7 +414,6 @@ class PortDiagnostics:
         if report['port_check']['external_ports']:
             for port_info in report['port_check']['external_ports']:
                 if isinstance(port_info, dict):
-                    # Replace generic bind addresses with actual IP
                     host = port_info['host']
                     if host in ['0.0.0.0', '::']:
                         host = actual_host_ip or 'localhost'
@@ -423,14 +421,9 @@ class PortDiagnostics:
                 else:
                     host = actual_host_ip or 'localhost'
                     logger.info(f"Web UI should be accessible at: http://{host}:{port_info}")
-        elif self.host_info['is_unraid']:
-            if actual_host_ip:
-                logger.info(f"Web UI should be accessible at: http://{actual_host_ip}:8374")
-            else:
-                logger.info("Web UI should be accessible at: http://[UNRAID-IP]:8374")
         else:
             host = actual_host_ip or 'localhost'
-            logger.info(f"Web UI should be accessible at: http://{host}:8374")
+            logger.info(f"Web UI: http://{host}:{self.EXPECTED_WEB_PORT}")
 
         logger.info("=== End Diagnostics ===")
 

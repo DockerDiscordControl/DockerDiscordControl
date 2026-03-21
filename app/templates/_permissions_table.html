@@ -33,45 +33,45 @@
         <tbody>
             {% set channel_permissions = config.get('channel_permissions', {}) %}
             {% set defaults = config.get('default_channel_permissions', DEFAULT_CONFIG['default_channel_permissions']) %}
-            {% set status_channel_count = 0 %}
+            {% set ns = namespace(status_channel_count=0) %}
             {% for channel_id, channel_data in channel_permissions.items() %}
                 {% if not channel_data.commands.control %}
-                    {% set status_channel_count = status_channel_count + 1 %}
-                    <tr id="status-channel-row-{{ status_channel_count }}">
-                        <td><input type="text" class="form-control form-control-sm" name="status_channel_name_{{ status_channel_count }}" value="{{ channel_data.name }}" placeholder="Channel Name"></td>
+                    {% set ns.status_channel_count = ns.status_channel_count + 1 %}
+                    <tr id="status-channel-row-{{ ns.status_channel_count }}">
+                        <td><input type="text" class="form-control form-control-sm" name="status_channel_name_{{ ns.status_channel_count }}" value="{{ channel_data.name }}" placeholder="Channel Name"></td>
                         <td>
-                            <input type="text" class="form-control form-control-sm" name="status_channel_id_{{ status_channel_count }}" value="{{ channel_id }}" placeholder="Channel ID">
-                            <input type="hidden" name="old_status_channel_id_{{ status_channel_count }}" value="{{ channel_id }}">
+                            <input type="text" class="form-control form-control-sm" name="status_channel_id_{{ ns.status_channel_count }}" value="{{ channel_id }}" placeholder="Channel ID">
+                            <input type="hidden" name="old_status_channel_id_{{ ns.status_channel_count }}" value="{{ channel_id }}">
                         </td>
                         <td class="text-center">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="status_post_initial_{{ status_channel_count }}" value="1" {% if channel_data.post_initial %}checked{% endif %}>
+                                <input class="form-check-input" type="checkbox" name="status_post_initial_{{ ns.status_channel_count }}" value="1" {% if channel_data.post_initial %}checked{% endif %}>
                                 <label class="form-check-label visually-hidden">Initial</label>
                             </div>
                         </td>
                         <td class="text-center" style="border-left: 3px solid #0dcaf0;">
                             <div class="form-check">
-                                <input class="form-check-input auto-refresh-checkbox" type="checkbox" name="status_enable_auto_refresh_{{ status_channel_count }}" value="1" {% set is_ar_checked = channel_data.get('enable_auto_refresh', defaults.get('enable_auto_refresh', False)) %}{% if is_ar_checked %}checked{% endif %} data-target-input=".interval-minutes-input">
+                                <input class="form-check-input auto-refresh-checkbox" type="checkbox" name="status_enable_auto_refresh_{{ ns.status_channel_count }}" value="1" {% set is_ar_checked = channel_data.get('enable_auto_refresh', defaults.get('enable_auto_refresh', False)) %}{% if is_ar_checked %}checked{% endif %} data-target-input=".interval-minutes-input">
                                 <label class="form-check-label visually-hidden">Refresh</label>
                             </div>
                         </td>
-                        <td><input type="number" class="form-control form-control-sm interval-minutes-input" name="status_update_interval_minutes_{{ status_channel_count }}" value="{{ channel_data.get('update_interval_minutes', defaults.get('update_interval_minutes', 1)) }}" min="1" style="width: 70px;" {% if not is_ar_checked %}disabled{% endif %}></td>
+                        <td><input type="number" class="form-control form-control-sm interval-minutes-input" name="status_update_interval_minutes_{{ ns.status_channel_count }}" value="{{ channel_data.get('update_interval_minutes', defaults.get('update_interval_minutes', 1)) }}" min="1" style="width: 70px;" {% if not is_ar_checked %}disabled{% endif %}></td>
                         <td class="text-center" style="border-left: 3px solid #0dcaf0;">
                             <div class="form-check">
-                                <input class="form-check-input recreate-checkbox" type="checkbox" name="status_recreate_messages_{{ status_channel_count }}" value="1" {% set is_ri_checked = channel_data.get('recreate_messages_on_inactivity', defaults.get('recreate_messages_on_inactivity', False)) %}{% if is_ri_checked %}checked{% endif %} data-target-input=".inactivity-minutes-input">
+                                <input class="form-check-input recreate-checkbox" type="checkbox" name="status_recreate_messages_{{ ns.status_channel_count }}" value="1" {% set is_ri_checked = channel_data.get('recreate_messages_on_inactivity', defaults.get('recreate_messages_on_inactivity', False)) %}{% if is_ri_checked %}checked{% endif %} data-target-input=".inactivity-minutes-input">
                                 <label class="form-check-label visually-hidden">Recreate on Inactivity</label>
                             </div>
                         </td>
-                        <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="status_inactivity_timeout_{{ status_channel_count }}" value="{{ channel_data.get('inactivity_timeout_minutes', defaults.get('inactivity_timeout_minutes', 1)) }}" min="1" style="width: 70px;" {% if not is_ri_checked %}disabled{% endif %}></td>
+                        <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="status_inactivity_timeout_{{ ns.status_channel_count }}" value="{{ channel_data.get('inactivity_timeout_minutes', defaults.get('inactivity_timeout_minutes', 1)) }}" min="1" style="width: 70px;" {% if not is_ri_checked %}disabled{% endif %}></td>
                         <td class="text-center" style="border-left: 3px solid #0dcaf0;">
-                            <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="status-channel-row-{{ status_channel_count }}">
+                            <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="status-channel-row-{{ ns.status_channel_count }}">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </td>
                     </tr>
                 {% endif %}
             {% endfor %}
-            {% if status_channel_count == 0 %}
+            {% if ns.status_channel_count == 0 %}
                 <tr id="status-channel-row-1">
                     <td><input type="text" class="form-control form-control-sm" name="status_channel_name_1" placeholder="Channel Name"></td>
                     <td>
@@ -138,45 +138,45 @@
             </tr>
         </thead>
         <tbody>
-            {% set control_channel_count = 0 %}
+            {% set ns2 = namespace(control_channel_count=0) %}
             {% for channel_id, channel_data in channel_permissions.items() %}
                 {% if channel_data.commands.control %}
-                    {% set control_channel_count = control_channel_count + 1 %}
-                    <tr id="control-channel-row-{{ control_channel_count }}">
-                        <td><input type="text" class="form-control form-control-sm" name="control_channel_name_{{ control_channel_count }}" value="{{ channel_data.name }}" placeholder="Channel Name"></td>
+                    {% set ns2.control_channel_count = ns2.control_channel_count + 1 %}
+                    <tr id="control-channel-row-{{ ns2.control_channel_count }}">
+                        <td><input type="text" class="form-control form-control-sm" name="control_channel_name_{{ ns2.control_channel_count }}" value="{{ channel_data.name }}" placeholder="Channel Name"></td>
                         <td>
-                            <input type="text" class="form-control form-control-sm" name="control_channel_id_{{ control_channel_count }}" value="{{ channel_id }}" placeholder="Channel ID">
-                            <input type="hidden" name="old_control_channel_id_{{ control_channel_count }}" value="{{ channel_id }}">
+                            <input type="text" class="form-control form-control-sm" name="control_channel_id_{{ ns2.control_channel_count }}" value="{{ channel_id }}" placeholder="Channel ID">
+                            <input type="hidden" name="old_control_channel_id_{{ ns2.control_channel_count }}" value="{{ channel_id }}">
                         </td>
                         <td class="text-center">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="control_post_initial_{{ control_channel_count }}" value="1" {% if channel_data.post_initial %}checked{% endif %}>
+                                <input class="form-check-input" type="checkbox" name="control_post_initial_{{ ns2.control_channel_count }}" value="1" {% if channel_data.post_initial %}checked{% endif %}>
                                 <label class="form-check-label visually-hidden">Initial</label>
                             </div>
                         </td>
                         <td class="text-center" style="border-left: 3px solid #0dcaf0;">
                             <div class="form-check">
-                                <input class="form-check-input auto-refresh-checkbox" type="checkbox" name="control_enable_auto_refresh_{{ control_channel_count }}" value="1" {% set is_ar_checked = channel_data.get('enable_auto_refresh', defaults.get('enable_auto_refresh', False)) %}{% if is_ar_checked %}checked{% endif %} data-target-input=".interval-minutes-input">
+                                <input class="form-check-input auto-refresh-checkbox" type="checkbox" name="control_enable_auto_refresh_{{ ns2.control_channel_count }}" value="1" {% set is_ar_checked = channel_data.get('enable_auto_refresh', defaults.get('enable_auto_refresh', False)) %}{% if is_ar_checked %}checked{% endif %} data-target-input=".interval-minutes-input">
                                 <label class="form-check-label visually-hidden">Refresh</label>
                             </div>
                         </td>
-                        <td><input type="number" class="form-control form-control-sm interval-minutes-input" name="control_update_interval_minutes_{{ control_channel_count }}" value="{{ channel_data.get('update_interval_minutes', defaults.get('update_interval_minutes', 1)) }}" min="1" style="width: 70px;" {% if not is_ar_checked %}disabled{% endif %}></td>
+                        <td><input type="number" class="form-control form-control-sm interval-minutes-input" name="control_update_interval_minutes_{{ ns2.control_channel_count }}" value="{{ channel_data.get('update_interval_minutes', defaults.get('update_interval_minutes', 1)) }}" min="1" style="width: 70px;" {% if not is_ar_checked %}disabled{% endif %}></td>
                         <td class="text-center" style="border-left: 3px solid #0dcaf0;">
                             <div class="form-check">
-                                <input class="form-check-input recreate-checkbox" type="checkbox" name="control_recreate_messages_{{ control_channel_count }}" value="1" {% set is_ri_checked = channel_data.get('recreate_messages_on_inactivity', defaults.get('recreate_messages_on_inactivity', False)) %}{% if is_ri_checked %}checked{% endif %} data-target-input=".inactivity-minutes-input">
+                                <input class="form-check-input recreate-checkbox" type="checkbox" name="control_recreate_messages_{{ ns2.control_channel_count }}" value="1" {% set is_ri_checked = channel_data.get('recreate_messages_on_inactivity', defaults.get('recreate_messages_on_inactivity', False)) %}{% if is_ri_checked %}checked{% endif %} data-target-input=".inactivity-minutes-input">
                                 <label class="form-check-label visually-hidden">Recreate on Inactivity</label>
                             </div>
                         </td>
-                        <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="control_inactivity_timeout_{{ control_channel_count }}" value="{{ channel_data.get('inactivity_timeout_minutes', defaults.get('inactivity_timeout_minutes', 1)) }}" min="1" style="width: 70px;" {% if not is_ri_checked %}disabled{% endif %}></td>
+                        <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="control_inactivity_timeout_{{ ns2.control_channel_count }}" value="{{ channel_data.get('inactivity_timeout_minutes', defaults.get('inactivity_timeout_minutes', 1)) }}" min="1" style="width: 70px;" {% if not is_ri_checked %}disabled{% endif %}></td>
                         <td class="text-center" style="border-left: 3px solid #0dcaf0;">
-                            <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="control-channel-row-{{ control_channel_count }}">
+                            <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="control-channel-row-{{ ns2.control_channel_count }}">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </td>
                     </tr>
                 {% endif %}
             {% endfor %}
-            {% if control_channel_count == 0 %}
+            {% if ns2.control_channel_count == 0 %}
                 <tr id="control-channel-row-1">
                     <td><input type="text" class="form-control form-control-sm" name="control_channel_name_1" placeholder="Channel Name"></td>
                     <td>
