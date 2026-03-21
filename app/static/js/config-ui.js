@@ -31,6 +31,18 @@ document.addEventListener('DOMContentLoaded', function() {
             openContainerInfoModal(containerName);
         }
     });
+
+    // Handle channel remove buttons (event delegation for both template-rendered and JS-added rows)
+    document.addEventListener('click', function(event) {
+        const removeBtn = event.target.closest('.remove-channel-btn');
+        if (removeBtn) {
+            const rowId = removeBtn.getAttribute('data-row-id');
+            const row = document.getElementById(rowId);
+            if (row) {
+                row.remove();
+            }
+        }
+    });
     
     // Handle character counter for modal textarea
     const modalTextarea = document.getElementById('modal-info-custom-text');
@@ -652,11 +664,6 @@ function initializeCheckboxHandlers(row) {
         });
     }
 
-    // Remove button handler
-    const removeBtn = row.querySelector('.remove-channel-btn');
-    if (removeBtn) {
-        removeBtn.addEventListener('click', function() {
-            row.remove();
-        });
-    }
+    // Remove button handler: handled via event delegation in DOMContentLoaded
+    // (works for both template-rendered and dynamically added rows)
 }
