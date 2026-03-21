@@ -15,6 +15,9 @@ Control your Docker containers directly from Discord! This application provides 
 🐛 **Critical Bug Fix:**
 - **Jinja2 Scoping Bug** (Root Cause of Issue #14): Fixed `{% set %}` variable inside `{% for %}` loop not surviving outer scope in Jinja2 templates. This caused the empty default channel row to ALWAYS render alongside existing channels, creating duplicate form fields. When saved, Flask received lists instead of strings for channel IDs, corrupting the data and causing all existing channels to be deleted. Fixed using Jinja2 `namespace()` objects.
 
+🐛 **Additional Bug Fixes:**
+- **Channel Delete Button**: Fixed delete button not working for existing channel rows in the web UI. The click handler was only attached to dynamically added rows, not template rendered ones. Fixed via event delegation.
+
 📝 **Improvements:**
 - **Port Diagnostics**: Cleaned up false "PORT ISSUES DETECTED" warnings when port mapping detection is unavailable from inside the container. Now only warns when the port is genuinely not listening.
 
