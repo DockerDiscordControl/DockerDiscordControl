@@ -227,12 +227,8 @@ def test_translation():
         stored = settings.api_key_encrypted
         if stored.startswith('gAAAAA'):
             try:
-                from services.config.config_service import ConfigService
-                config_svc = ConfigService()
-                cfg = config_svc.get_config()
-                pw_hash = cfg.get("web_ui_password_hash", "")
-                if pw_hash:
-                    api_key = config_svc.decrypt_token(stored, pw_hash) or ''
+                fernet = config_service._get_encryption_key()
+                api_key = fernet.decrypt(stored.encode()).decode()
             except Exception:
                 pass
         else:

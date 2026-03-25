@@ -349,7 +349,7 @@
         
         let logIntervalId = null;
         let currentLogLevel = 'info'; // Default log level
-        let rawLogsCache = ''; // Cache for the full logs
+        window.rawLogsCache = ''; // Cache for the full logs (global for LogAutoRefresh class)
         let minimalLogsCache = []; // New cache specifically for important log events
         const MAX_MINIMAL_LOGS = 500; // Maximum number of minimal log entries to store
         
@@ -416,9 +416,9 @@
             return logs; // Default to showing all if level is unknown
         }
 
-        function displayFilteredLogs() {
+        window.displayFilteredLogs = function displayFilteredLogs() {
             if (!logContentElement) return;
-            const filteredLogsText = filterLogs(rawLogsCache, currentLogLevel);
+            const filteredLogsText = filterLogs(window.rawLogsCache, currentLogLevel);
             const lines = filteredLogsText.split('\n');
 
             const htmlLines = lines.map(line => {
@@ -2277,35 +2277,49 @@
         async smartRefreshContainerLogs() {
             const logContentElement = document.getElementById('logContent');
             if (!logContentElement) return;
-            
+
             // Preserve scroll position
             const logsContainer = document.getElementById('logsContainer');
-            const wasAtBottom = logsContainer && 
+            const wasAtBottom = logsContainer &&
                 (logsContainer.scrollTop + logsContainer.clientHeight >= logsContainer.scrollHeight - 10);
-            
+
             try {
-                const response = await fetch(`/logs_bp/container_logs/${this.getCurrentContainerName()}`);
+                // Use the current log type endpoint (same as manual fetch)
+                const logType = window.currentLogType || 'container';
+                const endpoints = {
+                    'container': "{{ url_for('log_bp.get_container_logs', container_name='dockerdiscordcontrol') }}",
+                    'bot': "{{ url_for('log_bp.get_bot_logs') }}",
+                    'discord': "{{ url_for('log_bp.get_discord_logs') }}",
+                    'webui': "{{ url_for('log_bp.get_webui_logs') }}",
+                    'application': "{{ url_for('log_bp.get_application_logs') }}",
+                    'actions': "{{ url_for('log_bp.get_action_logs') }}"
+                };
+                const endpoint = endpoints[logType] || endpoints['container'];
+
+                const response = await fetch(endpoint);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                
+
                 const newContent = await response.text();
                 const newHash = this.simpleHash(newContent);
-                
+
                 // Only update if content changed
                 if (newHash !== this.lastContainerLogHash) {
                     this.lastContainerLogHash = newHash;
-                    
-                    // Parse and display logs
-                    rawLogsCache = this.parseLogs(newContent).join('\n');
-                    displayFilteredLogs();
-                    
+
+                    // Store raw text for filtering
+                    window.rawLogsCache = newContent;
+                    if (typeof window.displayFilteredLogs === 'function') {
+                        window.displayFilteredLogs();
+                    } else {
+                        logContentElement.textContent = newContent;
+                    }
+
                     // Restore scroll position
                     if (wasAtBottom && logsContainer) {
                         setTimeout(() => {
                             logsContainer.scrollTop = logsContainer.scrollHeight;
                         }, 10);
                     }
-                    
-                    console.log('Container logs auto-refreshed (content changed)');
                 }
             } catch (error) {
                 console.warn('Container log auto-refresh failed:', error);
