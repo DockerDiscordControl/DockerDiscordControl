@@ -58,7 +58,16 @@ class TranslationMonitor(commands.Cog):
                         name = emb_field.name or ""
                         embed_texts.append(f"{name}: {emb_field.value}" if name else emb_field.value)
 
-            # 5. Build context
+            # 5. Extract attachments (images, videos, files)
+            attachment_urls = []
+            for att in message.attachments:
+                attachment_urls.append({
+                    'url': att.url,
+                    'filename': att.filename,
+                    'content_type': att.content_type or ''
+                })
+
+            # 6. Build context
             ctx = TranslationContext(
                 message_id=str(message.id),
                 channel_id=str(message.channel.id),
@@ -66,10 +75,11 @@ class TranslationMonitor(commands.Cog):
                 author_name=message.author.display_name,
                 author_avatar_url=str(message.author.display_avatar.url),
                 content=message.content,
-                embed_texts=embed_texts
+                embed_texts=embed_texts,
+                attachment_urls=attachment_urls
             )
 
-            # 6. Forward to service
+            # 7. Forward to service
             await self.translation_service.process_message(ctx, self.bot)
 
         except Exception as e:

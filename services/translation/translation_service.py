@@ -58,6 +58,7 @@ class TranslationContext:
     author_avatar_url: str
     content: str
     embed_texts: List[str] = field(default_factory=list)
+    attachment_urls: List[Dict[str, str]] = field(default_factory=list)  # [{url, filename, content_type}]
 
     @property
     def message_link(self) -> str:
@@ -509,21 +510,29 @@ class TranslationService:
 
             # Build text to translate
             text = self._build_translation_text(context, pair)
-            if not text.strip():
+            has_attachments = bool(context.attachment_urls)
+
+            if not text.strip() and not has_attachments:
                 continue
 
-            # Unicode-safe truncation
-            text = _safe_truncate(text, settings.max_text_length)
+            if text.strip():
+                # Unicode-safe truncation
+                text = _safe_truncate(text, settings.max_text_length)
 
-            # Rate limit
-            if not self._rate_limiter.check(settings.rate_limit_per_minute):
-                logger.warning("Translation rate limit exceeded — skipping")
-                continue
+                # Rate limit
+                if not self._rate_limiter.check(settings.rate_limit_per_minute):
+                    logger.warning("Translation rate limit exceeded — skipping")
+                    continue
 
-            # Translate with retry
-            result = await self._translate_with_retry(
-                provider, text, pair.target_language, pair.source_language, session
-            )
+                # Translate with retry
+                result = await self._translate_with_retry(
+                    provider, text, pair.target_language, pair.source_language, session
+                )
+            else:
+                # Attachment-only message — no text to translate, forward as-is
+                result = TranslationResult(
+                    success=True, translated_text="", provider="passthrough"
+                )
 
             if result.success:
                 with self._state_lock:
@@ -574,27 +583,52 @@ class TranslationService:
                     return
 
             # Build compact embed
-            translated_text = _safe_truncate(result.translated_text, DISCORD_EMBED_DESC_LIMIT)
+            translated_text = _safe_truncate(result.translated_text, DISCORD_EMBED_DESC_LIMIT) if result.translated_text else ""
             embed = discord.Embed(
-                description=translated_text,
+                description=translated_text or None,
                 color=0x3498db
             )
             embed.set_author(
                 name=context.author_name,
                 icon_url=context.author_avatar_url
             )
+
+            # Set first image attachment as embed image
+            image_set = False
+            for att in context.attachment_urls:
+                ct = att.get('content_type', '')
+                if ct.startswith('image/') and not image_set:
+                    embed.set_image(url=att['url'])
+                    image_set = True
+                    break
+
             embed.add_field(
                 name="\u200b",  # Zero-width space for invisible field name
                 value=f"\U0001F517 [Original]({context.message_link})",
                 inline=False
             )
 
-            detected = result.detected_language or "?"
-            embed.set_footer(
-                text=f"Translated from {detected} to {pair.target_language} via {result.provider}"
-            )
+            if result.provider == "passthrough":
+                embed.set_footer(text=f"Forwarded from #{pair.name}")
+            else:
+                detected = result.detected_language or "?"
+                embed.set_footer(
+                    text=f"Translated from {detected} to {pair.target_language} via {result.provider}"
+                )
 
-            sent_msg = await target_channel.send(embed=embed)
+            # Build content string for non-image attachments (videos, files)
+            extra_content = ""
+            for att in context.attachment_urls:
+                ct = att.get('content_type', '')
+                if ct.startswith('video/'):
+                    extra_content += att['url'] + "\n"
+                elif not ct.startswith('image/'):
+                    extra_content += f"📎 [{att.get('filename', 'file')}]({att['url']})\n"
+
+            sent_msg = await target_channel.send(
+                content=extra_content.strip() or None,
+                embed=embed
+            )
             self.mark_as_translated(str(sent_msg.id))
 
         except discord.Forbidden:
