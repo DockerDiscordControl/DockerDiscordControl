@@ -6,7 +6,7 @@ waitress==3.0.2
 cryptography>=46.0.5  # Security fix for CVE-2026-26007
 APScheduler==3.11.2
 PyYAML==6.0.3
-requests==2.32.5
+requests>=2.33.0  # Security fix for CVE-2026-25645
 urllib3>=2.6.0  # Security fix for GHSA-s4qh-5xfq-xqjg
 aiohttp>=3.12.14
 Flask-HTTPAuth==4.8.0
