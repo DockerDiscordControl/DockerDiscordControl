@@ -19,6 +19,8 @@ from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from cryptography.fernet import Fernet
+
 logger = logging.getLogger('ddc.translation_config_service')
 
 # --- Validation Constants ---
@@ -333,6 +335,31 @@ class TranslationConfigService:
                 logger.error(f"Error updating translation settings: {e}")
                 return ConfigResult(success=False, error=str(e))
 
+    def _get_encryption_key(self) -> Fernet:
+        """Get or create a stable Fernet encryption key (independent of password).
+
+        The key is stored in config/.translation_key and persists across
+        password changes, unlike the password-hash-derived key used for bot tokens.
+        """
+        key_file = self.config_file.parent / ".translation_key"
+        try:
+            if key_file.exists():
+                stored_key = key_file.read_bytes().strip()
+                return Fernet(stored_key)
+        except Exception as e:
+            logger.warning(f"Could not load translation encryption key, generating new one: {e}")
+
+        # Generate a new key
+        new_key = Fernet.generate_key()
+        try:
+            key_file.parent.mkdir(parents=True, exist_ok=True)
+            key_file.write_bytes(new_key)
+            os.chmod(str(key_file), 0o600)
+            logger.info("Generated new translation encryption key")
+        except Exception as e:
+            logger.error(f"Could not save translation encryption key: {e}")
+        return Fernet(new_key)
+
     def save_api_key(self, api_key: Optional[str]) -> ConfigResult:
         """Save or clear the translation API key (encrypted). Thread-safe."""
         with self._file_lock:
@@ -341,37 +368,15 @@ class TranslationConfigService:
                 settings = config.get('settings', {})
 
                 if api_key:
-                    # Encrypt the key using DDC's encryption system
-                    encrypted_ok = False
                     try:
-                        from services.config.config_service import ConfigService
-                        config_svc = ConfigService()
-                        config_data = config_svc.get_config()
-                        password_hash = config_data.get("web_ui_password_hash", "")
-                        if password_hash:
-                            from cryptography.fernet import Fernet
-                            from cryptography.hazmat.primitives import hashes
-                            from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-                            import base64
-                            kdf = PBKDF2HMAC(
-                                algorithm=hashes.SHA256(),
-                                length=32,
-                                salt=b"ddc-salt-for-token-encryption-key-v1",
-                                iterations=600000,
-                            )
-                            key = base64.urlsafe_b64encode(kdf.derive(password_hash.encode()))
-                            f = Fernet(key)
-                            encrypted = f.encrypt(api_key.encode()).decode()
-                            settings['api_key_encrypted'] = encrypted
-                            encrypted_ok = True
+                        f = self._get_encryption_key()
+                        encrypted = f.encrypt(api_key.encode()).decode()
+                        settings['api_key_encrypted'] = encrypted
                     except Exception as e:
                         logger.error(f"Encryption failed for translation API key: {e}")
-
-                    if not encrypted_ok:
                         # Fallback: store plaintext (user is warned via log)
                         settings['api_key_encrypted'] = api_key
-                        logger.warning("Translation API key stored WITHOUT encryption — "
-                                       "set a Web UI password to enable encryption")
+                        logger.warning("Translation API key stored WITHOUT encryption")
                 else:
                     # Clear the key
                     settings['api_key_encrypted'] = None

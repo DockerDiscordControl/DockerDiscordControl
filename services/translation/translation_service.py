@@ -87,13 +87,10 @@ class TranslationResult:
 # --- Helpers ---
 
 def _safe_truncate(text: str, max_length: int) -> str:
-    """Truncate text to max_length without breaking multi-byte Unicode characters."""
+    """Truncate text to max_length characters (Unicode code points)."""
     if len(text) <= max_length:
         return text
-    # Encode to UTF-8, truncate bytes, decode back safely
-    encoded = text.encode('utf-8')[:max_length * 4]  # generous byte budget
-    decoded = encoded.decode('utf-8', errors='ignore')
-    return decoded[:max_length]
+    return text[:max_length]
 
 
 def _normalize_language_code(code: str, provider: str) -> str:
@@ -413,25 +410,20 @@ class TranslationService:
             return key
         if not settings.api_key_encrypted:
             return None
-        # 2. Try to decrypt (Fernet-encrypted keys start with 'gAAAAA')
+        # 2. Try to decrypt using the stable translation encryption key
         stored_key = settings.api_key_encrypted
         if stored_key.startswith('gAAAAA'):
             try:
-                from services.config.config_service import ConfigService
-                config_svc = ConfigService()
-                config_data = config_svc.get_config()
-                password_hash = config_data.get("web_ui_password_hash", "")
-                if password_hash:
-                    decrypted = config_svc.decrypt_token(stored_key, password_hash)
-                    if decrypted:
-                        return decrypted
+                fernet = self.config_service._get_encryption_key()
+                decrypted = fernet.decrypt(stored_key.encode()).decode()
+                if decrypted:
+                    return decrypted
             except Exception as e:
                 logger.warning(f"Could not decrypt translation API key: {e}")
-            # Decryption failed — key may be corrupted or password changed
-            logger.error("Translation API key decryption failed — "
-                         "re-enter the key in the Web UI to re-encrypt")
-            return None
-        # 3. Plaintext fallback (stored unencrypted if no password hash was set)
+                logger.error("Translation API key decryption failed — "
+                             "re-enter the key in the Web UI to re-encrypt")
+                return None
+        # 3. Plaintext fallback (stored unencrypted if no encryption key existed)
         return stored_key
 
     def _get_provider(self, settings: TranslationSettings, api_key: str) -> TranslationProvider:
