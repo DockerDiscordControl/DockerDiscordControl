@@ -8,6 +8,7 @@ Handles provider abstraction, message translation, embed posting, and rate limit
 """
 
 import asyncio
+import io
 import logging
 import os
 import re
@@ -636,22 +637,44 @@ class TranslationService:
                     if len(extra_content) + len(url) + 1 <= 1900:
                         extra_content += url + "\n"
 
-            # Add non-image attachments (videos, files)
+            # Download and re-upload attachments as real discord.File objects
+            # so Discord shows proper video players and image previews
+            files = []
+            session = await self._get_session()
             for att in context.attachment_urls:
                 ct = att.get('content_type', '')
-                line = ""
-                if ct.startswith('video/'):
-                    line = att['url'] + "\n"
+                filename = att.get('filename', 'file')
+                if ct.startswith('video/') or (ct.startswith('image/') and not image_set):
+                    try:
+                        async with session.get(att['url'], timeout=aiohttp.ClientTimeout(total=30)) as resp:
+                            if resp.status == 200:
+                                data = await resp.read()
+                                # Discord file upload limit: 25MB for most servers
+                                if len(data) <= 25 * 1024 * 1024:
+                                    files.append(discord.File(io.BytesIO(data), filename=filename))
+                                else:
+                                    line = att['url'] + "\n"
+                                    if len(extra_content) + len(line) <= 1900:
+                                        extra_content += line
+                    except Exception as e:
+                        logger.warning(f"Could not download attachment {filename}: {e}")
+                        line = att['url'] + "\n"
+                        if len(extra_content) + len(line) <= 1900:
+                            extra_content += line
                 elif not ct.startswith('image/'):
-                    line = f"📎 [{att.get('filename', 'file')}]({att['url']})\n"
-                # Discord content limit is 2000 chars
-                if line and len(extra_content) + len(line) <= 1900:
-                    extra_content += line
+                    # Non-media files: link with filename
+                    line = f"📎 [{filename}]({att['url']})\n"
+                    if len(extra_content) + len(line) <= 1900:
+                        extra_content += line
 
-            sent_msg = await target_channel.send(
-                content=extra_content.strip() or None,
-                embed=embed
-            )
+            send_kwargs = {
+                'content': extra_content.strip() or None,
+                'embed': embed,
+            }
+            if files:
+                send_kwargs['files'] = files
+
+            sent_msg = await target_channel.send(**send_kwargs)
             self.mark_as_translated(str(sent_msg.id))
 
         except discord.Forbidden:
