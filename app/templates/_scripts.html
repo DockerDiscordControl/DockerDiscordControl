@@ -1,6 +1,7 @@
 {# --- JavaScript at the end --- #}
 <script src="{{ url_for('static', filename='js/config-ui.js') }}"></script>
 <script src="{{ url_for('static', filename='js/auto_actions.js') }}"></script>
+<script src="{{ url_for('static', filename='js/channel_translation.js') }}"></script>
 <script>
     // --- Global variables and functions for Unsaved Changes (moved out of DOMContentLoaded) ---
     let hasUnsavedChanges = false;
@@ -2283,7 +2284,7 @@
                 (logsContainer.scrollTop + logsContainer.clientHeight >= logsContainer.scrollHeight - 10);
             
             try {
-                const response = await fetch(`/container_logs/${this.getCurrentContainerName()}`);
+                const response = await fetch(`/logs_bp/container_logs/${this.getCurrentContainerName()}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 
                 const newContent = await response.text();
@@ -2294,7 +2295,7 @@
                     this.lastContainerLogHash = newHash;
                     
                     // Parse and display logs
-                    allRawLogs = this.parseLogs(newContent);
+                    rawLogsCache = this.parseLogs(newContent).join('\n');
                     displayFilteredLogs();
                     
                     // Restore scroll position
@@ -2316,7 +2317,7 @@
             if (!actionLogElement) return;
             
             try {
-                const response = await fetch('/action_logs');
+                const response = await fetch('/logs_bp/action_logs');
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 
                 const newContent = await response.text();

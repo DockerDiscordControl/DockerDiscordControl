@@ -1,14 +1,14 @@
 <hr class="my-4">
 <div id="language-settings" class="mb-3 card p-3">
-    <h4 class="mt-2">Language and Timezone</h4>
-    <p class="form-text">Configure language and timezone settings for the system.</p>
+    <h4 class="mt-2"><i class="bi bi-globe2"></i> Language and Timezone</h4>
+    <p class="form-text">Configure language, timezone, and channel translation settings.</p>
     <div class="row">
         <div class="col-md-6 mb-3">
             <label for="language" class="form-label">Bot Language</label>
             <select class="form-select" id="language" name="language" data-immediate-effect="true">
                 <option value="en" {% if config.language == 'en' %}selected{% endif %}>English</option>
                 <option value="de" {% if config.language == 'de' %}selected{% endif %}>Deutsch</option>
-                <option value="fr" {% if config.language == 'fr' %}selected{% endif %}>Français</option>
+                <option value="fr" {% if config.language == 'fr' %}selected{% endif %}>Fran&ccedil;ais</option>
             </select>
             <div class="form-text">Language used by the bot in Discord. <strong>Changes take effect immediately!</strong></div>
         </div>
@@ -19,7 +19,148 @@
                     <option value="{{ tz }}" {% if config.timezone == tz %}selected{% endif %}>{{ tz }}</option>
                 {% endfor %}
             </select>
-            <div class="form-text">Timezone for the entire container (affects logs, scheduled tasks, and all time-related functionality). <strong>Changes take effect immediately!</strong></div>
+            <div class="form-text">Timezone for the entire container. <strong>Changes take effect immediately!</strong></div>
         </div>
     </div>
-</div> 
+
+    {# --- Channel Translation (Collapsible) --- #}
+    <hr class="my-3">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0">
+                <a class="text-decoration-none text-light" data-bs-toggle="collapse" href="#ctCollapseSection" role="button" aria-expanded="false" aria-controls="ctCollapseSection">
+                    <i class="bi bi-translate"></i> Channel Translation
+                    <span class="badge bg-info ms-1" style="font-size: 0.6em; vertical-align: middle;">NEW</span>
+                    <i class="bi bi-chevron-down ms-1 small" id="ctCollapseIcon"></i>
+                </a>
+            </h5>
+            <small class="text-light opacity-75">Automatically translate messages between channels using DeepL, Google, or Microsoft.</small>
+        </div>
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="ctGlobalToggle" onchange="toggleGlobalCT()">
+            <label class="form-check-label" for="ctGlobalToggle">Enabled</label>
+        </div>
+    </div>
+
+    <div class="collapse" id="ctCollapseSection">
+        <div class="mt-3">
+
+            {# --- Provider & API Key --- #}
+            <div class="card bg-secondary bg-opacity-25 p-3 mb-3">
+                <h6 class="mb-3 text-light"><i class="bi bi-key"></i> Translation Provider</h6>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label text-light">Provider</label>
+                        <select class="form-select" id="ctProvider">
+                            <option value="deepl">DeepL</option>
+                            <option value="google">Google Translate</option>
+                            <option value="microsoft">Microsoft Translator</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-light">API Key</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="ctApiKey" placeholder="Enter your API key...">
+                            <button type="button" class="btn btn-outline-secondary" onclick="toggleCtApiKeyVisibility()">
+                                <i class="bi bi-eye" id="ctApiKeyEyeIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-4" id="ctDeeplUrlGroup">
+                        <label class="form-label text-light">DeepL API Tier</label>
+                        <select class="form-select" id="ctDeeplUrl">
+                            <option value="https://api-free.deepl.com/v2/translate">Free API</option>
+                            <option value="https://api.deepl.com/v2/translate">Pro API</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <div id="ctApiKeyStatus" class="alert alert-info mb-0 py-2">
+                            <i class="bi bi-info-circle"></i> Loading...
+                        </div>
+                    </div>
+                    <div class="col-12 d-flex align-items-center gap-2 mt-2">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="saveCTSettings()">
+                            <i class="bi bi-save"></i> Save Translation Settings
+                        </button>
+                        <a class="text-decoration-none text-light small" data-bs-toggle="collapse" href="#ctAdvancedSettings" role="button">
+                            <i class="bi bi-gear"></i> Advanced Settings <i class="bi bi-chevron-down"></i>
+                        </a>
+                    </div>
+                    <div class="col-12">
+                        <div class="collapse mt-2" id="ctAdvancedSettings">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label text-light">Rate Limit (per minute)</label>
+                                    <input type="number" class="form-control" id="ctRateLimit" min="1" max="600" value="60">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-light">Max Text Length</label>
+                                    <input type="number" class="form-control" id="ctMaxTextLength" min="100" max="50000" value="5000">
+                                </div>
+                                <div class="col-md-4 d-flex align-items-end">
+                                    <button type="button" class="btn btn-outline-secondary w-100" onclick="testCTConnection()">
+                                        <i class="bi bi-lightning"></i> Test Connection
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# --- Test Translation (inline) --- #}
+            <div class="card bg-secondary bg-opacity-25 p-3 mb-3">
+                <h6 class="mb-2 text-light"><i class="bi bi-chat-text"></i> Test Translation</h6>
+                <div class="row g-2">
+                    <div class="col-md-7">
+                        <textarea class="form-control form-control-sm" id="ctTestInput" rows="2" placeholder="Enter text to translate..."></textarea>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select form-select-sm" id="ctTestTargetLang">
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm w-100 h-100" onclick="testCTTranslation()">
+                            <i class="bi bi-translate"></i> Test
+                        </button>
+                    </div>
+                    <div class="col-12">
+                        <div id="ctTestResult" class="mt-1" style="display:none;">
+                            <div class="card bg-dark border-secondary">
+                                <div class="card-body py-2">
+                                    <small class="text-muted">Result:</small>
+                                    <div id="ctTestResultText"></div>
+                                    <small id="ctTestResultMeta" class="text-muted"></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="my-3">
+
+            {# --- Channel Pairs --- #}
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0 text-light"><i class="bi bi-arrow-left-right"></i> Channel Pairs</h6>
+                <button type="button" class="btn btn-primary btn-sm" onclick="openCTPairEditor()">
+                    <i class="bi bi-plus-lg"></i> Add Pair
+                </button>
+            </div>
+
+            <div class="mb-2">
+                <input type="text" class="form-control form-control-sm" id="ctPairSearch" placeholder="Search pairs..." onkeyup="filterCTPairs()">
+            </div>
+
+            <div id="ctPairsList" class="list-group list-group-flush border rounded">
+                <div class="list-group-item text-center text-muted py-3 bg-dark">
+                    <i class="bi bi-translate" style="font-size: 1.5rem;"></i>
+                    <div class="mt-1">No translation pairs configured yet.</div>
+                    <div><small>Click "Add Pair" to create your first channel translation.</small></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

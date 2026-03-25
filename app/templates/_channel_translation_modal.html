@@ -1,0 +1,81 @@
+<!-- Channel Translation - Pair Editor Modal -->
+<div class="modal fade" id="ctPairEditorModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ctPairEditorTitle"><i class="bi bi-arrow-left-right"></i> New Channel Pair</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="ctPairForm">
+                    <input type="hidden" id="ctPairId" value="">
+
+                    <!-- Basic Info -->
+                    <div class="mb-3">
+                        <label class="form-label">Pair Name</label>
+                        <input type="text" class="form-control" id="ctPairName" placeholder="e.g. Tech News EN -> DE" maxlength="100" required>
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- Source Channel -->
+                        <div class="col-md-6">
+                            <label class="form-label">Source Channel ID</label>
+                            <input type="text" class="form-control" id="ctSourceChannelId" placeholder="Discord Channel ID" required>
+                            <div class="form-text">The channel to monitor for new messages.</div>
+                        </div>
+
+                        <!-- Target Channel -->
+                        <div class="col-md-6">
+                            <label class="form-label">Target Channel ID</label>
+                            <input type="text" class="form-control" id="ctTargetChannelId" placeholder="Discord Channel ID" required>
+                            <div class="form-text">The channel where translations will be posted.</div>
+                        </div>
+
+                        <!-- Target Language -->
+                        <div class="col-md-6">
+                            <label class="form-label">Target Language</label>
+                            <select class="form-select" id="ctTargetLanguage">
+                                <!-- Populated by JS -->
+                            </select>
+                        </div>
+
+                        <!-- Source Language -->
+                        <div class="col-md-6">
+                            <label class="form-label">Source Language</label>
+                            <select class="form-select" id="ctSourceLanguage">
+                                <option value="">Auto-Detect (Recommended)</option>
+                                <!-- Additional options populated by JS -->
+                            </select>
+                        </div>
+
+                        <!-- Options -->
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="ctTranslateEmbeds" checked>
+                                <label class="form-check-label" for="ctTranslateEmbeds">
+                                    Translate Embed Content (titles, descriptions from bots/webhooks)
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="ctPairEnabled" checked>
+                                <label class="form-check-label" for="ctPairEnabled">Enabled</label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger me-auto" id="ctDeletePairBtn" style="display:none;" onclick="deleteCTPair()">
+                    <i class="bi bi-trash"></i> Delete
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveCTPair()">
+                    <i class="bi bi-save"></i> Save Pair
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

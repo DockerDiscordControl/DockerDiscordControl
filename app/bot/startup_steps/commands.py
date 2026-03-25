@@ -25,7 +25,8 @@ async def load_extensions_step(context: StartupContext) -> None:
 
     extensions = [
         "cogs.docker_control",
-        "cogs.auto_action_monitor"
+        "cogs.auto_action_monitor",
+        "cogs.translation_monitor"
     ]
 
     logger.info("Loading extensions...")
