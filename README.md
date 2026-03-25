@@ -1,6 +1,6 @@
-# DockerDiscordControl v2.1.9 🐳
+# DockerDiscordControl v2.2.0 🐳
 
-[![Version](https://img.shields.io/badge/Version-v2.1.9-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.1.9) [![Python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.23.3-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-Passing-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-80%25-brightgreen?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
+[![Version](https://img.shields.io/badge/Version-v2.2.0-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.2.0) [![Python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.23.3-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-Passing-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-80%25-brightgreen?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
 
 A powerful Discord bot and web interface to manage Docker containers remotely. This application bridges the gap between Discord and your Docker environment, allowing container monitoring and control directly through Discord channels.
 
@@ -9,6 +9,26 @@ A powerful Discord bot and web interface to manage Docker containers remotely. T
 Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is an ultra-optimized Alpine Linux build with the latest security patches and enhanced performance.
 
 ## 🆕 Latest Updates
+
+### ✅ **v2.2.0 (2026-03-25) - Channel Translation**
+
+✨ **New Feature: Channel Translation**
+- Automatically translate Discord messages between channels using DeepL, Google Translate, or Microsoft Translator
+- Multiple source→target channel pairs with per-pair configuration
+- Text, embeds, images, and videos are forwarded with translations
+- Videos are re-uploaded as real Discord files for proper video player display
+- YouTube, Twitter/X, Twitch, Reddit, Vimeo URLs get auto-previewed in translations
+- Encrypted API key storage (independent of password, survives password changes)
+- Rate limiting, retry logic, and auto-disable after consecutive failures
+- Loop prevention (3 layers: bot message check, translated ID tracking, target channel exclusion)
+- Configurable via Web UI: provider selection, test translation, toggle Original link & provider footer
+- Web UI Advanced Settings: rate limit, max text length, show/hide Original link & footer
+
+🐛 **Bug Fixes:**
+- Fixed Web UI console errors: `ReferenceError: rawLogsCache` (JS scoping), log auto-refresh using hardcoded URLs
+- Fixed race condition in translation encryption key creation (double-checked locking + atomic write)
+
+---
 
 ### ✅ **v2.1.9 (2026-03-21) - Critical Channel Save Fix**
 

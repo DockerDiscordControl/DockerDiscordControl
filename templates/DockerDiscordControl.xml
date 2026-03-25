@@ -39,6 +39,14 @@ Alpine 3.23.3, less than 200MB RAM[br][br]
   <Category>Tools:Utilities Productivity:</Category>
   <WebUI>http://[IP]:[PORT:9374]</WebUI>
   <Changes>
+###v2.2.0 (2026-03-25)
+**Channel Translation**
+- NEW: Automatic message translation between Discord channels (DeepL, Google, Microsoft)
+- NEW: Video/image/file forwarding with translations
+- NEW: YouTube/Twitter/Twitch URL auto-preview in translations
+- NEW: Configurable Original link and provider footer toggles
+- FIXED: Web UI console errors (JS scoping, log auto-refresh)
+
 ###v2.1.9 (2026-03-21)
 **Critical Channel Save Fix**
 - FIXED: Jinja2 scoping bug causing admin channels to be deleted on save
