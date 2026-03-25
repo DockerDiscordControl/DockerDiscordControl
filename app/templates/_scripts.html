@@ -2329,61 +2329,33 @@
         async smartRefreshActionLogs() {
             const actionLogElement = document.getElementById('actionLogContent');
             if (!actionLogElement) return;
-            
+
             try {
-                const response = await fetch('/logs_bp/action_logs');
+                const response = await fetch("{{ url_for('log_bp.get_action_logs') }}");
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                
+
                 const newContent = await response.text();
                 const newHash = this.simpleHash(newContent);
-                
+
                 // Only update if content changed
                 if (newHash !== this.lastActionLogHash) {
                     this.lastActionLogHash = newHash;
                     actionLogElement.textContent = newContent;
-                    console.log('Action logs auto-refreshed (content changed)');
                 }
             } catch (error) {
                 console.warn('Action log auto-refresh failed:', error);
             }
         }
-        
-        parseLogs(logText) {
-            // Reuse existing log parsing logic
-            return logText.split('\n').map(line => {
-                const trimmed = line.trim();
-                if (!trimmed) return { original: line, level: 'debug', display: line };
-                
-                let level = 'info';
-                if (trimmed.includes('ERROR') || trimmed.includes('CRITICAL')) level = 'error';
-                else if (trimmed.includes('WARNING') || trimmed.includes('WARN')) level = 'warning';
-                else if (trimmed.includes('SUCCESS')) level = 'success';
-                else if (trimmed.includes('DEBUG')) level = 'debug';
-                
-                return {
-                    original: line,
-                    level: level,
-                    display: line
-                };
-            });
-        }
-        
+
         simpleHash(str) {
-            // Simple hash function for change detection
             let hash = 0;
             if (str.length === 0) return hash;
             for (let i = 0; i < str.length; i++) {
                 const char = str.charCodeAt(i);
                 hash = ((hash << 5) - hash) + char;
-                hash = hash & hash; // Convert to 32bit integer
+                hash = hash & hash;
             }
             return hash;
-        }
-        
-        getCurrentContainerName() {
-            // Get the current container name for log fetching
-            // For DDC, we typically use the fixed container name
-            return 'dockerdiscordcontrol';
         }
     }
     

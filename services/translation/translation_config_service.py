@@ -237,6 +237,7 @@ class TranslationConfigService:
 
         self.config_file = self.base_dir / "config" / "channel_translations.json"
         self._file_lock = threading.Lock()  # Protects read-modify-write operations
+        self._key_lock = threading.Lock()   # Protects encryption key creation
         self._ensure_config_exists()
         logger.info(f"TranslationConfigService initialized: {self.config_file}")
 
@@ -340,8 +341,10 @@ class TranslationConfigService:
 
         The key is stored in config/.translation_key and persists across
         password changes, unlike the password-hash-derived key used for bot tokens.
+        Thread-safe: uses _key_lock to prevent race conditions during key creation.
         """
         key_file = self.config_file.parent / ".translation_key"
+        # Fast path: key file already exists (no lock needed)
         try:
             if key_file.exists():
                 stored_key = key_file.read_bytes().strip()
@@ -349,16 +352,38 @@ class TranslationConfigService:
         except Exception as e:
             logger.warning(f"Could not load translation encryption key, generating new one: {e}")
 
-        # Generate a new key
-        new_key = Fernet.generate_key()
-        try:
-            key_file.parent.mkdir(parents=True, exist_ok=True)
-            key_file.write_bytes(new_key)
-            os.chmod(str(key_file), 0o600)
-            logger.info("Generated new translation encryption key")
-        except Exception as e:
-            logger.error(f"Could not save translation encryption key: {e}")
-        return Fernet(new_key)
+        # Slow path: need to create key (locked to prevent race condition)
+        with self._key_lock:
+            # Double-check after acquiring lock
+            try:
+                if key_file.exists():
+                    stored_key = key_file.read_bytes().strip()
+                    return Fernet(stored_key)
+            except Exception:
+                pass
+
+            new_key = Fernet.generate_key()
+            try:
+                key_file.parent.mkdir(parents=True, exist_ok=True)
+                # Atomic write via temp file + rename
+                fd, temp_path = tempfile.mkstemp(
+                    dir=str(key_file.parent), suffix='.key.tmp'
+                )
+                with os.fdopen(fd, 'wb') as f:
+                    f.write(new_key)
+                    f.flush()
+                    os.fsync(f.fileno())
+                os.rename(temp_path, str(key_file))
+                os.chmod(str(key_file), 0o600)
+                logger.info("Generated new translation encryption key")
+            except Exception as e:
+                logger.error(f"Could not save translation encryption key: {e}")
+                if 'temp_path' in locals() and os.path.exists(temp_path):
+                    try:
+                        os.unlink(temp_path)
+                    except OSError:
+                        pass
+            return Fernet(new_key)
 
     def save_api_key(self, api_key: Optional[str]) -> ConfigResult:
         """Save or clear the translation API key (encrypted). Thread-safe."""
