@@ -540,8 +540,11 @@ class TranslationService:
                 await self._post_translation(bot_instance, pair, context, result)
                 self.config_service.increment_translation_count(pair.id)
                 translated_pairs.append(pair.name)
-                logger.info(f"Translated message for pair '{pair.name}' "
-                            f"({result.detected_language} -> {pair.target_language})")
+                if result.provider == "passthrough":
+                    logger.info(f"Forwarded attachments for pair '{pair.name}'")
+                else:
+                    logger.info(f"Translated message for pair '{pair.name}' "
+                                f"({result.detected_language} -> {pair.target_language})")
             else:
                 with self._state_lock:
                     fail_count = self._consecutive_failures.get(pair.id, 0) + 1
@@ -620,10 +623,14 @@ class TranslationService:
             extra_content = ""
             for att in context.attachment_urls:
                 ct = att.get('content_type', '')
+                line = ""
                 if ct.startswith('video/'):
-                    extra_content += att['url'] + "\n"
+                    line = att['url'] + "\n"
                 elif not ct.startswith('image/'):
-                    extra_content += f"📎 [{att.get('filename', 'file')}]({att['url']})\n"
+                    line = f"📎 [{att.get('filename', 'file')}]({att['url']})\n"
+                # Discord content limit is 2000 chars
+                if line and len(extra_content) + len(line) <= 1900:
+                    extra_content += line
 
             sent_msg = await target_channel.send(
                 content=extra_content.strip() or None,
