@@ -10,6 +10,7 @@ Handles provider abstraction, message translation, embed posting, and rate limit
 import asyncio
 import logging
 import os
+import re
 import threading
 import time
 from abc import ABC, abstractmethod
@@ -619,8 +620,23 @@ class TranslationService:
                     text=f"Translated from {detected} to {pair.target_language} via {result.provider}"
                 )
 
-            # Build content string for non-image attachments (videos, files)
+            # Extract embeddable URLs from translated text so Discord shows previews
+            # (URLs inside embed descriptions don't get auto-previewed by Discord)
             extra_content = ""
+            if translated_text:
+                url_pattern = re.compile(
+                    r'https?://(?:www\.)?(?:youtube\.com/watch\S+|youtu\.be/\S+'
+                    r'|twitter\.com/\S+|x\.com/\S+'
+                    r'|twitch\.tv/\S+|clips\.twitch\.tv/\S+'
+                    r'|reddit\.com/\S+|streamable\.com/\S+'
+                    r'|vimeo\.com/\S+)'
+                )
+                urls = url_pattern.findall(translated_text)
+                for url in urls:
+                    if len(extra_content) + len(url) + 1 <= 1900:
+                        extra_content += url + "\n"
+
+            # Add non-image attachments (videos, files)
             for att in context.attachment_urls:
                 ct = att.get('content_type', '')
                 line = ""
