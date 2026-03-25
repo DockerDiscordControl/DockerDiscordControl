@@ -351,6 +351,8 @@ async function loadCTSettings() {
         document.getElementById('ctDeeplUrl').value = s.deepl_api_url || 'https://api-free.deepl.com/v2/translate';
         document.getElementById('ctRateLimit').value = s.rate_limit_per_minute || 60;
         document.getElementById('ctMaxTextLength').value = s.max_text_length || 5000;
+        document.getElementById('ctShowOriginalLink').checked = s.show_original_link !== false;
+        document.getElementById('ctShowProviderFooter').checked = s.show_provider_footer !== false;
         updateDeeplTierVisibility();
 
         const statusEl = document.getElementById('ctApiKeyStatus');
@@ -401,7 +403,9 @@ async function saveCTSettings() {
         deepl_api_url: document.getElementById('ctDeeplUrl').value,
         rate_limit_per_minute: parseInt(document.getElementById('ctRateLimit').value) || 60,
         max_text_length: parseInt(document.getElementById('ctMaxTextLength').value) || 5000,
-        enabled: document.getElementById('ctGlobalToggle').checked
+        enabled: document.getElementById('ctGlobalToggle').checked,
+        show_original_link: document.getElementById('ctShowOriginalLink').checked,
+        show_provider_footer: document.getElementById('ctShowProviderFooter').checked
     };
 
     try {

@@ -539,7 +539,7 @@ class TranslationService:
             if result.success:
                 with self._state_lock:
                     self._consecutive_failures.pop(pair.id, None)
-                await self._post_translation(bot_instance, pair, context, result)
+                await self._post_translation(bot_instance, pair, context, result, settings)
                 self.config_service.increment_translation_count(pair.id)
                 translated_pairs.append(pair.name)
                 if result.provider == "passthrough":
@@ -572,7 +572,8 @@ class TranslationService:
 
     async def _post_translation(self, bot, pair: ChannelPair,
                                 context: TranslationContext,
-                                result: TranslationResult):
+                                result: TranslationResult,
+                                settings: Optional['TranslationSettings'] = None):
         """Post compact translation embed to target channel."""
         try:
             target_channel = bot.get_channel(int(pair.target_channel_id))
@@ -607,19 +608,24 @@ class TranslationService:
                     image_set = True
                     break
 
-            embed.add_field(
-                name="\u200b",  # Zero-width space for invisible field name
-                value=f"\U0001F517 [Original]({context.message_link})",
-                inline=False
-            )
+            show_link = settings.show_original_link if settings else True
+            show_footer = settings.show_provider_footer if settings else True
 
-            if result.provider == "passthrough":
-                embed.set_footer(text=f"Forwarded from #{pair.name}")
-            else:
-                detected = result.detected_language or "?"
-                embed.set_footer(
-                    text=f"Translated from {detected} to {pair.target_language} via {result.provider}"
+            if show_link:
+                embed.add_field(
+                    name="\u200b",  # Zero-width space for invisible field name
+                    value=f"\U0001F517 [Original]({context.message_link})",
+                    inline=False
                 )
+
+            if show_footer:
+                if result.provider == "passthrough":
+                    embed.set_footer(text=f"Forwarded from #{pair.name}")
+                else:
+                    detected = result.detected_language or "?"
+                    embed.set_footer(
+                        text=f"Translated from {detected} to {pair.target_language} via {result.provider}"
+                    )
 
             # Extract embeddable URLs from translated text so Discord shows previews
             # (URLs inside embed descriptions don't get auto-previewed by Discord)

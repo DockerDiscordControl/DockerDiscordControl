@@ -166,6 +166,8 @@ class TranslationSettings:
     google_project_id: Optional[str] = None
     rate_limit_per_minute: int = 60
     max_text_length: int = 5000
+    show_original_link: bool = True
+    show_provider_footer: bool = True
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'TranslationSettings':
@@ -200,7 +202,9 @@ class TranslationSettings:
             deepl_api_url=deepl_url,
             google_project_id=data.get('google_project_id'),
             rate_limit_per_minute=rate_limit,
-            max_text_length=max_text
+            max_text_length=max_text,
+            show_original_link=data.get('show_original_link', True),
+            show_provider_footer=data.get('show_provider_footer', True),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -212,7 +216,9 @@ class TranslationSettings:
             "deepl_api_url": self.deepl_api_url,
             "google_project_id": self.google_project_id,
             "rate_limit_per_minute": self.rate_limit_per_minute,
-            "max_text_length": self.max_text_length
+            "max_text_length": self.max_text_length,
+            "show_original_link": self.show_original_link,
+            "show_provider_footer": self.show_provider_footer
         }
 
 
