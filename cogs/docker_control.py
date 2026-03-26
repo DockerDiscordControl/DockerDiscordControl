@@ -375,41 +375,46 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
     async def _apply_channel_config_changes(self):
         """Apply channel configuration changes without restart."""
-        try:
-            await self.bot.wait_until_ready()
+        # Semaphore prevents race condition from rapid consecutive saves
+        if not hasattr(self, '_config_change_lock'):
+            self._config_change_lock = asyncio.Semaphore(1)
 
-            # Force reload config
-            from services.config.config_service import get_config_service
-            config = get_config_service().get_config(force_reload=True)
-            new_channel_permissions = config.get('channel_permissions', {})
+        async with self._config_change_lock:
+            try:
+                await self.bot.wait_until_ready()
 
-            new_channel_ids = {int(cid) for cid in new_channel_permissions if cid.isdigit()}
-            current_channel_ids = set(self.channel_server_message_ids.keys())
+                # Force reload config
+                from services.config.config_service import get_config_service
+                config = get_config_service().get_config(force_reload=True)
+                new_channel_permissions = config.get('channel_permissions', {})
 
-            added = new_channel_ids - current_channel_ids
-            removed = current_channel_ids - new_channel_ids
+                new_channel_ids = {int(cid) for cid in new_channel_permissions if cid.isdigit()}
+                current_channel_ids = set(self.channel_server_message_ids.keys())
 
-            if not added and not removed:
-                logger.info("Channel hot-reload: no channels added or removed")
-                return
+                added = new_channel_ids - current_channel_ids
+                removed = current_channel_ids - new_channel_ids
 
-            logger.info(f"Channel hot-reload: {len(added)} added, {len(removed)} removed")
+                if not added and not removed:
+                    logger.info("Channel hot-reload: no channels added or removed")
+                    return
 
-            # Teardown removed channels
-            for channel_id in removed:
-                await self._teardown_channel(channel_id)
+                logger.info(f"Channel hot-reload: {len(added)} added, {len(removed)} removed")
 
-            # Setup added channels (with rate limit pause between each)
-            for channel_id in added:
-                channel_config = new_channel_permissions.get(str(channel_id), {})
-                await self._setup_channel(channel_id, channel_config)
-                if len(added) > 1:
-                    await asyncio.sleep(2)  # Avoid Discord rate limits
+                # Teardown removed channels
+                for channel_id in removed:
+                    await self._teardown_channel(channel_id)
 
-            logger.info("Channel hot-reload completed successfully")
+                # Setup added channels (with rate limit pause between each)
+                for channel_id in added:
+                    channel_config = new_channel_permissions.get(str(channel_id), {})
+                    await self._setup_channel(channel_id, channel_config)
+                    if len(added) > 1:
+                        await asyncio.sleep(2)  # Avoid Discord rate limits
 
-        except Exception as e:
-            logger.error(f"Error applying channel config changes: {e}", exc_info=True)
+                logger.info("Channel hot-reload completed successfully")
+
+            except Exception as e:
+                logger.error(f"Error applying channel config changes: {e}", exc_info=True)
 
     async def _teardown_channel(self, channel_id: int):
         """Clean up a removed channel: delete bot messages and remove tracking."""
@@ -426,6 +431,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             self.channel_server_message_ids.pop(channel_id, None)
             self.last_message_update_time.pop(channel_id, None)
             self.last_channel_activity.pop(channel_id, None)
+            if hasattr(self, 'mech_expanded_states'):
+                self.mech_expanded_states.pop(channel_id, None)
+            if hasattr(self, 'last_glvl_per_channel'):
+                self.last_glvl_per_channel.pop(channel_id, None)
 
             logger.info(f"Channel {channel_id} torn down")
         except Exception as e:

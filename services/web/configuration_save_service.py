@@ -100,9 +100,8 @@ class ConfigurationSaveService:
             # Step 10: Notify bot about channel config changes (hot-reload)
             try:
                 from services.infrastructure.event_manager import get_event_manager
-                get_event_manager().emit_event('channel_config_changed', data={
-                    'reason': 'web_ui_config_save',
-                    'source': 'ConfigurationSaveService'
+                get_event_manager().emit_event('channel_config_changed', 'ConfigurationSaveService', data={
+                    'reason': 'web_ui_config_save'
                 })
             except Exception as e:
                 self.logger.warning(f"Could not emit channel_config_changed event: {e}")
