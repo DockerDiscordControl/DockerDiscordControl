@@ -181,7 +181,7 @@ class ConfigFormParserService:
             channel_id = form_data.get(channel_id_key, '').strip() if isinstance(form_data.get(channel_id_key), str) else str(form_data.get(channel_id_key, '')).strip()
 
             if not channel_id:
-                # Check if there are more (non-sequential)
+                # Check if there are more (non-sequential gaps from deleted rows)
                 found_more = False
                 for i in range(status_channel_count + 1, status_channel_count + 10):
                     if form_data.get(f'status_channel_id_{i}'):
@@ -190,6 +190,7 @@ class ConfigFormParserService:
                         break
                 if not found_more:
                     break
+                continue  # Re-process at the found index without incrementing
             else:
                 # Build channel config for status channel
                 channel_config = {
@@ -220,7 +221,7 @@ class ConfigFormParserService:
             channel_id = form_data.get(channel_id_key, '').strip() if isinstance(form_data.get(channel_id_key), str) else str(form_data.get(channel_id_key, '')).strip()
 
             if not channel_id:
-                # Check if there are more (non-sequential)
+                # Check if there are more (non-sequential gaps from deleted rows)
                 found_more = False
                 for i in range(control_channel_count + 1, control_channel_count + 10):
                     if form_data.get(f'control_channel_id_{i}'):
@@ -229,6 +230,7 @@ class ConfigFormParserService:
                         break
                 if not found_more:
                     break
+                continue  # Re-process at the found index without incrementing
             else:
                 # Build channel config for control channel
                 channel_config = {
