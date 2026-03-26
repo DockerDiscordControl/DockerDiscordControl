@@ -550,9 +550,19 @@ function saveAdminUsers() {
 }
 
 // Channel Row Management Functions
+function getNextRowIndex(tbody, prefix) {
+    // Find the highest existing index to avoid duplicate field names after row deletion
+    let maxIndex = 0;
+    tbody.querySelectorAll(`input[name^="${prefix}"]`).forEach(input => {
+        const match = input.name.match(/_(\d+)$/);
+        if (match) maxIndex = Math.max(maxIndex, parseInt(match[1]));
+    });
+    return maxIndex + 1;
+}
+
 function addStatusChannelRow() {
     const tbody = document.querySelector('#status-channels-table tbody');
-    const rowCount = tbody.querySelectorAll('tr').length + 1;
+    const rowCount = getNextRowIndex(tbody, 'status_channel_id_');
 
     const newRow = document.createElement('tr');
     newRow.id = 'status-channel-row-' + rowCount;
@@ -597,7 +607,7 @@ function addStatusChannelRow() {
 
 function addControlChannelRow() {
     const tbody = document.querySelector('#control-channels-table tbody');
-    const rowCount = tbody.querySelectorAll('tr').length + 1;
+    const rowCount = getNextRowIndex(tbody, 'control_channel_id_');
 
     const newRow = document.createElement('tr');
     newRow.id = 'control-channel-row-' + rowCount;

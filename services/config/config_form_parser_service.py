@@ -180,6 +180,14 @@ class ConfigFormParserService:
             channel_id_key = f'status_channel_id_{status_channel_count}'
             channel_id = form_data.get(channel_id_key, '').strip() if isinstance(form_data.get(channel_id_key), str) else str(form_data.get(channel_id_key, '')).strip()
 
+            # Skip invalid Discord IDs (must be 17-19 digit numeric string)
+            if channel_id and (not channel_id.isdigit() or not (17 <= len(channel_id) <= 19)):
+                logger.warning(f"Skipping invalid status channel ID: {channel_id}")
+                status_channel_count += 1
+                if status_channel_count > 50:
+                    break
+                continue
+
             if not channel_id:
                 # Check if there are more (non-sequential gaps from deleted rows)
                 found_more = False
@@ -219,6 +227,14 @@ class ConfigFormParserService:
         while True:
             channel_id_key = f'control_channel_id_{control_channel_count}'
             channel_id = form_data.get(channel_id_key, '').strip() if isinstance(form_data.get(channel_id_key), str) else str(form_data.get(channel_id_key, '')).strip()
+
+            # Skip invalid Discord IDs (must be 17-19 digit numeric string)
+            if channel_id and (not channel_id.isdigit() or not (17 <= len(channel_id) <= 19)):
+                logger.warning(f"Skipping invalid control channel ID: {channel_id}")
+                control_channel_count += 1
+                if control_channel_count > 50:
+                    break
+                continue
 
             if not channel_id:
                 # Check if there are more (non-sequential gaps from deleted rows)
