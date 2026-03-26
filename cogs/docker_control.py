@@ -323,8 +323,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
             # Register listener for Discord update events from cache service
             event_manager.register_listener('discord_update_needed', self._handle_discord_update_event)
+            event_manager.register_listener('channel_config_changed', self._handle_channel_config_changed)
 
-            logger.info("Discord update event listener registered")
+            logger.info("Discord update event listeners registered (status + channel hot-reload)")
 
         except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"Failed to setup Discord event listeners: {e}", exc_info=True)
@@ -355,6 +356,135 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
         except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"Error handling Discord update event: {e}", exc_info=True)
+
+    # --- Channel Hot-Reload ---
+
+    def _handle_channel_config_changed(self, event_data):
+        """Handle channel_config_changed events from Web UI save (hot-reload)."""
+        try:
+            logger.info("Channel config changed event received — scheduling hot-reload")
+            if self.bot and hasattr(self.bot, 'loop'):
+                asyncio.run_coroutine_threadsafe(
+                    self._apply_channel_config_changes(),
+                    self.bot.loop
+                )
+            else:
+                logger.warning("Cannot schedule channel hot-reload: bot loop not available")
+        except Exception as e:
+            logger.error(f"Error handling channel config change: {e}", exc_info=True)
+
+    async def _apply_channel_config_changes(self):
+        """Apply channel configuration changes without restart."""
+        try:
+            await self.bot.wait_until_ready()
+
+            # Force reload config
+            from services.config.config_service import get_config_service
+            config = get_config_service().get_config(force_reload=True)
+            new_channel_permissions = config.get('channel_permissions', {})
+
+            new_channel_ids = {int(cid) for cid in new_channel_permissions if cid.isdigit()}
+            current_channel_ids = set(self.channel_server_message_ids.keys())
+
+            added = new_channel_ids - current_channel_ids
+            removed = current_channel_ids - new_channel_ids
+
+            if not added and not removed:
+                logger.info("Channel hot-reload: no channels added or removed")
+                return
+
+            logger.info(f"Channel hot-reload: {len(added)} added, {len(removed)} removed")
+
+            # Teardown removed channels
+            for channel_id in removed:
+                await self._teardown_channel(channel_id)
+
+            # Setup added channels (with rate limit pause between each)
+            for channel_id in added:
+                channel_config = new_channel_permissions.get(str(channel_id), {})
+                await self._setup_channel(channel_id, channel_config)
+                if len(added) > 1:
+                    await asyncio.sleep(2)  # Avoid Discord rate limits
+
+            logger.info("Channel hot-reload completed successfully")
+
+        except Exception as e:
+            logger.error(f"Error applying channel config changes: {e}", exc_info=True)
+
+    async def _teardown_channel(self, channel_id: int):
+        """Clean up a removed channel: delete bot messages and remove tracking."""
+        try:
+            channel = self.bot.get_channel(channel_id)
+            if channel and isinstance(channel, discord.TextChannel):
+                logger.info(f"Tearing down channel {channel.name} ({channel_id})")
+                try:
+                    await self.delete_bot_messages(channel)
+                except Exception as e:
+                    logger.warning(f"Could not delete messages in channel {channel_id}: {e}")
+
+            # Clean up all tracking state
+            self.channel_server_message_ids.pop(channel_id, None)
+            self.last_message_update_time.pop(channel_id, None)
+            self.last_channel_activity.pop(channel_id, None)
+
+            logger.info(f"Channel {channel_id} torn down")
+        except Exception as e:
+            logger.error(f"Error tearing down channel {channel_id}: {e}", exc_info=True)
+
+    async def _setup_channel(self, channel_id: int, channel_config: dict):
+        """Set up a newly added channel: send initial messages and start tracking."""
+        try:
+            if not channel_config.get('post_initial', False):
+                logger.info(f"Channel {channel_id}: post_initial disabled, adding to tracking only")
+                self.last_channel_activity[channel_id] = datetime.now(timezone.utc)
+                return
+
+            channel = await self.bot.fetch_channel(channel_id)
+            if not isinstance(channel, discord.TextChannel):
+                logger.warning(f"Channel {channel_id} is not a text channel")
+                return
+
+            # Determine mode
+            channel_commands = channel_config.get('commands', {})
+            has_control = channel_commands.get('control', False)
+            has_status = channel_commands.get('serverstatus', False)
+
+            if has_control:
+                mode = 'control'
+            elif has_status:
+                mode = 'status'
+            else:
+                logger.warning(f"Channel {channel_id} has no control/status permissions")
+                return
+
+            logger.info(f"Setting up new channel {channel.name} ({channel_id}) in {mode} mode")
+
+            # Clean old messages
+            try:
+                await self.delete_bot_messages(channel)
+                await asyncio.sleep(1)
+            except Exception as e:
+                logger.warning(f"Could not clean channel {channel_id}: {e}")
+
+            # Populate cache before sending
+            await self._background_cache_population()
+
+            # Send initial messages
+            if mode == 'control':
+                await self._send_control_panel_and_statuses(channel)
+            else:
+                await self._send_all_server_statuses(channel, allow_toggle=False, force_collapse=True)
+
+            # Start tracking
+            self.last_channel_activity[channel_id] = datetime.now(timezone.utc)
+            logger.info(f"Channel {channel.name} ({channel_id}) set up successfully in {mode} mode")
+
+        except discord.NotFound:
+            logger.warning(f"Channel {channel_id} not found on Discord")
+        except discord.Forbidden:
+            logger.warning(f"Missing permissions for channel {channel_id}")
+        except Exception as e:
+            logger.error(f"Error setting up channel {channel_id}: {e}", exc_info=True)
 
     def _cancel_existing_loops(self):
         """Cancel any existing background loops."""

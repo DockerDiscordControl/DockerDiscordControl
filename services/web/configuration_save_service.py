@@ -97,7 +97,17 @@ class ConfigurationSaveService:
             # Step 9: Log the action
             self._log_save_action()
 
-            # Step 10: Build response
+            # Step 10: Notify bot about channel config changes (hot-reload)
+            try:
+                from services.infrastructure.event_manager import get_event_manager
+                get_event_manager().emit_event('channel_config_changed', data={
+                    'reason': 'web_ui_config_save',
+                    'source': 'ConfigurationSaveService'
+                })
+            except Exception as e:
+                self.logger.warning(f"Could not emit channel_config_changed event: {e}")
+
+            # Step 11: Build response
             return self._build_save_response(message, save_result.config_files, critical_changes.changed, critical_changes.message)
 
         except (ImportError, AttributeError, RuntimeError) as e:
