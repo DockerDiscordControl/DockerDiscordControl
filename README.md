@@ -10,7 +10,7 @@ Control your Docker containers directly from Discord! This application provides 
 
 ## 🆕 Latest Updates
 
-### ✅ **v2.2.0 (2026-03-25) - Channel Translation**
+### ✅ **v2.2.0 (2026-03-26) - Channel Translation & Hot-Reload**
 
 ✨ **New Feature: Channel Translation**
 - Automatically translate Discord messages between channels using DeepL, Google Translate, or Microsoft Translator
@@ -24,9 +24,20 @@ Control your Docker containers directly from Discord! This application provides 
 - Configurable via Web UI: provider selection, test translation, toggle Original link & provider footer
 - Web UI Advanced Settings: rate limit, max text length, show/hide Original link & footer
 
+✨ **New Feature: Channel Hot-Reload**
+- Adding or removing channels in the Web UI takes effect immediately — no container restart needed
+- Bot automatically detects config changes, sets up new channels, and tears down removed ones
+- "Requires restart" badge on Bot Token and Guild ID fields (the only settings that still need a restart)
+
 🐛 **Bug Fixes:**
+- Fixed channel form parser skipping channels after deleted rows (numbering gap caused data loss)
+- Fixed JS row numbering creating duplicate field names after channel deletion
+- Fixed non-numeric channel IDs bypassing parser validation
 - Fixed Web UI console errors: `ReferenceError: rawLogsCache` (JS scoping), log auto-refresh using hardcoded URLs
 - Fixed race condition in translation encryption key creation (double-checked locking + atomic write)
+
+🔒 **Security:**
+- Bumped `requests` to >=2.33.0 (CVE-2026-25645)
 
 ---
 
