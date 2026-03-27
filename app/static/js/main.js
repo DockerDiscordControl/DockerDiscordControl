@@ -4,7 +4,7 @@
                         // Clear unsaved changes flag
                         hasUnsavedChanges = false;
                         
-                        showAlert('Configuration saved successfully!', 'success');
+                        showAlert(t('config.save_success'), 'success');
                         // Reload the page to show updated configuration
                         setTimeout(() => {
                             window.location.reload();
@@ -12,13 +12,13 @@
                     } else {
                         // Check for permission errors
                         if (result.permission_errors && result.permission_errors.length > 0) {
-                            let errorMessage = 'Configuration files are not writable:\n\n';
+                            let errorMessage = t('config.files_not_writable') + ':\n\n';
                             result.permission_errors.forEach(error => {
                                 errorMessage += `• ${error}\n`;
                             });
-                            errorMessage += '\nPlease check the server logs for instructions on how to fix file permissions.';
+                            errorMessage += '\n' + t('config.check_server_logs');
                             showAlert(errorMessage, 'danger');
                         } else {
-                            showAlert(result.message || 'Failed to save configuration', 'danger');
+                            showAlert(result.message || t('config.failed_save'), 'danger');
                         }
                     } 

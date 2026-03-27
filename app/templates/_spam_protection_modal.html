@@ -4,19 +4,19 @@
         <div class="modal-content bg-dark text-light">
             <div class="modal-header">
                 <h5 class="modal-title" id="spamProtectionModalLabel">
-                    <i class="bi bi-shield-check"></i> Spam Protection Settings
+                    <i class="bi bi-shield-check"></i> {{ _t('web.spam.title') }}
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="alert alert-info" role="alert">
-                    <i class="bi bi-info-circle"></i> Configure rate limiting to prevent spam and abuse of bot commands.
+                    <i class="bi bi-info-circle"></i> {{ _t('web.spam.description') }}
                 </div>
-                
+
                 <!-- Global Settings -->
                 <div class="card bg-secondary mb-3">
                     <div class="card-header text-light">
-                        <h6 class="mb-0"><i class="bi bi-globe"></i> Global Settings</h6>
+                        <h6 class="mb-0"><i class="bi bi-globe"></i> {{ _t('web.spam.global_settings') }}</h6>
                     </div>
                     <div class="card-body">
                         <div class="row">
@@ -24,42 +24,42 @@
                                 <div class="form-check form-switch mb-2">
                                     <input class="form-check-input" type="checkbox" id="spamProtectionEnabled" checked>
                                     <label class="form-check-label" for="spamProtectionEnabled">
-                                        Enable Spam Protection
+                                        {{ _t('web.spam.enable') }}
                                     </label>
                                 </div>
                                 <div class="form-check form-switch mb-2">
                                     <input class="form-check-input" type="checkbox" id="cooldownMessage" checked>
                                     <label class="form-check-label" for="cooldownMessage">
-                                        Show Cooldown Messages
+                                        {{ _t('web.spam.show_cooldown_messages') }}
                                     </label>
                                 </div>
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" id="logViolations" checked>
                                     <label class="form-check-label" for="logViolations">
-                                        Log Rate Limit Violations
+                                        {{ _t('web.spam.log_violations') }}
                                     </label>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="maxCommandsPerMinute" class="form-label">Max Commands/Minute</label>
+                                    <label for="maxCommandsPerMinute" class="form-label">{{ _t('web.spam.max_commands_per_minute') }}</label>
                                     <input type="number" class="form-control" id="maxCommandsPerMinute" value="20" min="1" max="100">
-                                    <div class="form-text">Per user limit</div>
+                                    <div class="form-text">{{ _t('web.spam.per_user_limit') }}</div>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="maxButtonsPerMinute" class="form-label">Max Button Clicks/Minute</label>
+                                    <label for="maxButtonsPerMinute" class="form-label">{{ _t('web.spam.max_buttons_per_minute') }}</label>
                                     <input type="number" class="form-control" id="maxButtonsPerMinute" value="30" min="1" max="100">
-                                    <div class="form-text">Per user limit</div>
+                                    <div class="form-text">{{ _t('web.spam.per_user_limit') }}</div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Command Cooldowns -->
                 <div class="card bg-secondary mb-3">
                     <div class="card-header text-light">
-                        <h6 class="mb-0"><i class="bi bi-slash-circle"></i> Command Cooldowns (seconds)</h6>
+                        <h6 class="mb-0"><i class="bi bi-slash-circle"></i> {{ _t('web.spam.command_cooldowns') }}</h6>
                     </div>
                     <div class="card-body">
                         <div class="row">
@@ -98,64 +98,64 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Button Cooldowns -->
                 <div class="card bg-secondary">
                     <div class="card-header text-light">
-                        <h6 class="mb-0"><i class="bi bi-hand-index"></i> Button Cooldowns (seconds)</h6>
+                        <h6 class="mb-0"><i class="bi bi-hand-index"></i> {{ _t('web.spam.button_cooldowns') }}</h6>
                     </div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-4 mb-2">
-                                <label for="button_start" class="form-label">Start Button ▶️</label>
+                                <label for="button_start" class="form-label">{{ _t('web.spam.button_start') }}</label>
                                 <input type="number" class="form-control form-control-sm" id="button_start" value="10" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label for="button_stop" class="form-label">Stop Button ⏹️</label>
+                                <label for="button_stop" class="form-label">{{ _t('web.spam.button_stop') }}</label>
                                 <input type="number" class="form-control form-control-sm" id="button_stop" value="10" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label for="button_restart" class="form-label">Restart Button 🔄</label>
+                                <label for="button_restart" class="form-label">{{ _t('web.spam.button_restart') }}</label>
                                 <input type="number" class="form-control form-control-sm" id="button_restart" value="15" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label for="button_info" class="form-label">Info Button ℹ️</label>
+                                <label for="button_info" class="form-label">{{ _t('web.spam.button_info') }}</label>
                                 <input type="number" class="form-control form-control-sm" id="button_info" value="3" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label for="button_logs" class="form-label">Live Logs Button 📜</label>
+                                <label for="button_logs" class="form-label">{{ _t('web.spam.button_logs') }}</label>
                                 <input type="number" class="form-control form-control-sm" id="button_logs" value="10" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label for="button_live_refresh" class="form-label">Live Logs Refresh 🔄</label>
+                                <label for="button_live_refresh" class="form-label">{{ _t('web.spam.button_live_refresh') }}</label>
                                 <input type="number" class="form-control form-control-sm" id="button_live_refresh" value="3" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label for="button_mech_expand" class="form-label">Mech Expand</label>
+                                <label for="button_mech_expand" class="form-label">{{ _t('web.spam.button_mech_expand') }}</label>
                                 <input type="number" class="form-control form-control-sm" id="button_mech_expand" value="3" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label for="button_mech_collapse" class="form-label">Mech Collapse</label>
+                                <label for="button_mech_collapse" class="form-label">{{ _t('web.spam.button_mech_collapse') }}</label>
                                 <input type="number" class="form-control form-control-sm" id="button_mech_collapse" value="2" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label for="button_mech_donate" class="form-label">Mech Donate</label>
+                                <label for="button_mech_donate" class="form-label">{{ _t('web.spam.button_mech_donate') }}</label>
                                 <input type="number" class="form-control form-control-sm" id="button_mech_donate" value="10" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label for="button_mech_history" class="form-label">Mech History</label>
+                                <label for="button_mech_history" class="form-label">{{ _t('web.spam.button_mech_history') }}</label>
                                 <input type="number" class="form-control form-control-sm" id="button_mech_history" value="5" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label for="button_mech_display" class="form-label">Mech Display</label>
+                                <label for="button_mech_display" class="form-label">{{ _t('web.spam.button_mech_display') }}</label>
                                 <input type="number" class="form-control form-control-sm" id="button_mech_display" value="3" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label for="button_mech_story" class="form-label">Mech Story</label>
+                                <label for="button_mech_story" class="form-label">{{ _t('web.spam.button_mech_story') }}</label>
                                 <input type="number" class="form-control form-control-sm" id="button_mech_story" value="5" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label for="button_mech_music" class="form-label">Mech Music</label>
+                                <label for="button_mech_music" class="form-label">{{ _t('web.spam.button_mech_music') }}</label>
                                 <input type="number" class="form-control form-control-sm" id="button_mech_music" value="8" min="0" max="300">
                             </div>
                         </div>
@@ -163,9 +163,9 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _t('web.common.cancel') }}</button>
                 <button type="button" class="btn btn-success" id="saveSpamProtection">
-                    <i class="bi bi-save"></i> Save Settings
+                    <i class="bi bi-save"></i> {{ _t('web.common.save_settings') }}
                 </button>
             </div>
         </div>
@@ -184,13 +184,13 @@ document.getElementById('spamProtectionModal').addEventListener('shown.bs.modal'
             document.getElementById('logViolations').checked = data.global_settings.log_violations;
             document.getElementById('maxCommandsPerMinute').value = data.global_settings.max_commands_per_minute;
             document.getElementById('maxButtonsPerMinute').value = data.global_settings.max_buttons_per_minute;
-            
+
             // Set command cooldowns
             for (const [cmd, cooldown] of Object.entries(data.command_cooldowns)) {
                 const element = document.getElementById('cooldown_' + cmd);
                 if (element) element.value = cooldown;
             }
-            
+
             // Set button cooldowns
             for (const [btn, cooldown] of Object.entries(data.button_cooldowns)) {
                 const element = document.getElementById('button_' + btn);
@@ -199,7 +199,7 @@ document.getElementById('spamProtectionModal').addEventListener('shown.bs.modal'
         })
         .catch(error => {
             console.error('Error loading spam protection settings:', error);
-            alert('Error loading spam protection settings');
+            alert(t('web.spam.error_loading'));
         });
 });
 
@@ -242,7 +242,7 @@ function saveSpamProtection() {
             mech_music: parseInt(document.getElementById('button_mech_music').value)
         }
     };
-    
+
     fetch('/api/spam-protection', {
         method: 'POST',
         headers: {
@@ -256,14 +256,14 @@ function saveSpamProtection() {
             // Close modal and show success message
             const modal = bootstrap.Modal.getInstance(document.getElementById('spamProtectionModal'));
             modal.hide();
-            
+
             // Use same notification system as saveConfigAjax
             const notification = document.getElementById('save-notification');
             if (notification) {
                 notification.className = 'alert alert-success';
                 notification.style.display = 'block';
-                notification.innerHTML = '<i class="bi bi-check-circle"></i> Spam protection settings saved successfully!';
-                
+                notification.innerHTML = '<i class="bi bi-check-circle"></i> ' + t('web.spam.saved_success');
+
                 // Auto dismiss after 3 seconds
                 setTimeout(() => {
                     notification.style.display = 'none';
@@ -272,12 +272,12 @@ function saveSpamProtection() {
                 }, 3000);
             }
         } else {
-            alert('Error saving spam protection settings: ' + (data.error || 'Unknown error'));
+            alert(t('web.spam.error_saving') + ': ' + (data.error || t('web.common.unknown_error')));
         }
     })
     .catch(error => {
         console.error('Error saving spam protection settings:', error);
-        alert('Error saving spam protection settings');
+        alert(t('web.spam.error_saving'));
     });
 }
 

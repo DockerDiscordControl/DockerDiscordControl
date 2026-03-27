@@ -7,7 +7,7 @@ Licensed under the MIT License
 ============================================================================
 -->
 <!doctype html>
-<html lang="en">
+<html lang="{{ ui_language | default('en') }}"{% if ui_rtl %} dir="rtl"{% endif %}>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -217,6 +217,7 @@ Licensed under the MIT License
     </style>
     {% block styles %}{% endblock %}
     {% block head_extra %}{% endblock %}
+    {% include '_i18n.html' %}
 </head>
 <body>
     {% include 'base.html' %} {# Navbar #}
@@ -255,7 +256,7 @@ Licensed under the MIT License
 
     <footer class="text-center fixed-bottom py-2">
         <p style="color: #6c757d; font-size: 0.8em; margin-bottom: 0;">
-            Built by <span class="neon-text" id="neon-max">MAX</span> | <a href="https://ddc.bot" target="_blank" class="text-secondary">Homepage</a> | <a href="https://github.com/DockerDiscordControl/DockerDiscordControl" target="_blank" class="text-secondary">GitHub</a> <span class="neon-text-red" id="neon-version">v2.2.0</span>
+            Built by <span class="neon-text" id="neon-max">MAX</span> | <a href="https://ddc.bot" target="_blank" class="text-secondary">Homepage</a> | <a href="https://github.com/DockerDiscordControl/DockerDiscordControl" target="_blank" class="text-secondary">GitHub</a> <span class="neon-text-red" id="neon-version">v2.2.1</span>
         </p>
     </footer>
 

@@ -419,23 +419,15 @@ class ConfigurationSaveService:
             # Don't raise - this shouldn't block the config save
 
     def _clear_translation_cache(self, old_language: str, new_language: str) -> None:
-        """Clear translation manager cache for language changes."""
+        """Notify translation manager of language change."""
         try:
             from cogs.translation_manager import translation_manager
-
-            # Clear the translation cache to force reload with new language
-            if hasattr(translation_manager, '_'):
-                translation_manager._.cache_clear()
-
-            # Reset cached language to force fresh lookup
-            if hasattr(translation_manager, '_cached_language'):
-                delattr(translation_manager, '_cached_language')
-
-            self.logger.info(f"Translation manager cache cleared for language change: {old_language} -> {new_language}")
+            # No cache to clear - TranslationManager uses direct dict lookups now.
+            # Language is read fresh from config on each _() call.
+            self.logger.info(f"Translation language changed: {old_language} -> {new_language}")
 
         except (ImportError, AttributeError) as e:
-            # Import/service errors (translation_manager unavailable, cache operations not supported)
-            self.logger.warning(f"Service error clearing translation manager cache: {e}")
+            self.logger.warning(f"Service error notifying translation manager: {e}")
 
     def _update_logging_settings(self) -> None:
         """Update logging level settings based on new configuration."""

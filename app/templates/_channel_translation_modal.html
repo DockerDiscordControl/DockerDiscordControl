@@ -3,7 +3,7 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content bg-dark text-light">
             <div class="modal-header">
-                <h5 class="modal-title" id="ctPairEditorTitle"><i class="bi bi-arrow-left-right"></i> New Channel Pair</h5>
+                <h5 class="modal-title" id="ctPairEditorTitle"><i class="bi bi-arrow-left-right"></i> {{ _t('web.ct.new_pair') }}</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -12,28 +12,28 @@
 
                     <!-- Basic Info -->
                     <div class="mb-3">
-                        <label class="form-label">Pair Name</label>
-                        <input type="text" class="form-control" id="ctPairName" placeholder="e.g. Tech News EN -> DE" maxlength="100" required>
+                        <label class="form-label">{{ _t('web.ct.pair_name') }}</label>
+                        <input type="text" class="form-control" id="ctPairName" placeholder="{{ _t('web.ct.pair_name_placeholder') }}" maxlength="100" required>
                     </div>
 
                     <div class="row g-3">
                         <!-- Source Channel -->
                         <div class="col-md-6">
-                            <label class="form-label">Source Channel ID</label>
-                            <input type="text" class="form-control" id="ctSourceChannelId" placeholder="Discord Channel ID" required>
-                            <div class="form-text">The channel to monitor for new messages.</div>
+                            <label class="form-label">{{ _t('web.ct.source_channel_id') }}</label>
+                            <input type="text" class="form-control" id="ctSourceChannelId" placeholder="{{ _t('web.ct.discord_channel_id_placeholder') }}" required>
+                            <div class="form-text">{{ _t('web.ct.source_channel_hint') }}</div>
                         </div>
 
                         <!-- Target Channel -->
                         <div class="col-md-6">
-                            <label class="form-label">Target Channel ID</label>
-                            <input type="text" class="form-control" id="ctTargetChannelId" placeholder="Discord Channel ID" required>
-                            <div class="form-text">The channel where translations will be posted.</div>
+                            <label class="form-label">{{ _t('web.ct.target_channel_id') }}</label>
+                            <input type="text" class="form-control" id="ctTargetChannelId" placeholder="{{ _t('web.ct.discord_channel_id_placeholder') }}" required>
+                            <div class="form-text">{{ _t('web.ct.target_channel_hint') }}</div>
                         </div>
 
                         <!-- Target Language -->
                         <div class="col-md-6">
-                            <label class="form-label">Target Language</label>
+                            <label class="form-label">{{ _t('web.ct.target_language') }}</label>
                             <select class="form-select" id="ctTargetLanguage">
                                 <!-- Populated by JS -->
                             </select>
@@ -41,9 +41,9 @@
 
                         <!-- Source Language -->
                         <div class="col-md-6">
-                            <label class="form-label">Source Language</label>
+                            <label class="form-label">{{ _t('web.ct.source_language') }}</label>
                             <select class="form-select" id="ctSourceLanguage">
-                                <option value="">Auto-Detect (Recommended)</option>
+                                <option value="">{{ _t('web.ct.auto_detect') }}</option>
                                 <!-- Additional options populated by JS -->
                             </select>
                         </div>
@@ -53,7 +53,7 @@
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="ctTranslateEmbeds" checked>
                                 <label class="form-check-label" for="ctTranslateEmbeds">
-                                    Translate Embed Content (titles, descriptions from bots/webhooks)
+                                    {{ _t('web.ct.translate_embeds') }}
                                 </label>
                             </div>
                         </div>
@@ -61,19 +61,19 @@
                         <div class="col-12">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="ctPairEnabled" checked>
-                                <label class="form-check-label" for="ctPairEnabled">Enabled</label>
+                                <label class="form-check-label" for="ctPairEnabled">{{ _t('web.common.enabled') }}</label>
                             </div>
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _t('web.common.cancel') }}</button>
                 <button type="button" class="btn btn-danger me-auto" id="ctDeletePairBtn" style="display:none;" onclick="deleteCTPair()">
-                    <i class="bi bi-trash"></i> Delete
+                    <i class="bi bi-trash"></i> {{ _t('web.common.delete') }}
                 </button>
                 <button type="button" class="btn btn-primary" onclick="saveCTPair()">
-                    <i class="bi bi-save"></i> Save Pair
+                    <i class="bi bi-save"></i> {{ _t('web.ct.save_pair') }}
                 </button>
             </div>
         </div>

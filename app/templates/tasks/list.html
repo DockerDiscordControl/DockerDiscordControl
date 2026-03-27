@@ -7,42 +7,42 @@
         <div class="task-filters">
             <div class="input-group input-group-sm">
                 <select id="taskFilterStatus" class="form-select form-select-sm" style="width: auto;">
-                    <option value="all">All Status</option>
-                    <option value="active">Active Only</option>
-                    <option value="deactivated">Deactivated</option>
-                    <option value="expired">Expired</option>
+                    <option value="all">{{ _t('web.tasks.filter_all') }}</option>
+                    <option value="active">{{ _t('web.tasks.filter_active') }}</option>
+                    <option value="deactivated">{{ _t('web.tasks.filter_deactivated') }}</option>
+                    <option value="expired">{{ _t('web.tasks.filter_expired') }}</option>
                 </select>
                 <button id="refreshTasksBtn" class="btn btn-sm btn-outline-secondary ms-2">
-                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                    <i class="bi bi-arrow-clockwise"></i> {{ _t('web.common.refresh') }}
                 </button>
             </div>
         </div>
     </div>
-    <p class="form-text mb-3">List of tasks currently scheduled for execution.</p>
+    <p class="form-text mb-3">{{ _t('web.tasks.list_description') }}</p>
     <div class="table-responsive">
         <table class="table table-dark table-bordered table-hover table-sm task-table">
             <thead>
                 <tr>
-                    <th scope="col" style="width: 5%;">ID</th>
-                    <th scope="col">Container</th>
-                    <th scope="col">Action</th>
-                    <th scope="col">Cycle</th>
-                    <th scope="col">Schedule Details</th>
-                    <th scope="col">Next Run</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Active</th>
-                    <th scope="col">Last Run Result</th>
-                    <th scope="col">Created At</th>
-                    <th scope="col" style="width: 10%;" class="text-center">Actions</th>
+                    <th scope="col" style="width: 5%;">{{ _t('web.tasks.col_id') }}</th>
+                    <th scope="col">{{ _t('web.tasks.col_container') }}</th>
+                    <th scope="col">{{ _t('web.tasks.col_action') }}</th>
+                    <th scope="col">{{ _t('web.tasks.col_cycle') }}</th>
+                    <th scope="col">{{ _t('web.tasks.col_schedule_details') }}</th>
+                    <th scope="col">{{ _t('web.tasks.col_next_run') }}</th>
+                    <th scope="col">{{ _t('web.tasks.col_status') }}</th>
+                    <th scope="col">{{ _t('web.tasks.col_active') }}</th>
+                    <th scope="col">{{ _t('web.tasks.col_last_run') }}</th>
+                    <th scope="col">{{ _t('web.tasks.col_created_at') }}</th>
+                    <th scope="col" style="width: 10%;" class="text-center">{{ _t('web.tasks.col_actions') }}</th>
                 </tr>
             </thead>
             <tbody id="taskListBody">
                 <tr>
                     <td colspan="11" class="text-center task-loading">
                         <div class="spinner-border spinner-border-sm me-2" role="status">
-                            <span class="visually-hidden">Loading...</span>
+                            <span class="visually-hidden">{{ _t('web.common.loading') }}</span>
                         </div>
-                        Loading tasks...
+                        {{ _t('web.tasks.loading_tasks') }}
                     </td>
                 </tr>
             </tbody>
@@ -57,97 +57,97 @@
         <div class="modal-content bg-dark text-light">
             <div class="modal-header">
                 <h5 class="modal-title" id="editTaskModalLabel">
-                    <i class="bi bi-pencil-square me-2"></i>Edit Scheduled Task
+                    <i class="bi bi-pencil-square me-2"></i>{{ _t('web.tasks.edit_modal_title') }}
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="editTaskForm">
                     <div class="field-group">
-                        <div class="field-group-title">Basic Settings</div>
+                        <div class="field-group-title">{{ _t('web.tasks.basic_settings') }}</div>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label for="editTaskContainer" class="form-label">Container</label>
+                                <label for="editTaskContainer" class="form-label">{{ _t('web.tasks.col_container') }}</label>
                                 <select class="form-select" id="editTaskContainer" name="container" required>
-                                    <option selected disabled value="">Select active container...</option>
+                                    <option selected disabled value="">{{ _t('web.tasks.select_container') }}</option>
                                     {% if active_containers %}
                                         {% for container_name in active_containers %}
                                             <option value="{{ container_name }}">{{ container_name }}</option>
                                         {% endfor %}
                                     {% else %}
-                                        <option disabled>No active containers configured.</option>
+                                        <option disabled>{{ _t('web.tasks.no_active_containers') }}</option>
                                     {% endif %}
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label for="editTaskAction" class="form-label">Action</label>
+                                <label for="editTaskAction" class="form-label">{{ _t('web.tasks.col_action') }}</label>
                                 <select class="form-select" id="editTaskAction" name="action" required>
-                                    <option selected disabled value="">Please select...</option>
-                                    <option value="start">Start</option>
-                                    <option value="stop">Stop</option>
-                                    <option value="restart">Restart</option>
+                                    <option selected disabled value="">{{ _t('web.tasks.please_select') }}</option>
+                                    <option value="start">{{ _t('web.tasks.action_start') }}</option>
+                                    <option value="stop">{{ _t('web.tasks.action_stop') }}</option>
+                                    <option value="restart">{{ _t('web.tasks.action_restart') }}</option>
                                 </select>
                             </div>
                         </div>
                     </div>
 
                     <div class="field-group">
-                        <div class="field-group-title">Schedule Configuration</div>
+                        <div class="field-group-title">{{ _t('web.tasks.schedule_config') }}</div>
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label for="editTaskCycle" class="form-label">Cycle</label>
+                                <label for="editTaskCycle" class="form-label">{{ _t('web.tasks.col_cycle') }}</label>
                                 <select class="form-select" id="editTaskCycle" name="cycle" required>
-                                    <option selected disabled value="">Please select...</option>
-                                    <option value="once">Once</option>
-                                    <option value="daily">Daily</option>
-                                    <option value="weekly">Weekly</option>
-                                    <option value="monthly">Monthly</option>
-                                    <option value="yearly">Yearly</option>
-                                    <option value="cron">Cron</option>
+                                    <option selected disabled value="">{{ _t('web.tasks.please_select') }}</option>
+                                    <option value="once">{{ _t('web.tasks.cycle_once') }}</option>
+                                    <option value="daily">{{ _t('web.tasks.cycle_daily') }}</option>
+                                    <option value="weekly">{{ _t('web.tasks.cycle_weekly') }}</option>
+                                    <option value="monthly">{{ _t('web.tasks.cycle_monthly') }}</option>
+                                    <option value="yearly">{{ _t('web.tasks.cycle_yearly') }}</option>
+                                    <option value="cron">{{ _t('web.tasks.cycle_cron') }}</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label for="editTaskTime" class="form-label">Time (HH:MM)</label>
+                                <label for="editTaskTime" class="form-label">{{ _t('web.tasks.time_label') }}</label>
                                 <input type="time" class="form-control" id="editTaskTime" name="time" required>
                             </div>
                             <div class="col-md-4" id="editDateFieldsContainer">
-                                <label class="form-label">Date</label>
+                                <label class="form-label">{{ _t('web.tasks.date_label') }}</label>
                                 <div class="row g-2">
                                     <div class="col-4" id="editDayFieldContainer">
-                                        <input type="text" class="form-control" id="editTaskDay" name="day" placeholder="Day">
+                                        <input type="text" class="form-control" id="editTaskDay" name="day" placeholder="{{ _t('web.tasks.day_placeholder') }}">
                                         <select class="form-control" id="editTaskWeekday" name="weekday" style="display: none;">
-                                            <option value="Mon">Monday</option>
-                                            <option value="Tue">Tuesday</option>
-                                            <option value="Wed">Wednesday</option>
-                                            <option value="Thu">Thursday</option>
-                                            <option value="Fri">Friday</option>
-                                            <option value="Sat">Saturday</option>
-                                            <option value="Sun">Sunday</option>
+                                            <option value="Mon">{{ _t('web.tasks.monday') }}</option>
+                                            <option value="Tue">{{ _t('web.tasks.tuesday') }}</option>
+                                            <option value="Wed">{{ _t('web.tasks.wednesday') }}</option>
+                                            <option value="Thu">{{ _t('web.tasks.thursday') }}</option>
+                                            <option value="Fri">{{ _t('web.tasks.friday') }}</option>
+                                            <option value="Sat">{{ _t('web.tasks.saturday') }}</option>
+                                            <option value="Sun">{{ _t('web.tasks.sunday') }}</option>
                                         </select>
                                     </div>
                                     <div class="col-4">
-                                        <input type="text" class="form-control" id="editTaskMonth" name="month" placeholder="Month">
+                                        <input type="text" class="form-control" id="editTaskMonth" name="month" placeholder="{{ _t('web.tasks.month_placeholder') }}">
                                     </div>
                                     <div class="col-4">
-                                        <input type="number" class="form-control" id="editTaskYear" name="year" placeholder="Year" min="2025">
+                                        <input type="number" class="form-control" id="editTaskYear" name="year" placeholder="{{ _t('web.tasks.year_placeholder') }}" min="2025">
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-12" id="editTaskCronStringRow" style="display: none;">
-                                <label for="editTaskCronString" class="form-label">Cron String</label>
+                                <label for="editTaskCronString" class="form-label">{{ _t('web.tasks.cron_string_label') }}</label>
                                 <input type="text" class="form-control" id="editTaskCronString" name="cron_string" placeholder="0 0 * * *">
-                                <div class="form-text">Format: minute hour day month weekday</div>
+                                <div class="form-text">{{ _t('web.tasks.cron_format_help') }}</div>
                             </div>
                         </div>
                     </div>
 
                     <div class="field-group">
-                        <div class="field-group-title">Task Status</div>
+                        <div class="field-group-title">{{ _t('web.tasks.task_status') }}</div>
                         <div class="form-check">
                             <input class="form-check-input task-checkbox" type="checkbox" id="editTaskActive" name="is_active">
                             <label class="form-check-label" for="editTaskActive">
-                                <strong>Task is active</strong>
-                                <small class="d-block text-muted">Inactive tasks will not be executed</small>
+                                <strong>{{ _t('web.tasks.task_is_active') }}</strong>
+                                <small class="d-block text-muted">{{ _t('web.tasks.inactive_note') }}</small>
                             </label>
                         </div>
                     </div>
@@ -158,10 +158,10 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-x-circle me-1"></i>Cancel
+                    <i class="bi bi-x-circle me-1"></i>{{ _t('web.common.cancel') }}
                 </button>
                 <button type="button" class="btn btn-primary" id="saveTaskChanges">
-                    <i class="bi bi-check-circle me-1"></i>Save Changes
+                    <i class="bi bi-check-circle me-1"></i>{{ _t('web.common.save_changes') }}
                 </button>
             </div>
         </div>

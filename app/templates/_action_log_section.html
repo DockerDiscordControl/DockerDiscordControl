@@ -1,33 +1,30 @@
 <hr class="my-4">
 <div class="mb-3 card p-3">
-    <h4>User Action Log</h4>
+    <h4>{{ _t('web.action_log.heading') }}</h4>
     <p class="form-text">
-        This log tracks user-initiated actions like Start, Stop, Restart, or clearing this log itself.
-        It persists across container restarts (if stored in a volume) and is <strong>not</strong> subject to Docker's automatic log rotation.
-        It will only be cleared when you click the "Clear Log" button below.
-        The main container log (viewable with <code>docker logs dockerdiscordcontrol</code> or in the section above) is managed by Docker and may be rotated or cleared based on Docker settings.
+        {{ _t('web.action_log.description') }}
     </p>
-    
+
     {# Button Container #}
     <div class="d-flex justify-content-start align-items-center mb-2">
         <a href="{{ url_for('action_log_bp.download_action_log') }}" id="downloadActionLogBtn" class="btn btn-sm btn-outline-primary me-2" download>
-            <i class="bi bi-download"></i> Download
+            <i class="bi bi-download"></i> {{ _t('web.common.download') }}
         </a>
         <button id="clearActionLogBtn" class="btn btn-sm btn-outline-danger me-2">
-            <i class="bi bi-trash"></i> Clear Log
+            <i class="bi bi-trash"></i> {{ _t('web.action_log.clear_log_button') }}
         </button>
         <button id="refreshActionLogBtn" class="btn btn-sm btn-outline-secondary">
-            <i class="bi bi-arrow-clockwise"></i> Refresh
+            <i class="bi bi-arrow-clockwise"></i> {{ _t('web.common.refresh') }}
         </button>
     </div>
 
     <div class="bg-dark rounded p-3">
         {# Log Display #}
         <h6 class="border-bottom pb-2 mb-2 text-white">
-            Log Content
+            {{ _t('web.action_log.log_content_heading') }}
         </h6>
         <div class="overflow-auto text-light bg-dark" style="max-height: 300px; font-family: monospace; white-space: pre-wrap; font-size: 0.85rem;">
-            <pre class="mb-0" id="actionLogContent">Loading action log...</pre>
+            <pre class="mb-0" id="actionLogContent">{{ _t('web.action_log.loading') }}</pre>
         </div>
     </div>
 </div>

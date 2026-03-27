@@ -8,7 +8,7 @@ Licensed under the MIT License
 -->
 {% extends '_base.html' %}
 
-{% block title %}Discord Bot Setup Guide{% endblock %}
+{% block title %}{{ _t('web.botsetup.page_title') }}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -18,28 +18,28 @@ Licensed under the MIT License
             <span class="neon-text-large" id="neon-ddc">DDC</span>
         </div>
     </div>
-    <h2 class="text-center mb-4">DockerDiscordControl Bot Setup Guide</h2>
-    <p class="text-center mb-5">Complete step-by-step instructions to create and configure your Discord Bot</p>
+    <h2 class="text-center mb-4">{{ _t('web.botsetup.heading') }}</h2>
+    <p class="text-center mb-5">{{ _t('web.botsetup.subheading') }}</p>
 
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="alert alert-info" role="alert">
-                <h4 class="alert-heading">Before You Begin</h4>
-                <p>This guide will help you set up the Discord Bot portion of DockerDiscordControl. You'll need:</p>
+                <h4 class="alert-heading">{{ _t('web.botsetup.before_begin_title') }}</h4>
+                <p>{{ _t('web.botsetup.before_begin_desc') }}</p>
                 <ul>
-                    <li>A Discord account</li>
-                    <li>Administrator permissions on the Discord server where you want to use the bot</li>
+                    <li>{{ _t('web.botsetup.req_discord_account') }}</li>
+                    <li>{{ _t('web.botsetup.req_admin_perms') }}</li>
                 </ul>
                 <hr>
-                <p class="mb-0">After completing this guide, you'll need to save the <strong>Bot Token</strong> and <strong>Server (Guild) ID</strong> in your DDC configuration.</p>
+                <p class="mb-0">{{ _t('web.botsetup.after_guide_note') }}</p>
                 <p class="small mt-2">
-                    <i class="bi bi-globe"></i> Learn more at <a href="https://ddc.bot" target="_blank">https://ddc.bot</a>
+                    <i class="bi bi-globe"></i> {{ _t('web.botsetup.learn_more') }} <a href="https://ddc.bot" target="_blank">https://ddc.bot</a>
                 </p>
             </div>
 
             <div class="card bg-dark text-white mb-4">
                 <div class="card-body">
-                    <h3 class="card-title mb-4">Creating Your Discord Bot</h3>
+                    <h3 class="card-title mb-4">{{ _t('web.botsetup.creating_bot_title') }}</h3>
 
                     <div class="step-description">
                         <h4><span class="step-number">1. </span>Access Discord Developer Portal</h4>
@@ -90,7 +90,7 @@ Licensed under the MIT License
 
                     <hr class="my-4">
 
-                    <h3 class="card-title mb-4">Inviting Your Bot to Your Server</h3>
+                    <h3 class="card-title mb-4">{{ _t('web.botsetup.inviting_bot_title') }}</h3>
 
                     <div class="step-description">
                         <h4><span class="step-number">1. </span>Create Invite URL</h4>
@@ -130,13 +130,13 @@ Licensed under the MIT License
                     </div>
 
                     <div class="alert alert-warning mt-3 mb-3">
-                        <h5><i class="bi bi-info-circle"></i> Important Note About Slash Commands</h5>
-                        <p>After adding your bot to the server, slash commands may not be immediately available. Discord can take up to one hour to fully register all commands across their network. If commands don't appear right away, please be patient.</p>
+                        <h5><i class="bi bi-info-circle"></i> {{ _t('web.botsetup.slash_commands_note_title') }}</h5>
+                        <p>{{ _t('web.botsetup.slash_commands_note_desc') }}</p>
                     </div>
 
                     <hr class="my-4">
 
-                    <h3 class="card-title mb-4">Getting Your Server (Guild) ID</h3>
+                    <h3 class="card-title mb-4">{{ _t('web.botsetup.guild_id_title') }}</h3>
 
                     <div class="step-description">
                         <h4><span class="step-number">1. </span>Enable Developer Mode in Discord</h4>
@@ -153,7 +153,7 @@ Licensed under the MIT License
 
                     <hr class="my-4">
 
-                    <h3 class="card-title mb-4">Configuring DDC with Bot Details</h3>
+                    <h3 class="card-title mb-4">{{ _t('web.botsetup.configuring_ddc_title') }}</h3>
 
                     <div class="step-description">
                         <h4><span class="step-number">1. </span>Enter Bot Token</h4>
@@ -183,7 +183,7 @@ Licensed under the MIT License
                     
                     <div class="text-center mt-4">
                         <p class="small text-muted">
-                            For additional help and resources, visit <a href="https://ddc.bot" target="_blank" class="text-info">https://ddc.bot</a>
+                            {{ _t('web.botsetup.additional_help') }} <a href="https://ddc.bot" target="_blank" class="text-info">https://ddc.bot</a>
                         </p>
                     </div>
                 </div>

@@ -1,0 +1,21 @@
+<script>
+/* DDC Web UI Internationalization */
+window.DDC_I18N = {{ js_translations_json | safe }};
+window.DDC_UI_LANG = "{{ ui_language }}";
+
+/**
+ * Translate a JS string key.
+ * @param {string} key - Translation key (without 'js.' prefix)
+ * @param {Object} [params] - Optional placeholder substitutions
+ * @returns {string} Translated string or key if not found
+ */
+function t(key, params) {
+    var s = window.DDC_I18N[key] || key;
+    if (params) {
+        Object.keys(params).forEach(function(k) {
+            s = s.split('{' + k + '}').join(params[k]);
+        });
+    }
+    return s;
+}
+</script>

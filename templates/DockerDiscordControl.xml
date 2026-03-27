@@ -39,6 +39,13 @@ Alpine 3.23.3, less than 200MB RAM[br][br]
   <Category>Tools:Utilities Productivity:</Category>
   <WebUI>http://[IP]:[PORT:9374]</WebUI>
   <Changes>
+###v2.2.1 (2026-03-27)
+**Full Internationalization (40 Languages)**
+- NEW: 40 languages for Web UI and Bot (independently selectable)
+- NEW: Instant language switch (auto-reload, no save needed)
+- NEW: RTL support for Arabic, Hebrew, Persian
+- FIXED: Double save button click causing infinite spinner
+
 ###v2.2.0 (2026-03-25)
 **Channel Translation**
 - NEW: Automatic message translation between Discord channels (DeepL, Google, Microsoft)

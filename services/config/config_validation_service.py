@@ -46,6 +46,7 @@ class ConfigValidationService:
                 'bot_token_encrypted': str(config.get('bot_token_encrypted', '')) if config.get('bot_token_encrypted') else None,
                 'guild_id': str(config.get('guild_id', '')) if config.get('guild_id') else None,
                 'language': str(config.get('language', 'en')),
+                'ui_language': str(config.get('ui_language', 'en')),
                 'timezone': str(config.get('timezone', 'UTC')),
                 'heartbeat': config.get('heartbeat', {'enabled': False, 'ping_url': '', 'interval': 5})
             }
@@ -105,6 +106,7 @@ class ConfigValidationService:
             'bot_token': None,
             'guild_id': None,
             'language': 'en',
+            'ui_language': 'en',
             'timezone': 'UTC',
             'heartbeat': {
                 'enabled': False,

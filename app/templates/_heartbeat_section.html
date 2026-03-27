@@ -3,42 +3,42 @@
     <div class="form-check form-switch mb-2">
         <input class="form-check-input" type="checkbox" id="enableHeartbeatSection" name="enableHeartbeatSection" data-bs-toggle="collapse" data-bs-target="#heartbeatCollapse" aria-expanded="false" aria-controls="heartbeatCollapse" {% if config.heartbeat and config.heartbeat.enabled %}checked{% endif %}>
         <label class="form-check-label" for="enableHeartbeatSection">
-            <strong>Status Watchdog</strong>
+            <strong>{{ _t('web.heartbeat.label') }}</strong>
         </label>
-        <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="Monitors if the DDC bot is still running by periodically pinging an external monitoring service."></i>
+        <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="{{ _t('web.heartbeat.label_tooltip') }}"></i>
     </div>
 
     <div class="collapse {% if config.heartbeat and config.heartbeat.enabled %}show{% endif %}" id="heartbeatCollapse">
 
         <div class="alert alert-secondary mt-2 mb-3">
             <i class="bi bi-info-circle me-2"></i>
-            <strong>How it works (Dead Man's Switch)</strong>
-            <p class="mb-2 mt-2">DDC periodically pings an external monitoring URL. If the ping stops, the monitoring service sends you an alert.</p>
+            <strong>{{ _t('web.heartbeat.how_it_works_heading') }}</strong>
+            <p class="mb-2 mt-2">{{ _t('web.heartbeat.how_it_works_description') }}</p>
             <ol class="mb-0 small">
-                <li>Create a free account at <a href="https://healthchecks.io" target="_blank" rel="noopener">Healthchecks.io</a> or host <a href="https://github.com/louislam/uptime-kuma" target="_blank" rel="noopener">Uptime Kuma</a></li>
-                <li>Create a new "check" and copy the ping URL</li>
-                <li>Paste the URL below and set your desired interval</li>
-                <li>Configure alerts in the monitoring service (Email, Discord Webhook, etc.)</li>
+                <li>{{ _t('web.heartbeat.step1') }}</li>
+                <li>{{ _t('web.heartbeat.step2') }}</li>
+                <li>{{ _t('web.heartbeat.step3') }}</li>
+                <li>{{ _t('web.heartbeat.step4') }}</li>
             </ol>
         </div>
 
         <div class="mb-3">
-            <label for="heartbeat_ping_url" class="form-label">Monitoring URL</label>
-            <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="The URL that DDC will ping periodically. Must be HTTPS. Examples: https://hc-ping.com/your-uuid (Healthchecks.io) or https://your-uptime-kuma.com/api/push/xxx (Uptime Kuma). No data is sent - just a simple HTTP GET request."></i>
+            <label for="heartbeat_ping_url" class="form-label">{{ _t('web.heartbeat.monitoring_url_label') }}</label>
+            <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="{{ _t('web.heartbeat.monitoring_url_tooltip') }}"></i>
             <input type="url" class="form-control" id="heartbeat_ping_url" name="heartbeat_ping_url" value="{{ config.heartbeat.ping_url if config.heartbeat else '' }}" placeholder="https://hc-ping.com/your-uuid-here" pattern="https://.*">
-            <p class="form-text mt-1"><small>Must start with <code>https://</code>. Only a simple GET request is sent - no tokens or data.</small></p>
+            <p class="form-text mt-1"><small>{{ _t('web.heartbeat.monitoring_url_help') }}</small></p>
         </div>
 
         <div class="mb-3">
-            <label for="heartbeat_interval" class="form-label">Ping Interval (Minutes)</label>
-            <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="How often DDC sends a ping to the monitoring URL. Set the monitoring service timeout to at least 2-3x this value."></i>
+            <label for="heartbeat_interval" class="form-label">{{ _t('web.heartbeat.interval_label') }}</label>
+            <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="{{ _t('web.heartbeat.interval_tooltip') }}"></i>
             <input type="number" class="form-control" id="heartbeat_interval" name="heartbeat_interval" value="{{ config.heartbeat.interval if config.heartbeat else 5 }}" min="1" max="60">
-            <p class="form-text mt-1"><small>Recommended: 5 minutes. Set the monitoring service timeout to ~15 minutes.</small></p>
+            <p class="form-text mt-1"><small>{{ _t('web.heartbeat.interval_help') }}</small></p>
         </div>
 
         <div class="alert alert-success small">
             <i class="bi bi-shield-check me-2"></i>
-            <strong>Security:</strong> This is safer than traditional monitoring because no bot tokens are shared. DDC only makes outbound HTTPS requests (like Discord API calls) - no incoming connections, no data exposure.
+            <strong>{{ _t('web.heartbeat.security_heading') }}</strong> {{ _t('web.heartbeat.security_description') }}
         </div>
     </div>
 </div>

@@ -152,7 +152,7 @@
         const floatingDiscardButton = document.getElementById('floating-discard-button');
         if (floatingDiscardButton) {
             floatingDiscardButton.addEventListener('click', function() {
-                if (confirm('Are you sure you want to discard all changes?')) {
+                if (confirm(t('config.confirm_discard'))) {
                     window.location.reload();  // Reload page
                 }
             });
@@ -1049,7 +1049,7 @@
             if (tableBody && tableBody.querySelectorAll('tr').length > 1) {
                  rowToRemove.remove();
              } else {
-                 alert('Cannot delete the last channel row.');
+                 alert(t('channel.cannot_delete_last'));
              }
         }
     }
@@ -1265,6 +1265,11 @@
         if (timezoneFieldReal) {
             console.log(`MANUAL ADD (REAL): Adding timezone field: ${timezoneFieldReal.value}`);
             formData.set('timezone', timezoneFieldReal.value);
+        }
+
+        const uiLanguageField = document.getElementById('ui_language');
+        if (uiLanguageField) {
+            formData.set('ui_language', uiLanguageField.value);
         }
         
         if (serverTableBody) {
@@ -1740,7 +1745,7 @@
         const logTypeSelect = document.getElementById('logTypeSelect');
         const logType = logTypeSelect ? logTypeSelect.value : 'container';
         
-        if (!confirm(`Are you sure you want to clear ${logType} logs? This action cannot be undone.`)) {
+        if (!confirm(t('logs.confirm_clear', {logType: logType}))) {
             return;
         }
         

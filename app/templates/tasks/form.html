@@ -1,91 +1,91 @@
-<h4>Schedule New Task</h4>
-<p class="form-text mb-3">Define tasks to be executed on a schedule (e.g., restart a container daily).</p>
+<h4>{{ _t('web.tasks.form_title') }}</h4>
+<p class="form-text mb-3">{{ _t('web.tasks.form_description') }}</p>
 
 <!-- Task Add Form - Removed outer border/padding -->
 <div id="taskFormContainer">
     <div class="row g-3">
         <div class="col-md-6">
-            <label for="taskContainer" class="form-label">Container</label>
+            <label for="taskContainer" class="form-label">{{ _t('web.tasks.col_container') }}</label>
             <select class="form-select" id="taskContainer" name="container" required>
-                <option selected disabled value="">Select active container...</option>
+                <option selected disabled value="">{{ _t('web.tasks.select_container') }}</option>
                 {% if active_containers %}
                     {% for container_name in active_containers %}
                         <option value="{{ container_name }}">{{ container_name }}</option>
                     {% endfor %}
                 {% else %}
-                    <option disabled>No active containers configured.</option>
+                    <option disabled>{{ _t('web.tasks.no_active_containers') }}</option>
                 {% endif %}
             </select>
-            <div class="form-text">Name of the Docker container to control.</div>
+            <div class="form-text">{{ _t('web.tasks.container_help') }}</div>
         </div>
         <div class="col-md-6">
-            <label for="taskAction" class="form-label">Action</label>
+            <label for="taskAction" class="form-label">{{ _t('web.tasks.col_action') }}</label>
             <select class="form-select" id="taskAction" name="action" required>
-                <option selected disabled value="">Please select...</option>
-                <option value="start">Start</option>
-                <option value="stop">Stop</option>
-                <option value="restart">Restart</option>
+                <option selected disabled value="">{{ _t('web.tasks.please_select') }}</option>
+                <option value="start">{{ _t('web.tasks.action_start') }}</option>
+                <option value="stop">{{ _t('web.tasks.action_stop') }}</option>
+                <option value="restart">{{ _t('web.tasks.action_restart') }}</option>
                 <!-- Add more actions here -->
             </select>
-            <div class="form-text">Action to apply to the container.</div>
+            <div class="form-text">{{ _t('web.tasks.action_help') }}</div>
         </div>
         <div class="col-md-4">
-            <label for="taskCycle" class="form-label">Cycle</label>
+            <label for="taskCycle" class="form-label">{{ _t('web.tasks.col_cycle') }}</label>
             <select class="form-select" id="taskCycle" name="cycle" required>
-                <option selected disabled value="">Please select...</option>
-                <option value="once">Once</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="yearly">Yearly</option>
-                <option value="cron">Cron</option>
+                <option selected disabled value="">{{ _t('web.tasks.please_select') }}</option>
+                <option value="once">{{ _t('web.tasks.cycle_once') }}</option>
+                <option value="daily">{{ _t('web.tasks.cycle_daily') }}</option>
+                <option value="weekly">{{ _t('web.tasks.cycle_weekly') }}</option>
+                <option value="monthly">{{ _t('web.tasks.cycle_monthly') }}</option>
+                <option value="yearly">{{ _t('web.tasks.cycle_yearly') }}</option>
+                <option value="cron">{{ _t('web.tasks.cycle_cron') }}</option>
             </select>
-            <div class="form-text">Task recurrence.</div>
+            <div class="form-text">{{ _t('web.tasks.cycle_help') }}</div>
         </div>
         <div class="col-md-4">
-            <label for="taskTime" class="form-label">Time (HH:MM) <span class="text-info">{{ timezone_name }}</span></label>
+            <label for="taskTime" class="form-label">{{ _t('web.tasks.time_label') }} <span class="text-info">{{ timezone_name }}</span></label>
             <input type="time" class="form-control" id="taskTime" name="time" required>
-            <div class="form-text">Local time in timezone {{ timezone_str }}</div>
+            <div class="form-text">{{ _t('web.tasks.time_help') }} {{ timezone_str }}</div>
         </div>
         
         <!-- Date fields in one row -->
         <div class="col-md-4" id="dateFieldsContainer">
-            <label class="form-label">Date</label>
+            <label class="form-label">{{ _t('web.tasks.date_label') }}</label>
             <div class="row g-2">
                 <div class="col-4" id="dayFieldContainer">
-                    <input type="text" class="form-control" id="taskDay" name="day" placeholder="Day">
+                    <input type="text" class="form-control" id="taskDay" name="day" placeholder="{{ _t('web.tasks.day_placeholder') }}">
                     <select class="form-control" id="taskWeekday" name="weekday" style="display: none;">
-                        <option value="Mon">Monday</option>
-                        <option value="Tue">Tuesday</option>
-                        <option value="Wed">Wednesday</option>
-                        <option value="Thu">Thursday</option>
-                        <option value="Fri">Friday</option>
-                        <option value="Sat">Saturday</option>
-                        <option value="Sun">Sunday</option>
+                        <option value="Mon">{{ _t('web.tasks.monday') }}</option>
+                        <option value="Tue">{{ _t('web.tasks.tuesday') }}</option>
+                        <option value="Wed">{{ _t('web.tasks.wednesday') }}</option>
+                        <option value="Thu">{{ _t('web.tasks.thursday') }}</option>
+                        <option value="Fri">{{ _t('web.tasks.friday') }}</option>
+                        <option value="Sat">{{ _t('web.tasks.saturday') }}</option>
+                        <option value="Sun">{{ _t('web.tasks.sunday') }}</option>
                     </select>
                 </div>
                 <div class="col-4">
-                    <input type="text" class="form-control" id="taskMonth" name="month" placeholder="Month">
+                    <input type="text" class="form-control" id="taskMonth" name="month" placeholder="{{ _t('web.tasks.month_placeholder') }}">
                 </div>
                 <div class="col-4">
-                    <input type="number" class="form-control" id="taskYear" name="year" placeholder="Year" min="2025">
+                    <input type="number" class="form-control" id="taskYear" name="year" placeholder="{{ _t('web.tasks.year_placeholder') }}" min="2025">
                 </div>
             </div>
-            <div class="form-text">For 'once', 'monthly', 'weekly' or 'yearly' tasks.</div>
+            <div class="form-text">{{ _t('web.tasks.date_help') }}</div>
         </div>
         
         <div class="col-md-12" id="taskCronStringRow" style="display: none;">
-            <label for="taskCronString" class="form-label">Cron String</label>
+            <label for="taskCronString" class="form-label">{{ _t('web.tasks.cron_string_label') }}</label>
             <input type="text" class="form-control" id="taskCronString" name="cron_string">
-            <div class="form-text">Enter a valid Cron string (e.g., "*/5 * * * *").</div>
+            <div class="form-text">{{ _t('web.tasks.cron_string_help') }}</div>
         </div>
         
         <!-- Hidden field for server-side timezone -->
         <input type="hidden" id="serverTimezone" name="timezone_str" value="{{ timezone_str }}">
     </div>
     <div class="mt-3">
-        <button type="button" class="btn btn-primary" id="createTaskButton">Create</button>
-        <button type="button" class="btn btn-secondary" id="cancelTaskButton">Cancel</button>
+        <button type="button" class="btn btn-primary" id="createTaskButton">{{ _t('web.tasks.create_btn') }}</button>
+        <button type="button" class="btn btn-secondary" id="cancelTaskButton">{{ _t('web.common.cancel') }}</button>
     </div>
     <div id="responseMessage" class="mt-3"></div>
 </div>
@@ -253,19 +253,19 @@ document.getElementById('createTaskButton').addEventListener('click', function()
     
     // Validation
     if (!container || container === '') {
-        alert("Please select a container");
+        alert("{{ _t('web.tasks.err_select_container') }}");
         return;
     }
     if (!action || action === '') {
-        alert("Please select an action");
+        alert("{{ _t('web.tasks.err_select_action') }}");
         return;
     }
     if (!cycle || cycle === '') {
-        alert("Please select a cycle");
+        alert("{{ _t('web.tasks.err_select_cycle') }}");
         return;
     }
     if (cycle !== 'cron' && (!time || time === '')) {
-        alert("Please enter a time");
+        alert("{{ _t('web.tasks.err_enter_time') }}");
         return;
     }
     
@@ -274,22 +274,22 @@ document.getElementById('createTaskButton').addEventListener('click', function()
         const day = document.getElementById('taskDay').value;
         const month = document.getElementById('taskMonth').value;
         const year = document.getElementById('taskYear').value;
-        
+
         if (!day || !month || !year) {
-            alert("For one-time tasks, you must specify day, month, and year");
+            alert("{{ _t('web.tasks.err_once_date_required') }}");
             return;
         }
-        
+
         // Check if the date is in the future
         const taskDate = new Date(`${year}-${month}-${day}T${time}:00`);
         if (taskDate <= new Date()) {
-            alert("One-time tasks must be scheduled for a future date/time");
+            alert("{{ _t('web.tasks.err_once_future_date') }}");
             return;
         }
     } else if (cycle === 'monthly') {
         const day = document.getElementById('taskDay').value;
         if (!day || day < 1 || day > 31) {
-            alert("For monthly tasks, please enter a valid day of the month (1-31)");
+            alert("{{ _t('web.tasks.err_monthly_day') }}");
             return;
         }
     }
@@ -307,7 +307,7 @@ document.getElementById('createTaskButton').addEventListener('click', function()
     if (cycle === 'cron') {
         const cronString = document.getElementById('taskCronString').value;
         if (!cronString) {
-            alert("Please enter a cron string");
+            alert("{{ _t('web.tasks.err_enter_cron') }}");
             return;
         }
         data.schedule_details.cron_string = cronString;
@@ -360,7 +360,7 @@ document.getElementById('createTaskButton').addEventListener('click', function()
     })
     .then(data => {
         if (data.status === 201) {
-            responseMessageDiv.textContent = 'Task added successfully: ' + JSON.stringify(data.body.task);
+            responseMessageDiv.textContent = '{{ _t("web.tasks.task_added_success") }}: ' + JSON.stringify(data.body.task);
             responseMessageDiv.classList.add('alert', 'alert-success');
             resetTaskForm();
             // Reload task list
@@ -368,13 +368,13 @@ document.getElementById('createTaskButton').addEventListener('click', function()
                 window.taskManager.fetchTasks();
             }
         } else {
-            responseMessageDiv.textContent = 'Error: ' + (data.body.error || 'Unknown error');
+            responseMessageDiv.textContent = '{{ _t("web.common.error") }}: ' + (data.body.error || '{{ _t("web.common.unknown_error") }}');
             responseMessageDiv.classList.add('alert', 'alert-danger');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        responseMessageDiv.textContent = 'Error sending request.';
+        responseMessageDiv.textContent = '{{ _t("web.tasks.err_sending_request") }}';
         responseMessageDiv.classList.add('alert', 'alert-danger');
     });
 });

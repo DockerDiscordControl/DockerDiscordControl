@@ -3,11 +3,11 @@
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content bg-dark text-light">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-robot"></i> Auto-Action System (AAS)</h5>
+                <h5 class="modal-title"><i class="bi bi-robot"></i> {{ _t('web.aas.title') }}</h5>
                 <div class="ms-auto">
                     <div class="form-check form-switch d-inline-block me-3">
                         <input class="form-check-input" type="checkbox" id="aasGlobalToggle" onchange="toggleGlobalAAS()">
-                        <label class="form-check-label" for="aasGlobalToggle">System Enabled</label>
+                        <label class="form-check-label" for="aasGlobalToggle">{{ _t('web.aas.system_enabled') }}</label>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -17,17 +17,17 @@
                 <ul class="nav nav-tabs nav-fill bg-secondary" role="tablist">
                     <li class="nav-item">
                         <a class="nav-link active" id="aas-rules-tab" data-bs-toggle="tab" href="#aas-rules-view" role="tab">
-                            <i class="bi bi-list-task"></i> Rules
+                            <i class="bi bi-list-task"></i> {{ _t('web.aas.tab_rules') }}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" id="aas-history-tab" data-bs-toggle="tab" href="#aas-history-view" role="tab" onclick="loadAASHistory()">
-                            <i class="bi bi-clock-history"></i> Execution History
+                            <i class="bi bi-clock-history"></i> {{ _t('web.aas.tab_history') }}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" id="aas-settings-tab" data-bs-toggle="tab" href="#aas-settings-view" role="tab">
-                            <i class="bi bi-gear"></i> Global Settings
+                            <i class="bi bi-gear"></i> {{ _t('web.aas.tab_settings') }}
                         </a>
                     </li>
                 </ul>
@@ -38,17 +38,17 @@
                         <div class="d-flex justify-content-between mb-3">
                             <div class="input-group w-50">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control" id="aasRuleSearch" placeholder="Search rules..." onkeyup="filterAASRules()">
+                                <input type="text" class="form-control" id="aasRuleSearch" placeholder="{{ _t('web.aas.search_placeholder') }}" onkeyup="filterAASRules()">
                             </div>
                             <button class="btn btn-primary" onclick="openRuleEditor()">
-                                <i class="bi bi-plus-lg"></i> Add New Rule
+                                <i class="bi bi-plus-lg"></i> {{ _t('web.aas.add_rule') }}
                             </button>
                         </div>
                         <div id="aasRulesList" class="list-group">
                             <!-- Rules will be loaded here via JS -->
                             <div class="text-center py-5 text-muted">
                                 <div class="spinner-border text-primary mb-2" role="status"></div>
-                                <div>Loading Auto-Actions...</div>
+                                <div>{{ _t('web.aas.loading') }}</div>
                             </div>
                         </div>
                     </div>
@@ -57,18 +57,18 @@
                     <div class="tab-pane fade" id="aas-history-view" role="tabpanel">
                         <div class="d-flex justify-content-end mb-2">
                             <button class="btn btn-sm btn-outline-secondary" onclick="loadAASHistory()">
-                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                                <i class="bi bi-arrow-clockwise"></i> {{ _t('web.common.refresh') }}
                             </button>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-dark table-hover table-sm">
                                 <thead>
                                     <tr>
-                                        <th>Time</th>
-                                        <th>Rule</th>
-                                        <th>Container</th>
-                                        <th>Action</th>
-                                        <th>Result</th>
+                                        <th>{{ _t('web.aas.col_time') }}</th>
+                                        <th>{{ _t('web.aas.col_rule') }}</th>
+                                        <th>{{ _t('web.aas.col_container') }}</th>
+                                        <th>{{ _t('web.aas.col_action') }}</th>
+                                        <th>{{ _t('web.aas.col_result') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody id="aasHistoryTable">
@@ -83,26 +83,26 @@
                         <form id="aasGlobalSettingsForm">
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label">Global Cooldown (Seconds)</label>
+                                    <label class="form-label">{{ _t('web.aas.global_cooldown_label') }}</label>
                                     <input type="number" class="form-control" id="aasGlobalCooldown" min="0" value="30">
-                                    <div class="form-text">Minimum time between ANY auto-action executions. Prevents spam.</div>
+                                    <div class="form-text">{{ _t('web.aas.global_cooldown_hint') }}</div>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Audit Log Channel</label>
+                                    <label class="form-label">{{ _t('web.aas.audit_channel_label') }}</label>
                                     <select class="form-select" id="aasAuditChannelSelect">
-                                        <option value="">(None)</option>
+                                        <option value="">{{ _t('web.aas.none') }}</option>
                                         <!-- Options loaded via JS -->
                                     </select>
-                                    <div class="form-text">Channel where all AAS events will be logged.</div>
+                                    <div class="form-text">{{ _t('web.aas.audit_channel_hint') }}</div>
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label">Protected Containers</label>
+                                    <label class="form-label">{{ _t('web.aas.protected_containers_label') }}</label>
                                     <input type="text" class="form-control" id="aasProtectedContainers" value="ddc,portainer">
-                                    <div class="form-text">Comma-separated list of containers that AAS cannot touch (case-insensitive).</div>
+                                    <div class="form-text">{{ _t('web.aas.protected_containers_hint') }}</div>
                                 </div>
                                 <div class="col-12 mt-4">
                                     <button type="button" class="btn btn-success" onclick="saveAASGlobalSettings()">
-                                        <i class="bi bi-save"></i> Save Global Settings
+                                        <i class="bi bi-save"></i> {{ _t('web.aas.save_global_settings') }}
                                     </button>
                                 </div>
                             </div>
@@ -119,109 +119,109 @@
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content bg-dark text-light border-primary">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="aasEditorTitle">Edit Auto-Action</h5>
+                <h5 class="modal-title" id="aasEditorTitle">{{ _t('web.aas.editor_title') }}</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="aasRuleForm">
                     <input type="hidden" id="aasRuleId">
-                    
+
                     <!-- Section: Basic Info -->
-                    <h6 class="border-bottom pb-2 mb-3 text-primary">1. Basic Info</h6>
+                    <h6 class="border-bottom pb-2 mb-3 text-primary">1. {{ _t('web.aas.section_basic') }}</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-8">
-                            <label class="form-label fw-bold">Rule Name</label>
-                            <input type="text" class="form-control" id="aasRuleName" placeholder="e.g. Icarus Update Watcher" required>
+                            <label class="form-label fw-bold">{{ _t('web.aas.rule_name') }}</label>
+                            <input type="text" class="form-control" id="aasRuleName" placeholder="{{ _t('web.aas.rule_name_placeholder') }}" required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Priority</label>
+                            <label class="form-label">{{ _t('web.aas.priority') }}</label>
                             <input type="number" class="form-control" id="aasRulePriority" value="10" min="1" max="100">
-                            <div class="form-text">Higher executes first</div>
+                            <div class="form-text">{{ _t('web.aas.priority_hint') }}</div>
                         </div>
                     </div>
 
                     <!-- Section: Trigger -->
-                    <h6 class="border-bottom pb-2 mb-3 text-primary">2. Trigger Conditions</h6>
+                    <h6 class="border-bottom pb-2 mb-3 text-primary">2. {{ _t('web.aas.section_trigger') }}</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label fw-bold">
-                                Monitored Channel ID(s)
+                                {{ _t('web.aas.monitored_channels') }}
                                 <i class="bi bi-info-circle text-info ms-1"
                                    data-bs-toggle="tooltip"
                                    data-bs-placement="top"
-                                   title="We recommend using a dedicated channel for Auto-Actions, especially when not using Allowed User IDs. This prevents unintended triggers from other messages."></i>
+                                   title="{{ _t('web.aas.monitored_channels_tooltip') }}"></i>
                             </label>
-                            <input type="text" class="form-control" id="aasRuleChannelIds" placeholder="e.g. 1234567890123456789" required>
-                            <div class="form-text">Discord Channel ID(s) to monitor (comma-separated)</div>
+                            <input type="text" class="form-control" id="aasRuleChannelIds" placeholder="{{ _t('web.aas.channel_id_placeholder') }}" required>
+                            <div class="form-text">{{ _t('web.aas.channel_ids_hint') }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">
-                                Allowed User IDs (Whitelist)
+                                {{ _t('web.aas.allowed_users') }}
                                 <i class="bi bi-info-circle text-info ms-1"
                                    data-bs-toggle="tooltip"
                                    data-bs-placement="top"
-                                   title="Discord User/Bot ID (not username). Right-click user → Copy ID. Enable Developer Mode in Discord settings if needed."></i>
+                                   title="{{ _t('web.aas.allowed_users_tooltip') }}"></i>
                             </label>
-                            <input type="text" class="form-control" id="aasRuleUsers" placeholder="Optional: Specific Bot/User ID">
-                            <div class="form-text">Only trigger if message is from these users (comma-separated)</div>
+                            <input type="text" class="form-control" id="aasRuleUsers" placeholder="{{ _t('web.aas.allowed_users_placeholder') }}">
+                            <div class="form-text">{{ _t('web.aas.allowed_users_hint') }}</div>
                         </div>
-                        
+
                         <div class="col-md-6">
                             <label class="form-label fw-bold">
-                                Required Keyword(s)
+                                {{ _t('web.aas.required_keywords') }}
                                 <i class="bi bi-info-circle text-info ms-1"
                                    data-bs-toggle="tooltip"
                                    data-bs-placement="top"
-                                   title="Use your product/game name here (e.g. 'Icarus'). This prevents false triggers from other sources. The message title/embed is also searched."></i>
+                                   title="{{ _t('web.aas.required_keywords_tooltip') }}"></i>
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-key"></i></span>
-                                <input type="text" class="form-control" id="aasRuleRequiredKeywords" placeholder="e.g. Icarus">
+                                <input type="text" class="form-control" id="aasRuleRequiredKeywords" placeholder="{{ _t('web.aas.required_keywords_placeholder') }}">
                             </div>
-                            <div class="form-text">Must ALL match (AND logic)</div>
+                            <div class="form-text">{{ _t('web.aas.required_keywords_hint') }}</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Trigger Keywords</label>
+                            <label class="form-label fw-bold">{{ _t('web.aas.trigger_keywords') }}</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-tags"></i></span>
-                                <input type="text" class="form-control" id="aasRuleKeywords" placeholder="update, released, patch">
+                                <input type="text" class="form-control" id="aasRuleKeywords" placeholder="{{ _t('web.aas.trigger_keywords_placeholder') }}">
                             </div>
-                            <div class="form-text">At least one must match (OR logic)</div>
+                            <div class="form-text">{{ _t('web.aas.trigger_keywords_hint') }}</div>
                         </div>
 
                         <div class="col-md-12">
                             <a class="text-decoration-none text-info" data-bs-toggle="collapse" href="#aasAdvancedTrigger" role="button">
-                                <i class="bi bi-gear"></i> Advanced Trigger Options
+                                <i class="bi bi-gear"></i> {{ _t('web.aas.advanced_trigger_options') }}
                             </a>
                             <div class="collapse mt-2" id="aasAdvancedTrigger">
                                 <div class="card card-body bg-secondary">
                                     <div class="row g-2">
                                         <div class="col-md-6">
-                                            <label class="form-label">Match Mode</label>
+                                            <label class="form-label">{{ _t('web.aas.match_mode') }}</label>
                                             <select class="form-select" id="aasRuleMatchMode">
-                                                <option value="any">Any Keyword (OR)</option>
-                                                <option value="all">All Keywords (AND)</option>
+                                                <option value="any">{{ _t('web.aas.match_any') }}</option>
+                                                <option value="all">{{ _t('web.aas.match_all') }}</option>
                                             </select>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">
-                                                Ignore Keywords (Blacklist)
+                                                {{ _t('web.aas.ignore_keywords') }}
                                                 <i class="bi bi-info-circle text-info ms-1"
                                                    data-bs-toggle="tooltip"
                                                    data-bs-placement="top"
-                                                   title="Prevents false triggers. E.g. 'driver issue', 'hotfix failed', 'rollback' won't trigger even if other keywords match."></i>
+                                                   title="{{ _t('web.aas.ignore_keywords_tooltip') }}"></i>
                                             </label>
-                                            <input type="text" class="form-control" id="aasRuleIgnore" placeholder="driver, issue">
+                                            <input type="text" class="form-control" id="aasRuleIgnore" placeholder="{{ _t('web.aas.ignore_keywords_placeholder') }}">
                                         </div>
                                         <div class="col-12 mt-2">
-                                            <label class="form-label">Regex Pattern (Python)</label>
-                                            <input type="text" class="form-control font-monospace" id="aasRuleRegex" placeholder="e.g. v\d+\.\d+">
+                                            <label class="form-label">{{ _t('web.aas.regex_pattern') }}</label>
+                                            <input type="text" class="form-control font-monospace" id="aasRuleRegex" placeholder="{{ _t('web.aas.regex_placeholder') }}">
                                         </div>
                                         <div class="col-12 mt-2">
                                             <div class="form-check">
                                                 <input class="form-check-input" type="checkbox" id="aasRuleIsWebhook">
                                                 <label class="form-check-label" for="aasRuleIsWebhook">
-                                                    Only trigger on Webhook messages (e.g. Discohook)
+                                                    {{ _t('web.aas.only_webhooks') }}
                                                 </label>
                                             </div>
                                         </div>
@@ -232,68 +232,68 @@
                     </div>
 
                     <!-- Section: Action -->
-                    <h6 class="border-bottom pb-2 mb-3 text-primary">3. Action & Execution</h6>
+                    <h6 class="border-bottom pb-2 mb-3 text-primary">3. {{ _t('web.aas.section_action') }}</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-4">
-                            <label class="form-label fw-bold">Action Type</label>
+                            <label class="form-label fw-bold">{{ _t('web.aas.action_type') }}</label>
                             <select class="form-select" id="aasRuleActionType">
-                                <option value="RESTART">RESTART Container</option>
-                                <option value="STOP">STOP Container</option>
-                                <option value="START">START Container</option>
-                                <option value="NOTIFY">Notification Only</option>
-                                <option value="RECREATE" disabled>Recreate (Coming Soon)</option>
+                                <option value="RESTART">{{ _t('web.aas.action_restart') }}</option>
+                                <option value="STOP">{{ _t('web.aas.action_stop') }}</option>
+                                <option value="START">{{ _t('web.aas.action_start') }}</option>
+                                <option value="NOTIFY">{{ _t('web.aas.action_notify') }}</option>
+                                <option value="RECREATE" disabled>{{ _t('web.aas.action_recreate') }}</option>
                             </select>
                         </div>
                         <div class="col-md-8">
-                            <label class="form-label fw-bold">Target Container(s)</label>
+                            <label class="form-label fw-bold">{{ _t('web.aas.target_containers') }}</label>
                             <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto; background-color: #2d3238;" id="aasRuleTargetContainersWrapper">
                                 <!-- Populated via JS with checkboxes -->
                             </div>
-                            <div class="form-text">Select one or more containers to apply the action to.</div>
+                            <div class="form-text">{{ _t('web.aas.target_containers_hint') }}</div>
                         </div>
-                        
+
                         <div class="col-md-4">
                             <label class="form-label">
-                                Delay (Seconds)
+                                {{ _t('web.aas.delay') }}
                                 <i class="bi bi-info-circle text-info ms-1"
                                    data-bs-toggle="tooltip"
                                    data-bs-placement="top"
-                                   title="Wait time before action executes. Useful when server needs time to save data before restart."></i>
+                                   title="{{ _t('web.aas.delay_tooltip') }}"></i>
                             </label>
                             <input type="number" class="form-control" id="aasRuleDelay" value="0" min="0">
                         </div>
                         <div class="col-md-8">
-                            <label class="form-label">Feedback Channel(s)</label>
+                            <label class="form-label">{{ _t('web.aas.feedback_channels') }}</label>
                             <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto; background-color: #2d3238;" id="aasRuleFeedbackChannelsWrapper">
                                 <!-- Populated via JS with checkboxes -->
                             </div>
-                            <div class="form-text">Select one or more channels for action feedback.</div>
+                            <div class="form-text">{{ _t('web.aas.feedback_channels_hint') }}</div>
                         </div>
                     </div>
 
                     <!-- Section: Safety -->
-                    <h6 class="border-bottom pb-2 mb-3 text-primary">4. Safety Settings</h6>
+                    <h6 class="border-bottom pb-2 mb-3 text-primary">4. {{ _t('web.aas.section_safety') }}</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label">
-                                Cooldown (Minutes)
+                                {{ _t('web.aas.cooldown') }}
                                 <i class="bi bi-info-circle text-info ms-1"
                                    data-bs-toggle="tooltip"
                                    data-bs-placement="top"
-                                   title="Prevents spam from rapid updates. After triggering, the rule won't fire again for this duration."></i>
+                                   title="{{ _t('web.aas.cooldown_tooltip') }}"></i>
                             </label>
                             <input type="number" class="form-control" id="aasRuleCooldown" value="1440" min="1">
-                            <div class="form-text">Prevents re-triggering on same container (Default: 24h)</div>
+                            <div class="form-text">{{ _t('web.aas.cooldown_hint') }}</div>
                         </div>
                         <div class="col-md-6 d-flex align-items-center">
                             <div class="form-check mt-3">
                                 <input class="form-check-input" type="checkbox" id="aasRuleOnlyRunning" checked>
                                 <label class="form-check-label" for="aasRuleOnlyRunning">
-                                    Only execute if container is RUNNING
+                                    {{ _t('web.aas.only_if_running') }}
                                     <i class="bi bi-info-circle text-info ms-1"
                                        data-bs-toggle="tooltip"
                                        data-bs-placement="top"
-                                       title="Safety feature: Prevents accidentally starting containers that were intentionally stopped for maintenance."></i>
+                                       title="{{ _t('web.aas.only_if_running_tooltip') }}"></i>
                                 </label>
                             </div>
                         </div>
@@ -302,10 +302,10 @@
                     <!-- Test Box -->
                     <div class="alert alert-dark border border-secondary mb-0">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <strong><i class="bi bi-bug"></i> Test Match Logic (Dry Run)</strong>
-                            <button type="button" class="btn btn-sm btn-outline-light" onclick="testAASRule()">Check Match</button>
+                            <strong><i class="bi bi-bug"></i> {{ _t('web.aas.test_title') }}</strong>
+                            <button type="button" class="btn btn-sm btn-outline-light" onclick="testAASRule()">{{ _t('web.aas.check_match') }}</button>
                         </div>
-                        <textarea class="form-control bg-dark text-light border-secondary mb-2" id="aasTestContent" rows="2" placeholder="Paste example Discord message here..."></textarea>
+                        <textarea class="form-control bg-dark text-light border-secondary mb-2" id="aasTestContent" rows="2" placeholder="{{ _t('web.aas.test_placeholder') }}"></textarea>
                         <div id="aasTestResult" class="small"></div>
                     </div>
 
@@ -313,11 +313,11 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger me-auto" id="aasDeleteBtn" onclick="deleteAASRule()" style="display:none;">
-                    <i class="bi bi-trash"></i> Delete Rule
+                    <i class="bi bi-trash"></i> {{ _t('web.aas.delete_rule') }}
                 </button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _t('web.common.cancel') }}</button>
                 <button type="button" class="btn btn-primary" onclick="saveAASRule()">
-                    <i class="bi bi-save"></i> Save Rule
+                    <i class="bi bi-save"></i> {{ _t('web.aas.save_rule') }}
                 </button>
             </div>
         </div>

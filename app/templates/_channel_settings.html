@@ -1,10 +1,10 @@
 <hr class="my-4">
 <div id="channel-settings" class="mb-3 card p-3">
-    <h4>Channel Settings</h4>
+    <h4>{{ _t('web.channel.settings_heading') }}</h4>
     <div class="mb-3">
-        <label for="guild_id" class="form-label">Discord Server (Guild) ID</label>
-        <span class="badge bg-warning text-dark ms-2"><i class="bi bi-arrow-repeat"></i> Requires restart</span>
-        <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="The ID of your Discord server. Enable Developer Mode in Discord (Settings -> Advanced), then right-click on your server in the server list -> 'Copy ID'. This helps the bot register commands faster."></i>
-        <input type="text" class="form-control requires-restart" id="guild_id" name="guild_id" value="{{ config.guild_id or '' }}" pattern="\d*" title="Only numbers (Guild ID) allowed">
-    </div> 
+        <label for="guild_id" class="form-label">{{ _t('web.channel.guild_id_label') }}</label>
+        <span class="badge bg-warning text-dark ms-2"><i class="bi bi-arrow-repeat"></i> {{ _t('web.common.requires_restart') }}</span>
+        <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="{{ _t('web.channel.guild_id_tooltip') }}"></i>
+        <input type="text" class="form-control requires-restart" id="guild_id" name="guild_id" value="{{ config.guild_id or '' }}" pattern="\d*" title="{{ _t('web.channel.guild_id_validation') }}">
+    </div>
 </div> 

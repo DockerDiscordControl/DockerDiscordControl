@@ -59,7 +59,7 @@ class TaskManager {
         if (!tbody) return;
 
         // Show loading state
-        tbody.innerHTML = '<tr><td colspan="11" class="text-center task-loading"><div class="spinner-border spinner-border-sm me-2" role="status"><span class="visually-hidden">Loading...</span></div>Loading tasks...</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center task-loading"><div class="spinner-border spinner-border-sm me-2" role="status"><span class="visually-hidden">${t('common.loading')}</span></div>${t('tasks.loading_tasks')}</td></tr>`;
         errorDiv.style.display = 'none';
 
         try {
@@ -76,7 +76,7 @@ class TaskManager {
             
             const tbody = document.getElementById('taskListBody');
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="11" class="text-center task-empty"><div class="empty-icon">⚠️</div><div class="empty-title">Error Loading Tasks</div><div class="empty-description">' + this.escapeHtml(error.message) + '</div></td></tr>';
+                tbody.innerHTML = `<tr><td colspan="11" class="text-center task-empty"><div class="empty-icon">⚠️</div><div class="empty-title">${t('tasks.error_loading_title')}</div><div class="empty-description">${this.escapeHtml(error.message)}</div></td></tr>`;
             }
         }
     }
@@ -90,7 +90,7 @@ class TaskManager {
         tbody.innerHTML = '';
 
         if (!tasks || tasks.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="11" class="text-center task-empty"><div class="empty-icon">📋</div><div class="empty-title">No Tasks Found</div><div class="empty-description">No scheduled tasks have been created yet.</div></td></tr>';
+            tbody.innerHTML = `<tr><td colspan="11" class="text-center task-empty"><div class="empty-icon">📋</div><div class="empty-title">${t('tasks.no_tasks_title')}</div><div class="empty-description">${t('tasks.no_tasks_desc')}</div></td></tr>`;
             return;
         }
 
@@ -98,7 +98,7 @@ class TaskManager {
         const filteredTasks = this.filterTasks(tasks, statusFilter);
         
         if (filteredTasks.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="11" class="text-center task-empty"><div class="empty-icon">🔍</div><div class="empty-title">No Matching Tasks</div><div class="empty-description">No tasks match the selected filter "' + this.escapeHtml(statusFilter) + '".</div></td></tr>';
+            tbody.innerHTML = `<tr><td colspan="11" class="text-center task-empty"><div class="empty-icon">🔍</div><div class="empty-title">${t('tasks.no_matching_title')}</div><div class="empty-description">${t('tasks.no_matching_desc').replace('{filter}', this.escapeHtml(statusFilter))}</div></td></tr>`;
             return;
         }
 
@@ -212,11 +212,11 @@ class TaskManager {
         
         switch (taskStatus) {
             case 'expired':
-                return { class: 'expired', text: 'Expired', canBeActivated: false };
+                return { class: 'expired', text: t('tasks.status_expired'), canBeActivated: false };
             case 'deactivated':
-                return { class: 'deactivated', text: 'Inactive', canBeActivated: true };
+                return { class: 'deactivated', text: t('tasks.status_inactive'), canBeActivated: true };
             default:
-                return { class: 'active', text: 'Active', canBeActivated: true };
+                return { class: 'active', text: t('tasks.status_active'), canBeActivated: true };
         }
     }
 
@@ -224,26 +224,26 @@ class TaskManager {
         if (!details) return 'N/A';
         
         if (details.cron_string) {
-            return `Cron: <code>${this.escapeHtml(details.cron_string)}</code>`;
+            return `${t('tasks.cron_label')}: <code>${this.escapeHtml(details.cron_string)}</code>`;
         }
-        
+
         const parts = [];
-        if (details.time) parts.push(`Time: ${this.escapeHtml(details.time)}`);
-        if (details.day) parts.push(`Day: ${this.escapeHtml(details.day)}`);
-        if (details.month) parts.push(`Month: ${this.escapeHtml(details.month)}`);
-        if (details.year) parts.push(`Year: ${this.escapeHtml(details.year)}`);
-        
-        return parts.join(', ') || 'No details';
+        if (details.time) parts.push(`${t('tasks.time_label')}: ${this.escapeHtml(details.time)}`);
+        if (details.day) parts.push(`${t('tasks.day_label')}: ${this.escapeHtml(details.day)}`);
+        if (details.month) parts.push(`${t('tasks.month_label')}: ${this.escapeHtml(details.month)}`);
+        if (details.year) parts.push(`${t('tasks.year_label')}: ${this.escapeHtml(details.year)}`);
+
+        return parts.join(', ') || t('tasks.no_details');
     }
 
     formatLastRunResult(task) {
         if (task.last_run_success === true) {
-            return '<span class="badge bg-success" title="Task was executed successfully">Success</span>';
+            return `<span class="badge bg-success" title="${t('tasks.executed_successfully')}">${t('tasks.result_success')}</span>`;
         } else if (task.last_run_success === false) {
-            const escapedError = this.escapeHtml(task.last_run_error || 'Task execution failed');
-            return `<span class="badge bg-danger" title="${escapedError}">Failed</span>`;
+            const escapedError = this.escapeHtml(task.last_run_error || t('tasks.execution_failed'));
+            return `<span class="badge bg-danger" title="${escapedError}">${t('tasks.result_failed')}</span>`;
         }
-        return '<span class="text-muted">Not run yet</span>';
+        return `<span class="text-muted">${t('tasks.not_run_yet')}</span>`;
     }
 
     formatDate(dateString, localDateString) {
@@ -274,13 +274,13 @@ class TaskManager {
         
         if (target.classList.contains('editTaskBtn')) {
             if (isSystemTask) {
-                this.showError('System tasks cannot be edited');
+                this.showError(t('tasks.system_cannot_edit'));
                 return;
             }
             this.openEditModal(taskId);
         } else if (target.classList.contains('deleteTaskBtn')) {
             if (isSystemTask) {
-                this.showError('System tasks cannot be deleted');
+                this.showError(t('tasks.system_cannot_delete'));
                 return;
             }
             this.deleteTask(taskId);
@@ -288,7 +288,7 @@ class TaskManager {
             if (isSystemTask) {
                 // Prevent the checkbox change
                 target.checked = !target.checked;
-                this.showError('System task activation cannot be changed');
+                this.showError(t('tasks.system_cannot_change_activation'));
                 return;
             }
             this.toggleTaskActive(taskId, target.checked);
@@ -442,7 +442,7 @@ class TaskManager {
         // Show loading state
         const saveButton = document.getElementById('saveTaskChanges');
         const originalText = saveButton.innerHTML;
-        saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+        saveButton.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>${t('tasks.saving')}`;
         saveButton.disabled = true;
 
         try {
@@ -459,7 +459,7 @@ class TaskManager {
             const result = await response.json();
             
             if (result.success) {
-                this.showSuccess('Task updated successfully!');
+                this.showSuccess(t('tasks.updated_successfully'));
                 setTimeout(() => {
                     this.editModal?.hide();
                     this.fetchTasks();
@@ -529,19 +529,19 @@ class TaskManager {
 
     validateTaskData(taskData) {
         const { data } = taskData;
-        
+
         if (!data.container || !data.action || !data.cycle) {
-            this.showError('Please fill in all required fields');
+            this.showError(t('tasks.fill_required_fields'));
             return false;
         }
-        
+
         if (data.cycle === 'cron' && !data.schedule_details.cron_string) {
-            this.showError('Please enter a cron string');
+            this.showError(t('tasks.enter_cron_string'));
             return false;
         }
-        
+
         if (data.cycle !== 'cron' && !data.schedule_details.time) {
-            this.showError('Please enter a time');
+            this.showError(t('tasks.enter_time'));
             return false;
         }
         
@@ -550,8 +550,8 @@ class TaskManager {
 
     async deleteTask(taskId) {
         const escapedTaskId = this.escapeHtml(taskId);
-        
-        if (!confirm(`Are you sure you want to delete task #${escapedTaskId}?\n\nThis action cannot be undone.`)) {
+
+        if (!confirm(t('tasks.confirm_delete').replace('{id}', escapedTaskId))) {
             return;
         }
 
@@ -568,7 +568,7 @@ class TaskManager {
                 // Show success message briefly
                 const tbody = document.getElementById('taskListBody');
                 const successRow = document.createElement('tr');
-                successRow.innerHTML = '<td colspan="11" class="text-center text-success"><i class="bi bi-check-circle me-2"></i>Task deleted successfully!</td>';
+                successRow.innerHTML = `<td colspan="11" class="text-center text-success"><i class="bi bi-check-circle me-2"></i>${t('tasks.deleted_successfully')}</td>`;
                 tbody.insertBefore(successRow, tbody.firstChild);
                 
                 setTimeout(() => {
@@ -606,7 +606,7 @@ class TaskManager {
                 const checkbox = document.getElementById(`active-${taskId}`);
                 if (checkbox) {
                     const originalTitle = checkbox.title;
-                    checkbox.title = isActive ? 'Task activated!' : 'Task deactivated!';
+                    checkbox.title = isActive ? t('tasks.activated') : t('tasks.deactivated');
                     setTimeout(() => {
                         checkbox.title = originalTitle;
                     }, 2000);

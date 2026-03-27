@@ -4,7 +4,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="tokenSecurityModalLabel">
-                    <i class="bi bi-shield-lock"></i> Bot Token Security Status
+                    <i class="bi bi-shield-lock"></i> {{ _t('web.token_security.title') }}
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -13,16 +13,16 @@
                 <div id="tokenSecurityContent">
                     <div class="text-center">
                         <div class="spinner-border spinner-border-sm" role="status">
-                            <span class="visually-hidden">Loading...</span>
+                            <span class="visually-hidden">{{ _t('web.common.loading') }}</span>
                         </div>
-                        <span class="ms-2">Checking token security status...</span>
+                        <span class="ms-2">{{ _t('web.token_security.checking_status') }}</span>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _t('web.common.close') }}</button>
                 <button type="button" class="btn btn-primary" onclick="refreshTokenStatusModal()">
-                    <i class="bi bi-arrow-clockwise"></i> Refresh Status
+                    <i class="bi bi-arrow-clockwise"></i> {{ _t('web.token_security.refresh_status') }}
                 </button>
             </div>
         </div>
@@ -33,32 +33,32 @@
 // Token security modal management
 async function refreshTokenStatusModal() {
     const contentDiv = document.getElementById('tokenSecurityContent');
-    
+
     // Show loading state
     contentDiv.innerHTML = `
         <div class="text-center">
             <div class="spinner-border spinner-border-sm" role="status">
-                <span class="visually-hidden">Loading...</span>
+                <span class="visually-hidden">${t('web.common.loading')}</span>
             </div>
-            <span class="ms-2">Checking token security status...</span>
+            <span class="ms-2">${t('web.token_security.checking_status')}</span>
         </div>
     `;
-    
+
     try {
         const response = await fetch('/api/token-security-status');
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         displayTokenStatusModal(data);
-        
+
     } catch (error) {
         console.error('Error fetching token status:', error);
         contentDiv.innerHTML = `
             <div class="alert alert-danger mb-0">
                 <i class="bi bi-exclamation-triangle"></i>
-                <strong>Error:</strong> Could not check token security status.
+                <strong>${t('web.common.error')}:</strong> ${t('web.token_security.error_checking_status')}
                 <br><small>${error.message}</small>
             </div>
         `;
@@ -67,40 +67,40 @@ async function refreshTokenStatusModal() {
 
 function displayTokenStatusModal(status) {
     const contentDiv = document.getElementById('tokenSecurityContent');
-    
+
     let html = '';
-    
+
     // Main status indicator (larger in modal)
     if (status.environment_token_used) {
         html += `
             <div class="alert alert-success mb-4">
-                <h6><i class="bi bi-check-circle-fill"></i> Excellent Security!</h6>
-                <p class="mb-0">Using environment variable DISCORD_BOT_TOKEN. This is the most secure method.</p>
+                <h6><i class="bi bi-check-circle-fill"></i> ${t('web.token_security.status_excellent')}</h6>
+                <p class="mb-0">${t('web.token_security.status_excellent_desc')}</p>
             </div>
         `;
     } else if (status.is_encrypted && status.token_exists) {
         html += `
             <div class="alert alert-success mb-4">
-                <h6><i class="bi bi-shield-check"></i> Good Security!</h6>
-                <p class="mb-0">Bot token is encrypted in config file using your admin password.</p>
+                <h6><i class="bi bi-shield-check"></i> ${t('web.token_security.status_good')}</h6>
+                <p class="mb-0">${t('web.token_security.status_good_desc')}</p>
             </div>
         `;
     } else if (status.token_exists && !status.is_encrypted) {
         html += `
             <div class="alert alert-warning mb-4">
-                <h6><i class="bi bi-exclamation-triangle"></i> Security Risk!</h6>
-                <p class="mb-0">Bot token is stored in plaintext. Consider encrypting it for better security.</p>
+                <h6><i class="bi bi-exclamation-triangle"></i> ${t('web.token_security.status_risk')}</h6>
+                <p class="mb-0">${t('web.token_security.status_risk_desc')}</p>
             </div>
         `;
     } else {
         html += `
             <div class="alert alert-info mb-4">
-                <h6><i class="bi bi-info-circle"></i> No Token Configured</h6>
-                <p class="mb-0">Please configure your Discord bot token to enable DDC.</p>
+                <h6><i class="bi bi-info-circle"></i> ${t('web.token_security.status_no_token')}</h6>
+                <p class="mb-0">${t('web.token_security.status_no_token_desc')}</p>
             </div>
         `;
     }
-    
+
     // Environment variable upgrade warning (always visible unless already using env var)
     if (!status.environment_token_used) {
         html += `
@@ -109,27 +109,26 @@ function displayTokenStatusModal(status) {
                     <i class="bi bi-exclamation-triangle-fill text-warning me-3" style="font-size: 1.5rem; margin-top: 0.125rem;"></i>
                     <div class="flex-grow-1">
                         <h6 class="alert-heading mb-2">
-                            <strong>🌟 SECURITY UPGRADE AVAILABLE</strong>
+                            <strong>🌟 ${t('web.token_security.upgrade_available')}</strong>
                         </h6>
                         <p class="mb-3">
-                            <strong>Recommended:</strong> Migrate to environment variable for enhanced security. 
-                            This is the industry standard for Docker deployments and provides better protection than encrypted config files.
+                            <strong>${t('web.token_security.recommended')}:</strong> ${t('web.token_security.upgrade_desc')}
                         </p>
                         <div class="mb-3">
-                            <strong>Benefits:</strong>
+                            <strong>${t('web.token_security.benefits')}:</strong>
                             <ul class="mb-0 mt-1">
-                                <li>✅ Higher security than encrypted config files</li>
-                                <li>✅ Works with Unraid, Docker Compose, Kubernetes</li>
-                                <li>✅ Token never stored in files or backups</li>
-                                <li>✅ Industry standard for containerized applications</li>
+                                <li>✅ ${t('web.token_security.benefit_1')}</li>
+                                <li>✅ ${t('web.token_security.benefit_2')}</li>
+                                <li>✅ ${t('web.token_security.benefit_3')}</li>
+                                <li>✅ ${t('web.token_security.benefit_4')}</li>
                             </ul>
                         </div>
                         <div class="d-grid gap-2 d-md-flex">
                             <button type="button" class="btn btn-warning btn-sm" onclick="showMigrationHelpModal()">
-                                <i class="bi bi-arrow-up-right-circle"></i> <strong>Migrate Now</strong>
+                                <i class="bi bi-arrow-up-right-circle"></i> <strong>${t('web.token_security.migrate_now')}</strong>
                             </button>
                             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="showSecurityGuideModal()">
-                                <i class="bi bi-info-circle"></i> Learn More
+                                <i class="bi bi-info-circle"></i> ${t('web.token_security.learn_more')}
                             </button>
                         </div>
                     </div>
@@ -137,36 +136,36 @@ function displayTokenStatusModal(status) {
             </div>
         `;
     }
-    
+
     // Security details grid
     html += '<div class="row mb-4">';
     html += '<div class="col-md-6">';
-    html += '<h6>Security Status:</h6>';
+    html += `<h6>${t('web.token_security.security_status')}:</h6>`;
     html += '<div class="list-group list-group-flush">';
-    
+
     const checks = [
         {
-            label: 'Environment Variable',
+            label: t('web.token_security.check_env_var'),
             status: status.environment_token_used,
             icon: status.environment_token_used ? 'check-circle text-success' : 'circle text-muted'
         },
         {
-            label: 'Token Encryption',
+            label: t('web.token_security.check_encryption'),
             status: status.is_encrypted,
             icon: status.is_encrypted ? 'check-circle text-success' : (status.token_exists ? 'x-circle text-warning' : 'circle text-muted')
         },
         {
-            label: 'Admin Password Set',
+            label: t('web.token_security.check_password'),
             status: status.password_hash_available,
             icon: status.password_hash_available ? 'check-circle text-success' : 'x-circle text-warning'
         },
         {
-            label: 'Token Configured',
+            label: t('web.token_security.check_token_configured'),
             status: status.token_exists,
             icon: status.token_exists ? 'check-circle text-success' : 'x-circle text-danger'
         }
     ];
-    
+
     checks.forEach(check => {
         html += `
             <div class="list-group-item border-0 px-0 py-2">
@@ -175,15 +174,15 @@ function displayTokenStatusModal(status) {
             </div>
         `;
     });
-    
+
     html += '</div></div>';
-    
+
     // Recommendations
     if (status.recommendations && status.recommendations.length > 0) {
         html += '<div class="col-md-6">';
-        html += '<h6>Recommendations:</h6>';
+        html += `<h6>${t('web.token_security.recommendations')}:</h6>`;
         html += '<div class="list-group list-group-flush">';
-        
+
         status.recommendations.forEach(recommendation => {
             const iconMap = {
                 '✅': 'check-circle text-success',
@@ -192,11 +191,11 @@ function displayTokenStatusModal(status) {
                 '💡': 'lightbulb text-info',
                 '❌': 'x-circle text-danger'
             };
-            
+
             const emoji = recommendation.charAt(0);
             const icon = iconMap[emoji] || 'info-circle';
             const text = recommendation.replace(/^[✅⚠️🔒💡❌]\s*/, '');
-            
+
             html += `
                 <div class="list-group-item border-0 px-0 py-2">
                     <i class="bi bi-${icon}"></i>
@@ -204,67 +203,67 @@ function displayTokenStatusModal(status) {
                 </div>
             `;
         });
-        
+
         html += '</div></div>';
     }
-    
+
     html += '</div>';
-    
+
     // Action buttons (larger in modal)
     if (!status.environment_token_used) {
         html += '<div class="border-top pt-4">';
-        html += '<h6>Available Actions:</h6>';
+        html += `<h6>${t('web.token_security.available_actions')}:</h6>`;
         html += '<div class="d-grid gap-2 d-md-block">';
-        
+
         if (status.token_exists && !status.is_encrypted && status.can_encrypt) {
             html += `
                 <button type="button" class="btn btn-success me-2" onclick="encryptTokenModal()">
-                    <i class="bi bi-lock"></i> Encrypt Token Now
+                    <i class="bi bi-lock"></i> ${t('web.token_security.encrypt_now')}
                 </button>
             `;
         }
-        
+
         if (status.is_encrypted) {
             html += `
                 <button type="button" class="btn btn-info me-2" onclick="showMigrationHelpModal()">
-                    <i class="bi bi-arrow-up-right-circle"></i> Migrate to Environment Variable
+                    <i class="bi bi-arrow-up-right-circle"></i> ${t('web.token_security.migrate_to_env')}
                 </button>
             `;
         }
-        
+
         html += `
             <button type="button" class="btn btn-outline-secondary" onclick="showSecurityGuideModal()">
-                <i class="bi bi-book"></i> Security Documentation
+                <i class="bi bi-book"></i> ${t('web.token_security.security_docs')}
             </button>
         `;
-        
+
         html += '</div></div>';
     }
-    
+
     contentDiv.innerHTML = html;
 }
 
 async function encryptTokenModal() {
-    if (!confirm('Encrypt the bot token using your admin password? This will make the token more secure.')) {
+    if (!confirm(t('web.token_security.confirm_encrypt'))) {
         return;
     }
-    
+
     try {
-        const response = await fetch('/api/encrypt-token', { 
+        const response = await fetch('/api/encrypt-token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
-            alert('✅ Token encrypted successfully!');
+            alert('✅ ' + t('web.token_security.encrypt_success'));
             refreshTokenStatusModal();
         } else {
-            alert(`❌ Encryption failed: ${result.error || 'Unknown error'}`);
+            alert('❌ ' + t('web.token_security.encrypt_failed') + ': ' + (result.error || t('web.common.unknown_error')));
         }
     } catch (error) {
-        alert(`❌ Encryption failed: ${error.message}`);
+        alert('❌ ' + t('web.token_security.encrypt_failed') + ': ' + error.message);
     }
 }
 
@@ -272,15 +271,15 @@ async function showMigrationHelpModal() {
     try {
         const response = await fetch('/api/migration-help');
         const result = await response.json();
-        
+
         if (result.success && result.token) {
             // 🔒 SECURITY FIX: Use secure modal instead of alert()
             showSecureTokenModal(result.token);
         } else {
-            alert(`❌ Migration failed: ${result.error || 'Could not decrypt token'}`);
+            alert('❌ ' + t('web.token_security.migration_failed') + ': ' + (result.error || t('web.token_security.cannot_decrypt')));
         }
     } catch (error) {
-        alert(`❌ Migration failed: ${error.message}`);
+        alert('❌ ' + t('web.token_security.migration_failed') + ': ' + error.message);
     }
 }
 

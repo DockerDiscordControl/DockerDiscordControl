@@ -24,6 +24,7 @@ from .config import build_config
 from .diagnostics import run_startup_diagnostics
 from .extensions import configure_proxy, init_rate_limiting
 from .logging import configure_logging
+from .i18n import register_i18n
 from .routes import register_routes
 from .security import install_security_handlers
 
@@ -53,5 +54,6 @@ def create_app(test_config: Optional[Mapping[str, object]] = None) -> Flask:
     ensure_action_logger(app)
     register_background_services(app)
     register_routes(app)
+    register_i18n(app)
 
     return app

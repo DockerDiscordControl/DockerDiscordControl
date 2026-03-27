@@ -21,7 +21,7 @@
 # CONFIGURATION
 # ============================================================================ #
 
-VERSION="2.2.0"
+VERSION="2.2.1"
 APP_USER="ddc"
 DEFAULT_UID=1000
 DEFAULT_GID=1000

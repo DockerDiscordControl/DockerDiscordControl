@@ -126,6 +126,20 @@ def config_page():
                              config={},
                              error_message="Data error: Failed to process configuration data.")
 
+@main_bp.route('/set_ui_language', methods=['POST'])
+@auth.login_required
+def set_ui_language():
+    """Instantly switch the Web UI language without full config save."""
+    try:
+        lang = request.form.get('ui_language', 'en').strip()
+        success = update_config_fields({'ui_language': lang})
+        if success:
+            return jsonify({'success': True, 'language': lang})
+        return jsonify({'success': False, 'message': 'Failed to save'}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @main_bp.route('/save_config_api', methods=['POST'])
 # Use direct auth decorator
 @auth.login_required

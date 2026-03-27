@@ -4,15 +4,15 @@
         <div class="modal-content bg-dark text-light">
             <div class="modal-header">
                 <h5 class="modal-title" id="donationManagementModalLabel">
-                    <i class="bi bi-currency-dollar"></i> Donation Management
+                    <i class="bi bi-currency-dollar"></i> {{ _t('web.donations.title') }}
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="alert alert-info" role="alert">
-                    <i class="bi bi-info-circle"></i> <strong>Event Sourcing Donation Management:</strong> Deleting a donation adds a compensation event and recalculates all levels and costs correctly.
+                    <i class="bi bi-info-circle"></i> <strong>{{ _t('web.donations.event_sourcing_label') }}</strong> {{ _t('web.donations.event_sourcing_desc') }}
                 </div>
-                
+
                 <!-- Stats Cards -->
                 <div class="row mb-4" id="donationStats">
                     <div class="col-md-4">
@@ -20,7 +20,7 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h6 class="card-title">Total Power</h6>
+                                        <h6 class="card-title">{{ _t('web.donations.stat_total_power') }}</h6>
                                         <h4 id="statTotalPower">$0.00</h4>
                                     </div>
                                     <div class="align-self-center">
@@ -35,7 +35,7 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h6 class="card-title">Total Donations</h6>
+                                        <h6 class="card-title">{{ _t('web.donations.stat_total_donations') }}</h6>
                                         <h4 id="statTotalDonations">0</h4>
                                     </div>
                                     <div class="align-self-center">
@@ -50,7 +50,7 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h6 class="card-title">Average Donation</h6>
+                                        <h6 class="card-title">{{ _t('web.donations.stat_average') }}</h6>
                                         <h4 id="statAverageDonation">$0.00</h4>
                                     </div>
                                     <div class="align-self-center">
@@ -67,10 +67,10 @@
                     <div class="card-header">
                         <div class="d-flex justify-content-between align-items-center">
                             <h6 class="mb-0">
-                                <i class="bi bi-list-ul"></i> Donation History
+                                <i class="bi bi-list-ul"></i> {{ _t('web.donations.history_title') }}
                             </h6>
                             <button type="button" class="btn btn-sm btn-primary" onclick="refreshDonationData()">
-                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                                <i class="bi bi-arrow-clockwise"></i> {{ _t('web.common.refresh') }}
                             </button>
                         </div>
                     </div>
@@ -78,7 +78,7 @@
                         <div id="donationTableContainer">
                             <div class="d-flex justify-content-center p-4">
                                 <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
+                                    <span class="visually-hidden">{{ _t('web.common.loading') }}</span>
                                 </div>
                             </div>
                         </div>
@@ -86,7 +86,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _t('web.common.close') }}</button>
             </div>
         </div>
     </div>
@@ -107,19 +107,19 @@ async function loadDonationData() {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             donationData = result.donations;
             updateStatsDisplay(result.stats);
             updateDonationTable(result.donations);
         } else {
-            showError('Failed to load donation data: ' + (result.error || 'Unknown error'));
+            showError(t('web.donations.error_loading') + ': ' + (result.error || t('web.common.unknown_error')));
         }
     } catch (error) {
         console.error('Error loading donation data:', error);
-        showError('Error loading donation data: ' + error.message);
+        showError(t('web.donations.error_loading') + ': ' + error.message);
     }
 }
 
@@ -131,34 +131,34 @@ function updateStatsDisplay(stats) {
 
 function updateDonationTable(donations) {
     const container = document.getElementById('donationTableContainer');
-    
+
     if (!donations || donations.length === 0) {
         container.innerHTML = `
             <div class="alert alert-info text-center">
-                <i class="bi bi-info-circle"></i> No donations found in the history.
+                <i class="bi bi-info-circle"></i> ${t('web.donations.no_donations')}
             </div>
         `;
         return;
     }
-    
+
     let tableHTML = `
         <div class="table-responsive">
             <table class="table table-dark table-striped table-hover">
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>Donor Name</th>
-                        <th>Amount</th>
-                        <th>Date</th>
-                        <th>Type</th>
-                        <th>Actions</th>
+                        <th>${t('web.donations.col_donor')}</th>
+                        <th>${t('web.donations.col_amount')}</th>
+                        <th>${t('web.donations.col_date')}</th>
+                        <th>${t('web.donations.col_type')}</th>
+                        <th>${t('web.donations.col_actions')}</th>
                     </tr>
                 </thead>
                 <tbody>
     `;
-    
+
     donations.forEach((donation, index) => {
-        const donorName = donation.donor_name || 'Anonymous';
+        const donorName = donation.donor_name || t('web.donations.anonymous');
         const amount = parseFloat(donation.amount || 0).toFixed(2);
         const timestamp = formatTimestamp(donation.timestamp);
         const type = donation.donation_type || 'manual';
@@ -170,12 +170,12 @@ function updateDonationTable(donations) {
         const indent = isDeletion ? 'style="padding-left: 40px;"' : '';
         const icon = isDeletion ? 'bi-arrow-return-right text-warning' : 'bi-person-fill text-primary';
         const badge = isDeletion ? 'bg-warning' : 'bg-success';
-        const typeLabel = isDeletion ? 'deletion' : type;
+        const typeLabel = isDeletion ? t('web.donations.type_deletion') : type;
         const actionButton = isDeletion
-            ? `<button class="btn btn-sm btn-success" onclick="restoreDonation(${index}, '${escapeHtml(donorName)}', ${amount})" title="Restore donation (remove deletion event)">
-                   <i class="bi bi-arrow-counterclockwise"></i> Restore
+            ? `<button class="btn btn-sm btn-success" onclick="restoreDonation(${index}, '${escapeHtml(donorName)}', ${amount})" title="${t('web.donations.restore_tooltip')}">
+                   <i class="bi bi-arrow-counterclockwise"></i> ${t('web.donations.restore')}
                </button>`
-            : `<button class="btn btn-sm btn-danger" onclick="deleteDonation(${index}, '${escapeHtml(donorName)}', ${amount})" title="Delete donation (adds compensation event)">
+            : `<button class="btn btn-sm btn-danger" onclick="deleteDonation(${index}, '${escapeHtml(donorName)}', ${amount})" title="${t('web.donations.delete_tooltip')}">
                    <i class="bi bi-trash"></i>
                </button>`;
 
@@ -185,7 +185,7 @@ function updateDonationTable(donations) {
                 <td ${indent}>
                     <i class="bi ${icon}"></i>
                     ${escapeHtml(donorName)}
-                    ${isDeletion ? '<small class="text-muted"> (deleted)</small>' : ''}
+                    ${isDeletion ? `<small class="text-muted"> (${t('web.donations.deleted_label')})</small>` : ''}
                 </td>
                 <td>
                     <span class="badge ${badge}">$${amount}</span>
@@ -202,19 +202,19 @@ function updateDonationTable(donations) {
             </tr>
         `;
     });
-    
+
     tableHTML += `
                 </tbody>
             </table>
         </div>
     `;
-    
+
     container.innerHTML = tableHTML;
 }
 
 function formatTimestamp(timestamp) {
-    if (!timestamp) return 'Unknown';
-    
+    if (!timestamp) return t('web.common.unknown');
+
     try {
         let date;
         if (typeof timestamp === 'string') {
@@ -223,11 +223,11 @@ function formatTimestamp(timestamp) {
             // Assume Unix timestamp
             date = new Date(timestamp * 1000);
         }
-        
+
         if (isNaN(date.getTime())) {
             return String(timestamp);
         }
-        
+
         return date.toLocaleString();
     } catch (error) {
         return String(timestamp);
@@ -243,13 +243,13 @@ function escapeHtml(text) {
 async function deleteDonation(index, donorName, amount) {
     // Confirm deletion with detailed explanation
     const confirmed = confirm(
-        `Delete donation from ${donorName} ($${amount})?\n\n` +
-        `EVENT SOURCING MODE:\n` +
-        `• Adds a DonationDeleted compensation event\n` +
-        `• Rebuilds entire history from events\n` +
-        `• All level-ups recalculate correctly\n` +
-        `• Member counts freeze at correct moments\n\n` +
-        `This is permanent and cannot be undone!`
+        t('web.donations.confirm_delete_line1').replace('{donor}', donorName).replace('{amount}', amount) + '\n\n' +
+        t('web.donations.event_sourcing_mode') + ':\n' +
+        '• ' + t('web.donations.delete_detail_1') + '\n' +
+        '• ' + t('web.donations.delete_detail_2') + '\n' +
+        '• ' + t('web.donations.delete_detail_3') + '\n' +
+        '• ' + t('web.donations.delete_detail_4') + '\n\n' +
+        t('web.donations.confirm_permanent')
     );
 
     if (!confirmed) return;
@@ -270,31 +270,31 @@ async function deleteDonation(index, donorName, amount) {
         const result = await response.json();
 
         if (result.success) {
-            showSuccess(result.message || 'Donation deleted successfully');
+            showSuccess(result.message || t('web.donations.delete_success'));
 
             // Reload donation data after short delay (allow for rebuild)
             setTimeout(() => {
                 loadDonationData();
             }, 500);
         } else {
-            showError('Failed to delete donation: ' + (result.error || 'Unknown error'));
+            showError(t('web.donations.error_deleting') + ': ' + (result.error || t('web.common.unknown_error')));
         }
     } catch (error) {
         console.error('Error deleting donation:', error);
-        showError('Error deleting donation: ' + error.message);
+        showError(t('web.donations.error_deleting') + ': ' + error.message);
     }
 }
 
 async function restoreDonation(index, donorName, amount) {
     // Confirm restoration with detailed explanation
     const confirmed = confirm(
-        `Restore donation from ${donorName} ($${amount})?\n\n` +
-        `EVENT SOURCING MODE:\n` +
-        `• Adds another DonationDeleted event\n` +
-        `• This deletes the previous deletion\n` +
-        `• Original donation is restored\n` +
-        `• All level-ups recalculate correctly\n\n` +
-        `Continue?`
+        t('web.donations.confirm_restore_line1').replace('{donor}', donorName).replace('{amount}', amount) + '\n\n' +
+        t('web.donations.event_sourcing_mode') + ':\n' +
+        '• ' + t('web.donations.restore_detail_1') + '\n' +
+        '• ' + t('web.donations.restore_detail_2') + '\n' +
+        '• ' + t('web.donations.restore_detail_3') + '\n' +
+        '• ' + t('web.donations.restore_detail_4') + '\n\n' +
+        t('web.donations.confirm_continue')
     );
 
     if (!confirmed) return;
@@ -315,18 +315,18 @@ async function restoreDonation(index, donorName, amount) {
         const result = await response.json();
 
         if (result.success) {
-            showSuccess(result.message || 'Donation restored successfully');
+            showSuccess(result.message || t('web.donations.restore_success'));
 
             // Reload donation data after short delay (allow for rebuild)
             setTimeout(() => {
                 loadDonationData();
             }, 500);
         } else {
-            showError('Failed to restore donation: ' + (result.error || 'Unknown error'));
+            showError(t('web.donations.error_restoring') + ': ' + (result.error || t('web.common.unknown_error')));
         }
     } catch (error) {
         console.error('Error restoring donation:', error);
-        showError('Error restoring donation: ' + error.message);
+        showError(t('web.donations.error_restoring') + ': ' + error.message);
     }
 }
 

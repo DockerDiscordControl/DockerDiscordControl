@@ -1,6 +1,6 @@
-# DockerDiscordControl v2.2.0 🐳
+# DockerDiscordControl v2.2.1 🐳
 
-[![Version](https://img.shields.io/badge/Version-v2.2.0-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.2.0) [![Python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.23.3-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-Passing-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-80%25-brightgreen?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
+[![Version](https://img.shields.io/badge/Version-v2.2.1-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.2.1) [![Python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.23.3-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-Passing-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-80%25-brightgreen?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
 
 A powerful Discord bot and web interface to manage Docker containers remotely. This application bridges the gap between Discord and your Docker environment, allowing container monitoring and control directly through Discord channels.
 
@@ -9,6 +9,23 @@ A powerful Discord bot and web interface to manage Docker containers remotely. T
 Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is an ultra-optimized Alpine Linux build with the latest security patches and enhanced performance.
 
 ## 🆕 Latest Updates
+
+### ✅ **v2.2.1 (2026-03-27) - Full Internationalization (40 Languages)**
+
+🌍 **New Feature: Multi-Language Support (i18n)**
+- **40 languages** for both Web UI and Discord Bot, independently selectable
+- Web UI Language dropdown with instant switch (no save needed, auto-reloads)
+- Bot Language dropdown for Discord bot messages
+- 25+ languages fully translated (>95%), all others with English fallback
+- Languages: English, German, French, Spanish, Portuguese (BR/PT), Italian, Dutch, Polish, Czech, Slovak, Romanian, Hungarian, Bulgarian, Croatian, Greek, Turkish, Russian, Ukrainian, Arabic, Hebrew, Persian, Hindi, Thai, Vietnamese, Indonesian, Malay, Japanese, Korean, Chinese (Simplified/Traditional), Swedish, Norwegian, Danish, Finnish, Estonian, Latvian, Lithuanian, Slovenian, Serbian
+- RTL support for Arabic, Hebrew, and Persian
+- JSON-based translation system (1457 keys per language)
+- Translation Manager rewritten from 2541-line inline dict to modular JSON loader
+
+🐛 **Bug Fixes:**
+- Fixed double save button click causing infinite spinner (duplicate onclick + addEventListener)
+
+---
 
 ### ✅ **v2.2.0 (2026-03-26) - Channel Translation & Hot-Reload**
 

@@ -1,16 +1,16 @@
 <hr class="my-4">
 <div id="discord-settings" class="mb-3 card p-3">
-    <h4>Discord Bot Settings</h4>
+    <h4>{{ _t('web.discord.bot_settings_heading') }}</h4>
     <div class="mb-3">
-        <label for="bot_token" class="form-label">Bot Token</label>
-        <span class="badge bg-warning text-dark ms-2"><i class="bi bi-arrow-repeat"></i> Requires restart</span>
-        <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="Find your bot token in the Discord Developer Portal under your Bot Application -> 'Bot' -> 'Token'. Click 'Reset Token' (if necessary) and then 'Copy'. Treat this token like a password!"></i>
+        <label for="bot_token" class="form-label">{{ _t('web.discord.bot_token') }}</label>
+        <span class="badge bg-warning text-dark ms-2"><i class="bi bi-arrow-repeat"></i> {{ _t('web.common.requires_restart') }}</span>
+        <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="{{ _t('web.discord.bot_token_tooltip') }}"></i>
         <input type="password" class="form-control requires-restart" id="bot_token" name="bot_token" value="{{ config.bot_token if config and config.bot_token }}">
         <a href="{{ url_for('main_bp.discord_bot_setup') }}" class="btn btn-sm btn-outline-info mt-2">
-            <i class="bi bi-info-circle"></i> Setup Guide
+            <i class="bi bi-info-circle"></i> {{ _t('web.discord.setup_guide') }}
         </a>
         <button type="button" class="btn btn-sm btn-outline-warning mt-2 ms-2" data-bs-toggle="modal" data-bs-target="#tokenSecurityModal">
-            <i class="bi bi-shield-lock"></i> Token Security
+            <i class="bi bi-shield-lock"></i> {{ _t('web.discord.token_security') }}
         </button>
     </div>
 </div> 

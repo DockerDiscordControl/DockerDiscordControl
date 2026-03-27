@@ -112,8 +112,8 @@ async function loadAASRules() {
         
         if (!data.rules) return;
         
-        const html = data.rules.length === 0 ? 
-            `<div class="text-center py-4 text-muted">No auto-actions configured yet.</div>` :
+        const html = data.rules.length === 0 ?
+            `<div class="text-center py-4 text-muted">${t('aas.no_rules_configured')}</div>` :
             data.rules.map(renderRuleItem).join('');
             
         if (listContainer) listContainer.innerHTML = html;
@@ -121,21 +121,21 @@ async function loadAASRules() {
         // Update preview list (limit to 3 items)
         if (previewContainer) {
             const previewHtml = data.rules.length === 0 ?
-                `<div class="list-group-item text-center text-muted py-3"><i class="bi bi-info-circle"></i> Click "Manage Auto-Actions" to configure rules.</div>` :
+                `<div class="list-group-item text-center text-muted py-3"><i class="bi bi-info-circle"></i> ${t('aas.click_manage_to_configure')}</div>` :
                 data.rules.slice(0, 3).map(renderRuleItemPreview).join('') + 
-                (data.rules.length > 3 ? `<div class="list-group-item text-center text-muted small">... and ${data.rules.length - 3} more</div>` : '');
+                (data.rules.length > 3 ? `<div class="list-group-item text-center text-muted small">... ${t('aas.and_more').replace('{count}', data.rules.length - 3)}</div>` : '');
             previewContainer.innerHTML = previewHtml;
         }
         
     } catch (error) {
         console.error('Error loading AAS rules:', error);
-        if (listContainer) listContainer.innerHTML = `<div class="alert alert-danger">Failed to load rules.</div>`;
+        if (listContainer) listContainer.innerHTML = `<div class="alert alert-danger">${t('aas.failed_load_rules')}</div>`;
     }
 }
 
 function renderRuleItem(rule) {
     const badgeClass = rule.enabled ? 'bg-success' : 'bg-secondary';
-    const statusText = rule.enabled ? 'Active' : 'Disabled';
+    const statusText = rule.enabled ? t('status.active') : t('status.disabled');
     const checkedAttr = rule.enabled ? 'checked' : '';
 
     const safeId = escapeHtml(rule.id);
@@ -177,7 +177,7 @@ function renderRuleItemPreview(rule) {
         <div class="text-truncate">
             <i class="bi bi-robot text-primary"></i> ${escapeHtml(rule.name)}
         </div>
-        <span class="badge ${rule.enabled ? 'bg-success' : 'bg-secondary'}">${rule.enabled ? 'ON' : 'OFF'}</span>
+        <span class="badge ${rule.enabled ? 'bg-success' : 'bg-secondary'}">${rule.enabled ? t('status.on') : t('status.off')}</span>
     </div>
     `;
 }
@@ -209,13 +209,13 @@ async function toggleRuleEnabled(ruleId, enabled) {
         } else {
             // Revert checkbox on error
             if (checkbox) checkbox.checked = !enabled;
-            alert('Failed to toggle rule: ' + (result.error || 'Unknown error'));
+            alert(t('aas.failed_toggle_rule') + ': ' + (result.error || t('common.unknown_error')));
         }
     } catch (error) {
         console.error('Error toggling rule:', error);
         // Revert checkbox on error
         if (checkbox) checkbox.checked = !enabled;
-        alert('Failed to toggle rule');
+        alert(t('aas.failed_toggle_rule'));
     }
 }
 
@@ -249,7 +249,7 @@ async function openRuleEditor(ruleId = null) {
             </div>
         `).join('');
     } else {
-        containerWrapper.innerHTML = '<div class="text-muted text-center py-2"><i class="bi bi-exclamation-triangle"></i> No active containers available</div>';
+        containerWrapper.innerHTML = `<div class="text-muted text-center py-2"><i class="bi bi-exclamation-triangle"></i> ${t('aas.no_active_containers')}</div>`;
         console.error('AAS: No containers loaded for rule editor');
     }
 
@@ -264,7 +264,7 @@ async function openRuleEditor(ruleId = null) {
         <div class="form-check">
             <input class="form-check-input" type="radio" name="aasFeedbackChannel" value="" id="aasChannel_source" checked>
             <label class="form-check-label" for="aasChannel_source">
-                <i class="bi bi-reply text-muted"></i> <em>Reply in source channel</em>
+                <i class="bi bi-reply text-muted"></i> <em>${t('aas.reply_in_source_channel')}</em>
             </label>
         </div>
     `;
@@ -275,7 +275,7 @@ async function openRuleEditor(ruleId = null) {
         const controlChannels = allChannels.filter(c => c.type === 'control');
 
         if (statusChannels.length > 0) {
-            channelHtml += `<div class="text-muted small mt-2 mb-1"><i class="bi bi-broadcast"></i> Status Channels</div>`;
+            channelHtml += `<div class="text-muted small mt-2 mb-1"><i class="bi bi-broadcast"></i> ${t('aas.status_channels')}</div>`;
             channelHtml += statusChannels.map((ch, idx) => `
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="aasFeedbackChannel" value="${escapeHtml(ch.id)}" id="aasChannel_s${idx}">
@@ -287,7 +287,7 @@ async function openRuleEditor(ruleId = null) {
         }
 
         if (controlChannels.length > 0) {
-            channelHtml += `<div class="text-muted small mt-2 mb-1"><i class="bi bi-sliders"></i> Control Channels</div>`;
+            channelHtml += `<div class="text-muted small mt-2 mb-1"><i class="bi bi-sliders"></i> ${t('aas.control_channels')}</div>`;
             channelHtml += controlChannels.map((ch, idx) => `
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="aasFeedbackChannel" value="${escapeHtml(ch.id)}" id="aasChannel_c${idx}">
@@ -307,7 +307,7 @@ async function openRuleEditor(ruleId = null) {
 
     if (ruleId) {
         // Edit Mode
-        title.textContent = 'Edit Auto-Action';
+        title.textContent = t('aas.edit_rule_title');
         deleteBtn.style.display = 'block';
 
         try {
@@ -321,12 +321,12 @@ async function openRuleEditor(ruleId = null) {
             }
         } catch (error) {
             console.error('Error loading rule details:', error);
-            alert('Failed to load rule details');
+            alert(t('aas.failed_load_rule_details'));
             return;
         }
     } else {
         // Create Mode
-        title.textContent = 'New Auto-Action';
+        title.textContent = t('aas.new_rule_title');
         deleteBtn.style.display = 'none';
         document.getElementById('aasRuleId').value = '';
     }
@@ -378,7 +378,7 @@ async function saveAASRule() {
     // Edge Case: Validate rule name
     const ruleName = document.getElementById('aasRuleName').value.trim();
     if (!ruleName) {
-        alert('Please enter a rule name.');
+        alert(t('aas.enter_rule_name'));
         document.getElementById('aasRuleName').focus();
         return;
     }
@@ -387,7 +387,7 @@ async function saveAASRule() {
     const containers = Array.from(document.querySelectorAll('.aas-container-checkbox:checked')).map(cb => cb.value);
 
     if (containers.length === 0) {
-        alert('Please select at least one target container.');
+        alert(t('aas.select_container'));
         return;
     }
 
@@ -396,7 +396,7 @@ async function saveAASRule() {
 
     // Edge Case: Validate at least one channel ID is provided
     if (monitoredChannels.length === 0) {
-        alert('Please enter at least one monitored channel ID.');
+        alert(t('aas.enter_channel_id'));
         document.getElementById('aasRuleChannelIds').focus();
         return;
     }
@@ -406,7 +406,7 @@ async function saveAASRule() {
     const keywords = splitCsv(document.getElementById('aasRuleKeywords').value);
     const regex = document.getElementById('aasRuleRegex').value.trim();
     if (requiredKeywords.length === 0 && keywords.length === 0 && !regex) {
-        alert('Please enter at least one required keyword, trigger keyword, or regex pattern.');
+        alert(t('aas.enter_trigger_condition'));
         document.getElementById('aasRuleRequiredKeywords').focus();
         return;
     }
@@ -474,18 +474,18 @@ async function saveAASRule() {
             const modal = bootstrap.Modal.getInstance(modalEl);
             modal.hide();
             loadAASRules();
-            showNotification('Rule saved successfully', 'success');
+            showNotification(t('aas.rule_saved'), 'success');
         } else {
-            alert('Error saving rule: ' + result.error);
+            alert(t('aas.error_saving_rule') + ': ' + result.error);
         }
     } catch (error) {
         console.error('Save error:', error);
-        alert('Failed to save rule');
+        alert(t('aas.failed_save_rule'));
     }
 }
 
 async function deleteAASRule() {
-    if (!confirm('Are you sure you want to delete this rule?')) return;
+    if (!confirm(t('aas.confirm_delete_rule'))) return;
     
     try {
         const response = await fetch(`/api/automation/rules/${currentRuleId}`, {
@@ -498,12 +498,12 @@ async function deleteAASRule() {
             const modal = bootstrap.Modal.getInstance(modalEl);
             modal.hide();
             loadAASRules();
-            showNotification('Rule deleted', 'warning');
+            showNotification(t('aas.rule_deleted'), 'warning');
         } else {
-            alert('Error deleting rule: ' + result.error);
+            alert(t('aas.error_deleting_rule') + ': ' + result.error);
         }
     } catch (error) {
-        alert('Failed to delete rule');
+        alert(t('aas.failed_delete_rule'));
     }
 }
 
@@ -514,7 +514,7 @@ function testAASRule() {
     const resultDiv = document.getElementById('aasTestResult');
 
     if (!testContent) {
-        resultDiv.innerHTML = '<span class="text-warning"><i class="bi bi-exclamation-triangle"></i> Please enter text to test.</span>';
+        resultDiv.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle"></i> ${t('aas.enter_text_to_test')}</span>`;
         return;
     }
 
@@ -528,7 +528,7 @@ function testAASRule() {
 
     // Validate: Need at least one trigger condition
     if (requiredKeywords.length === 0 && keywords.length === 0 && !regexPattern) {
-        resultDiv.innerHTML = '<span class="text-warning"><i class="bi bi-exclamation-triangle"></i> Enter required keywords, trigger keywords, or regex first.</span>';
+        resultDiv.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle"></i> ${t('aas.enter_keywords_first')}</span>`;
         return;
     }
 
@@ -600,17 +600,17 @@ function testAASRule() {
             // ALL keywords must match
             if (matchedItems.length === keywords.length) {
                 isMatch = true;
-                matchReason = `All trigger keywords matched: <code>${matchedItems.map(k => escapeHtml(k)).join('</code>, <code>')}</code>`;
+                matchReason = `${t('aas.all_keywords_matched')}: <code>${matchedItems.map(k => escapeHtml(k)).join('</code>, <code>')}</code>`;
             } else {
-                matchReason = `Only ${matchedItems.length}/${keywords.length} trigger keywords matched`;
+                matchReason = t('aas.only_n_keywords_matched').replace('{matched}', matchedItems.length).replace('{total}', keywords.length);
             }
         } else {
             // ANY keyword must match
             if (matchedItems.length > 0) {
                 isMatch = true;
-                matchReason = `Trigger keyword matched: <code>${escapeHtml(matchedItems[0])}</code>`;
+                matchReason = `${t('aas.keyword_matched')}: <code>${escapeHtml(matchedItems[0])}</code>`;
             } else {
-                matchReason = 'No trigger keywords matched';
+                matchReason = t('aas.no_keywords_matched');
             }
         }
     }
@@ -699,12 +699,12 @@ async function saveAASGlobalSettings() {
         const result = await response.json();
         
         if (result.success) {
-            showNotification('Global settings saved', 'success');
+            showNotification(t('aas.global_settings_saved'), 'success');
         } else {
-            alert('Error: ' + result.error);
+            alert(t('common.error') + ': ' + result.error);
         }
     } catch (error) {
-        alert('Failed to save settings');
+        alert(t('aas.failed_save_settings'));
     }
 }
 
@@ -717,14 +717,14 @@ async function loadAASHistory() {
     const tbody = document.getElementById('aasHistoryTable');
     if (!tbody) return;
     
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center">Loading...</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center">${t('common.loading')}</td></tr>`;
     
     try {
         const response = await fetch('/api/automation/history?limit=50');
         const data = await response.json();
         
         if (data.history.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No history available yet.</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">${t('aas.no_history')}</td></tr>`;
             return;
         }
         

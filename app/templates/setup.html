@@ -11,7 +11,7 @@ Licensed under the MIT License
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>🚀 First Time Setup - DockerDiscordControl</title>
+    <title>{{ _t('web.setup.page_title') }}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='vendor/bootstrap-icons/font/bootstrap-icons.min.css') }}" rel="stylesheet">
@@ -165,38 +165,38 @@ Licensed under the MIT License
                 <i class="bi bi-gear-fill" style="font-size: 4rem; color: #36cfff;"></i>
             </div>
             
-            <h1 class="setup-title">🚀 Welcome to DDC!</h1>
-            <p class="setup-subtitle">Set up your admin password to get started</p>
+            <h1 class="setup-title">🚀 {{ _t('web.setup.welcome_title') }}</h1>
+            <p class="setup-subtitle">{{ _t('web.setup.welcome_subtitle') }}</p>
             
             <div id="alerts"></div>
             
             <form id="setupForm">
                 <div class="form-group">
                     <label for="password">
-                        <i class="bi bi-lock-fill"></i> Admin Password
+                        <i class="bi bi-lock-fill"></i> {{ _t('web.setup.password_label') }}
                     </label>
-                    <input type="password" class="form-control" id="password" name="password" 
-                           placeholder="Enter your secure password" required>
+                    <input type="password" class="form-control" id="password" name="password"
+                           placeholder="{{ _t('web.setup.password_placeholder') }}" required>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="confirm_password">
-                        <i class="bi bi-lock-fill"></i> Confirm Password
+                        <i class="bi bi-lock-fill"></i> {{ _t('web.setup.confirm_password_label') }}
                     </label>
-                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" 
-                           placeholder="Confirm your password" required>
+                    <input type="password" class="form-control" id="confirm_password" name="confirm_password"
+                           placeholder="{{ _t('web.setup.confirm_password_placeholder') }}" required>
                 </div>
-                
+
                 <div class="password-requirements">
-                    <i class="bi bi-info-circle"></i> Password must be at least 6 characters long
+                    <i class="bi bi-info-circle"></i> {{ _t('web.setup.password_requirements') }}
                 </div>
-                
+
                 <div class="form-group mt-4">
                     <button type="submit" class="btn btn-setup" id="setupBtn">
-                        <span class="btn-text">Complete Setup</span>
+                        <span class="btn-text">{{ _t('web.setup.complete_setup_btn') }}</span>
                         <span class="btn-loading d-none">
                             <span class="spinner-border" role="status" aria-hidden="true"></span>
-                            Setting up...
+                            {{ _t('web.setup.setting_up') }}
                         </span>
                     </button>
                 </div>
@@ -204,8 +204,8 @@ Licensed under the MIT License
             
             <div class="mt-4 text-center">
                 <small style="color: rgba(255, 255, 255, 0.6);">
-                    <i class="bi bi-shield-check"></i> 
-                    Your password will be securely hashed using PBKDF2-SHA256
+                    <i class="bi bi-shield-check"></i>
+                    {{ _t('web.setup.security_note') }}
                 </small>
             </div>
         </div>
@@ -231,17 +231,17 @@ Licensed under the MIT License
             
             // Client-side validation
             if (!password || !confirmPassword) {
-                showAlert('Please fill in both password fields', 'danger');
+                showAlert('{{ _t("web.setup.err_fill_both") }}', 'danger');
                 return;
             }
-            
+
             if (password !== confirmPassword) {
-                showAlert('Passwords do not match', 'danger');
+                showAlert('{{ _t("web.setup.err_passwords_mismatch") }}', 'danger');
                 return;
             }
-            
+
             if (password.length < 6) {
-                showAlert('Password must be at least 6 characters long', 'danger');
+                showAlert('{{ _t("web.setup.err_password_too_short") }}', 'danger');
                 return;
             }
             
@@ -259,7 +259,7 @@ Licensed under the MIT License
                 const result = await response.json();
                 
                 if (result.success) {
-                    showAlert(result.message + ' Redirecting...', 'success');
+                    showAlert(result.message + ' {{ _t("web.setup.redirecting") }}', 'success');
 
                     // Auto-login: pre-authenticate with the new credentials
                     // so the browser caches Basic Auth and skips the login prompt
@@ -275,10 +275,10 @@ Licensed under the MIT License
                         xhr.send();
                     }, 1500);
                 } else {
-                    showAlert(result.error || 'Setup failed', 'danger');
+                    showAlert(result.error || '{{ _t("web.setup.err_setup_failed") }}', 'danger');
                 }
             } catch (error) {
-                showAlert('Setup failed: ' + error.message, 'danger');
+                showAlert('{{ _t("web.setup.err_setup_failed") }}: ' + error.message, 'danger');
             } finally {
                 // Reset button state
                 btn.disabled = false;

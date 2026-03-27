@@ -4,50 +4,50 @@
         <div class="modal-content bg-dark text-light">
             <div class="modal-header">
                 <h5 class="modal-title" id="advancedSettingsModalLabel">
-                    <i class="bi bi-gear-fill"></i> Advanced Settings
+                    <i class="bi bi-gear-fill"></i> {{ _t('web.advanced.title') }}
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="alert alert-warning" role="alert">
-                    <i class="bi bi-exclamation-triangle"></i> Advanced settings for fine-tuning performance. Changes require container restart to take effect.
+                    <i class="bi bi-exclamation-triangle"></i> {{ _t('web.advanced.description') }}
                 </div>
                 
                 <!-- Docker Performance -->
                 <div class="card bg-secondary mb-3">
                     <div class="card-header text-light">
-                        <h6 class="mb-0"><i class="bi bi-speedometer2"></i> Docker Performance</h6>
+                        <h6 class="mb-0"><i class="bi bi-speedometer2"></i> {{ _t('web.advanced.docker_performance') }}</h6>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-2">
-                                <label class="form-label">Status update loop interval (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Discord Bot: How often to fetch fresh container status for Discord commands (/serverstatus, /control). Lower = more responsive bot, higher CPU usage."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.status_update_interval') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.status_update_interval_tooltip') }}"></i></label>
                                 <input type="number" class="form-control" id="env_DDC_DOCKER_CACHE_DURATION" name="env_DDC_DOCKER_CACHE_DURATION" min="10" max="300" value="{{ (config.env.DDC_DOCKER_CACHE_DURATION if config.env else '') or '' }}" placeholder="30" onchange="updateCacheTTL()">
-                                <div class="form-text"><strong>Discord Bot</strong>: Container status refresh for commands. Recommended: 30-60s</div>
+                                <div class="form-text"><strong>Discord Bot</strong>: {{ _t('web.advanced.status_update_interval_hint') }}</div>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">Cache TTL (calculated) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="How long cached container data stays valid before being considered stale. Automatically calculated as Status Update Interval × 2.5 for optimal performance."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.cache_ttl') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.cache_ttl_tooltip') }}"></i></label>
                                 <input type="text" class="form-control" id="calculated_cache_ttl" readonly style="background-color: #2d3748; border: 1px solid #4a5568;">
-                                <div class="form-text"><strong>Auto-calculated</strong>: Cache validity duration (interval × 2.5)</div>
+                                <div class="form-text"><strong>{{ _t('web.advanced.auto_calculated') }}</strong>: {{ _t('web.advanced.cache_ttl_hint') }}</div>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">Docker query cooldown (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Minimum time between Docker API calls for the same container. Prevents API spam when multiple Discord users trigger commands simultaneously."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.docker_query_cooldown') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.docker_query_cooldown_tooltip') }}"></i></label>
                                 <input type="number" class="form-control" id="env_DDC_DOCKER_QUERY_COOLDOWN" name="env_DDC_DOCKER_QUERY_COOLDOWN" min="0" max="60" value="{{ (config.env.DDC_DOCKER_QUERY_COOLDOWN if config.env else '') or '' }}" placeholder="2">
-                                <div class="form-text"><strong>Rate limiting</strong>: Prevents API spam from simultaneous commands</div>
+                                <div class="form-text"><strong>{{ _t('web.advanced.rate_limiting') }}</strong>: {{ _t('web.advanced.docker_query_cooldown_hint') }}</div>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">Docker max cache age (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Maximum age before cached Docker data is forcibly refreshed, regardless of normal cache TTL. Safety mechanism for critical operations."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.docker_max_cache_age') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.docker_max_cache_age_tooltip') }}"></i></label>
                                 <input type="number" class="form-control" id="env_DDC_DOCKER_MAX_CACHE_AGE" name="env_DDC_DOCKER_MAX_CACHE_AGE" min="1" max="7200" value="{{ (config.env.DDC_DOCKER_MAX_CACHE_AGE if config.env else '') or '' }}" placeholder="300">
-                                <div class="form-text"><strong>Safety limit</strong>: Force refresh after this time regardless of TTL</div>
+                                <div class="form-text"><strong>{{ _t('web.advanced.safety_limit') }}</strong>: {{ _t('web.advanced.docker_max_cache_age_hint') }}</div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-check form-switch mt-4">
                                     <input class="form-check-input" type="checkbox" id="env_DDC_ENABLE_BACKGROUND_REFRESH" name="env_DDC_ENABLE_BACKGROUND_REFRESH" value="true" {% if not config.env or not config.env.get('DDC_ENABLE_BACKGROUND_REFRESH') or config.env.get('DDC_ENABLE_BACKGROUND_REFRESH').lower() in ['true', '1', 'on', 'yes'] %}checked{% endif %}>
                                     <label class="form-check-label" for="env_DDC_ENABLE_BACKGROUND_REFRESH">
-                                        Enable background refresh <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Web UI: Automatically refresh container list in background. Disable if you have many containers or limited resources."></i>
+                                        {{ _t('web.advanced.enable_bg_refresh') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.enable_bg_refresh_tooltip') }}"></i>
                                     </label>
                                 </div>
-                                <div class="form-text"><strong>Web UI</strong>: Auto-refresh container list (disable for resource savings)</div>
+                                <div class="form-text"><strong>Web UI</strong>: {{ _t('web.advanced.enable_bg_refresh_hint') }}</div>
                             </div>
                         </div>
                     </div>
@@ -56,29 +56,29 @@
                 <!-- Background Refresh -->
                 <div class="card bg-secondary mb-3">
                     <div class="card-header text-light">
-                        <h6 class="mb-0"><i class="bi bi-arrow-repeat"></i> Background Refresh</h6>
+                        <h6 class="mb-0"><i class="bi bi-arrow-repeat"></i> {{ _t('web.advanced.bg_refresh') }}</h6>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-3">
-                                <label class="form-label">Refresh interval (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Web UI: How often to refresh the container list in the Web UI dashboard. Separate from Discord Bot refresh. Higher values reduce server load."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.refresh_interval') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.refresh_interval_tooltip') }}"></i></label>
                                 <input type="number" class="form-control" id="env_DDC_BACKGROUND_REFRESH_INTERVAL" name="env_DDC_BACKGROUND_REFRESH_INTERVAL" min="30" max="3600" value="{{ (config.env.DDC_BACKGROUND_REFRESH_INTERVAL if config.env else '') or '' }}" placeholder="300">
-                                <div class="form-text"><strong>Web UI</strong>: Container list refresh cycle. Recommended: 300-600s</div>
+                                <div class="form-text"><strong>Web UI</strong>: {{ _t('web.advanced.refresh_interval_hint') }}</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Background refresh limit <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Maximum number of containers to refresh per background cycle. Prevents overwhelming the system when you have many containers."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.bg_refresh_limit') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.bg_refresh_limit_tooltip') }}"></i></label>
                                 <input type="number" class="form-control" id="env_DDC_BACKGROUND_REFRESH_LIMIT" name="env_DDC_BACKGROUND_REFRESH_LIMIT" min="1" max="1000" value="{{ (config.env.DDC_BACKGROUND_REFRESH_LIMIT if config.env else '') or '' }}" placeholder="50">
-                                <div class="form-text"><strong>Performance</strong>: Max containers per refresh cycle</div>
+                                <div class="form-text"><strong>{{ _t('web.advanced.performance') }}</strong>: {{ _t('web.advanced.bg_refresh_limit_hint') }}</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Refresh timeout (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Timeout for each container refresh operation. If a container takes longer than this to respond, it's skipped to prevent blocking."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.refresh_timeout') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.refresh_timeout_tooltip') }}"></i></label>
                                 <input type="number" class="form-control" id="env_DDC_BACKGROUND_REFRESH_TIMEOUT" name="env_DDC_BACKGROUND_REFRESH_TIMEOUT" min="5" max="300" value="{{ (config.env.DDC_BACKGROUND_REFRESH_TIMEOUT if config.env else '') or '' }}" placeholder="30">
-                                <div class="form-text"><strong>Safety</strong>: Skip slow containers after this timeout</div>
+                                <div class="form-text"><strong>{{ _t('web.advanced.safety') }}</strong>: {{ _t('web.advanced.refresh_timeout_hint') }}</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Max containers display <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Maximum number of containers to show in the Web UI. Higher numbers may slow down page loading. Does not affect Discord Bot functionality."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.max_containers_display') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.max_containers_display_tooltip') }}"></i></label>
                                 <input type="number" class="form-control" id="env_DDC_MAX_CONTAINERS_DISPLAY" name="env_DDC_MAX_CONTAINERS_DISPLAY" min="1" max="500" value="{{ (config.env.DDC_MAX_CONTAINERS_DISPLAY if config.env else '') or '' }}" placeholder="100">
-                                <div class="form-text"><strong>Web UI</strong>: Container list display limit for performance</div>
+                                <div class="form-text"><strong>Web UI</strong>: {{ _t('web.advanced.max_containers_display_hint') }}</div>
                             </div>
                         </div>
                     </div>
@@ -87,24 +87,24 @@
                 <!-- Scheduler Throughput -->
                 <div class="card bg-secondary mb-3">
                     <div class="card-header text-light">
-                        <h6 class="mb-0"><i class="bi bi-calendar-check"></i> Scheduler Throughput</h6>
+                        <h6 class="mb-0"><i class="bi bi-calendar-check"></i> {{ _t('web.advanced.scheduler_throughput') }}</h6>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label">Scheduler check interval (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="How often the scheduler checks for pending tasks (start/stop/restart commands). Lower values = more responsive scheduled actions, higher CPU usage."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.scheduler_check_interval') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.scheduler_check_interval_tooltip') }}"></i></label>
                                 <input type="number" class="form-control" id="env_DDC_SCHEDULER_CHECK_INTERVAL" name="env_DDC_SCHEDULER_CHECK_INTERVAL" min="1" max="300" value="{{ (config.env.DDC_SCHEDULER_CHECK_INTERVAL if config.env else '') or '' }}" placeholder="120">
-                                <div class="form-text"><strong>Scheduler</strong>: Task check frequency. Recommended: 60-180s</div>
+                                <div class="form-text"><strong>{{ _t('web.advanced.scheduler') }}</strong>: {{ _t('web.advanced.scheduler_check_interval_hint') }}</div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Max concurrent tasks <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Maximum number of scheduled tasks (container actions) that can run simultaneously. Prevents system overload during mass operations."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.max_concurrent_tasks') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.max_concurrent_tasks_tooltip') }}"></i></label>
                                 <input type="number" class="form-control" id="env_DDC_MAX_CONCURRENT_TASKS" name="env_DDC_MAX_CONCURRENT_TASKS" min="1" max="50" value="{{ (config.env.DDC_MAX_CONCURRENT_TASKS if config.env else '') or '' }}" placeholder="3">
-                                <div class="form-text"><strong>Safety</strong>: Parallel task execution limit</div>
+                                <div class="form-text"><strong>{{ _t('web.advanced.safety') }}</strong>: {{ _t('web.advanced.max_concurrent_tasks_hint') }}</div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Task batch size <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Number of tasks to process together in one scheduler cycle. Higher values = more efficient processing, but may cause delays for some tasks."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.task_batch_size') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.task_batch_size_tooltip') }}"></i></label>
                                 <input type="number" class="form-control" id="env_DDC_TASK_BATCH_SIZE" name="env_DDC_TASK_BATCH_SIZE" min="1" max="100" value="{{ (config.env.DDC_TASK_BATCH_SIZE if config.env else '') or '' }}" placeholder="5">
-                                <div class="form-text"><strong>Efficiency</strong>: Tasks processed per scheduler cycle</div>
+                                <div class="form-text"><strong>{{ _t('web.advanced.efficiency') }}</strong>: {{ _t('web.advanced.task_batch_size_hint') }}</div>
                             </div>
                         </div>
                     </div>
@@ -113,29 +113,29 @@
                 <!-- Live Logs Settings -->
                 <div class="card bg-secondary mb-3">
                     <div class="card-header text-light">
-                        <h6 class="mb-0"><i class="bi bi-file-text"></i> Live Logs Settings</h6>
+                        <h6 class="mb-0"><i class="bi bi-file-text"></i> {{ _t('web.advanced.live_logs_settings') }}</h6>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-3">
-                                <label class="form-label">Auto-refresh interval (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Discord: How often to update live log messages with new container log lines. Lower values = more real-time logs, higher Discord API usage."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.logs_refresh_interval') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.logs_refresh_interval_tooltip') }}"></i></label>
                                 <input type="number" class="form-control" id="env_DDC_LIVE_LOGS_REFRESH_INTERVAL" name="env_DDC_LIVE_LOGS_REFRESH_INTERVAL" min="1" max="30" value="{{ (config.env.DDC_LIVE_LOGS_REFRESH_INTERVAL if config.env else '') or '' }}" placeholder="5">
-                                <div class="form-text"><strong>Discord</strong>: Log message update frequency</div>
+                                <div class="form-text"><strong>Discord</strong>: {{ _t('web.advanced.logs_refresh_interval_hint') }}</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Max refresh cycles <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Discord: Maximum number of times to refresh live logs before auto-stopping. Prevents infinite Discord API calls."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.logs_max_refreshes') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.logs_max_refreshes_tooltip') }}"></i></label>
                                 <input type="number" class="form-control" id="env_DDC_LIVE_LOGS_MAX_REFRESHES" name="env_DDC_LIVE_LOGS_MAX_REFRESHES" min="1" max="100" value="{{ (config.env.DDC_LIVE_LOGS_MAX_REFRESHES if config.env else '') or '' }}" placeholder="12">
-                                <div class="form-text"><strong>Safety</strong>: Auto-stop after X refreshes (prevents spam)</div>
+                                <div class="form-text"><strong>{{ _t('web.advanced.safety') }}</strong>: {{ _t('web.advanced.logs_max_refreshes_hint') }}</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Log lines to fetch <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Discord: Number of recent log lines to show per container. Higher values show more history but may hit Discord message length limits."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.logs_tail_lines') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.logs_tail_lines_tooltip') }}"></i></label>
                                 <input type="number" class="form-control" id="env_DDC_LIVE_LOGS_TAIL_LINES" name="env_DDC_LIVE_LOGS_TAIL_LINES" min="10" max="200" value="{{ (config.env.DDC_LIVE_LOGS_TAIL_LINES if config.env else '') or '' }}" placeholder="50">
-                                <div class="form-text"><strong>Discord</strong>: Log lines per message (watch Discord limits)</div>
+                                <div class="form-text"><strong>Discord</strong>: {{ _t('web.advanced.logs_tail_lines_hint') }}</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Message timeout (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Discord: How long to keep live log messages active before auto-deletion. Keeps Discord channels clean."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.logs_message_timeout') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.logs_message_timeout_tooltip') }}"></i></label>
                                 <input type="number" class="form-control" id="env_DDC_LIVE_LOGS_TIMEOUT" name="env_DDC_LIVE_LOGS_TIMEOUT" min="30" max="600" value="{{ (config.env.DDC_LIVE_LOGS_TIMEOUT if config.env else '') or '' }}" placeholder="120">
-                                <div class="form-text"><strong>Cleanup</strong>: Auto-delete log messages after timeout</div>
+                                <div class="form-text"><strong>{{ _t('web.advanced.cleanup') }}</strong>: {{ _t('web.advanced.logs_message_timeout_hint') }}</div>
                             </div>
                         </div>
                         <div class="row g-3 mt-2">
@@ -143,19 +143,19 @@
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" id="env_DDC_LIVE_LOGS_ENABLED" name="env_DDC_LIVE_LOGS_ENABLED" value="true" {% if not config.env or not config.env.get('DDC_LIVE_LOGS_ENABLED') or config.env.get('DDC_LIVE_LOGS_ENABLED').lower() in ['true', '1', 'on', 'yes'] %}checked{% endif %}>
                                     <label class="form-check-label" for="env_DDC_LIVE_LOGS_ENABLED">
-                                        Enable Live Logs feature <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Discord: Allow users to view live container logs in Discord. Disable to reduce Discord API usage and prevent log spam."></i>
+                                        {{ _t('web.advanced.enable_live_logs') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.enable_live_logs_tooltip') }}"></i>
                                     </label>
                                 </div>
-                                <div class="form-text"><strong>Feature toggle</strong>: Enable /logs command in Discord</div>
+                                <div class="form-text"><strong>{{ _t('web.advanced.feature_toggle') }}</strong>: {{ _t('web.advanced.enable_live_logs_hint') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" id="env_DDC_LIVE_LOGS_AUTO_START" name="env_DDC_LIVE_LOGS_AUTO_START" value="true" {% if config.env and config.env.get('DDC_LIVE_LOGS_AUTO_START', '').lower() in ['true', '1', 'on', 'yes'] %}checked{% endif %}>
                                     <label class="form-check-label" for="env_DDC_LIVE_LOGS_AUTO_START">
-                                        Auto-start on button click <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Discord: Automatically start live log updates when someone clicks the logs button. If disabled, users need to manually start/stop."></i>
+                                        {{ _t('web.advanced.logs_auto_start') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.logs_auto_start_tooltip') }}"></i>
                                     </label>
                                 </div>
-                                <div class="form-text"><strong>UX</strong>: Start logs immediately vs. manual control</div>
+                                <div class="form-text"><strong>UX</strong>: {{ _t('web.advanced.logs_auto_start_hint') }}</div>
                             </div>
                         </div>
                     </div>
@@ -164,24 +164,24 @@
                 <!-- Docker Timeouts -->
                 <div class="card bg-secondary">
                     <div class="card-header text-light">
-                        <h6 class="mb-0"><i class="bi bi-clock-history"></i> Docker Timeouts</h6>
+                        <h6 class="mb-0"><i class="bi bi-clock-history"></i> {{ _t('web.advanced.docker_timeouts') }}</h6>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label">Fast stats timeout (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Docker API: Timeout for quick container stats (CPU, memory). Used for responsive Discord commands. If containers don't respond within this time, they're marked as slow."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.fast_stats_timeout') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.fast_stats_timeout_tooltip') }}"></i></label>
                                 <input type="number" class="form-control" id="env_DDC_FAST_STATS_TIMEOUT" name="env_DDC_FAST_STATS_TIMEOUT" min="1" max="60" value="{{ (config.env.DDC_FAST_STATS_TIMEOUT if config.env else '') or '' }}" placeholder="10">
-                                <div class="form-text"><strong>Performance</strong>: Quick stats timeout for responsive commands</div>
+                                <div class="form-text"><strong>{{ _t('web.advanced.performance') }}</strong>: {{ _t('web.advanced.fast_stats_timeout_hint') }}</div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Slow stats timeout (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Docker API: Extended timeout for containers that were previously slow. Gives more time for detailed stats without blocking fast containers."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.slow_stats_timeout') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.slow_stats_timeout_tooltip') }}"></i></label>
                                 <input type="number" class="form-control" id="env_DDC_SLOW_STATS_TIMEOUT" name="env_DDC_SLOW_STATS_TIMEOUT" min="1" max="300" value="{{ (config.env.DDC_SLOW_STATS_TIMEOUT if config.env else '') or '' }}" placeholder="30">
-                                <div class="form-text"><strong>Fallback</strong>: Extended timeout for slow containers</div>
+                                <div class="form-text"><strong>{{ _t('web.advanced.fallback') }}</strong>: {{ _t('web.advanced.slow_stats_timeout_hint') }}</div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Container list timeout (s) <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Docker API: Timeout for fetching the complete container list from Docker. If Docker daemon is slow, this prevents hanging operations."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.container_list_timeout') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.container_list_timeout_tooltip') }}"></i></label>
                                 <input type="number" class="form-control" id="env_DDC_CONTAINER_LIST_TIMEOUT" name="env_DDC_CONTAINER_LIST_TIMEOUT" min="1" max="120" value="{{ (config.env.DDC_CONTAINER_LIST_TIMEOUT if config.env else '') or '' }}" placeholder="15">
-                                <div class="form-text"><strong>Safety</strong>: Docker daemon list operation timeout</div>
+                                <div class="form-text"><strong>{{ _t('web.advanced.safety') }}</strong>: {{ _t('web.advanced.container_list_timeout_hint') }}</div>
                             </div>
                         </div>
                     </div>
@@ -191,10 +191,10 @@
                 <div class="card bg-secondary mb-3">
                     <div class="card-header text-light">
                         <h6 class="mb-0">
-                            <i class="bi bi-shield-check"></i> Donation System Control
+                            <i class="bi bi-shield-check"></i> {{ _t('web.advanced.donation_system_control') }}
                             {% if config.donation_disable_key and donations_disabled %}
                             <span class="badge bg-success ms-2" id="donationHeaderBadge">
-                                <i class="bi bi-check-circle-fill"></i> PREMIUM ACTIVE
+                                <i class="bi bi-check-circle-fill"></i> {{ _t('web.advanced.premium_active') }}
                             </span>
                             {% endif %}
                         </h6>
@@ -202,31 +202,31 @@
                     <div class="card-body">
                         {% if config.donation_disable_key and donations_disabled %}
                         <div class="alert alert-success mb-3" role="alert" id="donationStatusAlert">
-                            <i class="bi bi-check-circle-fill"></i> <strong>Donation System is DISABLED</strong><br>
-                            <small>All donation elements are hidden in Web UI and Discord. Remove the key below to re-enable donations.</small>
+                            <i class="bi bi-check-circle-fill"></i> <strong>{{ _t('web.advanced.donation_system_disabled') }}</strong><br>
+                            <small>{{ _t('web.advanced.donation_system_disabled_desc') }}</small>
                         </div>
                         {% endif %}
                         <div class="row g-3 align-items-end">
                             <div class="col-md-6">
-                                <label class="form-label">Disable Donation System Key <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Enter a valid key to completely remove all donation buttons, mech animations, and Power bars from both Web UI and Discord. Purchase key at Buy Me a Coffee."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.disable_donation_key') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.disable_donation_key_tooltip') }}"></i></label>
                                 <input type="text" class="form-control" id="donation_disable_key" name="donation_disable_key" value="{{ config.donation_disable_key or '' }}" placeholder="DDC-EXAMPLE-XXXX-XXXX-XXXX-XXXX-2025" maxlength="80">
                                 <div class="form-text">
-                                    <span id="keyStatus" class="text-muted">Enter key to disable all donation features</span>
+                                    <span id="keyStatus" class="text-muted">{{ _t('web.advanced.key_status_default') }}</span>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="d-flex gap-2">
                                     <button type="button" class="btn btn-outline-info" onclick="validateDonationKey()">
-                                        <i class="bi bi-check-circle"></i> Validate Key
+                                        <i class="bi bi-check-circle"></i> {{ _t('web.advanced.validate_key') }}
                                     </button>
                                     <a href="https://buymeacoffee.com/dockerdiscordcontrol/extras" target="_blank" rel="noopener noreferrer" class="btn btn-warning">
-                                        <i class="bi bi-award"></i> Buy License
+                                        <i class="bi bi-award"></i> {{ _t('web.advanced.buy_license') }}
                                     </a>
-                                    <button type="button" class="btn btn-info" onclick="openDonationManagementModal()" title="Manage Donations">
-                                        <i class="bi bi-list-ul"></i> Manage Donations
+                                    <button type="button" class="btn btn-info" onclick="openDonationManagementModal()" title="{{ _t('web.advanced.manage_donations') }}">
+                                        <i class="bi bi-list-ul"></i> {{ _t('web.advanced.manage_donations') }}
                                     </button>
                                 </div>
-                                <div class="form-text mt-2">Purchase a key to completely remove all donation elements</div>
+                                <div class="form-text mt-2">{{ _t('web.advanced.purchase_key_hint') }}</div>
                             </div>
                         </div>
                         
@@ -236,7 +236,7 @@
                             <div class="col-12">
                                 <hr class="text-secondary">
                                 <h6 class="text-light mb-3">
-                                    <i class="bi bi-gear-wide-connected"></i> Mech Evolution Difficulty
+                                    <i class="bi bi-gear-wide-connected"></i> {{ _t('web.advanced.mech_evolution_difficulty') }}
                                 </h6>
                             </div>
                             <!-- Manual Difficulty Override - Separate API handling -->
@@ -246,26 +246,26 @@
                                         <div class="form-check form-switch">
                                             <input class="form-check-input" type="checkbox" id="mech_manual_difficulty_override_standalone" onchange="saveMechOverrideToggle()">
                                             <label class="form-check-label" for="mech_manual_difficulty_override_standalone">
-                                                <i class="bi bi-sliders"></i> Static Difficulty Override
-                                                <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Enable to override dynamic community-based evolution costs with static custom difficulty. When OFF, costs adjust based on Discord community size (minimum 1.0x). When ON, use your custom slider settings. Achieved levels always stay locked."></i>
+                                                <i class="bi bi-sliders"></i> {{ _t('web.advanced.static_difficulty_override') }}
+                                                <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.static_difficulty_override_tooltip') }}"></i>
                                             </label>
                                         </div>
                                         <div class="form-text mt-2">
-                                            <strong>OFF:</strong> <span class="text-success">Dynamic evolution costs based on community size (min 1.0x)</span><br>
-                                            <strong>ON:</strong> <span class="text-warning">Static custom difficulty from slider/buttons</span>
-                                            <br><small class="text-info"><i class="bi bi-lightning"></i> Changes saved immediately • Achieved levels stay locked forever</small>
+                                            <strong>OFF:</strong> <span class="text-success">{{ _t('web.advanced.difficulty_dynamic') }}</span><br>
+                                            <strong>ON:</strong> <span class="text-warning">{{ _t('web.advanced.difficulty_static') }}</span>
+                                            <br><small class="text-info"><i class="bi bi-lightning"></i> {{ _t('web.advanced.difficulty_saved_immediately') }}</small>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-8">
-                                <label class="form-label">Evolution Cost Multiplier <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Adjusts the difficulty of mech evolution costs with 20 granular steps. Easy (0.5x) makes evolution half price, Hard (2.0x) makes it double price. Achieved levels stay locked forever."></i></label>
+                                <label class="form-label">{{ _t('web.advanced.evolution_cost_multiplier') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.evolution_cost_multiplier_tooltip') }}"></i></label>
                                 <div class="d-flex align-items-center gap-3">
-                                    <span class="text-muted">Easy</span>
+                                    <span class="text-muted">{{ _t('web.advanced.difficulty_easy') }}</span>
                                     <input type="range" class="form-range flex-grow-1" id="mech_difficulty_multiplier" name="mech_difficulty_multiplier"
                                            min="0.5" max="2.4" step="0.1" value="1.0"
                                            oninput="onSliderChange()" onchange="onSliderChange()">
-                                    <span class="text-muted">Hard</span>
+                                    <span class="text-muted">{{ _t('web.advanced.difficulty_hard') }}</span>
                                 </div>
                                 <div class="form-text">
                                     <strong>Current:</strong> <span id="difficultyValue">1.0x</span> - 
@@ -276,13 +276,13 @@
                             <div class="col-md-4">
                                 <div class="d-flex flex-column gap-2">
                                     <button type="button" class="btn btn-outline-info btn-sm" onclick="setDifficulty(0.5)">
-                                        <i class="bi bi-speedometer"></i> Easy (0.5x)
+                                        <i class="bi bi-speedometer"></i> {{ _t('web.advanced.difficulty_easy_btn') }}
                                     </button>
                                     <button type="button" class="btn btn-outline-warning btn-sm" onclick="setDifficulty(1.0)">
-                                        <i class="bi bi-speedometer2"></i> Normal (1.0x)
+                                        <i class="bi bi-speedometer2"></i> {{ _t('web.advanced.difficulty_normal_btn') }}
                                     </button>
                                     <button type="button" class="btn btn-outline-danger btn-sm" onclick="setDifficulty(2.0)">
-                                        <i class="bi bi-speedometer-fill"></i> Hard (2.0x)
+                                        <i class="bi bi-speedometer-fill"></i> {{ _t('web.advanced.difficulty_hard_btn') }}
                                     </button>
                                 </div>
                             </div>
@@ -292,9 +292,9 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _t('web.common.cancel') }}</button>
                 <button type="button" class="btn btn-success" onclick="saveAdvancedSettings()">
-                    <i class="bi bi-save"></i> Save Settings
+                    <i class="bi bi-save"></i> {{ _t('web.common.save_settings') }}
                 </button>
             </div>
         </div>
@@ -418,13 +418,13 @@ function updateKeyStatus() {
     if (keyInput && keyStatus) {
         const keyValue = keyInput.value.trim();
         if (!keyValue) {
-            keyStatus.textContent = 'Enter premium license key to disable all donation features';
+            keyStatus.textContent = t('web.advanced.key_status_default');
             keyStatus.className = 'text-muted';
         } else if (validateKeyFormat(keyValue)) {
-            keyStatus.textContent = '✅ Valid license key - donations will be disabled';
+            keyStatus.textContent = '✅ ' + t('web.advanced.key_status_valid');
             keyStatus.className = 'text-success';
         } else {
-            keyStatus.textContent = '❌ Invalid license key - purchase at Buy Me a Coffee';
+            keyStatus.textContent = '❌ ' + t('web.advanced.key_status_invalid');
             keyStatus.className = 'text-danger';
         }
     }
@@ -487,8 +487,8 @@ function updateDonationStatus(isValid) {
         if (!statusAlert) {
             const alertHtml = `
                 <div class="alert alert-success mb-3" role="alert" id="donationStatusAlert">
-                    <i class="bi bi-check-circle-fill"></i> <strong>Donation System will be DISABLED</strong><br>
-                    <small>Save the configuration to apply changes. All donation elements will be hidden.</small>
+                    <i class="bi bi-check-circle-fill"></i> <strong>${t('web.advanced.donation_system_will_disable')}</strong><br>
+                    <small>${t('web.advanced.donation_save_to_apply')}</small>
                 </div>`;
             const cardBody = document.querySelector('.card-body');
             if (cardBody) {
@@ -497,7 +497,7 @@ function updateDonationStatus(isValid) {
         }
         if (!headerBadge) {
             const badgeHtml = `<span class="badge bg-success ms-2" id="donationHeaderBadge">
-                <i class="bi bi-check-circle-fill"></i> PREMIUM ACTIVE
+                <i class="bi bi-check-circle-fill"></i> ${t('web.advanced.premium_active')}
             </span>`;
             const header = document.querySelector('.card-header h6');
             if (header && !header.querySelector('#donationHeaderBadge')) {
@@ -519,23 +519,23 @@ function validateDonationKey() {
     
     const key = keyInput.value.trim();
     if (!key) {
-        keyStatus.textContent = '❌ Please enter a key first';
+        keyStatus.textContent = '❌ ' + t('web.advanced.key_enter_first');
         keyStatus.className = 'text-danger';
         updateDonationStatus(false);
         return;
     }
-    
+
     if (validateKeyFormat(key)) {
-        keyStatus.textContent = '✅ License key validated! Donations will be completely disabled.';
+        keyStatus.textContent = '✅ ' + t('web.advanced.key_validated');
         keyStatus.className = 'text-success';
         updateDonationStatus(true);
-        
+
         // Show success message
         setTimeout(() => {
-            keyStatus.textContent = '✅ Valid license key - save settings to apply changes';
+            keyStatus.textContent = '✅ ' + t('web.advanced.key_status_valid');
         }, 2000);
     } else {
-        keyStatus.textContent = '❌ Invalid license key. Purchase a valid license at Buy Me a Coffee.';
+        keyStatus.textContent = '❌ ' + t('web.advanced.key_invalid_purchase');
         keyStatus.className = 'text-danger';
         updateDonationStatus(false);
     }
@@ -584,11 +584,11 @@ function updateDifficultyDisplay() {
             const newCost = Math.round(window.baseMechData.base_cost * multiplier * (window.baseMechData.total_multiplier / window.baseMechData.difficulty_multiplier));
 
             if (window.baseMechData.is_max_level) {
-                levelCostPreview.textContent = `MAX LEVEL REACHED`;
-                levelCostDetails.textContent = `(All evolutions completed)`;
+                levelCostPreview.textContent = t('web.advanced.max_level_reached');
+                levelCostDetails.textContent = '(' + t('web.advanced.all_evolutions_done') + ')';
             } else {
-                levelCostPreview.textContent = `${window.baseMechData.next_level_name} costs: $${newCost}`;
-                levelCostDetails.textContent = `(Base: $${window.baseMechData.base_cost}, Community: ${window.baseMechData.community_tier})`;
+                levelCostPreview.textContent = `${window.baseMechData.next_level_name} ${t('web.advanced.costs_prefix')}: $${newCost}`;
+                levelCostDetails.textContent = `(${t('web.advanced.base_cost_prefix')}: $${window.baseMechData.base_cost}, ${t('web.advanced.community_prefix')}: ${window.baseMechData.community_tier})`;
             }
         }
     }
@@ -649,11 +649,11 @@ async function loadDifficultyMultiplier() {
                 
                 // Initial display update
                 if (data.is_max_level) {
-                    levelCostPreview.textContent = 'MAX LEVEL REACHED';
-                    levelCostDetails.textContent = '(All evolutions completed)';
+                    levelCostPreview.textContent = t('web.advanced.max_level_reached');
+                    levelCostDetails.textContent = '(' + t('web.advanced.all_evolutions_done') + ')';
                 } else {
-                    levelCostPreview.textContent = `${data.next_level_name} costs: $${data.next_level_cost}`;
-                    levelCostDetails.textContent = `(Base: $${data.base_cost}, Community: ${data.community_tier})`;
+                    levelCostPreview.textContent = `${data.next_level_name} ${t('web.advanced.costs_prefix')}: $${data.next_level_cost}`;
+                    levelCostDetails.textContent = `(${t('web.advanced.base_cost_prefix')}: $${data.base_cost}, ${t('web.advanced.community_prefix')}: ${data.community_tier})`;
                 }
                 
                 updateDifficultyDisplay();
@@ -687,20 +687,20 @@ async function saveMechDifficulty(difficultyMultiplier) {
             const data = await response.json();
             if (data.success) {
                 console.log('Mech difficulty saved successfully:', data.message);
-                
+
                 // Show success feedback
-                showNotification('Mech difficulty updated: ' + data.message, 'success');
+                showNotification(t('web.advanced.mech_difficulty_updated') + ': ' + data.message, 'success');
             } else {
                 console.error('Failed to save mech difficulty:', data.error);
-                showNotification('Failed to save difficulty: ' + data.error, 'error');
+                showNotification(t('web.advanced.mech_difficulty_failed') + ': ' + data.error, 'error');
             }
         } else {
             console.error('HTTP error saving mech difficulty:', response.status);
-            showNotification('Failed to save difficulty settings', 'error');
+            showNotification(t('web.advanced.mech_difficulty_failed'), 'error');
         }
     } catch (error) {
         console.error('Error saving mech difficulty:', error);
-        showNotification('Error saving difficulty settings', 'error');
+        showNotification(t('web.advanced.mech_difficulty_error'), 'error');
     }
 }
 

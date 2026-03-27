@@ -81,7 +81,7 @@ function populateLanguageDropdowns() {
     // Source language dropdown (with auto-detect option)
     const srcEl = document.getElementById('ctSourceLanguage');
     if (srcEl) {
-        srcEl.innerHTML = '<option value="">Auto-Detect (Recommended)</option>';
+        srcEl.innerHTML = `<option value="">${t('ct.auto_detect')}</option>`;
         for (const [code, name] of Object.entries(ctLanguages)) {
             const opt = document.createElement('option');
             opt.value = code;
@@ -106,7 +106,7 @@ async function loadCTPairs() {
     } catch (e) {
         console.error('Failed to load CT pairs:', e);
         document.getElementById('ctPairsList').innerHTML =
-            '<div class="text-center py-3 text-danger bg-dark"><i class="bi bi-exclamation-triangle"></i> Failed to load pairs</div>';
+            `<div class="text-center py-3 text-danger bg-dark"><i class="bi bi-exclamation-triangle"></i> ${t('ct.failed_load_pairs')}</div>`;
     }
 }
 
@@ -122,8 +122,8 @@ function renderCTPairs() {
         container.innerHTML = `
             <div class="text-center py-4 text-muted">
                 <i class="bi bi-translate" style="font-size: 2rem;"></i>
-                <div class="mt-2">${searchTerm ? 'No matching pairs found.' : 'No translation pairs configured yet.'}</div>
-                <div class="mt-1"><small>Click "Add New Pair" to create one.</small></div>
+                <div class="mt-2">${searchTerm ? t('ct.no_matching_pairs') : t('ct.no_pairs_configured')}</div>
+                <div class="mt-1"><small>${t('ct.click_add_pair')}</small></div>
             </div>`;
         return;
     }
@@ -134,7 +134,7 @@ function renderCTPairs() {
         const safeTgtLang = ctEscapeHtml(pair.target_language || '');
         const langBadge = pair.source_language
             ? `${safeSrcLang} <i class="bi bi-arrow-right"></i> ${safeTgtLang}`
-            : `Auto <i class="bi bi-arrow-right"></i> ${safeTgtLang}`;
+            : `${t('ct.auto')} <i class="bi bi-arrow-right"></i> ${safeTgtLang}`;
         const count = pair.metadata?.translation_count || 0;
         const enabledClass = pair.enabled ? 'border-start border-3 border-primary' : 'opacity-50';
         const embedBadge = pair.translate_embeds
@@ -150,7 +150,7 @@ function renderCTPairs() {
                         ${embedBadge}
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <small class="text-muted">${count} translations</small>
+                        <small class="text-muted">${count} ${t('ct.translations_count')}</small>
                         <div class="form-check form-switch mb-0" onclick="event.stopPropagation();">
                             <input class="form-check-input" type="checkbox" ${pair.enabled ? 'checked' : ''}
                                 onchange="toggleCTPair('${safeId}')">
@@ -177,14 +177,14 @@ function openCTPairEditor(pairId) {
     form.reset();
     document.getElementById('ctPairId').value = '';
     document.getElementById('ctDeletePairBtn').style.display = 'none';
-    document.getElementById('ctPairEditorTitle').innerHTML = '<i class="bi bi-arrow-left-right"></i> New Channel Pair';
+    document.getElementById('ctPairEditorTitle').innerHTML = `<i class="bi bi-arrow-left-right"></i> ${t('ct.new_pair_title')}`;
     document.getElementById('ctTranslateEmbeds').checked = true;
     document.getElementById('ctPairEnabled').checked = true;
 
     if (pairId) {
         const pair = ctPairsData.find(p => p.id === pairId);
         if (pair) {
-            document.getElementById('ctPairEditorTitle').innerHTML = '<i class="bi bi-pencil"></i> Edit Channel Pair';
+            document.getElementById('ctPairEditorTitle').innerHTML = `<i class="bi bi-pencil"></i> ${t('ct.edit_pair_title')}`;
             document.getElementById('ctPairId').value = pair.id;
             document.getElementById('ctPairName').value = pair.name;
             document.getElementById('ctSourceChannelId').value = pair.source_channel_id;
@@ -221,23 +221,23 @@ async function saveCTPair() {
     };
 
     if (!pairData.name) {
-        ctShowAlert('Pair name is required', 'danger');
+        ctShowAlert(t('ct.pair_name_required'), 'danger');
         return;
     }
     if (!pairData.source_channel_id || !/^\d{17,19}$/.test(pairData.source_channel_id)) {
-        ctShowAlert('Source Channel ID must be a valid Discord ID (17-19 digits)', 'danger');
+        ctShowAlert(t('ct.source_channel_id_invalid'), 'danger');
         return;
     }
     if (!pairData.target_channel_id || !/^\d{17,19}$/.test(pairData.target_channel_id)) {
-        ctShowAlert('Target Channel ID must be a valid Discord ID (17-19 digits)', 'danger');
+        ctShowAlert(t('ct.target_channel_id_invalid'), 'danger');
         return;
     }
     if (pairData.source_channel_id === pairData.target_channel_id) {
-        ctShowAlert('Source and target channel cannot be the same', 'danger');
+        ctShowAlert(t('ct.channels_cannot_be_same'), 'danger');
         return;
     }
     if (!pairData.target_language) {
-        ctShowAlert('Target language is required', 'danger');
+        ctShowAlert(t('ct.target_language_required'), 'danger');
         return;
     }
 
@@ -252,14 +252,14 @@ async function saveCTPair() {
         });
 
         if (result.success) {
-            ctShowAlert(pairId ? 'Pair updated successfully' : 'Pair created successfully', 'success');
+            ctShowAlert(pairId ? t('ct.pair_updated') : t('ct.pair_created'), 'success');
             closeCTPairEditor();
             await loadCTPairs();
         } else {
-            ctShowAlert(result.error || 'Failed to save pair', 'danger');
+            ctShowAlert(result.error || t('ct.failed_save_pair'), 'danger');
         }
     } catch (e) {
-        ctShowAlert('Error saving pair: ' + e.message, 'danger');
+        ctShowAlert(t('ct.error_saving_pair') + ': ' + e.message, 'danger');
     }
 }
 
@@ -269,20 +269,20 @@ async function deleteCTPair() {
     const pairId = document.getElementById('ctPairId').value;
     if (!pairId) return;
 
-    if (!confirm('Are you sure you want to delete this translation pair?')) return;
+    if (!confirm(t('ct.confirm_delete_pair'))) return;
 
     try {
         const result = await ctFetch(`/api/translation/pairs/${pairId}`, { method: 'DELETE' });
 
         if (result.success) {
-            ctShowAlert('Pair deleted', 'success');
+            ctShowAlert(t('ct.pair_deleted'), 'success');
             closeCTPairEditor();
             await loadCTPairs();
         } else {
-            ctShowAlert(result.error || 'Failed to delete', 'danger');
+            ctShowAlert(result.error || t('ct.failed_delete_pair'), 'danger');
         }
     } catch (e) {
-        ctShowAlert('Error deleting pair: ' + e.message, 'danger');
+        ctShowAlert(t('ct.error_deleting_pair') + ': ' + e.message, 'danger');
     }
 }
 
@@ -325,10 +325,10 @@ async function toggleGlobalCT() {
             })
         });
         if (result.success) {
-            ctShowAlert(enabled ? 'Translation enabled' : 'Translation disabled', 'success');
+            ctShowAlert(enabled ? t('ct.translation_enabled') : t('ct.translation_disabled'), 'success');
         }
     } catch (e) {
-        ctShowAlert('Error toggling translation: ' + e.message, 'danger');
+        ctShowAlert(t('ct.error_toggling') + ': ' + e.message, 'danger');
     }
 }
 
@@ -417,7 +417,7 @@ async function saveCTSettings() {
         });
         console.log('[CT] Settings save result:', result);
         if (result.success) {
-            ctShowAlert(keySaved ? 'Settings and API key saved!' : 'Settings saved!', 'success');
+            ctShowAlert(keySaved ? t('ct.settings_and_key_saved') : t('ct.settings_saved'), 'success');
             if (keySaved) {
                 apiKeyField.value = ''; // Only clear after confirmed save
             }
@@ -466,7 +466,7 @@ async function testCTTranslation() {
     const targetLang = document.getElementById('ctTestTargetLang').value;
 
     if (!text) {
-        ctShowAlert('Enter some text to translate', 'warning');
+        ctShowAlert(t('ct.enter_text_to_translate'), 'warning');
         return;
     }
 
@@ -474,7 +474,7 @@ async function testCTTranslation() {
     const resultText = document.getElementById('ctTestResultText');
     const resultMeta = document.getElementById('ctTestResultMeta');
 
-    resultText.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Translating...';
+    resultText.innerHTML = `<div class="spinner-border spinner-border-sm" role="status"></div> ${t('ct.translating')}`;
     resultDiv.style.display = 'block';
     resultMeta.textContent = '';
 

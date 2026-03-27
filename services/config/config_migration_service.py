@@ -255,6 +255,7 @@ class ConfigMigrationService:
             # Create main config.json
             main_config = {
                 "language": bot_data.get("language", "en"),
+                "ui_language": bot_data.get("ui_language", "en"),
                 "timezone": bot_data.get("timezone", "UTC"),
                 "guild_id": bot_data.get("guild_id"),
                 "system_logs": {

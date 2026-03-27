@@ -164,6 +164,7 @@ COPY --chown=ddc:ddc bot.py .
 COPY --chown=ddc:ddc app/ app/
 COPY --chown=ddc:ddc utils/ utils/
 COPY --chown=ddc:ddc cogs/ cogs/
+COPY --chown=ddc:ddc locales/ locales/
 COPY --chown=ddc:ddc services/ services/
 COPY --chown=ddc:ddc encrypted_assets/ encrypted_assets/
 # V2.0 Cache-Only: Only copy cached animations

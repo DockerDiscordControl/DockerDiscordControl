@@ -1,31 +1,29 @@
 <hr class="my-4">
 <div id="auth-settings" class="mb-3 card p-3">
-    <h4>Web UI Authentication</h4>
+    <h4>{{ _t('web.auth.heading') }}</h4>
     <p class="form-text">
-        Configure the password for accessing this web interface. The username is fixed to <code>admin</code>.
-        If you forget the password, you can manually edit the <code>config.json</code> file and either remove the <code>web_ui_password_hash</code> line 
-        (which will reset it to the default 'admin' on next startup) or replace the hash value.
+        {{ _t('web.auth.description') }}
     </p>
     <div class="row">
         <div class="col-md-6 mb-3">
-            <label for="web_ui_user" class="form-label">Username</label>
+            <label for="web_ui_user" class="form-label">{{ _t('web.auth.username_label') }}</label>
             <input type="text" class="form-control" id="web_ui_user" name="web_ui_user" value="admin" readonly>
         </div>
         <div class="col-md-6 mb-3">
-            <label for="new_web_ui_password" class="form-label">New Password (leave blank to keep current)</label>
-            <input type="password" class="form-control" data-immediate-effect="true" id="new_web_ui_password" name="new_web_ui_password" placeholder="Enter new password">
+            <label for="new_web_ui_password" class="form-label">{{ _t('web.auth.new_password_label') }}</label>
+            <input type="password" class="form-control" data-immediate-effect="true" id="new_web_ui_password" name="new_web_ui_password" placeholder="{{ _t('web.auth.new_password_placeholder') }}">
         </div>
     </div>
-    
+
     <div class="text-center mt-3">
         <button type="button" class="btn btn-outline-info me-2" data-bs-toggle="modal" data-bs-target="#spamProtectionModal">
-            <i class="bi bi-shield-check"></i> Spam Protection Settings
+            <i class="bi bi-shield-check"></i> {{ _t('web.auth.spam_protection_button') }}
         </button>
         <button type="button" class="btn btn-outline-warning me-2" data-bs-toggle="modal" data-bs-target="#advancedSettingsModal">
-            <i class="bi bi-gear-fill"></i> Advanced Settings
+            <i class="bi bi-gear-fill"></i> {{ _t('web.auth.advanced_settings_button') }}
         </button>
         <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#diagnosticsModal">
-            <i class="bi bi-tools"></i> System Diagnostics
+            <i class="bi bi-tools"></i> {{ _t('web.auth.system_diagnostics_button') }}
         </button>
     </div>
 </div> 

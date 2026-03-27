@@ -4,31 +4,31 @@
         <div class="modal-content bg-dark text-light">
             <div class="modal-header">
                 <h5 class="modal-title" id="diagnosticsModalLabel">
-                    <i class="bi bi-tools"></i> System Diagnostics
+                    <i class="bi bi-tools"></i> {{ _t('web.diagnostics.title') }}
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="alert alert-info" role="alert">
-                    <i class="bi bi-info-circle"></i> Run diagnostics to troubleshoot Web UI connection issues, port mappings, and system configuration.
+                    <i class="bi bi-info-circle"></i> {{ _t('web.diagnostics.description') }}
                 </div>
-                
+
                 <div class="d-flex justify-content-start align-items-center mb-3">
                     <button id="runDiagnosticsModalBtn" class="btn btn-success">
-                        <i class="bi bi-play-circle"></i> Run Port Diagnostics
+                        <i class="bi bi-play-circle"></i> {{ _t('web.diagnostics.run_button') }}
                     </button>
                     <div id="diagnosticsModalLoader" class="ms-2 d-none">
                         <div class="spinner-border spinner-border-sm text-success" role="status">
-                            <span class="visually-hidden">Loading...</span>
+                            <span class="visually-hidden">{{ _t('web.common.loading') }}</span>
                         </div>
-                        <span class="ms-1 text-muted">Running diagnostics...</span>
+                        <span class="ms-1 text-muted">{{ _t('web.diagnostics.running') }}</span>
                     </div>
                 </div>
-                
+
                 <div id="diagnosticsModalResult" class="d-none">
                     <div class="card bg-secondary border-success">
                         <div class="card-header bg-success text-dark">
-                            <h6 class="mb-0"><i class="bi bi-clipboard-check"></i> Diagnostic Report</h6>
+                            <h6 class="mb-0"><i class="bi bi-clipboard-check"></i> {{ _t('web.diagnostics.report_title') }}</h6>
                         </div>
                         <div class="card-body">
                             <div id="diagnosticsModalContent" class="text-light">
@@ -37,25 +37,25 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="mt-3">
-                    <h6><i class="bi bi-question-circle"></i> Common Issues & Solutions</h6>
+                    <h6><i class="bi bi-question-circle"></i> {{ _t('web.diagnostics.common_issues_title') }}</h6>
                     <div class="card bg-secondary">
                         <div class="card-body">
                             <ul class="mb-0">
-                                <li><strong>Cannot access Web UI:</strong> Check port mapping (Host: 8374 → Container: 9374)</li>
-                                <li><strong>Unraid users:</strong> Edit DDC container → Set WebUI port correctly</li>
-                                <li><strong>Docker users:</strong> Use <code>-p 8374:9374</code> in docker run command</li>
-                                <li><strong>Firewall issues:</strong> Ensure port 8374 is open on host system</li>
+                                <li><strong>{{ _t('web.diagnostics.issue_cannot_access') }}</strong> {{ _t('web.diagnostics.issue_cannot_access_hint') }}</li>
+                                <li><strong>{{ _t('web.diagnostics.issue_unraid') }}</strong> {{ _t('web.diagnostics.issue_unraid_hint') }}</li>
+                                <li><strong>{{ _t('web.diagnostics.issue_docker') }}</strong> {{ _t('web.diagnostics.issue_docker_hint') }}</li>
+                                <li><strong>{{ _t('web.diagnostics.issue_firewall') }}</strong> {{ _t('web.diagnostics.issue_firewall_hint') }}</li>
                             </ul>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _t('web.common.close') }}</button>
                 <button type="button" class="btn btn-info" onclick="window.open('https://docs.ddc.bot/troubleshooting', '_blank');">
-                    <i class="bi bi-book"></i> View Documentation
+                    <i class="bi bi-book"></i> {{ _t('web.diagnostics.view_docs') }}
                 </button>
             </div>
         </div>

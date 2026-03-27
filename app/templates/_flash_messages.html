@@ -5,7 +5,7 @@
       {% set alert_class = 'success' if category in ['success', 'info'] else ('warning' if category == 'warning' else 'danger') %}
       <div class="alert alert-{{ alert_class }} alert-dismissible fade show" role="alert">
         {{ message }} {# Flash messages should be translated in web_ui.py #}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ _t('web.common.close') }}"></button>
       </div>
     {% endfor %}
   {% endif %}
