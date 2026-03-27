@@ -178,10 +178,22 @@
             console.log(`Found ${criticalElements.length} elements with .requires-restart class`);
             
             criticalElements.forEach(element => {
+                // Store initial value to detect actual changes
+                element.setAttribute('data-initial-value', element.value);
+
                 console.log(`Adding event listeners to: ${element.name || element.id} (${element.tagName})`);
-                
+
+                function updateRestartBadge(el) {
+                    const badge = el.closest('.mb-3').querySelector('.restart-badge');
+                    if (badge) {
+                        const changed = el.value !== el.getAttribute('data-initial-value');
+                        badge.style.display = changed ? '' : 'none';
+                    }
+                }
+
                 element.addEventListener('input', () => {
                     console.log(`INPUT event on ${element.name || element.id}: ${element.value}`);
+                    updateRestartBadge(element);
                     if (userHasInteracted && document.body.getAttribute('data-page-loaded') === 'true') {
                         // Check if this element has immediate effect
                         const hasImmediateEffect = element.getAttribute('data-immediate-effect') === 'true';
@@ -194,6 +206,7 @@
                 });
                 element.addEventListener('change', () => {
                     console.log(`CHANGE event on ${element.name || element.id}: ${element.value}`);
+                    updateRestartBadge(element);
                     if (userHasInteracted && document.body.getAttribute('data-page-loaded') === 'true') {
                         // Check if this element has immediate effect
                         const hasImmediateEffect = element.getAttribute('data-immediate-effect') === 'true';

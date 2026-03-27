@@ -3,7 +3,7 @@
     <h4>{{ _t('web.channel.settings_heading') }}</h4>
     <div class="mb-3">
         <label for="guild_id" class="form-label">{{ _t('web.channel.guild_id_label') }}</label>
-        <span class="badge bg-warning text-dark ms-2"><i class="bi bi-arrow-repeat"></i> {{ _t('web.common.requires_restart') }}</span>
+        <span class="badge bg-warning text-dark ms-2 restart-badge" style="display:none"><i class="bi bi-arrow-repeat"></i> {{ _t('web.common.requires_restart') }}</span>
         <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="{{ _t('web.channel.guild_id_tooltip') }}"></i>
         <input type="text" class="form-control requires-restart" id="guild_id" name="guild_id" value="{{ config.guild_id or '' }}" pattern="\d*" title="{{ _t('web.channel.guild_id_validation') }}">
     </div>

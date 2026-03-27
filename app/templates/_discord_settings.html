@@ -3,7 +3,7 @@
     <h4>{{ _t('web.discord.bot_settings_heading') }}</h4>
     <div class="mb-3">
         <label for="bot_token" class="form-label">{{ _t('web.discord.bot_token') }}</label>
-        <span class="badge bg-warning text-dark ms-2"><i class="bi bi-arrow-repeat"></i> {{ _t('web.common.requires_restart') }}</span>
+        <span class="badge bg-warning text-dark ms-2 restart-badge" style="display:none"><i class="bi bi-arrow-repeat"></i> {{ _t('web.common.requires_restart') }}</span>
         <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="{{ _t('web.discord.bot_token_tooltip') }}"></i>
         <input type="password" class="form-control requires-restart" id="bot_token" name="bot_token" value="{{ config.bot_token if config and config.bot_token }}">
         <a href="{{ url_for('main_bp.discord_bot_setup') }}" class="btn btn-sm btn-outline-info mt-2">
