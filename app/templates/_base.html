@@ -44,29 +44,20 @@ Licensed under the MIT License
             margin-bottom: -1rem;
             position: relative;
             z-index: 5;
-            /* Subtiler 50px Fade-Effekt: links, rechts UND oben */
-            mask:
-                linear-gradient(to right,
-                    transparent 0%,
-                    black 50px,
-                    black calc(100% - 50px),
-                    transparent 100%),
-                linear-gradient(to bottom,
-                    transparent 0%,
-                    black 50px,
-                    black 100%);
-            mask-composite: intersect;
-            -webkit-mask:
-                linear-gradient(to right,
-                    transparent 0%,
-                    black 50px,
-                    black calc(100% - 50px),
-                    transparent 100%),
-                linear-gradient(to bottom,
-                    transparent 0%,
-                    black 50px,
-                    black 100%);
-            -webkit-mask-composite: source-in;
+            /* Neon glow effect matching the DDC text style */
+            filter:
+                drop-shadow(0 0 8px rgba(0, 195, 255, 1))
+                drop-shadow(0 0 20px rgba(0, 195, 255, 0.7))
+                drop-shadow(0 0 45px rgba(0, 195, 255, 0.5))
+                drop-shadow(0 0 80px rgba(0, 120, 255, 0.35));
+            transition: filter 0.3s ease;
+        }
+        .logo-header img:hover {
+            filter:
+                drop-shadow(0 0 12px rgba(0, 195, 255, 1))
+                drop-shadow(0 0 30px rgba(0, 195, 255, 0.85))
+                drop-shadow(0 0 60px rgba(0, 195, 255, 0.6))
+                drop-shadow(0 0 100px rgba(0, 120, 255, 0.45));
         } 
         .alert { margin-top: 15px; }
         .help-icon { cursor: help; margin-left: 5px; color: #6c757d; font-size: 0.9em; }
