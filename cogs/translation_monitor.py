@@ -44,8 +44,9 @@ class TranslationMonitor(commands.Cog):
             return
 
         try:
-            # 4. Extract embed content
+            # 4. Extract embed content and images
             embed_texts = []
+            embed_images = []
             for embed in message.embeds:
                 if embed.title:
                     embed_texts.append(embed.title)
@@ -57,6 +58,11 @@ class TranslationMonitor(commands.Cog):
                     if emb_field.value:
                         name = emb_field.name or ""
                         embed_texts.append(f"{name}: {emb_field.value}" if name else emb_field.value)
+                # Preserve embed images (link previews, etc.)
+                if embed.image and embed.image.url:
+                    embed_images.append(embed.image.url)
+                elif embed.thumbnail and embed.thumbnail.url:
+                    embed_images.append(embed.thumbnail.url)
 
             # 5. Extract attachments (images, videos, files)
             attachment_urls = []
@@ -76,6 +82,7 @@ class TranslationMonitor(commands.Cog):
                 author_avatar_url=str(message.author.display_avatar.url),
                 content=message.content,
                 embed_texts=embed_texts,
+                embed_images=embed_images,
                 attachment_urls=attachment_urls
             )
 

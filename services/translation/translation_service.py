@@ -60,6 +60,7 @@ class TranslationContext:
     author_avatar_url: str
     content: str
     embed_texts: List[str] = field(default_factory=list)
+    embed_images: List[str] = field(default_factory=list)  # URLs from embed.image / embed.thumbnail
     attachment_urls: List[Dict[str, str]] = field(default_factory=list)  # [{url, filename, content_type}]
 
     @property
@@ -599,7 +600,7 @@ class TranslationService:
                 icon_url=context.author_avatar_url
             )
 
-            # Set first image attachment as embed image
+            # Set first image attachment as embed image, fall back to original embed images
             image_set = False
             for att in context.attachment_urls:
                 ct = att.get('content_type', '')
@@ -607,6 +608,11 @@ class TranslationService:
                     embed.set_image(url=att['url'])
                     image_set = True
                     break
+
+            # If no attachment image, use image from original embed (link previews etc.)
+            if not image_set and context.embed_images:
+                embed.set_image(url=context.embed_images[0])
+                image_set = True
 
             show_link = settings.show_original_link if settings else True
             show_footer = settings.show_provider_footer if settings else True

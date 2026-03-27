@@ -45,6 +45,7 @@ Alpine 3.23.3, less than 200MB RAM[br][br]
 - NEW: Instant language switch (auto-reload, no save needed)
 - NEW: RTL support for Arabic, Hebrew, Persian
 - FIXED: Double save button click causing infinite spinner
+- FIXED: Channel translation losing embed preview images (link previews now preserved)
 
 ###v2.2.0 (2026-03-25)
 **Channel Translation**

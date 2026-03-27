@@ -24,6 +24,7 @@ Control your Docker containers directly from Discord! This application provides 
 
 🐛 **Bug Fixes:**
 - Fixed double save button click causing infinite spinner (duplicate onclick + addEventListener)
+- Fixed channel translation losing embed preview images (link previews from Steam, YouTube, etc. now preserved in translated messages)
 
 ---
 
