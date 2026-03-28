@@ -568,7 +568,14 @@ class TranslationService:
         if context.content:
             parts.append(context.content)
         if pair.translate_embeds and context.embed_texts:
-            parts.extend(context.embed_texts)
+            # Deduplicate: skip embed texts that substantially overlap with message content
+            content_lower = context.content.lower() if context.content else ""
+            for et in context.embed_texts:
+                et_lower = et.lower()
+                # Only filter if embed text covers >50% of content (real duplicate)
+                if content_lower and len(et_lower) > 20 and et_lower in content_lower:
+                    continue
+                parts.append(et)
         return "\n\n".join(parts)
 
     async def _post_translation(self, bot, pair: ChannelPair,
