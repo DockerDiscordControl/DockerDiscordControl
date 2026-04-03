@@ -26,7 +26,7 @@ Control Channels: Everyone gets full access[br]
 Per-container permissions (Status, Start, Stop, Restart)[br]
 Configurable admin users and spam protection[br][br]
 [b]MORE FEATURES[/b][br]
-Multi-Language: English, German, French[br]
+40 Languages for Web UI and Bot (independently selectable)[br]
 Status Watchdog (Dead Man's Switch with ping URL)[br]
 Mech Evolution System (11 stages with animations)[br]
 Web Dashboard for configuration and monitoring[br]
@@ -44,8 +44,12 @@ Alpine 3.23.3, less than 200MB RAM[br][br]
 - NEW: 40 languages for Web UI and Bot (independently selectable)
 - NEW: Instant language switch (auto-reload, no save needed)
 - NEW: RTL support for Arabic, Hebrew, Persian
+- NEW: Transparent whale logo with CSS neon glow effect
 - FIXED: Double save button click causing infinite spinner
 - FIXED: Channel translation losing embed preview images (link previews now preserved)
+- FIXED: Channel translation duplicating text from embed descriptions
+- FIXED: "Requires restart" badge showing permanently instead of only on change
+- FIXED: Duplicate "Configuration saved" notification on page reload
 
 ###v2.2.0 (2026-03-25)
 **Channel Translation**
