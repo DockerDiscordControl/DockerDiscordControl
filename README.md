@@ -16,8 +16,7 @@ Control your Docker containers directly from Discord! This application provides 
 - **40 languages** for both Web UI and Discord Bot, independently selectable
 - Web UI Language dropdown with instant switch (no save needed, auto-reloads)
 - Bot Language dropdown for Discord bot messages
-- 25+ languages fully translated (>95%), all others with English fallback
-- Languages: English, German, French, Spanish, Portuguese (BR/PT), Italian, Dutch, Polish, Czech, Slovak, Romanian, Hungarian, Bulgarian, Croatian, Greek, Turkish, Russian, Ukrainian, Arabic, Hebrew, Persian, Hindi, Thai, Vietnamese, Indonesian, Malay, Japanese, Korean, Chinese (Simplified/Traditional), Swedish, Norwegian, Danish, Finnish, Estonian, Latvian, Lithuanian, Slovenian, Serbian
+- All 40 languages fully translated (1457 keys each): English, German, French, Spanish, Portuguese (BR/PT), Italian, Dutch, Polish, Czech, Slovak, Romanian, Hungarian, Bulgarian, Croatian, Greek, Turkish, Russian, Ukrainian, Arabic, Hebrew, Persian, Hindi, Thai, Vietnamese, Indonesian, Malay, Japanese, Korean, Chinese (Simplified/Traditional), Swedish, Norwegian, Danish, Finnish, Estonian, Latvian, Lithuanian, Slovenian, Serbian
 - RTL support for Arabic, Hebrew, and Persian
 - JSON-based translation system (1457 keys per language)
 - Translation Manager rewritten from 2541-line inline dict to modular JSON loader
@@ -25,6 +24,9 @@ Control your Docker containers directly from Discord! This application provides 
 🐛 **Bug Fixes:**
 - Fixed double save button click causing infinite spinner (duplicate onclick + addEventListener)
 - Fixed channel translation losing embed preview images (link previews from Steam, YouTube, etc. now preserved in translated messages)
+- Fixed channel translation duplicating text when embed descriptions repeat message content
+- "Requires restart" badge now only shows when the value has actually been changed
+- Fixed duplicate "Configuration saved" notification on page reload
 
 ---
 
