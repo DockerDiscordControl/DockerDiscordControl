@@ -137,7 +137,8 @@ def set_ui_language():
             return jsonify({'success': True, 'language': lang})
         return jsonify({'success': False, 'message': 'Failed to save'}), 500
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        current_app.logger.error(f"Error setting UI language: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Failed to set language'}), 500
 
 
 @main_bp.route('/save_config_api', methods=['POST'])

@@ -309,7 +309,8 @@ def test_translation():
             return jsonify({'success': False, 'error': f"Unknown provider: {provider}"}), 400
 
     except (urllib.error.URLError, TimeoutError) as e:
-        return jsonify({'success': False, 'error': f'Translation API error: {e}'}), 400
+        logger.error(f"Translation API error: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Translation API error. Check server logs.'}), 400
     except Exception as e:
         logger.error(f"Error testing translation: {e}", exc_info=True)
         return jsonify({'success': False, 'error': 'Translation test failed. Check server logs.'}), 500
