@@ -13,8 +13,6 @@ Part of ConfigService refactoring for Single Responsibility Principle
 import logging
 from typing import Dict, Any, Tuple
 
-import discord
-
 logger = logging.getLogger('ddc.config_form_parser')
 
 
@@ -29,6 +27,40 @@ class ConfigFormParserService:
     """
 
     @staticmethod
+    def _parse_display_name(raw_value, fallback: str) -> str:
+        """Extract a clean display name from potentially messy form data."""
+        # If it's an array, take first element
+        if isinstance(raw_value, list) and len(raw_value) > 0:
+            raw_value = raw_value[0]
+
+        if isinstance(raw_value, str):
+            if raw_value.startswith('[') and raw_value.endswith(']'):
+                # It's a stringified list like "['Name1', 'Name2']"
+                try:
+                    import ast
+                    parsed_list = ast.literal_eval(raw_value)
+                    if isinstance(parsed_list, list) and len(parsed_list) > 0:
+                        name = str(parsed_list[0])
+                    else:
+                        name = raw_value.strip("[]'\"")
+                except (ValueError, SyntaxError, TypeError):
+                    name = raw_value.strip("[]'\"")
+            else:
+                name = raw_value.strip()
+
+            return name if name else fallback
+
+        return fallback
+
+    @staticmethod
+    def _parse_form_checkbox(form_data: Dict[str, Any], key: str) -> bool:
+        """Check if a form checkbox/value is truthy, handling arrays."""
+        value = form_data.get(key)
+        if isinstance(value, list) and len(value) > 0:
+            value = value[0]
+        return value in ['1', 'on', True, 'true', 'True']
+
+    @staticmethod
     def parse_servers_from_form(form_data: Dict[str, Any]) -> list:
         """
         Parse container/server configuration from web form data.
@@ -40,238 +72,187 @@ class ConfigFormParserService:
         """
         servers = []
 
-        # DEBUG: Log all form keys to see what we receive
-        logger.info(f"[FORM_DEBUG] Form data keys: {list(form_data.keys())[:20]}")  # First 20 keys
-
-        # DEBUG: Log checkbox-related keys specifically
-        checkbox_keys = [k for k in form_data.keys() if 'allow_' in k or 'display_' in k]
-        logger.info(f"[FORM_DEBUG] Checkbox/display keys: {checkbox_keys[:30]}")
-
-        # DEBUG: Log actual checkbox values
-        checkbox_count = 0
-        for k in form_data.keys():
-            if 'allow_' in k:
-                logger.info(f"[FORM_DEBUG] {k} = {repr(form_data.get(k))}")
-                checkbox_count += 1
-        logger.info(f"[FORM_DEBUG] Total allow_ checkboxes found: {checkbox_count}")
+        logger.debug(f"[FORM_DEBUG] Form data keys: {list(form_data.keys())[:20]}")
 
         # Get list of selected containers
         selected_servers = form_data.getlist('selected_servers') if hasattr(form_data, 'getlist') else \
                           (form_data.get('selected_servers') if isinstance(form_data.get('selected_servers'), list) else \
                            [form_data.get('selected_servers')] if form_data.get('selected_servers') else [])
 
-        # Handle the case where selected_servers comes as arrays of duplicates
-        # e.g., ['dockerdiscordcontrol', 'dockerdiscordcontrol'] -> ['dockerdiscordcontrol']
-        selected_servers_clean = []
+        # Deduplicate while preserving order
         seen = set()
-        for server in selected_servers:
-            if server not in seen:
-                selected_servers_clean.append(server)
-                seen.add(server)
-        selected_servers = selected_servers_clean
+        selected_servers = [s for s in selected_servers if s not in seen and not seen.add(s)]
 
         logger.info(f"[FORM_DEBUG] Selected servers (Active checkboxes): {selected_servers}")
-
-        # DO NOT automatically add containers based on allow_status or other checkboxes
-        # ONLY containers with the "Active" checkbox (selected_servers) should be shown in Discord
-        # The other checkboxes (Status, Start, Stop, Restart) only control what actions are allowed
-        # for ACTIVE containers
 
         for container_name in selected_servers:
             if not container_name:
                 continue
 
-            # Extract display name
-            display_name_key = f'display_name_{container_name}'
-            display_name_raw = form_data.get(display_name_key, container_name)
-            logger.debug(f"[FORM_DEBUG] Raw display_name for {container_name}: {repr(display_name_raw)}")
+            display_name = ConfigFormParserService._parse_display_name(
+                form_data.get(f'display_name_{container_name}', container_name),
+                fallback=container_name
+            )
 
-            # Handle different display_name formats - now as single string!
-            display_name = container_name  # Default to container name
+            allowed_actions = [
+                action for action in ['status', 'start', 'stop', 'restart']
+                if ConfigFormParserService._parse_form_checkbox(form_data, f'allow_{action}_{container_name}')
+            ]
 
-            # If it's an array, take first element
-            if isinstance(display_name_raw, list) and len(display_name_raw) > 0:
-                display_name_raw = display_name_raw[0]
-
-            if isinstance(display_name_raw, str):
-                # Clean up any stringified list representations
-                if display_name_raw.startswith('[') and display_name_raw.endswith(']'):
-                    # It's a stringified list like "['Name1', 'Name2']"
-                    try:
-                        import ast
-                        parsed_list = ast.literal_eval(display_name_raw)
-                        if isinstance(parsed_list, list) and len(parsed_list) > 0:
-                            # Take the first element
-                            display_name = str(parsed_list[0])
-                        else:
-                            # Couldn't parse, use raw value
-                            display_name = display_name_raw.strip("[]'\"")
-                    except (ValueError, SyntaxError, TypeError):
-                        # Failed to parse, treat as regular string
-                        display_name = display_name_raw.strip("[]'\"")
-                else:
-                    # It's a regular string, use as-is
-                    display_name = display_name_raw.strip()
-
-            # Ensure we have a valid display name
-            if not display_name:
-                display_name = container_name
-
-            logger.debug(f"[FORM_DEBUG] Parsed display_name for {container_name}: {display_name}")
-
-            # Extract allowed actions
-            allowed_actions = []
-            for action in ['status', 'start', 'stop', 'restart']:
-                action_key = f'allow_{action}_{container_name}'
-                # HTML checkboxes send "on" when checked, or don't exist when unchecked
-                # Also handle '1' for compatibility
-                value = form_data.get(action_key)
-                logger.debug(f"[FORM_DEBUG] Checking {action_key}: value={repr(value)}")
-
-                # Handle arrays (when value comes as ['1', '1'])
-                if isinstance(value, list):
-                    if len(value) > 0:
-                        value = value[0]  # Take first element
-
-                # Now check the actual value
-                if value in ['1', 'on', True, 'true', 'True']:
-                    allowed_actions.append(action)
-                    logger.info(f"[FORM_DEBUG] ✓ Added action {action} for {container_name} (value={repr(value)})")
-                elif value == '0':
-                    logger.debug(f"[FORM_DEBUG] ✗ Action {action} for {container_name} is disabled (value='0')")
-
-            # Extract order value
-            order_key = f'order_{container_name}'
-            order_value = form_data.get(order_key, 999)
+            order_value = form_data.get(f'order_{container_name}', 999)
             try:
                 order = int(order_value) if order_value else 999
             except (ValueError, TypeError):
                 order = 999
 
-            # Build server config
-            server_config = {
+            servers.append({
                 'docker_name': container_name,
                 'name': container_name,
                 'container_name': container_name,
-                'display_name': display_name,  # Now a single string!
+                'display_name': display_name,
                 'allowed_actions': allowed_actions,
-                'allow_detailed_status': True,  # Default to True
+                'allow_detailed_status': True,
                 'order': order
-            }
-
-            servers.append(server_config)
+            })
             logger.info(f"[FORM_DEBUG] Parsed server: {container_name} - actions: {allowed_actions}, order: {order}")
 
         logger.info(f"[FORM_DEBUG] Total servers parsed: {len(servers)}")
         return servers
 
     @staticmethod
+    def _parse_channel_type(form_data: Dict[str, Any], prefix: str,
+                            default_commands: Dict[str, bool]) -> Dict[str, Any]:
+        """
+        Parse channels of a given type (status or control) from form data.
+
+        Args:
+            form_data: Form data from web request
+            prefix: Field name prefix ('status' or 'control')
+            default_commands: Default command permissions for this channel type
+        """
+        channels = {}
+        count = 1
+
+        while count <= 50:
+            channel_id_key = f'{prefix}_channel_id_{count}'
+            raw = form_data.get(channel_id_key, '')
+            channel_id = raw.strip() if isinstance(raw, str) else str(raw).strip()
+
+            # Skip invalid Discord IDs (must be 17-19 digit numeric string)
+            if channel_id and (not channel_id.isdigit() or not (17 <= len(channel_id) <= 19)):
+                logger.warning(f"Skipping invalid {prefix} channel ID: {channel_id}")
+                count += 1
+                continue
+
+            if not channel_id:
+                # Check if there are more (non-sequential gaps from deleted rows)
+                found_more = False
+                for i in range(count + 1, count + 10):
+                    if form_data.get(f'{prefix}_channel_id_{i}'):
+                        count = i
+                        found_more = True
+                        break
+                if not found_more:
+                    break
+                continue
+
+            # Build channel config
+            name_raw = form_data.get(f'{prefix}_channel_name_{count}', '')
+            channel_config = {
+                'name': name_raw.strip() if isinstance(name_raw, str) else '',
+                'commands': dict(default_commands),
+                'post_initial': form_data.get(f'{prefix}_post_initial_{count}') in ['1', 'on', True],
+                'enable_auto_refresh': form_data.get(f'{prefix}_enable_auto_refresh_{count}') in ['1', 'on', True],
+                'update_interval_minutes': int(form_data.get(f'{prefix}_update_interval_minutes_{count}', 1) or 1),
+                'recreate_messages_on_inactivity': form_data.get(f'{prefix}_recreate_messages_{count}') in ['1', 'on', True],
+                'inactivity_timeout_minutes': int(form_data.get(f'{prefix}_inactivity_timeout_{count}', 1) or 1)
+            }
+            channels[channel_id] = channel_config
+            count += 1
+
+        return channels
+
+    @staticmethod
     def parse_channel_permissions_from_form(form_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Parse channel permissions from the new two-table format.
+        Parse channel permissions from the two-table format.
         Status channels: status_channel_* fields
         Control channels: control_channel_* fields
         """
+        status_commands = {
+            'serverstatus': True, 'ss': True,
+            'control': False, 'schedule': False, 'info': False
+        }
+        control_commands = {
+            'serverstatus': True, 'ss': True,
+            'control': True, 'schedule': True, 'info': True
+        }
+
         channel_permissions = {}
-
-        # Process Status Channels
-        status_channel_count = 1
-        while True:
-            channel_id_key = f'status_channel_id_{status_channel_count}'
-            channel_id = form_data.get(channel_id_key, '').strip() if isinstance(form_data.get(channel_id_key), str) else str(form_data.get(channel_id_key, '')).strip()
-
-            # Skip invalid Discord IDs (must be 17-19 digit numeric string)
-            if channel_id and (not channel_id.isdigit() or not (17 <= len(channel_id) <= 19)):
-                logger.warning(f"Skipping invalid status channel ID: {channel_id}")
-                status_channel_count += 1
-                if status_channel_count > 50:
-                    break
-                continue
-
-            if not channel_id:
-                # Check if there are more (non-sequential gaps from deleted rows)
-                found_more = False
-                for i in range(status_channel_count + 1, status_channel_count + 10):
-                    if form_data.get(f'status_channel_id_{i}'):
-                        status_channel_count = i
-                        found_more = True
-                        break
-                if not found_more:
-                    break
-                continue  # Re-process at the found index without incrementing
-            else:
-                # Build channel config for status channel
-                channel_config = {
-                    'name': form_data.get(f'status_channel_name_{status_channel_count}', '').strip() if isinstance(form_data.get(f'status_channel_name_{status_channel_count}'), str) else '',
-                    'commands': {
-                        'serverstatus': True,  # Always enabled for status channels
-                        'ss': True,  # Alias for serverstatus
-                        'control': False,  # Never enabled for status channels
-                        'schedule': False,  # Will be checked against admin users
-                        'info': False  # Will be checked against admin users
-                    },
-                    'post_initial': form_data.get(f'status_post_initial_{status_channel_count}') in ['1', 'on', True],
-                    'enable_auto_refresh': form_data.get(f'status_enable_auto_refresh_{status_channel_count}') in ['1', 'on', True],
-                    'update_interval_minutes': int(form_data.get(f'status_update_interval_minutes_{status_channel_count}', 1) or 1),
-                    'recreate_messages_on_inactivity': form_data.get(f'status_recreate_messages_{status_channel_count}') in ['1', 'on', True],
-                    'inactivity_timeout_minutes': int(form_data.get(f'status_inactivity_timeout_{status_channel_count}', 1) or 1)
-                }
-                channel_permissions[channel_id] = channel_config
-
-            status_channel_count += 1
-            if status_channel_count > 50:  # Safety limit
-                break
-
-        # Process Control Channels
-        control_channel_count = 1
-        while True:
-            channel_id_key = f'control_channel_id_{control_channel_count}'
-            channel_id = form_data.get(channel_id_key, '').strip() if isinstance(form_data.get(channel_id_key), str) else str(form_data.get(channel_id_key, '')).strip()
-
-            # Skip invalid Discord IDs (must be 17-19 digit numeric string)
-            if channel_id and (not channel_id.isdigit() or not (17 <= len(channel_id) <= 19)):
-                logger.warning(f"Skipping invalid control channel ID: {channel_id}")
-                control_channel_count += 1
-                if control_channel_count > 50:
-                    break
-                continue
-
-            if not channel_id:
-                # Check if there are more (non-sequential gaps from deleted rows)
-                found_more = False
-                for i in range(control_channel_count + 1, control_channel_count + 10):
-                    if form_data.get(f'control_channel_id_{i}'):
-                        control_channel_count = i
-                        found_more = True
-                        break
-                if not found_more:
-                    break
-                continue  # Re-process at the found index without incrementing
-            else:
-                # Build channel config for control channel
-                channel_config = {
-                    'name': form_data.get(f'control_channel_name_{control_channel_count}', '').strip() if isinstance(form_data.get(f'control_channel_name_{control_channel_count}'), str) else '',
-                    'commands': {
-                        'serverstatus': True,  # Enabled for control channels
-                        'ss': True,  # Alias
-                        'control': True,  # Always enabled for control channels
-                        'schedule': True,  # Always enabled for control channels
-                        'info': True  # Always enabled for control channels
-                    },
-                    'post_initial': form_data.get(f'control_post_initial_{control_channel_count}') in ['1', 'on', True],
-                    'enable_auto_refresh': form_data.get(f'control_enable_auto_refresh_{control_channel_count}') in ['1', 'on', True],
-                    'update_interval_minutes': int(form_data.get(f'control_update_interval_minutes_{control_channel_count}', 1) or 1),
-                    'recreate_messages_on_inactivity': form_data.get(f'control_recreate_messages_{control_channel_count}') in ['1', 'on', True],
-                    'inactivity_timeout_minutes': int(form_data.get(f'control_inactivity_timeout_{control_channel_count}', 1) or 1)
-                }
-                channel_permissions[channel_id] = channel_config
-
-            control_channel_count += 1
-            if control_channel_count > 50:  # Safety limit
-                break
+        channel_permissions.update(
+            ConfigFormParserService._parse_channel_type(form_data, 'status', status_commands))
+        channel_permissions.update(
+            ConfigFormParserService._parse_channel_type(form_data, 'control', control_commands))
 
         logger.info(f"Parsed {len(channel_permissions)} channel configurations from form")
         return channel_permissions
+
+    # Form field prefixes that are handled by dedicated parsers (servers, channels, heartbeat)
+    _SKIP_PREFIXES = (
+        'display_name_', 'allow_status_', 'allow_start_', 'allow_stop_', 'allow_restart_',
+        'order_', 'status_channel_', 'control_channel_', 'status_', 'control_',
+        'old_status_channel_', 'old_control_channel_',
+    )
+    _SKIP_KEYS = {'selected_servers', 'heartbeat_ping_url', 'heartbeat_interval', 'enableHeartbeatSection'}
+
+    @staticmethod
+    def _parse_heartbeat(form_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Parse heartbeat (Status Watchdog) settings from form data."""
+        ping_url = form_data.get('heartbeat_ping_url', '')
+        if isinstance(ping_url, str):
+            ping_url = ping_url.strip()
+
+        if ping_url and ping_url.startswith('https://'):
+            try:
+                interval = int(form_data.get('heartbeat_interval', 5))
+                interval = max(1, min(60, interval))
+            except (ValueError, TypeError):
+                interval = 5
+            return {'enabled': True, 'ping_url': ping_url, 'interval': interval}
+
+        return {'enabled': False, 'ping_url': '', 'interval': 5}
+
+    @staticmethod
+    def _save_channel_permissions(channel_permissions: Dict[str, Any]) -> None:
+        """Save channel permissions via ChannelConfigService for consistency."""
+        try:
+            from services.config.channel_config_service import get_channel_config_service
+            channel_service = get_channel_config_service()
+            save_result = channel_service.save_all_channels(channel_permissions)
+            if save_result:
+                logger.info(f"Saved {len(channel_permissions)} channels via ChannelConfigService")
+            else:
+                logger.error("ChannelConfigService.save_all_channels returned False")
+        except (AttributeError, IOError, ImportError, KeyError, ModuleNotFoundError,
+                OSError, PermissionError, RuntimeError, TypeError) as e:
+            logger.error(f"Error saving channels via ChannelConfigService: {e}", exc_info=True)
+
+    @staticmethod
+    def _process_donation_key(form_data: Dict[str, Any], updated_config: Dict[str, Any]) -> None:
+        """Handle donation_disable_key field with validation."""
+        value = form_data.get('donation_disable_key')
+        if not isinstance(value, str):
+            return
+        value = value.strip()
+        if value:
+            try:
+                from services.donation.donation_utils import validate_donation_key
+                if validate_donation_key(value):
+                    updated_config['donation_disable_key'] = value
+            except (ImportError, ModuleNotFoundError):
+                logger.error("Could not import donation_utils for key validation")
+        else:
+            updated_config.pop('donation_disable_key', None)
 
     @staticmethod
     def process_config_form(form_data: Dict[str, Any], current_config: Dict[str, Any],
@@ -288,114 +269,40 @@ class ConfigFormParserService:
             Tuple of (updated_config, success, message)
         """
         try:
-            # Merge form data with current config
             updated_config = current_config.copy()
 
-            # Parse servers from form data
+            # Parse servers
             servers = ConfigFormParserService.parse_servers_from_form(form_data)
-            logger.info(f"[PROCESS_DEBUG] parse_servers_from_form returned {len(servers)} servers")
             if servers:
                 updated_config['servers'] = servers
-                logger.info(f"[PROCESS_DEBUG] Added {len(servers)} servers to updated_config")
-                # Log first server for debugging
-                if servers:
-                    logger.info(f"[PROCESS_DEBUG] First server: {servers[0].get('docker_name')} with actions: {servers[0].get('allowed_actions')}")
             else:
-                logger.warning("[PROCESS_DEBUG] No servers parsed from form data!")
+                logger.warning("No servers parsed from form data!")
 
-            # Parse channel permissions from the new two-table format
+            # Parse channels
             channel_permissions = ConfigFormParserService.parse_channel_permissions_from_form(form_data)
             if channel_permissions:
                 updated_config['channel_permissions'] = channel_permissions
-                logger.info(f"[PROCESS_DEBUG] Added {len(channel_permissions)} channel permissions to updated_config")
+                ConfigFormParserService._save_channel_permissions(channel_permissions)
 
-                # IMPORTANT: Also save to ChannelConfigService for consistency
-                try:
-                    from services.config.channel_config_service import get_channel_config_service
-                    channel_service = get_channel_config_service()
-                    save_result = channel_service.save_all_channels(channel_permissions)
-                    if save_result:
-                        logger.info(f"[PROCESS_DEBUG] Saved {len(channel_permissions)} channels via ChannelConfigService")
-                    else:
-                        logger.error(f"[PROCESS_DEBUG] ChannelConfigService.save_all_channels returned False - some channels may not have been saved!")
-                except (AttributeError, IOError, ImportError, KeyError, ModuleNotFoundError, OSError, PermissionError, RuntimeError, TypeError) as e:
-                    logger.error(f"Error saving channels via ChannelConfigService: {e}", exc_info=True)
-
-            # Process heartbeat (Status Watchdog) settings
-            heartbeat_config = {}
-
-            # Get ping URL
-            ping_url = form_data.get('heartbeat_ping_url', '')
-            if isinstance(ping_url, str):
-                ping_url = ping_url.strip()
-
-            # Only enable if valid HTTPS URL is provided
-            if ping_url and ping_url.startswith('https://'):
-                heartbeat_config['enabled'] = True
-                heartbeat_config['ping_url'] = ping_url
-
-                # Get interval (default 5 minutes)
-                try:
-                    interval = int(form_data.get('heartbeat_interval', 5))
-                    heartbeat_config['interval'] = max(1, min(60, interval))  # Clamp 1-60
-                except (ValueError, TypeError):
-                    heartbeat_config['interval'] = 5
-            else:
-                heartbeat_config['enabled'] = False
-                heartbeat_config['ping_url'] = ''
-                heartbeat_config['interval'] = 5
-
-            updated_config['heartbeat'] = heartbeat_config
-            # Remove legacy fields if present
+            # Parse heartbeat
+            updated_config['heartbeat'] = ConfigFormParserService._parse_heartbeat(form_data)
             updated_config.pop('heartbeat_channel_id', None)
 
-            # Process each form field
+            # Process donation key
+            ConfigFormParserService._process_donation_key(form_data, updated_config)
+
+            # Process remaining form fields
             for key, value in form_data.items():
-                # Skip server-related fields (already processed above)
-                if key in ['selected_servers'] or key.startswith('display_name_') or \
-                   key.startswith('allow_status_') or key.startswith('allow_start_') or \
-                   key.startswith('allow_stop_') or key.startswith('allow_restart_'):
+                if key in ConfigFormParserService._SKIP_KEYS or key == 'donation_disable_key':
                     continue
-
-                # Skip channel-related fields (already processed above)
-                if key.startswith('status_channel_') or key.startswith('control_channel_') or \
-                   key.startswith('status_') or key.startswith('control_') or \
-                   key.startswith('old_status_channel_') or key.startswith('old_control_channel_'):
+                if any(key.startswith(p) for p in ConfigFormParserService._SKIP_PREFIXES):
                     continue
-
-                # Skip heartbeat fields (already processed above)
-                if key in ['heartbeat_ping_url', 'heartbeat_interval', 'enableHeartbeatSection']:
-                    continue
-
-                if key == 'donation_disable_key':
-                    # Special handling for donation key
-                    if isinstance(value, str):
-                        value = value.strip()
-                        if value:
-                            # Validate the key
-                            from services.donation.donation_utils import validate_donation_key
-                            if validate_donation_key(value):
-                                updated_config[key] = value
-                            # Invalid keys are silently ignored (not saved)
-                        else:
-                            # Empty key means remove it (reactivate donations)
-                            updated_config.pop(key, None)
-                    continue
-
-                # Handle other form fields
                 if isinstance(value, str):
                     value = value.strip()
                 updated_config[key] = value
 
-            # Save the configuration
+            # Save
             result = config_service.save_config(updated_config)
-
-            # Debug: Log if servers are in the updated config
-            if 'servers' in updated_config:
-                logger.info(f"[PROCESS_DEBUG] Returning updated_config with {len(updated_config.get('servers', []))} servers")
-            else:
-                logger.warning("[PROCESS_DEBUG] Returning updated_config WITHOUT servers key!")
-
             return updated_config, result.success, result.message or "Configuration saved"
 
         except (RuntimeError, ValueError, TypeError) as e:
