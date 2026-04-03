@@ -183,14 +183,12 @@ def save_config_api():
                 'config_files': save_result.config_files,
                 'critical_settings_changed': save_result.critical_settings_changed
             }
-            flash(result['message'], 'success')
             logger.info(f"Configuration saved successfully via ConfigurationSaveService: {save_result.message}")
         else:
             result = {
                 'success': False,
                 'message': save_result.error or save_result.message or 'Failed to save configuration.'
             }
-            flash(result['message'], 'error')
             logger.warning(f"Failed to save configuration via ConfigurationSaveService: {result['message']}")
 
     except (ImportError, AttributeError, RuntimeError) as e:
