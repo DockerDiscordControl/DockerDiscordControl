@@ -11,7 +11,7 @@ gevent==25.5.1
 docker==7.1.0
 cryptography>=46.0.7  # Security fix for CVE-2026-26007 + CVE-2026-39892
 APScheduler==3.11.2
-python-dotenv==1.0.1
+python-dotenv>=1.1.0  # Security fix for symlink vulnerability
 PyYAML==6.0.3
 requests>=2.33.0  # Security fix for CVE-2026-25645
 urllib3>=2.6.0  # Security fix for GHSA-s4qh-5xfq-xqjg
