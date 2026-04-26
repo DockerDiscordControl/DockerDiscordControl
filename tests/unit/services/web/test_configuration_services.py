@@ -752,40 +752,45 @@ class TestPreparePageData:
 
         # web_helpers is imported lazily inside _process_docker_containers and
         # _process_cache_timestamps.  Patch the symbols on whatever module
-        # path the service uses.
+        # path the service uses. We use patch.dict so sys.modules is restored
+        # on stop() — direct mutation would leak stub modules to other tests.
         web_helpers_mod = types.ModuleType("app.utils.web_helpers")
         web_helpers_mod.get_docker_containers_live = MagicMock(
             return_value=(live_containers, cache_error)
         )
         web_helpers_mod.docker_cache = fake_docker_cache
-        sys.modules["app.utils.web_helpers"] = web_helpers_mod
 
         shared_data_mod = types.ModuleType("app.utils.shared_data")
         shared_data_mod.load_active_containers_from_config = MagicMock()
         shared_data_mod.get_active_containers = MagicMock(return_value=[])
-        sys.modules["app.utils.shared_data"] = shared_data_mod
 
         container_info_mod = types.ModuleType("app.utils.container_info_web_handler")
         container_info_mod.load_container_info_for_web = MagicMock(return_value={})
-        sys.modules["app.utils.container_info_web_handler"] = container_info_mod
 
         scheduler_mod = types.ModuleType("services.scheduling.scheduler")
         scheduler_mod.load_tasks = MagicMock(return_value=[])
-        sys.modules["services.scheduling.scheduler"] = scheduler_mod
 
         donation_utils_mod = types.ModuleType("services.donation.donation_utils")
         donation_utils_mod.is_donations_disabled = MagicMock(return_value=False)
-        sys.modules["services.donation.donation_utils"] = donation_utils_mod
 
         donation_config_mod = types.ModuleType("services.donation.donation_config")
         donation_config_mod.get_donation_disable_key = MagicMock(return_value="")
-        sys.modules["services.donation.donation_config"] = donation_config_mod
+
+        stub_modules = {
+            "app.utils.web_helpers": web_helpers_mod,
+            "app.utils.shared_data": shared_data_mod,
+            "app.utils.container_info_web_handler": container_info_mod,
+            "services.scheduling.scheduler": scheduler_mod,
+            "services.donation.donation_utils": donation_utils_mod,
+            "services.donation.donation_config": donation_config_mod,
+        }
 
         # ServerConfigService used in multiple helpers.
         server_config_service_mock = MagicMock()
         server_config_service_mock.get_all_servers.return_value = servers
 
         return [
+            patch.dict("sys.modules", stub_modules),
             patch(
                 "services.config.config_service.load_config",
                 return_value={

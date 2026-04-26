@@ -70,7 +70,7 @@ def donation_env(tmp_path, monkeypatch):
     progress_service.TZ = runtime.timezone(refresh=True)
     runtime.paths.member_count_file.write_text(json.dumps({"count": 25}), encoding="utf-8")
 
-    mech_adapter_module = importlib.reload(importlib.import_module("services.mech.mech_service_adapter"))
+    mech_adapter_module = importlib.import_module("services.mech.mech_service_adapter")
     mech_adapter_module._mech_service_adapter = None
     adapter = mech_adapter_module.MechServiceAdapter()
 
@@ -88,7 +88,7 @@ def donation_env(tmp_path, monkeypatch):
         raising=False,
     )
 
-    donation_service_module = importlib.reload(importlib.import_module("services.donation.unified.service"))
+    donation_service_module = importlib.import_module("services.donation.unified.service")
     donation_service_module._unified_donation_service = None
 
     fake_events = FakeEventManager()
@@ -96,7 +96,7 @@ def donation_env(tmp_path, monkeypatch):
     monkeypatch.setattr(donation_service_module, "get_mech_service", lambda: adapter, raising=False)
     monkeypatch.setattr(donation_service_module, "clear_mech_cache", lambda: None, raising=False)
 
-    donation_models_module = importlib.reload(donation_models)
+    donation_models_module = donation_models
 
     context = SimpleNamespace(
         service_module=donation_service_module,
