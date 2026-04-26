@@ -43,10 +43,11 @@ Control your Docker containers directly from Discord! This application provides 
 - Stripped misleading `[DEBUG INIT]` / `[SETUP DEBUG]` prefixes from INFO logs
 
 ✅ **Testing**
-- 518 tests pass single-pass in container (was 184 with 48 failing)
-- 5 new test directories: security, performance, storage, infrastructure, i18n
+- 3353 tests pass single-pass in container (was 184 with 48 failing pre-v2.2.2)
+- Coverage 86% (was 27% at v2.2.2 release; +59pp from post-release coverage push)
+- 5 new test directories added in v2.2.2: security, performance, storage, infrastructure, i18n
 - 4 production bugs uncovered + fixed via test sanitization
-- Coverage gate: 27% (will ratchet up over time)
+- Suite pollution fixes: `sys.modules` mutations and `importlib.reload` leaks in fixtures eliminated
 
 ⚠️ **Breaking Changes** (rare edge cases)
 - Translation API: self-hosted DeepL/LibreTranslate endpoints are now blocked. Set `deepl_api_url` to one of the four whitelisted hosts.
