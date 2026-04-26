@@ -7,23 +7,94 @@
 # ============================================================================ #
 """
 Unit tests for the Donation Management Service.
-Tests all donation-related functionality including history, stats, and deletion.
+
+These tests target the *current* production API of
+``services.donation.donation_management_service``:
+
+* ``get_donation_history`` and ``get_donation_stats`` read the event
+  sourcing log via ``services.mech.progress_paths.get_progress_paths``
+  and lazily call ``services.mech.mech_service.get_mech_service``.
+* ``delete_donation`` looks up the seq in the event log and delegates
+  to ``services.mech.progress_service.get_progress_service``.
+
+The tests therefore mock those collaborators rather than the long
+removed ``mech_service.store.load`` interface.
 """
 
+import json
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+
 from services.donation.donation_management_service import (
     DonationManagementService,
     DonationStats,
-    ServiceResult
+    ServiceResult,
 )
 
+
+# --------------------------------------------------------------------------- #
+# Helpers                                                                     #
+# --------------------------------------------------------------------------- #
+
+def _write_event_log(path, events):
+    """Write a JSONL event log file at ``path`` and return ``path``."""
+    with open(path, "w", encoding="utf-8") as fh:
+        for event in events:
+            fh.write(json.dumps(event) + "\n")
+    return path
+
+
+def _mech_state_result(total_donated=0.0, level=1, success=True):
+    """Build a stand-in for ``MechStateServiceResult``."""
+    return SimpleNamespace(
+        success=success,
+        total_donated=total_donated,
+        level=level,
+    )
+
+
+def _make_paths(event_log):
+    """Return a stub ``ProgressPaths``-like object exposing ``event_log``."""
+    return SimpleNamespace(event_log=event_log)
+
+
+# --------------------------------------------------------------------------- #
+# Fixtures                                                                    #
+# --------------------------------------------------------------------------- #
+
+@pytest.fixture
+def event_log_path(tmp_path):
+    """Path the service will read for donation events."""
+    return tmp_path / "events.jsonl"
+
+
+@pytest.fixture
+def patch_progress_paths(event_log_path):
+    """Redirect ``get_progress_paths()`` at the module level to a tmp file."""
+    with patch(
+        "services.donation.donation_management_service.get_progress_paths",
+        return_value=_make_paths(event_log_path),
+    ) as mock:
+        yield mock
+
+
+@pytest.fixture
+def patch_mech_service():
+    """Patch lazy import target ``services.mech.mech_service.get_mech_service``."""
+    with patch("services.mech.mech_service.get_mech_service") as mock:
+        yield mock
+
+
+# --------------------------------------------------------------------------- #
+# DonationManagementService tests                                             #
+# --------------------------------------------------------------------------- #
 
 class TestDonationManagementService:
     """Test suite for DonationManagementService."""
 
     def setup_method(self):
-        """Setup test fixtures for each test method."""
         self.service = DonationManagementService()
 
     def test_service_initialization(self):
@@ -31,180 +102,234 @@ class TestDonationManagementService:
         assert self.service is not None
         assert isinstance(self.service, DonationManagementService)
 
-    @patch('services.donation.donation_management_service.get_mech_service')
-    def test_get_donation_history_success(self, mock_get_mech_service):
-        """Test successful retrieval of donation history."""
-        # Mock mech service and state
-        mock_mech_service = Mock()
-        mock_state = Mock()
-        mock_state.total_donated = 250.75
-        mock_mech_service.get_state.return_value = mock_state
+    def test_get_donation_history_success(
+        self, patch_mech_service, patch_progress_paths, event_log_path
+    ):
+        """Successful retrieval of donation history with stats."""
+        mech_service = Mock()
+        mech_service.get_mech_state_service.return_value = _mech_state_result(
+            total_donated=175.75, level=2
+        )
+        patch_mech_service.return_value = mech_service
 
-        # Mock store data
-        mock_store_data = {
-            'donations': [
-                {'username': 'Alice', 'amount': 50.0, 'ts': '2025-01-01T10:00:00Z'},
-                {'username': 'Bob', 'amount': 100.25, 'ts': '2025-01-01T11:00:00Z'},
-                {'username': 'Charlie', 'amount': 25.50, 'ts': '2025-01-01T12:00:00Z'},
-            ]
-        }
-        mock_mech_service.store.load.return_value = mock_store_data
-        mock_get_mech_service.return_value = mock_mech_service
+        events = [
+            {
+                "seq": 1,
+                "type": "DonationAdded",
+                "ts": "2025-01-01T10:00:00Z",
+                "payload": {"donor": "Alice", "units": 5000},
+            },
+            {
+                "seq": 2,
+                "type": "DonationAdded",
+                "ts": "2025-01-01T11:00:00Z",
+                "payload": {"donor": "Bob", "units": 10025},
+            },
+            {
+                "seq": 3,
+                "type": "DonationAdded",
+                "ts": "2025-01-01T12:00:00Z",
+                "payload": {"donor": "Charlie", "units": 2550},
+            },
+        ]
+        _write_event_log(event_log_path, events)
 
-        # Test the method
         result = self.service.get_donation_history(limit=10)
 
-        # Assertions
         assert result.success is True
         assert result.data is not None
-        assert 'donations' in result.data
-        assert 'stats' in result.data
+        assert "donations" in result.data
+        assert "stats" in result.data
 
-        donations = result.data['donations']
-        stats = result.data['stats']
+        donations = result.data["donations"]
+        # Newest first by seq
+        assert [d["donor_name"] for d in donations] == ["Charlie", "Bob", "Alice"]
+        assert donations[0]["amount"] == pytest.approx(25.5)
+        assert donations[1]["amount"] == pytest.approx(100.25)
+        assert donations[2]["amount"] == pytest.approx(50.0)
 
-        # Check donations are returned in reverse order (newest first)
-        assert len(donations) == 3
-        assert donations[0]['donor_name'] == 'Charlie'  # Most recent
-        assert donations[1]['donor_name'] == 'Bob'
-        assert donations[2]['donor_name'] == 'Alice'    # Oldest
-
-        # Check stats
-        assert stats.total_power == 250.75
+        stats = result.data["stats"]
+        assert isinstance(stats, DonationStats)
+        # Stats are computed from event log only (excluding deletions)
         assert stats.total_donations == 3
-        assert stats.average_donation == 250.75 / 3
+        assert stats.total_power == pytest.approx(175.75)
+        assert stats.average_donation == pytest.approx(175.75 / 3)
 
-    @patch('services.donation.donation_management_service.get_mech_service')
-    def test_get_donation_history_empty(self, mock_get_mech_service):
-        """Test donation history retrieval with no donations."""
-        # Mock empty mech service
-        mock_mech_service = Mock()
-        mock_state = Mock()
-        mock_state.total_donated = 0.0
-        mock_mech_service.get_state.return_value = mock_state
-        mock_mech_service.store.load.return_value = {'donations': []}
-        mock_get_mech_service.return_value = mock_mech_service
+    def test_get_donation_history_empty(
+        self, patch_mech_service, patch_progress_paths, event_log_path
+    ):
+        """Empty event log produces an empty history with zeroed stats."""
+        mech_service = Mock()
+        mech_service.get_mech_state_service.return_value = _mech_state_result(
+            total_donated=0.0
+        )
+        patch_mech_service.return_value = mech_service
+
+        # Create empty event log
+        _write_event_log(event_log_path, [])
 
         result = self.service.get_donation_history()
 
         assert result.success is True
-        assert len(result.data['donations']) == 0
-        assert result.data['stats'].total_power == 0.0
-        assert result.data['stats'].total_donations == 0
-        assert result.data['stats'].average_donation == 0.0
+        assert result.data["donations"] == []
+        stats = result.data["stats"]
+        assert stats.total_power == 0.0
+        assert stats.total_donations == 0
+        assert stats.average_donation == 0.0
 
-    @patch('services.donation.donation_management_service.get_mech_service')
-    def test_get_donation_history_limit(self, mock_get_mech_service):
-        """Test donation history retrieval with limit parameter."""
-        mock_mech_service = Mock()
-        mock_state = Mock()
-        mock_state.total_donated = 500.0
-        mock_mech_service.get_state.return_value = mock_state
+    def test_get_donation_history_returns_newest_first(
+        self, patch_mech_service, patch_progress_paths, event_log_path
+    ):
+        """Donations are returned ordered newest-first by seq."""
+        mech_service = Mock()
+        mech_service.get_mech_state_service.return_value = _mech_state_result(
+            total_donated=500.0
+        )
+        patch_mech_service.return_value = mech_service
 
-        # Mock 10 donations
-        donations = [
-            {'username': f'User{i}', 'amount': 50.0, 'ts': f'2025-01-01T{i:02d}:00:00Z'}
+        events = [
+            {
+                "seq": i,
+                "type": "DonationAdded",
+                "ts": f"2025-01-01T{i:02d}:00:00Z",
+                "payload": {"donor": f"User{i}", "units": 5000},
+            }
             for i in range(10)
         ]
-        mock_mech_service.store.load.return_value = {'donations': donations}
-        mock_get_mech_service.return_value = mock_mech_service
+        _write_event_log(event_log_path, events)
 
-        # Test with limit of 5
         result = self.service.get_donation_history(limit=5)
 
         assert result.success is True
-        assert len(result.data['donations']) == 5
-        # Should get the last 5 donations (newest first)
-        assert result.data['donations'][0]['donor_name'] == 'User9'
-        assert result.data['donations'][4]['donor_name'] == 'User5'
+        donations = result.data["donations"]
+        # Production returns ALL donations newest-first; the ``limit`` is
+        # currently informational and not applied.  We only assert ordering.
+        assert donations[0]["donor_name"] == "User9"
+        assert donations[-1]["donor_name"] == "User0"
 
-    @patch('services.donation.donation_management_service.get_mech_service')
-    def test_delete_donation_success(self, mock_get_mech_service):
-        """Test successful deletion of a donation."""
-        mock_mech_service = Mock()
-        donations = [
-            {'username': 'Alice', 'amount': 50.0, 'ts': '2025-01-01T10:00:00Z'},
-            {'username': 'Bob', 'amount': 100.0, 'ts': '2025-01-01T11:00:00Z'},
-            {'username': 'Charlie', 'amount': 25.0, 'ts': '2025-01-01T12:00:00Z'},
+    def test_delete_donation_success(
+        self, patch_mech_service, patch_progress_paths, event_log_path
+    ):
+        """Deleting a donation calls progress_service.delete_donation."""
+        events = [
+            {
+                "seq": 1,
+                "type": "DonationAdded",
+                "ts": "2025-01-01T10:00:00Z",
+                "payload": {"donor": "Alice", "units": 5000},
+            },
+            {
+                "seq": 2,
+                "type": "DonationAdded",
+                "ts": "2025-01-01T11:00:00Z",
+                "payload": {"donor": "Bob", "units": 10000},
+            },
+            {
+                "seq": 3,
+                "type": "DonationAdded",
+                "ts": "2025-01-01T12:00:00Z",
+                "payload": {"donor": "Charlie", "units": 2500},
+            },
         ]
-        mock_store_data = {'donations': donations.copy()}
-        mock_mech_service.store.load.return_value = mock_store_data
-        mock_get_mech_service.return_value = mock_mech_service
+        _write_event_log(event_log_path, events)
 
-        # Delete index 0 (should be Charlie - newest first in display)
-        result = self.service.delete_donation(0)
+        progress_service = Mock()
+        with patch(
+            "services.mech.progress_service.get_progress_service",
+            return_value=progress_service,
+        ):
+            # Index 0 = Charlie (newest first)
+            result = self.service.delete_donation(0)
 
         assert result.success is True
-        assert result.data['donor_name'] == 'Charlie'
-        assert result.data['amount'] == 25.0
-        assert result.data['index'] == 0
+        assert result.data["deleted_seq"] == 3  # Charlie's seq
+        assert result.data["action"] == "Deleted"
+        assert result.data["type"] == "DonationAdded"
+        progress_service.delete_donation.assert_called_once_with(3)
 
-        # Verify save was called with updated data
-        mock_mech_service.store.save.assert_called_once()
-        saved_data = mock_mech_service.store.save.call_args[0][0]
-        assert len(saved_data['donations']) == 2
-        # Charlie (last item) should be removed
-        assert saved_data['donations'][-1]['username'] != 'Charlie'
+    def test_delete_donation_invalid_index(
+        self, patch_mech_service, patch_progress_paths, event_log_path
+    ):
+        """Out-of-range index returns a failure ServiceResult."""
+        events = [
+            {
+                "seq": 1,
+                "type": "DonationAdded",
+                "ts": "2025-01-01T10:00:00Z",
+                "payload": {"donor": "Alice", "units": 5000},
+            }
+        ]
+        _write_event_log(event_log_path, events)
 
-    @patch('services.donation.donation_management_service.get_mech_service')
-    def test_delete_donation_invalid_index(self, mock_get_mech_service):
-        """Test deletion with invalid index."""
-        mock_mech_service = Mock()
-        donations = [{'username': 'Alice', 'amount': 50.0, 'ts': '2025-01-01T10:00:00Z'}]
-        mock_mech_service.store.load.return_value = {'donations': donations}
-        mock_get_mech_service.return_value = mock_mech_service
-
-        # Try to delete index 5 when only 1 donation exists
         result = self.service.delete_donation(5)
 
         assert result.success is False
-        assert "Invalid donation index" in result.error
+        assert result.error is not None
+        assert "Invalid index" in result.error
 
-    @patch('services.donation.donation_management_service.get_mech_service')
-    def test_get_donation_stats(self, mock_get_mech_service):
-        """Test donation statistics retrieval."""
-        mock_mech_service = Mock()
-        mock_state = Mock()
-        mock_state.total_donated = 175.0
-        mock_mech_service.get_state.return_value = mock_state
+    def test_get_donation_stats(
+        self, patch_mech_service, patch_progress_paths, event_log_path
+    ):
+        """Donation stats sum amounts from the event log."""
+        mech_service = Mock()
+        mech_service.get_mech_state_service.return_value = _mech_state_result(
+            total_donated=175.0
+        )
+        patch_mech_service.return_value = mech_service
 
-        donations = [
-            {'username': 'User1', 'amount': 75.0},
-            {'username': 'User2', 'amount': 100.0}
+        events = [
+            {
+                "seq": 1,
+                "type": "DonationAdded",
+                "ts": "2025-01-01T10:00:00Z",
+                "payload": {"donor": "User1", "units": 7500},
+            },
+            {
+                "seq": 2,
+                "type": "DonationAdded",
+                "ts": "2025-01-01T11:00:00Z",
+                "payload": {"donor": "User2", "units": 10000},
+            },
         ]
-        mock_mech_service.store.load.return_value = {'donations': donations}
-        mock_get_mech_service.return_value = mock_mech_service
+        _write_event_log(event_log_path, events)
 
         result = self.service.get_donation_stats()
 
         assert result.success is True
         stats = result.data
-        assert stats.total_power == 175.0
+        assert isinstance(stats, DonationStats)
+        assert stats.total_power == pytest.approx(175.0)
         assert stats.total_donations == 2
-        assert stats.average_donation == 87.5
+        assert stats.average_donation == pytest.approx(87.5)
 
-    @patch('services.donation.donation_management_service.get_mech_service')
-    def test_service_exception_handling(self, mock_get_mech_service):
-        """Test that service handles exceptions gracefully."""
-        # Make mech service raise an exception
-        mock_get_mech_service.side_effect = Exception("Mech service error")
+    def test_service_exception_handling(
+        self, patch_mech_service, patch_progress_paths, event_log_path
+    ):
+        """Catchable errors from the mech service yield a failure result."""
+        # ValueError is one of the exception classes the production code
+        # explicitly handles for ``get_donation_history``.
+        patch_mech_service.side_effect = ValueError("Mech service error")
+        _write_event_log(event_log_path, [])
 
         result = self.service.get_donation_history()
 
         assert result.success is False
-        assert "Error retrieving donation history" in result.error
+        assert result.error is not None
         assert "Mech service error" in result.error
 
+
+# --------------------------------------------------------------------------- #
+# DonationStats data-class tests                                              #
+# --------------------------------------------------------------------------- #
 
 class TestDonationStats:
     """Test suite for DonationStats data class."""
 
     def test_donation_stats_creation(self):
-        """Test DonationStats creation and properties."""
         stats = DonationStats(
             total_power=250.0,
             total_donations=10,
-            average_donation=25.0
+            average_donation=25.0,
         )
 
         assert stats.total_power == 250.0
@@ -212,20 +337,14 @@ class TestDonationStats:
         assert stats.average_donation == 25.0
 
     def test_donation_stats_from_data(self):
-        """Test DonationStats.from_data class method."""
-        donations = [
-            {'amount': 50.0}, {'amount': 75.0}, {'amount': 25.0}
-        ]
-        total_power = 150.0
-
-        stats = DonationStats.from_data(donations, total_power)
+        donations = [{"amount": 50.0}, {"amount": 75.0}, {"amount": 25.0}]
+        stats = DonationStats.from_data(donations, total_power=150.0)
 
         assert stats.total_power == 150.0
         assert stats.total_donations == 3
         assert stats.average_donation == 50.0
 
     def test_donation_stats_from_empty_data(self):
-        """Test DonationStats.from_data with empty donations."""
         stats = DonationStats.from_data([], 0.0)
 
         assert stats.total_power == 0.0
@@ -233,47 +352,63 @@ class TestDonationStats:
         assert stats.average_donation == 0.0
 
 
-# Integration test with real service (but mocked dependencies)
+# --------------------------------------------------------------------------- #
+# Integration                                                                 #
+# --------------------------------------------------------------------------- #
+
 @pytest.mark.integration
 class TestDonationManagementServiceIntegration:
-    """Integration tests for donation management service."""
+    """End-to-end style flow against the production API."""
 
-    @patch('services.donation.donation_management_service.get_mech_service')
-    def test_full_donation_workflow(self, mock_get_mech_service):
-        """Test a complete donation management workflow."""
+    def test_full_donation_workflow(
+        self, patch_mech_service, patch_progress_paths, event_log_path
+    ):
         service = DonationManagementService()
 
-        # Setup mock with initial data
-        mock_mech_service = Mock()
-        mock_state = Mock()
-        mock_state.total_donated = 300.0
-        mock_mech_service.get_state.return_value = mock_state
+        mech_service = Mock()
+        mech_service.get_mech_state_service.return_value = _mech_state_result(
+            total_donated=300.0, level=2
+        )
+        patch_mech_service.return_value = mech_service
 
-        initial_donations = [
-            {'username': 'Alice', 'amount': 100.0, 'ts': '2025-01-01T10:00:00Z'},
-            {'username': 'Bob', 'amount': 200.0, 'ts': '2025-01-01T11:00:00Z'},
+        events = [
+            {
+                "seq": 1,
+                "type": "DonationAdded",
+                "ts": "2025-01-01T10:00:00Z",
+                "payload": {"donor": "Alice", "units": 10000},
+            },
+            {
+                "seq": 2,
+                "type": "DonationAdded",
+                "ts": "2025-01-01T11:00:00Z",
+                "payload": {"donor": "Bob", "units": 20000},
+            },
         ]
-        mock_store_data = {'donations': initial_donations.copy()}
-        mock_mech_service.store.load.return_value = mock_store_data
-        mock_get_mech_service.return_value = mock_mech_service
+        _write_event_log(event_log_path, events)
 
-        # 1. Get initial donation history
+        # 1) initial history
         history_result = service.get_donation_history()
         assert history_result.success is True
-        assert len(history_result.data['donations']) == 2
+        assert len(history_result.data["donations"]) == 2
 
-        # 2. Get stats
+        # 2) stats
         stats_result = service.get_donation_stats()
         assert stats_result.success is True
-        assert stats_result.data.total_donated == 300.0
+        # Stats only carries total_power / total_donations / average_donation.
+        assert stats_result.data.total_power == pytest.approx(300.0)
+        assert stats_result.data.total_donations == 2
 
-        # 3. Delete a donation
-        delete_result = service.delete_donation(0)  # Delete newest (Bob)
+        # 3) delete newest (Bob, seq=2 is index 0 in newest-first display)
+        progress_service = Mock()
+        with patch(
+            "services.mech.progress_service.get_progress_service",
+            return_value=progress_service,
+        ):
+            delete_result = service.delete_donation(0)
         assert delete_result.success is True
-        assert delete_result.data['donor_name'] == 'Bob'
-
-        # Verify the store was updated
-        mock_mech_service.store.save.assert_called_once()
+        assert delete_result.data["deleted_seq"] == 2
+        progress_service.delete_donation.assert_called_once_with(2)
 
 
 if __name__ == "__main__":

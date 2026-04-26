@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import os
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Mapping, MutableMapping, Optional
 
@@ -113,7 +114,12 @@ def ensure_log_files(logger: logging.Logger, logs_dir: Path) -> None:
         and getattr(handler, "baseFilename", "") == str(discord_log_path)
         for handler in logger.handlers
     ):
-        info_handler = logging.FileHandler(discord_log_path, encoding="utf-8")
+        info_handler = RotatingFileHandler(
+            discord_log_path,
+            maxBytes=10 * 1024 * 1024,
+            backupCount=5,
+            encoding="utf-8",
+        )
         info_handler.setLevel(logging.INFO)
         info_handler.setFormatter(
             logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -125,7 +131,12 @@ def ensure_log_files(logger: logging.Logger, logs_dir: Path) -> None:
         and getattr(handler, "baseFilename", "") == str(bot_error_log_path)
         for handler in logger.handlers
     ):
-        error_handler = logging.FileHandler(bot_error_log_path, encoding="utf-8")
+        error_handler = RotatingFileHandler(
+            bot_error_log_path,
+            maxBytes=5 * 1024 * 1024,
+            backupCount=3,
+            encoding="utf-8",
+        )
         error_handler.setLevel(logging.ERROR)
         error_handler.setFormatter(
             logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")

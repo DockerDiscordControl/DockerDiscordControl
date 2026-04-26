@@ -21,7 +21,10 @@ from app.web import create_app
 def auth_headers(monkeypatch):
     username = "tester"
     password = "s3cret"
-    password_hash = generate_password_hash(password)
+    # Use pbkdf2 instead of the default scrypt because some local Python
+    # builds (e.g. macOS LibreSSL) lack ``hashlib.scrypt`` and would raise
+    # ``AttributeError`` during fixture setup.
+    password_hash = generate_password_hash(password, method="pbkdf2")
 
     # Ensure both the auth module and config service return the same credentials
     monkeypatch.setattr("app.auth.load_config", lambda: {

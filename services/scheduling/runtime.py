@@ -30,7 +30,7 @@ from utils.logging_utils import get_module_logger
 logger = get_module_logger("scheduler.runtime")
 
 
-@dataclass
+@dataclass(slots=True)
 class _SchedulerRuntimeState:
     """Container for scheduler caches and file tracking metadata."""
 
@@ -156,7 +156,8 @@ class SchedulerRuntime:
         if timezone_str not in cache:
             try:
                 cache[timezone_str] = pytz.timezone(timezone_str)
-            except (IOError, OSError, PermissionError, RuntimeError) as e:
+            except (IOError, OSError, PermissionError, RuntimeError,
+                    pytz.exceptions.UnknownTimeZoneError) as e:
                 logger.error(
                     "Error loading timezone '%s': %s. Falling back to UTC.", timezone_str, e,
                     exc_info=True

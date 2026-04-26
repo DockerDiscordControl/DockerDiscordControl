@@ -36,8 +36,23 @@ services:
       # DDC_ADMIN_PASSWORD: ${DDC_ADMIN_PASSWORD}
     security_opt:
       - no-new-privileges:true
-    # Note: cap_drop/cap_add removed — entrypoint needs root to fix
-    # volume permissions (chown) before dropping to the ddc user via su-exec.
+    # Capability hardening (currently disabled — kept here as a tested-but-
+    # unverified configuration). The entrypoint needs root caps to chown the
+    # data dirs and switch users via su-exec / setpriv. The minimal set below
+    # has been derived from docker/entrypoint.sh; enable & test on staging
+    # before promoting to production:
+    #
+    # cap_drop:
+    #   - ALL
+    # cap_add:
+    #   - CHOWN          # chown -R on /app/config and /app/logs at first run
+    #   - DAC_OVERRIDE   # read/write across user boundaries during bootstrap
+    #   - FOWNER         # touch/chmod for marker files
+    #   - SETUID         # su-exec / setpriv user switch
+    #   - SETGID         # su-exec / setpriv group switch
+    #   - SETPCAP        # capability transition for setpriv
+    #
+    # See AUDIT.md (S10) for the rollback plan.
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9374/health')"]
       interval: 30s
@@ -55,6 +70,7 @@ services:
         limits:
           cpus: '2.0'    # Allow up to 2 CPU cores for better performance
           memory: 512M   # Allow up to 512MB memory for larger installations
+          pids: 256      # Cap process count — defends against fork-bomb DoS
         reservations:
           cpus: '0.25'   # Reserve 25% of a CPU core for responsiveness
           memory: 128M   # Reserve 128MB memory as minimum

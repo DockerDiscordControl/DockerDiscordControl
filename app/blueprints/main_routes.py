@@ -12,6 +12,7 @@ from flask import (
 )
 from datetime import datetime
 import io
+import re
 
 # Import auth from app.auth
 from app.auth import auth
@@ -1098,6 +1099,30 @@ def delete_donation(index):
         }), 400
 
 # ========================================
+# LOGOUT
+# ========================================
+
+@main_bp.route('/logout', methods=['GET', 'POST'])
+def logout():
+    """Clear server-side session and force HTTP Basic Auth re-prompt.
+
+    HTTP Basic credentials are cached by the browser; returning 401 with a
+    fresh realm string is the most portable way to make the browser drop them
+    and re-prompt the user.
+    """
+    user = session.get('username') or 'unknown'
+    session.clear()
+    current_app.logger.info("User logout: %s", user)
+    response = jsonify({
+        'success': True,
+        'message': 'Logged out. Close the browser tab to fully clear cached credentials.',
+    })
+    response.status_code = 401
+    response.headers['WWW-Authenticate'] = f'Basic realm="DDC-logout-{int(datetime.now().timestamp())}"'
+    return response
+
+
+# ========================================
 # FIRST-TIME SETUP ROUTES
 # ========================================
 
@@ -1145,10 +1170,21 @@ def setup_save():
                 'error': 'Passwords do not match'
             })
 
-        if len(password) < 6:
+        if len(password) < 12:
             return jsonify({
                 'success': False,
-                'error': 'Password must be at least 6 characters long'
+                'error': 'Password must be at least 12 characters long'
+            })
+
+        # Complexity: require at least 3 of {lowercase, uppercase, digit, symbol}.
+        complexity = sum(
+            bool(re.search(p, password))
+            for p in (r'[a-z]', r'[A-Z]', r'\d', r'[^A-Za-z0-9]')
+        )
+        if complexity < 3:
+            return jsonify({
+                'success': False,
+                'error': 'Password must include at least three of: lowercase letter, uppercase letter, digit, symbol'
             })
 
         # Create secure password hash

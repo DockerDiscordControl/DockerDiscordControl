@@ -3,6 +3,7 @@
 
 Usage: cd /Volumes/appdata/dockerdiscordcontrol && python scripts/extract_translations.py
 """
+import ast
 import json
 import sys
 import os
@@ -102,12 +103,11 @@ def extract_translations_from_source():
 
     dict_source = '\n'.join(cleaned_lines)
 
-    # Evaluate the dict
+    # Safely parse the dict literal (no code execution, prevents RCE)
     try:
-        translations = eval(dict_source)
-    except Exception as e:
-        print(f"ERROR: Could not evaluate translations dict: {e}")
-        # Try line by line to find the error
+        translations = ast.literal_eval(dict_source)
+    except (ValueError, SyntaxError) as e:
+        print(f"ERROR: Could not parse translations dict: {e}")
         sys.exit(1)
 
     return translations

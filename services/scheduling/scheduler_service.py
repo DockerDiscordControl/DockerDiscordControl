@@ -70,6 +70,10 @@ class SchedulerService:
         self.event_loop = None
         self.last_check_time = None
         self.active_tasks = set()  # Track active tasks to prevent overload
+        # Set when the service loop runs on a borrowed (already-running) event
+        # loop instead of in its own thread. Lets stop() cancel cleanly.
+        self._service_task = None
+        self._owns_event_loop = False
         self.task_execution_stats = {
             'total_executed': 0,
             'total_skipped': 0,
@@ -78,16 +82,53 @@ class SchedulerService:
         }
 
     def start(self):
-        """Starts the Scheduler Service as a background process."""
+        """Starts the Scheduler Service.
+
+        Two start modes:
+
+        1. **Hosted mode** — caller is already inside a running asyncio event
+           loop (typical: bot startup step). We schedule the service loop as
+           a task on that loop. This is what runs on the bot in production
+           (gevent monkey-patches ``threading``, so a "background thread"
+           shares the bot's loop anyway).
+        2. **Standalone mode** — no running loop yet. We spawn a real thread
+           that owns its own event loop. Used by tests and by the legacy
+           code path.
+        """
         if self.running:
             logger.warning("Scheduler Service is already running.")
             return False
 
+        # Detect whether we're already inside a running asyncio loop. If so,
+        # attach to it instead of fighting gevent + bot for ownership.
+        try:
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            running_loop = None
+
         self.running = True
-        self.thread = threading.Thread(target=self._run_service)
+
+        if running_loop is not None:
+            self.event_loop = running_loop
+            self._owns_event_loop = False
+            self._service_task = running_loop.create_task(self._service_loop_supervised())
+            logger.info(
+                "CPU-optimized Scheduler Service hooked into running event loop "
+                "(check interval: %ds, max concurrent: %d)",
+                CHECK_INTERVAL, MAX_CONCURRENT_TASKS,
+            )
+            return True
+
+        # Standalone mode: own thread + own loop.
+        self._owns_event_loop = True
+        self.thread = threading.Thread(target=self._run_service, name="ddc-scheduler")
         self.thread.daemon = True  # Daemon thread terminates when the main program ends
         self.thread.start()
-        logger.info(f"CPU-optimized Scheduler Service started (check interval: {CHECK_INTERVAL}s, max concurrent: {MAX_CONCURRENT_TASKS})")
+        logger.info(
+            "CPU-optimized Scheduler Service started in standalone thread "
+            "(check interval: %ds, max concurrent: %d)",
+            CHECK_INTERVAL, MAX_CONCURRENT_TASKS,
+        )
         return True
 
     def stop(self):
@@ -97,8 +138,21 @@ class SchedulerService:
             return False
 
         self.running = False
+
+        # Hosted mode: cancel the task on its loop. cancel() is thread-safe
+        # only when called via call_soon_threadsafe; in practice stop() is
+        # called from the same loop or from a clean shutdown path.
+        if self._service_task is not None and not self._service_task.done():
+            try:
+                self.event_loop.call_soon_threadsafe(self._service_task.cancel)
+            except (RuntimeError, AttributeError):
+                # Loop already closed — nothing to cancel.
+                pass
+            self._service_task = None
+
+        # Standalone mode: join the spawned thread.
         if self.thread:
-            self.thread.join(timeout=2.0)  # Wait maximum 2 seconds for thread termination
+            self.thread.join(timeout=2.0)
             self.thread = None
 
         # Log final statistics
@@ -106,16 +160,38 @@ class SchedulerService:
         logger.info(f"Scheduler Service stopped. Stats: {stats['total_executed']} executed, {stats['total_skipped']} skipped")
         return True
 
-    def _run_service(self):
-        """Runs the service loop in the background."""
+    async def _service_loop_supervised(self):
+        """Hosted-mode wrapper around ``_service_loop``.
+
+        Catches the cancellation raised by :meth:`stop` so the bot's loop
+        doesn't see an unhandled exception when shutdown happens.
+        """
         try:
-            # Check if we're already in an event loop
+            await self._service_loop()
+        except asyncio.CancelledError:
+            logger.info("Scheduler Service task cancelled cleanly")
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.error("Scheduler Service hosted-task crashed: %s", exc, exc_info=True)
+        finally:
+            self.running = False
+            self.event_loop = None
+            self._service_task = None
+            logger.info("Scheduler Service hosted-task ended")
+
+    def _run_service(self):
+        """Runs the service loop in the background (standalone mode)."""
+        try:
+            # Standalone mode: confirm there really is no loop here. If gevent
+            # made our thread share another loop we should have used hosted
+            # mode in start(); bail loudly so the bug is obvious.
             try:
                 loop = asyncio.get_running_loop()
-                logger.error("Cannot start scheduler service in existing event loop!")
+                logger.error(
+                    "Standalone scheduler thread unexpectedly inside event loop %r — "
+                    "this should have been hosted mode", loop,
+                )
                 return
             except RuntimeError:
-                # No running loop - this is what we want
                 pass
 
             # Create a new event loop for this thread

@@ -29,7 +29,7 @@ from services.config.config_service import ConfigService, GetConfigRequest
 logger = logging.getLogger("ddc.progress_paths")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ProgressPaths:
     """Concrete filesystem locations used by the progress service."""
 

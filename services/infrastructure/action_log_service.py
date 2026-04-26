@@ -72,6 +72,10 @@ class ServiceResult:
     data: Optional[Any] = None
     error: Optional[str] = None
 
+
+_TEXT_LOG_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
+_TEXT_LOG_BACKUP_COUNT = 3
+
 class ActionLogService:
     """Clean service for managing user action logs with proper separation of concerns."""
 
@@ -208,11 +212,35 @@ class ActionLogService:
             # JSON save errors (file I/O, permissions, JSON parsing/serialization, encoding, type/value errors)
             return ServiceResult(success=False, error=str(e))
 
+    def _text_backup_path(self, index: int) -> Path:
+        return self.text_log_file.parent / f"{self.text_log_file.name}.{index}"
+
+    def _rotate_text_log_if_needed(self) -> None:
+        """Rotate user_actions.log when it exceeds the size limit."""
+        try:
+            if not self.text_log_file.exists():
+                return
+            if self.text_log_file.stat().st_size < _TEXT_LOG_MAX_BYTES:
+                return
+
+            oldest = self._text_backup_path(_TEXT_LOG_BACKUP_COUNT)
+            if oldest.exists():
+                oldest.unlink()
+            for i in range(_TEXT_LOG_BACKUP_COUNT - 1, 0, -1):
+                src = self._text_backup_path(i)
+                if src.exists():
+                    src.rename(self._text_backup_path(i + 1))
+            self.text_log_file.rename(self._text_backup_path(1))
+        except OSError as exc:
+            logger.warning(f"Failed to rotate text action log: {exc}")
+
     def _save_to_text(self, entry: ActionLogEntry) -> ServiceResult:
         """Save log entry to text file for backward compatibility."""
         try:
             # Format for text log
             text_line = f"{entry.action}|{entry.target}|{entry.user}|{entry.source}|{entry.details}\n"
+
+            self._rotate_text_log_if_needed()
 
             # Append to text file
             with open(self.text_log_file, 'a', encoding='utf-8') as f:

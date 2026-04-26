@@ -29,7 +29,7 @@ from services.mech.progress_paths import ProgressPaths, clear_progress_paths_cac
 logger = logging.getLogger("ddc.progress.runtime")
 
 
-@dataclass
+@dataclass(slots=True)
 class ProgressRuntime:
     """Container for shared progress service runtime state."""
 

@@ -13,23 +13,36 @@ from threading import Thread
 import threading
 from werkzeug.security import check_password_hash, generate_password_hash
 
-# Gevent-compatible Thread/Lock implementation
-try:
-    import gevent
-    from gevent.event import Event as GEvent
-    from gevent.lock import BoundedSemaphore as GLock
-    from gevent import Greenlet
+# Threading abstraction. We previously preferred gevent greenlets here, but
+# gevent monkey-patching is now opt-in (see app/web/compat.py) — the
+# production waitress process uses plain OS threads and the bot's asyncio
+# event loop runs cleanly alongside them. We import gevent lazily based on
+# whether the environment opted in to the gevent runtime.
+import os as _os
 
-    def create_thread(target, args, daemon=True, name=None):
-        return Greenlet(target, *args)
+_GEVENT_ENABLED = _os.environ.get("DDC_ENABLE_GEVENT", "").strip().lower() in {
+    "1", "true", "yes", "on",
+}
 
-    def create_event():
-        return GEvent()
+if _GEVENT_ENABLED:
+    try:
+        import gevent
+        from gevent.event import Event as GEvent
+        from gevent.lock import BoundedSemaphore as GLock
+        from gevent import Greenlet
 
-    HAS_GEVENT = True
-except ImportError:
-    # Fallback to standard threading
-    from threading import Lock as GLock
+        def create_thread(target, args, daemon=True, name=None):
+            return Greenlet(target, *args)
+
+        def create_event():
+            return GEvent()
+
+        HAS_GEVENT = True
+    except ImportError:
+        _GEVENT_ENABLED = False
+
+if not _GEVENT_ENABLED:
+    from threading import Lock as GLock  # noqa: F401  (re-exported)
     from threading import Thread, Event
 
     def create_thread(target, args, daemon=True, name=None):

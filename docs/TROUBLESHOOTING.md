@@ -253,6 +253,50 @@ chown -R 1000:1000 /path/to/config
    # Should complete in < 2 seconds
    ```
 
+## v2.2.2 Upgrade Notes
+
+### "I get logged out every 30 minutes"
+
+v2.2.2 enforces a **30-minute idle session timeout**. Override it via env var:
+
+```yaml
+environment:
+  DDC_SESSION_IDLE_TIMEOUT: "7200"  # 2 hours, in seconds (floor 60)
+```
+
+### "Translation API test fails with HTTP 400 (was working before)"
+
+v2.2.2 added an **SSRF whitelist** for outbound translation calls. Only the official endpoints are allowed:
+- `https://api.deepl.com`
+- `https://api-free.deepl.com`
+- `https://translation.googleapis.com`
+- `https://api.cognitive.microsofttranslator.com`
+
+If you used a self-hosted DeepL/LibreTranslate proxy, point `deepl_api_url` (in the Web UI translation settings) to one of the four whitelisted hosts.
+
+### "Web UI session disappears when embedded in dashboard tools"
+
+v2.2.2 changed `SESSION_COOKIE_SAMESITE` from `Lax` to `Strict`. Cross-site iframe embeddings (Organizr, Heimdall, Homarr with a different domain) will lose the session cookie. Workarounds:
+- Open the DDC Web UI in a direct tab instead of via iframe
+- Use the same eTLD+1 (e.g. `dashboard.example.com` and `ddc.example.com`)
+
+### "I see fewer init messages in discord.log"
+
+v2.2.2 reduced 31 noisy `[DEBUG INIT]` / `[SETUP DEBUG]` lines from `INFO` to `DEBUG` level. To see them again, enable Debug Mode (Web UI → Logs → Debug-Level toggle, **container restart required** — the toggle now shows this hint inline).
+
+### "/setup says password is too short"
+
+v2.2.2 enforces **12 characters minimum + 3 of 4 character classes** (lowercase, uppercase, digit, symbol) at first-time setup. **Existing passwords are NOT affected** — the policy only triggers on fresh `/setup` runs.
+
+### "How do I enable the legacy gunicorn-with-gevent worker?"
+
+v2.2.2 made gevent monkey-patching opt-in (default off). The standard waitress runtime in `run.py` works without it. If you use the legacy `scripts/start.sh` gunicorn entrypoint:
+
+```yaml
+environment:
+  DDC_ENABLE_GEVENT: "1"
+```
+
 ## Advanced Troubleshooting
 
 ### Enable Debug Logging

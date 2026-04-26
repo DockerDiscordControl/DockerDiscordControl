@@ -14,17 +14,26 @@ import secrets
 from datetime import timedelta
 from typing import Mapping, MutableMapping, Optional
 
+def _is_dev_environment(env: Mapping[str, str]) -> bool:
+    """Return True if the runtime looks like a dev environment."""
+    flask_env = (env.get("FLASK_ENV") or "").strip().lower()
+    if flask_env in ("development", "dev"):
+        return True
+    flask_debug = (env.get("FLASK_DEBUG") or "").strip().lower()
+    return flask_debug in ("1", "true", "yes")
+
+
 DEFAULTS = {
     "SESSION_COOKIE_SECURE": False,
     "SESSION_COOKIE_HTTPONLY": True,
-    "SESSION_COOKIE_SAMESITE": "Lax",
+    "SESSION_COOKIE_SAMESITE": "Strict",
     "PERMANENT_SESSION_LIFETIME": timedelta(days=7),
-    "SESSION_REFRESH_EACH_REQUEST": True,
+    "SESSION_REFRESH_EACH_REQUEST": False,
     "JSON_AS_ASCII": False,
     "DOCKER_SOCKET": "/var/run/docker.sock",
     "LOG_LEVEL": "INFO",
     "HOST_DOCKER_PATH": "/usr/bin/docker",
-    "TEMPLATES_AUTO_RELOAD": True,
+    "TEMPLATES_AUTO_RELOAD": False,
 }
 
 
@@ -54,6 +63,9 @@ def build_config(env: Mapping[str, str], overrides: Optional[Mapping[str, object
         HOST_DOCKER_PATH=env.get("HOST_DOCKER_PATH", DEFAULTS["HOST_DOCKER_PATH"]),
         CONFIG_FILE=str(project_root / "config" / "config.json"),
     )
+
+    if _is_dev_environment(env):
+        config["TEMPLATES_AUTO_RELOAD"] = True
 
     if overrides:
         config.update(overrides)

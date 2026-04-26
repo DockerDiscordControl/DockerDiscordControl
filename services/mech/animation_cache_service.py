@@ -120,6 +120,18 @@ class AnimationCacheService:
         # SERVICE FIRST: Event-based cache invalidation setup
         self._setup_event_listeners()
 
+        # Disk-cache cap (LRU eviction of speed-adjusted .webp files).
+        # Override via DDC_ANIM_DISK_LIMIT_MB; 0 disables.
+        try:
+            self._disk_cache_limit_mb = max(0, int(os.environ.get("DDC_ANIM_DISK_LIMIT_MB", "200")))
+        except (TypeError, ValueError):
+            self._disk_cache_limit_mb = 200
+        if self._disk_cache_limit_mb:
+            try:
+                self.enforce_disk_cache_limit(self._disk_cache_limit_mb)
+            except Exception as exc:  # never block startup on cache hygiene
+                logger.warning("Initial disk-cache eviction skipped: %s", exc)
+
         logger.info(f"Animation Cache Service initialized")
         logger.info(f"Assets dir: {self.assets_dir}")
         logger.info(f"Cache dir: {self.cache_dir}")
@@ -1078,6 +1090,52 @@ class AnimationCacheService:
                 except (IOError, OSError, PermissionError) as e:
                     # File deletion errors (permission denied, file in use, etc.)
                     logger.warning(f"Could not remove cache file {cache_file}: {e}")
+
+    def enforce_disk_cache_limit(self, max_mb: int = 200) -> int:
+        """LRU-evict speed-adjusted ``.webp`` files when their total size exceeds *max_mb*.
+
+        Base ``.cache`` files (pre-generated 100%-speed animations) are
+        preserved — only the on-demand speed variants are evicted. Returns
+        the number of files removed.
+        """
+        max_bytes = max(0, int(max_mb)) * 1024 * 1024
+        if max_bytes <= 0:
+            return 0
+
+        try:
+            entries = []
+            total = 0
+            for path in self.cache_dir.glob("*.webp"):
+                try:
+                    stat = path.stat()
+                except (FileNotFoundError, PermissionError):
+                    continue
+                entries.append((stat.st_mtime, stat.st_size, path))
+                total += stat.st_size
+
+            if total <= max_bytes:
+                return 0
+
+            entries.sort(key=lambda e: e[0])  # oldest first
+            removed = 0
+            for _mtime, size, path in entries:
+                if total <= max_bytes:
+                    break
+                try:
+                    path.unlink()
+                    total -= size
+                    removed += 1
+                except (FileNotFoundError, PermissionError, OSError) as exc:
+                    logger.debug("Skipping eviction of %s: %s", path.name, exc)
+            if removed:
+                logger.info(
+                    "Animation disk cache trimmed: removed %d webp files (limit=%d MB)",
+                    removed, max_mb,
+                )
+            return removed
+        except OSError as exc:
+            logger.warning("Disk cache eviction failed: %s", exc)
+            return 0
 
     def get_animation_with_speed(self, evolution_level: int, speed_level: float) -> bytes:
         """

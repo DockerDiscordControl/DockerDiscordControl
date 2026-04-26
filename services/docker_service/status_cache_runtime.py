@@ -32,7 +32,7 @@ from typing import Any, Dict, Iterable, Optional, Tuple
 logger = logging.getLogger("ddc.docker.status_cache_runtime")
 
 
-@dataclass
+@dataclass(slots=True)
 class DockerStatusCacheRuntime:
     """Container that manages the Docker status cache snapshot."""
 

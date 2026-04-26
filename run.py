@@ -28,19 +28,28 @@ def start_web_server():
     """Starts the Flask Web UI using Waitress in a separate thread."""
     try:
         logger.info("🚀 Starting Web UI via Waitress on port 9374...")
-        
+
         # Create Flask app
         app = create_app()
-        
-        # Configure Waitress for production
-        # Threads=4 is sufficient for the control panel
+
+        # Scale waitress thread pool to host CPUs (clamped 4..8) so concurrent
+        # requests don't queue behind a fixed 4-thread pool. Override possible
+        # via DDC_WAITRESS_THREADS for tuning on small/large hosts.
+        cpu_count = os.cpu_count() or 4
+        try:
+            threads = int(os.environ.get("DDC_WAITRESS_THREADS", "0")) or max(4, min(8, cpu_count))
+        except (TypeError, ValueError):
+            threads = max(4, min(8, cpu_count))
+        threads = max(2, min(16, threads))
+        logger.info(f"Waitress thread pool size: {threads} (cpu_count={cpu_count})")
+
         serve(
-            app, 
-            host="0.0.0.0", 
-            port=9374, 
-            threads=4, 
+            app,
+            host="0.0.0.0",
+            port=9374,
+            threads=threads,
             ident="DDC-Web",
-            _quiet=True # Reduce waitress startup logs
+            _quiet=True  # Reduce waitress startup logs
         )
     except Exception as e:
         logger.critical(f"🔥 Web Server failed to start: {e}", exc_info=True)

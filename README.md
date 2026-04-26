@@ -1,6 +1,6 @@
-# DockerDiscordControl v2.2.1 🐳
+# DockerDiscordControl v2.2.2 🐳
 
-[![Version](https://img.shields.io/badge/Version-v2.2.1-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.2.1) [![Python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.23.3-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-Passing-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-80%25-brightgreen?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
+[![Version](https://img.shields.io/badge/Version-v2.2.2-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.2.2) [![Python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.23.3-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-518%2F518-success?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
 
 A powerful Discord bot and web interface to manage Docker containers remotely. This application bridges the gap between Discord and your Docker environment, allowing container monitoring and control directly through Discord channels.
 
@@ -9,6 +9,62 @@ A powerful Discord bot and web interface to manage Docker containers remotely. T
 Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is an ultra-optimized Alpine Linux build with the latest security patches and enhanced performance.
 
 ## 🆕 Latest Updates
+
+### ✅ **v2.2.2 (2026-04-26) - Hardening, Performance & Test-Suite Sanitization**
+
+🔒 **Security Hardening**
+- New `/logout` endpoint clears session and forces Basic-Auth re-prompt
+- Session idle-timeout (default 30 min, override via `DDC_SESSION_IDLE_TIMEOUT`)
+- SSRF whitelist on Translation API: only DeepL Pro/Free, Google, Microsoft endpoints accepted
+- Setup-phase rate-limit (5 req/min) protects the bootstrap window
+- 12-char password policy with complexity (only enforced on `/setup` — existing passwords unaffected)
+- `SESSION_COOKIE_SAMESITE=Strict` (was `Lax`)
+- CSRF foundation via Flask-WTF (all blueprints currently exempted; infrastructure ready)
+- Alpine base image pinned to multi-arch digest (`@sha256:25109184…`)
+
+⚡ **Performance & RAM**
+- Locale lazy-loading: ~5 MB → ~120 KB initial RAM (en pre-loaded, others on-demand)
+- Animation disk cache LRU eviction at 200 MB (`DDC_ANIM_DISK_LIMIT_MB`)
+- Waitress thread pool now CPU-aware (`DDC_WAITRESS_THREADS`, default min(4, cpu_count, 8))
+- Request-scoped config caching (eliminates repeated disk reads per page render)
+- 8 dataclasses with `slots=True` for memory efficiency
+
+🧹 **Architecture / Bug Fixes**
+- gevent monkey-patching is now opt-in (`DDC_ENABLE_GEVENT=1`); standard waitress runtime uses plain threading and no longer fights asyncio
+- Scheduler service: hosted/standalone modes (auto-detected) — eliminates "Cannot start scheduler service in existing event loop" warning
+- `import docker.errors` explicit (fixes silent `AttributeError` on docker daemon errors)
+- `pytz.UnknownTimeZoneError` properly caught with UTC fallback
+- `_debug_mode_lock` upgraded to `RLock` (re-entry safety)
+- `DDC_CONFIG_DIR`, `DDC_PROGRESS_DATA_DIR`, `DDC_METRICS_DIR` env-var support for custom config layouts
+
+📋 **Logging & Storage**
+- `discord.log` rotation (10 MB × 5 backups), `bot_error.log` (5 MB × 3), `user_actions.log` (5 MB × 3) — bounded growth
+- Debug-Mode-Toggle UI now shows restart-required hint
+- Stripped misleading `[DEBUG INIT]` / `[SETUP DEBUG]` prefixes from INFO logs
+
+✅ **Testing**
+- 518 tests pass single-pass in container (was 184 with 48 failing)
+- 5 new test directories: security, performance, storage, infrastructure, i18n
+- 4 production bugs uncovered + fixed via test sanitization
+- Coverage gate: 27% (will ratchet up over time)
+
+⚠️ **Breaking Changes** (rare edge cases)
+- Translation API: self-hosted DeepL/LibreTranslate endpoints are now blocked. Set `deepl_api_url` to one of the four whitelisted hosts.
+- `SESSION_COOKIE_SAMESITE=Strict`: Web UI embedded in cross-site iframes (e.g. some dashboard tools) may lose session; use same eTLD+1 or open directly.
+- Idle session timeout 30 min default — override with `DDC_SESSION_IDLE_TIMEOUT=<seconds>` if you want longer (or shorter, floor 60s).
+
+🆕 **New Environment Variables**
+| Variable | Default | Purpose |
+|---|---|---|
+| `DDC_ENABLE_GEVENT` | unset (off) | Re-enable gevent monkey-patching for legacy gunicorn workers |
+| `DDC_SESSION_IDLE_TIMEOUT` | `1800` | Session idle timeout in seconds (floor 60) |
+| `DDC_WAITRESS_THREADS` | auto | Web UI thread pool size (2..16) |
+| `DDC_ANIM_DISK_LIMIT_MB` | `200` | Animation disk cache cap; 0 disables eviction |
+| `DDC_CONFIG_DIR` | `/app/config` | Override config directory (testing/custom layouts) |
+| `DDC_PROGRESS_DATA_DIR` | (auto) | Override mech progress data directory |
+| `DDC_METRICS_DIR` | (auto) | Override performance metrics directory |
+
+---
 
 ### ✅ **v2.2.1 (2026-03-27) - Full Internationalization (40 Languages)**
 

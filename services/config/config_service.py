@@ -144,10 +144,23 @@ class ConfigService:
         if self._initialized:
             return
 
-        # Directory setup
+        # Directory setup. ``DDC_CONFIG_DIR`` lets tests (and special
+        # deployments) point the service at an alternative writable
+        # directory without monkey-patching the singleton.
+        import os
         self.project_root = Path(__file__).parent.parent.parent
-        self.config_dir = self.project_root / "config"
-        self.config_dir.mkdir(parents=True, exist_ok=True)
+        config_dir_override = os.environ.get('DDC_CONFIG_DIR', '').strip()
+        if config_dir_override:
+            self.config_dir = Path(config_dir_override)
+        else:
+            self.config_dir = self.project_root / "config"
+        try:
+            self.config_dir.mkdir(parents=True, exist_ok=True)
+        except PermissionError:
+            # Read-only mount (e.g., dev SMB share). Treat as best-effort —
+            # the caller will surface a sane error if the dir really is
+            # required for the current operation.
+            pass
 
         # Modular directories
         self.channels_dir = self.config_dir / "channels"

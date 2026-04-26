@@ -13,9 +13,14 @@ These tests ensure the service layer works correctly in isolation.
 import sys
 from unittest.mock import Mock, MagicMock
 
-# Mock docker module before any imports that depend on it
-sys.modules['docker'] = MagicMock()
-sys.modules['docker.errors'] = MagicMock()
+# The real ``docker`` package is available in dev/CI; importing it (rather
+# than blanket-mocking it via sys.modules) avoids polluting sibling tests
+# that catch ``docker.errors.APIError`` in their imported services. The old
+# sys.modules monkey-patch leaked MagicMock proxies into every later test
+# in the run, which then crashed with
+# ``TypeError: catching classes that do not inherit from BaseException``.
+import docker  # noqa: F401  # ensure real package is loaded
+import docker.errors  # noqa: F401
 
 import asyncio
 import pytest

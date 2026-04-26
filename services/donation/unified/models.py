@@ -16,7 +16,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from services.mech.mech_service import MechState
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class DonationRequest:
     """Unified donation request for all donation entry points."""
 
@@ -33,7 +33,7 @@ class DonationRequest:
     use_member_count: bool = False
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class DonationResult:
     """Result object returned by the unified donation service."""
 

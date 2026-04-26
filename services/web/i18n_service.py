@@ -24,13 +24,22 @@ _instance_lock = threading.Lock()
 
 
 class I18nService:
-    """Loads and serves translations for the Web UI from JSON locale files."""
+    """Loads and serves translations for the Web UI from JSON locale files.
+
+    RAM optimization: locale files are loaded lazily on first access. At init
+    only the metadata index and the English fallback are loaded; other
+    languages are read from disk and cached on demand.
+    """
 
     def __init__(self):
         self._translations: Dict[str, Dict[str, str]] = {}
         self._meta: Dict[str, Dict[str, Any]] = {}
+        self._available_codes: set = set()
+        self._load_lock = threading.Lock()
         self._load_meta()
-        self._load_translations()
+        self._discover_available_locales()
+        # Eagerly load only English (fallback target) to keep translate() hot path snappy.
+        self._ensure_loaded('en')
 
     def _load_meta(self):
         """Load language metadata from meta.json."""
@@ -43,28 +52,46 @@ class I18nService:
             except (json.JSONDecodeError, OSError) as e:
                 logger.error(f"Failed to load meta.json: {e}")
 
-    def _load_translations(self):
-        """Load all translation JSON files."""
+    def _discover_available_locales(self):
+        """Scan the locales directory for available language codes (no parsing)."""
+        self._available_codes = set()
         if not _LOCALES_DIR.exists():
             logger.warning(f"Locales directory not found: {_LOCALES_DIR}")
             return
-
-        for json_file in sorted(_LOCALES_DIR.glob('*.json')):
+        for json_file in _LOCALES_DIR.glob('*.json'):
             if json_file.stem.startswith('_') or json_file.stem == 'meta':
                 continue
-            lang_code = json_file.stem
+            self._available_codes.add(json_file.stem)
+        logger.info(f"Web i18n: {len(self._available_codes)} locales available, lazy-loading on demand")
+
+    def _ensure_loaded(self, lang_code: str) -> bool:
+        """Load a single language file on demand. Returns True if loaded or already present."""
+        if lang_code in self._translations:
+            return True
+        if lang_code not in self._available_codes:
+            return False
+        with self._load_lock:
+            if lang_code in self._translations:  # double-checked
+                return True
+            json_file = _LOCALES_DIR / f"{lang_code}.json"
             try:
                 with open(json_file, 'r', encoding='utf-8') as f:
                     self._translations[lang_code] = json.load(f)
+                logger.debug(f"Lazy-loaded locale '{lang_code}'")
+                return True
             except (json.JSONDecodeError, OSError) as e:
                 logger.error(f"Failed to load locale '{lang_code}': {e}")
-
-        logger.info(f"Web i18n loaded: {sorted(self._translations.keys())}")
+                return False
 
     def reload(self):
-        """Reload all translations from disk."""
+        """Reload metadata and previously-loaded translations from disk."""
+        with self._load_lock:
+            previously_loaded = list(self._translations.keys())
+            self._translations.clear()
         self._load_meta()
-        self._load_translations()
+        self._discover_available_locales()
+        for lang in previously_loaded:
+            self._ensure_loaded(lang)
         logger.info("Web i18n reloaded")
 
     def translate(self, key: str, lang: str = 'en', **kwargs) -> str:
@@ -75,12 +102,12 @@ class I18nService:
         """
         result = None
 
-        # Try requested language
-        if lang in self._translations:
+        # Try requested language (lazy-load if not yet in memory)
+        if self._ensure_loaded(lang):
             result = self._translations[lang].get(key)
 
         # Fallback to English
-        if not result and lang != 'en' and 'en' in self._translations:
+        if not result and lang != 'en' and self._ensure_loaded('en'):
             result = self._translations['en'].get(key)
 
         # Last resort: return the key itself
@@ -99,6 +126,8 @@ class I18nService:
     def get_js_translations(self, lang: str = 'en') -> Dict[str, str]:
         """Get translations for JS (keys starting with 'js.')."""
         js_trans = {}
+        self._ensure_loaded(lang)
+        self._ensure_loaded('en')
         lang_dict = self._translations.get(lang, {})
         en_dict = self._translations.get('en', {})
 

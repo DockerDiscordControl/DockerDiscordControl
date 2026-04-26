@@ -478,8 +478,14 @@ def get_decay_config_data() -> dict:
         return _decay_config_cache["data"]
         
     try:
-        # Robust absolute path relative to project root
-        config_path = Path(__file__).parents[2] / "config" / "mech" / "decay.json"
+        # Honor DDC_CONFIG_DIR (used by tests + alternative deployments) and
+        # fall back to the project-relative path.
+        env_dir = os.environ.get("DDC_CONFIG_DIR", "").strip()
+        if env_dir:
+            base_dir = Path(env_dir)
+        else:
+            base_dir = Path(__file__).parents[2] / "config"
+        config_path = base_dir / "mech" / "decay.json"
         if config_path.exists():
             with open(config_path, "r") as f:
                 data = json.load(f)

@@ -283,6 +283,7 @@ class TestStatusHandlersRefactored:
                         mock_classification = Mock()
                         mock_classification.fast_containers = ['container1', 'container2']
                         mock_classification.slow_containers = []
+                        mock_classification.unknown_containers = []
                         mock_perf_instance.classify_containers = Mock(return_value=mock_classification)
                         mock_perf.return_value = mock_perf_instance
 
@@ -345,6 +346,7 @@ class TestStatusHandlersRefactored:
                 mock_classification = Mock()
                 mock_classification.fast_containers = ['fast1', 'fast2']
                 mock_classification.slow_containers = ['slow1']
+                mock_classification.unknown_containers = []
                 mock_perf_instance.classify_containers = Mock(return_value=mock_classification)
                 mock_perf.return_value = mock_perf_instance
 

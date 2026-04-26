@@ -14,6 +14,7 @@ Licensed under the MIT License
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
                 <title>{% block title %}DockerDiscordControl Configuration{% endblock %}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
@@ -247,7 +248,7 @@ Licensed under the MIT License
 
     <footer class="text-center fixed-bottom py-2">
         <p style="color: #6c757d; font-size: 0.8em; margin-bottom: 0;">
-            Built by <span class="neon-text" id="neon-max">MAX</span> | <a href="https://ddc.bot" target="_blank" class="text-secondary">Homepage</a> | <a href="https://github.com/DockerDiscordControl/DockerDiscordControl" target="_blank" class="text-secondary">GitHub</a> <span class="neon-text-red" id="neon-version">v2.2.1</span>
+            Built by <span class="neon-text" id="neon-max">MAX</span> | <a href="https://ddc.bot" target="_blank" class="text-secondary">Homepage</a> | <a href="https://github.com/DockerDiscordControl/DockerDiscordControl" target="_blank" class="text-secondary">GitHub</a> <span class="neon-text-red" id="neon-version">v2.2.2</span>
         </p>
     </footer>
 

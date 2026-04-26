@@ -34,7 +34,14 @@ class TestDonationProcessing:
         assert result.error_message is None
 
     def test_process_donation_updates_power(self, service):
-        """Test donation increases power."""
+        """Test donation increases the mech progress.
+
+        ``DonationResult`` exposes scalar power/level deltas rather than
+        raw state objects.  After a donation the mech must progress —
+        either via a strict power increase OR via a level-up (which can
+        carry power forward into the next level so the absolute value
+        does not necessarily grow within the current level).
+        """
         request = DonationRequest(
             donor_name="Test Donor",
             amount=10.0,
@@ -44,7 +51,20 @@ class TestDonationProcessing:
         result = service.process_donation(request)
 
         assert result.success is True
-        assert result.new_state.current_power > result.old_state.current_power
+        assert result.old_power is not None
+        assert result.new_power is not None
+        progressed = (
+            result.new_power > result.old_power
+            or result.level_changed
+            or (result.new_level is not None
+                and result.old_level is not None
+                and result.new_level > result.old_level)
+        )
+        assert progressed, (
+            f"donation did not progress mech: "
+            f"old_power={result.old_power}, new_power={result.new_power}, "
+            f"old_level={result.old_level}, new_level={result.new_level}"
+        )
 
     def test_process_multiple_donations(self, service):
         """Test processing multiple donations."""
@@ -207,7 +227,13 @@ class TestDonationResult:
         return get_unified_donation_service()
 
     def test_result_contains_old_state(self, service):
-        """Test result includes old state."""
+        """Test result includes the pre-donation state snapshot.
+
+        ``DonationResult`` does not retain the full pre-state object, but
+        it exposes ``old_level`` and ``old_power`` derived from it.  As
+        long as those scalars are populated we can be sure the previous
+        state was captured before the donation was applied.
+        """
         request = DonationRequest(
             donor_name="Test",
             amount=5.0,
@@ -216,7 +242,8 @@ class TestDonationResult:
 
         result = service.process_donation(request)
 
-        assert result.old_state is not None
+        assert result.old_level is not None
+        assert result.old_power is not None
 
     def test_result_contains_new_state(self, service):
         """Test result includes new state."""

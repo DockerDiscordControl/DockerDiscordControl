@@ -5,18 +5,34 @@
 # Copyright (c) 2025 MAX                                                  #
 # Licensed under the MIT License                                               #
 # ============================================================================ #
-"""Compatibility helpers for optional runtime integrations."""
+"""Compatibility helpers for optional runtime integrations.
+
+gevent monkey-patching is *opt-in* (set ``DDC_ENABLE_GEVENT=1``). The
+production entrypoint (``run.py`` via waitress) does not need it, and
+patching ssl/threading clashes with the bot's asyncio event loop —
+manifesting as scheduler-service start failures and async-test
+flakiness. The legacy gunicorn dev scripts that need a gevent worker
+still set this env var explicitly.
+"""
 
 from __future__ import annotations
 
 import logging
+import os
 
-try:  # pragma: no cover - exercised implicitly when gevent is installed
-    import gevent.monkey
+_GEVENT_ENABLED = os.environ.get("DDC_ENABLE_GEVENT", "").strip().lower() in {
+    "1", "true", "yes", "on",
+}
 
-    gevent.monkey.patch_all(thread=True, select=True, subprocess=True, socket=True)
-    HAS_GEVENT = True
-except ImportError:  # pragma: no cover - simple environment detection
+if _GEVENT_ENABLED:
+    try:  # pragma: no cover - exercised when gevent is installed and opted-in
+        import gevent.monkey
+
+        gevent.monkey.patch_all(thread=True, select=True, subprocess=True, socket=True)
+        HAS_GEVENT = True
+    except ImportError:  # pragma: no cover - simple environment detection
+        HAS_GEVENT = False
+else:
     HAS_GEVENT = False
 
 

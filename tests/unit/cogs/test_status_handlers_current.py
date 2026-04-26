@@ -19,7 +19,7 @@ from typing import Dict, Any
 
 # Import the class we're testing
 from cogs.status_handlers import StatusHandlersMixin
-from services.docker_status import get_performance_service, get_fetch_service
+from services.docker_status import get_performance_service, get_fetch_service, ContainerStatusResult
 from services.discord import get_conditional_cache_service, get_embed_helper_service
 
 
@@ -326,12 +326,26 @@ class TestStatusHandlersMixin:
         mock_cache_service.set_error = Mock()
         mixin.status_cache_service = mock_cache_service
 
-        # Mock bulk fetch - returns (status, data, error) tuples
-        mock_data1 = ('Test Server 1', True, '10%', '100MB', '1h', True)
-        mock_data2 = ('Test Server 2', False, 'N/A', 'N/A', 'N/A', True)
+        # Mock bulk fetch - returns Dict[str, ContainerStatusResult]
         mock_results = {
-            'container1': ('success', mock_data1, None),
-            'container2': ('success', mock_data2, None)
+            'container1': ContainerStatusResult.success_result(
+                docker_name='container1',
+                display_name='Test Server 1',
+                is_running=True,
+                cpu='10%',
+                ram='100MB',
+                uptime='1h',
+                details_allowed=True,
+            ),
+            'container2': ContainerStatusResult.success_result(
+                docker_name='container2',
+                display_name='Test Server 2',
+                is_running=False,
+                cpu='N/A',
+                ram='N/A',
+                uptime='N/A',
+                details_allowed=True,
+            ),
         }
 
         # Mock server config service
@@ -413,20 +427,18 @@ class TestStatusHandlersMixin:
             'memory_usage_mb': 256.0
         }
 
-        with patch('services.docker_status.fetch_service.get_docker_info_dict_service_first',
+        with patch('cogs.status_handlers.get_docker_info_dict_service_first',
                    new_callable=AsyncMock, return_value=mock_info):
-            with patch('services.docker_status.fetch_service.get_docker_stats_service_first',
+            with patch('cogs.status_handlers.get_docker_stats_service_first',
                        new_callable=AsyncMock, return_value=mock_stats):
 
                 result = await mixin.get_status(server_config)
 
-                # Should return tuple with status info (display_name, is_running, cpu, ram, uptime, details_allowed)
-                assert isinstance(result, tuple)
-                assert len(result) == 6
-                # First element should be display_name
-                assert result[0] == 'Test Server'
-                # Second element should be is_running
-                assert result[1] is True
+                # Should return ContainerStatusResult with status info
+                assert isinstance(result, ContainerStatusResult)
+                assert result.success is True
+                assert result.display_name == 'Test Server'
+                assert result.is_running is True
 
 
     @pytest.mark.asyncio
@@ -450,18 +462,18 @@ class TestStatusHandlersMixin:
             'Name': '/test_container'
         }
 
-        with patch('services.docker_status.fetch_service.get_docker_info_dict_service_first',
+        with patch('cogs.status_handlers.get_docker_info_dict_service_first',
                    new_callable=AsyncMock, return_value=mock_info):
-            with patch('services.docker_status.fetch_service.get_docker_stats_service_first',
+            with patch('cogs.status_handlers.get_docker_stats_service_first',
                        new_callable=AsyncMock, return_value=None):
 
                 result = await mixin.get_status(server_config)
 
-                # Should return tuple with offline status (display_name, is_running, cpu, ram, uptime, details_allowed)
-                assert isinstance(result, tuple)
-                assert len(result) == 6
-                assert result[0] == 'Test Server'
-                assert result[1] is False  # Container is not running
+                # Should return ContainerStatusResult with offline status
+                assert isinstance(result, ContainerStatusResult)
+                assert result.success is True
+                assert result.display_name == 'Test Server'
+                assert result.is_running is False  # Container is not running
 
 
     @pytest.mark.asyncio
@@ -476,13 +488,15 @@ class TestStatusHandlersMixin:
         }
 
         # Mock docker fetch failure
-        with patch('services.docker_status.fetch_service.get_docker_info_dict_service_first',
+        with patch('cogs.status_handlers.get_docker_info_dict_service_first',
                    new_callable=AsyncMock, side_effect=RuntimeError('Docker error')):
 
             result = await mixin.get_status(server_config)
 
-            # Should return Exception
-            assert isinstance(result, Exception)
+            # Should return ContainerStatusResult representing the error
+            assert isinstance(result, ContainerStatusResult)
+            assert result.success is False
+            assert isinstance(result.error, RuntimeError)
 
 
 # =========================================================================

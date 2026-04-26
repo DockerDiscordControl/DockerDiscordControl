@@ -26,13 +26,41 @@ sys.path.insert(0, str(PROJECT_ROOT))
 os.environ["TESTING"] = "true"
 os.environ["DDC_LOG_LEVEL"] = "DEBUG"
 
+# ----------------------------------------------------------------------
+# Isolated config directory
+# ----------------------------------------------------------------------
+# Many modules import ConfigService at module-load time; on dev hosts where
+# the production ``config/`` directory has restrictive permissions (Mac
+# SMB mounts mirroring the Unraid container) collection then fails before
+# the first test even runs.  Point the singleton at a fresh tempdir so the
+# import chain works on any environment.
+import tempfile  # noqa: E402  (placed here intentionally before any project import)
+_TEST_CONFIG_DIR = Path(tempfile.mkdtemp(prefix="ddc-test-config-"))
+os.environ.setdefault("DDC_CONFIG_DIR", str(_TEST_CONFIG_DIR))
+# Seed minimal config files so loaders find valid JSON.
+for _name, _payload in (
+    ("config.json", "{}"),
+    ("servers_config.json", '{"servers": []}'),
+    ("channels_config.json", "{}"),
+    ("docker_config.json", "{}"),
+):
+    _path = _TEST_CONFIG_DIR / _name
+    if not _path.exists():
+        _path.write_text(_payload, encoding="utf-8")
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for the test session."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
+# Also redirect modules with hardcoded relative paths so that import-time
+# directory creation lands somewhere writable.
+_TEST_PROGRESS_DIR = Path(tempfile.mkdtemp(prefix="ddc-test-progress-"))
+os.environ.setdefault("DDC_PROGRESS_DATA_DIR", str(_TEST_PROGRESS_DIR))
+_TEST_METRICS_DIR = Path(tempfile.mkdtemp(prefix="ddc-test-metrics-"))
+os.environ.setdefault("DDC_METRICS_DIR", str(_TEST_METRICS_DIR))
+
+
+# Note: the previous session-scoped ``event_loop`` fixture override has been
+# removed. ``pytest-asyncio`` 1.x manages its own per-test event loops, and
+# overriding ``event_loop`` causes hard-to-diagnose pollution when many async
+# tests run in the same session (loops get reused across tests that expected
+# fresh loops). Configure scopes via ``asyncio_mode`` in pytest.ini instead.
 
 
 @pytest.fixture

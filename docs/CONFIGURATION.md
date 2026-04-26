@@ -125,6 +125,35 @@ environment:
   TZ: "Europe/Berlin"
 ```
 
+### Tuning Variables (v2.2.2+)
+
+All optional — sensible defaults are applied when unset.
+
+```yaml
+environment:
+  # Web session idle timeout (seconds, floor 60). Default 1800 (30 min).
+  DDC_SESSION_IDLE_TIMEOUT: "1800"
+
+  # Waitress thread pool size (range 2..16). Default: max(4, min(8, cpu_count)).
+  DDC_WAITRESS_THREADS: "8"
+
+  # Animation disk cache cap (MB). Default 200. Set to 0 to disable LRU eviction.
+  DDC_ANIM_DISK_LIMIT_MB: "200"
+
+  # Override config/data directories (rarely needed; for custom layouts and tests).
+  # DDC_CONFIG_DIR: "/app/config"
+  # DDC_PROGRESS_DATA_DIR: "/app/config/progress"
+  # DDC_METRICS_DIR: "/app/data/metrics"
+
+  # Re-enable gevent monkey-patching (only needed for legacy gunicorn dev workers;
+  # the standard waitress runtime works without it). Default: off.
+  # DDC_ENABLE_GEVENT: "1"
+
+  # Emergency: run container as root, bypassing privilege drop. Use only when
+  # NAS/permission issues prevent first-time chown. Remove after one boot.
+  # DDC_FORCE_ROOT: "true"
+```
+
 ### Generate Secure Keys
 
 ```bash
@@ -181,7 +210,7 @@ config/
 Discord bot tokens are encrypted using:
 - **Algorithm:** Fernet (AES-128 CBC mode)
 - **Key Derivation:** PBKDF2-HMAC-SHA256
-- **Iterations:** 260,000
+- **Iterations:** 600,000
 - **Password Hashing:** PBKDF2-SHA256, 600,000 iterations
 
 ### Best Practices

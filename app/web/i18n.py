@@ -7,10 +7,28 @@
 # ============================================================================ #
 """Flask i18n integration - context processor for Jinja2 templates."""
 
-from flask import Flask
+from flask import Flask, g
 
 from services.config.config_service import load_config
 from services.web.i18n_service import get_i18n_service
+
+
+def _request_scoped_config() -> dict:
+    """Return the active config, cached on flask.g for the current request.
+
+    Without this cache the i18n context processor reloads the full config
+    from disk on *every* template render — multiple times per request when
+    a page renders nested templates.
+    """
+    cached = getattr(g, "_ddc_request_config", None)
+    if cached is not None:
+        return cached
+    try:
+        config = load_config()
+    except Exception:
+        config = {}
+    g._ddc_request_config = config
+    return config
 
 
 def register_i18n(app: Flask) -> None:
@@ -20,10 +38,7 @@ def register_i18n(app: Flask) -> None:
     def inject_i18n():
         svc = get_i18n_service()
 
-        try:
-            config = load_config()
-        except Exception:
-            config = {}
+        config = _request_scoped_config()
 
         ui_lang = config.get('ui_language', 'en')
 

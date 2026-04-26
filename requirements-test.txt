@@ -19,7 +19,9 @@ pytest-flask>=1.2.0,<2.0.0
 flask-testing>=0.8.1,<1.0.0
 
 # Docker Testing
-docker>=6.1.0,<7.0.0
+# Pinned to match requirements.prod.txt (docker==7.1.0) so tests exercise
+# the same SDK API surface as production.
+docker==7.1.0
 # testcontainers>=3.7.0,<4.0.0  # Commented out - complex deps, install separately if needed
 
 # Performance Testing

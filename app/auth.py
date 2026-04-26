@@ -59,6 +59,12 @@ class SimpleRateLimiter:
 # Global rate limiter - reasonable for normal usage
 auth_limiter = SimpleRateLimiter(limit=100, per_seconds=60)  # 100 requests per minute
 
+# Stricter limiter for the first-time-setup endpoint. While no password is
+# configured, /setup accepts admin/setup as a bootstrap credential — without
+# this limit an attacker could brute-force the bootstrap window.
+setup_limiter = SimpleRateLimiter(limit=5, per_seconds=60)
+
+
 def init_limiter(app):
     """Initializes rate limiting for login attempts"""
     @app.before_request
@@ -71,9 +77,19 @@ def init_limiter(app):
         if request.path.startswith('/api/donation/status') or request.path.startswith('/health'):
             return None
 
-        # Only limit authentication requests (but allow setup page)
-        if 'Authorization' in request.headers and not request.path.startswith('/setup'):
-            client_ip = request.remote_addr
+        client_ip = request.remote_addr
+
+        # Setup endpoint gets its own tight limit (5 req/min) — applies to GET
+        # and POST regardless of Authorization header so unauthenticated probes
+        # are also throttled.
+        if request.path.startswith('/setup'):
+            if setup_limiter.is_rate_limited(client_ip):
+                app.logger.warning(f"Setup rate limit exceeded from IP: {client_ip}")
+                return jsonify(error="Too many setup attempts. Please try again later."), 429
+            return None
+
+        # General auth-rate-limit for everything that ships an Authorization header.
+        if 'Authorization' in request.headers:
             if auth_limiter.is_rate_limited(client_ip):
                 app.logger.warning(f"Rate limit exceeded for auth from IP: {client_ip}")
                 return jsonify(error="Too many login attempts. Please try again later."), 429

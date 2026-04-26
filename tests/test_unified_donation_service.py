@@ -22,15 +22,29 @@ class FakeState(SimpleNamespace):
     pass
 
 
+def _make_fake_state(level: int, power: float) -> FakeState:
+    """Build a FakeState that exposes both ``Power`` and ``power_level``.
+
+    The unified donation service reads ``Power`` (used by event/result builders)
+    while the structured logging path reads ``power_level``. Provide both so the
+    fake matches the real ``MechState`` shape exercised by the service.
+    """
+
+    return FakeState(level=level, Power=power, power_level=power)
+
+
 class FakeMechService:
     def __init__(self):
-        self.state = FakeState(level=1, Power=100)
+        self.state = _make_fake_state(level=1, power=100)
 
     def get_state(self):
         return self.state
 
     def add_donation(self, amount, donor, channel_id=None):  # noqa: ARG002
-        self.state = FakeState(level=self.state.level + 1, Power=self.state.Power + amount)
+        self.state = _make_fake_state(
+            level=self.state.level + 1,
+            power=self.state.Power + amount,
+        )
         return self.state
 
     async def add_donation_async(self, **kwargs):

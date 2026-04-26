@@ -9,6 +9,7 @@ Provides API endpoints for channel pair management, settings, and testing.
 
 import logging
 import os
+import urllib.parse
 from flask import Blueprint, jsonify, request
 from app.auth import auth
 from services.translation import (
@@ -20,6 +21,22 @@ from services.translation.translation_config_service import SUPPORTED_LANGUAGES
 logger = logging.getLogger('ddc.web.translation_routes')
 
 translation_bp = Blueprint('translation_bp', __name__)
+
+# SSRF protection: only outbound HTTPS calls to known translation providers are allowed.
+_ALLOWED_TRANSLATION_HOSTS = {
+    'api.deepl.com',
+    'api-free.deepl.com',
+    'translation.googleapis.com',
+    'api.cognitive.microsofttranslator.com',
+}
+
+
+def _is_allowed_translation_url(url: str) -> bool:
+    try:
+        parsed = urllib.parse.urlparse(url)
+    except (ValueError, TypeError):
+        return False
+    return parsed.scheme == 'https' and parsed.hostname in _ALLOWED_TRANSLATION_HOSTS
 
 
 # --- Channel Pair Management ---
@@ -186,6 +203,10 @@ def test_translation():
 
     def _api_post(url, headers=None, json_body=None, form_data=None, params=None, timeout=15):
         """Simple HTTP POST without requests library (avoids gevent recursion)."""
+        # SSRF guard — reject anything not on the explicit translation-provider allow-list.
+        if not _is_allowed_translation_url(url):
+            logger.warning("Blocked outbound translation request to disallowed URL: %s", url)
+            return 400, None
         if params:
             url = url + '?' + urllib.parse.urlencode(params)
         if json_body is not None:

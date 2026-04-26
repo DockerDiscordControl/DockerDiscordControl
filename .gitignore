@@ -147,6 +147,12 @@ cache/
 tmp/
 temp/
 
+# DDC Specific - Generated animation/display caches (regenerated at runtime)
+cached_animations/*.cache
+cached_animations/*.webp
+cached_displays/*.png
+cached_displays/*.webp
+
 # DDC Specific - Development and testing
 test_output/
 debug_output/

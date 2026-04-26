@@ -1,33 +1,38 @@
 # DDC PRODUCTION REQUIREMENTS (minimal)
+# Upper bounds default to ``< next-next major`` from the floor to allow current
+# major + one future major (breathing room for CVE fixes) while still excluding
+# distant future majors with potential breaking changes.
 Flask==3.1.3
-Werkzeug>=3.1.6  # Security fix for GHSA-hgf8-39gv-g3f2 + CVE-2026-21860
+Werkzeug>=3.1.6,<5.0.0  # Security fix for GHSA-hgf8-39gv-g3f2 + CVE-2026-21860
 py-cord==2.6.1
 waitress==3.0.2
-cryptography>=46.0.7  # Security fix for CVE-2026-26007 + CVE-2026-39892
+cryptography>=46.0.7,<48.0.0  # Security fix for CVE-2026-26007 + CVE-2026-39892
 APScheduler==3.11.2
 PyYAML==6.0.3
-requests>=2.33.0  # Security fix for CVE-2026-25645
-urllib3>=2.6.0  # Security fix for GHSA-s4qh-5xfq-xqjg
-aiohttp>=3.12.14
-Flask-HTTPAuth>=4.8.1  # Security fix: token verification callback bypass
-Jinja2>=3.1.4
+requests>=2.33.0,<3.0.0  # Security fix for CVE-2026-25645
+urllib3>=2.6.0,<3.0.0  # Security fix for GHSA-s4qh-5xfq-xqjg
+aiohttp>=3.12.14,<4.0.0
+Flask-HTTPAuth>=4.8.1,<5.0.0  # Security fix: token verification callback bypass
+Jinja2>=3.1.4,<5.0.0
 python-json-logger==2.0.7
 pytz==2024.2
 cachetools==5.3.2
-itsdangerous>=2.2.0
-click>=8.1.7
-blinker>=1.8.2
-MarkupSafe>=2.1.5
-flask-limiter>=3.5.0
-limits>=3.9.0
-zope.event>=5.0
-zope.interface>=6.2
+itsdangerous>=2.2.0,<3.0.0
+click>=8.1.7,<10.0.0
+blinker>=1.8.2,<2.0.0
+MarkupSafe>=2.1.5,<4.0.0
+flask-limiter>=3.5.0,<5.0.0
+limits>=3.9.0,<6.0.0
+zope.event>=5.0,<6.0
+zope.interface>=6.2,<8.0
 # gevent (required for async container lifecycle management)
 gevent==25.5.1
-greenlet>=3.0.3
+greenlet>=3.0.3,<4.0.0
 # Python Docker SDK (required)
 docker==7.1.0
 # audioop-lts only for Python 3.13+
 audioop-lts==0.2.1; python_version >= "3.13"
 # Pillow for mech animations
-Pillow>=12.1.1  # Security fix for CVE-2026-25990
+Pillow>=12.1.1,<14.0.0  # Security fix for CVE-2026-25990
+# CSRF protection — Flask-WTF provides the CSRFProtect middleware
+Flask-WTF>=1.2.1,<3.0.0

@@ -21,6 +21,7 @@ from .background import register_background_services
 from .blueprints import register_blueprints
 from .compat import initialize_gevent
 from .config import build_config
+from .csrf import install_csrf_protection
 from .diagnostics import run_startup_diagnostics
 from .extensions import configure_proxy, init_rate_limiting
 from .logging import configure_logging
@@ -49,6 +50,7 @@ def create_app(test_config: Optional[Mapping[str, object]] = None) -> Flask:
     configure_proxy(app)
     init_rate_limiting(app)
     register_blueprints(app)
+    install_csrf_protection(app)
     install_security_handlers(app)
     run_startup_diagnostics(app)
     ensure_action_logger(app)

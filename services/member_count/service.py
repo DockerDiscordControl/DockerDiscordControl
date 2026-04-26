@@ -24,7 +24,7 @@ from services.mech.progress_paths import get_progress_paths
 from utils.logging_utils import get_module_logger
 
 
-@dataclass
+@dataclass(slots=True)
 class _ChannelPermissionsCache:
     """Light-weight cache for channel permission configuration."""
 

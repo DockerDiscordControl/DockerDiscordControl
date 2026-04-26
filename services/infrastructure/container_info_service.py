@@ -10,6 +10,9 @@ Container Info Service - Manages container metadata with clean service architect
 """
 
 import docker
+import docker.errors  # explicit submodule import — ``import docker`` alone
+                      # does not eagerly bind ``docker.errors``, but the
+                      # ``except`` tuples below reference its exception types.
 import os
 import re
 import json
@@ -143,7 +146,7 @@ class ContainerInfoService:
             logger.debug(f"Loaded info for container {container_name} from {container_file.name}: enabled={container_info.enabled}")
             return ServiceResult(success=True, data=container_info)
 
-        except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, docker.errors.APIError, docker.errors.DockerException) as e:
+        except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, ValueError, json.JSONDecodeError, docker.errors.APIError, docker.errors.DockerException) as e:
             error_msg = f"Error loading info for {container_name}: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
@@ -197,7 +200,7 @@ class ContainerInfoService:
             logger.info(f"Saved container info to {container_file.name}: {container_name}")
             return ServiceResult(success=True, data=container_info)
 
-        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+        except (IOError, OSError, PermissionError, RuntimeError, TypeError, ValueError, json.JSONDecodeError, docker.errors.APIError, docker.errors.DockerException) as e:
             error_msg = f"Error saving info for {container_name}: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
@@ -258,7 +261,7 @@ class ContainerInfoService:
             logger.info(f"Reset container info to defaults: {container_name}")
             return ServiceResult(success=True)
 
-        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+        except (IOError, OSError, PermissionError, RuntimeError, TypeError, ValueError, json.JSONDecodeError, docker.errors.APIError, docker.errors.DockerException) as e:
             error_msg = f"Error resetting info for {container_name}: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
@@ -292,7 +295,7 @@ class ContainerInfoService:
             logger.debug(f"Found {len(container_names)} containers in docker config")
             return ServiceResult(success=True, data=container_names)
 
-        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+        except (IOError, OSError, PermissionError, RuntimeError, TypeError, ValueError, json.JSONDecodeError, docker.errors.APIError, docker.errors.DockerException) as e:
             error_msg = f"Error listing containers from docker config: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)

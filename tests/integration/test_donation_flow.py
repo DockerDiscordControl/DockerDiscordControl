@@ -43,11 +43,11 @@ class TestDonationFlowIntegration:
 
         # Verify mech state updated
         new_state = self.mech_service.get_state()
-        assert new_state.current_power > self.initial_state.current_power
+        assert new_state.power_level > self.initial_state.power_level
 
     def test_multiple_donations_cumulative_effect(self):
         """Test multiple donations have cumulative effect."""
-        initial_power = self.mech_service.get_state().current_power
+        initial_total = self.mech_service.get_state().total_donations
 
         # Process 3 donations
         for i in range(3):
@@ -59,9 +59,9 @@ class TestDonationFlowIntegration:
             result = self.donation_service.process_donation(request)
             assert result.success is True
 
-        # Power should have increased by 15
-        final_power = self.mech_service.get_state().current_power
-        assert final_power >= initial_power + 15.0
+        # Total donations should have increased by 15
+        final_total = self.mech_service.get_state().total_donations
+        assert final_total >= initial_total + 15.0
 
     def test_donation_result_contains_power_change(self):
         """Test donation result shows power change."""
@@ -71,17 +71,23 @@ class TestDonationFlowIntegration:
             source="test"
         )
 
+        old_total = self.mech_service.get_state().total_donations
+
         result = self.donation_service.process_donation(request)
 
         assert result.success is True
-        assert result.old_state is not None
+        assert result.old_power is not None
         assert result.new_state is not None
-        assert result.new_state.current_power > result.old_state.current_power
+        assert result.new_power is not None
+        # total_donations is monotonically increasing while power can be reset
+        # on evolution level-up. Verify the donation made it to the mech state
+        # by checking total_donations and that the result captured both states.
+        assert result.new_state.total_donations > old_total
 
     @pytest.mark.asyncio
     async def test_async_donation_integrates_with_mech_service(self):
         """Test async donation integrates with mech service."""
-        initial_power = self.mech_service.get_state().current_power
+        initial_total = self.mech_service.get_state().total_donations
 
         request = DonationRequest(
             donor_name="Async Donor",
@@ -93,12 +99,12 @@ class TestDonationFlowIntegration:
 
         assert result.success is True
 
-        final_power = self.mech_service.get_state().current_power
-        assert final_power > initial_power
+        final_total = self.mech_service.get_state().total_donations
+        assert final_total > initial_total
 
     def test_failed_donation_does_not_update_state(self):
         """Test failed donation doesn't change state."""
-        initial_power = self.mech_service.get_state().current_power
+        initial_total = self.mech_service.get_state().total_donations
 
         # Invalid donation (negative amount)
         request = DonationRequest(
@@ -111,9 +117,9 @@ class TestDonationFlowIntegration:
 
         assert result.success is False
 
-        # Power should not have changed
-        final_power = self.mech_service.get_state().current_power
-        assert final_power == initial_power
+        # Total donations should not have changed
+        final_total = self.mech_service.get_state().total_donations
+        assert final_total == initial_total
 
 
 # Summary: 6 integration tests for donation flow

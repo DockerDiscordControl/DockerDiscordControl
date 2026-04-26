@@ -19,8 +19,14 @@ from logging.handlers import RotatingFileHandler
 DEFAULT_LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 DEBUG_LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s [%(filename)s:%(lineno)d]'
 
-# Thread lock for global debug state
-_debug_mode_lock = threading.Lock()
+# Thread lock for global debug state. Must be re-entrant (RLock) — when the
+# config-service import chain triggers another logger creation while we're
+# already inside ``is_debug_mode_enabled``, the same thread re-enters this
+# function. With gevent's monkey-patched lock the re-entry was tolerated
+# silently; with the standard ``threading.Lock`` it deadlocks. The
+# ``_loading`` attribute below is the real recursion guard; the lock is
+# only here to serialise across *threads*.
+_debug_mode_lock = threading.RLock()
 
 # Global variable for debug status
 _debug_mode_enabled = None
@@ -269,7 +275,7 @@ def refresh_debug_status():
         print(f"Error refreshing debug status: {e}")
         return False
 
-def enable_temporary_debug(duration_minutes=10):
+def enable_temporary_debug(duration_minutes=5):
     """
     Enables temporary debug mode for a specified duration.
     Debug mode will automatically disable after the duration expires.
