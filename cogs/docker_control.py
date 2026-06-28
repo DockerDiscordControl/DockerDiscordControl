@@ -121,7 +121,24 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         logger.info(f"Loaded persisted Mech states: {len(self.mech_expanded_states)} expanded, {len(self.last_glvl_per_channel)} Glvl tracked")
 
         self.expanded_states = {}  # For container expand/collapse
+
+        # FIX C: Restore persisted overview/admin_overview message ids. This lets the bot
+        # delete a long-lived (possibly >30-day-old) overview by ID after a restart before
+        # re-posting, preventing a duplicate that the age-limited cleanup would otherwise miss.
         self.channel_server_message_ids: Dict[int, Dict[str, int]] = {}
+        for cid_str, msgs in state_data.get("channel_overview_message_ids", {}).items():
+            if not isinstance(msgs, dict):
+                continue
+            try:
+                cid = int(cid_str)
+                restored = {k: int(v) for k, v in msgs.items()
+                            if k in ('overview', 'admin_overview') and v}
+                if restored:
+                    self.channel_server_message_ids[cid] = restored
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid persisted overview id entry for channel {cid_str}")
+        if self.channel_server_message_ids:
+            logger.info(f"Restored persisted overview message ids for {len(self.channel_server_message_ids)} channel(s)")
         self.last_message_update_time: Dict[int, Dict[str, datetime]] = {}
         self.initial_messages_sent = False
         self.last_channel_activity: Dict[int, datetime] = {}
@@ -246,6 +263,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # Initialize interaction lock to prevent race conditions between button clicks and auto-updates
             self._interaction_lock = asyncio.Lock()
             self._active_interactions = set()  # Track active button interactions per channel
+
+            # FIX B: Per-channel locks serialize every path that deletes+posts an overview
+            # (regenerate, recreate, recovery, /ss, /control, initial send) so two concurrent
+            # paths can never post a duplicate overview into the same channel.
+            self._channel_locks: Dict[int, asyncio.Lock] = {}
             logger.debug("Step 10 complete: Asyncio locks initialized")
         except Exception as e:
             logger.error(f"[DEBUG INIT] Step 10 FAILED: {e}", exc_info=True)
@@ -419,16 +441,22 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     async def _teardown_channel(self, channel_id: int):
         """Clean up a removed channel: delete bot messages and remove tracking."""
         try:
-            channel = self.bot.get_channel(channel_id)
-            if channel and isinstance(channel, discord.TextChannel):
-                logger.info(f"Tearing down channel {channel.name} ({channel_id})")
-                try:
-                    await self.delete_bot_messages(channel)
-                except Exception as e:
-                    logger.warning(f"Could not delete messages in channel {channel_id}: {e}")
+            # FIX B: serialize the delete + tracking removal against any in-flight poster
+            # for this channel so a teardown can't race a concurrent regenerate/command.
+            async with self._get_channel_lock(channel_id):
+                channel = self.bot.get_channel(channel_id)
+                if channel and isinstance(channel, discord.TextChannel):
+                    logger.info(f"Tearing down channel {channel.name} ({channel_id})")
+                    try:
+                        await self.delete_bot_messages(channel)
+                    except Exception as e:
+                        logger.warning(f"Could not delete messages in channel {channel_id}: {e}")
 
-            # Clean up all tracking state
-            self.channel_server_message_ids.pop(channel_id, None)
+                self.channel_server_message_ids.pop(channel_id, None)
+                self._persist_tracked_message_ids()  # FIX C: drop removed channel from persisted map
+
+            # Remaining (non-message) tracking - safe outside the lock; drop the lock entry last.
+            self._channel_locks.pop(channel_id, None)  # FIX B: drop the per-channel lock
             self.last_message_update_time.pop(channel_id, None)
             self.last_channel_activity.pop(channel_id, None)
             if hasattr(self, 'mech_expanded_states'):
@@ -468,21 +496,27 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
             logger.info(f"Setting up new channel {channel.name} ({channel_id}) in {mode} mode")
 
-            # Clean old messages
-            try:
-                await self.delete_bot_messages(channel)
-                await asyncio.sleep(1)
-            except Exception as e:
-                logger.warning(f"Could not clean channel {channel_id}: {e}")
+            # FIX B: serialize delete+send against any concurrent poster (e.g. a user firing
+            # /ss while this hot-reload runs) so we never post a duplicate overview.
+            async with self._get_channel_lock(channel_id):
+                # Clean old messages
+                try:
+                    # FIX C parity: remove the tracked overview by ID first (age-limited
+                    # cleanup can skip a >30-day-old in-place-edited overview -> duplicate).
+                    await self._delete_tracked_overview_messages(channel)
+                    await self.delete_bot_messages(channel)
+                    await asyncio.sleep(1)
+                except Exception as e:
+                    logger.warning(f"Could not clean channel {channel_id}: {e}")
 
-            # Populate cache before sending
-            await self._background_cache_population()
+                # Populate cache before sending
+                await self._background_cache_population()
 
-            # Send initial messages
-            if mode == 'control':
-                await self._send_control_panel_and_statuses(channel)
-            else:
-                await self._send_all_server_statuses(channel, allow_toggle=False, force_collapse=True)
+                # Send initial messages
+                if mode == 'control':
+                    await self._send_control_panel_and_statuses(channel)
+                else:
+                    await self._send_all_server_statuses(channel, allow_toggle=False, force_collapse=True)
 
             # Start tracking
             self.last_channel_activity[channel_id] = datetime.now(timezone.utc)
@@ -1164,6 +1198,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 if channel.id not in self.channel_server_message_ids:
                     self.channel_server_message_ids[channel.id] = {}
                 self.channel_server_message_ids[channel.id]['admin_overview'] = message.id
+                self._persist_tracked_message_ids()  # FIX C: survive restart -> no duplicate
 
                 # Initialize update time tracking
                 if channel.id not in self.last_message_update_time:
@@ -1240,6 +1275,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     self.channel_server_message_ids[channel.id].clear()
 
                 self.channel_server_message_ids[channel.id]["overview"] = message.id
+                self._persist_tracked_message_ids()  # FIX C: survive restart -> no duplicate
 
                 # Initialize update time tracking for overview only
                 if channel.id not in self.last_message_update_time:
@@ -1262,6 +1298,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             logger.error(f"Error in _send_all_server_statuses: {e}", exc_info=True)
 
     async def _regenerate_channel(self, channel: discord.TextChannel, mode: str, config: dict):
+        """FIX B: Serialize regeneration per-channel so it can't race another poster
+        (inactivity loop, event recreate, /ss, /control, recovery) into a duplicate overview.
+
+        This is the single lock owner for the delete+post sequence; callers (inactivity
+        loop, control_command) must NOT already hold the channel lock.
+        """
+        async with self._get_channel_lock(channel.id):
+            await self._regenerate_channel_impl(channel, mode, config)
+
+    async def _regenerate_channel_impl(self, channel: discord.TextChannel, mode: str, config: dict):
         """Deletes all bot messages and posts a fresh control panel and status messages."""
         if not config:
             logger.error(f"Regenerate Channel: Could not load configuration. Aborting.")
@@ -1276,6 +1322,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         # --- Delete old messages ---
         try:
             logger.info(f"Deleting old bot messages in {channel.name}...")
+            # Delete our long-lived overview by ID first - the age-limited cleanup below
+            # can silently skip it once it is older than 30 days (-> duplicate overview).
+            await self._delete_tracked_overview_messages(channel)
             await self.delete_bot_messages(channel, limit=300) # Limit adjustable
             await asyncio.sleep(1.0) # Short pause after deleting
             logger.info(f"Finished deleting messages in {channel.name}.")
@@ -1371,27 +1420,33 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                         logger.info(f"Regenerating channel {channel.name} ({channel_id}) in {mode} mode")
 
-                        # Delete old messages
-                        try:
-                            await self.delete_bot_messages(channel)
-                            await asyncio.sleep(1)  # Short pause after deletion
-                        except (discord.errors.DiscordException, RuntimeError) as e:
-                            logger.error(f"Error deleting messages in {channel.name}: {e}", exc_info=True)
+                        # FIX B: serialize delete+send against any concurrent poster (e.g. a
+                        # user firing /ss right at startup) so we never post a duplicate overview.
+                        async with self._get_channel_lock(channel.id):
+                            # Delete old messages
+                            try:
+                                # Remove our long-lived overview by ID first (age-limited cleanup
+                                # can skip a >30-day-old in-place-edited overview -> duplicate).
+                                await self._delete_tracked_overview_messages(channel)
+                                await self.delete_bot_messages(channel)
+                                await asyncio.sleep(1)  # Short pause after deletion
+                            except (discord.errors.DiscordException, RuntimeError) as e:
+                                logger.error(f"Error deleting messages in {channel.name}: {e}", exc_info=True)
 
-                        # Clear any leftover individual server message tracking from old architecture
-                        if channel.id in self.channel_server_message_ids:
-                            old_entries = list(self.channel_server_message_ids[channel.id].keys())
-                            for entry_key in old_entries:
-                                if entry_key not in ["overview", "admin_overview"]:
-                                    logger.info(f"Clearing leftover individual server entry '{entry_key}' from channel {channel.id}")
-                                    del self.channel_server_message_ids[channel.id][entry_key]
+                            # Clear any leftover individual server message tracking from old architecture
+                            if channel.id in self.channel_server_message_ids:
+                                old_entries = list(self.channel_server_message_ids[channel.id].keys())
+                                for entry_key in old_entries:
+                                    if entry_key not in ["overview", "admin_overview"]:
+                                        logger.info(f"Clearing leftover individual server entry '{entry_key}' from channel {channel.id}")
+                                        del self.channel_server_message_ids[channel.id][entry_key]
 
-                        # Send new messages using consistent logic with _regenerate_channel
-                        if mode == 'control':
-                            await self._send_control_panel_and_statuses(channel)
-                        elif mode == 'status':
-                            # Use the same method as _regenerate_channel to ensure consistency
-                            await self._send_all_server_statuses(channel, allow_toggle=False, force_collapse=True)
+                            # Send new messages using consistent logic with _regenerate_channel
+                            if mode == 'control':
+                                await self._send_control_panel_and_statuses(channel)
+                            elif mode == 'status':
+                                # Use the same method as _regenerate_channel to ensure consistency
+                                await self._send_all_server_statuses(channel, allow_toggle=False, force_collapse=True)
 
                         # Set initial channel activity time so inactivity tracking works
                         self.last_channel_activity[channel.id] = datetime.now(timezone.utc)
@@ -1492,6 +1547,90 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
         except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"❌ CLEANUP FAILED for channel {channel.name}: {e}", exc_info=True)
+
+    def _get_channel_lock(self, channel_id: int) -> asyncio.Lock:
+        """FIX B: Return the per-channel asyncio.Lock, creating it lazily.
+
+        Created on first use, which always happens inside an `async with` on the bot's
+        event loop, so the Lock binds to the correct loop. asyncio.Lock is NOT reentrant:
+        a method holding this lock must never call another method that also acquires it
+        for the same channel (see lock-owner convention in _regenerate_channel et al.).
+        """
+        lock = self._channel_locks.get(channel_id)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._channel_locks[channel_id] = lock
+        return lock
+
+    def _persist_tracked_message_ids(self) -> None:
+        """Persist overview/admin_overview message ids to mech_state.json (best-effort).
+
+        Only the single managed overview id per channel is stored; per-server/per-docker
+        ids are intentionally excluded. This enables _delete_tracked_overview_messages to
+        remove a stale, long-lived overview by ID after a restart so a fresh overview is
+        not posted on top of it (-> duplicate). Called from every site that POSTS a new
+        overview, so the persisted id always reflects the latest message.
+        """
+        try:
+            snapshot = {}
+            for cid, msgs in self.channel_server_message_ids.items():
+                kept = {k: v for k, v in msgs.items()
+                        if k in ('overview', 'admin_overview') and v}
+                if kept:
+                    snapshot[str(cid)] = kept
+            self.mech_state_manager.set_state("channel_overview_message_ids", snapshot)
+        except (OSError, RuntimeError, TypeError, ValueError) as e:
+            logger.warning(f"Could not persist overview message ids: {e}")
+
+    def _overview_buried_by_stray(self, channel_id: int, last_msg_id: int) -> bool:
+        """FIX A predicate: should the inactivity loop move our overview to the bottom?
+
+        Called only when the channel's LAST message is bot-authored. Returns True when a
+        STRAY bot message (e.g. a restart/update notification) has buried our managed
+        overview, i.e. the last message is NOT one of our tracked overview/admin-overview
+        IDs. Returns False when:
+          - there is no tracking yet (e.g. right after a restart, before messages are
+            re-posted) -> keep the old, safe behavior and never regenerate on a bot
+            message (avoids deleting an intact overview / a regenerate storm), or
+          - the last message IS our managed overview (already at the bottom).
+        Foreign (non-bot) messages are handled by the caller and always regenerate.
+        """
+        tracked = self.channel_server_message_ids.get(channel_id, {})
+        managed_ids = set(tracked.values())
+        managed_ids.discard(None)
+        if not managed_ids:
+            return False
+        return last_msg_id not in managed_ids
+
+    async def _delete_tracked_overview_messages(self, channel: discord.TextChannel) -> None:
+        """Delete the bot's own tracked overview / admin_overview messages by ID.
+
+        Individual delete-by-ID has neither the 14-day bulk-delete limit nor the
+        30-day age cutoff that the generic cleanup (delete_bot_messages) applies.
+        An overview that is edited in place keeps its original created_at, so after
+        ~30 days the age-limited cleanup silently skips it and a fresh overview gets
+        posted on top of the stale one -> duplicate message. Removing the tracked
+        message by its known ID first prevents that.
+        """
+        tracked = self.channel_server_message_ids.get(channel.id)
+        if not tracked:
+            return
+        for key in ('overview', 'admin_overview'):
+            message_id = tracked.get(key)
+            if not message_id:
+                continue
+            try:
+                await channel.get_partial_message(message_id).delete()
+                logger.info(f"Removed tracked '{key}' message {message_id} in channel {channel.id} before re-posting")
+                tracked.pop(key, None)
+            except discord.NotFound:
+                tracked.pop(key, None)  # Already gone - drop the stale id
+            except (discord.Forbidden, discord.HTTPException) as e:
+                # Transient/permission error: KEEP the id so a later regenerate retries the
+                # by-id delete instead of permanently stranding a >30-day-old overview.
+                logger.warning(f"Could not delete tracked '{key}' message {message_id} in channel {channel.id}: {e}")
+        # Keep the persisted map in sync so we don't try to delete the same id next restart.
+        self._persist_tracked_message_ids()
 
     # --- Slash Commands ---
     async def _check_spam_protection(self, ctx: discord.ApplicationContext, command_name: str) -> bool:
@@ -1637,53 +1776,57 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             from .control_ui import MechView
             view = MechView(self, channel_id)
 
-            # Delete old overview message if it exists (prevents duplicate messages)
-            if ctx.channel.id in self.channel_server_message_ids and "overview" in self.channel_server_message_ids[ctx.channel.id]:
-                old_message_id = self.channel_server_message_ids[ctx.channel.id]["overview"]
-                try:
-                    old_message = await ctx.channel.fetch_message(old_message_id)
-                    await old_message.delete()
-                    logger.debug(f"Deleted old overview message {old_message_id} in channel {ctx.channel.id}")
-                except discord.NotFound:
-                    logger.debug(f"Old overview message {old_message_id} not found (already deleted)")
-                except (discord.Forbidden, discord.HTTPException) as e:
-                    logger.warning(f"Could not delete old overview message {old_message_id}: {e}")
+            # FIX B: serialize delete-old + post + track against other overview posters
+            # (inactivity regenerate, event recreate, recovery) to prevent duplicate overviews.
+            async with self._get_channel_lock(ctx.channel.id):
+                # Delete old overview message if it exists (prevents duplicate messages)
+                if ctx.channel.id in self.channel_server_message_ids and "overview" in self.channel_server_message_ids[ctx.channel.id]:
+                    old_message_id = self.channel_server_message_ids[ctx.channel.id]["overview"]
+                    try:
+                        old_message = await ctx.channel.fetch_message(old_message_id)
+                        await old_message.delete()
+                        logger.debug(f"Deleted old overview message {old_message_id} in channel {ctx.channel.id}")
+                    except discord.NotFound:
+                        logger.debug(f"Old overview message {old_message_id} not found (already deleted)")
+                    except (discord.Forbidden, discord.HTTPException) as e:
+                        logger.warning(f"Could not delete old overview message {old_message_id}: {e}")
 
-            # EDGE CASE: Safely send embed with animation and button
-            try:
-                if animation_file:
-                    # Validate file before sending
-                    if hasattr(animation_file, 'fp') and animation_file.fp:
-                        message = await ctx.followup.send(embed=embed, file=animation_file, view=view)
-                        logger.info("✅ Sent /ss with animation and Mechonate button")
+                # EDGE CASE: Safely send embed with animation and button
+                try:
+                    if animation_file:
+                        # Validate file before sending
+                        if hasattr(animation_file, 'fp') and animation_file.fp:
+                            message = await ctx.followup.send(embed=embed, file=animation_file, view=view)
+                            logger.info("✅ Sent /ss with animation and Mechonate button")
+                        else:
+                            logger.warning("Animation file invalid, sending without animation")
+                            message = await ctx.followup.send(embed=embed, view=view)
                     else:
-                        logger.warning("Animation file invalid, sending without animation")
+                        logger.warning("No animation file attached, sending embed only")
                         message = await ctx.followup.send(embed=embed, view=view)
-                else:
-                    logger.warning("No animation file attached, sending embed only")
-                    message = await ctx.followup.send(embed=embed, view=view)
-            except discord.HTTPException as e:
-                logger.error(f"Discord error sending animation: {e}", exc_info=True)
-                # Fallback: Send without animation but with button
-                try:
-                    message = await ctx.followup.send(embed=embed, view=view)
-                except (RuntimeError, OSError, ValueError) as fallback_error:
-                    logger.error(f"Critical: Could not send embed at all: {fallback_error}")
-                    await ctx.followup.send(_("Error generating server status overview."), ephemeral=True)
-                    return
+                except discord.HTTPException as e:
+                    logger.error(f"Discord error sending animation: {e}", exc_info=True)
+                    # Fallback: Send without animation but with button
+                    try:
+                        message = await ctx.followup.send(embed=embed, view=view)
+                    except (RuntimeError, OSError, ValueError) as fallback_error:
+                        logger.error(f"Critical: Could not send embed at all: {fallback_error}")
+                        await ctx.followup.send(_("Error generating server status overview."), ephemeral=True)
+                        return
 
-            # Update tracking information
-            now_utc = datetime.now(timezone.utc)
+                # Update tracking information
+                now_utc = datetime.now(timezone.utc)
 
-            # Update message update time
-            if ctx.channel.id not in self.last_message_update_time:
-                self.last_message_update_time[ctx.channel.id] = {}
-            self.last_message_update_time[ctx.channel.id]["overview"] = now_utc
+                # Update message update time
+                if ctx.channel.id not in self.last_message_update_time:
+                    self.last_message_update_time[ctx.channel.id] = {}
+                self.last_message_update_time[ctx.channel.id]["overview"] = now_utc
 
-            # Track the message ID
-            if ctx.channel.id not in self.channel_server_message_ids:
-                self.channel_server_message_ids[ctx.channel.id] = {}
-            self.channel_server_message_ids[ctx.channel.id]["overview"] = message.id
+                # Track the message ID
+                if ctx.channel.id not in self.channel_server_message_ids:
+                    self.channel_server_message_ids[ctx.channel.id] = {}
+                self.channel_server_message_ids[ctx.channel.id]["overview"] = message.id
+                self._persist_tracked_message_ids()  # FIX C: survive restart -> no duplicate
 
             # Set last channel activity
             self.last_channel_activity[ctx.channel.id] = now_utc
@@ -1755,13 +1898,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             view = AdminOverviewView(self, ctx.channel_id, has_running)
 
             # Send the Admin Overview message and track it for updates
-            message = await ctx.followup.send(embed=embed, view=view)
+            # FIX B: serialize post+track against other overview posters for this channel.
+            async with self._get_channel_lock(ctx.channel_id):
+                message = await ctx.followup.send(embed=embed, view=view)
 
-            # Track message for automatic updates (like /ss)
-            channel_id = ctx.channel_id
-            if channel_id not in self.channel_server_message_ids:
-                self.channel_server_message_ids[channel_id] = {}
-            self.channel_server_message_ids[channel_id]['admin_overview'] = message.id
+                # Track message for automatic updates (like /ss)
+                channel_id = ctx.channel_id
+                if channel_id not in self.channel_server_message_ids:
+                    self.channel_server_message_ids[channel_id] = {}
+                self.channel_server_message_ids[channel_id]['admin_overview'] = message.id
+                self._persist_tracked_message_ids()  # FIX C: survive restart -> no duplicate
 
             logger.info(f"Control command used by {ctx.author} in {ctx.channel.name}")
 
@@ -3247,22 +3393,31 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                             embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
 
                         if force_recreate:
-                            # Delete and recreate message with new animation
-                            await message.delete()
+                            # FIX B: serialize delete+recreate per channel and re-validate the
+                            # tracked id first - another path (regenerate/recovery) may have already
+                            # recreated this overview, in which case we must NOT post a second one.
+                            async with self._get_channel_lock(channel_id):
+                                if self.channel_server_message_ids.get(channel_id, {}).get('overview') != message_id:
+                                    logger.debug(f"AUTO-UPDATE: overview for channel {channel_id} changed before recreate - skipping (already handled elsewhere)")
+                                    continue
 
-                            # Create new view
-                            from .control_ui import MechView
-                            view = MechView(self, channel_id)
+                                # Delete and recreate message with new animation
+                                await message.delete()
 
-                            # Send new message with fresh animation
-                            if animation_file:
-                                new_message = await self._send_message_with_files(channel, embed, animation_file, view)
-                            else:
-                                new_message = await self._send_message_with_files(channel, embed, None, view)
+                                # Create new view
+                                from .control_ui import MechView
+                                view = MechView(self, channel_id)
 
-                            # Update message tracking
-                            self.channel_server_message_ids[channel_id]['overview'] = new_message.id
-                            logger.info(f"🔄 AUTO-UPDATE: Successfully recreated /ss message in {channel.name} with new animation")
+                                # Send new message with fresh animation
+                                if animation_file:
+                                    new_message = await self._send_message_with_files(channel, embed, animation_file, view)
+                                else:
+                                    new_message = await self._send_message_with_files(channel, embed, None, view)
+
+                                # Update message tracking
+                                self.channel_server_message_ids[channel_id]['overview'] = new_message.id
+                                self._persist_tracked_message_ids()  # FIX C: survive restart -> no duplicate
+                                logger.info(f"🔄 AUTO-UPDATE: Successfully recreated /ss message in {channel.name} with new animation")
                         else:
                             # Just edit the embed (for expand/collapse - no new animation)
                             from .control_ui import MechView
@@ -3645,14 +3800,19 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                                       (hasattr(last_msg, 'application_id') and bot_app_id and last_msg.application_id == bot_app_id))
 
                         if is_from_bot:
-                            # If the last message is from our bot, we should not regenerate
-                            # Reset the timer instead, since the bot was the last to post
-                            self.last_channel_activity[channel_id] = now_utc
-                            logger.debug(f"Last message in channel {channel.name} ({channel_id}) is from the bot, resetting inactivity timer")
-                            continue
+                            # FIX A: Distinguish our OWN managed overview/admin-overview (already at
+                            # the bottom -> nothing to do) from a STRAY bot message such as a
+                            # restart/update notification that has buried our overview.
+                            if not self._overview_buried_by_stray(channel_id, last_msg.id):
+                                self.last_channel_activity[channel_id] = now_utc
+                                logger.debug(f"Last message in channel {channel.name} ({channel_id}) is our managed overview (or no tracking) - resetting inactivity timer, no regeneration")
+                                continue
 
-                        # The last message is not from our bot, regenerate
-                        logger.info(f"Last message in channel {channel.name} is NOT from our bot (author_id={last_msg.author.id}, bot_id={bot_user_id}). Will regenerate")
+                            # Our overview is buried under a stray bot message -> move it to the bottom
+                            logger.info(f"Channel {channel.name} ({channel_id}): own overview buried under stray bot message {last_msg.id} - will regenerate to move it to the bottom")
+                        else:
+                            # The last message is from a user (foreign), regenerate as before
+                            logger.info(f"Last message in channel {channel.name} is NOT from our bot (author_id={last_msg.author.id}, bot_id={bot_user_id}). Will regenerate")
 
                         # Determine the mode: control or status
                         has_control_permission = _channel_has_permission(channel_id, 'control', config)
@@ -3668,6 +3828,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                             continue
 
                         logger.debug(f"Will regenerate with mode: {regeneration_mode}")
+
+                        # FIX A: Don't regenerate while a user is mid-interaction (e.g. expanding the
+                        # mech) - deleting the message they are interacting with would no-op their
+                        # click. Skip this cycle; the loop retries in 30s.
+                        if await self._is_channel_interacting(channel_id):
+                            logger.debug(f"Channel {channel_id} has an active interaction - deferring regeneration to next cycle")
+                            continue
 
                         # Attempt channel regeneration with improved error handling
                         try:
@@ -3895,6 +4062,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                                 # Update tracking with new message ID
                                 self.channel_server_message_ids[channel_id]['overview'] = new_message.id
+                                self._persist_tracked_message_ids()  # FIX C: survive restart -> no duplicate
                                 now_utc = datetime.now(timezone.utc)
                                 if channel_id not in self.last_message_update_time:
                                     self.last_message_update_time[channel_id] = {}
@@ -3966,6 +4134,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                         # Update message tracking
                         self.channel_server_message_ids[channel_id]['overview'] = new_message.id
+                        self._persist_tracked_message_ids()  # FIX C: survive restart -> no duplicate
 
                         # Update last_glvl_per_channel to prevent duplicate updates
                         try:
@@ -3992,6 +4161,77 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"Error updating overview messages after donation: {e}", exc_info=True)
 
+    async def _recover_deleted_overview(self, channel, channel_id: int, message_id: int,
+                                        message_type: str, ordered_servers, config) -> bool:
+        """FIX B: Recreate an overview/admin_overview whose tracked message was deleted.
+
+        Runs under the per-channel lock and RE-VALIDATES first (B4): the periodic edit that
+        hit NotFound is unlocked, so another path (regenerate / event recreate) may have
+        already posted a fresh overview. If the tracked id no longer matches the deleted one,
+        we abort instead of posting a second (duplicate) overview.
+        """
+        async with self._get_channel_lock(channel_id):
+            # B4 re-validation: someone already recreated this overview -> do nothing.
+            if self.channel_server_message_ids.get(channel_id, {}).get(message_type) != message_id:
+                logger.debug(f"{message_type} for channel {channel_id} was already recreated by another path - skipping recovery")
+                return True
+
+            try:
+                # Generate the recovery message that matches THIS channel's type, so an
+                # admin_overview recovers as an Admin Overview (not a status overview that
+                # would briefly flip until the next edit cycle).
+                if message_type == "admin_overview":
+                    embed, _ignored, has_running = await self._create_admin_overview_embed(
+                        ordered_servers, config, force_refresh=False)
+                    from .admin_overview import AdminOverviewView
+                    view = AdminOverviewView(self, channel_id, has_running)
+                    animation_file = None  # Admin Overview has no animation
+                else:
+                    is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
+                    if is_mech_expanded:
+                        embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config)
+                    else:
+                        embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
+                    # Create MechView with expand/collapse buttons
+                    from .control_ui import MechView
+                    view = MechView(self, channel_id)
+
+                # CLEAN SWEEP: Delete all old bot messages before creating new one
+                await self._clean_sweep_bot_messages(channel, "recovery from deleted message")
+
+                # Send new overview message as recovery
+                if animation_file:
+                    if hasattr(animation_file, 'fp') and animation_file.fp:
+                        new_message = await channel.send(embed=embed, file=animation_file, view=view)
+                    else:
+                        new_message = await channel.send(embed=embed, view=view)
+                else:
+                    new_message = await channel.send(embed=embed, view=view)
+
+                # Update tracking with new message ID.
+                # Prerequisite 2: honor message_type ('overview' OR 'admin_overview') instead of
+                # always writing 'overview', so we don't leave a stale key (and persist a corrupt
+                # map) for control channels.
+                if channel_id in self.channel_server_message_ids:
+                    self.channel_server_message_ids[channel_id][message_type] = new_message.id
+                    self._persist_tracked_message_ids()  # FIX C: survive restart -> no duplicate
+
+                now_utc = datetime.now(timezone.utc)
+                if channel_id not in self.last_message_update_time:
+                    self.last_message_update_time[channel_id] = {}
+                self.last_message_update_time[channel_id][message_type] = now_utc
+
+                logger.info(f"✅ RECOVERY SUCCESS: Auto-recreated {message_type} message {new_message.id} to replace deleted {message_id} in channel {channel_id}")
+                return True  # Recovery successful
+
+            except (discord.errors.DiscordException, RuntimeError) as recovery_error:
+                logger.error(f"❌ RECOVERY FAILED: Could not auto-recreate {message_type} message for channel {channel_id}: {recovery_error}", exc_info=True)
+                # Remove from tracking since we can't recover
+                if channel_id in self.channel_server_message_ids and message_type in self.channel_server_message_ids[channel_id]:
+                    del self.channel_server_message_ids[channel_id][message_type]
+                    self._persist_tracked_message_ids()
+                return False
+
     async def _update_overview_message(self, channel_id: int, message_id: int, message_type: str = "overview") -> bool:
         """
         Updates the overview or admin_overview message with current server statuses.
@@ -4006,8 +4246,17 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         """
         logger.debug(f"Updating {message_type} message {message_id} in channel {channel_id}")
         try:
-            # Get channel
-            channel = await self.bot.fetch_channel(channel_id)
+            # Get channel. Handle a deleted channel HERE so the NotFound recovery handler below
+            # only ever fires for a deleted MESSAGE (where channel/ordered_servers/config are
+            # bound) - otherwise a missing channel would hit those names unbound.
+            try:
+                channel = await self.bot.fetch_channel(channel_id)
+            except discord.NotFound:
+                logger.warning(f"Channel {channel_id} not found - removing {message_type} from tracking.")
+                if channel_id in self.channel_server_message_ids and message_type in self.channel_server_message_ids[channel_id]:
+                    del self.channel_server_message_ids[channel_id][message_type]
+                    self._persist_tracked_message_ids()
+                return False
             if not isinstance(channel, discord.TextChannel):
                 logger.warning(f"Channel {channel_id} is not a text channel, cannot update overview.")
                 return False
@@ -4020,6 +4269,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 logger.warning(f"{message_type.capitalize()} message {message_id} in channel {channel_id} not found. Removing from tracking.")
                 if channel_id in self.channel_server_message_ids and message_type in self.channel_server_message_ids[channel_id]:
                     del self.channel_server_message_ids[channel_id][message_type]
+                    self._persist_tracked_message_ids()
                 return False
 
             # Get all servers
@@ -4115,49 +4365,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             if hasattr(self, 'overview_message_ids') and channel_id in self.overview_message_ids:
                 del self.overview_message_ids[channel_id]
 
-            # CRITICAL FIX: Automatically recreate the message to prevent corruption
-            try:
-                # Generate new overview message as recovery
-                is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
-                if is_mech_expanded:
-                    embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config)
-                else:
-                    embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
-
-                # Create MechView with expand/collapse buttons
-                from .control_ui import MechView
-                view = MechView(self, channel_id)
-
-                # CLEAN SWEEP: Delete all old bot messages before creating new one
-                await self._clean_sweep_bot_messages(channel, "recovery from deleted message")
-
-                # Send new overview message as recovery
-                if animation_file:
-                    if hasattr(animation_file, 'fp') and animation_file.fp:
-                        new_message = await channel.send(embed=embed, file=animation_file, view=view)
-                    else:
-                        new_message = await channel.send(embed=embed, view=view)
-                else:
-                    new_message = await channel.send(embed=embed, view=view)
-
-                # Update tracking with new message ID
-                if channel_id in self.channel_server_message_ids:
-                    self.channel_server_message_ids[channel_id]['overview'] = new_message.id
-
-                now_utc = datetime.now(timezone.utc)
-                if channel_id not in self.last_message_update_time:
-                    self.last_message_update_time[channel_id] = {}
-                self.last_message_update_time[channel_id]['overview'] = now_utc
-
-                logger.info(f"✅ RECOVERY SUCCESS: Auto-recreated overview message {new_message.id} to replace deleted {message_id} in channel {channel_id}")
-                return True  # Recovery successful
-
-            except (discord.errors.DiscordException, RuntimeError) as recovery_error:
-                logger.error(f"❌ RECOVERY FAILED: Could not auto-recreate overview message for channel {channel_id}: {recovery_error}", exc_info=True)
-                # Remove from tracking since we can't recover
-                if channel_id in self.channel_server_message_ids and 'overview' in self.channel_server_message_ids[channel_id]:
-                    del self.channel_server_message_ids[channel_id]['overview']
-                return False
+            # FIX B: recreate under the per-channel lock with re-validation (see helper).
+            return await self._recover_deleted_overview(
+                channel, channel_id, message_id, message_type, ordered_servers, config)
 
         except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"Error updating overview message in channel {channel_id}: {e}", exc_info=True)

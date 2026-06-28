@@ -1,6 +1,6 @@
-# DockerDiscordControl v2.2.2 🐳
+# DockerDiscordControl v2.2.3 🐳
 
-[![Version](https://img.shields.io/badge/Version-v2.2.2-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.2.2) [![Python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.23.3-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-3353%2F3353-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-86%25-brightgreen?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
+[![Version](https://img.shields.io/badge/Version-v2.2.3-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.2.3) [![Python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.23.3-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-3378%2F3378-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-86%25-brightgreen?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
 
 A powerful Discord bot and web interface to manage Docker containers remotely. This application bridges the gap between Discord and your Docker environment, allowing container monitoring and control directly through Discord channels.
 
@@ -9,6 +9,22 @@ A powerful Discord bot and web interface to manage Docker containers remotely. T
 Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is an ultra-optimized Alpine Linux build with the latest security patches and enhanced performance.
 
 ## 🆕 Latest Updates
+
+### ✅ **v2.2.3 (2026-06-29) - Overview Reliability & Dependency Security**
+
+🐛 **No more duplicate overview messages**
+- Long-lived overviews (edited in place) older than 30 days were skipped by the age-limited cleanup, so a regeneration could post a fresh overview on top of the stale one — now the tracked overview is deleted by its known message ID first
+- Concurrent posters (inactivity regeneration, event recreate, recovery, `/ss`, `/control`, initial send, channel hot-reload/teardown) are serialized by a per-channel lock with re-validation, so two paths can never produce a duplicate
+- Overview message IDs are persisted and restored on restart (atomic `mech_state.json` writes), so a restart deletes the previous overview by ID instead of orphaning it
+
+✨ **Overview re-posts below the bot's own messages**
+- The "move overview to the bottom" feature now also triggers when the bot's *own* notifications (restart/update-watcher triggers) bury the overview — previously only foreign messages counted. The managed overview is never treated as foreign, so in-place editing is untouched
+- Regeneration is skipped while a user is mid-interaction (e.g. expanding the mech)
+
+🔒 **Dependencies**
+- `cryptography>=48.0.1` (GHSA-537c-gmf6-5ccf — vulnerable OpenSSL bundled in wheels `< 48.0.1`)
+
+> **Upgrade note:** on the first restart after this version, `mech_state.json` does not yet contain the new `channel_overview_message_ids` key, so a pre-existing >30-day overview may survive that first regeneration once. It is removed automatically on the next cycle (self-healing); thereafter the persisted ID prevents duplicates across restarts.
 
 ### ✅ **v2.2.2 (2026-04-26) - Hardening, Performance & Test-Suite Sanitization**
 
@@ -423,7 +439,7 @@ environment:
 
 ## 🧪 Testing & Quality Assurance
 
-DockerDiscordControl maintains **86% test coverage** (3353 tests) with comprehensive automated testing:
+DockerDiscordControl maintains **86% test coverage** (3378 tests) with comprehensive automated testing:
 
 ### Test Suites
 - **Unit Tests**: Service-level testing for core business logic

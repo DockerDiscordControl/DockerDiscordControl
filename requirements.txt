@@ -9,7 +9,7 @@ py-cord==2.6.1
 gunicorn==23.0.0
 gevent==25.5.1
 docker==7.1.0
-cryptography>=46.0.7  # Security fix for CVE-2026-26007 + CVE-2026-39892
+cryptography>=48.0.1  # Security fix for CVE-2026-26007 + CVE-2026-39892 + GHSA-537c-gmf6-5ccf (bundled OpenSSL)
 APScheduler==3.11.2
 python-dotenv>=1.1.0  # Security fix for symlink vulnerability
 PyYAML==6.0.3

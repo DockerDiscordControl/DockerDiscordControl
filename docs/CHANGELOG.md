@@ -4,6 +4,47 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ---
 
+## v2.2.3 - 2026-06-29
+
+### Overview/Status message reliability & dependency security
+
+#### 🐛 Duplicate overview messages
+
+- FIXED: Long-lived overview/admin-overview messages (edited in place) were skipped by the
+  age-limited channel cleanup once older than 30 days, so a regeneration could post a fresh
+  overview on top of the stale one. The tracked overview is now deleted by its known ID first.
+- FIXED: Concurrent posters (inactivity regeneration, event recreate, recovery, `/ss`,
+  `/control`, initial send, channel hot-reload/teardown) could race and each post a message.
+  Every delete+post path is now serialized by a per-channel `asyncio.Lock` with re-validation,
+  so two paths can never produce a duplicate.
+- NEW: Overview message IDs are persisted to `config/mech_state.json` and restored on startup,
+  so a restart can delete the previous overview by ID instead of orphaning it. `save_state` is
+  now atomic (temp file + `os.replace`), protecting all persisted state (mech expand/glvl) from
+  corruption on a partial write.
+
+#### ✨ Recreate overview below the bot's own messages
+
+- FIXED: The "move overview to the bottom after activity" feature only triggered for foreign
+  messages. The bot's own notifications (e.g. restart/update-watcher triggers) buried the
+  overview permanently. The inactivity loop now distinguishes the bot's *managed* overview
+  (already at the bottom) from a *stray* bot message and re-posts the overview beneath it —
+  without ever treating the managed overview as foreign or disturbing in-place editing.
+- NEW: Regeneration is skipped while a user is mid-interaction (e.g. expanding the mech).
+
+#### 🔒 Dependencies
+
+- FIXED: `cryptography` bumped to `>=48.0.1` (GHSA-537c-gmf6-5ccf — vulnerable OpenSSL bundled
+  in the wheels for all versions `< 48.0.1`).
+
+#### ⚠️ Upgrade note
+
+On the **first restart after deploying this version**, `config/mech_state.json` does not yet
+contain the new `channel_overview_message_ids` key, so a pre-existing overview older than 30
+days may survive that first regeneration once. It is removed automatically on the next cycle
+(self-healing); thereafter the persisted ID prevents duplicates across restarts.
+
+---
+
 ## v2.2.2 - 2026-04-26
 
 ### Hardening, Performance & Test-Suite Sanitization

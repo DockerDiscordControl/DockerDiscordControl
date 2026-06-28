@@ -22,7 +22,22 @@ class MechStateManager:
     def __init__(self, state_file: str = "config/mech_state.json"):
         self.state_file = state_file
         self.state_cache: Dict[str, Any] = {}
+        self._cleanup_tmp_files()
         self._ensure_state_file()
+
+    def _cleanup_tmp_files(self):
+        """Remove orphaned atomic-write temp files (e.g. from a crash between write and replace)."""
+        import glob
+        directory = os.path.dirname(self.state_file)
+        if directory and not os.path.isdir(directory):
+            return
+        basename = os.path.basename(self.state_file)
+        for tmp in glob.glob(os.path.join(directory or ".", f"{basename}.tmp.*")):
+            try:
+                os.remove(tmp)
+                logger.info(f"Removed orphaned state temp file {tmp}")
+            except OSError:
+                pass
 
     def _ensure_state_file(self):
         """Ensure state file exists"""
@@ -41,14 +56,36 @@ class MechStateManager:
             return {}
 
     def save_state(self, state: Dict[str, Any]):
-        """Save state to file"""
+        """Save state to file atomically.
+
+        Writes to a temp file in the same directory and os.replace()s it into place so a
+        crash or partial write can never leave a truncated/corrupt state file (which
+        load_state would discard, wiping ALL persisted state - mech expand, glvl, etc.).
+        """
+        tmp_path = f"{self.state_file}.tmp.{os.getpid()}"
         try:
-            with open(self.state_file, 'w') as f:
+            target_dir = os.path.dirname(self.state_file)
+            if target_dir:
+                os.makedirs(target_dir, exist_ok=True)
+            with open(tmp_path, 'w') as f:
                 json.dump(state, f, indent=2)
+                f.flush()
+                try:
+                    os.fsync(f.fileno())
+                except OSError:
+                    # Some network filesystems (e.g. SMB) may not support fsync - the
+                    # atomic os.replace below still gives us all-or-nothing semantics.
+                    pass
+            os.replace(tmp_path, self.state_file)
             self.state_cache = state
         except (IOError, OSError) as e:
             # File I/O errors (file write)
             logger.error(f"File I/O error saving state: {e}", exc_info=True)
+            try:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+            except OSError:
+                pass
 
     def get_state(self, key: str, default=None):
         """Get specific state value"""
