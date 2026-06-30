@@ -4,6 +4,19 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ---
 
+## v2.2.4 - 2026-06-30
+
+### Alpine 3.24 / Python 3.14 base bump
+
+- CHANGED: Base image **Alpine 3.23.3 → 3.24**, which moves the runtime from **Python 3.12 → 3.14**.
+- FIXED: SQLite advisories **CVE-2026-11822** / **CVE-2026-11824** (FTS5 memory corruption) — `sqlite-libs` 3.51.2-r0 → 3.53.2-r0 via the new base.
+- CHANGED: `gevent` pinned **25.5.1 → 25.9.1** (25.5.1 has no cp314 wheel; 25.9.1 ships Python 3.14 wheels).
+- VALIDATED: Full soak test against a live Discord server before release — the bot connects, fetches containers, and posts overviews with zero runtime errors on Python 3.14; all v2.2.3 fixes (by-ID overview delete, per-channel lock, persistence) work unchanged.
+
+> **Not fixed (no upstream patch exists):** Alpine `busybox` **CVE-2025-60876** (Medium) is still marked "possibly vulnerable" in every Alpine branch (incl. edge). The Dockerfile already runs `apk upgrade`, so a future rebuild will pull the fix automatically once Alpine ships it.
+
+---
+
 ## v2.2.3 - 2026-06-29
 
 ### Overview/Status message reliability & dependency security

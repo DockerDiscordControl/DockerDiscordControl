@@ -26,7 +26,7 @@ limits>=3.9.0,<6.0.0
 zope.event>=5.0,<6.0
 zope.interface>=6.2,<8.0
 # gevent (required for async container lifecycle management)
-gevent==25.5.1
+gevent==25.9.1
 greenlet>=3.0.3,<4.0.0
 # Python Docker SDK (required)
 docker==7.1.0
