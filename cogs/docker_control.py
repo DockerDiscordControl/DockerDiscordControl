@@ -2436,8 +2436,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                 # Truncate display name for mobile (max 20 chars)
                 truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
-                # Add status line with proper spacing and info indicator (match original format)
-                line = f"│ {status_emoji} {truncated_name}{info_indicator}"
+                # Compact live player count (e.g. "  3/8") for running game servers with query data
+                from services.discord.embed_helper_service import format_player_inline
+                player_indicator = format_player_inline(status_result.players_online, status_result.max_players)
+                # Add status line: status emoji, name, player count, info indicator
+                line = f"│ {status_emoji} {truncated_name}{player_indicator}{info_indicator}"
                 content_lines.append(line)
             else:
                 # No cache data available - show loading status
@@ -2997,8 +3000,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                 # Truncate display name for mobile (max 20 chars)
                 truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
-                # Add status line with proper spacing and info indicator (match original format)
-                line = f"│ {status_emoji} {truncated_name}{info_indicator}"
+                # Compact live player count (e.g. "  3/8") for running game servers with query data
+                from services.discord.embed_helper_service import format_player_inline
+                player_indicator = format_player_inline(status_result.players_online, status_result.max_players)
+                # Add status line: status emoji, name, player count, info indicator
+                line = f"│ {status_emoji} {truncated_name}{player_indicator}{info_indicator}"
                 content_lines.append(line)
             else:
                 # No cache data available - show loading status

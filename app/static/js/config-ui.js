@@ -107,6 +107,26 @@ document.addEventListener('DOMContentLoaded', function() {
             saveContainerInfo();
         });
     }
+
+    // Show the access-token field only for token protocols (e.g. Satisfactory)
+    const queryProtocolSelect = document.getElementById('modal-query-protocol');
+    if (queryProtocolSelect) {
+        queryProtocolSelect.addEventListener('change', updateQueryTokenVisibility);
+    }
+
+    // Manual game-query re-test button (3 tries, 60s apart)
+    const retestBtn = document.getElementById('modal-query-retest-btn');
+    if (retestBtn) {
+        retestBtn.addEventListener('click', function() {
+            const name = document.getElementById('modal-container-name')?.value;
+            if (name) startQueryRetest(name);
+        });
+    }
+    // Stop the re-test status poll when the modal is dismissed (Save, X, ESC, backdrop)
+    const infoModalEl = document.getElementById('containerInfoModal');
+    if (infoModalEl) {
+        infoModalEl.addEventListener('hidden.bs.modal', resetQueryRetestUI);
+    }
     
     // Handle container selection checkbox changes
     document.addEventListener('change', function(event) {
@@ -132,11 +152,132 @@ document.addEventListener('DOMContentLoaded', function() {
                 checkbox.disabled = !isChecked;
             });
 
+            // The "Spieler" (query) checkbox is gated by support detection, not just selection:
+            // keep it locked unless the container is proven queryable (or already enabled).
+            const queryCb = containerRow.querySelector('.query-enabled-checkbox');
+            if (queryCb) {
+                // unlocked = proven queryable, already enabled, or a token protocol (Satisfactory)
+                const unlocked = queryCb.dataset.queryUnlocked === 'true' || queryCb.checked;
+                queryCb.disabled = !isChecked || !unlocked;
+            }
+
             // Update order numbers when checkbox state changes
             updateOrderNumbers();
+            // Selecting/deselecting a container can change the glow (enabled state)
+            const q0 = containerRow.querySelector('.query-enabled-checkbox');
+            if (q0 && q0.dataset.container) updateInfoGlow(q0.dataset.container);
+        } else if (event.target.classList.contains('query-enabled-checkbox')) {
+            // Toggling the "Spieler" checkbox turns the "needs config" glow on/off live
+            if (event.target.dataset.container) updateInfoGlow(event.target.dataset.container);
         }
     });
 });
+
+// Protocols that need a per-server credential (mirrors GameQueryService.TOKEN_PROTOCOLS)
+const QUERY_TOKEN_PROTOCOLS = ['satisfactory', 'palworld'];
+
+// Show/hide the credential field based on the selected query protocol, and swap its
+// label/help text per protocol (Satisfactory app token vs Palworld admin password).
+function updateQueryTokenVisibility() {
+    const select = document.getElementById('modal-query-protocol');
+    const wrap = document.getElementById('modal-query-token-wrap');
+    if (!select || !wrap) return;
+    const proto = select.value;
+    const isToken = QUERY_TOKEN_PROTOCOLS.includes(proto);
+    wrap.style.display = isToken ? 'block' : 'none';
+    if (isToken) {
+        const cap = proto.charAt(0).toUpperCase() + proto.slice(1);
+        const lbl = wrap.dataset['label' + cap];
+        const help = wrap.dataset['help' + cap];
+        const lblEl = document.getElementById('modal-query-token-label');
+        const helpEl = document.getElementById('modal-query-token-help');
+        if (lblEl && lbl) lblEl.textContent = lbl;
+        if (helpEl && help) helpEl.textContent = help;
+    }
+}
+
+// --- Manual game-query re-test (3 tries, 60s apart) ---
+let _queryRetestTimer = null;
+
+function _setRetestStatus(text, cls) {
+    const el = document.getElementById('modal-query-retest-status');
+    if (el) { el.textContent = text || ''; el.className = 'form-text mb-0 ' + (cls || ''); }
+}
+
+function resetQueryRetestUI() {
+    if (_queryRetestTimer) { clearInterval(_queryRetestTimer); _queryRetestTimer = null; }
+    const btn = document.getElementById('modal-query-retest-btn');
+    if (btn) btn.disabled = false;
+    _setRetestStatus('', '');
+}
+
+function unlockQueryCheckbox(containerName) {
+    const sel = (window.CSS && CSS.escape) ? CSS.escape(containerName) : containerName;
+    const cb = document.querySelector('.query-enabled-checkbox[data-container="' + sel + '"]');
+    if (!cb) return;
+    cb.dataset.queryUnlocked = 'true';
+    const row = cb.closest('tr');
+    const serverCb = row ? row.querySelector('.server-checkbox') : null;
+    cb.disabled = serverCb ? !serverCb.checked : false;
+}
+
+// The Info button glows only when the player option is ENABLED for this container AND a token
+// protocol (Satisfactory/Palworld) is selected/guessed but no token/password is set yet.
+function updateInfoGlow(containerName) {
+    const infoBtn = document.querySelector('button.info-btn[data-container="' + containerName + '"]');
+    if (!infoBtn) return;
+    const enabledCb = document.querySelector('.query-enabled-checkbox[data-container="' + containerName + '"]');
+    const enabled = !!(enabledCb && enabledCb.checked);
+    let proto = (document.querySelector('input[name="query_protocol_' + containerName + '"]')?.value) || 'source';
+    if (proto === 'source' && infoBtn.dataset.guessedProtocol) proto = infoBtn.dataset.guessedProtocol;
+    const token = (document.querySelector('input[name="query_token_' + containerName + '"]')?.value || '').trim();
+    infoBtn.classList.toggle('info-btn-needs-config', enabled && QUERY_TOKEN_PROTOCOLS.includes(proto) && !token);
+}
+
+function startQueryRetest(containerName) {
+    const btn = document.getElementById('modal-query-retest-btn');
+    const msgTesting = (btn && btn.dataset.msgTesting) || 'Testing…';
+    const msgSupported = (btn && btn.dataset.msgSupported) || 'Supported';
+    const msgUnsupported = (btn && btn.dataset.msgUnsupported) || 'No response';
+    if (_queryRetestTimer) { clearInterval(_queryRetestTimer); _queryRetestTimer = null; }
+    if (btn) btn.disabled = true;
+    _setRetestStatus(msgTesting, 'text-info');
+    fetch('/api/game-query/retest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ container: containerName })
+    }).then(r => r.json()).then(res => {
+        if (!res || !res.success) {
+            _setRetestStatus((res && res.error) || 'Error', 'text-danger');
+            if (btn) btn.disabled = false;
+            return;
+        }
+        let elapsed = 0;
+        _queryRetestTimer = setInterval(function() {
+            elapsed += 3;
+            fetch('/api/game-query/support-status?container=' + encodeURIComponent(containerName))
+                .then(r => r.json()).then(function(st) {
+                    if (_queryRetestTimer === null) return;   // poll already stopped: ignore late responses
+                    if (st && st.testing) {
+                        _setRetestStatus(msgTesting + ' (' + elapsed + 's)', 'text-info');
+                        return;
+                    }
+                    clearInterval(_queryRetestTimer); _queryRetestTimer = null;
+                    if (btn) btn.disabled = false;
+                    if (st && st.supported) {
+                        _setRetestStatus('✓ ' + msgSupported, 'text-success');
+                        unlockQueryCheckbox(containerName);
+                    } else {
+                        _setRetestStatus('✗ ' + msgUnsupported, 'text-danger');
+                    }
+                }).catch(function() {});
+            if (elapsed > 230) { clearInterval(_queryRetestTimer); _queryRetestTimer = null; if (btn) btn.disabled = false; }
+        }, 3000);
+    }).catch(function() {
+        _setRetestStatus('Error', 'text-danger');
+        if (btn) btn.disabled = false;
+    });
+}
 
 // Function to open container info modal
 function openContainerInfoModal(containerName) {
@@ -228,7 +369,43 @@ function openContainerInfoModal(containerName) {
     if (modalProtectedPassword && protectedPasswordInput) {
         modalProtectedPassword.value = protectedPasswordInput.value || '';
     }
-    
+
+    // Populate player-count (opengsq) override fields from hidden inputs
+    const queryProtocolInput = document.querySelector(`input[name="query_protocol_${containerName}"]`);
+    const queryHostInput = document.querySelector(`input[name="query_host_${containerName}"]`);
+    const queryPortInput = document.querySelector(`input[name="query_port_${containerName}"]`);
+    const queryTokenInput = document.querySelector(`input[name="query_token_${containerName}"]`);
+    const modalQueryProtocol = document.getElementById('modal-query-protocol');
+    const modalQueryHost = document.getElementById('modal-query-host');
+    const modalQueryPort = document.getElementById('modal-query-port');
+    const modalQueryToken = document.getElementById('modal-query-token');
+    if (modalQueryProtocol && queryProtocolInput) {
+        modalQueryProtocol.value = queryProtocolInput.value || 'source';
+        // If the protocol is still the default and the container name/image suggests a
+        // specific game (e.g. Satisfactory / Palworld / Minecraft), pre-select it so the
+        // user is nudged to configure it (and the token field shows for token protocols).
+        const infoBtnForGuess = document.querySelector(`button.info-btn[data-container="${containerName}"]`);
+        const guessed = infoBtnForGuess && infoBtnForGuess.dataset.guessedProtocol;
+        if (guessed && (!modalQueryProtocol.value || modalQueryProtocol.value === 'source')) {
+            modalQueryProtocol.value = guessed;
+        }
+    }
+    if (modalQueryHost && queryHostInput) {
+        modalQueryHost.value = queryHostInput.value || '';
+    }
+    if (modalQueryPort && queryPortInput) {
+        // Port 0 means auto-detect -> show as empty for clarity
+        const pv = queryPortInput.value;
+        modalQueryPort.value = (pv && pv !== '0') ? pv : '';
+    }
+    if (modalQueryToken && queryTokenInput) {
+        modalQueryToken.value = queryTokenInput.value || '';
+    }
+    // The token field is only relevant for token protocols (Satisfactory)
+    updateQueryTokenVisibility();
+    // Clear any leftover re-test status/spinner from a previously opened container
+    resetQueryRetestUI();
+
     // Show modal using Bootstrap
     const modal = document.getElementById('containerInfoModal');
     if (modal && window.bootstrap) {
@@ -281,7 +458,18 @@ function saveContainerInfo() {
     if (protectedEnabledInput) protectedEnabledInput.value = formData.info_protected_enabled;
     if (protectedContentInput) protectedContentInput.value = formData.info_protected_content;
     if (protectedPasswordInput) protectedPasswordInput.value = formData.info_protected_password;
-    
+
+    // Persist player-count (opengsq) override fields back to hidden inputs
+    const queryProtocolInput = document.querySelector(`input[name="query_protocol_${containerName}"]`);
+    const queryHostInput = document.querySelector(`input[name="query_host_${containerName}"]`);
+    const queryPortInput = document.querySelector(`input[name="query_port_${containerName}"]`);
+    const queryTokenInput = document.querySelector(`input[name="query_token_${containerName}"]`);
+    if (queryProtocolInput) queryProtocolInput.value = document.getElementById('modal-query-protocol')?.value || 'source';
+    if (queryHostInput) queryHostInput.value = document.getElementById('modal-query-host')?.value || '';
+    // Empty port -> 0 (auto-detect)
+    if (queryPortInput) queryPortInput.value = document.getElementById('modal-query-port')?.value || '0';
+    if (queryTokenInput) queryTokenInput.value = document.getElementById('modal-query-token')?.value || '';
+
     // Update button styling based on enabled state
     const infoButton = document.querySelector(`button.info-btn[data-container="${containerName}"]`);
     if (infoButton) {
@@ -293,8 +481,15 @@ function saveContainerInfo() {
             infoButton.classList.remove('btn-outline-info');
             infoButton.classList.add('btn-outline-secondary');
         }
+        // A token protocol is a valid queryable config -> unlock the Spieler checkbox in-session
+        const qProto = document.getElementById('modal-query-protocol')?.value;
+        if (QUERY_TOKEN_PROTOCOLS.includes(qProto)) {
+            unlockQueryCheckbox(containerName);
+        }
+        // Refresh the yellow "needs config" glow (enabled + token protocol + no token)
+        updateInfoGlow(containerName);
     }
-    
+
     // Hide modal
     const modal = document.getElementById('containerInfoModal');
     if (modal && window.bootstrap) {

@@ -4,6 +4,21 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ---
 
+## v2.3.0 - 2026-07-01
+
+### Live game-server player counts
+
+- NEW: Per-container **live player counts** for game servers, shown compactly behind the server name in the Discord status overview (`Name  3/8`) and in the per-container control box (`│ Players: 3/8`), queried via the `opengsq` library.
+- NEW: **4 query protocols** — Source/A2S (most Steam survival/shooter games), Minecraft, Satisfactory (app token), Palworld (REST admin password). Token protocols require a per-server credential entered in the container's Info dialog.
+- NEW: **Automatic support detection** — probes each online container across all published ports (transport-aware ordering, Steam-query range preferred), auto-detects Source vs Minecraft, and gates the per-server "Players" toggle to servers that actually answer. A 15-minute probe window (reset across downtime), permanent verdicts that survive restart, and a manual **"Test now"** re-check (3 tries, 60s apart) for slow-booting servers.
+- NEW: **Guided setup** — the container name/image suggests the protocol, and token protocols make the Info button glow until a credential is entered (only while the player option is enabled).
+- ADDED: `opengsq>=3.6.2` dependency (its only dependency, `aiohttp`, is already shipped).
+- GUARANTEE: querying is fully non-blocking and best-effort — per-query timeouts, an overall enrichment budget, fire-and-forget support probing, and per-key atomic verdict persistence (no cross-process clobbering); a dead or slow game server never affects the Discord status loop.
+- TESTS: **+102 unit tests** (query service, support lifecycle, config, enrichment). Hardened across three independent multi-agent code reviews.
+- I18N: all new web-UI strings translated into all **40** supported languages.
+
+---
+
 ## v2.2.4 - 2026-06-30
 
 ### Alpine 3.24 / Python 3.14 base bump

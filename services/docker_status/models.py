@@ -194,6 +194,11 @@ class ContainerStatusResult:
     uptime: str = "N/A"
     details_allowed: bool = True
 
+    # Game-server query (opengsq) - optional, only populated for game containers
+    # with the query feature enabled. None = no data (feature off / query failed).
+    players_online: Optional[int] = None
+    max_players: Optional[int] = None
+
     # Error fields (populated when success=False)
     error: Optional[Exception] = None
     error_message: Optional[str] = None
@@ -227,8 +232,14 @@ class ContainerStatusResult:
 
     @classmethod
     def success_result(cls, docker_name: str, display_name: str, is_running: bool,
-                      cpu: str, ram: str, uptime: str, details_allowed: bool) -> 'ContainerStatusResult':
-        """Factory method for successful status fetch"""
+                      cpu: str, ram: str, uptime: str, details_allowed: bool,
+                      players_online: Optional[int] = None,
+                      max_players: Optional[int] = None) -> 'ContainerStatusResult':
+        """Factory method for successful status fetch.
+
+        players_online/max_players are optional game-server query results; existing
+        callers that omit them get None (backward compatible).
+        """
         return cls(
             docker_name=docker_name,
             success=True,
@@ -237,7 +248,9 @@ class ContainerStatusResult:
             cpu=cpu,
             ram=ram,
             uptime=uptime,
-            details_allowed=details_allowed
+            details_allowed=details_allowed,
+            players_online=players_online,
+            max_players=max_players
         )
 
     @classmethod

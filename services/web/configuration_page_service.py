@@ -453,6 +453,7 @@ class ConfigurationPageService:
             'DDC_DOCKER_QUERY_COOLDOWN': get_setting_value('DDC_DOCKER_QUERY_COOLDOWN', '2'),
             'DDC_DOCKER_MAX_CACHE_AGE': get_setting_value('DDC_DOCKER_MAX_CACHE_AGE', '300'),
             'DDC_ENABLE_BACKGROUND_REFRESH': get_setting_value('DDC_ENABLE_BACKGROUND_REFRESH', 'true'),
+            'DDC_ENABLE_OPENGSQ': get_setting_value('DDC_ENABLE_OPENGSQ', 'true'),
             'DDC_BACKGROUND_REFRESH_INTERVAL': get_setting_value('DDC_BACKGROUND_REFRESH_INTERVAL', '30'),
             'DDC_BACKGROUND_REFRESH_LIMIT': get_setting_value('DDC_BACKGROUND_REFRESH_LIMIT', '50'),
             'DDC_BACKGROUND_REFRESH_TIMEOUT': get_setting_value('DDC_BACKGROUND_REFRESH_TIMEOUT', '30'),
@@ -508,8 +509,17 @@ class ConfigurationPageService:
         config_with_env['env'] = advanced_settings
         config_with_env['donation_disable_key'] = donation_settings['current_donation_key']
 
+        # Game-query support verdicts (gates the per-container "Spieler" checkbox). Read
+        # fresh from the file the bot's probe loop writes.
+        try:
+            from services.infrastructure.game_query_support_service import read_support_verdicts
+            query_support = read_support_verdicts()
+        except Exception:  # noqa: BLE001 - best-effort; absence just keeps checkboxes locked
+            query_support = {}
+
         return {
             'config': config_with_env,
+            'query_support': query_support,
             'DEFAULT_CONFIG': default_config,
             'donations_disabled': donation_settings['donations_disabled'],
             'common_timezones': COMMON_TIMEZONES,

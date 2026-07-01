@@ -89,9 +89,15 @@ class ConfigLoaderService:
             web_ui_config = self._load_json_file(self.web_ui_config_file, {})
             config.update(web_ui_config)
 
-        # 5. Load advanced settings (from web_config.json)
+        # 5. Load advanced settings. save_config() writes advanced_settings into config.json
+        # (already merged via config.update(main_config) above). The legacy web_config.json is
+        # written only at v1.1.x migration and never updated, so config.json (the live save
+        # target) MUST win on collision; web_config.json only fills keys config.json lacks.
         web_config = self._load_json_file(self.web_config_file, {})
-        config['advanced_settings'] = web_config.get('advanced_settings', {})
+        config['advanced_settings'] = {
+            **(web_config.get('advanced_settings') or {}),   # legacy fallback
+            **(config.get('advanced_settings') or {}),       # live config.json wins
+        }
 
         # 6. Load Docker settings
         if self.docker_settings_file.exists():
@@ -271,8 +277,12 @@ class ConfigLoaderService:
                 'scheduler_debug_mode': web_config.get('scheduler_debug_mode', False)
             })
 
-            # Extract advanced settings (from web_config.json)
-            config['advanced_settings'] = web_config.get('advanced_settings', {})
+            # Extract advanced settings - live config.json wins over the migration-only
+            # web_config.json so modal/env_ toggles round-trip (see load_real_modular_config).
+            config['advanced_settings'] = {
+                **(web_config.get('advanced_settings') or {}),   # legacy fallback
+                **(config.get('advanced_settings') or {}),       # live config.json wins
+            }
 
         # 4. Channels config (contains: channel permissions + channel data)
         if self.channels_config_file.exists():

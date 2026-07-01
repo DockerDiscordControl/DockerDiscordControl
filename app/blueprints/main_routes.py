@@ -733,6 +733,86 @@ def submit_donation():
         current_app.logger.error(f"Data error processing manual donation: {e}", exc_info=True)
         return jsonify({'success': False, 'error': 'Data error: Invalid donation data'}), 400
 
+def _run_game_query_retest(container_name, host, port):
+    """Background worker: probe a container up to 3 times, 60s apart, stopping on the first
+    success. Writes the verdict to the shared support file. Runs in its own thread/event loop."""
+    import asyncio
+    from services.infrastructure import game_query_support_service as support
+
+    async def _attempts():
+        from services.infrastructure.game_query_service import get_game_query_service
+        svc = get_game_query_service()
+        for i in range(3):
+            ok, proto, resolved_port = await svc.detect_support(container_name, host, port)
+            if ok:
+                support.record_manual_success(container_name, proto, resolved_port)
+                return True
+            if i < 2:
+                await asyncio.sleep(60)
+        return False
+
+    # NOTE: runs in a bare daemon thread with NO Flask app context - never use current_app here.
+    from utils.logging_utils import get_module_logger
+    worker_logger = get_module_logger('game_query_retest')
+    succeeded = False
+    try:
+        succeeded = asyncio.run(_attempts())
+    except Exception as e:  # noqa: BLE001 - never let the worker crash silently
+        worker_logger.error(f"[GAME_QUERY] Manual re-test failed for {container_name}: {e}", exc_info=True)
+    finally:
+        # Always clear the spinner flag (on success it's already cleared by record_manual_success).
+        if not succeeded:
+            try:
+                support.set_testing(container_name, False)
+            except Exception:  # noqa: BLE001
+                pass
+
+
+@main_bp.route('/api/game-query/retest', methods=['POST'])
+@auth.login_required
+def game_query_retest():
+    """Manually (re)test whether a container answers a player-count query: 3 tries, 60s apart."""
+    try:
+        data = request.get_json(silent=True) or {}
+        container_name = (data.get('container') or '').strip()
+        if not container_name:
+            return jsonify({'success': False, 'error': 'No container specified'}), 400
+
+        from services.infrastructure import game_query_support_service as support
+        support.set_testing(container_name, True)
+
+        # Use any configured manual host/port override for this container
+        host, port = '', 0
+        try:
+            from services.config.server_config_service import get_server_config_service
+            srv = get_server_config_service().get_server_by_docker_name(container_name) or {}
+            host, port = srv.get('query_host', ''), srv.get('query_port', 0)
+        except (ImportError, RuntimeError, AttributeError, KeyError) as e:
+            current_app.logger.debug(f"[GAME_QUERY] retest config lookup failed for {container_name}: {e}")
+
+        import threading
+        threading.Thread(target=_run_game_query_retest, args=(container_name, host, port), daemon=True).start()
+        return jsonify({'success': True, 'status': 'testing'})
+    except (ValueError, TypeError, KeyError) as e:
+        current_app.logger.error(f"[GAME_QUERY] retest request error: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Invalid request'}), 400
+
+
+@main_bp.route('/api/game-query/support-status')
+@auth.login_required
+def game_query_support_status():
+    """Return the support verdict for a container (polled by the UI during a manual test)."""
+    container_name = (request.args.get('container') or '').strip()
+    from services.infrastructure.game_query_support_service import read_support_verdicts
+    v = read_support_verdicts().get(container_name, {})
+    return jsonify({
+        'container': container_name,
+        'supported': bool(v.get('supported')),
+        'final': bool(v.get('final')),
+        'testing': bool(v.get('testing')),
+    })
+
+
 @main_bp.route('/mech_animation')
 def mech_animation():
     """Live mech animation endpoint using MechWebService."""

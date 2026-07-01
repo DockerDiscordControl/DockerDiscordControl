@@ -80,6 +80,13 @@ class ServerConfigService:
                         if 'order' not in container_data:
                             container_data['order'] = 999
 
+                        # Game-server query (opengsq) defaults for legacy containers
+                        container_data.setdefault('query_enabled', False)
+                        container_data.setdefault('query_protocol', 'source')
+                        container_data.setdefault('query_host', '')
+                        container_data.setdefault('query_port', 0)
+                        container_data.setdefault('query_token', '')
+
                         # IMPORTANT: Only include active containers (default to active if field missing)
                         is_active = container_data.get('active', True)
                         if is_active:

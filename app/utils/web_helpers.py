@@ -106,6 +106,11 @@ DOCKER_QUERY_COOLDOWN = _get_advanced_setting('DDC_DOCKER_QUERY_COOLDOWN', 2.0, 
 MAX_CACHE_AGE = _get_advanced_setting('DDC_DOCKER_MAX_CACHE_AGE', 300)
 # Flag to enable background refresh
 ENABLE_BACKGROUND_REFRESH = _get_advanced_setting('DDC_ENABLE_BACKGROUND_REFRESH', True, bool)
+# Global kill-switch for game-server player-count queries (opengsq), default ON.
+# The REAL opt-in is the per-container 🎮 "query_enabled" checkbox, which defaults OFF -
+# so no outbound query runs until a container is explicitly enabled (zero overhead, the
+# GameQueryService is never even imported). Set DDC_ENABLE_OPENGSQ=false to hard-disable.
+ENABLE_OPENGSQ = _get_advanced_setting('DDC_ENABLE_OPENGSQ', True, bool)
 # Background refresh interval - MUST be frequent for 1-minute update intervals
 # Keep at 30 seconds to support minimum 1-minute Web UI update intervals and align with 45s cache TTL
 BACKGROUND_REFRESH_INTERVAL = _get_advanced_setting('DDC_BACKGROUND_REFRESH_INTERVAL', 30)

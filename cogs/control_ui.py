@@ -45,10 +45,13 @@ _embed_pool = []                 # Pool für wiederverwendbare Embed-Objekte
 _view_template_cache = {}        # Cache for view templates per container state
 
 # Description Templates für ultra-schnelle String-Generierung
+# {player_line} is the optional game-server player-count line ("│ Players: 🎮 x/y\n" or "").
+# It must mirror the background status-loop renderer (cogs/status_handlers.py) so the count
+# does NOT flicker away when the user toggles Expand/Collapse.
 _description_templates = {
-    'running_expanded_details': "```\n{header}\n│ {emoji} {status}\n│ {cpu_text}: {cpu}\n│ {ram_text}: {ram}\n│ {uptime_text}: {uptime}\n{footer}\n```",
-    'running_expanded_no_details': "```\n{header}\n│ {emoji} {status}\n│ ⚠️ *{detail_denied_text}*\n│ {uptime_text}: {uptime}\n{footer}\n```",
-    'running_collapsed': "```\n{header}\n│ {emoji} {status}\n{footer}\n```",
+    'running_expanded_details': "```\n{header}\n│ {emoji} {status}\n│ {cpu_text}: {cpu}\n│ {ram_text}: {ram}\n│ {uptime_text}: {uptime}\n{player_line}{footer}\n```",
+    'running_expanded_no_details': "```\n{header}\n│ {emoji} {status}\n│ ⚠️ *{detail_denied_text}*\n│ {uptime_text}: {uptime}\n{player_line}{footer}\n```",
+    'running_collapsed': "```\n{header}\n│ {emoji} {status}\n{player_line}{footer}\n```",
     'offline': "```\n{header}\n│ {emoji} {status}\n{footer}\n```"
 }
 
@@ -87,7 +90,8 @@ def _get_cached_translations(lang: str) -> dict:
             'ram_text': _("RAM"),
             'uptime_text': _("Uptime"),
             'detail_denied_text': _("Detailed status not allowed."),
-            'last_update_text': _("Last update")
+            'last_update_text': _("Last update"),
+            'players_text': _("Players")
         }
 
         # LRU eviction: remove oldest entry if cache too large
@@ -726,9 +730,12 @@ class ToggleButton(Button):
                 ram = status_result.ram
                 uptime = status_result.uptime
                 details_allowed = status_result.details_allowed
+                players_online = status_result.players_online
+                max_players = status_result.max_players
             elif isinstance(status_result, tuple) and len(status_result) == 6:
-                # Legacy format: tuple unpacking
+                # Legacy format: tuple unpacking (no player-count data)
                 display_name_from_status, running, cpu, ram, uptime, details_allowed = status_result
+                players_online = max_players = None
             else:
                 logger.warning(f"[ULTRA_FAST_TOGGLE] Invalid status_result format for '{self.display_name}': {type(status_result).__name__}")
                 return None, None
@@ -746,6 +753,13 @@ class ToggleButton(Button):
             current_emoji = "🟢" if running else "🔴"
             is_expanded = self.is_expanded
 
+            # Game-server player-count line - shared helper with the status-loop renderer so
+            # the count survives Expand/Collapse toggles instead of flickering off until the
+            # next tick (identical formatting in both paths).
+            from services.discord.embed_helper_service import format_player_line
+            player_line = format_player_line(players_online, max_players,
+                                             translations.get('players_text', 'Players'))
+
             # OPTIMIZATION 4: Template-based description generation (90% schneller)
             template_args = {
                 'header': box_elements['header_line'],
@@ -758,7 +772,8 @@ class ToggleButton(Button):
                 'detail_denied_text': translations['detail_denied_text'],
                 'cpu': cpu,
                 'ram': ram,
-                'uptime': uptime
+                'uptime': uptime,
+                'player_line': player_line
             }
 
             # Choose template based on state

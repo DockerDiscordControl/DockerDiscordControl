@@ -105,6 +105,16 @@ class ConfigFormParserService:
             except (ValueError, TypeError):
                 order = 999
 
+            # Game-server query (opengsq) per-container settings - sanitized/validated
+            from services.config.config_validation_service import ConfigValidationService
+            query_config = ConfigValidationService.sanitize_query_config(
+                query_enabled=ConfigFormParserService._parse_form_checkbox(form_data, f'query_enabled_{container_name}'),
+                query_protocol=form_data.get(f'query_protocol_{container_name}', 'source'),
+                query_host=form_data.get(f'query_host_{container_name}', ''),
+                query_port=form_data.get(f'query_port_{container_name}', 0),
+                query_token=form_data.get(f'query_token_{container_name}', ''),
+            )
+
             servers.append({
                 'docker_name': container_name,
                 'name': container_name,
@@ -112,7 +122,8 @@ class ConfigFormParserService:
                 'display_name': display_name,
                 'allowed_actions': allowed_actions,
                 'allow_detailed_status': True,
-                'order': order
+                'order': order,
+                **query_config,
             })
             logger.info(f"[FORM_DEBUG] Parsed server: {container_name} - actions: {allowed_actions}, order: {order}")
 
@@ -202,8 +213,14 @@ class ConfigFormParserService:
         'display_name_', 'allow_status_', 'allow_start_', 'allow_stop_', 'allow_restart_',
         'order_', 'status_channel_', 'control_channel_', 'status_', 'control_',
         'old_status_channel_', 'old_control_channel_',
+        'query_enabled_', 'query_protocol_', 'query_host_', 'query_port_', 'query_token_',
+        'env_',  # advanced settings -> folded into config['advanced_settings'] separately
     )
-    _SKIP_KEYS = {'selected_servers', 'heartbeat_ping_url', 'heartbeat_interval', 'enableHeartbeatSection'}
+    _SKIP_KEYS = {'selected_servers', 'heartbeat_ping_url', 'heartbeat_interval', 'enableHeartbeatSection',
+                  # Defensive: bare modal field names must never become top-level config keys.
+                  # The container-info modal lives (per HTML5 parsing) inside the main config-form,
+                  # so any name= on its inputs would otherwise leak — notably query_token (a secret).
+                  'query_protocol', 'query_host', 'query_port', 'query_token', 'container_name'}
 
     @staticmethod
     def _parse_heartbeat(form_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -290,6 +307,21 @@ class ConfigFormParserService:
 
             # Process donation key
             ConfigFormParserService._process_donation_key(form_data, updated_config)
+
+            # Advanced settings: the advanced modal's saveAdvancedSettings() JS copies its
+            # env_* inputs (checkboxes as '1'/'0', so the off-state is submitted too) into the
+            # main config form. Map those env_<KEY> fields into config['advanced_settings'][<KEY>]
+            # so they actually round-trip (read back by _prepare_advanced_settings and
+            # _get_advanced_setting). Without this, env_ toggles never persisted.
+            advanced = dict(updated_config.get('advanced_settings', {})) \
+                if isinstance(updated_config.get('advanced_settings'), dict) else {}
+            for key, value in form_data.items():
+                if key.startswith('env_') and len(key) > 4:
+                    if isinstance(value, str):
+                        value = value.strip()
+                    advanced[key[4:]] = value
+            if advanced:
+                updated_config['advanced_settings'] = advanced
 
             # Process remaining form fields
             for key, value in form_data.items():

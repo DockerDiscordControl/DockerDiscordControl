@@ -2,6 +2,10 @@
 <div id="server-selection" class="mb-3 card p-3">
     <h4>{{ _t('web.server.title') }}</h4>
     <p class="form-text">{{ _t('web.server.description') }}</p>
+    {# "New" annotation in the free space above the table, pointing down at the Spieler column #}
+    <div class="d-none d-lg-flex justify-content-end" style="padding-right: 6%; margin-bottom: 4px; position: relative; z-index: 2;">
+        <span class="handwritten-note" style="font-size: 1.15em;">{{ _t('web.server.new_query_hint') }}</span>
+    </div>
     <div class="table-responsive">
         <table class="table table-dark table-bordered table-hover align-middle">
             <thead>
@@ -14,6 +18,7 @@
                     <th scope="col" class="text-center" style="width: 10%;">{{ _t('web.server.col_start') }}<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.server.col_start_tooltip') }}"></i></th>
                     <th scope="col" class="text-center" style="width: 10%;">{{ _t('web.server.col_stop') }}<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.server.col_stop_tooltip') }}"></i></th>
                     <th scope="col" class="text-center" style="width: 10%;">{{ _t('web.server.col_restart') }}<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.server.col_restart_tooltip') }}"></i></th>
+                    <th scope="col" class="text-center" style="width: 8%;">{{ _t('web.server.col_query') }}<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.server.col_query_tooltip') }}"></i></th>
                     <th scope="col" class="text-center" style="width: 5%;">{{ _t('web.server.col_info') }}</th>
                 </tr>
             </thead>
@@ -23,6 +28,13 @@
                         {% set server_config = configured_servers.get(container.name, {}) %}
                         {% set is_selected = container.name in configured_servers %}
                         {% set info_config = container_info_data.get(container.name, {}) %}
+                        {# Guess the query protocol from the container name/image (e.g. a container
+                           called "Satisfactory" -> satisfactory) so token games are surfaced even
+                           before the user picks a protocol. Only a suggestion; the user confirms. #}
+                        {% set _nameimg = (container.name ~ ' ' ~ (container.image or ''))|lower %}
+                        {% set guessed_proto = 'satisfactory' if 'satisfactory' in _nameimg else ('palworld' if 'palworld' in _nameimg else ('minecraft' if 'minecraft' in _nameimg else '')) %}
+                        {% set _cfg_proto = server_config.get('query_protocol', 'source') %}
+                        {% set effective_proto = _cfg_proto if (_cfg_proto and _cfg_proto != 'source') else guessed_proto %}
                         <tr data-container-id="{{ container.id }}" data-container-name="{{ container.name }}">
                             <td class="text-center align-middle">
                                 <span class="order-number me-1"></span>
@@ -74,11 +86,33 @@
                                 </div>
                             </td>
                             <td class="text-center">
-                                <button type="button" class="btn btn-sm {% if info_config.get('enabled', False) %}btn-outline-info{% else %}btn-outline-secondary{% endif %} info-btn" data-container="{{ container.name }}" title="{{ _t('web.server.edit_info') }}" {% if not is_selected %}disabled{% endif %}>
+                                {# Spieler-Checkbox: gesperrt, bis der Container als abfragbar bestaetigt ist
+                                   (Auto-Probe im Bot). Bereits aktivierte bleiben umschaltbar. #}
+                                {% set q_supported = (query_support.get(container.name, {}).get('supported')) if query_support else none %}
+                                {% set q_enabled_now = server_config.get('query_enabled') %}
+                                {# token protocols (Satisfactory) can't be auto-probed -> never lock them #}
+                                {% set q_token_proto = effective_proto in ['satisfactory', 'palworld'] %}
+                                {% set q_unlocked = q_supported or q_enabled_now or q_token_proto %}
+                                {% set q_lock = (not is_selected) or (not q_unlocked) %}
+                                <div class="form-check">
+                                    <input class="form-check-input query-enabled-checkbox" type="checkbox" name="query_enabled_{{ container.name }}" value="1" id="query_enabled_{{ container.id }}" data-container="{{ container.name }}" data-query-unlocked="{{ 'true' if q_unlocked else 'false' }}" {% if q_enabled_now %}checked{% endif %} {% if q_lock %}disabled{% endif %} title="{% if not q_unlocked %}{{ _t('web.server.query_unsupported_tooltip') }}{% else %}{{ _t('web.server.col_query_tooltip') }}{% endif %}">
+                                    <label class="form-check-label visually-hidden" for="query_enabled_{{ container.id }}">{{ _t('web.server.query_enabled') }}</label>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                {# Glow the Info button when player-count config is still required
+                                   (a token protocol like Satisfactory selected but no token yet) #}
+                                {% set needs_query_config = server_config.get('query_enabled') and effective_proto in ['satisfactory', 'palworld'] and not server_config.get('query_token') %}
+                                <button type="button" class="btn btn-sm {% if info_config.get('enabled', False) %}btn-outline-info{% else %}btn-outline-secondary{% endif %} info-btn{% if needs_query_config %} info-btn-needs-config{% endif %}" data-container="{{ container.name }}" data-guessed-protocol="{{ guessed_proto }}" title="{% if needs_query_config %}{{ _t('web.server.info_needs_config') }}{% else %}{{ _t('web.server.edit_info') }}{% endif %}" {% if not is_selected %}disabled{% endif %}>
                                     <i class="bi bi-info-circle"></i>
                                 </button>
                             </td>
                         </tr>
+                        {# Query (opengsq) host/port/protocol overrides - edited via the Info modal, round-tripped here #}
+                        <input type="hidden" name="query_protocol_{{ container.name }}" value="{{ server_config.get('query_protocol', 'source') }}">
+                        <input type="hidden" name="query_host_{{ container.name }}" value="{{ server_config.get('query_host', '') }}">
+                        <input type="hidden" name="query_port_{{ container.name }}" value="{{ server_config.get('query_port', 0) }}">
+                        <input type="hidden" name="query_token_{{ container.name }}" value="{{ server_config.get('query_token', '') }}">
                         {# Hidden inputs for container info configuration #}
                         <input type="hidden" name="info_enabled_{{ container.name }}" value="{% if info_config.get('enabled', False) %}1{% else %}0{% endif %}">
                         <input type="hidden" name="info_show_ip_{{ container.name }}" value="{% if info_config.get('show_ip', False) %}1{% else %}0{% endif %}">
@@ -91,9 +125,9 @@
                         <input type="hidden" name="info_protected_password_{{ container.name }}" value="{{ info_config.get('protected_password', '') }}">
                     {% endfor %}
                 {% elif cache_error %}
-                    <tr><td colspan="9"><div class="alert alert-warning m-0">{{ cache_error }}</div></td></tr>
+                    <tr><td colspan="10"><div class="alert alert-warning m-0">{{ cache_error }}</div></td></tr>
                 {% else %}
-                     <tr><td colspan="9"><div class="alert alert-info m-0">{{ _t('web.server.no_containers') }}</div></td></tr>
+                     <tr><td colspan="10"><div class="alert alert-info m-0">{{ _t('web.server.no_containers') }}</div></td></tr>
                 {% endif %}
             </tbody>
         </table>
@@ -177,6 +211,60 @@
                         </div>
                     </div>
 
+                    {# Player Count (opengsq) override section #}
+                    <div class="border-top pt-3 mt-3">
+                        <h6 class="mb-1">{{ _t('web.server.query_section_title') }}</h6>
+                        <div class="form-text mb-3">{{ _t('web.server.query_section_help') }}</div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-2">
+                                    <label for="modal-query-protocol" class="form-label">{{ _t('web.server.query_protocol') }}</label>
+                                    {# no name= : edited via JS by id and round-tripped into the hidden query_protocol_<name>; a bare name would leak into top-level config.json #}
+                                    <select class="form-select" id="modal-query-protocol">
+                                        <option value="source">Source / A2S</option>
+                                        <option value="minecraft">Minecraft</option>
+                                        <option value="satisfactory">Satisfactory</option>
+                                        <option value="palworld">Palworld</option>
+                                    </select>
+                                    <div class="form-text">{{ _t('web.server.query_protocol_help') }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-2">
+                                    <label for="modal-query-host" class="form-label">{{ _t('web.server.query_host') }}</label>
+                                    <input type="text" class="form-control" id="modal-query-host" placeholder="{{ _t('web.server.query_host_placeholder') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-2">
+                                    <label for="modal-query-port" class="form-label">{{ _t('web.server.query_port') }}</label>
+                                    <input type="number" class="form-control" id="modal-query-port" min="0" max="65535" placeholder="{{ _t('web.server.query_port_placeholder') }}">
+                                </div>
+                            </div>
+                        </div>
+                        {# Credential - only for token protocols; label/help switch per protocol (JS) #}
+                        <div class="mb-2" id="modal-query-token-wrap" style="display:none;"
+                             data-label-satisfactory="{{ _t('web.server.query_token_label') }}"
+                             data-help-satisfactory="{{ _t('web.server.query_token_help') }}"
+                             data-label-palworld="{{ _t('web.server.query_token_label_palworld') }}"
+                             data-help-palworld="{{ _t('web.server.query_token_help_palworld') }}">
+                            <label for="modal-query-token" class="form-label"><i class="bi bi-key"></i> <span id="modal-query-token-label">{{ _t('web.server.query_token_label') }}</span></label>
+                            <input type="text" class="form-control" id="modal-query-token" maxlength="1024" placeholder="{{ _t('web.server.query_token_placeholder') }}" autocomplete="off">
+                            <div class="form-text" id="modal-query-token-help">{{ _t('web.server.query_token_help') }}</div>
+                        </div>
+                        {# Manual re-test: probe 3x (60s apart) to unlock the checkbox if the server answers #}
+                        <div class="mt-2 d-flex align-items-center flex-wrap gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-info" id="modal-query-retest-btn"
+                                    data-msg-testing="{{ _t('web.server.query_testing') }}"
+                                    data-msg-supported="{{ _t('web.server.query_supported') }}"
+                                    data-msg-unsupported="{{ _t('web.server.query_unsupported') }}">
+                                <i class="bi bi-arrow-repeat"></i> {{ _t('web.server.query_test_btn') }}
+                            </button>
+                            <span id="modal-query-retest-status" class="form-text mb-0"></span>
+                        </div>
+                        <div class="form-text">{{ _t('web.server.query_test_help') }}</div>
+                    </div>
+
                     {# Protected Info Section #}
                     <div class="border-top pt-3 mt-3">
                         <h6 class="mb-3"><i class="bi bi-shield-lock"></i> {{ _t('web.server.protected_info_title') }}</h6>
@@ -218,3 +306,17 @@
         </div>
     </div>
 </div>
+
+<style>
+/* Glow the Info button yellow when player-count configuration is still required
+   (e.g. a token protocol like Satisfactory is selected but no token has been entered) */
+.info-btn-needs-config {
+    color: #ffc107 !important;
+    border-color: #ffc107 !important;
+    animation: ddcConfigGlow 1.6s ease-in-out infinite;
+}
+@keyframes ddcConfigGlow {
+    0%, 100% { box-shadow: 0 0 4px 1px rgba(255, 193, 7, 0.55); }
+    50%      { box-shadow: 0 0 11px 3px rgba(255, 193, 7, 0.95); }
+}
+</style>

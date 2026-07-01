@@ -27,6 +27,55 @@ class ConfigValidationService:
     - Provide default configs
     """
 
+    # Allowed game-query protocols (mirrors GameQueryService.SUPPORTED_PROTOCOLS).
+    _ALLOWED_QUERY_PROTOCOLS = ('source', 'minecraft', 'satisfactory', 'palworld')
+    # Max stored length for a per-server access token (e.g. Satisfactory app token).
+    _MAX_QUERY_TOKEN_LEN = 1024
+
+    @staticmethod
+    def sanitize_query_config(query_enabled, query_protocol, query_host, query_port,
+                              query_token='') -> Dict[str, Any]:
+        """Sanitize per-container game-query (opengsq) settings to safe, stored values.
+
+        - protocol: coerced to the supported whitelist (default 'source').
+        - port: clamped to 0 (=auto-discover) or a valid 1-65535 host port.
+        - host: trimmed; a scheme/path is stripped (we only ever query host:port).
+          NOTE: a manually configured host is TRUSTED VERBATIM and is NOT validated against
+          the container's Docker bindings. When left empty (the default) the target is
+          auto-discovered from the container's own IP/ports. Setting a manual host for a
+          token protocol sends the token/password to that host, so this is an admin-only,
+          accepted risk (the web UI is authenticated). There is no query-time SSRF guard.
+        - token: trimmed access token / admin password; length-capped.
+        Returns a dict with the cleaned fields.
+        """
+        protocol = str(query_protocol or 'source').strip().lower()
+        if protocol not in ConfigValidationService._ALLOWED_QUERY_PROTOCOLS:
+            logger.warning(f"Unsupported game-query protocol '{protocol}', defaulting to 'source'")
+            protocol = 'source'
+
+        try:
+            port = int(query_port or 0)
+        except (TypeError, ValueError):
+            port = 0
+        if port < 0 or port > 65535:
+            port = 0
+
+        host = str(query_host or '').strip()
+        # Strip any scheme/path - we only ever use a bare host or IP.
+        if '://' in host:
+            host = host.split('://', 1)[1]
+        host = host.split('/', 1)[0].strip()
+
+        token = str(query_token or '').strip()[:ConfigValidationService._MAX_QUERY_TOKEN_LEN]
+
+        return {
+            'query_enabled': bool(query_enabled),
+            'query_protocol': protocol,
+            'query_host': host,
+            'query_port': port,
+            'query_token': token,
+        }
+
     @staticmethod
     def looks_like_discord_token(token: str) -> bool:
         """Check if a token looks like a valid Discord bot token."""

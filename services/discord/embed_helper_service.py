@@ -18,6 +18,33 @@ from utils.logging_utils import get_module_logger
 logger = get_module_logger('embed_helper_service')
 
 
+def format_player_inline(players_online, max_players) -> str:
+    """Compact live player count for the space-limited community overview list.
+
+    Returns " {n}/{m}" (single-space separator, no emoji/label, e.g. " 3/8"), or " {n}"
+    when max is unknown, or "" when there is no player data. Kept minimal because the
+    overview is a monospace box with names already truncated to ~20 chars.
+    """
+    if players_online is None:
+        return ""
+    max_part = f"/{max_players}" if max_players is not None else ""
+    return f" {players_online}{max_part}"
+
+
+def format_player_line(players_online, max_players, players_text: str = "Players") -> str:
+    """Build the game-server player-count box line for a status embed.
+
+    Returns "│ {players_text}: {n}/{m}\n" (or "│ ...: {n}\n" when max is unknown),
+    or "" when there is no player data. Used by BOTH embed renderers (the background
+    status loop in cogs/status_handlers.py and the Expand/Collapse toggle path in
+    cogs/control_ui.py) so the line is identical and never flickers between them.
+    """
+    if players_online is None:
+        return ""
+    max_part = f"/{max_players}" if max_players is not None else ""
+    return f"│ {players_text}: {players_online}{max_part}\n"
+
+
 class EmbedHelperService:
     """
     Service for caching embed-related helper data.
@@ -54,7 +81,8 @@ class EmbedHelperService:
                 'ram_text': _("RAM"),
                 'uptime_text': _("Uptime"),
                 'detail_denied_text': _("Detailed status not allowed."),
-                'last_update_text': _("Last update")
+                'last_update_text': _("Last update"),
+                'players_text': _("Players")
             }
             logger.debug(f"Cached translations for language: {lang}")
 

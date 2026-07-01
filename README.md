@@ -1,6 +1,6 @@
-# DockerDiscordControl v2.2.4 🐳
+# DockerDiscordControl v2.3.0 🐳
 
-[![Version](https://img.shields.io/badge/Version-v2.2.4-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.2.4) [![Python](https://img.shields.io/badge/Python-3.14-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.24-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-3378%2F3378-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-86%25-brightgreen?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
+[![Version](https://img.shields.io/badge/Version-v2.3.0-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.3.0) [![Python](https://img.shields.io/badge/Python-3.14-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.24-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-3480%2F3480-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-86%25-brightgreen?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
 
 A powerful Discord bot and web interface to manage Docker containers remotely. This application bridges the gap between Discord and your Docker environment, allowing container monitoring and control directly through Discord channels.
 
@@ -9,6 +9,20 @@ A powerful Discord bot and web interface to manage Docker containers remotely. T
 Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is an ultra-optimized Alpine Linux build with the latest security patches and enhanced performance.
 
 ## 🆕 Latest Updates
+
+### ✅ **v2.3.0 (2026-07-01) - Live Game-Server Player Counts**
+
+Show **live player counts** for your game servers right in the Discord status overview (e.g. `Valheim  3/8`).
+
+**New: per-container player-count feature**
+- Live "players online / max" for game servers via the [opengsq](https://github.com/opengsq/opengsq-python) library — shown compactly behind the server name in the community status overview (`Name  3/8`) and in the per-container control box (`│ Players: 3/8`).
+- **4 protocols:** Source / A2S (most Steam games — Valheim, Enshrouded, V Rising, Icarus, Rust, CS, Project Zomboid, …), **Minecraft**, **Satisfactory** (app token) and **Palworld** (REST admin password).
+- **Automatic detection:** DDC probes each online container across all its published ports (transport-aware ordering), auto-detects Source vs Minecraft, and unlocks the per-server "Players" toggle only for servers that actually answer — with a 15-minute probe window, permanent verdicts, and a manual **"Test now"** re-check for slow-booting servers.
+- **Guided setup:** the container name/image suggests the right protocol, and token games (Satisfactory / Palworld) make the Info button glow until a credential is entered.
+- Fully **non-blocking & best-effort** — a dead or slow game server never affects or delays the Discord status loop.
+- **Localized in all 40 supported languages.**
+
+🔒 **Quality:** built and hardened across **three independent multi-agent code reviews**; **+102 unit tests**; validated live against real game servers.
 
 ### ✅ **v2.2.4 (2026-06-30) - Alpine 3.24 / Python 3.14 Base Bump**
 
@@ -449,7 +463,7 @@ environment:
 
 ## 🧪 Testing & Quality Assurance
 
-DockerDiscordControl maintains **86% test coverage** (3378 tests) with comprehensive automated testing:
+DockerDiscordControl maintains **86% test coverage** (3480 tests) with comprehensive automated testing:
 
 ### Test Suites
 - **Unit Tests**: Service-level testing for core business logic

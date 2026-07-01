@@ -252,6 +252,13 @@ class StatusHandlersMixin:
             )
             successful_fetches += 1
 
+        # Optional game-server player-count enrichment (opengsq). Runs as a separate,
+        # timeout-guarded bulk query AFTER the docker fetch and never affects status.
+        await self._enrich_status_with_player_counts(status_results, servers_by_docker_name)
+        # Background support detection (probes online containers to gate the web UI's
+        # "Spieler" checkbox). Fire-and-forget so it never adds latency to the status loop.
+        self._schedule_support_probes(status_results, servers_by_docker_name)
+
         total_elapsed = (time.time() - start_time) * 1000
 
         # Enhanced performance reporting
@@ -269,6 +276,129 @@ class StatusHandlersMixin:
                        f"{successful_fetches}/{len(container_names)} containers with complete data")
 
         return status_results
+
+    async def _enrich_status_with_player_counts(self, status_results: Dict[str, ContainerStatusResult],
+                                                servers_by_docker_name: Dict[str, Any]) -> None:
+        """Add live game-server player counts to running, query-enabled containers (opengsq).
+
+        Controlled per-container via ``query_enabled`` (the 🎮 column in the web UI). The
+        DDC_ENABLE_OPENGSQ setting is a global kill-switch (default ON, read dynamically) so
+        ops can disable all querying without unchecking every container. Fully best-effort:
+        any failure leaves players_online=None and never affects the status results.
+        """
+        try:
+            from app.utils.web_helpers import _get_advanced_setting
+            if not _get_advanced_setting('DDC_ENABLE_OPENGSQ', True, bool):
+                return  # global kill-switch off -> zero work, no opengsq import
+
+            from services.infrastructure.game_query_service import (
+                get_game_query_service, GameQueryRequest, DEFAULT_QUERY_TIMEOUT_SECONDS,
+                TOKEN_PROTOCOLS)
+            svc = get_game_query_service()
+
+            targets = []
+            for docker_name, result in status_results.items():
+                if not (isinstance(result, ContainerStatusResult) and result.success and result.is_running):
+                    continue
+                cfg = servers_by_docker_name.get(docker_name) or {}
+                if not cfg.get('query_enabled'):
+                    continue
+                # Effective protocol: for auto-probeable protocols (source/minecraft) trust the
+                # one that actually answered during support detection, so a Minecraft server is
+                # queried as minecraft without the user setting anything. Token protocols
+                # (satisfactory) always use the user's explicit choice.
+                proto = cfg.get('query_protocol', 'source')
+                if proto not in TOKEN_PROTOCOLS:
+                    try:
+                        from services.infrastructure.game_query_support_service import get_game_query_support_service
+                        detected = get_game_query_support_service().get_protocol(docker_name)
+                        if detected:
+                            proto = detected
+                    except (ImportError, RuntimeError, AttributeError):
+                        pass
+                host, ports = await svc.resolve_query_candidates(
+                    docker_name, cfg.get('query_host', ''), cfg.get('query_port', 0), proto)
+                if not host or not ports:
+                    continue
+                targets.append(GameQueryRequest(
+                    container_name=docker_name,
+                    protocol=proto,
+                    host=host, port=ports[0], candidate_ports=tuple(ports[1:4]),  # cap fallbacks
+                    timeout_seconds=DEFAULT_QUERY_TIMEOUT_SECONDS,
+                    token=cfg.get('query_token', ''),
+                ))
+
+            if not targets:
+                return
+
+            # Overall best-effort budget: a batch of dead multi-port servers can't stall the
+            # status loop (per-port wait_for already bounds each individual query).
+            try:
+                query_results = await asyncio.wait_for(svc.get_bulk_game_queries(targets), timeout=20.0)
+            except asyncio.TimeoutError:
+                logger.debug("[GAME_QUERY] Player-count enrichment exceeded budget; skipping cycle")
+                return
+            for docker_name, q in query_results.items():
+                if q.success and q.players_online is not None and docker_name in status_results:
+                    status_results[docker_name].players_online = q.players_online
+                    status_results[docker_name].max_players = q.max_players
+        except (ImportError, RuntimeError, AttributeError, KeyError, TypeError) as e:
+            logger.debug(f"[GAME_QUERY] Player-count enrichment skipped: {e}")
+
+    def _schedule_support_probes(self, status_results: Dict[str, ContainerStatusResult],
+                                 servers_by_docker_name: Dict[str, Any]) -> None:
+        """Fire-and-forget background task that probes online containers for query support
+        (gates the web UI checkbox). Single-flight; never blocks or breaks the status loop."""
+        try:
+            existing = getattr(self, '_support_probe_task', None)
+            if existing is not None and not existing.done():
+                return  # a probe pass is still running
+            online = [n for n, r in status_results.items()
+                      if isinstance(r, ContainerStatusResult) and r.success and r.is_running]
+            online_set = set(online)
+            offline = [n for n in status_results.keys() if n not in online_set]
+            if not online and not offline:
+                return
+            self._support_probe_task = asyncio.create_task(
+                self._run_support_probes(online, offline, dict(servers_by_docker_name)))
+        except RuntimeError:
+            pass  # no running event loop (e.g. unit tests) -> skip silently
+
+    async def _run_support_probes(self, online_names: List[str], offline_names: List[str],
+                                  servers_by_docker_name: Dict[str, Any]) -> None:
+        """Reset the probe window for offline containers, then probe each due online one."""
+        try:
+            from app.utils.web_helpers import _get_advanced_setting
+            if not _get_advanced_setting('DDC_ENABLE_OPENGSQ', True, bool):
+                return  # global kill-switch off
+            from services.infrastructure.game_query_service import get_game_query_service
+            from services.infrastructure.game_query_support_service import get_game_query_support_service
+            svc = get_game_query_service()
+            support = get_game_query_support_service()
+            # Pick up externally-written verdicts (web-process manual re-test) before deciding
+            # what to probe or recording, so the bot never reverts them.
+            support.reload()
+
+            # Offline containers get a fresh 15-min window on their next boot.
+            for name in offline_names:
+                support.note_offline(name)
+
+            now = time.monotonic()
+            semaphore = asyncio.Semaphore(3)
+
+            async def _probe(name: str) -> None:
+                if not support.should_probe(name, now):
+                    return
+                cfg = servers_by_docker_name.get(name) or {}
+                async with semaphore:
+                    support.mark_probed(name, time.monotonic())
+                    ok, proto, port = await svc.detect_support(
+                        name, cfg.get('query_host', ''), cfg.get('query_port', 0))
+                support.record_result(name, ok, proto, port)
+
+            await asyncio.gather(*[_probe(n) for n in online_names], return_exceptions=True)
+        except (ImportError, RuntimeError, AttributeError, KeyError, TypeError) as e:
+            logger.debug(f"[QUERY_SUPPORT] Support-probe pass skipped: {e}")
 
     async def bulk_update_status_cache(self, container_names: List[str]):
         """
@@ -601,6 +731,8 @@ class StatusHandlersMixin:
                 ram = status_result.ram
                 uptime = status_result.uptime
                 details_allowed = status_result.details_allowed
+                players_online = status_result.players_online
+                max_players = status_result.max_players
                 status_color = 0x00b300 if running else 0xe74c3c
 
                 # Continue with box embed generation (same as tuple case)
@@ -622,6 +754,13 @@ class StatusHandlersMixin:
                 ram_text = cached_translations['ram_text']
                 uptime_text = cached_translations['uptime_text']
                 detail_denied_text = cached_translations['detail_denied_text']
+                players_text = cached_translations['players_text']
+
+                # Game-server player count line (only when we have query data). Shown in
+                # both collapsed and expanded views since it's the key info for a game server.
+                # Shared helper so the toggle path (control_ui.py) renders it identically.
+                from services.discord.embed_helper_service import format_player_line
+                player_line = format_player_line(players_online, max_players, players_text)
 
                 # PERFORMANCE OPTIMIZATION: Use cached box elements
                 BOX_WIDTH = 28
@@ -651,9 +790,15 @@ class StatusHandlersMixin:
                             f"│ {ram_text}: {ram}\n",
                             f"│ {uptime_text}: {uptime}\n"
                         ])
+                        if player_line:
+                            description_parts.append(player_line)
                     else:
+                        if player_line:
+                            description_parts.append(player_line)
                         description_parts.append(f"│ \u2022 ▼ Expand for details\n")
                 elif running and not details_allowed:
+                    if player_line:
+                        description_parts.append(player_line)
                     description_parts.append(f"│ {detail_denied_text}\n")
                 elif not running:
                     description_parts.append(f"│ {uptime_text}: N/A\n")

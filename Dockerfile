@@ -121,7 +121,8 @@ for relative in (
     'pydoc_data',
     'unittest',
     'distutils',
-    'xmlrpc',
+    # NOTE: 'xmlrpc' is intentionally KEPT - opengsq's protocols package eagerly
+    # imports every protocol incl. 'nadeo', which imports xmlrpc.client at module load.
     'email/test',
     'ctypes/test',
     'sqlite3/test'
