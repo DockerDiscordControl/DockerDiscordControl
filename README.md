@@ -834,6 +834,10 @@ We welcome contributions! See our [Development Guide](../../wiki/Development) fo
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+### Third-party libraries
+
+Live game-server player counts are powered by **[opengsq](https://github.com/opengsq/opengsq-python)** (MIT License) — the open-source game-server query library that also powers DiscordGSM. DDC uses it as a dependency (via `requirements.txt`); it is not modified or bundled.
+
 ---
 
 **Like DDC? Star the repository!** | **Found a bug?** [Report it](../../issues) | **Feature idea?** [Suggest it](../../discussions)
