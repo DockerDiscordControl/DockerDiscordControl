@@ -4,6 +4,15 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ---
 
+## v2.3.1 - 2026-08-08
+
+### Security
+
+- Bumped **cryptography** from `48.x` to **`>=50.0.0`** to resolve **CVE-2026-69247** (GHSA-g6cj-pr64-35w5): a Bleichenbacher timing/error oracle exposed during PKCS#7 `EnvelopedData` decryption (High severity). The previous `<49.0.0` upper bound was widened to `<52.0.0` in line with the requirements policy so future CVE fixes are not blocked.
+- Dependency-only patch — no functional changes. Rebuilt and re-released across all platform images.
+
+---
+
 ## v2.3.0 - 2026-07-01
 
 ### Live game-server player counts
