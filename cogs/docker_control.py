@@ -181,6 +181,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         # Keep cache_ttl_seconds for compatibility (some code might still reference it)
         cache_duration = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', '30'))
         self.cache_ttl_seconds = int(cache_duration * 2.5)
+        # The refresh interval itself. The status embeds decide from it when a status is old
+        # enough to deserve an age hint. Recovering it by dividing cache_ttl_seconds by 2.5
+        # would be an invisible coupling between two files, so it is published explicitly.
+        self.status_refresh_interval_seconds = cache_duration
 
         self.pending_actions: Dict[str, Dict[str, Any]] = {}
 
@@ -3643,6 +3647,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         if self.cache_ttl_seconds != calculated_ttl:
             self.cache_ttl_seconds = calculated_ttl
             logger.info(f"[STATUS_LOOP] Cache TTL updated to {calculated_ttl} seconds (interval: {cache_duration}s)")
+        # Keep the published interval in sync when the setting changes at runtime.
+        self.status_refresh_interval_seconds = cache_duration
 
         # Dynamically change the loop interval if needed
         if self.status_update_loop.seconds != cache_duration:

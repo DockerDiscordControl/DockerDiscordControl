@@ -50,6 +50,27 @@ def _bulk_fetch_concurrency() -> int:
     default_workers = min(32, cpu_count + 4)  # ThreadPoolExecutor default used by to_thread
     return max(3, min(BULK_FETCH_MAX_CONCURRENCY, default_workers - 2))
 
+def _age_hint_threshold_seconds(handler) -> float:
+    """From when on a cached status is old enough to deserve an age hint in the embed.
+
+    The status loop refreshes every ``status_refresh_interval_seconds``, so an age anywhere
+    between zero and one interval is entirely normal. The hint should therefore say "a refresh
+    was missed", not "we are somewhere inside the normal cycle" - hence one and a half intervals.
+
+    Both display sites used to compare against ``cache_ttl_seconds``, which is ``interval * 2.5``.
+    With the 120 s interval configured on a real installation that meant data of up to five
+    minutes was shown without any hint that it was old.
+
+    Falls back to ``cache_ttl_seconds`` - the previous behaviour - when no interval has been
+    published, e.g. for a bare mixin in tests.
+    """
+    interval = getattr(handler, 'status_refresh_interval_seconds', None)
+    ttl = getattr(handler, 'cache_ttl_seconds', 0) or 0
+    if not isinstance(interval, (int, float)) or isinstance(interval, bool) or interval <= 0:
+        return ttl
+    return interval * 1.5
+
+
 class StatusHandlersMixin:
     """
     Mixin class containing status handler functionality for DockerControlCog.
@@ -719,7 +740,7 @@ class StatusHandlersMixin:
             cache_age = (now - cached_entry['timestamp']).total_seconds()
             # PATIENT APPROACH: ALWAYS use cache if available - background collects fresh data
             # Show cache age when data is older so user knows freshness
-            if cache_age < self.cache_ttl_seconds:
+            if cache_age < _age_hint_threshold_seconds(self):
                 cache_age_indicator = ""  # No indicator for fresh data
             else:
                 # Add age indicator for older data
@@ -982,7 +1003,7 @@ class StatusHandlersMixin:
             current_time = format_datetime_with_timezone(now_footer, timezone_str, time_only=True)
 
             # Enhanced timestamp with cache age info
-            if 'embed_cache_age' in locals() and embed_cache_age > self.cache_ttl_seconds:
+            if 'embed_cache_age' in locals() and embed_cache_age > _age_hint_threshold_seconds(self):
                 timestamp_line = f"{last_update_text}: {current_time} (data: {int(embed_cache_age)}s alt)"
             else:
                 timestamp_line = f"{last_update_text}: {current_time}"
