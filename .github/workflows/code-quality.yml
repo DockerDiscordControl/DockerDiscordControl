@@ -294,13 +294,20 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          python -m pytest tests/ \
-            --cov=services \
-            --cov=app \
-            --cov=utils \
-            --cov-report=xml \
-            --cov-report=html
-        continue-on-error: true
+          # Eine Gruppe je Aufruf - die Begruendung steht in tests/GROUPS.txt.
+          # Bis 2026-09-17 stand hier ein einzelnes "pytest tests/" mit
+          # continue-on-error: true. Dieser Aufruf brach mit 18 Fehlern beim
+          # Einsammeln ab, es lief kein einziger Test, und der Schritt galt
+          # trotzdem als erfolgreich - die Abdeckung, die SonarCloud danach
+          # auswertet, entstand also aus nichts. Siehe SPEC.md Z10.
+          rm -f .coverage
+          while read -r gruppe; do
+            case "$gruppe" in ''|'#'*) continue ;; esac
+            python -m pytest "$gruppe" \
+              --cov=services --cov=app --cov=utils --cov-append -q
+          done < tests/GROUPS.txt
+          coverage xml
+          coverage html
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master

@@ -1,0 +1,60 @@
+# Die Testgruppen dieses Projekts - eine Gruppe je pytest-Aufruf.
+#
+# WARUM EINZELN: tests/unit/services, tests/unit/cogs und tests/unit/utils haben
+# kein __init__.py, heissen aber wie die echten Pakete services/, cogs/, utils/.
+# In EINEM gemeinsamen pytest-Lauf verdecken sie diese, und die Sammlung bricht ab:
+#   pytest tests/unit/  -> 79 Fehler beim Einsammeln, kein einziger Test laeuft
+#   pytest tests/       -> 18 Fehler beim Einsammeln, kein einziger Test laeuft
+# Beides am 2026-09-17 gemessen. --import-mode=importlib behebt es nicht, und drei
+# nachgeruestete __init__.py verschlechtern es auf 54 Fehler (zurueckgenommen).
+#
+# Diese Datei ist die EINZIGE Quelle der Gruppenliste. Die CI-Workflows lesen sie,
+# damit keine Kopien auseinanderlaufen. tests/spec/test_z10_gruppenliste.py stellt
+# sicher, dass jede Testdatei in genau einer Gruppe liegt - sonst liefe eine neue
+# Datei lautlos nie mit.
+#
+# Siehe SPEC.md Z10.
+
+tests/spec
+tests/unit/services/mech
+tests/unit/services/web
+tests/unit/services/scheduler
+tests/unit/services/configuration
+tests/unit/services/infrastructure
+tests/unit/services/automation
+tests/unit/services/docker_service
+tests/unit/services/donation
+tests/unit/services/discord_admin
+tests/unit/services/translation
+tests/unit/cogs
+tests/unit/blueprints
+tests/unit/extended
+tests/unit/audit_2026_09
+tests/unit/utils
+tests/unit/security
+tests/unit/storage
+tests/unit/i18n
+tests/unit/infrastructure
+tests/unit/performance
+tests/unit/app_modules
+tests/security
+tests/integration
+tests/performance
+tests/test_bootstrap_performance.py
+tests/test_bootstrap_runtime.py
+tests/test_docker_status_cache_runtime.py
+tests/test_donation_system_functional.py
+tests/test_member_count_service.py
+tests/test_progress_paths.py
+tests/test_progress_runtime.py
+tests/test_runtime_slots.py
+tests/test_scheduler_runtime.py
+tests/test_unified_donation_service.py
+tests/test_web_config.py
+tests/test_web_factory.py
+tests/test_web_logging.py
+tests/test_web_spam_and_advanced_settings.py
+tests/unit/services/test_container_info_service.py
+tests/unit/services/test_docker_pool_fetch.py
+tests/unit/services/test_docker_status_services.py
+tests/unit/services/test_donation_management_service.py

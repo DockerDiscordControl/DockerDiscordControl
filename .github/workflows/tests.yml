@@ -69,15 +69,24 @@ jobs:
           echo "## Unit Tests - Python ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Run tests with coverage
-          python -m pytest tests/unit/ \
-            --cov=services \
-            --cov=app \
-            --cov=utils \
-            --cov-report=term-missing \
-            --cov-report=xml \
-            --cov-report=html \
-            -v || true
+          # Eine Gruppe je Aufruf - die Begruendung steht in tests/GROUPS.txt.
+          # Bis 2026-09-17 stand hier ein einzelnes "pytest tests/unit/" mit einem
+          # "|| true" am Ende. Dieser Aufruf brach mit 79 Fehlern beim Einsammeln
+          # ab, es lief kein einziger Test, und das "|| true" liess den Schritt
+          # trotzdem gruen erscheinen - samt der Meldung unten, die Tests seien
+          # durchgelaufen. Siehe SPEC.md Z10.
+          #
+          # Die Integrationstests hat der eigene Job weiter unten.
+          rm -f .coverage
+          grep -v '^tests/integration' tests/GROUPS.txt | while read -r gruppe; do
+            case "$gruppe" in ''|'#'*) continue ;; esac
+            echo "::group::$gruppe"
+            python -m pytest "$gruppe" \
+              --cov=services --cov=app --cov=utils --cov-append -q
+            echo "::endgroup::"
+          done
+          coverage xml
+          coverage html
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ Unit tests completed" >> $GITHUB_STEP_SUMMARY
@@ -124,11 +133,12 @@ jobs:
           echo "## Integration Tests" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          python -m pytest tests/integration/ -v || true
+          # Kein "|| true" und kein continue-on-error mehr: ein roter
+          # Integrationstest muss den Job rot machen. Siehe SPEC.md Z10.
+          python -m pytest tests/integration/ -v
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ Integration tests completed" >> $GITHUB_STEP_SUMMARY
-        continue-on-error: true
 
   test-summary:
     name: Test Summary

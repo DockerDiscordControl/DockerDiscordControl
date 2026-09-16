@@ -5,8 +5,9 @@
 Die Liste der zehn Zusicherungen wurde vorgelegt, aber **nicht Punkt für Punkt bestätigt** — der
 Betreiber hat die Abarbeitung delegiert und zwei Einzelfragen entschieden (Z4: Browser-Token;
 Z5: alte Admin-Panels werden sofort wirkungslos). Formal steht die Liste als Ganzes damit weiterhin
-auf *vorgelegt*. Offen zur Entscheidung: **Z10** (Testgatter in der CI) und die Frage, ob die
-dokumentierte Scheduler-Ausnahme unter Z5 eine bewusste Entscheidung werden soll.
+auf *vorgelegt*. **Z10** (Testgatter in der CI) wurde am 2026-09-17 entschieden — volles Gatter,
+gruppenweise — und ist umgesetzt. Offen bleibt die Frage, ob die dokumentierte Scheduler-Ausnahme
+unter Z5 eine bewusste Entscheidung werden soll.
 
 Ohne Maßstab ist ein Review nur Meinung. Diese Datei hält fest, was DDC verspricht — damit man ein
 Verhalten *widerlegen* kann, statt über Geschmack zu streiten.
@@ -286,33 +287,52 @@ Nicht in `config.json`, nicht in deren Sicherung, nicht in Logs.
 Ein veröffentlichtes Image hat einen vollständigen, bestandenen Testlauf hinter sich.
 
 *Gebrochen, wenn:* ein Image veröffentlicht wird, ohne dass die Suite lief oder obwohl sie rot war.
-**Heute: gebrochen — und schwerer als in der Bestandsaufnahme notiert.**
-*Abgedeckt von* `tests/spec/test_z10_ci_test_gate.py`. Dieser Test ist **absichtlich rot** und
-bleibt es, bis die Entscheidung unten gefallen ist. Grün gestellt (`xfail`) wird er nicht — das wäre
-das Grünfärben, gegen das dieses Programm gerichtet ist.
+**Heute: behoben (2026-09-17)** — nach Entscheidung des Betreibers für das **volle Gatter in
+gruppenweiser Form**. Die Zusicherung war bei ihrer Formulierung gebrochen, und schwerer als in der
+Bestandsaufnahme notiert.
 
-Belegt sind vier Stellen, drei davon Testläufe, die **nicht rot werden können**:
+*Was vorgefunden wurde* — vier Stellen, drei davon Testläufe, die **nicht rot werden konnten**:
 
-| Stelle | Art |
-|---|---|
-| `tests.yml:67` „Run unit tests with coverage" | `\|\| true` |
-| `tests.yml:122` „Run integration tests" | `\|\| true` **und** `continue-on-error: true` |
-| `code-quality.yml:295` „Run tests with coverage" | `continue-on-error: true` |
-| `docker-publish.yml` | führt überhaupt keine Tests aus |
+| Stelle | Art | heute |
+|---|---|---|
+| `tests.yml:67` „Run unit tests with coverage" | `\|\| true` | entfernt, läuft gruppenweise |
+| `tests.yml:122` „Run integration tests" | `\|\| true` **und** `continue-on-error: true` | beides entfernt |
+| `code-quality.yml:295` „Run tests with coverage" | `continue-on-error: true` | entfernt, läuft gruppenweise |
+| `docker-publish.yml` | führte überhaupt keine Tests aus | eigener `test`-Job, `build_and_push` hängt per `needs:` daran |
 
-*Gegenprobe:* Die erste Fassung des Tests fand nur den Integrationsschritt — im Unit-Test-Schritt
-steht `pytest` bei `:73` und das `|| true` erst bei `:80`, getrennt durch Zeilenfortsetzungen.
-Nach Zerlegung in `- name:`-Schritte und Erweiterung um `continue-on-error` vier Befunde statt einem,
-der vierte vorher unbekannt. Die Berichtswerkzeuge derselben Dateien (radon, pylint, flake8, mypy)
-bleiben korrekt unbeanstandet.
+*Und der eigentliche Befund, der erst beim Beheben auftauchte:* Die Schutzschalter verbargen keine
+roten Tests — sie verbargen, dass **überhaupt nicht getestet wurde**. `pytest tests/unit/` bricht mit
+**79** Fehlern beim Einsammeln ab, `pytest tests/` mit **18**; in beiden Fällen läuft kein einziger
+Test. Ursache ist eine Paketverdeckung: `tests/unit/services`, `tests/unit/cogs` und
+`tests/unit/utils` haben kein `__init__.py`, heißen aber wie die echten Pakete. Das `✅ Unit tests
+completed` im Bericht war ein `echo` hinter einem längst gestorbenen pytest.
+Hätte man nur die Schutzschalter entfernt, wäre die CI **ab sofort dauerhaft rot** gewesen — und ein
+dauerhaft rotes Gatter ist so wertlos wie ein dauerhaft grünes. Alle drei Aufrufe laufen deshalb
+jetzt gruppenweise über `tests/GROUPS.txt`.
+*Verworfen, weil gemessen:* `--import-mode=importlib` ändert nichts; drei nachgerüstete `__init__.py`
+verschlechtern es von 18 auf **54** Fehler (zurückgenommen). Das Test-Layout umzubauen wäre zudem ein
+Umbau „damit es testbar wird", ohne wartenden Test.
 
-**Zu entscheiden (Betreiber):** Ein Gatter bedeutet, dass eine rote Suite die Veröffentlichung
-blockiert.
-(a) `docker-publish.yml` bekommt `needs:` auf den Testjob, Schutzschalter entfallen — volles Gatter.
-(b) Nur die Schutzschalter entfernen, Veröffentlichung unverändert — halbe Wirkung.
-(c) Nichts ändern; Z10 wird zur bewussten Entscheidung — dann muss der Test **weg**, denn ein
-dauerhaft roter Test ist so wertlos wie ein dauerhaft grüner.
-*Empfehlung:* (a).
+*Abgedeckt von* `tests/spec/test_z10_ci_test_gate.py` (6 Tests) und `tests/spec/test_z10_gruppenliste.py`
+(3 Tests). Der zweite hält die handgepflegte Gruppenliste gegen Drift: **jede Testdatei liegt in genau
+einer Gruppe** — sonst liefe eine neue Datei lautlos nie mit, ohne dass irgendetwas rot wird.
+
+*Gegenprobe, in drei Stufen:* Die erste Fassung des Tests fand nur den Integrationsschritt — im
+Unit-Test-Schritt steht `pytest` bei `:73` und das `|| true` erst bei `:80`, getrennt durch
+Zeilenfortsetzungen. Nach Zerlegung in `- name:`-Schritte und Erweiterung um `continue-on-error`
+vier Befunde statt einem, der vierte vorher unbekannt.
+Nach dem Bau des Gatters schlug der Test **erneut** an, vier Mal — und alle vier Male auf
+**Kommentare**, die gerade erst geschrieben worden waren („Kein `|| true` mehr …"). Der ausführbare
+Code war sauber. Statt die Begründungen zu löschen wurde der Melder geschärft: ganze Kommentarzeilen
+werden nicht ausgeführt und zählen deshalb nicht. Weil das wie eine Lockerung aussieht, trägt die
+Schärfung einen eigenen **Wirkungsnachweis** mit vier Fällen — darunter der entscheidende
+`pytest … || true  # sieht harmlos aus`, der weiterhin anschlagen muss. Danach `tests/spec`:
+**50 grün, 0 rot.**
+
+**Was damit ausdrücklich NICHT belegt ist:** Geprüft sind der Text und die YAML-Struktur der
+Workflow-Dateien, nicht ein echter GitHub-Lauf. Dass der `test`-Job dort anläuft und
+`build_and_push` tatsächlich blockiert, zeigt erst der erste Push. Diese Tests belegen, dass das
+Gatter **dasteht** — nicht, dass GitHub es so ausführt.
 
 ---
 
