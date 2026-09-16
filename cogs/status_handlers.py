@@ -378,10 +378,24 @@ class StatusHandlersMixin:
             except asyncio.TimeoutError:
                 logger.debug("[GAME_QUERY] Player-count enrichment exceeded budget; skipping cycle")
                 return
+            # Report the outcome back to the verdict store. A positive verdict is otherwise never
+            # re-checked, so a server that used to answer and no longer does kept costing a full
+            # timeout every cycle (finding P1b). Repeated failures put it back into probing.
+            try:
+                from services.infrastructure.game_query_support_service import get_game_query_support_service
+                verdicts = get_game_query_support_service()
+            except (ImportError, RuntimeError, AttributeError):
+                verdicts = None
+
             for docker_name, q in query_results.items():
                 if q.success and q.players_online is not None and docker_name in status_results:
                     status_results[docker_name].players_online = q.players_online
                     status_results[docker_name].max_players = q.max_players
+                if verdicts is not None:
+                    if q.success:
+                        verdicts.note_query_success(docker_name)
+                    elif q.error_type in ('timeout', 'unreachable'):
+                        verdicts.note_query_failure(docker_name)
         except (ImportError, RuntimeError, AttributeError, KeyError, TypeError) as e:
             logger.debug(f"[GAME_QUERY] Player-count enrichment skipped: {e}")
 

@@ -45,6 +45,13 @@ PROBE_WINDOW_SECONDS = 900.0
 # was offline) starts a FRESH 15-min window instead of counting the dead time.
 WINDOW_GAP_RESET_SECONDS = 300.0
 
+# How many consecutive failed live queries demote a FINAL positive verdict back into probing.
+# A positive verdict is otherwise permanent (should_probe skips final entries), so a server that
+# answered once and later stopped - query port no longer published, moved behind a firewall -
+# kept costing a full query timeout on every status cycle. At a 120 s cycle three in a row is
+# about six minutes, which comfortably survives a container restart.
+QUERY_FAILURE_DEMOTE_THRESHOLD = 3
+
 _SUPPORT_FILENAME = 'query_support.json'
 # Fields that define the verdict (used for change detection; 'updated' is excluded so a
 # still-probing container doesn't rewrite the file every cycle).
@@ -119,6 +126,9 @@ class GameQuerySupportService:
         self._path = path or (_config_dir() / _SUPPORT_FILENAME)
         self._state: Dict[str, Dict[str, Any]] = {}   # name -> verdict dict
         self._last_probe: Dict[str, float] = {}        # name -> monotonic ts (in-memory only)
+        # name -> consecutive failed live queries. In memory only on purpose: persisting it
+        # would rewrite the verdict file on every status cycle for no benefit.
+        self._failures: Dict[str, int] = {}
         self._load_file()
 
     # --- verdict access ----------------------------------------------------
@@ -173,6 +183,38 @@ class GameQuerySupportService:
         gave_up = (now_wall - since) >= PROBE_WINDOW_SECONDS
         self._set(name, supported=False, final=gave_up, protocol=None,
                   port=None, probing_since=since)
+
+    def note_query_success(self, name: str) -> None:
+        """A live query answered - clear any failure streak."""
+        self._failures.pop(name, None)
+
+    def note_query_failure(self, name: str,
+                           threshold: int = QUERY_FAILURE_DEMOTE_THRESHOLD) -> bool:
+        """Count a failed live query and demote a stale positive verdict after `threshold`.
+
+        Only FINAL POSITIVE verdicts are affected. Those are the ones nothing ever re-checks:
+        should_probe() skips final entries, so before this a server that used to answer and no
+        longer does was queried to full timeout forever. Unknown and already-negative containers
+        are left alone (the probe path owns those).
+
+        After demotion the container is back in the probing window, so it is re-tested and either
+        recovers or becomes a final negative - at which point the status loop skips it entirely.
+
+        Returns True when the verdict was demoted.
+        """
+        if not self.is_final(name) or self.is_supported(name) is not True:
+            return False
+        count = self._failures.get(name, 0) + 1
+        self._failures[name] = count
+        if count < threshold:
+            return False
+        self._failures.pop(name, None)
+        self._last_probe.pop(name, None)  # allow an immediate re-probe
+        self._set(name, supported=False, final=False, protocol=None, port=None,
+                  probing_since=time.time())
+        logger.info("[GAME_QUERY] %s failed %d live queries in a row - resetting its verdict so "
+                    "it gets probed again", name, count)
+        return True
 
     def note_offline(self, name: str) -> None:
         """Container observed offline: reset the probe window for a not-yet-final container
