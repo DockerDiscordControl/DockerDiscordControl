@@ -1105,11 +1105,37 @@ class TestContainerStatusDeactivateException:
 
         svc = ContainerStatusService()
 
-        # Force open() to raise inside _deactivate_container.
-        def _bad_open(*_a, **_kw):
-            raise IOError("disk gone")
+        # Force the WRITE inside _deactivate_container to raise.
+        #
+        # Two corrections live here, and the second was only found by measuring:
+        #
+        # 1. This used to patch builtins.open only. Since the write became atomic
+        #    (temp file + os.replace, SPEC.md Z7) the data goes through os.fdopen,
+        #    which builtins.open does not cover.
+        # 2. Failing on EVERY open (the obvious fix) does not test the write at
+        #    all: _deactivate_container reads the config file first, so the read
+        #    blew up, the method returned False, and the assertion below was
+        #    satisfied without the write ever being reached. Verified by mutation
+        #    - with the atomic helper deliberately swallowing all errors, this
+        #    test stayed green while the Z7 test went red.
+        #
+        # Hence: only write-mode opens fail, on both paths.
+        import os as _os
 
-        with patch("builtins.open", _bad_open):
+        real_open, real_fdopen = open, _os.fdopen
+
+        def _bad_write_open(target, mode="r", *a, **kw):
+            if "w" in mode or "a" in mode:
+                raise IOError("disk gone")
+            return real_open(target, mode, *a, **kw)
+
+        def _bad_write_fdopen(fd, mode="r", *a, **kw):
+            if "w" in mode or "a" in mode:
+                raise IOError("disk gone")
+            return real_fdopen(fd, mode, *a, **kw)
+
+        with patch("builtins.open", _bad_write_open), \
+             patch.object(_os, "fdopen", _bad_write_fdopen):
             ok = svc._deactivate_container("myc")
         assert ok is False
 

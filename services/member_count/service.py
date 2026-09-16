@@ -21,6 +21,7 @@ except ImportError:
     discord = None  # Discord.py not available (used for type checking only)
 
 from services.mech.progress_paths import get_progress_paths
+from utils.atomic_io import atomic_write_json
 from utils.logging_utils import get_module_logger
 
 
@@ -171,7 +172,13 @@ class MemberCountService:
 
         member_count_file = self._paths.member_count_file
         member_count_file.parent.mkdir(parents=True, exist_ok=True)
-        member_count_file.write_text(json.dumps(payload, indent=2))
+        # Previously Path.write_text, which opens with "w" and therefore truncates
+        # the file the moment it is opened: a crash before the write left it EMPTY.
+        # That is not a cosmetic loss - this count feeds
+        # requirement_for_level_and_bin(), so an unreadable or wrong value silently
+        # shifts what the next mech level COSTS, while the display looks normal.
+        # See SPEC.md Z7.
+        atomic_write_json(member_count_file, payload)
         self._logger.info("Persisted member count snapshot to %s", member_count_file)
 
     # ------------------------------------------------------------------

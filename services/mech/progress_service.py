@@ -42,6 +42,7 @@ from zoneinfo import ZoneInfo
 import logging
 
 from services.mech.progress import get_progress_runtime
+from utils.atomic_io import atomic_write_text
 
 logger = logging.getLogger('ddc.mech.progress_service')
 
@@ -261,8 +262,12 @@ def next_seq() -> int:
     else:
         s = 0
     s += 1
-    with open(tail_file, "w", encoding="utf-8") as f:
-        f.write(str(s))
+    # Previously a plain open(..., "w"), which truncates the counter the moment it
+    # is opened: a crash before the write left the file EMPTY, not stale. next_seq()
+    # then read int("" or 0) and restarted at 1 - handing out sequence numbers that
+    # already exist in the event log this counter numbers. The lock around the
+    # callers guards against interleaving, not against a crash. See SPEC.md Z7/Z1.
+    atomic_write_text(tail_file, str(s))
     return s
 
 

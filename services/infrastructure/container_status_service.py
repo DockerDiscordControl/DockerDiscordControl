@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime, timezone
+from utils.atomic_io import atomic_write_json
 from utils.logging_utils import get_module_logger
 
 logger = get_module_logger('container_status_service')
@@ -149,9 +150,13 @@ class ContainerStatusService:
             # Set to inactive
             container_config['active'] = False
 
-            # Save back to file
-            with open(container_file, 'w', encoding='utf-8') as f:
-                json.dump(container_config, f, indent=2, ensure_ascii=False)
+            # Previously a plain open(..., "w"): that truncates the file the moment
+            # it is opened, so a crash before the write left the user's container
+            # configuration EMPTY - display name, allowed actions, order, info texts,
+            # all gone. This runs automatically when Docker reports a container as
+            # permanently absent, so nobody triggers it and nobody watches it.
+            # See SPEC.md Z7.
+            atomic_write_json(container_file, container_config)
 
             self.logger.info(f"✓ Container '{container_name}' automatically deactivated (config file preserved)")
             return True

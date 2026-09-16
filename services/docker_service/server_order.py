@@ -17,6 +17,7 @@ from pathlib import Path
 
 # Setup logger
 from utils.logging_utils import setup_logger
+from utils.atomic_io import atomic_write_json
 from services.config.server_config_service import get_server_config_service
 logger = setup_logger('ddc.server_order', level=logging.DEBUG)
 
@@ -41,9 +42,12 @@ def save_server_order(server_order: List[str]) -> bool:
         # Create directory if it doesn't exist
         os.makedirs(os.path.dirname(ORDER_FILE), exist_ok=True)
 
-        # Save to file
-        with open(ORDER_FILE, 'w') as f:
-            json.dump({"server_order": server_order}, f, indent=2)
+        # Write atomically: ``open(path, 'w')`` truncates on open, so a crash
+        # mid-write leaves the order the user arranged by hand gone - silently,
+        # because load_server_order() swallows the JSONDecodeError and returns
+        # an empty list, and the display falls back to the default order with
+        # no message at all. See SPEC.md Z7.
+        atomic_write_json(ORDER_FILE, {"server_order": server_order})
 
         logger.info(f"Server order saved: {server_order}")
         return True
