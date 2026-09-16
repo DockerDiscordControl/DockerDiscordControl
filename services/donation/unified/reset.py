@@ -11,6 +11,9 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
+from pathlib import Path
+from datetime import datetime
 from typing import Optional
 
 from services.donation.unified.models import DonationResult
@@ -37,6 +40,15 @@ def reset_donations(
         # Hold the progress lock so a concurrent donation cannot interleave with the reset
         from services.mech.progress_service import LOCK as progress_lock
         with progress_lock:
+            # Das Ereignislog ist die einzige Aufzeichnung der echten Spenden dieser
+            # Instanz. Vorher schrieb _clear_event_log() ersatzlos "" hinein - ein
+            # versehentlicher Aufruf vernichtete die Historie endgueltig. Die Sicherung
+            # laeuft deshalb VOR dem Loeschen und innerhalb derselben Sperre, und ein
+            # Fehler dabei bricht den Reset ab (die OSError-Behandlung unten faengt ihn),
+            # statt nur zu warnen: eine Sicherung, die im Fehlerfall weiterloescht,
+            # waere keine. Dieselbe Konvention benutzt scripts/reset_donations.sh:32-44.
+            # Siehe SPEC.md Z1.
+            _backup_before_reset(progress_paths)
             _clear_event_log(progress_paths)
             _reset_sequence_counter(progress_paths)
             _write_fresh_snapshot(progress_paths)
@@ -88,6 +100,32 @@ def reset_donations(
             error_message=str(exc),
             error_code="RESET_ERROR",
         )
+
+
+def _backup_before_reset(paths: ProgressPaths) -> Path:
+    """Lege eine wiederherstellbare Kopie des Spendenbuchs an.
+
+    Kopiert Ereignislog, Sequenzzaehler und Snapshots nach
+    ``<data_dir>/backup_<Zeitstempel>/``. Der Zeitstempel bekommt bei Bedarf einen
+    Zaehler, damit zwei Resets in derselben Sekunde nicht dieselbe Sicherung
+    ueberschreiben - sonst koennte ein Doppelklick beide Staende vernichten.
+
+    Fehler werden absichtlich NICHT gefangen: der Aufrufer bricht den Reset ab.
+    """
+    ziel = paths.data_dir / f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    lauf = 2
+    while ziel.exists():
+        ziel = ziel.with_name(f"{ziel.name.split('__')[0]}__{lauf}")
+        lauf += 1
+    ziel.mkdir(parents=True)
+
+    if paths.event_log.exists():
+        shutil.copy2(paths.event_log, ziel / paths.event_log.name)
+    if paths.seq_file.exists():
+        shutil.copy2(paths.seq_file, ziel / paths.seq_file.name)
+    if paths.snapshot_dir.exists():
+        shutil.copytree(paths.snapshot_dir, ziel / paths.snapshot_dir.name)
+    return ziel
 
 
 def _clear_event_log(paths: ProgressPaths) -> None:
