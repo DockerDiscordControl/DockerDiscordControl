@@ -45,7 +45,12 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.10', '3.11', '3.12']
+        # Eine Version statt drei (2026-09-17). Seit die Suite gruppenweise
+        # wirklich durchlaeuft, kostet jeder Matrix-Eintrag einen vollen
+        # Suite-Lauf; vorher starb jeder Lauf nach Sekunden beim Einsammeln und
+        # kostete nichts. Drei Eintraege plus code-quality.yml ergaben vier volle
+        # Laeufe je Push - zu viel fuer das Minutenkontingent. Jetzt zwei.
+        python-version: ['3.10']
       fail-fast: false
 
     steps:
