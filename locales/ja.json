@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "ステータスチャンネルでサーバー概要パネルを（再）生成します",
   "(Re)generates the main control panel message in channels configured for it.": "設定されたチャンネルでメインコントロールパネルメッセージを（再）生成します。",
   "**Evolution: Level {old} → {new}!**": "**進化: レベル {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "余剰は新しいパワーとして引き継がれました: {power}",
   "**Offline**": "オフライン",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "**1回**、**毎日**、**毎週**、**毎月**、**毎年**のタスクがUIでサポートされています。",
   "**Online**": "オンライン",

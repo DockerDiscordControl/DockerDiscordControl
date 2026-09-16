@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "(Ανα)δημιουργεί τον πίνακα επισκόπησης διακομιστών στα κανάλια κατάστασης",
   "(Re)generates the main control panel message in channels configured for it.": "(Ανα)δημιουργεί το κύριο μήνυμα πίνακα ελέγχου στα κανάλια που έχουν ρυθμιστεί γι' αυτό.",
   "**Evolution: Level {old} → {new}!**": "**Εξέλιξη: Επίπεδο {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "Το πλεόνασμα μεταφέρθηκε ως νέα ενέργεια: {power}",
   "**Offline**": "Εκτός σύνδεσης",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "Μέσω του UI υποστηρίζονται **εφάπαξ**, **ημερήσιες**, **εβδομαδιαίες**, **μηνιαίες** και **ετήσιες** εργασίες.",
   "**Online**": "Σε σύνδεση",

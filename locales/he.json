@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "יוצר (מחדש) את לוח סקירת השרתים בערוצי סטטוס",
   "(Re)generates the main control panel message in channels configured for it.": "יוצר (מחדש) את הודעת לוח הבקרה הראשי בערוצים שהוגדרו לכך.",
   "**Evolution: Level {old} → {new}!**": "**התפתחות: רמה {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "העודף הועבר כאנרגיה חדשה: {power}",
   "**Offline**": "לא מקוון",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "משימות **חד-פעמיות**, **יומיות**, **שבועיות**, **חודשיות** ו**שנתיות** נתמכות דרך הממשק.",
   "**Online**": "מקוון",

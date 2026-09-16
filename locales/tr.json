@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "Durum kanallarında Sunucu Genel Bakış panelini (yeniden) oluşturur",
   "(Re)generates the main control panel message in channels configured for it.": "Yapılandırılmış kanallarda ana kontrol paneli mesajını (yeniden) oluşturur.",
   "**Evolution: Level {old} → {new}!**": "**Evrim: Seviye {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "Fazlalık yeni güç olarak devredildi: {power}",
   "**Offline**": "Çevrimdışı",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "**Tek seferlik**, **günlük**, **haftalık**, **aylık** ve **yıllık** görevler arayüz üzerinden desteklenir.",
   "**Online**": "Çevrimiçi",

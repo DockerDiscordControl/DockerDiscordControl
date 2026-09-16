@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "(Her)genereert het serveroverzichtspaneel in statuskanalen",
   "(Re)generates the main control panel message in channels configured for it.": "(Her)genereert het hoofdbedieningspaneel in kanalen die daarvoor geconfigureerd zijn.",
   "**Evolution: Level {old} → {new}!**": "**Evolutie: Level {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "Overschot overgedragen als nieuwe power: {power}",
   "**Offline**": "Offline",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "**Eenmalige**, **dagelijkse**, **wekelijkse**, **maandelijkse** en **jaarlijkse** taken worden via de UI ondersteund.",
   "**Online**": "Online",

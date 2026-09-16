@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "(Re)génère le panneau de vue d'ensemble des serveurs dans les canaux de statut",
   "(Re)generates the main control panel message in channels configured for it.": "(Re)génère le message du panneau de contrôle principal dans les canaux configurés à cet effet.",
   "**Evolution: Level {old} → {new}!**": "**Évolution: Niveau {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "Surplus reporté comme nouvelle énergie : {power}",
   "**Offline**": "Hors ligne",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "Les tâches **uniques**, **quotidiennes**, **hebdomadaires**, **mensuelles** et **annuelles** sont prises en charge via l'interface.",
   "**Online**": "En ligne",

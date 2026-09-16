@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "स्थिति चैनलों में सर्वर अवलोकन पैनल (पुनः)उत्पन्न करता है",
   "(Re)generates the main control panel message in channels configured for it.": "इसके लिए कॉन्फ़िगर किए गए चैनलों में मुख्य कंट्रोल पैनल संदेश (पुनः)उत्पन्न करता है।",
   "**Evolution: Level {old} → {new}!**": "**विकास: लेवल {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "अधिशेष नई पावर के रूप में स्थानांतरित: {power}",
   "**Offline**": "ऑफ़लाइन",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "**एक बार**, **दैनिक**, **साप्ताहिक**, **मासिक** और **वार्षिक** कार्य UI के माध्यम से समर्थित हैं।",
   "**Online**": "ऑनलाइन",

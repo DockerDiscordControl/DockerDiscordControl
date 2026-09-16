@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "(Пере)генерирует панель обзора серверов в каналах статуса",
   "(Re)generates the main control panel message in channels configured for it.": "(Пере)генерирует основное сообщение панели управления в настроенных каналах.",
   "**Evolution: Level {old} → {new}!**": "**Эволюция: Уровень {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "Излишек перенесён как новая энергия: {power}",
   "**Offline**": "Не в сети",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "Через интерфейс поддерживаются **однократные**, **ежедневные**, **еженедельные**, **ежемесячные** и **ежегодные** задачи.",
   "**Online**": "В сети",

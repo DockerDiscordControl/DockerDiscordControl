@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "在状态频道中（重新）生成服务器概览面板",
   "(Re)generates the main control panel message in channels configured for it.": "在已配置的频道中（重新）生成主控制面板消息。",
   "**Evolution: Level {old} → {new}!**": "**进化：等级 {old} → {new}！**",
+  "Surplus carried over as new power: {power}": "剩余部分已转为新能量：{power}",
   "**Offline**": "离线",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "界面支持 **一次性**、**每日**、**每周**、**每月** 和 **每年** 任务。",
   "**Online**": "在线",

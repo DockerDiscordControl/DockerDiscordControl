@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "(Re)generează panoul de prezentare a serverelor în canalele de stare",
   "(Re)generates the main control panel message in channels configured for it.": "(Re)generează mesajul principal al panoului de control în canalele configurate pentru aceasta.",
   "**Evolution: Level {old} → {new}!**": "**Evoluție: Nivel {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "Surplusul a fost transferat ca energie nouă: {power}",
   "**Offline**": "Offline",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "Interfața acceptă sarcini **unice**, **zilnice**, **săptămânale**, **lunare** și **anuale**.",
   "**Online**": "Online",

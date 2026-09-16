@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "(Re)generira ploču pregleda poslužitelja u kanalima statusa",
   "(Re)generates the main control panel message in channels configured for it.": "(Re)generira glavnu poruku upravljačke ploče u kanalima konfiguriranim za to.",
   "**Evolution: Level {old} → {new}!**": "**Evolucija: Razina {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "Višak prenesen kao nova energija: {power}",
   "**Offline**": "Offline",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "**Jednokratni**, **dnevni**, **tjedni**, **mjesečni** i **godišnji** zadaci podržani su putem sučelja.",
   "**Online**": "Online",

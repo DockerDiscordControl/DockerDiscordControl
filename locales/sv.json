@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "(Åter)genererar serveröversiktspanelen i statuskanaler",
   "(Re)generates the main control panel message in channels configured for it.": "(Åter)genererar huvudkontrollpanelmeddelandet i kanaler konfigurerade för det.",
   "**Evolution: Level {old} → {new}!**": "**Evolution: Nivå {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "Överskott överfört som ny power: {power}",
   "**Offline**": "Offline",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "**Engångs**-, **dagliga**, **veckovisa**, **månatliga** och **årliga** uppgifter stöds via gränssnittet.",
   "**Online**": "Online",

@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "(Znovu)vygeneruje panel prehľadu serverov v stavových kanáloch",
   "(Re)generates the main control panel message in channels configured for it.": "(Znovu)vygeneruje hlavnú správu ovládacieho panelu v kanáloch, ktoré sú na to nakonfigurované.",
   "**Evolution: Level {old} → {new}!**": "**Evolúcia: Úroveň {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "Prebytok prenesený ako nová energia: {power}",
   "**Offline**": "Offline",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "Rozhranie podporuje **jednorazové**, **denné**, **týždenné**, **mesačné** a **ročné** úlohy.",
   "**Online**": "Online",

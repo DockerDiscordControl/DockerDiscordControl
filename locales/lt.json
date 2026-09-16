@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "(Per)generuoja serverių apžvalgos skydelį būsenos kanaluose",
   "(Re)generates the main control panel message in channels configured for it.": "(Per)generuoja pagrindinę valdymo pulto žinutę sukonfigūruotuose kanaluose.",
   "**Evolution: Level {old} → {new}!**": "**Evoliucija: Lygis {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "Perteklius perkeltas kaip nauja energija: {power}",
   "**Offline**": "Neprisijungęs",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "Per sąsają palaikomos **vienkartinės**, **kasdienės**, **savaitinės**, **mėnesinės** ir **metinės** užduotys.",
   "**Online**": "Prisijungęs",

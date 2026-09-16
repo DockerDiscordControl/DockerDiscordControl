@@ -4898,6 +4898,13 @@ class DonationBroadcastModal(discord.ui.Modal):
                     old=old_evolution_level,
                     new=new_evolution_level
                 )
+                # Say what happens to the power, otherwise the level-up looks like lost money:
+                # on level-up the surplus above the goal becomes the new power (plus $1 on an
+                # exact hit), so a donation that just barely reaches the goal leaves the mech
+                # near zero and offline immediately afterwards.
+                evolution_status += "\n" + _("Surplus carried over as new power: {power}").format(
+                    power=f"${new_power:.2f}"
+                )
 
             # Send to channels if sharing publicly
             sent_count = 0

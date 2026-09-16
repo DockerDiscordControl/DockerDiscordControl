@@ -765,7 +765,12 @@ def compute_ui_state(snap: Snapshot) -> ProgressState:
 
     power_max_cents = snap.goal_requirement + 100 if snap.goal_requirement > 0 else 100  # +$1
     power_percent = int((power_acc_with_decay * 100) // power_max_cents)
-    power_percent = min(power_percent, 99 if snap.level < 11 else 100)
+    # Clamp to 100. The old special case capped levels below 11 at 99 %, so a fully charged mech
+    # could never show a full bar - but nothing ever read this value: Discord computes its own
+    # percentage (docker_control.py) and the web panel does too (config.html). The cap was dead
+    # code with a visible-sounding purpose. The 100 % bound stays: a percentage must not exceed it
+    # (power can be larger than the bar maximum after a big donation carries surplus over).
+    power_percent = min(power_percent, 100)
 
     evo_percent = 100 if snap.goal_requirement == 0 else int((snap.evo_acc * 100) // snap.goal_requirement)
     evo_percent = min(evo_percent, 100)

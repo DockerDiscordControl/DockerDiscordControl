@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "(Taas)loob serverite ülevaate paneeli olekukanalites",
   "(Re)generates the main control panel message in channels configured for it.": "(Taas)loob peamise juhtpaneeli sõnumi selleks seadistatud kanalites.",
   "**Evolution: Level {old} → {new}!**": "**Evolutsioon: Tase {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "Ülejääk kanti üle uue energiana: {power}",
   "**Offline**": "Võrguühenduseta",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "Kasutajaliidese kaudu toetatakse **ühekordseid**, **igapäevaseid**, **iganädalasi**, **igakuiseid** ja **iga-aastaseid** ülesandeid.",
   "**Online**": "Võrgus",

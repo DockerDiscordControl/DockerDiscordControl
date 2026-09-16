@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "在狀態頻道中（重新）產生伺服器總覽面板",
   "(Re)generates the main control panel message in channels configured for it.": "在已設定的頻道中（重新）產生主控制面板訊息。",
   "**Evolution: Level {old} → {new}!**": "**進化：等級 {old} → {new}！**",
+  "Surplus carried over as new power: {power}": "剩餘部分已轉為新能量：{power}",
   "**Offline**": "離線",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "介面支援 **一次性**、**每日**、**每週**、**每月** 和 **每年** 任務。",
   "**Online**": "線上",

@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "(إعادة) إنشاء لوحة نظرة عامة على الخوادم في قنوات الحالة",
   "(Re)generates the main control panel message in channels configured for it.": "(إعادة) إنشاء رسالة لوحة التحكم الرئيسية في القنوات المُعدّة لذلك.",
   "**Evolution: Level {old} → {new}!**": "**تطور: المستوى {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "تم ترحيل الفائض كطاقة جديدة: {power}",
   "**Offline**": "غير متصل",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "المهام **لمرة واحدة** و**اليومية** و**الأسبوعية** و**الشهرية** و**السنوية** مدعومة عبر الواجهة.",
   "**Online**": "متصل",

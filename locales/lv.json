@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "(Atkārtoti) ģenerē serveru pārskata paneli statusa kanālos",
   "(Re)generates the main control panel message in channels configured for it.": "(Atkārtoti) ģenerē galveno vadības paneļa ziņojumu konfigurētajos kanālos.",
   "**Evolution: Level {old} → {new}!**": "**Evolūcija: Līmenis {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "Pārpalikums pārnests kā jauna enerģija: {power}",
   "**Offline**": "Bezsaistē",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "Saskarnē tiek atbalstīti **vienreizēji**, **ikdienas**, **iknedēļas**, **ikmēneša** un **ikgadēji** uzdevumi.",
   "**Online**": "Tiešsaistē",

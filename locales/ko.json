@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "상태 채널에서 서버 개요 패널을 (재)생성합니다",
   "(Re)generates the main control panel message in channels configured for it.": "설정된 채널에서 메인 제어판 메시지를 (재)생성합니다.",
   "**Evolution: Level {old} → {new}!**": "**진화: 레벨 {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "초과분이 새 파워로 이월되었습니다: {power}",
   "**Offline**": "오프라인",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "**1회**, **매일**, **매주**, **매월**, **매년** 작업이 UI에서 지원됩니다.",
   "**Online**": "온라인",

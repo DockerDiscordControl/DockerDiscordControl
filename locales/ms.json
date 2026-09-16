@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "(Re)menjana panel Gambaran Keseluruhan Pelayan dalam saluran status",
   "(Re)generates the main control panel message in channels configured for it.": "(Re)memcipta pesan panel kontrol utama di saluran yang dikonfigurasi untuk itu.",
   "**Evolution: Level {old} → {new}!**": "**Evolusi: Level {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "Lebihan dipindahkan sebagai kuasa baharu: {power}",
   "**Offline**": "Luar Talian",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "Tugasan **Sekali**, **Harian**, **Mingguan**, **Bulanan** dan **Tahunan** disokong melalui UI.",
   "**Online**": "Dalam Talian",

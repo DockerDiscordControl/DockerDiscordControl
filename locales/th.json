@@ -9,6 +9,7 @@
   "(Re)generates the Server Overview panel in status channels": "สร้าง (ใหม่) แผงภาพรวมเซิร์ฟเวอร์ในช่องสถานะ",
   "(Re)generates the main control panel message in channels configured for it.": "สร้าง (ใหม่) ข้อความแผงควบคุมหลักในช่องที่กำหนดค่าไว้",
   "**Evolution: Level {old} → {new}!**": "**วิวัฒนาการ: เลเวล {old} → {new}!**",
+  "Surplus carried over as new power: {power}": "ส่วนเกินถูกโอนเป็นพลังงานใหม่: {power}",
   "**Offline**": "ออฟไลน์",
   "**One-time**, **Daily**, **Weekly**, **Monthly**, and **Yearly** tasks are supported through the UI.": "รองรับงานแบบ **ครั้งเดียว**, **รายวัน**, **รายสัปดาห์**, **รายเดือน** และ **รายปี** ผ่าน UI",
   "**Online**": "ออนไลน์",
