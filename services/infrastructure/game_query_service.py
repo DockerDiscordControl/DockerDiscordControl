@@ -220,7 +220,15 @@ class GameQueryService:
         now = time.monotonic()
         for key in [k for k in self._target_cache if k[0] == container_name]:
             _, host, ports = self._target_cache[key]
-            if not ports or ports[0] == port or port not in ports:
+            if not ports or port not in ports:
+                continue
+            if ports[0] == port:
+                # Already first - but still refresh the entry. Measured after the first version
+                # of this method: it only refreshed when it reordered, so the entry aged out
+                # DEFAULT_TARGET_CACHE_TTL_SECONDS after the last reorder rather than after the
+                # last success. The learned order was then lost, the wrong port tried again, and
+                # a 5 s timeout reappeared every ~5 cycles like clockwork.
+                self._target_cache[key] = (now, host, ports)
                 continue
             reordered = [port] + [p for p in ports if p != port]
             self._target_cache[key] = (now, host, reordered)

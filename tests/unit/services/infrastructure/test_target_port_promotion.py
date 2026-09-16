@@ -64,11 +64,23 @@ class TestPromotion:
         assert sorted(_ports(service)) == [2456, 2457, 2458]
         assert _ports(service)[0] == 2458
 
-    def test_already_first_is_left_alone(self, service):
-        _seed(service, [2457, 2456])
-        before = service._target_cache[KEY]
+    def test_already_first_keeps_its_order_but_is_refreshed(self, service):
+        """A success must refresh the entry even when nothing needs reordering.
+
+        The first version of this test asserted the entry was left untouched - my own
+        assumption, written an hour before the measurement disproved it. Because the entry was
+        only refreshed when the order actually changed, it aged out TTL seconds after the last
+        *reorder* instead of the last *success*: the learned order was lost, the wrong port was
+        tried again, and the 5 s timeout came back every ~5 cycles. Measured over 39 cycles,
+        the timeout returned at cycles 1, 9, 14, 19, 24, 29, 34 and 39.
+        """
+        stale = time.monotonic() - (DEFAULT_TARGET_CACHE_TTL_SECONDS - 5)
+        _seed(service, [2457, 2456], ts=stale)
+
         service._promote_target_port(CONTAINER, 2457)
-        assert service._target_cache[KEY] is before
+
+        assert _ports(service) == [2457, 2456], "order must not change"
+        assert service._target_cache[KEY][0] > stale, "a success must keep the entry alive"
 
     def test_unknown_port_is_ignored(self, service):
         """A manually configured port is not part of the cached candidates."""
