@@ -4782,6 +4782,13 @@ class DonationBroadcastModal(discord.ui.Modal):
             # Process donation through mech service
             donation_amount_euros = None
             processing_msg = None  # Initialize for later deletion
+            # Set only after the ledger confirmed the booking. Previously the
+            # broadcast below ran regardless: an exception was swallowed at the
+            # "except" further down (evolution_occurred = False) and execution fell
+            # through, and with donation_manager_available False nothing was booked
+            # at all - both ways thanked the donor for money the ledger never saw.
+            # SPEC.md Z3/Z8.
+            donation_booked = False
             evolution_occurred = False
             old_evolution_level = None
             new_evolution_level = None
@@ -4837,6 +4844,7 @@ class DonationBroadcastModal(discord.ui.Modal):
                             return
 
                         new_state = donation_result.new_state
+                        donation_booked = True
                         logger.info(f"Donation recorded via unified service: ${amount_dollars:.2f}")
                     else:
                         # Get current state using SERVICE FIRST
@@ -4863,14 +4871,22 @@ class DonationBroadcastModal(discord.ui.Modal):
                     if evolution_occurred:
                         logger.info(f"EVOLUTION! Level {old_evolution_level} → {new_evolution_level}")
 
-                    # Force update of mech animation when level OR power changes
-                    new_power = new_state.Power
-                    level_changed = new_state.level != old_state_result.level
+                    # Force update of mech animation when level OR power changes.
+                    # new_power is already set by BOTH branches above (:4866 from
+                    # new_state_result, :4872 from new_state), so re-reading it from
+                    # new_state here was redundant - and fatal when no amount was named:
+                    # that path never assigns new_state, and the UnboundLocalError fell
+                    # through both except blocks (:4885 and :4973 list neither), so the
+                    # final response at :4964 was never sent and the user kept staring at
+                    # "Processing..." while the supporter message never went out.
+                    # new_evolution_level is set by both branches, so it is used instead.
+                    # SPEC.md Z3.
+                    level_changed = new_evolution_level != old_state_result.level
                     power_changed = new_power != old_power
 
                     if level_changed or power_changed:
                         if level_changed:
-                            logger.info(f"Level changed from {old_state_result.level} to {new_state.level} - updating mech animations")
+                            logger.info(f"Level changed from {old_state_result.level} to {new_evolution_level} - updating mech animations")
                         if power_changed:
                             logger.info(f"Power changed from {old_power} to {new_power} - updating mech animations")
 
@@ -4916,7 +4932,21 @@ class DonationBroadcastModal(discord.ui.Modal):
             sent_count = 0
             failed_count = 0
 
-            if should_share_publicly:
+            # "The user named no amount" and "the amount was never processed" are two
+            # different things, and conflating them defeated this guard once already:
+            # donation_amount_euros is assigned only INSIDE the booking block above,
+            # so it stays None whenever booking is skipped - which let an unbooked
+            # donation broadcast through. The user's own input decides instead. With
+            # an amount a confirmed booking is required; without one there is nothing
+            # to book and the "X supports DDC" message may go out. `amount` is also
+            # what the message below branches on, so guard and message agree.
+            broadcast_allowed = donation_booked or not amount
+            if should_share_publicly and not broadcast_allowed:
+                logger.warning(
+                    "Donation broadcast suppressed: the ledger did not confirm the booking"
+                )
+
+            if should_share_publicly and broadcast_allowed:
                 config = load_config()
                 channels_config = config.get('channel_permissions', {})
 
@@ -4925,7 +4955,10 @@ class DonationBroadcastModal(discord.ui.Modal):
                         channel_id = int(channel_id_str)
                         channel = interaction.client.get_channel(channel_id)
 
-                        if channel:
+                        # Same rule the notification loop already applies further
+                        # down: a channel that opted out of donation broadcasts gets
+                        # nothing. This path used to ignore the flag entirely.
+                        if channel and channel_info.get('donation_broadcasts', True):
                             embed = discord.Embed(
                                 title=_("💝 Donation received"),
                                 description=broadcast_text,
@@ -4946,7 +4979,10 @@ class DonationBroadcastModal(discord.ui.Modal):
                         logger.error(f"Error sending to channel {channel_id_str}: {channel_error}", exc_info=True)
 
             # Respond to user
-            if should_share_publicly:
+            if should_share_publicly and not broadcast_allowed:
+                response_text = _("⚠️ **Donation could not be recorded**") + "\n\n"
+                response_text += _("Nothing was sent to any channel. Please try again later.")
+            elif should_share_publicly:
                 response_text = _("✅ **Donation broadcast sent!**") + "\n\n"
                 response_text += _("📢 Sent to **{count}** channels").format(count=sent_count) + "\n"
                 if failed_count > 0:
