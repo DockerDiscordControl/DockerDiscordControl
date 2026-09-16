@@ -771,6 +771,8 @@
   "web.aas.col_time": "時間",
   "web.aas.cooldown": "クールダウン（分）",
   "web.aas.cooldown_hint": "同じコンテナでの再トリガーを防止（デフォルト: 24時間）",
+  "web.aas.cooldown_scope_container": "コンテナごと（既定）",
+  "web.aas.cooldown_scope_rule": "ルールごと（全コンテナ）",
   "web.aas.cooldown_tooltip": "頻繁な更新からのスパムを防止します。トリガー後、この期間中はルールが再発動しません。",
   "web.aas.delay": "遅延（秒）",
   "web.aas.delay_tooltip": "アクション実行前の待機時間。再起動前にサーバーがデータを保存する時間が必要な場合に便利です。",

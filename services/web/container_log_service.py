@@ -18,6 +18,7 @@ import asyncio
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -76,12 +77,15 @@ class ContainerLogService:
         self.logger = logger
         self.default_container = 'dockerdiscordcontrol'
 
-        # Log file paths (try Docker paths first, then development paths)
+        # Log file paths: the Docker path first, then the local checkout. The second entry
+        # used to be the maintainer's absolute path, which existed on exactly one machine
+        # and was searched on every lookup. It is now derived from this file's location.
+        local_logs = Path(__file__).resolve().parents[2] / "logs"
         self.log_paths = {
-            'bot': ['/app/logs/bot.log', '/Volumes/appdata/dockerdiscordcontrol/logs/bot.log'],
-            'discord': ['/app/logs/discord.log', '/Volumes/appdata/dockerdiscordcontrol/logs/discord.log'],
-            'webui': ['/app/logs/webui_error.log', '/Volumes/appdata/dockerdiscordcontrol/logs/webui_error.log'],
-            'application': ['/app/logs/supervisord.log', '/Volumes/appdata/dockerdiscordcontrol/logs/supervisord.log']
+            'bot': ['/app/logs/bot.log', str(local_logs / 'bot.log')],
+            'discord': ['/app/logs/discord.log', str(local_logs / 'discord.log')],
+            'webui': ['/app/logs/webui_error.log', str(local_logs / 'webui_error.log')],
+            'application': ['/app/logs/supervisord.log', str(local_logs / 'supervisord.log')]
         }
 
     def get_container_logs(self, request: ContainerLogRequest) -> LogResult:

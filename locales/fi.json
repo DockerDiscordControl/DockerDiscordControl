@@ -771,6 +771,8 @@
   "web.aas.col_time": "Aika",
   "web.aas.cooldown": "Jäähtymisaika (Minuuttia)",
   "web.aas.cooldown_hint": "Estää uudelleenlaukaisun samassa säilössä (Oletus: 24h)",
+  "web.aas.cooldown_scope_container": "Säiliökohtainen (oletus)",
+  "web.aas.cooldown_scope_rule": "Sääntökohtainen (kaikki säiliöt)",
   "web.aas.cooldown_tooltip": "Estää roskapostia nopeista päivityksistä. Laukaisun jälkeen sääntö ei aktivoidu uudelleen tänä aikana.",
   "web.aas.delay": "Viive (Sekuntia)",
   "web.aas.delay_tooltip": "Odotusaika ennen toiminnon suorittamista. Hyödyllinen kun palvelin tarvitsee aikaa tietojen tallentamiseen ennen uudelleenkäynnistystä.",

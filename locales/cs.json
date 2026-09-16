@@ -771,6 +771,8 @@
   "web.aas.col_time": "Čas",
   "web.aas.cooldown": "Prodleva (minuty)",
   "web.aas.cooldown_hint": "Zabraňuje opětovnému spuštění na stejném kontejneru (výchozí: 24h)",
+  "web.aas.cooldown_scope_container": "Na kontejner (výchozí)",
+  "web.aas.cooldown_scope_rule": "Na pravidlo (všechny kontejnery)",
   "web.aas.cooldown_tooltip": "Zabraňuje spamu z rychlých aktualizací. Po spuštění se pravidlo po tuto dobu znovu nespustí.",
   "web.aas.delay": "Zpoždění (sekundy)",
   "web.aas.delay_tooltip": "Čekací doba před provedením akce. Užitečné, když server potřebuje čas na uložení dat před restartem.",

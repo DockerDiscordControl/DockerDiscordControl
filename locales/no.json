@@ -771,6 +771,8 @@
   "web.aas.col_time": "Tid",
   "web.aas.cooldown": "Nedkjøling (Minutter)",
   "web.aas.cooldown_hint": "Forhindrer gjentriggering på samme container (Standard: 24t)",
+  "web.aas.cooldown_scope_container": "Per container (standard)",
+  "web.aas.cooldown_scope_rule": "Per regel (alle containere)",
   "web.aas.cooldown_tooltip": "Forhindrer spam fra raske oppdateringer. Etter utløsning vil ikke regelen aktiveres igjen i denne perioden.",
   "web.aas.delay": "Forsinkelse (Sekunder)",
   "web.aas.delay_tooltip": "Ventetid før handling utføres. Nyttig når serveren trenger tid til å lagre data før omstart.",

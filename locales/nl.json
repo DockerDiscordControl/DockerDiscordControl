@@ -771,6 +771,8 @@
   "web.aas.col_time": "Tijd",
   "web.aas.cooldown": "Afkoeltijd (minuten)",
   "web.aas.cooldown_hint": "Voorkomt hertriggering op dezelfde container (standaard: 24u)",
+  "web.aas.cooldown_scope_container": "Per container (standaard)",
+  "web.aas.cooldown_scope_rule": "Per regel (alle containers)",
   "web.aas.cooldown_tooltip": "Voorkomt spam door snelle updates. Na triggering wordt de regel gedurende deze tijd niet opnieuw geactiveerd.",
   "web.aas.delay": "Vertraging (seconden)",
   "web.aas.delay_tooltip": "Wachttijd voordat actie wordt uitgevoerd. Handig als de server tijd nodig heeft om gegevens op te slaan voor herstart.",

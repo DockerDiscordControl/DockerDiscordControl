@@ -771,6 +771,8 @@
   "web.aas.col_time": "Heure",
   "web.aas.cooldown": "Délai de recharge (minutes)",
   "web.aas.cooldown_hint": "Empêche un redéclenchement sur le même conteneur (par défaut : 24h)",
+  "web.aas.cooldown_scope_container": "Par conteneur (par défaut)",
+  "web.aas.cooldown_scope_rule": "Par règle (tous les conteneurs)",
   "web.aas.cooldown_tooltip": "Empêche le spam lié aux mises à jour rapides. Une fois déclenché, la règle ne se réactive pas pendant cette durée.",
   "web.aas.delay": "Délai (secondes)",
   "web.aas.delay_tooltip": "Temps d'attente avant l'exécution de l'action. Utile lorsque le serveur a besoin de temps pour sauvegarder les données avant un redémarrage.",

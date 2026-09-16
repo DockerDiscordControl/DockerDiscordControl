@@ -771,6 +771,8 @@
   "web.aas.col_time": "时间",
   "web.aas.cooldown": "冷却时间（分钟）",
   "web.aas.cooldown_hint": "防止同一容器重复触发（默认：24 小时）",
+  "web.aas.cooldown_scope_container": "按容器（默认）",
+  "web.aas.cooldown_scope_rule": "按规则（所有容器）",
   "web.aas.cooldown_tooltip": "防止快速更新造成的刷屏。触发后，规则在此时间内不会再次触发。",
   "web.aas.delay": "延迟（秒）",
   "web.aas.delay_tooltip": "操作执行前的等待时间。适用于服务器在重启前需要时间保存数据的情况。",

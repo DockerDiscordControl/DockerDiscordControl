@@ -771,6 +771,8 @@
   "web.aas.col_time": "Hora",
   "web.aas.cooldown": "Tiempo de espera (minutos)",
   "web.aas.cooldown_hint": "Previene la reactivación en el mismo contenedor (predeterminado: 24h)",
+  "web.aas.cooldown_scope_container": "Por contenedor (predeterminado)",
+  "web.aas.cooldown_scope_rule": "Por regla (todos los contenedores)",
   "web.aas.cooldown_tooltip": "Previene spam por actualizaciones rápidas. Después de activarse, la regla no se disparará de nuevo durante este período.",
   "web.aas.delay": "Retraso (segundos)",
   "web.aas.delay_tooltip": "Tiempo de espera antes de ejecutar la acción. Útil cuando el servidor necesita tiempo para guardar datos antes de reiniciar.",

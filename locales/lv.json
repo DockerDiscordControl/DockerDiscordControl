@@ -771,6 +771,8 @@
   "web.aas.col_time": "Laiks",
   "web.aas.cooldown": "Atkārtošanas intervāls (minūtes)",
   "web.aas.cooldown_hint": "Novērš atkārtotu aktivizēšanu tam pašam konteineram (noklusējums: 24h)",
+  "web.aas.cooldown_scope_container": "Katram konteineram (noklusējums)",
+  "web.aas.cooldown_scope_rule": "Katram noteikumam (visi konteineri)",
   "web.aas.cooldown_tooltip": "Novērš surogātpastu no ātriem atjauninājumiem. Pēc aktivizēšanas noteikums vairs neaktivizēsies šajā laika periodā.",
   "web.aas.delay": "Aizkave (sekundes)",
   "web.aas.delay_tooltip": "Gaidīšanas laiks pirms darbības izpildes. Noderīgi, kad serverim ir nepieciešams laiks datu saglabāšanai pirms restartēšanas.",

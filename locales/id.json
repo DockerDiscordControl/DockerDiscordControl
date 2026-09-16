@@ -771,6 +771,8 @@
   "web.aas.col_time": "Waktu",
   "web.aas.cooldown": "Cooldown (Menit)",
   "web.aas.cooldown_hint": "Mencegah pemicuan ulang pada kontainer yang sama (Default: 24j)",
+  "web.aas.cooldown_scope_container": "Per kontainer (bawaan)",
+  "web.aas.cooldown_scope_rule": "Per aturan (semua kontainer)",
   "web.aas.cooldown_tooltip": "Mencegah spam dari pembaruan cepat. Setelah dipicu, aturan tidak akan aktif lagi selama durasi ini.",
   "web.aas.delay": "Penundaan (Detik)",
   "web.aas.delay_tooltip": "Waktu tunggu sebelum aksi dijalankan. Berguna saat server memerlukan waktu untuk menyimpan data sebelum restart.",

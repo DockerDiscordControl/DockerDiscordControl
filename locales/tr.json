@@ -771,6 +771,8 @@
   "web.aas.col_time": "Zaman",
   "web.aas.cooldown": "Bekleme Süresi (Dakika)",
   "web.aas.cooldown_hint": "Aynı konteynerde yeniden tetiklemeyi önler (Varsayılan: 24s)",
+  "web.aas.cooldown_scope_container": "Konteyner başına (varsayılan)",
+  "web.aas.cooldown_scope_rule": "Kural başına (tüm konteynerler)",
   "web.aas.cooldown_tooltip": "Hızlı güncellemelerden kaynaklanan spam'i önler. Tetiklendikten sonra bu süre boyunca kural tekrar tetiklenmez.",
   "web.aas.delay": "Gecikme (Saniye)",
   "web.aas.delay_tooltip": "Eylem yürütülmeden önceki bekleme süresi. Yeniden başlatmadan önce sunucunun verileri kaydetmesi gerektiğinde yararlıdır.",

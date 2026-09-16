@@ -127,6 +127,28 @@ regression tests across 32 test modules.
   gunicorn config that does not exist and started bot and web server as separate processes.
   Without Docker it now exits with a pointer to `scripts/rebuild.sh` / the Docker image.
 
+### Follow-up fixes (the items the audit had deferred)
+
+- **Auto-action cooldown is now explicit.** A rule's "Cooldown (Minutes)" always applied *per
+  container*, while the code recorded a per-rule timestamp that nothing ever read. The rule
+  dialog now has a scope selector: **Per container (default)** keeps the behaviour of every
+  earlier release, **Per rule (all containers)** makes one trigger block the whole rule. Rules
+  saved by older versions have no scope stored and keep the previous behaviour.
+- **`tasks.json` is no longer rewritten on every cycle.** When invalid tasks were dropped, the
+  cleanup was written back without checking whether the write succeeded. On a read-only or
+  wrongly-owned config mount that repeated on every load. The result is now checked, the failure
+  is logged once, and the same failing rewrite is not retried until the set of invalid tasks
+  changes.
+- **The scheduler no longer blocks the event loop when reading tasks.** `tasks.json` often lives
+  on a network or SMB mount; it is now read in a worker thread.
+- **Task lookups hand out a copy.** `find_task_by_id()` returned the cached object, so edits made
+  in the Web UI leaked into the cache before (and regardless of whether) saving succeeded.
+  Container task lists are returned as their own list for the same reason.
+- **No absolute developer paths left in the code.** Three services fell back to
+  `/Volumes/appdata/dockerdiscordcontrol/...` outside Docker — a path that existed on exactly one
+  machine, and for log lookups it was even searched during normal operation. All three now derive
+  the project root from their own location, so a checkout anywhere works.
+
 ### Behaviour changes to be aware of
 
 | Change | Effect |

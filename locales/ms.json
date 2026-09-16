@@ -771,6 +771,8 @@
   "web.aas.col_time": "Masa",
   "web.aas.cooldown": "Cooldown (Minit)",
   "web.aas.cooldown_hint": "Mencegah pemicuan ulang pada kandungana yang sama (Default: 24j)",
+  "web.aas.cooldown_scope_container": "Setiap kontena (lalai)",
+  "web.aas.cooldown_scope_rule": "Setiap peraturan (semua kontena)",
   "web.aas.cooldown_tooltip": "Mencegah spam dari kemas kini cepat. Setelah dipicu, peraturan tidak akan aktif lagi selama durasi ini.",
   "web.aas.delay": "Penundaan (Saat)",
   "web.aas.delay_tooltip": "Masa tunggu sebelum tindakan dijalankan. Berguna saat pelayan memerlukan masa untuk menyimpan data sebelum restart.",

@@ -771,6 +771,8 @@
   "web.aas.col_time": "Tid",
   "web.aas.cooldown": "Nedkylning (minuter)",
   "web.aas.cooldown_hint": "Förhindrar omtriggning på samma container (standard: 24h)",
+  "web.aas.cooldown_scope_container": "Per container (standard)",
+  "web.aas.cooldown_scope_rule": "Per regel (alla containrar)",
   "web.aas.cooldown_tooltip": "Förhindrar spam från snabba uppdateringar. Efter triggning aktiveras regeln inte igen under denna tid.",
   "web.aas.delay": "Fördröjning (sekunder)",
   "web.aas.delay_tooltip": "Väntetid innan åtgärden utförs. Användbart när servern behöver tid att spara data innan omstart.",

@@ -368,6 +368,8 @@ function populateRuleForm(rule) {
     
     // Safety
     document.getElementById('aasRuleCooldown').value = rule.safety.cooldown_minutes;
+    // Rules written before v2.4.0 have no scope; they kept the per-container behaviour.
+    document.getElementById('aasRuleCooldownScope').value = rule.safety.cooldown_scope || 'container';
     document.getElementById('aasRuleOnlyRunning').checked = rule.safety.only_if_running;
 }
 
@@ -452,6 +454,7 @@ async function saveAASRule() {
 
         safety: {
             cooldown_minutes: safeInt(document.getElementById('aasRuleCooldown').value, 1440),
+            cooldown_scope: document.getElementById('aasRuleCooldownScope').value || 'container',
             only_if_running: document.getElementById('aasRuleOnlyRunning').checked
         }
     };

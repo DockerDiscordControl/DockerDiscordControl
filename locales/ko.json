@@ -771,6 +771,8 @@
   "web.aas.col_time": "시간",
   "web.aas.cooldown": "쿨다운 (분)",
   "web.aas.cooldown_hint": "동일한 컨테이너에 대한 재트리거 방지 (기본값: 24시간)",
+  "web.aas.cooldown_scope_container": "컨테이너별 (기본값)",
+  "web.aas.cooldown_scope_rule": "규칙별 (모든 컨테이너)",
   "web.aas.cooldown_tooltip": "빠른 업데이트로 인한 스팸을 방지합니다. 트리거된 후 이 기간 동안 규칙이 다시 실행되지 않습니다.",
   "web.aas.delay": "지연 (초)",
   "web.aas.delay_tooltip": "작업 실행 전 대기 시간. 서버가 재시작 전에 데이터를 저장할 시간이 필요한 경우 유용합니다.",

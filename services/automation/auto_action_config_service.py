@@ -30,6 +30,10 @@ MIN_PRIORITY = 1
 MAX_PRIORITY = 100
 MIN_COOLDOWN_MINUTES = 1
 MAX_COOLDOWN_MINUTES = 10080  # 7 days
+# Scope of a rule's cooldown. "container" is the default and the behaviour of every release
+# before v2.4.0: the cooldown applies to each affected container separately. "rule" applies it
+# to the rule as a whole, so one triggering blocks it for every container.
+COOLDOWN_SCOPES = {'container', 'rule'}
 MIN_DELAY_SECONDS = 0
 MAX_DELAY_SECONDS = 3600  # 1 hour
 VALID_ACTION_TYPES = {'RESTART', 'STOP', 'START', 'RECREATE', 'NOTIFY'}
@@ -295,6 +299,12 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
     if not isinstance(cooldown, int) or cooldown < MIN_COOLDOWN_MINUTES or cooldown > MAX_COOLDOWN_MINUTES:
         errors.append(f"Cooldown must be between {MIN_COOLDOWN_MINUTES} and {MAX_COOLDOWN_MINUTES} minutes")
 
+    # Missing scope is not an error: rules written by older versions have no such key and keep
+    # the previous per-container behaviour.
+    scope = safety.get('cooldown_scope', 'container')
+    if scope not in COOLDOWN_SCOPES:
+        errors.append(f"Cooldown scope must be one of {', '.join(sorted(COOLDOWN_SCOPES))}")
+
     # --- Result ---
     if errors:
         return False, "; ".join(errors), warnings
@@ -387,6 +397,12 @@ class AutoActionRule:
     priority: int = 10
     # Safety settings
     cooldown_minutes: int = 1440
+    # Scope of the cooldown above: "container" (default, and the behaviour of every release
+    # before v2.4.0) applies it per affected container, so a rule covering three containers can
+    # act on each of them once per cooldown. "rule" applies it to the whole rule, so one
+    # triggering blocks the rule itself for that duration. The default keeps existing
+    # installations working exactly as before.
+    cooldown_scope: str = "container"
     only_if_running: bool = True
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -400,6 +416,7 @@ class AutoActionRule:
             trigger=TriggerConfig.from_dict(data.get('trigger', {})),
             action=ActionConfig.from_dict(data.get('action', {})),
             cooldown_minutes=data.get('safety', {}).get('cooldown_minutes', 1440),
+            cooldown_scope=data.get('safety', {}).get('cooldown_scope', 'container'),
             only_if_running=data.get('safety', {}).get('only_if_running', True),
             metadata=data.get('metadata', {})
         )
@@ -414,6 +431,7 @@ class AutoActionRule:
             "action": self.action.to_dict(),
             "safety": {
                 "cooldown_minutes": self.cooldown_minutes,
+                "cooldown_scope": self.cooldown_scope,
                 "only_if_running": self.only_if_running
             },
             "metadata": self.metadata

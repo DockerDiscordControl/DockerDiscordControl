@@ -771,6 +771,8 @@
   "web.aas.col_time": "Time",
   "web.aas.cooldown": "Cooldown (Minutes)",
   "web.aas.cooldown_hint": "Prevents re-triggering on same container (Default: 24h)",
+  "web.aas.cooldown_scope_container": "Per container (default)",
+  "web.aas.cooldown_scope_rule": "Per rule (all containers)",
   "web.aas.cooldown_tooltip": "Prevents spam from rapid updates. After triggering, the rule won't fire again for this duration.",
   "web.aas.delay": "Delay (Seconds)",
   "web.aas.delay_tooltip": "Wait time before action executes. Useful when server needs time to save data before restart.",

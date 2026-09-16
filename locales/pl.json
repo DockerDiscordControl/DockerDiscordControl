@@ -771,6 +771,8 @@
   "web.aas.col_time": "Czas",
   "web.aas.cooldown": "Czas odnowienia (minuty)",
   "web.aas.cooldown_hint": "Zapobiega ponownemu wyzwalaniu na tym samym kontenerze (domyślnie: 24h)",
+  "web.aas.cooldown_scope_container": "Na kontener (domyślnie)",
+  "web.aas.cooldown_scope_rule": "Na regułę (wszystkie kontenery)",
   "web.aas.cooldown_tooltip": "Zapobiega spamowi z powodu szybkich aktualizacji. Po wyzwoleniu reguła nie zadziała ponownie przez ten czas.",
   "web.aas.delay": "Opóźnienie (sekundy)",
   "web.aas.delay_tooltip": "Czas oczekiwania przed wykonaniem akcji. Przydatne, gdy serwer potrzebuje czasu na zapisanie danych przed restartem.",

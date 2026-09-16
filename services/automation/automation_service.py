@@ -332,7 +332,8 @@ class AutomationService:
             rule.id,
             target_containers,
             global_settings.get('global_cooldown_seconds', 30),
-            rule.cooldown_minutes
+            rule.cooldown_minutes,
+            rule.cooldown_scope
         )
         if not can_execute:
             logger.info(f"AAS: Skipped rule '{rule.name}' - {reason}")

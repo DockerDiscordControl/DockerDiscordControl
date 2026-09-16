@@ -125,7 +125,8 @@ class AutoActionStateService:
     # --- Public API ---
 
     def check_cooldown(self, rule_id: str, container: str,
-                      global_cooldown: int, rule_cooldown_mins: int) -> tuple[bool, str]:
+                      global_cooldown: int, rule_cooldown_mins: int,
+                      cooldown_scope: str = "container") -> tuple[bool, str]:
         """
         Check if action is blocked by any cooldown.
         Returns: (is_blocked, reason)
@@ -140,11 +141,19 @@ class AutoActionStateService:
                 remaining = int(global_cooldown - (now - self.global_last_triggered))
                 return True, f"Global cooldown active ({remaining}s remaining)"
 
-            # 2. Container Cooldown (using rule specific time)
-            # We map container cooldowns to rules essentially, but user asked for "Per Container" cooldowns.
-            # If rule says 24h cooldown, it applies to the container affected by this rule.
-            last_run = self.container_cooldowns.get(container, 0)
             cooldown_sec = rule_cooldown_mins * 60
+
+            # 2. Rule Cooldown - only for rules using the "rule" scope (see
+            # acquire_execution_locks and AutoActionRule.cooldown_scope).
+            if cooldown_scope == "rule":
+                last_rule_run = self.rule_cooldowns.get(rule_id, 0)
+                if (now - last_rule_run) < cooldown_sec:
+                    remaining_min = int((cooldown_sec - (now - last_rule_run)) / 60)
+                    return True, f"Rule cooldown active ({remaining_min}m remaining)"
+
+            # 3. Container Cooldown (using rule specific time)
+            # Default scope: a 24h cooldown applies to each container affected by this rule.
+            last_run = self.container_cooldowns.get(container, 0)
 
             if (now - last_run) < cooldown_sec:
                 remaining_min = int((cooldown_sec - (now - last_run)) / 60)
@@ -170,7 +179,8 @@ class AutoActionStateService:
         return can_execute, reason
 
     def acquire_execution_locks(self, rule_id: str, containers: List[str],
-                                global_cooldown: int, rule_cooldown_mins: int) -> tuple[bool, str, Optional[str]]:
+                                global_cooldown: int, rule_cooldown_mins: int,
+                                cooldown_scope: str = "container") -> tuple[bool, str, Optional[str]]:
         """
         Atomic check-and-set of all cooldowns for a rule targeting one or more containers.
 
@@ -196,8 +206,19 @@ class AutoActionStateService:
                 remaining = int(global_cooldown - (now - self.global_last_triggered))
                 return False, f"Global cooldown active ({remaining}s remaining)", containers[0]
 
-            # 2. Container Cooldown Check - all targets before setting anything
             cooldown_sec = rule_cooldown_mins * 60
+
+            # 2a. Rule Cooldown Check - only when the rule opted into the "rule" scope.
+            # Until v2.4.0 rule_cooldowns was written here but never read, so the cooldown
+            # always behaved per container. Rules keep that behaviour unless they say
+            # otherwise, see AutoActionRule.cooldown_scope (B9).
+            if cooldown_scope == "rule":
+                last_rule_run = self.rule_cooldowns.get(rule_id, 0)
+                if (now - last_rule_run) < cooldown_sec:
+                    remaining_min = int((cooldown_sec - (now - last_rule_run)) / 60)
+                    return False, f"Rule cooldown active ({remaining_min}m remaining)", containers[0]
+
+            # 2b. Container Cooldown Check - all targets before setting anything
             for container in containers:
                 last_run = self.container_cooldowns.get(container, 0)
                 if (now - last_run) < cooldown_sec:

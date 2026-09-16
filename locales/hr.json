@@ -771,6 +771,8 @@
   "web.aas.col_time": "Vrijeme",
   "web.aas.cooldown": "Hlađenje (minute)",
   "web.aas.cooldown_hint": "Sprečava ponovno okidanje na istom kontejneru (zadano: 24h)",
+  "web.aas.cooldown_scope_container": "Po kontejneru (zadano)",
+  "web.aas.cooldown_scope_rule": "Po pravilu (svi kontejneri)",
   "web.aas.cooldown_tooltip": "Sprečava spam od brzih ažuriranja. Nakon okidanja, pravilo se neće ponovno aktivirati tijekom ovog trajanja.",
   "web.aas.delay": "Odgoda (sekunde)",
   "web.aas.delay_tooltip": "Vrijeme čekanja prije izvršenja radnje. Korisno kada poslužitelj treba vrijeme za spremanje podataka prije ponovnog pokretanja.",

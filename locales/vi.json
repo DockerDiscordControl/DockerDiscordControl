@@ -771,6 +771,8 @@
   "web.aas.col_time": "Thời gian",
   "web.aas.cooldown": "Thời gian chờ (Phút)",
   "web.aas.cooldown_hint": "Ngăn kích hoạt lại trên cùng container (Mặc định: 24 giờ)",
+  "web.aas.cooldown_scope_container": "Theo container (mặc định)",
+  "web.aas.cooldown_scope_rule": "Theo quy tắc (tất cả container)",
   "web.aas.cooldown_tooltip": "Ngăn spam từ các cập nhật nhanh. Sau khi kích hoạt, quy tắc sẽ không kích hoạt lại trong khoảng thời gian này.",
   "web.aas.delay": "Độ trễ (Giây)",
   "web.aas.delay_tooltip": "Thời gian chờ trước khi hành động thực thi. Hữu ích khi máy chủ cần thời gian lưu dữ liệu trước khi khởi động lại.",

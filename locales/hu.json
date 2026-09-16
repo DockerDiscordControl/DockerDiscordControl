@@ -771,6 +771,8 @@
   "web.aas.col_time": "Idő",
   "web.aas.cooldown": "Várakozási idő (perc)",
   "web.aas.cooldown_hint": "Megakadályozza az újra-aktiválódást ugyanazon konténerre (alapértelmezett: 24ó)",
+  "web.aas.cooldown_scope_container": "Konténerenként (alapértelmezett)",
+  "web.aas.cooldown_scope_rule": "Szabályonként (összes konténer)",
   "web.aas.cooldown_tooltip": "Megakadályozza a spam-et gyors frissítések esetén. Aktiválás után a szabály nem aktiválódik újra ennyi ideig.",
   "web.aas.delay": "Késleltetés (másodperc)",
   "web.aas.delay_tooltip": "Várakozási idő a művelet végrehajtása előtt. Hasznos, amikor a szervernek időre van szüksége az adatok mentéséhez újraindítás előtt.",

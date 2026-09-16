@@ -354,7 +354,9 @@ class SchedulerService:
             # Check system tasks (like donations) first
             await self._check_system_tasks()
 
-            tasks = load_tasks()
+            # Reading tasks.json is blocking file I/O and the config often lives on a network
+            # or SMB mount, so it must not run on the event loop (B8).
+            tasks = await asyncio.to_thread(load_tasks)
             if not tasks:
                 return
 

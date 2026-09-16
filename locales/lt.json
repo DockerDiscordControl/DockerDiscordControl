@@ -771,6 +771,8 @@
   "web.aas.col_time": "Laikas",
   "web.aas.cooldown": "Atvėsimo laikas (minutės)",
   "web.aas.cooldown_hint": "Apsaugo nuo pakartotinio aktyvavimo tam pačiam konteineriui (Numatytasis: 24 val.)",
+  "web.aas.cooldown_scope_container": "Kiekvienam konteineriui (numatytoji)",
+  "web.aas.cooldown_scope_rule": "Kiekvienai taisyklei (visi konteineriai)",
   "web.aas.cooldown_tooltip": "Apsaugo nuo šiukšlių dėl greitų atnaujinimų. Suaktyvinus taisyklė neveiks iš naujo šį laiką.",
   "web.aas.delay": "Delsa (sekundės)",
   "web.aas.delay_tooltip": "Laukimo laikas prieš veiksmo vykdymą. Naudinga, kai serveriui reikia laiko duomenų išsaugojimui prieš perkrovimą.",

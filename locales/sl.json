@@ -771,6 +771,8 @@
   "web.aas.col_time": "Čas",
   "web.aas.cooldown": "Ohlajanje (minute)",
   "web.aas.cooldown_hint": "Preprečuje ponovno sprožitev na istem vsebniku (privzeto: 24 ur)",
+  "web.aas.cooldown_scope_container": "Na vsebnik (privzeto)",
+  "web.aas.cooldown_scope_rule": "Na pravilo (vsi vsebniki)",
   "web.aas.cooldown_tooltip": "Preprečuje neželeno pošto ob hitrih posodobitvah. Po sprožitvi se pravilo ne bo znova sprožilo za to trajanje.",
   "web.aas.delay": "Zakasnitev (sekunde)",
   "web.aas.delay_tooltip": "Čakalni čas pred izvedbo dejanja. Uporabno, ko strežnik potrebuje čas za shranjevanje podatkov pred ponovnim zagonom.",

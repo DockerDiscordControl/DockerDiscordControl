@@ -64,8 +64,9 @@ class MechDisplayCacheService:
             # Docker environment - V2.0 cache-only mode
             self.cache_dir = Path("/app/cached_displays")
         else:
-            # Local development environment
-            self.cache_dir = Path("/Volumes/appdata/dockerdiscordcontrol/cached_displays")
+            # Local checkout: derive the project root from this file (same approach as
+            # AnimationCacheService). This used to be the maintainer's absolute path.
+            self.cache_dir = Path(__file__).resolve().parents[2] / "cached_displays"
 
         # Create cache directory for display images
         self.cache_dir.mkdir(exist_ok=True)

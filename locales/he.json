@@ -771,6 +771,8 @@
   "web.aas.col_time": "זמן",
   "web.aas.cooldown": "זמן המתנה (דקות)",
   "web.aas.cooldown_hint": "מונע הפעלה חוזרת על אותו קונטיינר (ברירת מחדל: 24 שעות)",
+  "web.aas.cooldown_scope_container": "לכל מכולה (ברירת מחדל)",
+  "web.aas.cooldown_scope_rule": "לכל כלל (כל המכולות)",
   "web.aas.cooldown_tooltip": "מונע ספאם מעדכונים מהירים. לאחר הפעלה, הכלל לא יופעל שוב למשך זמן זה.",
   "web.aas.delay": "השהיה (שניות)",
   "web.aas.delay_tooltip": "זמן המתנה לפני ביצוע הפעולה. שימושי כאשר השרת צריך זמן לשמור נתונים לפני הפעלה מחדש.",

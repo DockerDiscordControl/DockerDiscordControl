@@ -771,6 +771,8 @@
   "web.aas.col_time": "Zeit",
   "web.aas.cooldown": "Cooldown (Minuten)",
   "web.aas.cooldown_hint": "Verhindert erneutes Auslösen am selben Container (Standard: 24h)",
+  "web.aas.cooldown_scope_container": "Pro Container (Standard)",
+  "web.aas.cooldown_scope_rule": "Pro Regel (alle Container)",
   "web.aas.cooldown_tooltip": "Verhindert Spam durch schnelle Updates. Nach dem Auslösen wird die Regel für diese Dauer nicht erneut ausgeführt.",
   "web.aas.delay": "Verzögerung (Sekunden)",
   "web.aas.delay_tooltip": "Wartezeit vor der Aktionsausführung. Nützlich, wenn der Server Zeit zum Speichern von Daten vor einem Neustart benötigt.",

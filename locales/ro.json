@@ -771,6 +771,8 @@
   "web.aas.col_time": "Ora",
   "web.aas.cooldown": "Timp de Așteptare (Minute)",
   "web.aas.cooldown_hint": "Previne re-declanșarea pe același container (Implicit: 24h)",
+  "web.aas.cooldown_scope_container": "Pe container (implicit)",
+  "web.aas.cooldown_scope_rule": "Pe regulă (toate containerele)",
   "web.aas.cooldown_tooltip": "Previne spam-ul de la actualizări rapide. După declanșare, regula nu se va mai activa din nou pentru această durată.",
   "web.aas.delay": "Întârziere (Secunde)",
   "web.aas.delay_tooltip": "Timp de așteptare înainte de executarea acțiunii. Util când serverul are nevoie de timp pentru a salva datele înainte de repornire.",

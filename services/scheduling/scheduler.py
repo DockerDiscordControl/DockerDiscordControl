@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import asyncio
+import copy
 import uuid
 import os
 import threading
@@ -1118,6 +1119,11 @@ def _save_raw_tasks_to_file(tasks_data: List[Dict[str, Any]]) -> bool:
 
 # --- Public Task Management API --- (Now using ScheduledTask objects and TASKS_FILE_PATH)
 
+# Task ids whose cleanup could not be written back (read-only mount, permissions). Kept so the
+# same failing rewrite is not attempted on every scheduler cycle (B5).
+_failed_cleanup_ids: frozenset = frozenset()
+
+
 @_with_tasks_lock
 def load_tasks() -> List[ScheduledTask]:
     """Load all scheduled tasks from storage"""
@@ -1163,11 +1169,25 @@ def load_tasks() -> List[ScheduledTask]:
         # File I/O errors (cannot read file, encoding issues)
         logger.error(f"File I/O error loading tasks from {TASKS_FILE_PATH}: {e}", exc_info=True)
 
-    # Cleanup any invalid or expired tasks
+    # Cleanup any invalid or expired tasks. The rewrite only happens when it can actually
+    # stick: if saving fails (read-only config mount, wrong permissions), the same cleanup
+    # would otherwise be retried on every load and rewrite tasks.json on every scheduler
+    # cycle (B5). We remember the failing ids and stay quiet until the set changes.
+    global _failed_cleanup_ids
     valid_tasks = [task for task in tasks if task.is_valid()]
     if len(valid_tasks) != len(tasks):
-        logger.info(f"Removed {len(tasks) - len(valid_tasks)} invalid tasks")
-        save_tasks(valid_tasks)
+        removed_ids = frozenset(task.task_id for task in tasks if not task.is_valid())
+        if removed_ids == _failed_cleanup_ids:
+            logger.debug("Skipping cleanup rewrite: the same %d invalid task(s) could not be "
+                         "removed earlier", len(removed_ids))
+        elif save_tasks(valid_tasks):
+            logger.info(f"Removed {len(tasks) - len(valid_tasks)} invalid tasks")
+            _failed_cleanup_ids = frozenset()
+        else:
+            logger.warning("Could not remove %d invalid task(s): writing %s failed. Not "
+                           "retrying until the set of invalid tasks changes.",
+                           len(removed_ids), TASKS_FILE_PATH)
+            _failed_cleanup_ids = removed_ids
 
     # Cache the valid (user) tasks for faster lookups and drop stale container caches
     _runtime.replace_tasks_cache({task.task_id: task for task in valid_tasks})
@@ -1221,9 +1241,12 @@ def find_task_by_id(task_id: str) -> Optional[ScheduledTask]:
 
     tasks_cache = _runtime.tasks_cache
 
-    # Try to get from cache if file hasn't changed
+    # Try to get from cache if file hasn't changed.
+    # Hand out a copy: callers such as the Web UI edit path mutate the task they get back and
+    # then save it explicitly. Returning the cached object let those edits leak into the cache
+    # before (and regardless of whether) the save succeeded (B7).
     if not _is_tasks_file_modified() and task_id in tasks_cache:
-        return tasks_cache[task_id]
+        return copy.deepcopy(tasks_cache[task_id])
 
     # For a single task lookup, try to avoid loading all tasks if possible
     # This optimization is helpful for large task lists
@@ -1284,7 +1307,10 @@ def get_tasks_for_container(container_name: str) -> List[ScheduledTask]:
             and current_time - _runtime.container_cache_timestamp < container_cache_ttl
         )
         if cache_valid:
-            return cached_tasks
+            # Own list, so a caller cannot append to or clear the cached one (B7). The task
+            # objects stay shared on purpose: every caller of this function only reads them,
+            # and this runs in the status loop where deep copies would cost real time.
+            return list(cached_tasks)
 
         # Filter from main cache if available, update container cache
         container_tasks = [task for task in tasks_cache.values() if task.container_name == container_name]

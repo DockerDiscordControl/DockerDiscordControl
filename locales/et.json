@@ -771,6 +771,8 @@
   "web.aas.col_time": "Aeg",
   "web.aas.cooldown": "Taastumisaeg (minutid)",
   "web.aas.cooldown_hint": "Väldib sama konteineri kordusvalt käivitamist (Vaikimisi: 24h)",
+  "web.aas.cooldown_scope_container": "Konteineri kohta (vaikimisi)",
+  "web.aas.cooldown_scope_rule": "Reegli kohta (kõik konteinerid)",
   "web.aas.cooldown_tooltip": "Väldib rämpsu kiiretest uuendustest. Pärast käivitamist ei tööta reegel selle aja jooksul uuesti.",
   "web.aas.delay": "Viivitus (sekundid)",
   "web.aas.delay_tooltip": "Ooteaeg enne toimingu täitmist. Kasulik, kui server vajab aega andmete salvestamiseks enne taaskäivitamist.",

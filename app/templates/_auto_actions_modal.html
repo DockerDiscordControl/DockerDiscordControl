@@ -283,6 +283,10 @@
                                    title="{{ _t('web.aas.cooldown_tooltip') }}"></i>
                             </label>
                             <input type="number" class="form-control" id="aasRuleCooldown" value="1440" min="1">
+                            <select class="form-select mt-2" id="aasRuleCooldownScope">
+                                <option value="container">{{ _t('web.aas.cooldown_scope_container') }}</option>
+                                <option value="rule">{{ _t('web.aas.cooldown_scope_rule') }}</option>
+                            </select>
                             <div class="form-text">{{ _t('web.aas.cooldown_hint') }}</div>
                         </div>
                         <div class="col-md-6 d-flex align-items-center">

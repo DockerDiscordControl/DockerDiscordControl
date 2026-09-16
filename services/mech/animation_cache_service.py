@@ -91,9 +91,11 @@ class AnimationCacheService:
             self.assets_dir = None  # V2.0: PNG sources not available in container
             self.cache_dir = Path("/app/cached_animations")
         else:
-            # Local development environment
-            self.assets_dir = Path("/Volumes/appdata/dockerdiscordcontrol/assets/mech_evolutions")
-            self.cache_dir = Path("/Volumes/appdata/dockerdiscordcontrol/cached_animations")
+            # Local checkout: derive the project root from this file. This used to be the
+            # maintainer's absolute path, which only existed on one machine.
+            project_root = Path(__file__).resolve().parents[2]
+            self.assets_dir = project_root / "assets" / "mech_evolutions"
+            self.cache_dir = project_root / "cached_animations"
 
         # Create cache directory
         self.cache_dir.mkdir(exist_ok=True)
