@@ -9,7 +9,6 @@
 import threading
 import logging
 import sys
-import gc
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone, timedelta
 
@@ -118,7 +117,9 @@ class ConfigCache:
             logger.info("Config cache expired, clearing for memory optimization")
             self._cache.clear()
             self._last_update = None
-            gc.collect()  # Force garbage collection
+            # No gc.collect() here: a forced full collection walks the entire heap (including
+            # the discord.py object graph) while holding this lock, to reclaim a handful of
+            # dicts that refcounting frees anyway.
 
     def get_servers(self) -> List[Dict[str, Any]]:
         """
@@ -216,8 +217,8 @@ class ConfigCache:
             self._cache.clear()
             self._last_update = None
             self._access_count = 0
-            gc.collect()  # Force garbage collection
-            logger.debug("Config cache cleared and garbage collected")
+            # See _cleanup_if_needed: the forced collection cost far more than it reclaimed.
+            logger.debug("Config cache cleared")
 
     def get_memory_stats(self) -> Dict[str, Any]:
         """

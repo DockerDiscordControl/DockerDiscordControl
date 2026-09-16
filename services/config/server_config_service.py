@@ -39,13 +39,10 @@ class ServerConfigService:
         containers = []
 
         try:
-            # Get base directory
-            config = load_config()
-            if not config:
-                logger.warning("Config unavailable, cannot load container configs")
-                return []
-
-            # Use robust absolute path relative to project root
+            # No load_config() here on purpose: the container configs live in their own JSON
+            # files and the directory is derived from this file's location, so the main config
+            # was never actually used - it only cost a full config load on every single call
+            # (and this runs dozens of times per status render).
             base_dir = Path(__file__).parents[2]
             containers_dir = base_dir / 'config' / 'containers'
 
@@ -54,7 +51,9 @@ class ServerConfigService:
                 return []
 
             # Read each JSON file in containers directory
+            total_containers = 0
             for json_file in containers_dir.glob('*.json'):
+                total_containers += 1
                 try:
                     with open(json_file, 'r') as f:
                         container_data = json.load(f)
@@ -100,12 +99,9 @@ class ServerConfigService:
                 except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
                     logger.error(f"Error reading {json_file}: {e}", exc_info=True)
 
-            # Count total containers including inactive
-            total_containers = 0
-            for json_file in containers_dir.glob('*.json'):
-                total_containers += 1
-
-            logger.info(f"Loaded {len(containers)} ACTIVE container configurations from {total_containers} total JSON files")
+            # The total is counted in the loop above; scanning the directory a second time just
+            # to fill this log line doubled the I/O of an already hot function.
+            logger.debug(f"Loaded {len(containers)} ACTIVE container configurations from {total_containers} total JSON files")
 
         except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException, json.JSONDecodeError) as e:
             logger.error(f"Error loading container configs: {e}", exc_info=True)

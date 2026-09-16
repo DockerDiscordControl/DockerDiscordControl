@@ -29,5 +29,8 @@ if __name__ == "__main__":
     app = create_app()
     port = int(os.environ.get("DDC_WEB_PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-else:
-    app = create_app()
+
+# No module-level `app = create_app()` on import: run.py and wsgi.py both call the factory
+# themselves, and nothing imports this symbol (checked). Building it here created a second,
+# unused Flask application on every import - complete with duplicate blueprint registration
+# and two blocking Docker pings with a 5s timeout each.

@@ -138,6 +138,16 @@ class TimezoneFormatter(logging.Formatter):
         super().__init__(fmt, datefmt)
         self.tz = tz
 
+    # tzinfo objects keyed by timezone name. pytz.timezone() is a lookup plus object
+    # construction; formatTime runs per log record, so the result is memoised here.
+    _TZ_CACHE = {}
+    # The configured timezone name, re-read at most every _TZ_NAME_TTL seconds. Kept on the
+    # formatter so logging never mutates state owned by another module. A timezone changed in
+    # the Web UI therefore reaches the log timestamps within this window.
+    _TZ_NAME_TTL = 30.0
+    _tz_name = None
+    _tz_name_read_at = 0.0
+
     def formatTime(self, record, datefmt=None):
         """
         Overrides the formatTime method to use the configured timezone.
@@ -148,17 +158,31 @@ class TimezoneFormatter(logging.Formatter):
         try:
             import pytz
 
-            # Try to load the timezone from the configuration
-            try:
-                from services.config.config_service import load_config
-                config = load_config()
-                timezone_str = config.get('timezone', 'Europe/Berlin')
-            except (ImportError, AttributeError, KeyError, RuntimeError, TypeError):
-                # During initialization, use safe default
-                timezone_str = 'Europe/Berlin'
+            # This runs for EVERY formatted log record, and the loops log ~20 lines a minute -
+            # a full load_config() per line. The value is therefore cached here, on the
+            # formatter itself.
+            #
+            # Deliberately NOT utils.time_utils.get_configured_timezone(): that function writes
+            # a module-level cache, which would make emitting a log line mutate shared state in
+            # another module. It does exactly that to two legitimate tests (they clear that
+            # cache and a log record silently refills it, because pytest.ini enables live
+            # logging). Formatting a log line must not have side effects.
+            now = time.time()
+            timezone_str = self._tz_name
+            if timezone_str is None or (now - self._tz_name_read_at) >= self._TZ_NAME_TTL:
+                try:
+                    from services.config.config_service import load_config
+                    timezone_str = load_config().get('timezone', 'Europe/Berlin')
+                except (ImportError, AttributeError, KeyError, RuntimeError, TypeError):
+                    # During initialization, use safe default
+                    timezone_str = 'Europe/Berlin'
+                type(self)._tz_name = timezone_str
+                type(self)._tz_name_read_at = now
 
-            # Convert the timestamp to the configured timezone
-            tz = pytz.timezone(timezone_str)
+            tz = self._TZ_CACHE.get(timezone_str)
+            if tz is None:
+                tz = pytz.timezone(timezone_str)
+                self._TZ_CACHE[timezone_str] = tz
             dt = datetime.fromtimestamp(record.created, tz)
 
             # Format with the correct timezone

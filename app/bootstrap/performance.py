@@ -49,16 +49,7 @@ def apply_runtime_tweaks(
         gc.freeze()
         logger.debug("Froze GC to reduce long-term arena growth")
 
-    _ensure_malloc_trim(logger)
-
-
-def _ensure_malloc_trim(logger: logging.Logger) -> None:
-    """Encourage the allocator to release memory back to the OS when idle."""
-
-    if "MALLOC_TRIM_THRESHOLD_" in os.environ:
-        return
-
-    # 128KiB keeps the value high enough to avoid thrashing while still
-    # allowing the allocator to hand memory back once caches go cold.
-    os.environ["MALLOC_TRIM_THRESHOLD_"] = "131072"
-    logger.debug("Enabled MALLOC_TRIM_THRESHOLD_=131072 for improved memory reuse")
+    # MALLOC_TRIM_THRESHOLD_ was set here. It had no effect twice over: glibc reads the value
+    # when the allocator initialises, long before this runs, and the production image is Alpine
+    # (musl), whose allocator ignores the variable entirely. Removed rather than left in place,
+    # because a setting that looks like memory tuning but does nothing is worse than none.

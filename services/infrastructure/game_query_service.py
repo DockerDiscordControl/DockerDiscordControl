@@ -203,6 +203,30 @@ class GameQueryService:
             error_type=result.error_type, error_message=result.error_message,
         )
 
+    def _promote_target_port(self, container_name: str, port: int) -> None:
+        """Move the port that actually answered to the front of the cached candidate list.
+
+        Many servers publish a game port and a separate query port, and only the latter answers
+        A2S. _candidate_ports orders them by a heuristic, which can be wrong: measured on the
+        live installation, Valheim's list was [2456, 2457, 2458] while only 2457 answers - so
+        every status cycle burned a full 5 s timeout on 2456 before succeeding on 2457 (the
+        reported query duration hid it, because only the successful attempt is timed).
+
+        Remembering the winner turns that into a single timeout, once, instead of one per cycle.
+        The entry's timestamp is refreshed so a server that keeps answering keeps its learned
+        order; a failed query still drops the entry entirely (see _invalidate_target), so a
+        recreated container with different ports re-resolves after one failure.
+        """
+        now = time.monotonic()
+        for key in [k for k in self._target_cache if k[0] == container_name]:
+            _, host, ports = self._target_cache[key]
+            if not ports or ports[0] == port or port not in ports:
+                continue
+            reordered = [port] + [p for p in ports if p != port]
+            self._target_cache[key] = (now, host, reordered)
+            logger.debug("[GAME_QUERY] %s answers on port %d - trying it first from now on",
+                         container_name, port)
+
     def _invalidate_target(self, container_name: str) -> None:
         """Drop the cached (host, ports) for a container after a query failed.
 
@@ -227,6 +251,9 @@ class GameQueryService:
         for port in ports_to_try:
             result = await self._fetch_one(request, port)
             if result.success:
+                # Remember the winner: without this the same wrong primary port is retried on
+                # every single cycle, costing a full timeout each time (finding P1c).
+                self._promote_target_port(request.container_name, port)
                 return result
             last_result = result
         return last_result or GameQueryResult.no_query(request.container_name)
