@@ -16,6 +16,7 @@ without having to manually edit JSON files.
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Dict, Any, Optional
 from datetime import datetime
@@ -33,16 +34,33 @@ class ResetResult:
 class MechResetService:
     """Service for resetting Mech system for testing/development."""
 
-    def __init__(self, config_dir: str = "config"):
+    def __init__(self, config_dir: Optional[str] = None):
         """Initialize the Mech Reset Service.
 
         Args:
-            config_dir: Directory containing config files
+            config_dir: Directory containing config files. When omitted,
+                ``DDC_CONFIG_DIR`` wins, else ``<project>/config``.
         """
-        if not config_dir.startswith('/'):
-            # Relative path - make it absolute
-            base_dir = Path(__file__).parent.parent.parent
-            self.config_dir = base_dir / config_dir
+        # The default used to be the literal "config", always resolved against the
+        # project root, and DDC_CONFIG_DIR was never consulted. Every production
+        # caller constructs without an argument (get_mech_reset_service), so the
+        # service pointed at the real config/ even during a test run: a test calling
+        # quick_mech_reset() overwrote mech_state.json and deleted
+        # achieved_levels.json of the live installation. Only the empty mount over
+        # /app/config in scripts/ddc_test.sh prevented the damage - any other runner
+        # (run_tests_unraid.sh, run_tests.sh) had no such protection. This now
+        # follows the same rule as config_service.py:181 and progress_service.py:561,
+        # so the redirection in tests/conftest.py takes effect. See SPEC.md Z2.
+        if config_dir is None:
+            env_dir = os.environ.get('DDC_CONFIG_DIR', '').strip()
+            if env_dir:
+                self.config_dir = Path(env_dir)
+            else:
+                self.config_dir = Path(__file__).parent.parent.parent / "config"
+        elif not config_dir.startswith('/'):
+            # An explicitly passed relative path keeps resolving against the project
+            # root - unchanged behaviour, pinned by test_mech_data_services.py:791.
+            self.config_dir = Path(__file__).parent.parent.parent / config_dir
         else:
             self.config_dir = Path(config_dir)
 
