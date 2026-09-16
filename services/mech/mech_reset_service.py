@@ -202,6 +202,10 @@ class MechResetService:
             ResetResult with success status
         """
         try:
+            # Note: a missing file already means "dynamic, multiplier 1.0" to the reader, so
+            # there is nothing to reset. And with multiplier 1.0 the static branch computes the
+            # identical requirement (progress_service multiplies the same subtotal by 1.0), so
+            # the use_dynamic value written here has no effect on pricing.
             if not self.evolution_mode_file.exists():
                 return ResetResult(success=True, message="Evolution mode file not found (OK)")
 

@@ -38,7 +38,15 @@ logger = get_module_logger('game_query_service')
 # (game player counts change faster than container CPU/RAM).
 DEFAULT_CACHE_TTL_SECONDS = 10.0
 DEFAULT_QUERY_TIMEOUT_SECONDS = 5.0
-DEFAULT_MAX_CONCURRENT = 3
+# Was 3: with six query-enabled containers that meant two sequential waves, so one dead server
+# cost two full timeouts per status cycle instead of one (finding P1). Six lets a typical
+# installation finish in a single wave; the per-query timeout still bounds each one.
+DEFAULT_MAX_CONCURRENT = 6
+# How long a resolved (host, ports) target stays valid. Resolving it opens a Docker connection
+# and inspects the container, which happened for every container on every status cycle. Ports
+# only change when a container is recreated, so a few minutes is safe; a wrong entry costs one
+# failed query and is dropped immediately (see resolve_query_candidates).
+DEFAULT_TARGET_CACHE_TTL_SECONDS = 300.0
 
 # Whitelist of supported query protocols (also enforced by config validation).
 # - 'source'       Steam A2S - most Steam dedicated survival servers (Valheim,
@@ -98,6 +106,9 @@ class GameQueryService:
         # container_name -> (timestamp, GameQueryResult)
         self._cache: Dict[str, Tuple[float, GameQueryResult]] = {}
         self._in_flight: Dict[str, asyncio.Future] = {}
+        # (container, host override, port override, protocol) -> (timestamp, host, ports).
+        # Avoids re-inspecting every container over Docker on every status cycle (finding P1).
+        self._target_cache: Dict[Tuple[str, str, int, str], Tuple[float, Optional[str], List[int]]] = {}
 
     # --- protocol dispatch -------------------------------------------------
 
@@ -170,6 +181,10 @@ class GameQueryService:
             return cached
 
         result = await self._fetch(request)
+        if not result.success:
+            # The cached target may be stale (container recreated on different ports), so
+            # re-resolve next time instead of retrying a dead address for the full TTL.
+            self._invalidate_target(request.container_name)
         self._cache[request.container_name] = (time.monotonic(), result)
         return result
 
@@ -187,6 +202,17 @@ class GameQueryService:
             query_duration_ms=result.query_duration_ms, cached=True,
             error_type=result.error_type, error_message=result.error_message,
         )
+
+    def _invalidate_target(self, container_name: str) -> None:
+        """Drop the cached (host, ports) for a container after a query failed.
+
+        A recreated container usually gets different published ports. Without this the stale
+        target would be retried for the whole target-cache TTL. The cache key also carries the
+        configured host/port overrides, so it cannot be rebuilt from the request alone - every
+        entry belonging to the container is dropped instead (there are only a handful).
+        """
+        for key in [k for k in self._target_cache if k[0] == container_name]:
+            del self._target_cache[key]
 
     async def _fetch(self, request: GameQueryRequest) -> GameQueryResult:
         """Query the primary port, falling back to candidate ports until one answers.
@@ -340,6 +366,18 @@ class GameQueryService:
         manual_port = int(configured_port) if configured_port and configured_port > 0 else None
         if host and manual_port:
             return host, [manual_port]
+
+        # Autodiscovery below costs a Docker connection plus a container inspect, and it ran for
+        # every container on every status cycle (finding P1). Published ports only change when a
+        # container is recreated, so the result is cached briefly.
+        cache_key = (container_name, host or '', manual_port or 0, protocol)
+        cached = self._target_cache.get(cache_key)
+        if cached is not None:
+            ts, cached_host, cached_ports = cached
+            if (time.monotonic() - ts) < DEFAULT_TARGET_CACHE_TTL_SECONDS:
+                return cached_host, list(cached_ports)
+            del self._target_cache[cache_key]
+
         ports: List[int] = []
         try:
             from services.docker_service.docker_client_pool import get_docker_client_async
@@ -355,6 +393,7 @@ class GameQueryService:
             logger.debug(f"[GAME_QUERY] Target autodiscovery failed for {container_name}: {e}")
             ports = [manual_port] if manual_port else []
         if host and ports:
+            self._target_cache[cache_key] = (time.monotonic(), host, list(ports))
             return host, ports
         return None, []
 

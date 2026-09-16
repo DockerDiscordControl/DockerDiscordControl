@@ -338,14 +338,24 @@ class StatusHandlersMixin:
                 # queried as minecraft without the user setting anything. Token protocols
                 # (satisfactory) always use the user's explicit choice.
                 proto = cfg.get('query_protocol', 'source')
-                if proto not in TOKEN_PROTOCOLS:
-                    try:
-                        from services.infrastructure.game_query_support_service import get_game_query_support_service
-                        detected = get_game_query_support_service().get_protocol(docker_name)
+                try:
+                    from services.infrastructure.game_query_support_service import get_game_query_support_service
+                    support = get_game_query_support_service()
+                    # Skip servers the support detection already found unreachable. Querying one
+                    # costs a full timeout every single cycle and can never succeed (finding P1:
+                    # with 6 enabled containers and one dead server that was ~10 s of every
+                    # status cycle). Nothing is lost if it comes back: a non-final verdict keeps
+                    # being re-probed by _run_support_probes on its own schedule, and a final one
+                    # is re-checked through the manual "test now" button. An unknown container
+                    # yields None here and is queried normally.
+                    if support.is_supported(docker_name) is False:
+                        continue
+                    if proto not in TOKEN_PROTOCOLS:
+                        detected = support.get_protocol(docker_name)
                         if detected:
                             proto = detected
-                    except (ImportError, RuntimeError, AttributeError):
-                        pass
+                except (ImportError, RuntimeError, AttributeError):
+                    pass
                 host, ports = await svc.resolve_query_candidates(
                     docker_name, cfg.get('query_host', ''), cfg.get('query_port', 0), proto)
                 if not host or not ports:

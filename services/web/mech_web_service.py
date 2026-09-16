@@ -559,14 +559,18 @@ class MechWebService:
                     status_code=400
                 )
 
-            from services.mech.mech_service import get_mech_service
             # FIX: Use mech_evolutions directly instead of missing simple_evolution_service
             from services.mech.mech_evolutions import get_evolution_level, get_evolution_level_info
 
-            mech_service = get_mech_service()
-
-            # Set evolution mode to static with custom difficulty
-            mech_service.set_evolution_mode(use_dynamic=False, difficulty_multiplier=multiplier)
+            # Set evolution mode to static with custom difficulty.
+            # Until v2.4.1 this called mech_service.set_evolution_mode(), which does not exist on
+            # the adapter - every save raised AttributeError and returned HTTP 500.
+            from services.config.config_service import (
+                get_config_service, SetEvolutionModeRequest)
+            mode_result = get_config_service().set_evolution_mode_service(
+                SetEvolutionModeRequest(use_dynamic=False, difficulty_multiplier=multiplier))
+            if not mode_result.success:
+                return MechConfigResult(success=False, error=mode_result.error, status_code=500)
 
             # Get updated simple evolution state (Reconstructed manually)
             total_donated = self._get_total_donations()
@@ -614,12 +618,14 @@ class MechWebService:
     def _reset_difficulty(self) -> MechConfigResult:
         """Reset mech evolution difficulty to dynamic mode."""
         try:
-            from services.mech.mech_service import get_mech_service
-
-            mech_service = get_mech_service()
-
-            # Set evolution mode to dynamic (community-based)
-            mech_service.set_evolution_mode(use_dynamic=True, difficulty_multiplier=1.0)
+            # Set evolution mode to dynamic (community-based). See _set_difficulty for why this
+            # no longer goes through mech_service.
+            from services.config.config_service import (
+                get_config_service, SetEvolutionModeRequest)
+            mode_result = get_config_service().set_evolution_mode_service(
+                SetEvolutionModeRequest(use_dynamic=True, difficulty_multiplier=1.0))
+            if not mode_result.success:
+                return MechConfigResult(success=False, error=mode_result.error, status_code=500)
 
             # Log the action
             self._log_user_action(

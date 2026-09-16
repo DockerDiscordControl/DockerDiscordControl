@@ -99,6 +99,24 @@ class GetEvolutionModeResult:
     error: Optional[str] = None
 
 @dataclass
+class SetEvolutionModeRequest:
+    """Request to persist evolution mode configuration.
+
+    use_dynamic=True  -> community-based pricing, the multiplier is ignored
+    use_dynamic=False -> static override, the requirement is multiplied
+    """
+    use_dynamic: bool
+    difficulty_multiplier: float = 1.0
+
+@dataclass
+class SetEvolutionModeResult:
+    """Result of persisting evolution mode configuration."""
+    success: bool
+    use_dynamic: bool = True
+    difficulty_multiplier: float = 1.0
+    error: Optional[str] = None
+
+@dataclass
 class ConfigServiceResult:
     """Standard result wrapper for config operations."""
     success: bool
@@ -995,6 +1013,59 @@ class ConfigService:
                 success=False,
                 error_message=f"Data validation error: {str(e)}"
             )
+
+    # Accepted range for the static difficulty multiplier. Rejecting out-of-range values is
+    # deliberate: silently clamping would tell the user "saved" while pricing differently.
+    MIN_DIFFICULTY_MULTIPLIER = 0.1
+    MAX_DIFFICULTY_MULTIPLIER = 10.0
+
+    def set_evolution_mode_service(self, request: SetEvolutionModeRequest) -> SetEvolutionModeResult:
+        """SERVICE FIRST: Persist evolution mode configuration.
+
+        This writer was missing entirely until v2.4.1. The Web UI called a method that did not
+        exist on the mech service, so every save failed with HTTP 500 and evolution_mode.json was
+        never created - which left every installation permanently on dynamic pricing, no matter
+        what the difficulty slider showed.
+
+        Only the two keys the reader consumes are written, so the file stays readable by older
+        versions.
+        """
+        try:
+            multiplier = float(request.difficulty_multiplier)
+        except (TypeError, ValueError):
+            return SetEvolutionModeResult(
+                success=False,
+                error=f"Difficulty multiplier must be a number, got {request.difficulty_multiplier!r}"
+            )
+
+        if not (self.MIN_DIFFICULTY_MULTIPLIER <= multiplier <= self.MAX_DIFFICULTY_MULTIPLIER):
+            return SetEvolutionModeResult(
+                success=False,
+                error=(f"Difficulty multiplier must be between {self.MIN_DIFFICULTY_MULTIPLIER} "
+                       f"and {self.MAX_DIFFICULTY_MULTIPLIER}, got {multiplier}")
+            )
+
+        use_dynamic = bool(request.use_dynamic)
+        config_path = self.config_dir / "evolution_mode.json"
+
+        try:
+            self._save_json_file(config_path, {
+                'use_dynamic': use_dynamic,
+                'difficulty_multiplier': multiplier,
+            })
+        except (IOError, OSError, PermissionError) as e:
+            logger.error(f"Failed to save evolution mode config: {e}", exc_info=True)
+            return SetEvolutionModeResult(success=False, error=f"Could not write {config_path.name}: {e}")
+
+        logger.info(
+            "Evolution mode saved: %s (multiplier %.2f%s)",
+            "dynamic" if use_dynamic else "static",
+            multiplier,
+            "" if not use_dynamic else ", ignored in dynamic mode",
+        )
+        return SetEvolutionModeResult(
+            success=True, use_dynamic=use_dynamic, difficulty_multiplier=multiplier
+        )
 
     def get_evolution_mode_service(self, request: GetEvolutionModeRequest) -> GetEvolutionModeResult:
         """SERVICE FIRST: Get evolution mode configuration with Request/Result pattern."""

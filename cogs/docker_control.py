@@ -2591,19 +2591,25 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 total_donations_received = mech_cache_result.total_donated
                 logger.info(f"CACHE: Power=${current_Power:.2f}, total_donations=${total_donations_received}, level={mech_cache_result.level} ({mech_cache_result.name})")
 
-                # Evolution info from cached service with next_name for UI
-                from services.mech.mech_service import MECH_LEVELS
+                # Evolution info from cached service with next_name for UI.
+                # Two bugs lived here until v2.4.1:
+                #   1. It imported MECH_LEVELS from services.mech.mech_service, which has never
+                #      exported that name. The ImportError escaped the handler below (it only
+                #      catches DiscordException/RuntimeError/OSError/KeyError), so expanding the
+                #      mech section in Discord crashed outright.
+                #   2. It then looked the name up by comparing a static threshold against
+                #      mech_cache_result.threshold, which is the *dynamic* goal in dollars. That
+                #      match practically never succeeded, so next_name stayed None and low levels
+                #      showed "MAX EVOLUTION REACHED!".
+                # The level number is what identifies the next evolution, so look it up directly.
+                from services.mech.mech_service_adapter import get_level_name
                 next_name = None
                 if mech_cache_result.threshold is not None and mech_cache_result.threshold > 0:
                     # For Level 10 ONLY: use corrupted name (Level 11 should have no next_name)
                     if mech_cache_result.level == 10:
                         next_name = "ERR#R: [DATA_C0RR*PTED]"
                     elif mech_cache_result.level < 10:
-                        # Find next level name from MECH_LEVELS for normal levels (1-9)
-                        for level_info in MECH_LEVELS:
-                            if level_info.threshold == mech_cache_result.threshold:
-                                next_name = level_info.name
-                                break
+                        next_name = get_level_name(mech_cache_result.level + 1)
                     # Level 11: next_name stays None -> "MAX EVOLUTION REACHED!"
 
                 evolution = {

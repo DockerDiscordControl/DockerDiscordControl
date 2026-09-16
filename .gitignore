@@ -212,3 +212,5 @@ docs/DMC_PROJECT_PLAN.md
 # Audit working document: contains live install details and an incident report.
 # The publishable summary lives in docs/RELEASE_NOTES_NEXT.md.
 AUDIT_2026-09.md
+# Follow-up roadmap: contains live measurements from the maintainer's install.
+ROADMAP_2026-09_perf_mech.md
