@@ -300,8 +300,15 @@ class ActionButton(Button):
             embed_title = interaction.message.embeds[0].title if interaction.message.embeds else ""
             is_admin_control = "Admin Control" in str(embed_title)
 
-        # Admin control messages always have control permission
-        channel_has_control = is_admin_control or _get_cached_channel_permission(interaction.channel.id, 'control', config)
+        # Only the CURRENT channel permission decides. Previously an "Admin Control"
+        # title short-circuited this check (`is_admin_control or ...`), which put the
+        # authorization into a Discord message instead of the configuration: a panel
+        # posted while the channel had the right kept working after the right was
+        # withdrawn, for as long as the message existed. Decided by the operator on
+        # 2026-09-16: old panels become ineffective immediately. The same heuristic
+        # is still used at :429/:1019/:1072 - those only steer what is displayed and
+        # grant nothing. See SPEC.md Z5 and B1.
+        channel_has_control = _get_cached_channel_permission(interaction.channel.id, 'control', config)
 
         if not channel_has_control:
             await interaction.followup.send(_("This action is not allowed in this channel."), ephemeral=True)
