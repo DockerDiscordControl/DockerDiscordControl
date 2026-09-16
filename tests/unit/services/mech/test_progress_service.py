@@ -647,6 +647,57 @@ def test_add_donation_still_persists_after_read_optimisation(progress_env):
     assert reloaded.power_acc > 0
 
 
+def test_naive_decay_anchor_is_repaired_on_disk(progress_env):
+    """A naive anchor must be migrated permanently, not just in memory.
+
+    The v2.3.1 admin reset wrote timestamps without a timezone. _ensure_decay_anchor() repairs
+    them, but only in the loaded object - the repair reached disk because get_state() persisted
+    after every read. When that write became conditional (see the test above), the repair stopped
+    being permanent and the old timestamp stayed in the file forever. This is pinned HERE, in the
+    group that gets run for progress changes; tests/unit/audit_2026_09 pins it as well, and that
+    is where the regression was eventually caught - too late.
+    """
+    from datetime import datetime
+
+    svc = progress_env.ProgressService("naive-anchor")
+    svc.get_state()  # create the snapshot
+
+    snap = progress_env.load_snapshot("naive-anchor")
+    snap.goal_started_at = "2026-09-01T12:00:00.123456"  # no timezone
+    progress_env.persist_snapshot(snap)
+
+    svc.get_state()
+
+    on_disk = json.loads(progress_env.snapshot_path("naive-anchor").read_text(encoding="utf-8"))
+    assert datetime.fromisoformat(on_disk["goal_started_at"]).tzinfo is not None
+
+
+def test_valid_decay_anchor_is_left_alone(progress_env):
+    """The counterpart: a repair must not turn into a write on every read again."""
+    svc = progress_env.ProgressService("aware-anchor")
+    svc.get_state()
+
+    before = json.loads(progress_env.snapshot_path("aware-anchor").read_text(encoding="utf-8"))
+
+    writes = []
+    original = progress_env.persist_snapshot
+
+    def recording_persist(snap):
+        writes.append(snap.mech_id)
+        original(snap)
+
+    progress_env.persist_snapshot = recording_persist
+    try:
+        svc.get_state()
+        svc.get_state()
+    finally:
+        progress_env.persist_snapshot = original
+
+    after = json.loads(progress_env.snapshot_path("aware-anchor").read_text(encoding="utf-8"))
+    assert writes == []
+    assert after["goal_started_at"] == before["goal_started_at"]
+
+
 def test_power_gift_skipped_when_power_already_positive(progress_env):
     svc = progress_env.ProgressService("gift1")
     # Donate first to ensure power > 0
