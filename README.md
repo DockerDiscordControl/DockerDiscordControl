@@ -1,6 +1,6 @@
 # DockerDiscordControl v2.4.0 🐳
 
-[![Version](https://img.shields.io/badge/Version-v2.4.0-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.4.0) [![Python](https://img.shields.io/badge/Python-3.14-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.24-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-4220%2F4220-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-70%25-green?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
+[![Version](https://img.shields.io/badge/Version-v2.4.0-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.4.0) [![Python](https://img.shields.io/badge/Python-3.14-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.24-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-4388%2F4388-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-71%25-green?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
 
 A powerful Discord bot and web interface to manage Docker containers remotely. This application bridges the gap between Discord and your Docker environment, allowing container monitoring and control directly through Discord channels.
 
@@ -500,10 +500,11 @@ environment:
 
 ## 🧪 Testing & Quality Assurance
 
-DockerDiscordControl maintains **70% test coverage** (4220 tests) with comprehensive automated testing.
+DockerDiscordControl maintains **71% test coverage** (4388 tests) with comprehensive automated testing.
 Measured over the whole application code — `services/`, `app/`, `utils/` and `cogs/` — with
-coverage 7.16.1 (28854 statements, 8616 uncovered). The service, web and utility layers sit at 88%;
-the Discord cog layer is the weak spot at roughly 24% and is where new tests are most needed.
+coverage 7.16.1 (28880 statements, 8286 uncovered). The service, web and utility layers sit at 88%;
+the Discord cog layer is the weak spot at roughly 28% and is where new tests are most needed —
+`docker_control.py` and `control_ui.py` alone account for 4568 statements at about 19%.
 
 ### Test Suites
 - **Unit Tests**: Service-level testing for core business logic
@@ -513,7 +514,7 @@ the Discord cog layer is the weak spot at roughly 24% and is where new tests are
 
 ### Continuous Integration
 All code changes are automatically validated through GitHub Actions:
-- ✅ **Automated Testing** - pytest with 70% coverage across the whole application code
+- ✅ **Automated Testing** - pytest with 71% coverage across the whole application code
 - ✅ **Code Quality** - pylint, flake8, mypy type checking
 - ✅ **Security Scanning** - bandit, semgrep, safety dependency checks
 - ✅ **Performance Benchmarks** - Automated performance regression testing

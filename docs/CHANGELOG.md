@@ -148,6 +148,12 @@ regression tests across 32 test modules.
   `/Volumes/appdata/dockerdiscordcontrol/...` outside Docker — a path that existed on exactly one
   machine, and for log lookups it was even searched during normal operation. All three now derive
   the project root from their own location, so a checkout anywhere works.
+- **Test coverage for the Discord layer.** Five cog modules were untested or barely tested,
+  including both message listeners and the password guard for protected container info. They now
+  sit between 60% and 93% (`translation_monitor` 91%, `control_helpers` 93%, `auto_action_monitor`
+  88%, `autocomplete_handlers` 62%, `enhanced_info_modal_simple` 60%). Overall coverage is
+  **71.3%** over 28880 statements with 4388 tests; `docker_control.py` and `control_ui.py` remain
+  the weak spot at about 19%.
 
 ### Behaviour changes to be aware of
 
