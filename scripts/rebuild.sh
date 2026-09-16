@@ -133,7 +133,6 @@ if docker run -d \
   "${SECRET_KEY_ARGS[@]}" \
   -e PYTHONWARNINGS="ignore" \
   -e LOGGING_LEVEL="INFO" \
-  -e DDC_CACHE_TTL="60" \
   -e DDC_DOCKER_CACHE_DURATION="120" \
   -e DDC_DISCORD_SKIP_TOKEN_LOCK="true" \
   --restart unless-stopped \

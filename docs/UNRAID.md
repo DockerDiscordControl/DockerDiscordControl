@@ -114,28 +114,10 @@ The container automatically:
 
 ## 🔧 Advanced Configuration
 
-### **Memory Optimization**
-```bash
-# Fine-tune memory settings in Container Variables:
-DDC_MEMORY_LIMIT_MB=180          # Memory limit for DDC
-DDC_GC_THRESHOLD_MB=140          # Garbage collection threshold
-DDC_MEMORY_CHECK_INTERVAL=45     # Memory check interval (seconds)
-```
-
 ### **Performance Tuning**
 ```bash
 # Cache and performance settings:
-DDC_CACHE_TTL=60                 # Docker status cache duration
-DDC_DOCKER_CACHE_DURATION=120    # Docker API cache duration
-DDC_MAX_CACHE_SIZE=50            # Maximum cache entries
-```
-
-### **Scale Limits**
-```bash
-# Production limits:
-DDC_MAX_CONTAINERS=50            # Max containers to manage
-DDC_MAX_CHANNELS=15              # Max Discord channels
-DDC_MAX_PENDING_ACTIONS=10       # Max pending Docker actions
+DDC_DOCKER_CACHE_DURATION=120    # Docker API cache duration (status cache TTL)
 ```
 
 ## 🔍 Troubleshooting
