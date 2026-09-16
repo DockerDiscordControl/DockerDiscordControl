@@ -30,7 +30,7 @@ class DonationClickRequest:
 class DonationClickResult:
     """Represents the result of donation click tracking operation."""
     success: bool
-    message: str
+    message: str = ""
     timestamp: Optional[str] = None
     error: Optional[str] = None
 

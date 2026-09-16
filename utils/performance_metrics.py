@@ -148,7 +148,7 @@ class PerformanceMetrics:
         try:
             with open(self.metrics_file, 'a') as f:
                 f.write(json.dumps(entry.to_dict()) + '\n')
-        except (IOError, OSError, PermissionError, json.JSONEncodeError) as e:
+        except (IOError, OSError, PermissionError, TypeError, ValueError) as e:
             logger.error(f"Failed to write metric: {e}", exc_info=True)
 
     @contextmanager
@@ -372,7 +372,7 @@ class PerformanceMetrics:
                 json.dump(export_data, f, indent=2)
             logger.info(f"Exported metrics to {output_file}")
             return True
-        except (IOError, OSError, PermissionError, json.JSONEncodeError) as e:
+        except (IOError, OSError, PermissionError, TypeError, ValueError) as e:
             logger.error(f"Failed to export metrics: {e}", exc_info=True)
             return False
 

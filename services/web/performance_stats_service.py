@@ -66,7 +66,7 @@ class PerformanceStatsService:
                 performance_data=performance_data
             )
 
-        except (RuntimeError) as e:
+        except (ImportError, OSError, RuntimeError) as e:
             self.logger.error(f"Error collecting performance statistics: {e}", exc_info=True)
             return PerformanceStatsResult(
                 success=False,
@@ -136,7 +136,8 @@ class PerformanceStatsService:
                 'percent_used': memory.percent,
                 'free_mb': round(memory.free / (1024 * 1024), 2)
             }
-        except (RuntimeError) as e:
+        except (ImportError, OSError, RuntimeError) as e:
+            # ImportError: psutil not installed -> degrade this section only
             self.logger.warning(f"Could not get system memory stats: {e}")
             return {'error': str(e)}
 
@@ -153,7 +154,8 @@ class PerformanceStatsService:
                 'percent': round(process.memory_percent(), 2),
                 'num_threads': process.num_threads()
             }
-        except (IOError, OSError, PermissionError, RuntimeError) as e:
+        except (ImportError, IOError, OSError, PermissionError, RuntimeError) as e:
+            # ImportError: psutil not installed -> degrade this section only
             self.logger.warning(f"Could not get process memory stats: {e}")
             return {'error': str(e)}
 

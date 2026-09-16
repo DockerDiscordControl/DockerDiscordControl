@@ -261,7 +261,7 @@ class MechServiceAdapter:
         current_state = self.progress_service.get_state()
 
         # Calculate if this donation will trigger level-up
-        amount_cents = int(amount * 100)
+        amount_cents = int(round(amount * 100))
         will_level_up = (current_state.level < 11 and
                         (current_state.evo_current * 100 + amount_cents) >= current_state.evo_max * 100)
 

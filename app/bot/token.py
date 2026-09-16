@@ -34,16 +34,9 @@ def get_decrypted_bot_token(runtime: BotRuntime) -> Optional[str]:
     config_dir = Path(__file__).resolve().parents[2] / "config"
     bot_config_file = config_dir / "bot_config.json"
 
-    try:
-        if bot_config_file.exists():
-            bot_config = json.loads(bot_config_file.read_text())
-            plaintext_token = bot_config.get("bot_token")
-            if plaintext_token and not str(plaintext_token).startswith("gAAAAA"):
-                logger.info("Using plaintext bot token from bot_config.json")
-                return str(plaintext_token)
-    except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, json.JSONDecodeError) as e:
-        logger.debug("Could not read plaintext token: %s", e)
-
+    # The token saved in the Web UI (config.json, decrypted by the config service)
+    # comes first. A leftover plaintext token in the legacy bot_config.json is only
+    # a fallback - otherwise it would shadow every token saved in the Web UI.
     token = config.get("bot_token_decrypted_for_usage")
     if token:
         logger.info("Using bot token from initial config loading")
@@ -70,6 +63,16 @@ def get_decrypted_bot_token(runtime: BotRuntime) -> Optional[str]:
                     return str(decrypted)
         except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError) as e:
             logger.warning("Error using ConfigManager: %s", e)
+
+    try:
+        if bot_config_file.exists():
+            bot_config = json.loads(bot_config_file.read_text())
+            plaintext_token = bot_config.get("bot_token")
+            if plaintext_token and not str(plaintext_token).startswith("gAAAAA"):
+                logger.info("Using plaintext bot token from legacy bot_config.json (no token in config.json)")
+                return str(plaintext_token)
+    except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, json.JSONDecodeError) as e:
+        logger.debug("Could not read plaintext token: %s", e)
 
     try:
         logger.info("Attempting manual token decryption")

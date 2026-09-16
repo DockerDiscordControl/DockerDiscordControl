@@ -37,7 +37,7 @@ class ConfigurationSaveRequest:
 class ConfigurationSaveResult:
     """Represents the result of configuration save operation."""
     success: bool
-    message: str
+    message: str = ""
     config_files: List[str] = None
     critical_settings_changed: bool = False
     error: Optional[str] = None
@@ -109,6 +109,14 @@ class ConfigurationSaveService:
             # Step 11: Build response
             return self._build_save_response(message, save_result.config_files, critical_changes.changed, critical_changes.message)
 
+        except ConfigServiceError as e:
+            # Config persistence errors (disk full, permission denied) raised by save_config,
+            # or cache/reload errors re-raised by _handle_critical_changes
+            self.logger.error(f"Config service error saving configuration: {e}", exc_info=True)
+            return ConfigurationSaveResult(
+                success=False,
+                error=f"Error saving configuration: {e.message}"
+            )
         except (ImportError, AttributeError, RuntimeError) as e:
             # Service dependency errors (config service unavailable, service method failures)
             self.logger.error(f"Service dependency error saving configuration: {e}", exc_info=True)

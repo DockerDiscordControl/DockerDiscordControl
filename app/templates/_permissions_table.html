@@ -2,6 +2,8 @@
 
 <!-- Status Channels Section -->
 <div id="permissions-table" class="mb-4 card p-3">
+    {# Always sent with the form: tells the backend that an empty channel set is intended (last channel deleted) #}
+    <input type="hidden" name="channel_tables_submitted" value="1">
     <div class="d-flex align-items-center gap-2 mb-2">
         <h4 class="mb-0">{{ _t('web.permissions.status_channels_title') }}</h4>
         <span class="handwritten-note">{{ _t('web.permissions.status_channels_hint') }}</span>

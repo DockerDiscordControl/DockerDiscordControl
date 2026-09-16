@@ -278,7 +278,37 @@ def get_translated_speed_description(level: int, language: str = "en") -> str:
     # Fallback to English from SPEED_DESCRIPTIONS
     return SPEED_DESCRIPTIONS.get(level, SPEED_DESCRIPTIONS[0])[0]
 
-def get_combined_mech_status(Power_amount: float, total_donations_received: float = None, language: str = None) -> dict:
+def _get_level_power_range(evolution_level: int) -> float:
+    """Speed range of a level from the evolution config (next level's threshold, or power_max at level 11)."""
+    from services.mech.mech_evolutions import get_evolution_level_info
+
+    evolution_level_info = get_evolution_level_info(evolution_level)
+    if not evolution_level_info:
+        raise ValueError(f"Unknown evolution level: {evolution_level}")
+    next_level_info = get_evolution_level_info(evolution_level + 1)
+    return next_level_info.base_cost if next_level_info else evolution_level_info.power_max
+
+
+def get_speed_level_for_state(evolution_level: int, power_amount: float, power_max: float = None) -> int:
+    """
+    Speed level (0-101) from the REAL mech level and current power.
+
+    Args:
+        evolution_level: Actual mech level (ProgressState.level)
+        power_amount: Current power in dollars (ProgressState.power_current)
+        power_max: Power bar maximum in dollars (ProgressState.power_max). The speed then
+                   matches the power bar. Without it, and at level 11 (which keeps its own
+                   transcendence scale), the level's range from the evolution config is used.
+    """
+    if evolution_level < 11 and power_max and power_max > 0:
+        max_power = power_max
+    else:
+        max_power = _get_level_power_range(evolution_level)
+    return _calculate_speed_level_from_power_ratio(evolution_level, power_amount, max_power)
+
+
+def get_combined_mech_status(Power_amount: float, total_donations_received: float = None, language: str = None,
+                             evolution_level: int = None, power_max: float = None) -> dict:
     """
     Get combined evolution and speed status for the mech.
 
@@ -287,6 +317,9 @@ def get_combined_mech_status(Power_amount: float, total_donations_received: floa
         total_donations_received: Total donations ever received (for evolution).
                                 If None, uses Power_amount for backwards compatibility.
         language: Language code ('en', 'de', 'fr'). If None, tries to get from config.
+        evolution_level: Actual mech level from the progress service. When given, speed uses
+                         this level instead of one guessed from the donation amount.
+        power_max: Power bar maximum (ProgressState.power_max) for the speed scale.
 
     Returns:
         Dictionary with evolution info, speed info, and combined status
@@ -335,12 +368,14 @@ def get_combined_mech_status(Power_amount: float, total_donations_received: floa
     # Calculate speed level using helper (DRY)
     # IMPORTANT: Use total_donations_received for evolution level, Power_amount for speed calculation
     try:
-        # Get evolution context using total donations (NOT current power!)
-        # This ensures we use actual mech level, not power-degraded level
-        evolution_level, max_power_for_level = _get_evolution_context(total_donations_received)
-
-        # Calculate speed level using actual evolution level and current power
-        speed_level = _calculate_speed_level_from_power_ratio(evolution_level, Power_amount, max_power_for_level)
+        if evolution_level is not None:
+            # Real level from the progress service: a level guessed from the donation total
+            # is wrong once level costs are dynamic (e.g. a level-2 mech with $200 lifetime)
+            speed_level = get_speed_level_for_state(evolution_level, Power_amount, power_max)
+        else:
+            # Legacy: guess the level from total donations (NOT current power!)
+            guessed_level, max_power_for_level = _get_evolution_context(total_donations_received)
+            speed_level = _calculate_speed_level_from_power_ratio(guessed_level, Power_amount, max_power_for_level)
 
     except (ImportError, AttributeError) as e:
         # Service dependency errors (mech_evolutions not available)

@@ -66,7 +66,7 @@ def isolated_web_app(monkeypatch):
     _auth.setup_limiter.ip_dict.clear()
     _auth.auth_limiter.ip_dict.clear()
 
-    return create_app({"TESTING": True})
+    return create_app({"TESTING": True, "WTF_CSRF_ENABLED": False})
 
 
 # ---------------------------------------------------------------------------
@@ -271,6 +271,27 @@ class TestSessionIdleTimeoutConfig:
         monkeypatch.setenv("DDC_SESSION_IDLE_TIMEOUT", "abc")
         mod = self._reload_security()
         assert mod._SESSION_IDLE_TIMEOUT_SECONDS == 1800
+
+
+class TestSessionIdleTimeoutKeepsCsrfToken:
+    """Idle expiry clears the session but keeps the CSRF token (audit 2026-09): the open
+    page still sends the token from its meta tag, so dropping it would break every save."""
+
+    def test_idle_expiry_keeps_only_csrf_token(self, isolated_web_app):
+        client = isolated_web_app.test_client()
+        with client.session_transaction() as sess:
+            sess["last_activity"] = time.time() - 10 * 3600
+            sess["csrf_token"] = "token-from-page"
+            sess["username"] = "admin"
+
+        resp = client.get("/")
+        assert resp.status_code == 401
+        assert resp.get_json()["error"] == "session_idle_timeout"
+
+        with client.session_transaction() as sess:
+            assert sess.get("csrf_token") == "token-from-page"
+            assert "username" not in sess
+            assert "last_activity" not in sess
 
 
 # ---------------------------------------------------------------------------

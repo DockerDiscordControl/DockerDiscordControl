@@ -137,6 +137,10 @@ environment:
   # Waitress thread pool size (range 2..16). Default: max(4, min(8, cpu_count)).
   DDC_WAITRESS_THREADS: "8"
 
+  # Web UI port inside the container. Default 9374. Only needed with host networking
+  # when 9374 is already in use (bridge: change the host port mapping instead).
+  # DDC_WEB_PORT: "9374"
+
   # Animation disk cache cap (MB). Default 200. Set to 0 to disable LRU eviction.
   DDC_ANIM_DISK_LIMIT_MB: "200"
 

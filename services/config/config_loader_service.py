@@ -14,9 +14,16 @@ import discord
 import docker
 import logging
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional, Set, Tuple
+
+from services.config.channel_config_service import ALL_CHANNELS_REMOVED_MARKER
 
 logger = logging.getLogger('ddc.config_loader')
+
+# Written by ConfigService.fold_legacy_settings_once() when the legacy settings files have been
+# folded into config.json (one-time upgrade step). From then on config.json is the only source
+# for these settings; without the marker the pre-fold (v2.3) precedence applies.
+LEGACY_FOLD_MARKER = '.legacy_settings_folded'
 
 
 class ConfigLoaderService:
@@ -62,6 +69,100 @@ class ConfigLoaderService:
         else:
             return self.load_virtual_modular_config()
 
+    @property
+    def legacy_settings_files(self) -> Tuple[Path, ...]:
+        """Settings files written only by the v2.0 modular migration (real modular layout)."""
+        return (self.auth_config_file, self.web_ui_config_file, self.docker_settings_file)
+
+    @property
+    def fold_marker_file(self) -> Path:
+        return self.config_dir / LEGACY_FOLD_MARKER
+
+    def legacy_settings_folded(self) -> bool:
+        """True once the legacy settings files were folded into config.json."""
+        return self.fold_marker_file.exists()
+
+    def read_fold_marker(self) -> Optional[Dict[str, Any]]:
+        """Content of the fold marker, None without marker ({} if unreadable)."""
+        if not self.fold_marker_file.exists():
+            return None
+        marker = self._load_json_file(self.fold_marker_file, {})
+        return marker if isinstance(marker, dict) else {}
+
+    def load_pre_fold_real_settings(self) -> Dict[str, Any]:
+        """Settings as v2.3 resolved them in the real modular layout: config.json with the
+        legacy settings files applied on top.
+
+        Exception to v2.3's precedence: a ``null`` in a legacy file does NOT overwrite a real
+        value from config.json. The migration writes ``{"bot_token": null}`` /
+        ``{"web_ui_password_hash": null}`` when the v1 file had none, and folding that null back
+        into config.json would destroy the last usable copy of the token or the password hash
+        (v2.3 kept it on disk, it was only shadowed at runtime).
+        """
+        settings = self._load_json_file(self.main_config_file, {})
+        for legacy_file in self.legacy_settings_files:
+            if legacy_file.exists():
+                for key, value in self._load_json_file(legacy_file, {}).items():
+                    if value is None and settings.get(key) is not None:
+                        continue
+                    settings[key] = value
+        return settings
+
+    def _v1_setting_sources(self) -> Tuple[Tuple[Path, Dict[str, Any]], ...]:
+        """v1 split files and the settings (with defaults) the virtual layout takes from them."""
+        return (
+            (self.bot_config_file, {'language': 'en', 'timezone': 'UTC', 'guild_id': None,
+                                    'bot_token': None}),
+            (self.docker_config_file, {'docker_socket_path': '/var/run/docker.sock',
+                                       'container_command_cooldown': 5, 'docker_api_timeout': 30,
+                                       'max_log_lines': 50}),
+            (self.web_config_file, {'web_ui_user': 'admin', 'web_ui_password_hash': None,
+                                    'admin_enabled': True, 'session_timeout': 3600,
+                                    'donation_disable_key': '', 'scheduler_debug_mode': False}),
+        )
+
+    def load_v1_settings(self) -> Tuple[Dict[str, Any], Set[str]]:
+        """Settings from the v1 split files (virtual layout).
+
+        Returns the values (defaults for keys an existing file lacks) and the set of keys a
+        v1 file really contains.
+        """
+        settings: Dict[str, Any] = {}
+        present: Set[str] = set()
+        for path, defaults in self._v1_setting_sources():
+            if not path.exists():
+                continue
+            raw = self._load_json_file(path, {})
+            for key, default in defaults.items():
+                if key in raw:
+                    settings[key] = raw[key]
+                    present.add(key)
+                else:
+                    settings[key] = default
+        return settings, present
+
+    def _legacy_advanced_settings(self) -> Dict[str, Any]:
+        """advanced_settings kept in the legacy web_config.json (migration-only file)."""
+        if not self.web_config_file.exists():
+            return {}
+        return dict(self._load_json_file(self.web_config_file, {}).get('advanced_settings') or {})
+
+    def load_pre_fold_virtual_settings(self) -> Dict[str, Any]:
+        """config.json with the settings of the v1 split files on top: before the fold,
+        config.json only fills keys the v1 files lack (advanced settings per key)."""
+        settings = self._load_json_file(self.main_config_file, {})
+        v1_settings, v1_present = self.load_v1_settings()
+        for key in v1_present:
+            # Same rule as in load_pre_fold_real_settings: a null in a v1 file must not fold
+            # over a real value in config.json (it would destroy the last usable copy).
+            if v1_settings[key] is None and settings.get(key) is not None:
+                continue
+            settings[key] = v1_settings[key]
+        legacy_advanced = self._legacy_advanced_settings()
+        if legacy_advanced:
+            settings['advanced_settings'] = {**(settings.get('advanced_settings') or {}), **legacy_advanced}
+        return settings
+
     def has_real_modular_structure(self) -> bool:
         """Check if we have real modular file structure."""
         return ((self.channels_dir.exists() and len(list(self.channels_dir.glob("*.json"))) > 0) or
@@ -71,23 +172,22 @@ class ConfigLoaderService:
         """Load configuration from real modular file structure."""
         config = {}
 
-        # 1. Load main system config
-        if self.main_config_file.exists():
-            main_config = self._load_json_file(self.main_config_file, {})
-            config.update(main_config)
-
-        # 2. Load auth config
-        if self.auth_config_file.exists():
-            auth_config = self._load_json_file(self.auth_config_file, {})
-            config.update(auth_config)
+        # 1. Settings. Legacy auth.json / web_ui.json / docker_settings.json are written only by
+        # the one-time modular migration. ConfigService folds them into config.json once at
+        # startup and renames them, so config.json (the live save target) is the only source;
+        # leftover legacy files only fill keys it lacks. Until that fold has run (e.g. read-only
+        # config dir) the v2.3 precedence stays: legacy files override config.json.
+        if self.legacy_settings_folded():
+            for legacy_file in self.legacy_settings_files:
+                if legacy_file.exists():
+                    config.update(self._load_json_file(legacy_file, {}))
+            # 2. Load main system config (wins over the legacy files)
+            self._overlay_main_config(config)
+        else:
+            config.update(self.load_pre_fold_real_settings())
 
         # 3. Heartbeat config (Status Watchdog) - now stored in main config.json
         # Legacy heartbeat.json is no longer used - cleanup removes it during migration
-
-        # 4. Load web UI config
-        if self.web_ui_config_file.exists():
-            web_ui_config = self._load_json_file(self.web_ui_config_file, {})
-            config.update(web_ui_config)
 
         # 5. Load advanced settings. save_config() writes advanced_settings into config.json
         # (already merged via config.update(main_config) above). The legacy web_config.json is
@@ -98,11 +198,6 @@ class ConfigLoaderService:
             **(web_config.get('advanced_settings') or {}),   # legacy fallback
             **(config.get('advanced_settings') or {}),       # live config.json wins
         }
-
-        # 6. Load Docker settings
-        if self.docker_settings_file.exists():
-            docker_settings = self._load_json_file(self.docker_settings_file, {})
-            config.update(docker_settings)
 
         # 7. Load all containers from individual files
         servers = self.load_all_containers_from_files()
@@ -116,8 +211,13 @@ class ConfigLoaderService:
 
         # 8b. Fallback: If no individual channel files found, try other sources
         # This handles migration from virtual modular (channels_config.json) to real modular,
-        # and recovery if individual channel files are lost but config.json still has them
-        if not channel_data.get('channel_permissions'):
+        # and recovery if individual channel files are lost but config.json still has them.
+        # Not when the last channel was removed on purpose (marker written by ChannelConfigService).
+        channels_removed = (self.channels_dir / ALL_CHANNELS_REMOVED_MARKER).exists()
+        if not channel_data.get('channel_permissions') and channels_removed:
+            config['channel_permissions'] = {}
+            logger.debug("All channels were removed on purpose - legacy channel fallbacks skipped")
+        elif not channel_data.get('channel_permissions'):
             # First try: config.json might have channel_permissions
             if main_config_channels:
                 logger.info(f"No individual channel files found - recovered {len(main_config_channels)} channels from config.json")
@@ -219,26 +319,34 @@ class ConfigLoaderService:
         logger.info(f"Loaded {len(channel_data['channel_permissions'])} channel configurations from individual files")
         return channel_data
 
+    def _overlay_main_config(self, config: Dict[str, Any], skip_keys=frozenset()) -> None:
+        """Apply config.json on top of ``config`` - it is the only file save_config() writes.
+
+        A null in config.json must not wipe a real legacy value (e.g. a missing
+        web_ui_password_hash would reopen the unauthenticated /setup page).
+        Keys in ``skip_keys`` keep their current value.
+        """
+        if not self.main_config_file.exists():
+            return
+        main_config = self._load_json_file(self.main_config_file, {})
+        for key, value in main_config.items():
+            if key in skip_keys:
+                continue
+            if value is None and config.get(key) is not None:
+                continue
+            config[key] = value
+
     def load_virtual_modular_config(self) -> Dict[str, Any]:
         """Virtual modular config - uses existing files but structured as modular."""
         config = {}
 
+        # Settings of the v1 split files: bot_config.json (language, timezone, guild_id,
+        # bot_token), docker_config.json (docker settings), web_config.json (web UI settings)
+        v1_settings, v1_present = self.load_v1_settings()
+        config.update(v1_settings)
+
         # 1. Bot config (contains: language, timezone, guild_id, bot_token, heartbeat)
         if self.bot_config_file.exists():
-            bot_config = self._load_json_file(self.bot_config_file, {})
-
-            # Extract system settings (virtual config.json)
-            config.update({
-                'language': bot_config.get('language', 'en'),
-                'timezone': bot_config.get('timezone', 'UTC'),
-                'guild_id': bot_config.get('guild_id')
-            })
-
-            # Extract auth settings (virtual auth.json)
-            config.update({
-                'bot_token': bot_config.get('bot_token')
-            })
-
             # Status Watchdog config - new format (old heartbeat_channel_id no longer used)
             if 'heartbeat' not in config:
                 config['heartbeat'] = {
@@ -255,34 +363,10 @@ class ConfigLoaderService:
             # Extract containers (virtual containers/*.json)
             config['servers'] = docker_config.get('servers', [])
 
-            # Extract docker settings (virtual docker_settings.json)
-            config.update({
-                'docker_socket_path': docker_config.get('docker_socket_path', '/var/run/docker.sock'),
-                'container_command_cooldown': docker_config.get('container_command_cooldown', 5),
-                'docker_api_timeout': docker_config.get('docker_api_timeout', 30),
-                'max_log_lines': docker_config.get('max_log_lines', 50)
-            })
-
-        # 3. Web config (contains: web UI + advanced settings)
+        # 3. Web config (web UI settings: see load_v1_settings) - advanced settings
+        legacy_advanced = self._legacy_advanced_settings()
         if self.web_config_file.exists():
-            web_config = self._load_json_file(self.web_config_file, {})
-
-            # Extract web UI settings (virtual web_ui.json)
-            config.update({
-                'web_ui_user': web_config.get('web_ui_user', 'admin'),
-                'web_ui_password_hash': web_config.get('web_ui_password_hash'),
-                'admin_enabled': web_config.get('admin_enabled', True),
-                'session_timeout': web_config.get('session_timeout', 3600),
-                'donation_disable_key': web_config.get('donation_disable_key', ''),
-                'scheduler_debug_mode': web_config.get('scheduler_debug_mode', False)
-            })
-
-            # Extract advanced settings - live config.json wins over the migration-only
-            # web_config.json so modal/env_ toggles round-trip (see load_real_modular_config).
-            config['advanced_settings'] = {
-                **(web_config.get('advanced_settings') or {}),   # legacy fallback
-                **(config.get('advanced_settings') or {}),       # live config.json wins
-            }
+            config['advanced_settings'] = dict(legacy_advanced)
 
         # 4. Channels config (contains: channel permissions + channel data)
         if self.channels_config_file.exists():
@@ -293,8 +377,25 @@ class ConfigLoaderService:
             config['default_channel_permissions'] = channels_config.get('default_channel_permissions', {})
             config['channels'] = channels_config.get('channels', {})
             config['server_selection'] = channels_config.get('server_selection', {})
+        if (self.channels_dir / ALL_CHANNELS_REMOVED_MARKER).exists():
+            config['channel_permissions'] = {}  # last channel removed on purpose
 
-        # 5. Load other existing configs
+        # 5. config.json. Containers and channels keep coming from the v1 structure files.
+        # After the one-time fold (ConfigService) config.json holds the settings and wins, same
+        # as in load_real_modular_config; legacy advanced_settings stay a fallback. Before it,
+        # config.json only fills keys the v1 files lack (the v2.3 effective values stay).
+        virtual_structure = {key: config[key] for key in
+                             ('servers', 'channel_permissions', 'default_channel_permissions',
+                              'channels', 'server_selection') if key in config}
+        if self.legacy_settings_folded():
+            self._overlay_main_config(config)
+            config.update(virtual_structure)
+            config['advanced_settings'] = {**legacy_advanced, **(config.get('advanced_settings') or {})}
+        else:
+            self._overlay_main_config(config, skip_keys=v1_present | set(virtual_structure))
+            config['advanced_settings'] = {**(config.get('advanced_settings') or {}), **legacy_advanced}
+
+        # 6. Load other existing configs
         self.load_existing_configs_virtual(config)
 
         logger.debug("Virtual modular config loaded successfully")

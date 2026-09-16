@@ -409,19 +409,13 @@ def test_timed_decorator_default_metric_name():
 
 
 def test_metrics_collector_export_json_structure(tmp_path):
-    """export_json constructs a stats dict with timestamp; we tolerate the
-    known bug in the production code (uses json.dumps(stats, file, indent)
-    which raises TypeError) by confirming the call attempt happened."""
+    """export_json writes the stats dict (with timestamp) as valid JSON."""
     mc = obs.MetricsCollector()
     mc.increment("x")
     out = tmp_path / "metrics.json"
-    # Production code has a typo (json.dumps instead of json.dump). Catch
-    # that gracefully — the test still exercised get_stats() and the export
-    # code path up to the dumps() call, which is what we care about.
-    try:
-        mc.export_json(out)
-    except TypeError:
-        pass
+    mc.export_json(out)
+    data = json.loads(out.read_text())
+    assert "timestamp" in data
 
 
 def test_get_observability_context_disabled_tracing_yields_no_span():
@@ -771,6 +765,7 @@ def test_check_and_execute_runs_due_task_via_mocked_execute_task(fresh_service):
     task.task_id = "t-due"
     task.container_name = "ctr-due"
     task.next_run_ts = time.time()
+    task.is_system_task.return_value = False  # System tasks are not re-saved
 
     async def _ok_execute(t):
         return None
@@ -868,8 +863,10 @@ def test_check_and_execute_respects_max_concurrent_limit(fresh_service):
     mocked_exec.assert_not_called()
 
 
-def test_module_level_start_stop_get_helpers():
+def test_module_level_start_stop_get_helpers(monkeypatch):
     """The module-level wrappers delegate to the global service instance."""
+    # The one-time upgrade pass would write a marker into the real config dir
+    monkeypatch.setattr(ss, "pause_long_dead_tasks_once", lambda: 0)
     # Use the real global, but stop it after.
     started = ss.start_scheduler_service()
     try:

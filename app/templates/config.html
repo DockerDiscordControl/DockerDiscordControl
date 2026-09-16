@@ -1899,13 +1899,14 @@
         {# NEW: Auth Settings #}
         {% include '_auth_settings.html' %}
 
+        {# Heartbeat (Status Watchdog) - must stay inside the form: saveConfigAjax() only
+           collects #config-form fields, outside it every save wrote heartbeat.enabled=False #}
+        {% include '_heartbeat_section.html' %}
+
         {# Save Button #}
         {% include '_save_button.html' %}
 
     </form> {# --- End of form --- #}
-
-    {# Heartbeat Section - MOVED OUTSIDE FORM #}
-    {% include '_heartbeat_section.html' %}
 
     <div id="save-notification"></div>
 

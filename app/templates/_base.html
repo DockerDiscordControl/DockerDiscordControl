@@ -15,6 +15,93 @@ Licensed under the MIT License
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script>
+        // Text to show for a failed save. A rejected CSRF check (app/web/csrf.py) carries a
+        // machine-readable `reason`; show a translated text for it instead of the server's
+        // English message. Other errors keep the server's message, else `fallback`.
+        window.ddcServerErrorMessage = function(data, fallback) {
+            function tr(key, english) {
+                const text = (typeof t === 'function') ? t(key) : key;
+                return (text && text !== key) ? text : english;
+            }
+            if (data && data.csrf_error) {
+                const reasons = {
+                    missing: ['csrf.missing', 'The request carried no security token, so nothing was saved.'],
+                    session_missing: ['csrf.session_missing', 'Your browser did not send the DDC session cookie, so nothing was saved.'],
+                    expired: ['csrf.expired', 'Your session has expired, so nothing was saved.'],
+                    invalid: ['csrf.invalid', "The page's security token does not match your session, so nothing was saved."]
+                };
+                const entry = reasons[data.reason] || reasons.invalid;
+                return tr(entry[0], entry[1]) + ' ' + tr('csrf.hint',
+                    'Reload the page and try again. If this keeps happening, another web app on the same host may be overwriting the session cookie, or the browser blocks cookies for this site.');
+            }
+            return (data && (data.message || data.error)) || fallback || '';
+        };
+    </script>
+    <script>
+        // CSRF: the server rejects state-changing requests without the token from the meta tag above.
+        // Add it to every same-origin fetch() and to POST forms, so individual calls need no changes.
+        (function setupCsrfProtection() {
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+            if (!csrfToken) {
+                return;
+            }
+            const safeMethods = ['GET', 'HEAD', 'OPTIONS', 'TRACE'];
+
+            function isSameOrigin(url) {
+                try {
+                    return new URL(url, window.location.href).origin === window.location.origin;
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            if (window.fetch) {
+                const originalFetch = window.fetch;
+                window.fetch = function(input, init) {
+                    const isRequest = typeof Request !== 'undefined' && input instanceof Request;
+                    const method = String((init && init.method) || (isRequest ? input.method : 'GET')).toUpperCase();
+                    const url = isRequest ? input.url : String(input);
+                    if (safeMethods.indexOf(method) === -1 && isSameOrigin(url)) {
+                        init = Object.assign({}, init);
+                        const headers = new Headers(init.headers || (isRequest ? input.headers : undefined));
+                        if (!headers.has('X-CSRFToken')) {
+                            headers.set('X-CSRFToken', csrfToken);
+                        }
+                        init.headers = headers;
+                    }
+                    return originalFetch.call(window, input, init);
+                };
+            }
+
+            // Native POST form submits send the token as a hidden field instead.
+            function addTokenToForm(form) {
+                if (!form || form.tagName !== 'FORM') {
+                    return;
+                }
+                if ((form.getAttribute('method') || '').toLowerCase() !== 'post') {
+                    return;
+                }
+                if (form.querySelector('input[name="csrf_token"]')) {
+                    return;
+                }
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'csrf_token';
+                input.value = csrfToken;
+                form.appendChild(input);
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('form').forEach(addTokenToForm);
+            });
+            // Forms added after page load get the field right before they are submitted.
+            document.addEventListener('submit', function(event) {
+                addTokenToForm(event.target);
+            }, true);
+        })();
+    </script>
                 <title>{% block title %}DockerDiscordControl Configuration{% endblock %}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
@@ -248,7 +335,7 @@ Licensed under the MIT License
 
     <footer class="text-center fixed-bottom py-2">
         <p style="color: #6c757d; font-size: 0.8em; margin-bottom: 0;">
-            Built by <span class="neon-text" id="neon-max">MAX</span> | <a href="https://ddc.bot" target="_blank" class="text-secondary">Homepage</a> | <a href="https://github.com/DockerDiscordControl/DockerDiscordControl" target="_blank" class="text-secondary">GitHub</a> <span class="neon-text-red" id="neon-version">v2.3.1</span>
+            Built by <span class="neon-text" id="neon-max">MAX</span> | <a href="https://ddc.bot" target="_blank" class="text-secondary">Homepage</a> | <a href="https://github.com/DockerDiscordControl/DockerDiscordControl" target="_blank" class="text-secondary">GitHub</a>{% if ddc_version %} <span class="neon-text-red" id="neon-version">{{ ddc_version }}</span>{% endif %}
         </p>
     </footer>
 

@@ -196,9 +196,12 @@ class MechStatusCacheService:
             # Get speed status info using get_combined_mech_status (Single Point of Truth)
             from services.mech.speed_levels import get_combined_mech_status
 
+            # Speed from the real level and power bar (not a level guessed from totals)
             combined_status = get_combined_mech_status(
                 Power_amount=data_result.current_power,
-                total_donations_received=data_result.total_donated
+                total_donations_received=data_result.total_donated,
+                evolution_level=data_result.current_level,
+                power_max=getattr(getattr(data_result, 'bars', None), 'Power_max_for_level', None)
             )
             speed_description = combined_status['speed']['description']
             speed_color = combined_status['speed']['color']
@@ -246,7 +249,14 @@ class MechStatusCacheService:
 
         try:
             while self._loop_running:
-                await self._background_refresh()
+                try:
+                    await self._background_refresh()
+                except asyncio.CancelledError:
+                    raise
+                except Exception as e:
+                    # Never let one failed refresh (e.g. PermissionError while persisting
+                    # the snapshot) end the loop - retry on the next interval
+                    self.logger.error(f"Background refresh iteration failed: {e}", exc_info=True)
                 await asyncio.sleep(self._refresh_interval)
 
         except asyncio.CancelledError:
@@ -284,9 +294,10 @@ class MechStatusCacheService:
                     self.logger.info(f"[CACHE_REFRESH] Mech is OFFLINE (Power: $0.00) - offline animation active")
                 else:
                     self.logger.debug(f"[CACHE_REFRESH] Power decay calculated: ${mech_state.power_current:.2f}")
-            except (ImportError, AttributeError, RuntimeError) as decay_error:
-                # Service errors (progress service unavailable, asyncio errors)
-                self.logger.warning(f"[CACHE_REFRESH] Failed to calculate mech decay: {decay_error}")
+            except Exception as decay_error:
+                # Any failure here (service unavailable, PermissionError persisting the
+                # snapshot, ...) must not skip the cache refresh below
+                self.logger.warning(f"[CACHE_REFRESH] Failed to calculate mech decay: {decay_error}", exc_info=True)
 
             # Refresh both decimal variants of cache
             for include_decimals in [False, True]:
@@ -301,8 +312,10 @@ class MechStatusCacheService:
 
             self.logger.debug("Background cache refresh completed")
 
-        except (ImportError, AttributeError, RuntimeError, asyncio.CancelledError) as e:
-            # Service errors, asyncio errors
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            # Any other refresh failure: log it, the loop retries on the next interval
             self.logger.error(f"Background refresh error: {e}", exc_info=True)
 
     def stop_background_loop(self):

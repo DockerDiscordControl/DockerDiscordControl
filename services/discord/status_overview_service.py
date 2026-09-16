@@ -57,7 +57,7 @@ class StatusOverviewService:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self._config_cache = {}  # Channel ID -> UpdateConfig
-        self._cache_timestamp = 0
+        self._cache_timestamps = {}  # Channel ID -> time the entry was cached
         self._cache_ttl = 60  # Cache configs for 60 seconds
 
     def make_update_decision(self, channel_id: int, global_config: Dict[str, Any],
@@ -219,10 +219,10 @@ class StatusOverviewService:
         Uses caching to avoid repeated config parsing.
         """
         try:
-            # Check cache
+            # Check cache (each channel entry expires on its own)
             current_time = time.time()
             if (channel_id in self._config_cache and
-                current_time - self._cache_timestamp < self._cache_ttl):
+                current_time - self._cache_timestamps.get(channel_id, 0) < self._cache_ttl):
                 return self._config_cache[channel_id]
 
             # Parse channel permissions from config
@@ -245,7 +245,7 @@ class StatusOverviewService:
 
             # Update cache
             self._config_cache[channel_id] = config
-            self._cache_timestamp = current_time
+            self._cache_timestamps[channel_id] = current_time
 
             return config
 

@@ -13,11 +13,37 @@ Handles automatic token encryption and security improvements.
 import logging
 import json
 import os
+import stat
+import tempfile
 from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
 
 from pathlib import Path
+
+
+def _atomic_write_json(path, data: Dict[str, Any]) -> None:
+    """Write JSON via temp file + os.replace so a crash never truncates ``path``."""
+    directory = os.path.dirname(os.path.abspath(path))
+    fd, tmp_path = tempfile.mkstemp(prefix=".tmp_", suffix=".json", dir=directory)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        try:
+            # Keep the original file mode (mkstemp creates the temp file with 0600)
+            os.chmod(tmp_path, stat.S_IMODE(os.stat(path).st_mode))
+        except OSError:
+            pass
+        os.replace(tmp_path, path)
+    except BaseException:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+
 
 class TokenSecurityManager:
     """Manages bot token encryption and security operations."""
@@ -46,7 +72,7 @@ class TokenSecurityManager:
                 config_dir = Path(__file__).parents[1] / "config"
             except Exception:
                 config_dir = Path("config")
-                
+
             bot_config_file = config_dir / "bot_config.json"
             web_config_file = config_dir / "web_config.json"
 
@@ -90,9 +116,8 @@ class TokenSecurityManager:
                 # Update bot config with encrypted token
                 bot_config['bot_token'] = encrypted_token
 
-                # Save the updated config
-                with open(bot_config_file, 'w', encoding='utf-8') as f:
-                    json.dump(bot_config, f, indent=2)
+                # Save the updated config (atomically - this file holds the token)
+                _atomic_write_json(bot_config_file, bot_config)
 
                 logger.info("🔒 Successfully encrypted existing plaintext bot token")
                 return True
@@ -100,7 +125,10 @@ class TokenSecurityManager:
                 logger.error("Failed to encrypt bot token")
                 return False
 
-        except (RuntimeError) as e:
+        except (OSError, ValueError, AttributeError, TypeError, RuntimeError) as e:
+            # OSError: unreadable/root-owned file; ValueError: truncated/empty JSON
+            # (JSONDecodeError); AttributeError/TypeError: JSON that isn't an object.
+            # The migration is optional - never let it break the startup.
             logger.error(f"Error during token encryption migration: {e}", exc_info=True)
             return False
 
@@ -134,7 +162,7 @@ class TokenSecurityManager:
                 config_dir = Path(__file__).parents[1] / "config"
             except Exception:
                 config_dir = Path("config")
-                
+
             bot_config_file = config_dir / "bot_config.json"
             web_config_file = config_dir / "web_config.json"
 
@@ -168,7 +196,7 @@ class TokenSecurityManager:
             if not status['environment_token_used']:
                 status['recommendations'].append("💡 Consider using DISCORD_BOT_TOKEN environment variable")
 
-        except (AttributeError, KeyError, RuntimeError, TypeError) as e:
+        except (AttributeError, KeyError, OSError, RuntimeError, TypeError, ValueError) as e:
             logger.error(f"Error checking token encryption status: {e}", exc_info=True)
             status['recommendations'].append("❌ Error checking token status")
 
@@ -249,7 +277,7 @@ def auto_encrypt_token_on_startup():
 
         return status
 
-    except (RuntimeError) as e:
+    except (OSError, ValueError, AttributeError, TypeError, RuntimeError) as e:
         logger.error(f"Error during token auto-encryption: {e}", exc_info=True)
         return None
 

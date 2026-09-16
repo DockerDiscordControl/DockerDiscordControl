@@ -721,21 +721,38 @@ function saveAdminUsers() {
         admin_notes: adminNotes
     };
 
+    // /api/admin-users is registered on the app itself, not on a blueprint, so it is not
+    // CSRF-exempt and needs the token from the meta tag in _base.html.
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+
     fetch('/api/admin-users', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfMeta ? csrfMeta.content : ''
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
+    .then(response => {
+        // Error pages (e.g. a rejected CSRF token) are HTML, not JSON - surface the status instead
+        // of failing in response.json() with a generic message.
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+            return { success: false, error: `HTTP ${response.status} ${response.statusText}` };
+        }
+        return response.json();
+    })
     .then(result => {
         if (result.success) {
             const modal = bootstrap.Modal.getInstance(document.getElementById('adminModal'));
             modal.hide();
             alert(t('admin.saved_successfully'));
         } else {
-            alert(t('admin.failed_save') + ': ' + (result.error || t('common.unknown_error')));
+            // ddcServerErrorMessage (_base.html) translates a rejected CSRF check
+            const detail = (typeof window.ddcServerErrorMessage === 'function')
+                ? window.ddcServerErrorMessage(result, t('common.unknown_error'))
+                : (result.error || t('common.unknown_error'));
+            alert(t('admin.failed_save') + ': ' + detail);
         }
     })
     .catch(error => {

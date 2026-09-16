@@ -623,10 +623,12 @@ async def get_docker_info(docker_container_name: str) -> Optional[Dict[str, Any]
         return None
 
 async def docker_action(docker_container_name: str, action: str) -> bool:
+    # Honour the container's own StopTimeout (docker-py's restart() would force 10s)
+    from .docker_action_service import get_stop_timeout_kwargs
     valid_actions = {
         'start': lambda c: c.start(),
-        'stop': lambda c: c.stop(),
-        'restart': lambda c: c.restart(),
+        'stop': lambda c: c.stop(**get_stop_timeout_kwargs(c)),
+        'restart': lambda c: c.restart(**get_stop_timeout_kwargs(c)),
     }
     if action not in valid_actions:
         raise DockerError(f"Invalid Docker action: {action}")
@@ -898,7 +900,7 @@ async def test_docker_performance(container_names: List[str] = None, iterations:
                 results['container_results'][container_name]['times_ms'].append(elapsed_time)
                 results['container_results'][container_name]['errors'].append("Overall timeout")
 
-            except (asyncio.TimeoutError, docker.errors.DockerException, RuntimeError) as e:
+            except (docker.errors.DockerException, RuntimeError) as e:
                 elapsed_time = (time.time() - start_time) * 1000
                 logger.error(f"Performance test error for {container_name}: {e}", exc_info=True)
 

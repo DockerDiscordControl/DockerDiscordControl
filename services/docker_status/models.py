@@ -62,7 +62,7 @@ class PerformanceProfile:
 @dataclass
 class PerformanceConfig:
     """Configuration for performance learning system"""
-    min_timeout: int = 5000           # 5 seconds minimum timeout
+    min_timeout: int = 10000          # 10 seconds minimum timeout
     max_timeout: int = 45000          # 45 seconds maximum timeout
     default_timeout: int = 30000      # 30 seconds default for new containers
     slow_threshold: int = 8000        # 8+ seconds = slow container
@@ -204,6 +204,11 @@ class ContainerStatusResult:
     error_message: Optional[str] = None
     error_type: Optional[str] = None  # 'connectivity', 'not_found', 'timeout', etc.
 
+    # Docker answered "no such container" (deleted, renamed or being recreated). A determined
+    # state like offline (success=True, is_running=False), so it is cached and rendered as
+    # "not found" instead of the loading placeholder. See not_found_result().
+    not_found: bool = False
+
     @property
     def is_online(self) -> bool:
         """Convenience property: container successfully queried AND running"""
@@ -276,6 +281,25 @@ class ContainerStatusResult:
             display_name=display_name,
             is_running=False,
             details_allowed=details_allowed
+        )
+
+    @classmethod
+    def not_found_result(cls, docker_name: str, display_name: str,
+                         details_allowed: bool = True) -> 'ContainerStatusResult':
+        """Factory method for a configured container that Docker reports as not existing.
+
+        Like offline_result (status determined, cached), but flagged not_found so the UI
+        can show it as "not found" (the container config is never changed, see C1-7).
+        """
+        return cls(
+            docker_name=docker_name,
+            success=True,
+            display_name=display_name,
+            is_running=False,
+            details_allowed=details_allowed,
+            error_message=f"Container '{docker_name}' not found",
+            error_type='not_found',
+            not_found=True
         )
 
 

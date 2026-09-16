@@ -1368,8 +1368,19 @@ class AddTaskButton(discord.ui.Button):
         try:
             logger.info(f"AddTaskButton clicked for container: {self.container_name}")
 
+            # Acknowledge first: the allowed-actions lookup reads all container
+            # configs and could outlast Discord's 3 s limit (10062 Unknown interaction)
+            await interaction.response.defer(ephemeral=True)
+            allowed_actions = await asyncio.to_thread(_get_allowed_task_actions, self.container_name)
+
             # Create dropdown-based task creation
-            view = TaskCreationView(self.cog, self.container_name)
+            view = TaskCreationView(self.cog, self.container_name, allowed_actions=allowed_actions)
+            if not view.allowed_actions:
+                await interaction.followup.send(
+                    f"❌ {_('No schedulable actions (start/stop/restart) are allowed for {container}.').format(container=self.container_name)}",
+                    ephemeral=True
+                )
+                return
 
             embed = discord.Embed(
                 title=f"⏰ {_('Create Task: {container}').format(container=self.container_name)}",
@@ -1383,7 +1394,7 @@ class AddTaskButton(discord.ui.Button):
                 inline=False
             )
 
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 embed=embed,
                 view=view,
                 ephemeral=True
@@ -1391,7 +1402,10 @@ class AddTaskButton(discord.ui.Button):
 
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in add task button: {e}", exc_info=True)
-            await interaction.response.send_message(f"❌ {_('Error showing task help.')}", ephemeral=True)
+            if interaction.response.is_done():
+                await interaction.followup.send(f"❌ {_('Error showing task help.')}", ephemeral=True)
+            else:
+                await interaction.response.send_message(f"❌ {_('Error showing task help.')}", ephemeral=True)
 
 class DeleteTasksButton(discord.ui.Button):
     """Button to open task delete panel."""
@@ -1543,13 +1557,33 @@ class AutoActionButton(discord.ui.Button):
             await interaction.followup.send(f"❌ {_('Error loading Auto-Actions.')}", ephemeral=True)
 
 
+# Actions that can be scheduled as tasks (services.scheduling.scheduler.VALID_ACTIONS)
+_TASK_ACTIONS = ("start", "stop", "restart")
+
+
+def _get_allowed_task_actions(container_name: str) -> List[str]:
+    """Return the schedulable actions allowed for a container (its allowed_actions)."""
+    try:
+        from services.config.server_config_service import get_server_config_service
+        for server in get_server_config_service().get_all_servers():
+            if server.get('docker_name') == container_name:
+                allowed = server.get('allowed_actions') or []
+                return [action for action in _TASK_ACTIONS if action in allowed]
+    except (ImportError, AttributeError, RuntimeError, OSError, ValueError) as e:
+        logger.error(f"Error loading allowed actions for {container_name}: {e}", exc_info=True)
+    return []
+
+
 class TaskCreationView(discord.ui.View):
     """View for task creation using sequential dropdowns."""
 
-    def __init__(self, cog_instance, container_name: str):
+    def __init__(self, cog_instance, container_name: str, allowed_actions: Optional[List[str]] = None):
         super().__init__(timeout=300)
         self.cog = cog_instance
         self.container_name = container_name
+        # Only actions the container allows may be scheduled (looked up if not given)
+        self.allowed_actions = (allowed_actions if allowed_actions is not None
+                                else _get_allowed_task_actions(container_name))
 
         # Task configuration state
         self.selected_cycle = None
@@ -1648,7 +1682,7 @@ class CycleDropdown(discord.ui.Select):
         self.view.selected_time = None
 
         # Add action dropdown
-        action_dropdown = ActionDropdown()
+        action_dropdown = ActionDropdown(self.view.allowed_actions)
         action_dropdown.row = self.view.get_next_available_row()
         self.view.add_item(action_dropdown)
 
@@ -1663,12 +1697,15 @@ class CycleDropdown(discord.ui.Select):
 class ActionDropdown(discord.ui.Select):
     """Dropdown for selecting task action."""
 
-    def __init__(self):
+    def __init__(self, allowed_actions: Optional[List[str]] = None):
         options = [
             discord.SelectOption(label=_("Start"), description=_("Start the container"), emoji="▶️", value="start"),
             discord.SelectOption(label=_("Stop"), description=_("Stop the container"), emoji="⏹️", value="stop"),
             discord.SelectOption(label=_("Restart"), description=_("Restart the container"), emoji="🔄", value="restart")
         ]
+        # Only offer actions the container's config allows
+        if allowed_actions is not None:
+            options = [option for option in options if option.value in allowed_actions]
 
         super().__init__(placeholder=_("Choose action..."), options=options, row=1)
 
@@ -2280,8 +2317,19 @@ class CreateTaskButton(discord.ui.Button):
             await interaction.response.send_message(f"❌ {_('Please select: {missing}').format(missing=', '.join(missing))}", ephemeral=True)
             return
 
+        # Imported before try so the except clause below can reference it
+        from services.scheduling.schedule_helpers import ScheduleValidationError
+
         try:
             await interaction.response.defer(ephemeral=True)
+
+            # Re-check allowed actions at creation time (config may have changed)
+            if self.view.selected_action not in _get_allowed_task_actions(self.container_name):
+                error_msg = _("You don't have permission to perform '{action}' on '{container}'.").format(
+                    action=self.view.selected_action, container=self.container_name
+                )
+                await interaction.followup.send(f"❌ {error_msg}", ephemeral=True)
+                return
 
             # Import required modules
             from services.scheduling.scheduler import ScheduledTask, add_task, parse_time_string, parse_weekday_string
@@ -2327,7 +2375,8 @@ class CreateTaskButton(discord.ui.Button):
                 year=year_val if self.view.selected_cycle == 'once' else None,
                 created_by=str(interaction.user),
                 created_at=time.time(),
-                timezone_str="Europe/Berlin"
+                # Configured timezone, like the slash commands
+                timezone_str=load_config().get('timezone', 'Europe/Berlin')
             )
 
             # Calculate next run time
@@ -2362,12 +2411,10 @@ class CreateTaskButton(discord.ui.Button):
                     inline=False
                 )
 
-                # Format next run time
-                if task.next_run_ts:
-                    from datetime import datetime
-                    import pytz
-                    tz = pytz.timezone("Europe/Berlin")
-                    next_run = datetime.fromtimestamp(task.next_run_ts, tz).strftime('%Y-%m-%d %H:%M %Z')
+                # Format next run time (in the task's timezone, i.e. the configured one)
+                next_run_dt = task.get_next_run_datetime()
+                if next_run_dt:
+                    next_run = next_run_dt.strftime('%Y-%m-%d %H:%M %Z')
                     embed.add_field(
                         name=f"⏰ {_('Next Run')}",
                         value=f"`{next_run}`",
@@ -2388,6 +2435,10 @@ class CreateTaskButton(discord.ui.Button):
                     ephemeral=True
                 )
 
+        except ScheduleValidationError as e:
+            # Validation messages are user-facing (e.g. time conflict, time in the past)
+            logger.info(f"Task creation for {self.container_name} rejected: {e}")
+            await interaction.followup.send(f"❌ **{_('Error')}**: {str(e)[:200]}", ephemeral=True)
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error creating task: {e}", exc_info=True)
             error_msg = str(e)
@@ -2459,14 +2510,11 @@ class ContainerTaskDeleteView(discord.ui.View):
             }
             action_emoji = action_emojis.get(action, '⚙️')
 
-            # Build detailed time and date info
+            # Build detailed time and date info in the task's own timezone (older
+            # tasks may use another zone than the configured one), with a marker
             time_info = ""
-            if hasattr(task, 'next_run_ts') and task.next_run_ts:
-                from datetime import datetime
-                import pytz
-                tz = pytz.timezone("Europe/Berlin")
-                next_run = datetime.fromtimestamp(task.next_run_ts, tz)
-
+            next_run = task.get_next_run_datetime() if getattr(task, 'next_run_ts', None) else None
+            if next_run:
                 if task.cycle == 'once':
                     # For once: show full date and time "O:13.08.27 14h"
                     time_info = f":{next_run.strftime('%d.%m.%y %Hh')}"
@@ -2486,6 +2534,9 @@ class ContainerTaskDeleteView(discord.ui.View):
                 else:
                     # Fallback: just show time
                     time_info = f":{next_run.strftime('%Hh')}"
+                tz_marker = next_run.strftime('%Z')
+                if tz_marker:
+                    time_info += f" {tz_marker}"
             elif hasattr(task, 'time_str') and task.time_str:
                 # Fallback to time_str if available
                 time_info = f":{task.time_str}"

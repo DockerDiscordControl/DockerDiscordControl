@@ -4,6 +4,144 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ---
 
+## v2.4.0 - 2026-09-16
+
+Audit release. Every subsystem was reviewed, then a second pass looked specifically at what
+changes for **existing installations** on upgrade. 141 findings were fixed, with 564 new
+regression tests across 32 test modules.
+
+### ⚠️ Upgrade notes
+
+- **You will be logged out once.** The Flask secret key is now stored permanently
+  (`config/.flask_secret_key`) instead of being regenerated on every start, and the session
+  cookie was renamed to `ddc_session`. Log in again and reload open browser tabs — the first save
+  from a stale tab fails with a "session expired" message.
+- **Long-dead scheduled tasks are paused, not resurrected.** A missed run used to stop a recurring
+  task forever while the Web UI still showed it as active. That is fixed, but reviving months-old
+  tasks would fire surprise restarts, so overdue tasks are deactivated once on first start and
+  marked in the Web UI with their last run. Thresholds: daily > 2 days, weekly > 14 days,
+  monthly > 62 days, yearly > 400 days, cron > twice its interval (at least 1 hour), everything
+  else > 2 days. Re-enabling a task computes a fresh next run.
+- **The monthly donation message works again** and posts to the configured channels on the 2nd
+  Sunday of the month.
+- **Migrated v1 installations:** on first start the settings actually in effect are folded into
+  `config.json` once (a backup is written first, legacy files are renamed to `*.folded-<ts>`).
+  Without this, a password or bot token could have been lost.
+- **Rotate your Discord bot token** if you care: older versions kept a decrypted copy in
+  `config.json` (and `config.json.bak`). Fixed, and leftovers are cleaned up on the next save.
+- **Downgrading to v2.3.1:** the mech keeps working (snapshot format unchanged, the interim decay
+  field is migrated out on load). But on installations migrated from v1, the one-time fold makes
+  `config.json` authoritative while v2.3.1 reads only the old split files — changed credentials or
+  settings would silently fall back. The pre-fold state is in
+  `config/backup_<timestamp>_settings_fold/`.
+
+### Security
+
+- The decrypted bot token is no longer written to `config.json`; a token that cannot be decrypted
+  is repaired instead of dropped. Protected container-info passwords are no longer stored in
+  plaintext either.
+- CSRF is enforced for **all** blueprints — no route is exempt. Pages extending the base template
+  attach the token automatically; rejected requests return a clear JSON reason. `/api/admin-users`
+  was not covered before, so saving admin users always failed.
+- The config save no longer accepts arbitrary posted fields (password hash, token, junk keys).
+- Session cookie renamed to `ddc_session` with `SameSite=Lax`; the per-request global
+  `SESSION_COOKIE_SECURE` switch was removed (it could lock out plain-HTTP LAN users).
+- A short `DDC_ADMIN_PASSWORD` is accepted again — otherwise a fresh install silently stayed in
+  first-time-setup mode where `admin/setup` had full access. New passwords require 12 characters;
+  existing ones keep working.
+- Auto-action regex patterns are validated properly, and each search runs in a separate process
+  with a hard 0.5 s budget, so a catastrophic pattern can no longer freeze the bot.
+
+### Discord bot
+
+- Status/Info/Help buttons acknowledge the interaction immediately — no more "This interaction
+  failed" (Unknown interaction / 10062).
+- All Docker SDK calls run off the event loop; this caused repeated container timeouts and the
+  flood of "SLOW batched processing" warnings.
+- Auto-action rules with more than one container work again (they locked themselves out via the
+  global cooldown), honour the "only if running" option, and post a notice when a rule is skipped.
+- Stop All / Restart All respect each container's allowed actions and report what they skipped.
+- Deleted or renamed containers show ❓ "not found" instead of staying "offline" forever.
+- Status fetches run up to 6 in parallel; CPU% shows current load instead of an average since host
+  boot. Overviews refresh at least every ~60 s even with a long cache duration.
+- Fixed crashes in `/control` error paths, the status path for containers with hidden details, and
+  overview building when the mech cache fails. Buttons on messages from the old version keep
+  working.
+
+### Scheduler & tasks
+
+- Weekly tasks: the weekday was never written to `tasks.json`, so weekly tasks were dropped on the
+  next load; `/schedule_weekly` also stored the wrong day (off by one). Abbreviations are accepted,
+  numbers are 1–7 (Monday = 1).
+- Cron tasks run at all — `croniter` was missing from the image, so they were created and then
+  silently deactivated.
+- A slightly late task still runs once; anything older is rescheduled instead of being stuck.
+- Daily, weekly and yearly runs keep their local time across daylight-saving transitions.
+- Scheduled stop/restart wait for the container's configured StopTimeout and are never sent twice.
+- Many tasks due in the same minute all run. Yearly tasks no longer skip the current year; Feb 29
+  is preserved in leap years.
+- Tasks created from Discord use the configured timezone and are checked against the container's
+  allowed actions; tasks created in the Web UI always run.
+
+### Web UI
+
+- "Change password" actually changes the password (it previously did nothing and stored the new
+  password in plaintext).
+- Enter in a text field no longer submits the config form to a 405 page and loses edits.
+- Heartbeat (Status Watchdog) settings are saved — every save used to switch them off.
+- The mech difficulty slider loads its current state; saving no longer reports "Failed".
+- Donations keep their cents; delete/restore uses a stable id instead of a list index; $0 returns
+  a clear error instead of a 500.
+- The last channel can finally be deleted.
+- Server errors, expired sessions and failed deletes show the real message instead of a generic
+  one.
+- 118 previously untranslated bot and UI strings are available in all 40 languages, and 3 outdated
+  texts were corrected. All 40 language files carry the same key set and the same placeholders.
+
+### Mech & donations
+
+- Power decay is settled on every change: a donation adds to the power you see instead of first
+  paying off invisible decay debt. A mech at $0 shows as offline and is eligible for the one-time
+  startup gift.
+- Deleting or restoring a donation no longer shifts the displayed power or total.
+- Level goals use the current member count and are not re-priced by a rebuild.
+- A corrupt snapshot or a truncated line in the event log no longer blocks donations or silently
+  resets the mech to level 1.
+- Animation speed follows the real level.
+
+### Deployment & startup
+
+- New dependencies in the image: `croniter`, `psutil`.
+- Docker `HEALTHCHECK` in the image. It ignores `HTTP(S)_PROXY`, so a container with a proxy
+  configured no longer reports itself unhealthy (which could make autoheal restart it in a loop).
+- `DDC_WEB_PORT` (default 9374) sets the Web UI port; a busy port is retried and reported clearly
+  instead of crash-looping.
+- An invalid bot token keeps the Web UI reachable and DDC restarts itself as soon as a new token
+  is saved. Missing privileged intents are retried automatically (90 s, backing off to 15 min).
+- An unwritable `logs` directory falls back to console logging instead of a restart loop.
+- The entrypoint only fixes files the app user genuinely cannot use, instead of rewriting
+  ownership of everything.
+- An invalid `TZ` falls back to UTC with a warning instead of crashing.
+- `docker stop` takes ~2 s instead of hitting the 10 s kill timeout.
+- **Removed:** `scripts/start.sh` no longer offers the "Python (direct)" run mode — it referenced a
+  gunicorn config that does not exist and started bot and web server as separate processes.
+  Without Docker it now exits with a pointer to `scripts/rebuild.sh` / the Docker image.
+
+### Behaviour changes to be aware of
+
+| Change | Effect |
+|---|---|
+| Stop All / Restart All | skip containers whose allowed actions exclude the action |
+| Auto-actions "only if running" | now enforced: stopped containers are skipped, with a notice |
+| Scheduled tasks from Discord | checked against allowed actions at run time |
+| Old, long-dead tasks | paused once on upgrade (see upgrade notes) |
+| Monthly donation message | starts posting again |
+| Mech | decay debt cleared, startup gift may trigger, animation speed changes |
+| CPU% in status | now current load, not an average since boot |
+| New passwords | minimum 12 characters |
+
+---
+
 ## v2.3.1 - 2026-08-08
 
 ### Security

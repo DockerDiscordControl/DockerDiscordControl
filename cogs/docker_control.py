@@ -66,6 +66,20 @@ logger.info("=" * 80)
 logger.info("[MODULE LOAD DEBUG] docker_control.py module is being loaded - NEW CODE VERSION e214386")
 logger.info("=" * 80)
 
+# Overview edits treat status cache entries older than this as stale, independent of
+# DDC_DOCKER_CACHE_DURATION (up to 300 s), so a container stopped outside DDC doesn't stay 🟢
+# for minutes. A stale cache still triggers only ONE shared bulk refresh (_ensure_status_cache_fresh).
+STATUS_CACHE_MAX_RENDER_AGE_SECONDS = 60
+
+
+def _status_entry_age_seconds(entry) -> float:
+    """Age of a status cache entry in seconds (0 if it has no usable timestamp)."""
+    timestamp = entry.get('timestamp')
+    if hasattr(timestamp, 'timestamp'):
+        return time.time() - timestamp.timestamp()
+    return 0.0
+
+
 class DockerControlCog(commands.Cog, StatusHandlersMixin):
     """Cog for DockerDiscordControl container management via Discord."""
 
@@ -169,6 +183,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         self.cache_ttl_seconds = int(cache_duration * 2.5)
 
         self.pending_actions: Dict[str, Dict[str, Any]] = {}
+
+        # Status cache refresh bookkeeping (see _ensure_status_cache_fresh)
+        self._last_status_cache_refresh = 0.0
+        self._status_fetch_failed = set()
 
         # Initialize services
         logger.debug("Step 4: Initializing cleanup service...")
@@ -802,6 +820,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
             logger.info(f"Direct Cog Periodic Edit Loop: Attempting to run {len(tasks_to_run)} message edit tasks.")
 
+            # Refresh the status cache at most once per cycle (only if stale) BEFORE the batches,
+            # so the per-message updates render from cache and actually run in parallel.
+            await self._ensure_status_cache_fresh()
+
             # ULTRA-PERFORMANCE: Batched parallelization for message edits
             start_batch_time = datetime.now(timezone.utc)
             total_tasks = len(tasks_to_run)
@@ -1016,16 +1038,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 container_status_service.invalidate_container(container_name)
                 logger.info(f"[AAS_REFRESH] Invalidated ContainerStatusService for {container_name}")
 
-                # Find display_name for this container
+                # Find the server config for this container. config['servers'] is a list, so look it
+                # up via ServerConfigService (same source as the overview builders).
                 config = load_config()
-                servers = config.get('servers', {})
-                display_name = None
-                server_config = None
-                for name, srv_config in servers.items():
-                    if srv_config.get('docker_name') == container_name:
-                        display_name = name
-                        server_config = srv_config
-                        break
+                server_config = get_server_config_service().get_server_by_docker_name(container_name)
+                display_name = server_config.get('display_name', container_name) if server_config else None
 
                 if not display_name:
                     logger.warning(f"[AAS_REFRESH] Container {container_name} not found in config")
@@ -1470,8 +1487,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             self.initial_messages_sent = True
             logger.info(f"send_initial_status finished. Initial messages sent flag set to True. Success: {initial_send_successful}")
 
-    async def _background_cache_population(self):
-        """Perform background cache population without blocking initial status send."""
+    async def _background_cache_population(self, skip_if_refreshed_since: float = None):
+        """Perform background cache population without blocking initial status send.
+
+        Args:
+            skip_if_refreshed_since: time.monotonic() value; if another caller (or the
+                status_update_loop) completed a refresh after it, skip the fetch. Lets
+                concurrent callers waiting on the semaphore share one bulk fetch.
+        """
         try:
             logger.info("Starting background cache population")
 
@@ -1497,13 +1520,23 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             logger.info(f"Background cache population: Processing {len(container_names)} containers")
             start_time = time.time()
 
+            # Ensure semaphore exists (tests / early callers may run before any loop created it)
+            if not hasattr(self, '_status_update_semaphore'):
+                self._status_update_semaphore = asyncio.Semaphore(1)
+
             # Use semaphore for race condition protection (same as status_update_loop)
             async with self._status_update_semaphore:
+                if (skip_if_refreshed_since is not None
+                        and getattr(self, '_last_status_cache_refresh', 0.0) >= skip_if_refreshed_since):
+                    logger.debug("Background cache population: cache was refreshed while waiting - skipping fetch")
+                    return
+
                 # Bulk fetch container status (same logic as status_update_loop)
                 results = await self.bulk_fetch_container_status(container_names)
 
                 success_count = 0
                 error_count = 0
+                failed_names = set()
 
                 # Update cache with results (same logic as status_update_loop)
                 for name, result in results.items():
@@ -1514,12 +1547,59 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     else:
                         logger.warning(f"Background cache population: Failed to fetch status for {name}. Error: {result.error_message}")
                         error_count += 1
+                        failed_names.add(name)
 
+                # A container missing from the results (its fetch raised) counts as failed too,
+                # so its aging cache entry doesn't force a bulk refresh per overview edit
+                failed_names.update(n for n in container_names if n not in results)
+                self._mark_status_cache_refreshed(failed_names)
                 duration_ms = (time.time() - start_time) * 1000
                 logger.info(f"Background cache population completed: {success_count} success, {error_count} errors in {duration_ms:.1f}ms")
 
         except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"Error during background cache population: {e}", exc_info=True)
+
+    def _mark_status_cache_refreshed(self, failed_names=None):
+        """Record a completed bulk status refresh (called while holding _status_update_semaphore)."""
+        self._last_status_cache_refresh = time.monotonic()
+        # Containers whose fetch failed are never cached - remember them so they don't make the
+        # cache look permanently stale (which would trigger a full bulk fetch per overview edit).
+        self._status_fetch_failed = set(failed_names or ())
+
+    async def _ensure_status_cache_fresh(self):
+        """Refresh the status cache only if it is stale.
+
+        status_update_loop refreshes every DDC_DOCKER_CACHE_DURATION seconds and
+        ContainerStatusService drops entries older than that, so the cache is stale
+        when a configured container that did not fail its last fetch has no entry
+        (expired, or invalidated after a container action) or an entry older than
+        STATUS_CACHE_MAX_RENDER_AGE_SECONDS (long cache durations must not keep a
+        container stopped outside DDC green for minutes). Overview renders use the
+        cache as-is otherwise instead of doing a full Docker bulk fetch per message.
+        """
+        requested_at = time.monotonic()
+        try:
+            servers = get_server_config_service().get_all_servers()
+        except (RuntimeError, ValueError, OSError) as e:
+            logger.warning(f"Status cache freshness check failed, refreshing: {e}")
+            servers = None
+
+        if servers is not None:
+            failed = getattr(self, '_status_fetch_failed', set())
+            stale = []
+            for server in servers:
+                docker_name = server.get('docker_name')
+                if not docker_name or docker_name in failed:
+                    continue
+                entry = self.status_cache_service.get(docker_name)
+                if not entry or _status_entry_age_seconds(entry) > STATUS_CACHE_MAX_RENDER_AGE_SECONDS:
+                    stale.append(docker_name)
+            if not stale:
+                logger.debug("Status cache is fresh - rendering from cache")
+                return
+            logger.debug(f"Status cache stale for {len(stale)} container(s) - refreshing")
+
+        await self._background_cache_population(skip_if_refreshed_since=requested_at)
 
     # _update_single_message WAS REMOVED
     # _update_single_server_message_by_name WAS REMOVED
@@ -1889,7 +1969,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
 
             # Create Admin Overview embed with CPU and RAM info
-            embed, _, has_running = await self._create_admin_overview_embed(ordered_servers, config, force_refresh=True)
+            # Don't unpack into `_` - that would make the translation function local (UnboundLocalError)
+            embed, _animation_file, has_running = await self._create_admin_overview_embed(ordered_servers, config, force_refresh=True)
 
             # Import AdminOverviewView from admin_overview module
             from .admin_overview import AdminOverviewView
@@ -2017,7 +2098,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         embed.add_field(name=f"**{_('Control Channel Commands')}**", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n**Container Control:** {_('Click control buttons under container status panels to start, stop, or restart.')}\n**Task Management:** {_('Click ⏰ button under container control panels to add/delete scheduled tasks.')}" + "\n\u200b", inline=False)
 
         # Add status indicators explanation
-        embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n🔄 {_('Container status loading')}" + "\n\u200b", inline=False)
+        embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n❓ {_('Container not found')}\n🔄 {_('Container status loading')}" + "\n\u200b", inline=False)
 
         # Add info system explanation
         embed.add_field(name=f"**{_('Info System')}**", value=f"ℹ️ {_('Click for container details')}\n🔒 {_('Protected info (control channels only)')}\n🔓 {_('Public info available')}" + "\n\u200b", inline=False)
@@ -2441,6 +2522,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 player_indicator = format_player_inline(status_result.players_online, status_result.max_players)
                 # Add status line: status emoji, name, player count, info indicator
                 line = f"│ {status_emoji} {truncated_name}{player_indicator}{info_indicator}"
+                if status_result.not_found:
+                    # Deleted/renamed container: own state instead of 🔴 or an endless 🔄
+                    line = f"│ ❓ {truncated_name} · {translate('not found')}{info_indicator}"
                 content_lines.append(line)
             else:
                 # No cache data available - show loading status
@@ -2496,8 +2580,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 mech_cache_result = cache_service.get_cached_status(cache_request)
 
                 if not mech_cache_result.success:
-                    logger.error(f"Failed to get cached mech status: {mech_cache_result.error_message}")
-                    return
+                    # Callers unpack (embed, animation_file) - never return None here. Skip the
+                    # mech section via the handler below and still return the server overview.
+                    raise RuntimeError(f"Failed to get cached mech status: {mech_cache_result.error_message}")
 
                 logger.info(f"CACHE: Using cached mech data (age: {mech_cache_result.cache_age_seconds:.1f}s)")
 
@@ -2558,7 +2643,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     if evolution_level >= 11:
                         actual_speed_level = 100  # Level 11 always has maximum speed (divine speed)
                     else:
-                        speed_status = get_combined_mech_status(current_Power)
+                        # Real level + its power bar maximum (not a level guessed from the power amount)
+                        speed_status = get_combined_mech_status(
+                            current_Power, evolution_level=evolution_level,
+                            power_max=getattr(getattr(mech_cache_result, 'bars', None), 'Power_max_for_level', None))
                         actual_speed_level = speed_status['speed']['level']
 
                     # Get animation bytes with power-based selection (REST if power=0, WALK if power>0)
@@ -2736,7 +2824,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         has_running_containers = False
 
         # Create the embed with dark-mode friendly color
-        from .translation_manager import _ as translate
         embed = discord.Embed(
             title=translate("Admin Overview"),
             color=0x2f3136  # Dark grey, dark-mode friendly
@@ -2852,6 +2939,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     # Build single-line: "🟢 Name · cpu% • ramGB ⓘ"
                     # Use middot (·) as separator, ⓘ only if has info
                     container_line = f"{status_emoji} {truncated_name} · {cpu_formatted} • {ram_formatted}"
+                    if has_info:
+                        container_line += " ⓘ"
+                elif status_result.not_found:
+                    # Deleted/renamed container: "❓ Name · not found"
+                    container_line = f"❓ {truncated_name} · {translate('not found')}"
                     if has_info:
                         container_line += " ⓘ"
                 else:
@@ -3005,6 +3097,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 player_indicator = format_player_inline(status_result.players_online, status_result.max_players)
                 # Add status line: status emoji, name, player count, info indicator
                 line = f"│ {status_emoji} {truncated_name}{player_indicator}{info_indicator}"
+                if status_result.not_found:
+                    # Deleted/renamed container: own state instead of 🔴 or an endless 🔄
+                    line = f"│ ❓ {truncated_name} · {translate('not found')}{info_indicator}"
                 content_lines.append(line)
             else:
                 # No cache data available - show loading status
@@ -3059,8 +3154,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 mech_cache_result = cache_service.get_cached_status(cache_request)
 
                 if not mech_cache_result.success:
-                    logger.error(f"Failed to get cached mech status for animation: {mech_cache_result.error_message}")
-                    return
+                    # Callers unpack (embed, animation_file) - never return None here. Skip the
+                    # mech section via the handler below and still return the server overview.
+                    raise RuntimeError(f"Failed to get cached mech status for animation: {mech_cache_result.error_message}")
 
                 current_Power = mech_cache_result.power
                 logger.info(f"CACHE (collapsed): Using cached power data: {current_Power} (age: {mech_cache_result.cache_age_seconds:.1f}s)")
@@ -3080,7 +3176,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     if evolution_level >= 11:
                         actual_speed_level = 100  # Level 11 always has maximum speed (divine speed)
                     else:
-                        speed_status = get_combined_mech_status(current_Power)
+                        # Real level + its power bar maximum (not a level guessed from the power amount)
+                        speed_status = get_combined_mech_status(
+                            current_Power, evolution_level=evolution_level,
+                            power_max=getattr(getattr(mech_cache_result, 'bars', None), 'Power_max_for_level', None))
                         actual_speed_level = speed_status['speed']['level']
 
                     # Get animation bytes with power-based selection (REST if power=0, WALK if power>0)
@@ -3570,6 +3669,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                 success_count = 0
                 error_count = 0
+                failed_names = set()
 
                 # Process ContainerStatusResult objects
                 for name, result in results.items():
@@ -3580,7 +3680,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     else:
                         logger.warning(f"[STATUS_LOOP] Failed to fetch status for {name}. Error: {result.error_message}")
                         error_count += 1
+                        failed_names.add(name)
 
+                # Missing from the results (fetch raised) = failed, see _background_cache_population
+                failed_names.update(n for n in container_names if n not in results)
+                self._mark_status_cache_refreshed(failed_names)
                 duration_ms = (time.time() - start_time) * 1000
                 logger.info(f"[STATUS_LOOP] Cache updated: {success_count} success, {error_count} errors in {duration_ms:.1f}ms")
 
@@ -3658,7 +3762,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             if current_level >= 11:
                 current_speed_level = 100  # Level 11 always has maximum speed
             else:
-                speed_status = get_combined_mech_status(current_power)
+                # Real level + its power bar maximum (not a level guessed from the power amount)
+                speed_status = get_combined_mech_status(
+                    current_power, evolution_level=current_level,
+                    power_max=getattr(getattr(mech_result, 'bars', None), 'Power_max_for_level', None))
                 current_speed_level = speed_status['speed']['level']
 
             logger.info(f"Optimized cache warmup: Level {current_level}, Power {current_power:.2f}, Speed {current_speed_level}")
@@ -4306,36 +4413,19 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
             # Create the updated embed and view based on message type
             if message_type == "admin_overview":
-                # CACHE WARMUP: Populate cache BEFORE creating admin overview
-                # This prevents showing 🔄 loading icons when updating after info changes
-                logger.debug("Starting cache population for admin overview update")
-
-                # Ensure semaphore exists
-                if not hasattr(self, '_status_update_semaphore'):
-                    self._status_update_semaphore = asyncio.Semaphore(1)
-
-                # Wait for cache to be populated before creating embed
-                await self._background_cache_population()
-                logger.debug("Cache population complete for admin overview update")
+                # CACHE WARMUP: Refresh the cache only if it is stale (prevents 🔄 loading icons
+                # without a full Docker bulk fetch per edited message - status_update_loop keeps it fresh)
+                await self._ensure_status_cache_fresh()
 
                 # Create Admin Overview embed
-                embed, _, has_running = await self._create_admin_overview_embed(ordered_servers, config, force_refresh=False)
+                embed, _animation_file, has_running = await self._create_admin_overview_embed(ordered_servers, config, force_refresh=False)
                 # Create Admin Overview view
                 from .admin_overview import AdminOverviewView
                 view = AdminOverviewView(self, channel_id, has_running)
                 animation_file = None  # Admin Overview doesn't have animations
             else:
-                # CACHE WARMUP: Populate cache BEFORE creating overview embed
-                # This prevents showing 🔄 loading icons when updating
-                logger.debug("Starting cache population for overview update")
-
-                # Ensure semaphore exists
-                if not hasattr(self, '_status_update_semaphore'):
-                    self._status_update_semaphore = asyncio.Semaphore(1)
-
-                # Wait for cache to be populated before creating embed
-                await self._background_cache_population()
-                logger.debug("Cache population complete for overview update")
+                # CACHE WARMUP: Refresh the cache only if it is stale (see admin_overview branch)
+                await self._ensure_status_cache_fresh()
 
                 # Create standard overview embed based on expansion state
                 is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
@@ -4380,42 +4470,49 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             return False
 
     def _register_persistent_mech_views(self):
-        """Register persistent views for mech buttons to work after bot restart."""
+        """Register persistent views for mech buttons to work after bot restart.
+
+        Buttons whose custom_id contains a channel id are registered once per channel with
+        a tracked overview (restored from disk before this runs), so the ids actually match.
+        """
         try:
             from .control_ui import (MechExpandButton, MechCollapseButton, MechDonateButton,
                                    MechDisplayButton, ReadStoryButton, PlaySongButton, EpilogueButton,
-                                   MechHistoryButton)
+                                   MechHistoryButton, MechView, MechDetailsView)
+            from .admin_overview import AdminOverviewView
             import discord
 
             # Create persistent views for mech buttons
             # These views will persist across bot restarts
             class PersistentMechExpandView(discord.ui.View):
-                def __init__(self, cog_instance):
+                def __init__(self, cog_instance, channel_id):
                     super().__init__(timeout=None)
-                    self.add_item(MechExpandButton(cog_instance, 0))  # Pass cog_instance correctly
+                    self.add_item(MechExpandButton(cog_instance, channel_id))
 
             class PersistentMechCollapseView(discord.ui.View):
-                def __init__(self, cog_instance):
+                def __init__(self, cog_instance, channel_id):
                     super().__init__(timeout=None)
-                    self.add_item(MechCollapseButton(cog_instance, 0))  # Pass cog_instance correctly
+                    self.add_item(MechCollapseButton(cog_instance, channel_id))
 
             class PersistentMechDonateView(discord.ui.View):
-                def __init__(self, cog_instance):
+                def __init__(self, cog_instance, channel_id):
                     super().__init__(timeout=None)
-                    self.add_item(MechDonateButton(cog_instance, 0))  # Pass cog_instance correctly
+                    self.add_item(MechDonateButton(cog_instance, channel_id))
 
             class PersistentMechHistoryView(discord.ui.View):
-                def __init__(self, cog_instance):
+                def __init__(self, cog_instance, channel_id):
                     super().__init__(timeout=None)
-                    self.add_item(MechHistoryButton(cog_instance, 0))  # Pass cog_instance correctly
+                    self.add_item(MechHistoryButton(cog_instance, channel_id))
 
             # Create persistent views for mech selection buttons (levels 1-11)
             class PersistentMechSelectionView(discord.ui.View):
                 def __init__(self, cog_instance):
                     super().__init__(timeout=None)
-                    # Add buttons for all possible mech levels (1-11)
+                    # Add buttons for all possible mech levels (1-11). Registered as locked: the
+                    # callback re-checks the live mech level, so a pre-restart locked "Next"
+                    # button can't reveal a locked mech (custom_id is the same either way).
                     for level in range(1, 12):
-                        self.add_item(MechDisplayButton(cog_instance, level, f"{level}", True))
+                        self.add_item(MechDisplayButton(cog_instance, level, f"{level}", False))
                     # Add epilogue button
                     self.add_item(EpilogueButton(cog_instance))
 
@@ -4429,14 +4526,31 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         self.add_item(PlaySongButton(cog_instance, level))
 
             # Register persistent views with proper cog instance
-            self.bot.add_view(PersistentMechExpandView(self))
-            self.bot.add_view(PersistentMechCollapseView(self))
-            self.bot.add_view(PersistentMechDonateView(self))
-            self.bot.add_view(PersistentMechHistoryView(self))
             self.bot.add_view(PersistentMechSelectionView(self))
             self.bot.add_view(PersistentMechStoryView(self))
 
-            logger.info("✅ Registered persistent mech views for button persistence")
+            # Channel-specific views for every channel with a tracked overview
+            tracked_channels = dict(getattr(self, 'channel_server_message_ids', None) or {})
+            for channel_id, tracked in tracked_channels.items():
+                try:
+                    channel_id = int(channel_id)
+                    self.bot.add_view(PersistentMechExpandView(self, channel_id))
+                    self.bot.add_view(PersistentMechCollapseView(self, channel_id))
+                    self.bot.add_view(PersistentMechDonateView(self, channel_id))
+                    self.bot.add_view(PersistentMechHistoryView(self, channel_id))
+                    # Private (ephemeral) mech details: mech_private_donate/history_<channel_id>
+                    self.bot.add_view(MechDetailsView(self, channel_id))
+                    # The overview messages themselves, bound to their tracked message ids
+                    tracked = tracked or {}
+                    if tracked.get('overview'):
+                        self.bot.add_view(MechView(self, channel_id), message_id=int(tracked['overview']))
+                    if tracked.get('admin_overview'):
+                        self.bot.add_view(AdminOverviewView(self, channel_id, True),
+                                          message_id=int(tracked['admin_overview']))
+                except (discord.errors.DiscordException, RuntimeError, ValueError, TypeError) as e:
+                    logger.warning(f"⚠️ Could not register persistent views for channel {channel_id}: {e}")
+
+            logger.info(f"✅ Registered persistent mech views for button persistence ({len(tracked_channels)} tracked channel(s))")
         except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.warning(f"⚠️ Could not register persistent mech views: {e}")
 
@@ -4995,15 +5109,8 @@ def setup(bot):
                 logger.info(f"🔔 Processing donation notification: {donor_name} ${amount}")
 
                 try:
-                    # Create broadcast message (same as /donate) using configured Discord bot language
-                    try:
-                        from cogs.translation_manager import get_translation
-                        _ = get_translation()
-                    except:
-                        # Fallback if translation fails
-                        def _(text):
-                            return text
-
+                    # Create broadcast message (same as /donate) using configured Discord bot language.
+                    # Uses the module-level `_` from .translation_manager (there is no get_translation()).
                     if amount:
                         # Format amount exactly like /donate command: $X.XX
                         formatted_amount = f"${float(amount):.2f}"

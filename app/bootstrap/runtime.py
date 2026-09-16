@@ -22,6 +22,27 @@ from utils.config_cache import init_config_cache
 from utils.logging_utils import setup_logger
 
 
+DEFAULT_WEB_PORT = 9374
+
+
+def get_web_port(env: Optional[Mapping[str, str]] = None) -> int:
+    """Return the Web UI port from ``DDC_WEB_PORT`` (default 9374).
+
+    An invalid value falls back to the default instead of aborting the startup.
+    The Dockerfile HEALTHCHECK applies the same rule.
+    """
+
+    raw = str((os.environ if env is None else env).get("DDC_WEB_PORT", "")).strip()
+    if not raw:
+        return DEFAULT_WEB_PORT
+    if raw.isdigit() and 1 <= int(raw) <= 65535:
+        return int(raw)
+    logging.getLogger("ddc.bootstrap").warning(
+        "Invalid DDC_WEB_PORT=%r - using the default port %d", raw, DEFAULT_WEB_PORT
+    )
+    return DEFAULT_WEB_PORT
+
+
 def configure_environment(env: Optional[MutableMapping[str, str]] = None) -> str:
     """Ensure required environment defaults are present.
 
@@ -102,46 +123,58 @@ def resolve_timezone(
 
 
 def ensure_log_files(logger: logging.Logger, logs_dir: Path) -> None:
-    """Attach rotating file handlers to the provided logger if missing."""
+    """Attach rotating file handlers to the provided logger if missing.
 
-    logs_dir.mkdir(parents=True, exist_ok=True)
+    An unwritable logs directory (read-only mount, NFS root_squash, ...) only
+    disables file logging - raising here would make the container restart-loop.
+    """
 
     discord_log_path = logs_dir / "discord.log"
     bot_error_log_path = logs_dir / "bot_error.log"
 
-    if not any(
-        isinstance(handler, logging.FileHandler)
-        and getattr(handler, "baseFilename", "") == str(discord_log_path)
-        for handler in logger.handlers
-    ):
-        info_handler = RotatingFileHandler(
-            discord_log_path,
-            maxBytes=10 * 1024 * 1024,
-            backupCount=5,
-            encoding="utf-8",
-        )
-        info_handler.setLevel(logging.INFO)
-        info_handler.setFormatter(
-            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-        )
-        logger.addHandler(info_handler)
+    try:
+        logs_dir.mkdir(parents=True, exist_ok=True)
 
-    if not any(
-        isinstance(handler, logging.FileHandler)
-        and getattr(handler, "baseFilename", "") == str(bot_error_log_path)
-        for handler in logger.handlers
-    ):
-        error_handler = RotatingFileHandler(
-            bot_error_log_path,
-            maxBytes=5 * 1024 * 1024,
-            backupCount=3,
-            encoding="utf-8",
+        if not any(
+            isinstance(handler, logging.FileHandler)
+            and getattr(handler, "baseFilename", "") == str(discord_log_path)
+            for handler in logger.handlers
+        ):
+            info_handler = RotatingFileHandler(
+                discord_log_path,
+                maxBytes=10 * 1024 * 1024,
+                backupCount=5,
+                encoding="utf-8",
+            )
+            info_handler.setLevel(logging.INFO)
+            info_handler.setFormatter(
+                logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+            )
+            logger.addHandler(info_handler)
+
+        if not any(
+            isinstance(handler, logging.FileHandler)
+            and getattr(handler, "baseFilename", "") == str(bot_error_log_path)
+            for handler in logger.handlers
+        ):
+            error_handler = RotatingFileHandler(
+                bot_error_log_path,
+                maxBytes=5 * 1024 * 1024,
+                backupCount=3,
+                encoding="utf-8",
+            )
+            error_handler.setLevel(logging.ERROR)
+            error_handler.setFormatter(
+                logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+            )
+            logger.addHandler(error_handler)
+    except OSError as e:
+        logger.warning(
+            "File logging disabled - cannot write to %s (%s). Logging to the console only.",
+            logs_dir,
+            e,
         )
-        error_handler.setLevel(logging.ERROR)
-        error_handler.setFormatter(
-            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-        )
-        logger.addHandler(error_handler)
+        return
 
     logger.info(
         "Bot file loggers initialized: discord.log (INFO+), bot_error.log (ERROR+)"
@@ -161,6 +194,7 @@ def ensure_token_security(logger: logging.Logger) -> bool:
         auto_encrypt_token_on_startup()
         logger.debug("Token auto-encryption check completed")
         return True
-    except (RuntimeError) as e:
+    except (RuntimeError, OSError, ValueError, AttributeError, TypeError) as e:
+        # A broken/unreadable legacy config file must never abort the startup.
         logger.warning("Token auto-encryption failed: %s", e)
         return False

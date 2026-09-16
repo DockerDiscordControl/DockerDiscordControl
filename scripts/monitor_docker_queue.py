@@ -70,7 +70,7 @@ def monitor_queue():
         print("\n\n👋 Monitoring stopped")
     except ImportError:
         print("❌ Could not import Docker service (is the app running?)")
-    except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError, docker.errors.APIError, docker.errors.DockerException) as e:
+    except (AttributeError, KeyError, RuntimeError, TypeError, docker.errors.APIError, docker.errors.DockerException) as e:
         print(f"❌ Error: {e}")
 
 

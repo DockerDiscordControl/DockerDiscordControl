@@ -34,6 +34,8 @@ Example:
 
 import json
 import logging
+import os
+import tempfile
 import time
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
@@ -356,8 +358,22 @@ class MetricsCollector:
         stats = self.get_stats()
         stats["timestamp"] = datetime.now(timezone.utc).isoformat()
 
-        with open(file_path, 'w') as f:
-            json.dumps(stats, f, indent=2)
+        # Serialize first, then write a temp file and os.replace() it, so a
+        # failure never leaves a truncated/empty export behind.
+        payload = json.dumps(stats, indent=2)
+        fd, tmp_path = tempfile.mkstemp(
+            prefix=".metrics_", suffix=".tmp", dir=os.path.dirname(os.path.abspath(file_path))
+        )
+        try:
+            with os.fdopen(fd, 'w') as f:
+                f.write(payload)
+            os.replace(tmp_path, file_path)
+        except BaseException:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
 
 
 # Global metrics instance

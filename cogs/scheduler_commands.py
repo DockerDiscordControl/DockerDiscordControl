@@ -406,8 +406,8 @@ class ScheduleCommandsMixin:
                 await ctx.respond(_("Invalid weekday format. Please use weekday name (e.g., Monday) or number (1-7)."), ephemeral=True)
                 return
 
-            # Get weekday name for description
-            weekday_name = DAYS_OF_WEEK[weekday_index - 1] if 1 <= weekday_index <= 7 else weekday
+            # Get weekday name for description (parse_weekday_string returns 0-6, Monday=0)
+            weekday_name = DAYS_OF_WEEK[weekday_index]
 
             # Validate the inputs using existing function
             is_valid_input, error_message = validate_new_task_input(

@@ -13,7 +13,6 @@ import asyncio
 import json
 
 from services.member_count import get_member_count_service
-from services.mech.progress_paths import get_progress_paths
 
 from ..startup_context import StartupContext, as_step
 
@@ -24,23 +23,16 @@ async def initialize_member_count_step(context: StartupContext) -> None:
     member_count_service = get_member_count_service()
     try:
         logger.info("Checking if Level 1 member count needs initialization...")
-        from services.mech.progress_service import get_progress_service
-        from services.mech.progress_paths import get_progress_paths
+        from services.mech.progress_service import LOCK, get_progress_service, load_snapshot
 
         progress_service = get_progress_service()
-        state = progress_service.get_state()
+        state = progress_service.get_state()  # creates (or migrates) the snapshot
 
-        paths = get_progress_paths()
-        snap_file = paths.snapshot_for("main")
-        if not snap_file.exists():
-            logger.warning("Snapshot file not found for member count initialization")
-            return
-
-        snap = json.loads(snap_file.read_text())
-        member_count = snap.get("last_user_count_sample", 0)
+        with LOCK:
+            member_count = load_snapshot(progress_service.mech_id).last_user_count_sample
 
         if await _refresh_member_count(context, state.level, member_count, member_count_service):
-            await _recalculate_goal(snap, logger)
+            await _recalculate_goal(progress_service.mech_id, logger)
     except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, asyncio.CancelledError, asyncio.TimeoutError, json.JSONDecodeError) as e:
         logger.error("Error initializing Level 1 member count: %s", e, exc_info=True)
 
@@ -86,29 +78,42 @@ async def _refresh_member_count(
     return True
 
 
-async def _recalculate_goal(snap: dict, logger) -> None:
-    from services.mech.progress_service import current_bin, requirement_for_level_and_bin
-
-    member_count = snap.get("last_user_count_sample", 0)
-    if member_count <= 0:
-        logger.debug("Skipping goal recalculation because member count is <= 0")
-        return
-
-    new_goal = requirement_for_level_and_bin(
-        level=snap["level"],
-        b=current_bin(member_count),
-        member_count=member_count,
+async def _recalculate_goal(mech_id: str, logger) -> None:
+    from services.mech.progress_service import (
+        LOCK,
+        current_bin,
+        load_snapshot,
+        persist_snapshot,
+        requirement_for_level_and_bin,
     )
 
-    old_goal = snap.get("goal_requirement", new_goal)
-    snap["goal_requirement"] = new_goal
-    snap["difficulty_bin"] = current_bin(member_count)
+    # Read-modify-write under the progress lock and change only the goal fields: writing
+    # back a copy read before publish_member_count() undid the new member count (and any
+    # donation processed in between)
+    with LOCK:
+        snap = load_snapshot(mech_id)
+        member_count = snap.last_user_count_sample
+        if member_count <= 0:
+            logger.debug("Skipping goal recalculation because member count is <= 0")
+            return
+        if snap.level >= 11:
+            logger.debug("Skipping goal recalculation at max level (no next goal)")
+            return
 
-    snap_file = get_progress_paths().snapshot_for("main")
-    snap_file.write_text(json.dumps(snap, indent=2))
+        new_bin = current_bin(member_count)
+        new_goal = requirement_for_level_and_bin(
+            level=snap.level,
+            b=new_bin,
+            member_count=member_count,
+        )
+        old_goal = snap.goal_requirement
+        snap.goal_requirement = new_goal
+        snap.difficulty_bin = new_bin
+        persist_snapshot(snap)
+
     logger.info(
         "✅ Level %s goal updated: $%.2f → $%.2f (for %s members)",
-        snap["level"],
+        snap.level,
         old_goal / 100,
         new_goal / 100,
         member_count,

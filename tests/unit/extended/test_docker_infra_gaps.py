@@ -1180,11 +1180,11 @@ class TestContainerStatusFetchSuccessBranch:
             tags=["nginx:latest"], id="sha256:abcd"
         )
 
-        # The production code uses ``container.stats(stream=True, decode=True)``
-        # then iterates with ``next(...)``.  We provide a generator with one
-        # stats dict.
-        def _stats_gen(stream, decode):  # noqa: ARG001
-            yield {
+        # The production code uses ``container.stats(stream=False)`` (single
+        # snapshot with a filled precpu_stats), which returns one stats dict.
+        def _stats_gen(stream=True, decode=None):  # noqa: ARG001
+            assert stream is False
+            return {
                 "cpu_stats": {
                     "cpu_usage": {"total_usage": 200},
                     "system_cpu_usage": 1000,
@@ -1300,9 +1300,9 @@ class TestContainerStatusFetchSuccessBranch:
         }
         fake_container.image = MagicMock(tags=["i:1"], id="sha256:1")
 
-        # Stats generator raises on next() -> StopIteration path.
-        def _empty_gen(stream, decode):  # noqa: ARG001
-            return iter([])  # next() raises StopIteration
+        # stats(stream=False) fails to decode -> fallback values path.
+        def _empty_gen(stream=True, decode=None):  # noqa: ARG001
+            raise ValueError("invalid stats JSON")
 
         fake_container.stats = _empty_gen
 

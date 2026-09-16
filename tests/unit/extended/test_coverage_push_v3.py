@@ -634,9 +634,8 @@ class TestDeleteDonationBranches:
             "services.mech.progress_service.get_progress_service",
             return_value=progress,
         ):
-            # display_list = [DonationAdded(1), DonationDeleted(2)]
-            #   index 1 = the deletion; selecting it triggers a "restore"
-            result = DonationManagementService().delete_donation(1)
+            # seq 2 = the deletion event; selecting it triggers a "restore"
+            result = DonationManagementService().delete_donation(2)
 
         assert result.success is True
         assert result.data["action"] == "Restored"
@@ -662,7 +661,7 @@ class TestDeleteDonationBranches:
             "services.mech.progress_service.get_progress_service",
             return_value=progress,
         ):
-            result = DonationManagementService().delete_donation(0)
+            result = DonationManagementService().delete_donation(1)  # event seq
 
         assert result.success is False
         assert "progress service" in result.error.lower()
@@ -680,7 +679,7 @@ class TestDeleteDonationBranches:
         ])
         result = DonationManagementService().delete_donation(-5)
         assert result.success is False
-        assert "Invalid index" in result.error
+        assert "not found" in result.error  # unknown seq (was: invalid list index)
 
     def test_delete_donation_corrupt_jsonl(
         self, patch_progress_paths, event_log_path
@@ -759,15 +758,17 @@ class TestDonationStatsBranches:
         assert stats.total_donations == 1
         assert stats.average_donation == pytest.approx(25.0)
 
-    def test_stats_corrupt_jsonl_returns_failure(
+    def test_stats_corrupt_jsonl_line_is_skipped(
         self, patch_mech_service, patch_progress_paths, event_log_path
     ):
+        # A damaged line (e.g. truncated by a crash) is skipped instead of failing the stats
         mech = MagicMock()
         mech.get_mech_state_service.return_value = _mech_state_result(0.0)
         patch_mech_service.return_value = mech
         event_log_path.write_text("{not-json")
         result = DonationManagementService().get_donation_stats()
-        assert result.success is False
+        assert result.success is True
+        assert result.data.total_donations == 0
 
 
 class TestDonationManagementSingleton:

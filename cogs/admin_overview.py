@@ -21,6 +21,21 @@ from cogs.translation_manager import _
 
 logger = logging.getLogger('ddc.admin_overview')
 
+
+async def _refresh_tracked_admin_overview(cog, channel_id: int) -> bool:
+    """Refresh a channel's tracked Admin Overview message after a bulk action.
+
+    Looks the message up by its tracked ID instead of matching the embed title, which is
+    translated (e.g. "Admin-Übersicht") and therefore never matched in non-English setups.
+    """
+    tracked = getattr(cog, 'channel_server_message_ids', {}).get(channel_id) or {}
+    message_id = tracked.get('admin_overview')
+    if not message_id:
+        logger.debug(f"No tracked admin overview in channel {channel_id} - nothing to refresh")
+        return False
+    return await cog._update_overview_message(channel_id, message_id, 'admin_overview')
+
+
 class AdminOverviewView(View):
     """View for admin overview in control channels with bulk container management."""
 
@@ -445,7 +460,8 @@ class ConfirmRestartAllButton(Button):
             all_servers = server_config_service.get_all_servers()
 
             # CRITICAL: Filter to only ACTIVE containers (as shown in Admin Overview)
-            servers = [s for s in all_servers if s.get('active', False)]
+            # A missing 'active' field means active (same default as ServerConfigService)
+            servers = [s for s in all_servers if s.get('active', True)]
 
             if not servers:
                 await interaction.followup.send(
@@ -459,6 +475,7 @@ class ConfirmRestartAllButton(Button):
             restarted_count = 0
             failed_count = 0
             skipped_count = 0
+            not_allowed_count = 0
 
             # Import docker service with error handling
             try:
@@ -478,6 +495,12 @@ class ConfirmRestartAllButton(Button):
 
                 docker_name = server.get('docker_name')
                 if not docker_name or not isinstance(docker_name, str):
+                    continue
+
+                # Respect per-container allowed_actions (same check as the single-container button)
+                if 'restart' not in server.get('allowed_actions', []):
+                    logger.info(f"Restart All: Skipping {docker_name} - 'restart' not in allowed_actions")
+                    not_allowed_count += 1
                     continue
 
                 # SERVICE FIRST: Use StatusCacheService to check if container is running
@@ -530,6 +553,8 @@ class ConfirmRestartAllButton(Button):
                 description += _("\nFailed: **{count}** containers").format(count=failed_count)
             if skipped_count > 0:
                 description += _("\nSkipped (not running): **{count}** containers").format(count=skipped_count)
+            if not_allowed_count > 0:
+                description += _("\nSkipped (action not allowed): **{count}** containers").format(count=not_allowed_count)
 
             embed = discord.Embed(
                 title=_("🔄 Restart All Complete"),
@@ -565,23 +590,7 @@ class ConfirmRestartAllButton(Button):
     async def _update_admin_overview(self):
         """Update admin overview message after bulk action."""
         try:
-            # Find and update admin overview messages in channel
-            channel = self.cog.bot.get_channel(self.channel_id)
-            if channel:
-                async for message in channel.history(limit=50):
-                    if message.author == self.cog.bot.user and message.embeds:
-                        embed = message.embeds[0]
-                        if embed.title == "Admin Overview":
-                            # SERVICE FIRST: Recreate admin overview using service
-                            server_config_service = get_server_config_service()
-                            ordered_servers = server_config_service.get_ordered_servers()
-                            config = load_config()  # Still need config for embed creation
-
-                            new_embed, _, has_running = await self.cog._create_admin_overview_embed(ordered_servers, config)
-                            new_view = AdminOverviewView(self.cog, self.channel_id, has_running)
-
-                            await message.edit(embed=new_embed, view=new_view)
-                            break
+            await _refresh_tracked_admin_overview(self.cog, self.channel_id)
         except (discord.errors.DiscordException, ImportError, AttributeError) as e:
             logger.error(f"Error updating admin overview: {e}", exc_info=True)
 
@@ -628,7 +637,8 @@ class ConfirmStopAllButton(Button):
             all_servers = server_config_service.get_all_servers()
 
             # CRITICAL: Filter to only ACTIVE containers (as shown in Admin Overview)
-            servers = [s for s in all_servers if s.get('active', False)]
+            # A missing 'active' field means active (same default as ServerConfigService)
+            servers = [s for s in all_servers if s.get('active', True)]
 
             if not servers:
                 await interaction.followup.send(
@@ -642,6 +652,7 @@ class ConfirmStopAllButton(Button):
             stopped_count = 0
             failed_count = 0
             skipped_count = 0
+            not_allowed_count = 0
 
             # Import docker service with error handling
             try:
@@ -661,6 +672,12 @@ class ConfirmStopAllButton(Button):
 
                 docker_name = server.get('docker_name')
                 if not docker_name or not isinstance(docker_name, str):
+                    continue
+
+                # Respect per-container allowed_actions (same check as the single-container button)
+                if 'stop' not in server.get('allowed_actions', []):
+                    logger.info(f"Stop All: Skipping {docker_name} - 'stop' not in allowed_actions")
+                    not_allowed_count += 1
                     continue
 
                 # SERVICE FIRST: Use StatusCacheService to check if container is running
@@ -713,6 +730,8 @@ class ConfirmStopAllButton(Button):
                 description += _("\nFailed: **{count}** containers").format(count=failed_count)
             if skipped_count > 0:
                 description += _("\nSkipped (not running): **{count}** containers").format(count=skipped_count)
+            if not_allowed_count > 0:
+                description += _("\nSkipped (action not allowed): **{count}** containers").format(count=not_allowed_count)
 
             embed = discord.Embed(
                 title=_("⏹️ Stop All Complete"),
@@ -748,23 +767,7 @@ class ConfirmStopAllButton(Button):
     async def _update_admin_overview(self):
         """Update admin overview message after bulk action."""
         try:
-            # Find and update admin overview messages in channel
-            channel = self.cog.bot.get_channel(self.channel_id)
-            if channel:
-                async for message in channel.history(limit=50):
-                    if message.author == self.cog.bot.user and message.embeds:
-                        embed = message.embeds[0]
-                        if embed.title == "Admin Overview":
-                            # SERVICE FIRST: Recreate admin overview using service
-                            server_config_service = get_server_config_service()
-                            ordered_servers = server_config_service.get_ordered_servers()
-                            config = load_config()  # Still need config for embed creation
-
-                            new_embed, _, has_running = await self.cog._create_admin_overview_embed(ordered_servers, config)
-                            new_view = AdminOverviewView(self.cog, self.channel_id, has_running)
-
-                            await message.edit(embed=new_embed, view=new_view)
-                            break
+            await _refresh_tracked_admin_overview(self.cog, self.channel_id)
         except (discord.errors.DiscordException, ImportError, AttributeError) as e:
             logger.error(f"Error updating admin overview: {e}", exc_info=True)
 

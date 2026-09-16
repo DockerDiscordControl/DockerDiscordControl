@@ -1114,14 +1114,24 @@ class TestBotToken:
         assert token == "env-token-xyz"
 
     def test_falls_back_to_plaintext_bot_config(self, monkeypatch, fake_runtime, tmp_path):
-        """Plaintext token in bot_config.json takes precedence over runtime config."""
+        """Plaintext token in the legacy bot_config.json is only a fallback.
+
+        Audit R5-5: the token saved in the Web UI (config.json, decrypted into the
+        runtime config) wins; the legacy file must not shadow it.
+        """
         monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
         config_dir = tmp_path / "config"
         config_dir.mkdir()
         (config_dir / "bot_config.json").write_text(
             json.dumps({"bot_token": "plain-tok"})
         )
-        fake_runtime.config = {"bot_token_decrypted_for_usage": "should-not-win"}
+        fake_runtime.config = {"bot_token_decrypted_for_usage": "web-ui-tok"}
+        with _patch_token_config_dir(tmp_path):
+            token = bot_token.get_decrypted_bot_token(fake_runtime)
+        assert token == "web-ui-tok"
+
+        fake_runtime.config = {}
+        fake_runtime.dependencies = types.SimpleNamespace(config_service_factory=None)
         with _patch_token_config_dir(tmp_path):
             token = bot_token.get_decrypted_bot_token(fake_runtime)
         assert token == "plain-tok"
@@ -1239,7 +1249,7 @@ class TestBotEvents:
         bot_events.register_event_handlers(bot, fake_runtime)
         # Trigger on_ready synchronously through asyncio.
         import asyncio
-        asyncio.get_event_loop().run_until_complete(bot._events["on_ready"]())
+        asyncio.run(bot._events["on_ready"]())
         # The (stubbed) StartupManager records that handle_ready was awaited.
         # We can't reach it directly, but absence of exception is the signal.
 
@@ -1251,7 +1261,7 @@ class TestBotEvents:
             try:
                 raise RuntimeError("boom")
             except RuntimeError:
-                asyncio.get_event_loop().run_until_complete(
+                asyncio.run(
                     bot._events["on_error"]("on_message", "extra")
                 )
         # No assertion needed beyond no-raise: handler must swallow.
@@ -1271,7 +1281,7 @@ class TestBotEvents:
         ctx.respond.side_effect = _respond
 
         import asyncio
-        asyncio.get_event_loop().run_until_complete(
+        asyncio.run(
             bot._events["on_command_error"](ctx, err)
         )
         ctx.respond.assert_not_called()
@@ -1292,7 +1302,7 @@ class TestBotEvents:
         )
 
         import asyncio
-        asyncio.get_event_loop().run_until_complete(
+        asyncio.run(
             bot._events["on_command_error"](ctx, err)
         )
         # respond should have been called once with a string mentioning seconds.
@@ -1314,7 +1324,7 @@ class TestBotEvents:
         err = discord.ApplicationCommandError("kaboom")
 
         import asyncio
-        asyncio.get_event_loop().run_until_complete(
+        asyncio.run(
             bot._events["on_command_error"](ctx, err)
         )
         ctx.respond.assert_called_once()
@@ -1332,7 +1342,7 @@ class TestBotEvents:
         err = ValueError("unexpected")
 
         import asyncio
-        asyncio.get_event_loop().run_until_complete(
+        asyncio.run(
             bot._events["on_command_error"](ctx, err)
         )
         # Unexpected errors are logged but do not call ctx.respond.

@@ -21,6 +21,8 @@ from .scheduler import (
     load_tasks,
     update_task,
     execute_task,
+    reschedule_missed_task,
+    pause_long_dead_tasks_once,
     ScheduledTask,
     find_task_by_id
 )
@@ -44,9 +46,16 @@ def _get_config_value(key: str, default_value: str) -> int:
 # Scheduler check interval - runs every minute for precise task execution
 CHECK_INTERVAL = _get_config_value('DDC_SCHEDULER_CHECK_INTERVAL', '60')  # 1 minute default
 
+# Grace period for late runs: a task whose scheduled time passed at most this
+# long ago still runs once (covers delayed check cycles; the loop may sleep up
+# to 300 s). Older misses are not run retroactively but rescheduled.
+MISSED_RUN_GRACE_SECONDS = max(CHECK_INTERVAL * 3, 300)
+
 # CPU-OPTIMIZED: Batch processing settings
 MAX_CONCURRENT_TASKS = _get_config_value('DDC_MAX_CONCURRENT_TASKS', '3')  # Limit concurrent task execution
 TASK_BATCH_SIZE = _get_config_value('DDC_TASK_BATCH_SIZE', '5')  # Process tasks in batches
+# Pause between two batches of one check cycle
+BATCH_PAUSE_SECONDS = 1.0
 
 # Global bot reference for system tasks
 _bot_instance = None
@@ -70,6 +79,15 @@ class SchedulerService:
         self.event_loop = None
         self.last_check_time = None
         self.active_tasks = set()  # Track active tasks to prevent overload
+        # task_id -> next_run_ts of the occurrence last executed; prevents running
+        # the same occurrence again if its reschedule could not be saved
+        self._executed_runs: Dict[str, float] = {}
+        # Lateness of due tasks counts only time the scheduler could have run them:
+        # start/end of the previous check cycle and the occurrences (task_id ->
+        # next_run_ts) that were already due and queued in it
+        self._last_cycle_start_ts: Optional[float] = None
+        self._last_cycle_end_ts: Optional[float] = None
+        self._seen_due: Dict[str, float] = {}
         # Set when the service loop runs on a borrowed (already-running) event
         # loop instead of in its own thread. Lets stop() cancel cleanly.
         self._service_task = None
@@ -250,6 +268,13 @@ class SchedulerService:
         """Main loop of the service with CPU optimization."""
         logger.info(f"CPU-optimized Scheduler Service loop started (interval: {CHECK_INTERVAL}s)")
 
+        # Once per install, before the missed-run handling reschedules them:
+        # pause tasks that were dead long before this version (audit R1-1)
+        try:
+            pause_long_dead_tasks_once()
+        except (ImportError, RuntimeError, OSError, AttributeError, TypeError, ValueError, KeyError) as e:
+            logger.error(f"Error in the one-time check for long-dead tasks: {e}", exc_info=True)
+
         while self.running:
             try:
                 start_time = time.time()
@@ -306,8 +331,25 @@ class SchedulerService:
             # System task errors (import failures, runtime issues, attribute/type/value errors)
             logger.error(f"Error in system tasks check: {e}", exc_info=True)
 
+    def _lateness(self, task: ScheduledTask, current_ts: float) -> float:
+        """Seconds a due task is late, counting only time the scheduler could have run it.
+
+        An occurrence already due and queued in the previous cycle (deferred for
+        capacity) is never late. One that became due after the previous cycle
+        started counts from that cycle's end, so a long cycle (many due tasks,
+        slow Docker actions) does not turn it into a missed run (R5-3).
+        """
+        if self._seen_due.get(task.task_id) == task.next_run_ts:
+            return 0.0
+        reference = task.next_run_ts
+        if (self._last_cycle_start_ts is not None and self._last_cycle_end_ts is not None
+                and task.next_run_ts > self._last_cycle_start_ts):
+            reference = max(reference, self._last_cycle_end_ts)
+        return current_ts - reference
+
     async def _check_and_execute_tasks(self):
         """Checks all tasks and executes those that are due with CPU optimization."""
+        current_ts = time.time()
         try:
             # Check system tasks (like donations) first
             await self._check_system_tasks()
@@ -316,49 +358,66 @@ class SchedulerService:
             if not tasks:
                 return
 
-            current_time = datetime.now()
+            current_ts = time.time()
             due_tasks = []
+            seen_due: Dict[str, float] = {}
 
             # First pass: Find all due tasks
             for task in tasks:
                 if not task.is_active:  # Fixed: was task.enabled
                     continue
 
-                if task.next_run_ts:
-                    task_time = datetime.fromtimestamp(task.next_run_ts)
+                # Not scheduled or not due yet
+                if not task.next_run_ts or task.next_run_ts > current_ts:
+                    continue
 
-                    # Create a time window: task is "due" if scheduled time has passed
-                    # Use CHECK_INTERVAL as the window to ensure we catch tasks even if scheduler is delayed
-                    time_window = timedelta(seconds=CHECK_INTERVAL * 1.5)  # 90 seconds for 1-minute checks
+                # Missed by more than the grace period (host down, scheduler not
+                # running): don't run it retroactively, move it to its next occurrence
+                # instead of leaving next_run in the past forever.
+                if self._lateness(task, current_ts) > MISSED_RUN_GRACE_SECONDS:
+                    try:
+                        reschedule_missed_task(task)
+                    except (RuntimeError, OSError, AttributeError, TypeError, ValueError, KeyError) as e:
+                        logger.error(f"Error rescheduling missed task {task.task_id}: {e}", exc_info=True)
+                    continue
 
-                    # Task is due if it's scheduled before now and within the time window
-                    # This prevents tasks from running too early while ensuring we don't miss delayed checks
-                    if task_time <= current_time < (task_time + time_window):
-                        # Skip if task is already running
-                        if task.task_id in self.active_tasks:
-                            logger.debug(f"Task {task.container_name} (ID: {task.task_id}) is already running, skipping")
-                            self.task_execution_stats['total_skipped'] += 1
-                            continue
+                # Skip if task is already running
+                if task.task_id in self.active_tasks:
+                    logger.debug(f"Task {task.container_name} (ID: {task.task_id}) is already running, skipping")
+                    self.task_execution_stats['total_skipped'] += 1
+                    continue
 
-                        due_tasks.append(task)
-                        logger.debug(f"Task {task.task_id} is due (scheduled: {task_time}, window: ±{time_window})")
+                # Skip if this occurrence already ran (its reschedule could not be saved)
+                if self._executed_runs.get(task.task_id) == task.next_run_ts:
+                    logger.debug(f"Task {task.task_id} already executed for {task.next_run_ts}, skipping")
+                    self.task_execution_stats['total_skipped'] += 1
+                    continue
+
+                due_tasks.append(task)
+                seen_due[task.task_id] = task.next_run_ts
+                logger.debug(f"Task {task.task_id} is due (scheduled: {datetime.fromtimestamp(task.next_run_ts)}, grace: {MISSED_RUN_GRACE_SECONDS}s)")
+
+            # Occurrences queued now; if deferred they are not late in the next cycle
+            self._seen_due = seen_due
 
             if not due_tasks:
                 logger.debug("No tasks due for execution")
                 return
 
-            # CPU-OPTIMIZED: Process tasks in batches to prevent system overload
-            for i in range(0, len(due_tasks), TASK_BATCH_SIZE):
-                batch = due_tasks[i:i + TASK_BATCH_SIZE]
-
+            # CPU-OPTIMIZED: Process tasks in batches to prevent system overload.
+            # All due tasks run in this cycle, at most MAX_CONCURRENT_TASKS at a time
+            # (tasks beyond the free slots of a batch used to wait a whole cycle).
+            index = 0
+            while index < len(due_tasks):
                 # Check if we have room for more concurrent tasks
                 available_slots = MAX_CONCURRENT_TASKS - len(self.active_tasks)
                 if available_slots <= 0:
-                    logger.info(f"Maximum concurrent tasks ({MAX_CONCURRENT_TASKS}) reached, deferring {len(due_tasks) - i} tasks")
+                    logger.info(f"Maximum concurrent tasks ({MAX_CONCURRENT_TASKS}) reached, deferring {len(due_tasks) - index} tasks")
                     break
 
                 # Execute batch with concurrency limit
-                batch_to_execute = batch[:available_slots]
+                batch_to_execute = due_tasks[index:index + max(1, min(TASK_BATCH_SIZE, available_slots))]
+                index += len(batch_to_execute)
                 self.task_execution_stats['last_batch_size'] = len(batch_to_execute)
 
                 logger.info(f"Executing batch of {len(batch_to_execute)} tasks (active: {len(self.active_tasks)})")
@@ -367,13 +426,16 @@ class SchedulerService:
                 await self._execute_task_batch(batch_to_execute)
 
                 # Small delay between batches to prevent system overload
-                if i + TASK_BATCH_SIZE < len(due_tasks):
-                    await asyncio.sleep(1.0)
+                if index < len(due_tasks):
+                    await asyncio.sleep(BATCH_PAUSE_SECONDS)
 
         except (ImportError, RuntimeError, OSError, AttributeError, TypeError, ValueError, KeyError) as e:
             # Task checking errors (import failures, runtime issues, I/O errors, attribute/type/value/key errors)
             logger.error(f"Error in _check_and_execute_tasks: {e}", exc_info=True)
             logger.error(traceback.format_exc())
+        finally:
+            self._last_cycle_start_ts = current_ts
+            self._last_cycle_end_ts = time.time()
 
     async def _execute_task_batch(self, tasks: List[ScheduledTask]):
         """
@@ -386,14 +448,19 @@ class SchedulerService:
             """Execute a single task with proper error handling and tracking."""
             task_start_time = time.time()
             self.active_tasks.add(task.task_id)
+            # Remember the executed occurrence before execute_task() moves next_run
+            self._executed_runs[task.task_id] = task.next_run_ts
 
             try:
                 logger.info(f"Executing task: {task.container_name} (ID: {task.task_id})")
                 await execute_task(task)
 
-                # Update task's next run time after successful execution
+                # Save the task's next run time after execution. No collision check:
+                # a refused reschedule would keep the old next_run (double run).
+                # System tasks are not in tasks.json (execute_task keeps their state).
                 try:
-                    update_task(task)  # Use the imported function instead of task.update_next_run()
+                    if not task.is_system_task():
+                        update_task(task, check_collision=False)
                 except (IOError, OSError, PermissionError, json.JSONDecodeError, ValueError, TypeError, KeyError, AttributeError) as update_error:
                     # Task update errors (file I/O, permissions, JSON, data errors, attribute errors)
                     logger.warning(f"Failed to update next run time for task {task.task_id}: {update_error}", exc_info=True)

@@ -164,31 +164,56 @@ class AutoActionStateService:
             - (True, "") if execution is allowed (cooldowns have been set)
             - (False, reason) if blocked by cooldown
         """
+        can_execute, reason, _ = self.acquire_execution_locks(
+            rule_id, [container], global_cooldown, rule_cooldown_mins
+        )
+        return can_execute, reason
+
+    def acquire_execution_locks(self, rule_id: str, containers: List[str],
+                                global_cooldown: int, rule_cooldown_mins: int) -> tuple[bool, str, Optional[str]]:
+        """
+        Atomic check-and-set of all cooldowns for a rule targeting one or more containers.
+
+        The global cooldown is checked once per rule and every container cooldown is
+        checked before anything is set. Only if all checks pass are the global, rule and
+        container cooldowns set together, in one locked operation. If any check fails,
+        nothing is changed - so a multi-container rule can't block itself via the global
+        cooldown, and no container stays locked after an abort.
+
+        Returns: (can_execute, reason, blocked_container)
+            - (True, "", None) if execution is allowed (cooldowns have been set)
+            - (False, reason, container) if blocked; container is the blocking one
+              (the first target for the global cooldown)
+        """
+        if not containers:
+            return True, "", None  # Nothing to lock
+
         now = time.time()
 
         with self._lock:
-            # 1. Global Cooldown Check
+            # 1. Global Cooldown Check (once per rule)
             if (now - self.global_last_triggered) < global_cooldown:
                 remaining = int(global_cooldown - (now - self.global_last_triggered))
-                return False, f"Global cooldown active ({remaining}s remaining)"
+                return False, f"Global cooldown active ({remaining}s remaining)", containers[0]
 
-            # 2. Container Cooldown Check
-            last_run = self.container_cooldowns.get(container, 0)
+            # 2. Container Cooldown Check - all targets before setting anything
             cooldown_sec = rule_cooldown_mins * 60
+            for container in containers:
+                last_run = self.container_cooldowns.get(container, 0)
+                if (now - last_run) < cooldown_sec:
+                    remaining_min = int((cooldown_sec - (now - last_run)) / 60)
+                    return False, f"Container '{container}' cooldown active ({remaining_min}m remaining)", container
 
-            if (now - last_run) < cooldown_sec:
-                remaining_min = int((cooldown_sec - (now - last_run)) / 60)
-                return False, f"Container '{container}' cooldown active ({remaining_min}m remaining)"
-
-            # 3. ATOMIC: Set cooldowns immediately to prevent race condition
+            # 3. ATOMIC: Set all cooldowns immediately to prevent race condition
             # This ensures no other concurrent check can pass between our check and the actual execution
             self.global_last_triggered = now
-            self.container_cooldowns[container] = now
             self.rule_cooldowns[rule_id] = now
+            for container in containers:
+                self.container_cooldowns[container] = now
 
         # Note: We don't save state here - that happens in record_trigger()
         # This is intentional: if execution fails, the state will be corrected in record_trigger()
-        return True, ""
+        return True, "", None
 
     def release_execution_lock(self, rule_id: str, container: str, success: bool):
         """

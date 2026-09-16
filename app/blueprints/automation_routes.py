@@ -186,21 +186,24 @@ def test_rule():
             matches.append(match_result)
         return matches
 
-    # Run async code in sync context
+    # Run async code in sync context. Waitress worker threads have no event loop
+    # (asyncio.get_event_loop() raises there on Python 3.14), so check for a running
+    # loop first and keep a single error path for failures inside the rule checks.
     try:
-        # Try to get existing event loop (if running in async context)
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # Create a new loop for this thread
+        try:
+            asyncio.get_running_loop()
+            loop_running = True
+        except RuntimeError:
+            loop_running = False
+
+        if loop_running:
+            # Can't block a running loop - run in a fresh loop on a worker thread
             import concurrent.futures
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future = executor.submit(asyncio.run, check_all_rules())
                 results = future.result(timeout=30)  # 30s timeout for safety
         else:
-            results = loop.run_until_complete(check_all_rules())
-    except RuntimeError:
-        # No event loop, create one
-        results = asyncio.run(check_all_rules())
+            results = asyncio.run(check_all_rules())
     except Exception as e:
         logger.error(f"Error in test_rule: {e}", exc_info=True)
         # Return generic error to prevent information exposure (CodeQL py/stack-trace-exposure)

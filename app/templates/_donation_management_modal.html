@@ -131,6 +131,7 @@ function updateStatsDisplay(stats) {
 
 function updateDonationTable(donations) {
     const container = document.getElementById('donationTableContainer');
+    bindDonationTableActions(container);
 
     if (!donations || donations.length === 0) {
         container.innerHTML = `
@@ -141,7 +142,7 @@ function updateDonationTable(donations) {
         return;
     }
 
-    let tableHTML = `
+    container.innerHTML = `
         <div class="table-responsive">
             <table class="table table-dark table-striped table-hover">
                 <thead>
@@ -154,10 +155,16 @@ function updateDonationTable(donations) {
                         <th>${t('web.donations.col_actions')}</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody></tbody>
+            </table>
+        </div>
     `;
+    const tbody = container.querySelector('tbody');
 
     donations.forEach((donation, index) => {
+        // The stable event seq identifies the row for delete/restore (a list index
+        // shifts when a new event arrives between page load and click)
+        const seq = Number(donation.seq);
         const donorName = donation.donor_name || t('web.donations.anonymous');
         const amount = parseFloat(donation.amount || 0).toFixed(2);
         const timestamp = formatTimestamp(donation.timestamp);
@@ -171,45 +178,78 @@ function updateDonationTable(donations) {
         const icon = isDeletion ? 'bi-arrow-return-right text-warning' : 'bi-person-fill text-primary';
         const badge = isDeletion ? 'bg-warning' : 'bg-success';
         const typeLabel = isDeletion ? t('web.donations.type_deletion') : type;
-        const actionButton = isDeletion
-            ? `<button class="btn btn-sm btn-success" onclick="restoreDonation(${index}, '${escapeHtml(donorName)}', ${amount})" title="${t('web.donations.restore_tooltip')}">
-                   <i class="bi bi-arrow-counterclockwise"></i> ${t('web.donations.restore')}
-               </button>`
-            : `<button class="btn btn-sm btn-danger" onclick="deleteDonation(${index}, '${escapeHtml(donorName)}', ${amount})" title="${t('web.donations.delete_tooltip')}">
-                   <i class="bi bi-trash"></i>
-               </button>`;
 
-        tableHTML += `
-            <tr id="donation-row-${index}" class="${rowClass}">
-                <td>${index + 1}</td>
-                <td ${indent}>
-                    <i class="bi ${icon}"></i>
-                    ${escapeHtml(donorName)}
-                    ${isDeletion ? `<small class="text-muted"> (${t('web.donations.deleted_label')})</small>` : ''}
-                </td>
-                <td>
-                    <span class="badge ${badge}">$${amount}</span>
-                </td>
-                <td>
-                    <small class="text-muted">${timestamp}</small>
-                </td>
-                <td>
-                    <span class="badge bg-info">${escapeHtml(typeLabel)}</span>
-                </td>
-                <td>
-                    ${actionButton}
-                </td>
-            </tr>
+        // Only the numeric seq goes into attributes; clicks are handled by event delegation
+        // (bindDonationTableActions), never by inline JS built from donor names
+        let actionButton = '';
+        if (Number.isInteger(seq)) {
+            actionButton = isDeletion
+                ? `<button type="button" class="btn btn-sm btn-success" data-donation-action="restore" data-seq="${seq}" title="${t('web.donations.restore_tooltip')}">
+                       <i class="bi bi-arrow-counterclockwise"></i> ${t('web.donations.restore')}
+                   </button>`
+                : `<button type="button" class="btn btn-sm btn-danger" data-donation-action="delete" data-seq="${seq}" title="${t('web.donations.delete_tooltip')}">
+                       <i class="bi bi-trash"></i>
+                   </button>`;
+        }
+
+        const row = document.createElement('tr');
+        if (Number.isInteger(seq)) {
+            row.id = `donation-row-${seq}`;
+        }
+        if (rowClass) {
+            row.className = rowClass;
+        }
+        row.innerHTML = `
+            <td class="donation-index"></td>
+            <td ${indent}>
+                <i class="bi ${icon}"></i>
+                <span class="donation-donor"></span>
+                ${isDeletion ? `<small class="text-muted"> (${t('web.donations.deleted_label')})</small>` : ''}
+            </td>
+            <td>
+                <span class="badge ${badge}">$${amount}</span>
+            </td>
+            <td>
+                <small class="text-muted donation-timestamp"></small>
+            </td>
+            <td>
+                <span class="badge bg-info donation-type"></span>
+            </td>
+            <td>
+                ${actionButton}
+            </td>
         `;
+        // Event data is inserted as text, never as HTML
+        row.querySelector('.donation-index').textContent = String(index + 1);
+        row.querySelector('.donation-donor').textContent = donorName;
+        row.querySelector('.donation-timestamp').textContent = timestamp;
+        row.querySelector('.donation-type').textContent = typeLabel;
+        tbody.appendChild(row);
     });
+}
 
-    tableHTML += `
-                </tbody>
-            </table>
-        </div>
-    `;
+function bindDonationTableActions(container) {
+    // Bind once: the container element persists, only its content is replaced
+    if (container.dataset.actionsBound === '1') return;
+    container.dataset.actionsBound = '1';
 
-    container.innerHTML = tableHTML;
+    container.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-donation-action]');
+        if (!button || !container.contains(button)) return;
+
+        const seq = Number(button.dataset.seq);
+        if (!Number.isInteger(seq)) return;
+
+        const donation = donationData.find(d => Number(d.seq) === seq) || {};
+        const donorName = donation.donor_name || t('web.donations.anonymous');
+        const amount = parseFloat(donation.amount || 0).toFixed(2);
+
+        if (button.dataset.donationAction === 'restore') {
+            restoreDonation(seq, donorName, amount);
+        } else {
+            deleteDonation(seq, donorName, amount);
+        }
+    });
 }
 
 function formatTimestamp(timestamp) {
@@ -240,7 +280,7 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-async function deleteDonation(index, donorName, amount) {
+async function deleteDonation(seq, donorName, amount) {
     // Confirm deletion with detailed explanation
     const confirmed = confirm(
         t('web.donations.confirm_delete_line1').replace('{donor}', donorName).replace('{amount}', amount) + '\n\n' +
@@ -255,7 +295,8 @@ async function deleteDonation(index, donorName, amount) {
     if (!confirmed) return;
 
     try {
-        const response = await fetch(`/api/donations/delete/${index}`, {
+        // The route parameter is the event seq (stable), not a list index
+        const response = await fetch(`/api/donations/delete/${seq}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -285,7 +326,7 @@ async function deleteDonation(index, donorName, amount) {
     }
 }
 
-async function restoreDonation(index, donorName, amount) {
+async function restoreDonation(seq, donorName, amount) {
     // Confirm restoration with detailed explanation
     const confirmed = confirm(
         t('web.donations.confirm_restore_line1').replace('{donor}', donorName).replace('{amount}', amount) + '\n\n' +
@@ -300,7 +341,8 @@ async function restoreDonation(index, donorName, amount) {
     if (!confirmed) return;
 
     try {
-        const response = await fetch(`/api/donations/delete/${index}`, {
+        // The route parameter is the seq of the deletion event (stable), not a list index
+        const response = await fetch(`/api/donations/delete/${seq}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

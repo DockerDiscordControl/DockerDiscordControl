@@ -20,7 +20,9 @@ import json
 import base64
 import hashlib
 import logging
+import shutil
 import tempfile
+from datetime import datetime
 from typing import Dict, Any, Optional, List, Tuple
 from pathlib import Path
 from threading import Lock
@@ -46,6 +48,15 @@ from services.exceptions import (
 # Token encryption constants
 _TOKEN_ENCRYPTION_SALT = b'ddc-salt-for-token-encryption-key-v1'
 _PBKDF2_ITERATIONS = 600000
+
+# Web UI password hashing scheme (verified by app/auth.py via check_password_hash)
+_PASSWORD_HASH_METHOD = "pbkdf2:sha256:600000"
+# Same minimum length the first-run setup flow enforces (main_routes /setup)
+MIN_WEB_UI_PASSWORD_LENGTH = 12
+
+# Keys that get_config() adds at runtime. They must never be written back to
+# config.json - the decrypted token would otherwise end up on disk in plaintext.
+_RUNTIME_ONLY_CONFIG_KEYS = ('bot_token_decrypted_for_usage',)
 
 logger = logging.getLogger('ddc.config_service')
 
@@ -215,6 +226,9 @@ class ConfigService:
             self._save_json_file
         )
 
+        # One-time upgrade step: legacy settings files -> config.json (single source)
+        self._fold_legacy_settings_once()
+
 
     # === Core Configuration Methods ===
 
@@ -281,6 +295,11 @@ class ConfigService:
             if cached_config is not None:
                 return cached_config
 
+        # Capture the directory mtime BEFORE loading: a save that lands while we
+        # load bumps the mtime past this stamp, so the next call reloads instead
+        # of serving the (possibly stale) result cached below.
+        load_mtime = self._cache_service.get_config_dir_mtime(self.config_dir)
+
         # Check for v1.1.3D migration first
         self._migrate_legacy_config_if_needed()
 
@@ -299,7 +318,7 @@ class ConfigService:
                 logger.error("Token decryption failed in get_config()")
 
         # Cache the result using cache service
-        self._cache_service.set_cached_config(cache_key, config, self.config_dir)
+        self._cache_service.set_cached_config(cache_key, config, self.config_dir, mtime=load_mtime)
 
         return config
 
@@ -337,11 +356,19 @@ class ConfigService:
                 for field in fields_saved_separately:
                     main_config.pop(field, None)
 
+                # Remove runtime-only keys added by get_config() (plaintext token). The
+                # values are only used by the token self-repair below.
+                runtime_values = {field: main_config.pop(field, None) for field in _RUNTIME_ONLY_CONFIG_KEYS}
+
                 # === Critical Field Protection ===
                 # Merge with existing config to prevent accidental loss of
                 # critical fields (bot_token, guild_id) when a partial config
                 # is saved (e.g. from the setup handler).
-                _critical_fields = ('bot_token', 'guild_id', 'encrypted_bot_token')
+                # web_ui_password_hash included: losing it drops the panel back into first-run
+                # setup mode, where admin/setup is accepted on every route (app/auth.py).
+                _critical_fields = ('bot_token', 'guild_id', 'encrypted_bot_token',
+                                    'web_ui_password_hash')
+                existing = {}
                 if self.main_config_file.exists():
                     try:
                         existing = self._load_json_file(self.main_config_file, {})
@@ -351,6 +378,16 @@ class ConfigService:
                                 logger.info(f"Preserved critical field '{field}' from existing config")
                     except (IOError, OSError, ValueError) as merge_err:
                         logger.warning(f"Could not read existing config for merge: {merge_err}")
+
+                # === Token Self-Repair ===
+                # Before the decrypted copy is dropped for good: if the stored token does not
+                # decrypt with the password hash being saved, rebuild it from that copy.
+                self._repair_bot_token(main_config,
+                                       runtime_values.get('bot_token_decrypted_for_usage'),
+                                       existing.get('bot_token_decrypted_for_usage'))
+
+                # === Plaintext Token Protection ===
+                self._keep_bot_token_encrypted(main_config, existing)
 
                 logger.info(f"save_config called - saving main config with {len(main_config)} fields")
                 logger.debug(f"Main config keys: {list(main_config.keys())}")
@@ -480,6 +517,63 @@ class ConfigService:
 
         # Delegate to save_config (which handles backup + atomic write)
         return self.save_config(existing)
+
+    def change_web_ui_password(self, new_password: str, *, enforce_min_length: bool = True) -> None:
+        """Set a new Web UI password and re-encrypt the stored bot token.
+
+        The bot token encryption key is derived from ``web_ui_password_hash``,
+        so swapping only the hash would leave an encrypted token undecryptable.
+        This decrypts the token with the old hash, re-encrypts it with the new
+        one and persists both fields together.
+
+        Args:
+            new_password: The new plaintext password (never stored or logged).
+            enforce_min_length: False only for DDC_ADMIN_PASSWORD at startup: rejecting a
+                short env password would leave the install without a hash, i.e. in
+                first-time setup mode where admin/setup is accepted on every route.
+
+        Raises:
+            ValueError: If the password is empty or too short.
+            TokenEncryptionError: If the token cannot be re-encrypted.
+            ConfigSaveError: If the new configuration cannot be persisted.
+        """
+        if not isinstance(new_password, str) or not new_password:
+            raise ValueError("Password is required")
+        if enforce_min_length and len(new_password) < MIN_WEB_UI_PASSWORD_LENGTH:
+            raise ValueError(f"Password must be at least {MIN_WEB_UI_PASSWORD_LENGTH} characters long")
+
+        new_hash = generate_password_hash(new_password, method=_PASSWORD_HASH_METHOD)
+        updates = {'web_ui_password_hash': new_hash}
+
+        # Effective (merged) values - the same ones auth.py and the bot use
+        current = self.get_config(force_reload=True)
+        old_hash = current.get('web_ui_password_hash')
+        stored_token = current.get('bot_token')
+
+        if (stored_token and old_hash and isinstance(stored_token, str) and
+                not self._validation_service.looks_like_discord_token(stored_token)):
+            try:
+                plaintext_token = self.decrypt_token(stored_token, old_hash)
+            except TokenEncryptionError:
+                plaintext_token = None
+
+            if plaintext_token:
+                updates['bot_token'] = self.encrypt_token(plaintext_token, new_hash)
+                logger.info("Bot token re-encrypted for the new Web UI password")
+            else:
+                # Already unusable with the current hash - leave it untouched
+                # rather than discarding data we cannot interpret.
+                logger.warning("Stored bot token could not be decrypted with the current "
+                               "password hash - leaving it unchanged")
+
+        result = self.update_config_fields(updates)
+        if not result.success:
+            raise ConfigSaveError(
+                result.message or "Failed to save the new Web UI password",
+                error_code="CONFIG_SAVE_PASSWORD_ERROR"
+            )
+
+        logger.info("Web UI password changed")
 
     # === Token Encryption Methods ===
 
@@ -658,6 +752,161 @@ class ConfigService:
         # Return plaintext token as-is if it looks like a Discord token
         return token
 
+    def _keep_bot_token_encrypted(self, main_config: Dict[str, Any], existing: Dict[str, Any]) -> None:
+        """Never let a save replace an encrypted bot_token with a plaintext one."""
+        new_token = main_config.get('bot_token')
+        old_token = existing.get('bot_token')
+        if (not new_token or not old_token or new_token == old_token or
+                not isinstance(new_token, str) or not isinstance(old_token, str)):
+            return
+
+        # Only act when a plaintext token is about to overwrite an encrypted one
+        looks_plain = self._validation_service.looks_like_discord_token
+        if not looks_plain(new_token) or looks_plain(old_token):
+            return
+
+        password_hash = main_config.get('web_ui_password_hash') or existing.get('web_ui_password_hash')
+        if not password_hash:
+            logger.warning("Plaintext bot_token replaces an encrypted one but no password hash "
+                           "is available to encrypt it")
+            return
+
+        encrypted = self.encrypt_token(new_token, password_hash)
+        if encrypted:
+            main_config['bot_token'] = encrypted
+            logger.info("Encrypted plaintext bot_token before saving")
+
+    def _repair_bot_token(self, main_config: Dict[str, Any], *plaintext_copies: Optional[str]) -> None:
+        """Self-repair an encrypted ``bot_token`` that the current password hash cannot decrypt.
+
+        Earlier versions stored the decrypted token next to it (``bot_token_decrypted_for_usage``)
+        and could leave the encrypted token keyed to another hash (e.g. DDC_ADMIN_PASSWORD on a
+        migrated install). Instead of dropping the only usable copy, re-encrypt it with the
+        current hash - or keep it in plaintext when there is no hash to derive a key from.
+        """
+        looks_plain = self._validation_service.looks_like_discord_token
+        plaintext = next((c for c in plaintext_copies if isinstance(c, str) and looks_plain(c)), None)
+        token = main_config.get('bot_token')
+        if not plaintext or not token or not isinstance(token, str) or looks_plain(token):
+            return
+
+        password_hash = main_config.get('web_ui_password_hash')
+        if not password_hash:
+            main_config['bot_token'] = plaintext
+            logger.warning("Stored bot token is encrypted but no Web UI password hash is set - "
+                           "keeping the last decrypted copy so the bot can still log in")
+            return
+
+        try:
+            decrypted = self.decrypt_token(token, password_hash)
+            if decrypted and looks_plain(decrypted):
+                return  # usable with the current key - nothing to repair
+        except TokenEncryptionError:
+            pass
+        try:
+            repaired = self.encrypt_token(plaintext, password_hash)
+        except TokenEncryptionError as e:
+            logger.error(f"Bot token self-repair failed: {e.message}")
+            return
+        if repaired:
+            main_config['bot_token'] = repaired
+            logger.warning("Stored bot token could not be decrypted with the current Web UI password "
+                           "hash - re-encrypted it from the last decrypted copy")
+
+    def _backup_config_files(self, files: List[Path], backup_name: str) -> Optional[Path]:
+        """Copy the existing ``files`` into config/<backup_name>/ (permissions kept)."""
+        existing_files = [f for f in files if f.exists()]
+        if not existing_files:
+            return None
+        backup_dir = self.config_dir / backup_name
+        backup_dir.mkdir(mode=0o700, exist_ok=True)
+        for file_path in existing_files:
+            shutil.copy2(str(file_path), str(backup_dir / file_path.name))
+        return backup_dir
+
+    def _fold_legacy_settings_once(self) -> bool:
+        """One-time upgrade step: make config.json the single source of the settings.
+
+        Migrated installs still carry legacy settings files next to config.json: auth.json /
+        web_ui.json / docker_settings.json in the modular layout, the v1 split files
+        (bot_config.json, docker_config.json, web_config.json) in the virtual layout. v2.3 let
+        them override config.json; now config.json - the file every save writes - wins. So that
+        no install silently switches to other values (password hash, bot token, language...),
+        the values v2.3 used are written into config.json once, after a backup, and the modular
+        legacy files are renamed to ``*.folded-<timestamp>`` (the v1 split files stay: they
+        also hold containers and channels). A marker file keeps the step from running twice.
+        On errors nothing is lost: the loader keeps the v2.3 precedence until a fold succeeds.
+
+        Returns:
+            True if config.json was rewritten.
+        """
+        loader = self._loader_service
+        try:
+            marker = loader.read_fold_marker()
+            raw_main = self._load_json_file(self.main_config_file, {})
+            if 'servers' in raw_main or 'docker_name' in raw_main:
+                return False  # monolithic v1.1.x config.json: migrate_legacy_v1_config_if_needed
+
+            if loader.has_real_modular_structure():
+                mode = 'real'
+                to_rename = [f for f in loader.legacy_settings_files if f.exists()]
+                if not to_rename or (marker is not None and marker.get('mode') == 'real'):
+                    return False
+                folded = loader.load_pre_fold_real_settings()
+                involved = [self.main_config_file, *to_rename]
+            else:
+                mode = 'virtual'
+                v1_files = [f for f in (self.bot_config_file, self.docker_config_file, self.web_config_file)
+                            if f.exists()]
+                if marker is not None or not v1_files:
+                    return False
+                to_rename = []
+                # Without config.json there is nothing to fold: it becomes authoritative with
+                # its first write, which starts from the loaded (v1) values.
+                folded = loader.load_pre_fold_virtual_settings() if self.main_config_file.exists() else None
+                involved = [self.main_config_file, *v1_files]
+
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            with self._save_lock:
+                backup_dir = None
+                if folded is not None:
+                    backup_dir = self._backup_config_files(involved, f"backup_{timestamp}_settings_fold")
+                    runtime_values = {key: folded.pop(key, None) for key in _RUNTIME_ONLY_CONFIG_KEYS}
+                    self._repair_bot_token(folded, runtime_values.get('bot_token_decrypted_for_usage'))
+                    self._save_json_file(self.main_config_file, folded)
+                self._save_json_file(loader.fold_marker_file, {
+                    'folded_at': timestamp,
+                    'mode': mode,
+                    'files': [f.name for f in involved if f.exists()],
+                    'backup': backup_dir.name if backup_dir else None,
+                })
+                renamed = []
+                for legacy_file in to_rename:
+                    target = legacy_file.with_name(f"{legacy_file.name}.folded-{timestamp}")
+                    try:
+                        legacy_file.rename(target)
+                        renamed.append(target.name)
+                    except OSError as e:
+                        logger.warning(f"Could not rename {legacy_file.name} after folding it into "
+                                       f"config.json: {e} (config.json still wins)")
+            self._cache_service.invalidate_cache()
+        except (ConfigServiceError, OSError, TypeError, ValueError, KeyError, AttributeError) as e:
+            logger.error(f"Could not fold legacy settings into config.json: {e} - "
+                         f"the legacy files keep precedence for now", exc_info=True)
+            return False
+
+        if folded is None:
+            logger.info("Legacy v1 settings files found without config.json - config.json will "
+                        "be the authoritative settings file from its first write")
+            return False
+        logger.info(f"Folded legacy settings ({', '.join(f.name for f in involved[1:])}) into "
+                    f"config.json; backup: {backup_dir.name if backup_dir else '-'}"
+                    + (f"; renamed: {', '.join(renamed)}" if renamed else ""))
+        if not folded.get('web_ui_password_hash'):
+            logger.warning("No Web UI password is set - log in with admin / setup and choose one "
+                           "on the /setup page (or set DDC_ADMIN_PASSWORD)")
+        return True
+
     def _migrate_legacy_config_if_needed(self) -> None:
         """
         Migrate v1.1.x config.json to v2.0 modular structure.
@@ -823,6 +1072,18 @@ def update_config_fields(updates: Dict[str, Any]) -> bool:
     """Legacy compatibility: Update specific fields without overwriting others."""
     result = get_config_service().update_config_fields(updates)
     return result.success
+
+def change_web_ui_password(new_password: str, *, enforce_min_length: bool = True) -> None:
+    """Change the Web UI password and re-encrypt the bot token with the new key.
+
+    ``enforce_min_length=False`` is reserved for DDC_ADMIN_PASSWORD (see the method).
+
+    Raises:
+        ValueError: If the password is empty or too short (user-readable message).
+        TokenEncryptionError: If the token cannot be re-encrypted.
+        ConfigSaveError: If the new configuration cannot be persisted.
+    """
+    get_config_service().change_web_ui_password(new_password, enforce_min_length=enforce_min_length)
 
 # === Form Parsing Functions (delegated to ConfigFormParserService) ===
 

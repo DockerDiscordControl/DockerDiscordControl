@@ -72,16 +72,13 @@ class DockerStatusFetchService:
                            f"timeout: {current_timeout:.0f}ms")
 
                 attempt_start = time.time()
-
-                # Fetch info and stats in parallel with adaptive timeout
                 timeout_seconds = current_timeout / 1000.0  # Convert ms to seconds
-                info_task = asyncio.create_task(get_docker_info_dict_service_first(docker_name, timeout_seconds))
-                stats_task = asyncio.create_task(get_docker_stats_service_first(docker_name, timeout_seconds))
 
                 try:
+                    # One Docker query per attempt (wait_for cancels it on timeout)
                     info, stats = await asyncio.wait_for(
-                        asyncio.gather(info_task, stats_task, return_exceptions=True),
-                        timeout=current_timeout / 1000.0  # Convert to seconds
+                        self._fetch_info_and_stats(docker_name, timeout_seconds),
+                        timeout=timeout_seconds
                     )
 
                     attempt_time = (time.time() - attempt_start) * 1000
@@ -97,14 +94,11 @@ class DockerStatusFetchService:
                     return docker_name, info, stats
 
                 except asyncio.TimeoutError as e:
-                    # Cancel running tasks to prevent event loop leaks
-                    info_task.cancel()
-                    stats_task.cancel()
-                    # Wait for cancellation to complete
-                    await asyncio.gather(info_task, stats_task, return_exceptions=True)
-
                     last_exception = e
-                    attempt_time = (time.time() - attempt_start) * 1000 if 'attempt_start' in locals() else current_timeout
+                    attempt_time = (time.time() - attempt_start) * 1000
+
+                    # A timeout is a failed attempt - it must lower the success rate
+                    perf_service.update_performance(docker_name, attempt_time, False)
 
                     logger.warning(f"Timeout for {docker_name} on attempt {attempt + 1}/{config.retry_attempts} "
                                  f"after {attempt_time:.1f}ms")
@@ -114,28 +108,22 @@ class DockerStatusFetchService:
                         await asyncio.sleep(0.5)
 
             except (RuntimeError, OSError, ValueError, TypeError) as e:
-                # Cancel running tasks on error
-                if 'info_task' in locals():
-                    info_task.cancel()
-                if 'stats_task' in locals():
-                    stats_task.cancel()
-                # Wait for cancellation to complete
-                if 'info_task' in locals() and 'stats_task' in locals():
-                    await asyncio.gather(info_task, stats_task, return_exceptions=True)
-
                 last_exception = e
                 logger.error(f"Error fetching {docker_name} on attempt {attempt + 1}: {e}", exc_info=True)
 
                 if attempt < config.retry_attempts - 1:
                     await asyncio.sleep(0.5)
 
-        # All retries failed - try emergency fetch without timeout
+        # All retries failed - try one last, bounded emergency fetch
         logger.warning(f"All retries failed for {docker_name}, attempting emergency fetch")
         return await self._emergency_full_fetch(docker_name, last_exception)
 
     async def _emergency_full_fetch(self, docker_name: str, last_exception: Exception) -> Tuple[str, Any, Any]:
         """
-        Emergency fetch with no timeout limits - last resort to get complete data.
+        Emergency fetch with the maximum configured timeout - last resort to get complete data.
+
+        Only counts as a success for the performance profile if it actually returned
+        container info.
 
         Args:
             docker_name: Name of the Docker container
@@ -144,30 +132,69 @@ class DockerStatusFetchService:
         Returns:
             Tuple of (container_name, info, stats) or (container_name, exception, None)
         """
+        perf_service = get_performance_service()
+        # Bounded by the longest configured Docker timeout instead of waiting (up to 300s)
+        emergency_timeout = perf_service.get_config().max_timeout / 1000.0
+        start_emergency = time.time()
+
         try:
-            logger.info(f"Emergency full fetch for {docker_name} - no timeout limit")
+            logger.info(f"Emergency full fetch for {docker_name} (timeout: {emergency_timeout:.0f}s)")
 
-            # NO timeout - wait however long it takes (use very long timeout)
-            info_task = asyncio.create_task(get_docker_info_dict_service_first(docker_name, timeout=300.0))
-            stats_task = asyncio.create_task(get_docker_stats_service_first(docker_name, timeout=300.0))
-
-            start_emergency = time.time()
-            info, stats = await asyncio.gather(info_task, stats_task, return_exceptions=True)
+            info, stats = await asyncio.wait_for(
+                self._fetch_info_and_stats(docker_name, emergency_timeout),
+                timeout=emergency_timeout
+            )
             emergency_time = (time.time() - start_emergency) * 1000
 
+            if not isinstance(info, dict):
+                # Container not found / Docker error - no data, so not a success
+                perf_service.update_performance(docker_name, emergency_time, False)
+                logger.warning(f"Emergency fetch for {docker_name} returned no data after {emergency_time:.1f}ms: {info}")
+                return docker_name, info, stats
+
             # Mark as slow container for future reference
-            perf_service = get_performance_service()
             perf_service.update_performance(docker_name, emergency_time, True)
 
             logger.info(f"Emergency fetch successful for {docker_name} after {emergency_time:.1f}ms")
             return docker_name, info, stats
 
+        except asyncio.TimeoutError:
+            perf_service.update_performance(docker_name, (time.time() - start_emergency) * 1000, False)
+            logger.error(f"Emergency fetch for {docker_name} timed out after {emergency_timeout:.0f}s")
+            return docker_name, last_exception, None
+
         except (RuntimeError, OSError, asyncio.CancelledError) as e:
             # Even emergency fetch failed - update performance and return error
-            perf_service = get_performance_service()
             perf_service.update_performance(docker_name, 0, False)
             logger.error(f"Emergency fetch failed for {docker_name}: {e}", exc_info=True)
             return docker_name, last_exception, None
+
+    async def _fetch_info_and_stats(self, docker_name: str, timeout_seconds: float) -> Tuple[Any, Any]:
+        """
+        Fetch container info and stats with a single Docker query.
+
+        The info call does the full fetch (incl. CPU/RAM) and fills the
+        ContainerStatusService cache, so the stats call is served from that cache
+        instead of running a second full fetch (new client + ping) in parallel.
+        Errors are returned as values, like gather(return_exceptions=True) before.
+
+        Returns:
+            Tuple of (info, stats)
+        """
+        try:
+            info = await get_docker_info_dict_service_first(docker_name, timeout_seconds)
+        except Exception as e:  # noqa: BLE001 - returned as value, handled by the caller
+            return e, None
+
+        if not isinstance(info, dict):
+            # Not found / error - there are no stats to fetch
+            return info, None
+
+        try:
+            stats = await get_docker_stats_service_first(docker_name, timeout_seconds)
+        except Exception as e:  # noqa: BLE001 - returned as value, handled by the caller
+            stats = e
+        return info, stats
 
     async def _apply_query_cooldown(self, docker_name: str) -> None:
         """

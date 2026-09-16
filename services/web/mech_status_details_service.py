@@ -113,10 +113,13 @@ class MechStatusDetailsService:
                 except (ImportError, AttributeError, KeyError):
                     language = 'de'  # Fallback to German
 
+                # Speed from the real level and its power bar maximum (not a level guessed from totals)
                 combined_status = get_combined_mech_status(
                     Power_amount=data_result.current_power,
                     total_donations_received=data_result.total_donated,
-                    language=language
+                    language=language,
+                    evolution_level=data_result.current_level,
+                    power_max=getattr(getattr(data_result, 'bars', None), 'Power_max_for_level', None)
                 )
                 speed_description = combined_status['speed']['description']
 

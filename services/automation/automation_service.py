@@ -11,6 +11,7 @@ import logging
 import re
 import asyncio
 import difflib
+import multiprocessing
 from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
 
@@ -18,9 +19,33 @@ from .auto_action_config_service import get_auto_action_config_service, AutoActi
 from .auto_action_state_service import get_auto_action_state_service
 
 # Import Docker Control (we reuse existing utils to ensure consistency)
-from services.docker_service.docker_utils import docker_action, is_container_exists
+from services.docker_service.docker_utils import docker_action, is_container_exists, get_docker_info
+from cogs.translation_manager import _
 
 logger = logging.getLogger('ddc.automation_service')
+
+# Actions gated by the rule's only_if_running safety option. START is excluded (the
+# option would turn every START rule into a no-op), NOTIFY doesn't touch the container.
+ONLY_IF_RUNNING_ACTIONS = {"RESTART", "RECREATE", "STOP"}
+
+# Hard budget for one trigger regex, enforced by killing the worker process.
+REGEX_TIMEOUT_SECONDS = 0.5
+
+
+def _regex_search_worker(pattern: str, text: str, conn) -> None:
+    """Run one regex search in a child process and send back the boolean result.
+
+    Module level (not a method) so it can be pickled for the "spawn" start method.
+    """
+    try:
+        conn.send(bool(re.search(pattern, text, re.IGNORECASE | re.MULTILINE)))
+    except Exception:
+        conn.send(False)
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 @dataclass
 class TriggerContext:
@@ -89,8 +114,22 @@ class AutomationService:
                 logger.info(f"AAS Match: Rule '{rule.name}' matched on {match_reason}")
                 
                 # 4. Safety Checks (Cooldowns, Protected Containers)
-                if await self._execute_rule(rule, context, settings, bot_instance):
-                    executed_rules.append(rule.name)
+                try:
+                    if await self._execute_rule(rule, context, settings, bot_instance):
+                        executed_rules.append(rule.name)
+                except (Exception, asyncio.CancelledError) as e:
+                    # _execute_rule locks every target container up front. An exception in the
+                    # middle (e.g. DockerConnectionError when the socket blips, or cancellation
+                    # during the action delay) would otherwise leave them locked for the rule
+                    # cooldown - 24 h by default, and persisted on the next trigger. Release
+                    # what this rule holds so the next trigger can run (V2 review B1).
+                    for container in rule.action.containers:
+                        try:
+                            self.state_service.release_execution_lock(rule.id, container, success=False)
+                        except Exception:  # never mask the original error
+                            logger.debug(f"AAS: could not release lock for {container}", exc_info=True)
+                    logger.error(f"AAS: Rule '{rule.name}' failed with {type(e).__name__}: {e}; "
+                                 f"released its container cooldowns", exc_info=True)
                     
         return executed_rules
 
@@ -134,14 +173,16 @@ class AutomationService:
         # 1. Regex Match (Question 3: Security via Threading + Timeout)
         if rule.trigger.regex_pattern:
             try:
-                # Run regex in thread with 500ms timeout to prevent ReDoS hanging
+                # The real budget is enforced inside _safe_regex_search by killing the worker
+                # process; this timeout only bounds process start-up and teardown, which a
+                # cancelled await CAN interrupt.
                 matched = await asyncio.wait_for(
                     asyncio.to_thread(
                         self._safe_regex_search,
                         rule.trigger.regex_pattern,
                         search_text
                     ),
-                    timeout=0.5  # 500ms timeout for regex execution
+                    timeout=REGEX_TIMEOUT_SECONDS + 10
                 )
                 if matched:
                     return True, f"Regex: {rule.trigger.regex_pattern}"
@@ -209,17 +250,63 @@ class AutomationService:
         return False, "No trigger keyword matched"
 
     def _safe_regex_search(self, pattern: str, text: str) -> bool:
-        """
-        Blocking regex search, designed to run in a separate thread.
+        """Regex search with a hard timeout, run in a separate PROCESS.
+
+        A thread cannot be cancelled and CPython's ``re`` never releases the GIL, so a
+        catastrophic pattern would freeze the whole bot (measured: 1.3 s for 23 characters,
+        exponential from there) no matter what timeout the caller uses. A process can be
+        killed, so the budget is real (V2 review B2). Falls back to an in-process search
+        only if a worker cannot be started; validation rejects the dangerous shapes.
         """
         # Basic protection: Cap input size
         if len(text) > 10000:
             text = text[:10000]
-            
+
         try:
+            # "fork" (Linux, the only platform the image runs on): the child inherits the
+            # already-imported modules. "spawn" would re-import the main module, which fails
+            # inside the bot and under pytest ("start a new process before the current process
+            # has finished its bootstrapping phase") and made every search return False.
+            methods = multiprocessing.get_all_start_methods()
+            ctx = multiprocessing.get_context("fork" if "fork" in methods else "spawn")
+            parent_conn, child_conn = ctx.Pipe(duplex=False)
+            proc = ctx.Process(target=_regex_search_worker,
+                               args=(pattern, text, child_conn), daemon=True)
+            proc.start()
+            child_conn.close()
+            got_result = parent_conn.poll(REGEX_TIMEOUT_SECONDS)
+            result = parent_conn.recv() if got_result else None
+            parent_conn.close()
+
+            if got_result:
+                # Result is in; the child may still be exiting - that is not a timeout.
+                proc.join(timeout=1)
+                if proc.is_alive():
+                    proc.kill()
+                    proc.join(timeout=1)
+                return bool(result)
+
+            # No result within the budget: this is the ReDoS case, kill the worker.
+            if proc.is_alive():
+                proc.kill()  # the budget is enforced here, not by a cancelled await
+                proc.join(timeout=1)
+                logger.warning(f"AAS: regex search exceeded {REGEX_TIMEOUT_SECONDS}s and was "
+                               f"killed - pattern too complex: {pattern[:60]}")
+                return False
+
+            # Worker died without sending anything (crash, OOM): don't report "no match",
+            # that would silently disable the rule. Fall back to an in-process search.
+            proc.join(timeout=1)
+            logger.warning(f"AAS: regex worker exited without a result (exit code "
+                           f"{proc.exitcode}); falling back to an in-process search")
             return bool(re.search(pattern, text, re.IGNORECASE | re.MULTILINE))
-        except Exception:
-            return False
+        except Exception as e:
+            logger.error(f"AAS: could not run the regex in a worker process ({e}); "
+                         f"falling back to an in-process search", exc_info=True)
+            try:
+                return bool(re.search(pattern, text, re.IGNORECASE | re.MULTILINE))
+            except Exception:
+                return False
 
     async def _execute_rule(self, rule: AutoActionRule, ctx: TriggerContext, 
                            global_settings: Dict, bot) -> bool:
@@ -238,26 +325,28 @@ class AutomationService:
                 return False
 
         # 2. Check Cooldowns with atomic lock (Question 17/14)
-        # Use acquire_execution_lock for atomic check-and-set to prevent race conditions
-        for container in target_containers:
-            can_execute, reason = self.state_service.acquire_execution_lock(
-                rule.id,
-                container,
-                global_settings.get('global_cooldown_seconds', 30),
-                rule.cooldown_minutes
+        # One atomic check-and-set for ALL target containers: the global cooldown is checked
+        # once per rule (so a multi-container rule can't block itself) and nothing is locked
+        # unless every container passes.
+        can_execute, reason, blocked_container = self.state_service.acquire_execution_locks(
+            rule.id,
+            target_containers,
+            global_settings.get('global_cooldown_seconds', 30),
+            rule.cooldown_minutes
+        )
+        if not can_execute:
+            logger.info(f"AAS: Skipped rule '{rule.name}' - {reason}")
+            self.state_service.record_trigger(
+                rule.id, rule.name, blocked_container, rule.action.type, "SKIPPED", reason
             )
-            if not can_execute:
-                logger.info(f"AAS: Skipped rule '{rule.name}' - {reason}")
-                self.state_service.record_trigger(
-                    rule.id, rule.name, container, rule.action.type, "SKIPPED", reason
-                )
-                return False
+            return False
 
         # 3. Execute Action (Action 11, 9)
         # We execute actions sequentially for now
         action_type = rule.action.type.upper()
         success_count = 0
-        
+        skipped_not_running = []  # targets skipped by only_if_running -> one Discord notice
+
         for container in target_containers:
             logger.info(f"AAS: Executing {action_type} on {container}...")
             
@@ -274,6 +363,20 @@ class AutomationService:
                         f"⚠️ Container `{container}` not found — *{rule.name}*"
                     )
                 continue
+
+            # Safety: only_if_running - don't touch a container that was stopped on purpose.
+            # Only a confirmed "not running" skips; an unknown state falls through to the action.
+            if rule.only_if_running and action_type in ONLY_IF_RUNNING_ACTIONS:
+                if await self._get_running_state(container) is False:
+                    skip_reason = "Container not running (only_if_running)"
+                    logger.info(f"AAS: Skipped {action_type} on '{container}' for rule '{rule.name}' - {skip_reason}")
+                    # Nothing was executed - release the cooldown acquired above
+                    self.state_service.release_execution_lock(rule.id, container, success=False)
+                    self.state_service.record_trigger(
+                        rule.id, rule.name, container, rule.action.type, "SKIPPED", skip_reason
+                    )
+                    skipped_not_running.append(container)
+                    continue
 
             # Send Feedback Message (Question 12)
             notification_channel_id = rule.action.notification_channel_id or ctx.channel_id
@@ -330,7 +433,39 @@ class AutomationService:
         if success_count > 0:
             self.config_service.increment_trigger_count(rule.id)
 
+        # only_if_running skips were only visible in the history: post ONE notice per rule
+        # trigger, same channel and silent handling as the other feedback messages
+        if skipped_not_running and not rule.action.silent and bot:
+            await self._send_feedback(
+                bot,
+                rule.action.notification_channel_id or ctx.channel_id,
+                self._only_if_running_notice(rule.name, skipped_not_running)
+            )
+
         return success_count > 0
+
+    @staticmethod
+    def _only_if_running_notice(rule_name: str, containers: List[str]) -> str:
+        """Discord notice for rule targets skipped because they are not running."""
+        names = ", ".join(f"`{c}`" for c in containers)
+        try:
+            return _("⏭️ Auto-Action '{rule}' skipped: {containers} not running (option 'only if running').").format(
+                rule=rule_name, containers=names)
+        except (KeyError, IndexError, ValueError):
+            # Broken placeholder in a translation - fall back to the English source text
+            return "⏭️ Auto-Action '{rule}' skipped: {containers} not running (option 'only if running').".format(
+                rule=rule_name, containers=names)
+
+    async def _get_running_state(self, container: str) -> Optional[bool]:
+        """Return True/False for the container's running state, or None if it can't be determined."""
+        try:
+            info = await get_docker_info(container)
+        except Exception as e:
+            logger.warning(f"AAS: Could not determine running state of '{container}': {e}")
+            return None
+        if not info:
+            return None
+        return bool(info.get('State', {}).get('Running', False))
 
     async def _send_feedback(self, bot, channel_id, message):
         """Helper to send feedback to Discord."""

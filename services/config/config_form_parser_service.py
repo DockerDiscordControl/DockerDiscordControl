@@ -11,7 +11,9 @@ Part of ConfigService refactoring for Single Responsibility Principle
 """
 
 import logging
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, List, Tuple
+
+from services.exceptions import ConfigServiceError
 
 logger = logging.getLogger('ddc.config_form_parser')
 
@@ -59,6 +61,14 @@ class ConfigFormParserService:
         if isinstance(value, list) and len(value) > 0:
             value = value[0]
         return value in ['1', 'on', True, 'true', 'True']
+
+    @staticmethod
+    def _form_str(form_data: Dict[str, Any], key: str) -> str:
+        """Return a form value as a single string ('' if missing), handling arrays."""
+        value = form_data.get(key, '')
+        if isinstance(value, list):
+            value = value[0] if value else ''
+        return value if isinstance(value, str) else ''
 
     @staticmethod
     def parse_servers_from_form(form_data: Dict[str, Any]) -> list:
@@ -199,14 +209,39 @@ class ConfigFormParserService:
             'control': True, 'schedule': True, 'info': True
         }
 
+        status_channels = ConfigFormParserService._parse_channel_type(
+            form_data, 'status', status_commands)
+        control_channels = ConfigFormParserService._parse_channel_type(
+            form_data, 'control', control_commands)
+
+        duplicates = sorted(set(status_channels) & set(control_channels))
+        if duplicates:
+            logger.warning(
+                f"Channel ID(s) {', '.join(duplicates)} were submitted as status AND control "
+                "channel. The control entry wins, so /serverstatus and /ss stay blocked there."
+            )
+
         channel_permissions = {}
-        channel_permissions.update(
-            ConfigFormParserService._parse_channel_type(form_data, 'status', status_commands))
-        channel_permissions.update(
-            ConfigFormParserService._parse_channel_type(form_data, 'control', control_commands))
+        channel_permissions.update(status_channels)
+        channel_permissions.update(control_channels)
 
         logger.info(f"Parsed {len(channel_permissions)} channel configurations from form")
         return channel_permissions
+
+    @staticmethod
+    def find_duplicate_channel_ids(form_data: Dict[str, Any]) -> List[str]:
+        """
+        Return channel IDs submitted in BOTH the status and the control table.
+
+        Such an ID is parsed twice and the control entry overwrites the status one, which
+        silently turns the channel into a control channel where /serverstatus and /ss are
+        denied. The web UI blocks this before saving. Server-side (e.g. direct API calls)
+        the save still goes through; process_config_form only appends a warning about the
+        duplicates to the save response.
+        """
+        status_ids = set(ConfigFormParserService._parse_channel_type(form_data, 'status', {}))
+        control_ids = set(ConfigFormParserService._parse_channel_type(form_data, 'control', {}))
+        return sorted(status_ids & control_ids)
 
     # Form field prefixes that are handled by dedicated parsers (servers, channels, heartbeat)
     _SKIP_PREFIXES = (
@@ -215,12 +250,43 @@ class ConfigFormParserService:
         'old_status_channel_', 'old_control_channel_',
         'query_enabled_', 'query_protocol_', 'query_host_', 'query_port_', 'query_token_',
         'env_',  # advanced settings -> folded into config['advanced_settings'] separately
+        'info_',  # container info (incl. info_protected_password_*) -> config/containers/*.json
     )
     _SKIP_KEYS = {'selected_servers', 'heartbeat_ping_url', 'heartbeat_interval', 'enableHeartbeatSection',
                   # Defensive: bare modal field names must never become top-level config keys.
                   # The container-info modal lives (per HTML5 parsing) inside the main config-form,
                   # so any name= on its inputs would otherwise leak — notably query_token (a secret).
                   'query_protocol', 'query_host', 'query_port', 'query_token', 'container_name'}
+
+    # Keys the generic form loop must never write: auth values only change through
+    # change_web_ui_password(), and the structured values are built by the parsers above
+    # and must not be replaced by a posted string.
+    _PROTECTED_KEYS = frozenset({
+        'web_ui_password_hash', 'web_ui_user',
+        'encrypted_bot_token', 'bot_token_encrypted',
+        'secret_key', 'SECRET_KEY', 'FLASK_SECRET_KEY',
+        'servers', 'channel_permissions', 'default_channel_permissions', 'heartbeat', 'advanced_settings',
+    })
+
+    # Request-only values that are never settings. Earlier versions stored them in config.json
+    # through the generic loop (the new password in cleartext, the decrypted bot token, the task
+    # editor fields), so they are also dropped from the loaded config before saving.
+    # 'timezone_str' is deliberately not listed: cogs/status_handlers.py reads it from the config.
+    _NEVER_PERSIST_KEYS = frozenset({
+        'new_web_ui_password', 'confirm_web_ui_password', 'password', 'confirm_password',
+        'bot_token_decrypted_for_usage', 'csrf_token', 'csrf-token',
+        # Task editor (tasks/form.html, tasks/list.html) - saved via the tasks API, not here
+        'container', 'action', 'cycle', 'time', 'year', 'month', 'day', 'weekday',
+        'cron_string', 'task_id', 'is_active',
+        # Request options / markers
+        'config_split_enabled', 'channel_tables_submitted',
+    })
+
+    @staticmethod
+    def _is_never_persisted(key) -> bool:
+        """True for keys that must not end up in config.json (see _NEVER_PERSIST_KEYS)."""
+        return (not key or key in ConfigFormParserService._NEVER_PERSIST_KEYS
+                or (isinstance(key, str) and key.startswith('info_')))
 
     @staticmethod
     def _parse_heartbeat(form_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -235,7 +301,11 @@ class ConfigFormParserService:
                 interval = max(1, min(60, interval))
             except (ValueError, TypeError):
                 interval = 5
-            return {'enabled': True, 'ping_url': ping_url, 'interval': interval}
+            # The page's on/off switch (sent as '0' when off). Switched off keeps the URL, so
+            # switching it back on needs no retyping. Older clients don't send it: URL = on.
+            enabled = ('enableHeartbeatSection' not in form_data or
+                       ConfigFormParserService._parse_form_checkbox(form_data, 'enableHeartbeatSection'))
+            return {'enabled': enabled, 'ping_url': ping_url, 'interval': interval}
 
         return {'enabled': False, 'ping_url': '', 'interval': 5}
 
@@ -245,7 +315,10 @@ class ConfigFormParserService:
         try:
             from services.config.channel_config_service import get_channel_config_service
             channel_service = get_channel_config_service()
-            save_result = channel_service.save_all_channels(channel_permissions)
+            # process_config_form only passes an empty dict when the form explicitly
+            # submitted zero channels, so an empty dict here means "remove all channels".
+            save_result = channel_service.save_all_channels(
+                channel_permissions, allow_empty=not channel_permissions)
             if save_result:
                 logger.info(f"Saved {len(channel_permissions)} channels via ChannelConfigService")
             else:
@@ -286,7 +359,34 @@ class ConfigFormParserService:
             Tuple of (updated_config, success, message)
         """
         try:
+            # Web UI password change ("New Password" in _auth_settings.html). Runs before
+            # anything is written, so a rejected password aborts the whole save.
+            password_changed = False
+            # Token as stored before a possible password change (see the bot_token handling below)
+            previous_token = current_config.get('bot_token')
+            new_password = ConfigFormParserService._form_str(form_data, 'new_web_ui_password')
+            if new_password:
+                if ('confirm_web_ui_password' in form_data and
+                        ConfigFormParserService._form_str(form_data, 'confirm_web_ui_password') != new_password):
+                    return current_config, False, "The new Web UI passwords do not match. Nothing was saved."
+                try:
+                    from services.config.config_service import change_web_ui_password
+                except ImportError as e:
+                    logger.error(f"change_web_ui_password unavailable: {e}", exc_info=True)
+                    return current_config, False, "The Web UI password could not be changed. Nothing was saved."
+                try:
+                    change_web_ui_password(new_password)
+                except ValueError as e:
+                    return current_config, False, f"Web UI password not changed: {e}. Nothing was saved."
+                password_changed = True
+                logger.info("Web UI password changed via configuration form")
+                # The hash and the re-encrypted bot token changed on disk. Continue from the
+                # fresh config so the save below doesn't write the old values back.
+                current_config = config_service.get_config(force_reload=True)
+
             updated_config = current_config.copy()
+            for key in [k for k in updated_config if ConfigFormParserService._is_never_persisted(k)]:
+                updated_config.pop(key, None)
 
             # Parse servers
             servers = ConfigFormParserService.parse_servers_from_form(form_data)
@@ -295,9 +395,10 @@ class ConfigFormParserService:
             else:
                 logger.warning("No servers parsed from form data!")
 
-            # Parse channels
+            # Parse channels. An empty result only means "delete all channels" when the form
+            # says it contained the channel tables; a form without them must not wipe channels.
             channel_permissions = ConfigFormParserService.parse_channel_permissions_from_form(form_data)
-            if channel_permissions:
+            if channel_permissions or ConfigFormParserService._parse_form_checkbox(form_data, 'channel_tables_submitted'):
                 updated_config['channel_permissions'] = channel_permissions
                 ConfigFormParserService._save_channel_permissions(channel_permissions)
 
@@ -327,16 +428,43 @@ class ConfigFormParserService:
             for key, value in form_data.items():
                 if key in ConfigFormParserService._SKIP_KEYS or key == 'donation_disable_key':
                     continue
+                if key in ConfigFormParserService._PROTECTED_KEYS or ConfigFormParserService._is_never_persisted(key):
+                    logger.debug(f"Ignoring non-setting form field: {key!r}")
+                    continue
                 if any(key.startswith(p) for p in ConfigFormParserService._SKIP_PREFIXES):
                     continue
                 if isinstance(value, str):
                     value = value.strip()
+                if key == 'bot_token' and (not value or (password_changed and value == previous_token)):
+                    # An empty token field means "keep the current token", never "delete it".
+                    # After a password change the page still posts the token encrypted with the
+                    # old key; it was just re-encrypted, so keep the fresh value.
+                    continue
                 updated_config[key] = value
 
             # Save
             result = config_service.save_config(updated_config)
-            return updated_config, result.success, result.message or "Configuration saved"
+            message = result.message or "Configuration saved"
 
+            if password_changed:
+                message += " Web UI password changed; log in again with the new password."
+
+            duplicates = ConfigFormParserService.find_duplicate_channel_ids(form_data)
+            if result.success and duplicates:
+                message += (
+                    f" Warning: channel ID(s) {', '.join(duplicates)} are listed as both a status "
+                    "and a control channel. They were saved as control channels, where "
+                    "/serverstatus and /ss are not allowed. Use a separate channel for the "
+                    "status overview."
+                )
+
+            return updated_config, result.success, message
+
+        except ConfigServiceError as e:
+            # Persistence errors (disk full, permission denied) raised by save_config or
+            # change_web_ui_password
+            logger.error(f"Config service error processing config form: {e}", exc_info=True)
+            return current_config, False, e.message
         except (RuntimeError, ValueError, TypeError) as e:
             logger.error(f"Error processing config form: {e}", exc_info=True)
             return current_config, False, str(e)

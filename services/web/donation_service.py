@@ -35,9 +35,10 @@ class DonationRequest:
 class DonationResult:
     """Represents the result of a donation processing."""
     success: bool
-    message: str
+    message: str = ""
     donation_info: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
+    status_code: int = 200  # 400 = invalid input (message is safe to show), 500 = processing error
 
 
 class DonationService:
@@ -73,7 +74,9 @@ class DonationService:
             if not mech_result['success']:
                 return DonationResult(
                     success=False,
-                    error=mech_result['error']
+                    message="Donation processing failed",
+                    error=mech_result['error'],
+                    status_code=500
                 )
 
             # Step 3: Handle Discord notifications
@@ -104,13 +107,19 @@ class DonationService:
         """Validate and sanitize donation request data."""
         # Validate amount
         if not isinstance(request.amount, (int, float)) or request.amount <= 0:
-            return DonationResult(success=False, error='Invalid donation amount')
+            return DonationResult(success=False, message='Invalid donation amount',
+                                  error='Invalid donation amount', status_code=400)
 
         if request.amount > self.MAX_DONATION_AMOUNT:
-            return DonationResult(success=False, error=f'Maximum donation amount is ${self.MAX_DONATION_AMOUNT:,.0f}')
+            max_msg = f'Maximum donation amount is ${self.MAX_DONATION_AMOUNT:,.0f}'
+            return DonationResult(success=False, message=max_msg, error=max_msg, status_code=400)
 
         # Round to 2 decimal places to prevent floating point issues
         request.amount = round(float(request.amount), 2)
+        if request.amount <= 0:
+            # Positive but below one cent
+            return DonationResult(success=False, message='Invalid donation amount',
+                                  error='Invalid donation amount', status_code=400)
 
         # Validate and sanitize donor name
         if not isinstance(request.donor_name, str):
@@ -136,7 +145,7 @@ class DonationService:
 
             donation_result = process_web_ui_donation(
                 donor_name=request.donor_name,
-                amount=int(request.amount)
+                amount=request.amount  # already rounded to cents; int() dropped them ($10.75 -> $10)
             )
 
             if not donation_result.success:

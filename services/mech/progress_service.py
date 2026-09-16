@@ -33,7 +33,7 @@ import hashlib
 import json
 import os
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, fields
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -128,14 +128,22 @@ TZ = runtime.timezone()
 # Models
 # ---------------------
 
+# Snapshot key written by pre-release builds of this version; v2.3.1 loads snapshots with
+# Snapshot(**d), so an extra key breaks every status/donation call after a downgrade
+LEGACY_DECAY_ANCHOR_KEY = "power_decay_since"
+
+
 @dataclass
 class Snapshot:
+    # Keep these fields identical to v2.3.1 (see LEGACY_DECAY_ANCHOR_KEY)
     mech_id: str
     level: int = 1
     evo_acc: int = 0  # Evolution accumulator (cents)
     power_acc: int = 0  # Power accumulator (cents)
     goal_requirement: int = 0  # Requirement for next level (cents)
     difficulty_bin: int = 1
+    # Decay anchor (ISO, UTC): power_acc is the power as of this moment. Set at level-up and
+    # on every power change (decay settled first); decay since then is applied continuously
     goal_started_at: str = ""
     last_decay_day: str = ""  # YYYY-MM-DD (local)
     power_decay_per_day: int = 100  # cents
@@ -150,7 +158,15 @@ class Snapshot:
 
     @staticmethod
     def from_json(d: Dict[str, Any]) -> "Snapshot":
-        return Snapshot(**d)
+        # Ignore unknown keys so snapshots written by other versions still load
+        known = {f.name for f in fields(Snapshot)}
+        snap = Snapshot(**{k: v for k, v in d.items() if k in known})
+        # Pre-release builds kept the decay anchor in its own key; it is the moment
+        # power_acc refers to, so it replaces goal_started_at (same displayed power)
+        legacy_anchor = d.get(LEGACY_DECAY_ANCHOR_KEY)
+        if _is_aware_iso(legacy_anchor):
+            snap.goal_started_at = legacy_anchor
+        return snap
 
 
 @dataclass
@@ -195,25 +211,46 @@ def today_local_str() -> str:
     return datetime.now(TZ).date().isoformat()
 
 
-def read_events() -> List[Event]:
+def read_events(count_damaged: bool = False):
+    """Read the event log, skipping damaged lines.
+
+    With ``count_damaged=True`` returns ``(events, damaged_lines)``. Callers that REPLACE
+    state from the log (rebuild_from_events) must use it: replaying an incomplete log over
+    the snapshot would silently drop donations, levels and power.
+    """
     evts: List[Event] = []
+    damaged = 0
     if not EVENT_LOG.exists():
-        return evts  # Return empty list if file doesn't exist
+        return (evts, damaged) if count_damaged else evts
     with open(EVENT_LOG, "r", encoding="utf-8") as f:
-        for line in f:
+        for line_no, line in enumerate(f, start=1):
             line = line.strip()
             if not line:
                 continue
-            raw = json.loads(line)
-            evts.append(Event(**raw))
-    return evts
+            # Skip damaged lines (e.g. truncated by a crash during append) instead of
+            # failing every donation until the log is repaired by hand
+            try:
+                raw = json.loads(line)
+                evts.append(Event(**raw))
+            except (json.JSONDecodeError, TypeError) as e:
+                damaged += 1
+                logger.error(f"Skipping corrupt line {line_no} in {EVENT_LOG.name}: {e}")
+    return (evts, damaged) if count_damaged else evts
 
 
 def append_event(evt: Event) -> None:
     # Ensure directory exists
     EVENT_LOG.parent.mkdir(parents=True, exist_ok=True)
+    # If the last line was truncated (no trailing newline), start a new line so the
+    # new event is not glued onto the damaged one
+    prefix = ""
+    if EVENT_LOG.exists() and EVENT_LOG.stat().st_size > 0:
+        with open(EVENT_LOG, "rb") as f:
+            f.seek(-1, os.SEEK_END)
+            if f.read(1) != b"\n":
+                prefix = "\n"
     with open(EVENT_LOG, "a", encoding="utf-8") as f:
-        f.write(json.dumps(evt.to_json(), separators=(",", ":")) + "\n")
+        f.write(prefix + json.dumps(evt.to_json(), separators=(",", ":")) + "\n")
 
 
 def next_seq() -> int:
@@ -239,13 +276,17 @@ def load_snapshot(mech_id: str) -> Snapshot:
     if p.exists():
         try:
             with open(p, "r", encoding="utf-8") as f:
-                return Snapshot.from_json(json.load(f))
-        except (json.JSONDecodeError, ValueError, KeyError) as e:
-            # Corrupted snapshot file - log warning and recreate from events
-            logger.warning(f"Corrupted snapshot file detected ({e}), rebuilding from events...")
-            # Delete corrupted file and let rebuild_from_events create a fresh one
-            p.unlink(missing_ok=True)
-            # Fall through to create new snapshot below
+                raw = json.load(f)
+            snap = Snapshot.from_json(raw)
+        except (json.JSONDecodeError, ValueError, KeyError, TypeError, AttributeError) as e:
+            return _recover_corrupt_snapshot(mech_id, p, e)
+        _ensure_decay_anchor(snap)
+        if LEGACY_DECAY_ANCHOR_KEY in raw:
+            # Rewrite without the pre-release key so a downgrade to v2.3.1 can still load it
+            with LOCK:
+                persist_snapshot(snap)
+            logger.info(f"Migrated snapshot {p.name}: decay anchor moved into goal_started_at")
+        return snap
 
     # First-time snapshot → initialize goal for level 1
     snap = Snapshot(mech_id=mech_id)
@@ -253,6 +294,31 @@ def load_snapshot(mech_id: str) -> Snapshot:
     snap.last_decay_day = today_local_str()
     persist_snapshot(snap)
     return snap
+
+
+def _recover_corrupt_snapshot(mech_id: str, p: Path, error: Exception) -> Snapshot:
+    """Keep a copy of a corrupt snapshot and rebuild the state from the event log."""
+    backup = p.with_name(f"{p.name}.corrupt-{int(time.time())}")
+    try:
+        os.replace(p, backup)
+        logger.warning(f"Corrupted snapshot file detected ({error}); saved as {backup.name}, "
+                       f"rebuilding from events...")
+    except OSError as move_error:
+        logger.warning(f"Corrupted snapshot file detected ({error}); backup failed ({move_error}), "
+                       f"rebuilding from events...")
+    # rebuild_from_events persists a fresh snapshot (replacing the corrupt file)
+    ProgressService(mech_id).rebuild_from_events()
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            return Snapshot.from_json(json.load(f))
+    except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError) as read_error:
+        # The rebuild could not write the snapshot (read-only dir, disk full). Don't raise out
+        # of load_snapshot - callers only expect snapshot-decode errors - keep the mech usable.
+        logger.error(f"Rebuilt snapshot for {mech_id} could not be read back ({read_error}); "
+                     f"continuing with a fresh in-memory snapshot", exc_info=True)
+        snap = Snapshot(mech_id=mech_id)
+        _ensure_decay_anchor(snap)
+        return snap
 
 
 def persist_snapshot(snap: Snapshot) -> None:
@@ -557,27 +623,145 @@ def set_new_goal_for_next_level(snap: Snapshot, user_count: int) -> None:
                 f"bin={b}, users={user_count})")
 
 
-def compute_ui_state(snap: Snapshot) -> ProgressState:
-    # Calculate CONTINUOUS power decay based on elapsed time
-    # Formula: current_power = power_acc - (elapsed_seconds / 86400) * decay_per_day
-    power_acc_with_decay = snap.power_acc
-    if snap.goal_started_at:
-        try:
-            from datetime import datetime
-            from zoneinfo import ZoneInfo
-            goal_time = datetime.fromisoformat(snap.goal_started_at.replace('Z', '+00:00'))
-            now = datetime.now(ZoneInfo("UTC"))
-            elapsed_seconds = (now - goal_time).total_seconds()
+def _positive_int(value: Any) -> Optional[int]:
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return None
+    return number if number > 0 else None
 
-            dpp = decay_per_day(snap.level)
-            decay_amount = (elapsed_seconds / 86400.0) * dpp
-            power_acc_with_decay = max(0, snap.power_acc - int(decay_amount))
-        except ImportError as e:
-            # Import errors (zoneinfo module not available)
-            logger.warning(f"Import error calculating continuous decay: {e}")
-        except (ValueError, TypeError, KeyError) as e:
-            # Data processing errors (datetime parsing, attribute access, calculations)
-            logger.warning(f"Data error calculating continuous decay: {e}")
+
+def _member_count_file_sample() -> Optional[Tuple[Optional[datetime], int]]:
+    """(last_updated or None, count) from member_count.json, None if missing or unusable."""
+    member_count_file = MEMBER_COUNT_FILE
+    if not member_count_file.exists():
+        return None
+    try:
+        with open(member_count_file, 'r') as f:
+            data = json.load(f)
+        count = _positive_int(data.get("count"))
+        if count is None:
+            return None
+        return _event_time(data.get("last_updated")), count
+    except (IOError, OSError) as e:
+        # File I/O errors (read errors, permissions)
+        logger.warning(f"File I/O error reading member_count.json: {e}")
+    except json.JSONDecodeError as e:
+        # JSON parsing errors (corrupted file)
+        logger.warning(f"JSON parsing error reading member_count.json: {e}")
+    except (KeyError, ValueError, TypeError, AttributeError) as e:
+        # Data access/structure errors (missing 'count' key, invalid values)
+        logger.warning(f"Data error reading member_count.json: {e}")
+    return None
+
+
+def member_count_for_goal(snap: Snapshot, *, events: Optional[List[Event]] = None,
+                          at: Optional[datetime] = None, default: int = 50) -> int:
+    """Status channel member count used to price the next level goal.
+
+    Uses the most recent sample: the latest MemberCountUpdated event (published whenever
+    the bot counts the status channel members) or member_count.json (written at bot
+    startup), whichever is newer; a file without timestamp is older than any event.
+    Samples taken after ``at`` are ignored (rebuild prices a level as of its donation).
+    Falls back to the snapshot's sample, then to ``default``.
+    """
+    if events is None:
+        events = read_events()
+    latest: Optional[Tuple[datetime, int]] = None
+    for evt in events:
+        if evt.mech_id != snap.mech_id or evt.type != "MemberCountUpdated":
+            continue
+        ts = _event_time(evt.ts)
+        count = _positive_int((evt.payload or {}).get("member_count"))
+        if ts is None or count is None or (at is not None and ts > at):
+            continue
+        if latest is None or ts >= latest[0]:
+            latest = (ts, count)
+
+    file_sample = _member_count_file_sample()
+    if file_sample is not None and at is not None and file_sample[0] is not None and file_sample[0] > at:
+        file_sample = None
+    if file_sample is not None and (latest is None or (file_sample[0] is not None and file_sample[0] > latest[0])):
+        logger.info(f"Level-up: Using status channel member count from member_count.json: {file_sample[1]}")
+        return file_sample[1]
+    if latest is not None:
+        logger.info(f"Level-up: Using latest published status channel member count: {latest[1]}")
+        return latest[1]
+    if snap.last_user_count_sample and snap.last_user_count_sample > 0:
+        logger.info(f"Level-up: Using snapshot member count sample: {snap.last_user_count_sample}")
+        return int(snap.last_user_count_sample)
+    logger.info(f"Level-up: No status channel member count known, using default: {default}")
+    return default
+
+
+def _parse_utc(ts: str) -> datetime:
+    return datetime.fromisoformat(ts.replace('Z', '+00:00'))
+
+
+def _is_aware_iso(ts: Any) -> bool:
+    if not isinstance(ts, str) or not ts:
+        return False
+    try:
+        return _parse_utc(ts).tzinfo is not None
+    except ValueError:
+        return False
+
+
+def _event_time(ts: Any) -> Optional[datetime]:
+    """Aware datetime for an event timestamp (naive = UTC), None if missing or unparseable."""
+    if not isinstance(ts, str) or not ts:
+        return None
+    try:
+        parsed = _parse_utc(ts)
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=ZoneInfo("UTC"))
+
+
+def _ensure_decay_anchor(snap: Snapshot) -> None:
+    """Make sure goal_started_at (the decay anchor) is a timezone-aware timestamp.
+
+    A missing, naive or unparseable goal_started_at (the old admin reset wrote a naive
+    one) meant "no decay" in the old code (the error was swallowed), so the decay clock
+    starts now instead of making the displayed power jump.
+    """
+    if not _is_aware_iso(snap.goal_started_at):
+        snap.goal_started_at = now_utc_iso()
+
+
+def current_power_cents(snap: Snapshot, now: Optional[datetime] = None) -> int:
+    """Current power in cents: power_acc minus the decay accrued since the anchor, clamped at 0.
+
+    Formula: power = max(0, power_acc - (elapsed_seconds / 86400) * decay_per_day)
+    """
+    anchor = snap.goal_started_at
+    if not anchor:
+        return max(0, snap.power_acc)
+    try:
+        now = now or datetime.now(ZoneInfo("UTC"))
+        elapsed_seconds = max(0.0, (now - _parse_utc(anchor)).total_seconds())
+        decay_amount = (elapsed_seconds / 86400.0) * decay_per_day(snap.level)
+        return max(0, snap.power_acc - int(decay_amount))
+    except (ValueError, TypeError, KeyError) as e:
+        # Data processing errors (datetime parsing, naive timestamps, calculations)
+        logger.warning(f"Data error calculating continuous decay: {e}")
+        return max(0, snap.power_acc)
+
+
+def settle_power_decay(snap: Snapshot, now: Optional[datetime] = None) -> None:
+    """Fold the decay accrued until ``now`` into power_acc (clamped at 0) and restart the decay clock.
+
+    Called before every power change, so a donation adds to the power the user currently
+    sees instead of first paying off decay that kept accruing while power was at $0.
+    """
+    now = now or datetime.now(ZoneInfo("UTC"))
+    snap.power_acc = current_power_cents(snap, now)
+    snap.goal_started_at = now.isoformat()
+
+
+def compute_ui_state(snap: Snapshot) -> ProgressState:
+    # CONTINUOUS power decay since the decay anchor (clamped at 0)
+    power_acc_with_decay = current_power_cents(snap)
 
     power_max_cents = snap.goal_requirement + 100 if snap.goal_requirement > 0 else 100  # +$1
     power_percent = int((power_acc_with_decay * 100) // power_max_cents)
@@ -599,7 +783,7 @@ def compute_ui_state(snap: Snapshot) -> ProgressState:
         evo_percent=evo_percent,
         total_donated=total_cents / 100.0,
         can_level_up=snap.level < 11 and snap.evo_acc >= snap.goal_requirement,
-        is_offline=snap.power_acc == 0,
+        is_offline=power_acc_with_decay <= 0,  # same decayed value as power_current
         difficulty_bin=snap.difficulty_bin,
         difficulty_tier=bin_to_tier_name(snap.difficulty_bin),
         member_count=snap.last_user_count_sample
@@ -616,8 +800,15 @@ def deterministic_gift_1_3(mech_id: str, campaign_id: str) -> int:
 # Core logic
 # ---------------------
 
-def apply_donation_units(snap: Snapshot, units_cents: int) -> Tuple[Snapshot, List[Event], Optional[Event]]:
-    """Apply donation units to evo & power; may trigger multiple LevelUpCommitted and ExactHitBonusGranted events."""
+def apply_donation_units(snap: Snapshot, units_cents: int, *, events: Optional[List[Event]] = None,
+                         at: Optional[datetime] = None,
+                         goals: Optional[Dict[int, int]] = None) -> Tuple[Snapshot, List[Event], Optional[Event]]:
+    """Apply donation units to evo & power; may trigger multiple LevelUpCommitted and ExactHitBonusGranted events.
+
+    ``events``/``at`` select the member count that prices a new level (see
+    member_count_for_goal); ``goals`` (rebuild only) reuses the goal the live path fixed
+    for a level instead of pricing it again.
+    """
     # Track cumulative donations
     snap.cumulative_donations_cents += units_cents
 
@@ -690,35 +881,14 @@ def apply_donation_units(snap: Snapshot, units_cents: int) -> Tuple[Snapshot, Li
         if snap.level < 11:
             # Get current STATUS CHANNEL member count for accurate dynamic cost calculation
             # IMPORTANT: We count ONLY members who can see status channels, NOT all server members
-            # This data is updated by the bot at startup and stored in member_count.json
-            import json
-
-            member_count_file = MEMBER_COUNT_FILE
-            if member_count_file.exists():
-                try:
-                    with open(member_count_file, 'r') as f:
-                        data = json.load(f)
-                        current_member_count = data.get("count", 50)
-                        logger.info(f"Level-up: Loaded status channel member count from config: {current_member_count}")
-                except (IOError, OSError) as e:
-                    # File I/O errors (read errors, permissions)
-                    logger.warning(f"File I/O error reading member_count.json: {e}, using default")
-                    current_member_count = 50
-                except json.JSONDecodeError as e:
-                    # JSON parsing errors (corrupted file)
-                    logger.warning(f"JSON parsing error reading member_count.json: {e}, using default")
-                    current_member_count = 50
-                except (KeyError, ValueError, TypeError) as e:
-                    # Data access/structure errors (missing 'count' key, invalid values)
-                    logger.warning(f"Data error reading member_count.json: {e}, using default")
-                    current_member_count = 50
-            else:
-                # Use a reasonable default for testing (50 status channel members)
-                current_member_count = 50
-                logger.info(f"Level-up: member_count.json not found, using default: {current_member_count}")
+            current_member_count = member_count_for_goal(snap, events=events, at=at)
 
             logger.info(f"Level-up: Using {current_member_count} status channel members for dynamic cost calculation")
             set_new_goal_for_next_level(snap, user_count=current_member_count)
+            if goals and snap.level in goals:
+                snap.goal_requirement = goals[snap.level]
+            # Recorded so a rebuild can keep this goal (difficulty is fixed at level start)
+            lvl_evt.payload["new_goal_requirement"] = snap.goal_requirement
         else:
             snap.goal_requirement = 0
             break  # Max level reached
@@ -728,6 +898,68 @@ def apply_donation_units(snap: Snapshot, units_cents: int) -> Tuple[Snapshot, Li
 
     # Return list of level-up events and optional bonus event (for last exact hit)
     return snap, level_up_events, bonus_event
+
+
+MAX_POWER = 10000000  # $100,000 max power
+MAX_CUMULATIVE = 100000000  # $1,000,000 max cumulative
+
+# Events that change power; replayed by rebuild_from_events exactly like the live path
+POWER_EVENT_TYPES = ("DonationAdded", "SystemDonationAdded", "PowerGiftGranted")
+
+
+def add_system_power(snap: Snapshot, units_cents: int) -> None:
+    """System donation: adds power and counts in the total, never evolution progress."""
+    # Validate current state before modifying
+    if snap.power_acc < 0:
+        logger.error(f"Corrupted power_acc before donation: {snap.power_acc}. Resetting to 0.")
+        snap.power_acc = 0
+
+    if snap.cumulative_donations_cents < 0:
+        logger.error(f"Corrupted cumulative_donations: {snap.cumulative_donations_cents}. Resetting to 0.")
+        snap.cumulative_donations_cents = 0
+
+    # Check for potential overflow BEFORE adding
+    if snap.power_acc > MAX_POWER - units_cents:
+        logger.warning(f"Power would exceed ${MAX_POWER/100:.2f}. Capping at max.")
+        snap.power_acc = MAX_POWER
+    else:
+        # Add to power ONLY (not evo_acc!)
+        snap.power_acc += units_cents
+
+    # Update cumulative with overflow protection
+    if snap.cumulative_donations_cents > MAX_CUMULATIVE - units_cents:
+        logger.warning(f"Cumulative would exceed ${MAX_CUMULATIVE/100:.2f}. Capping.")
+        snap.cumulative_donations_cents = MAX_CUMULATIVE
+    else:
+        snap.cumulative_donations_cents += units_cents
+
+
+def apply_power_event(snap: Snapshot, evt: Event, *, events: Optional[List[Event]] = None,
+                      goals: Optional[Dict[int, int]] = None) -> Tuple[List[Event], Optional[Event]]:
+    """Apply one power-changing event; used by the live path AND rebuild_from_events.
+
+    Decay is settled up to the event time first (the event adds to the power shown at that
+    moment), and afterwards power_acc is the power as of the event, also after a level-up.
+    Sharing this function keeps a rebuild identical to the live state.
+    Returns the LevelUpCommitted events and the ExactHitBonusGranted event (or None).
+    """
+    at = _event_time(evt.ts)
+    if at is not None:
+        settle_power_decay(snap, at)
+    payload = evt.payload or {}
+    lvl_events: List[Event] = []
+    bonus_evt: Optional[Event] = None
+    if evt.type == "DonationAdded":
+        units = int(payload.get("units", 0) or 0)
+        snap, lvl_events, bonus_evt = apply_donation_units(snap, units, events=events, at=at, goals=goals)
+    elif evt.type == "SystemDonationAdded":
+        add_system_power(snap, int(payload.get("power_units", 0) or 0))
+    elif evt.type == "PowerGiftGranted":
+        snap.power_acc += int(payload.get("power_units", 0) or 0)
+    if at is not None:
+        # A level-up restarted the clock at "now"; the new power_acc is as of the event
+        snap.goal_started_at = at.isoformat()
+    return lvl_events, bonus_evt
 
 
 # ---------------------
@@ -752,7 +984,8 @@ class ProgressService:
     def add_donation(self, amount_dollars: float, donor: Optional[str] = None,
                     channel_id: Optional[str] = None, idempotency_key: Optional[str] = None) -> ProgressState:
         """Add a donation and return updated state"""
-        units_cents = int(amount_dollars * 100)
+        # round(): int() truncated binary floats ($19.99 -> 1998 cents)
+        units_cents = int(round(amount_dollars * 100))
         if units_cents <= 0:
             raise ValueError("Donation amount must be positive")
 
@@ -764,7 +997,8 @@ class ProgressService:
 
         with LOCK:
             # Check idempotency
-            existing = [e for e in read_events()
+            all_events = read_events()
+            existing = [e for e in all_events
                        if e.mech_id == self.mech_id
                        and e.type == "DonationAdded"
                        and e.payload.get("idempotency_key") == idempotency_key]
@@ -795,7 +1029,8 @@ class ProgressService:
             # Apply to snapshot
             snap = load_snapshot(self.mech_id)
             apply_decay_on_demand(snap)
-            snap, lvl_events, bonus_evt = apply_donation_units(snap, units_cents)
+            # Settles decay first: the donation adds to the CURRENT (decayed, clamped) power
+            lvl_events, bonus_evt = apply_power_event(snap, evt, events=all_events)
 
             # Append all level-up events (may be multiple for large donations)
             for lvl_evt in lvl_events:
@@ -943,32 +1178,8 @@ class ProgressService:
             try:
                 snap = load_snapshot(self.mech_id)
                 apply_decay_on_demand(snap)
-
-                # Validate current state before modifying
-                if snap.power_acc < 0:
-                    logger.error(f"Corrupted power_acc before donation: {snap.power_acc}. Resetting to 0.")
-                    snap.power_acc = 0
-
-                if snap.cumulative_donations_cents < 0:
-                    logger.error(f"Corrupted cumulative_donations: {snap.cumulative_donations_cents}. Resetting to 0.")
-                    snap.cumulative_donations_cents = 0
-
-                # Check for potential overflow BEFORE adding
-                MAX_POWER = 10000000  # $100,000 max power
-                if snap.power_acc > MAX_POWER - units_cents:
-                    logger.warning(f"Power would exceed ${MAX_POWER/100:.2f}. Capping at max.")
-                    snap.power_acc = MAX_POWER
-                else:
-                    # Add to power ONLY (not evo_acc!)
-                    snap.power_acc += units_cents
-
-                # Update cumulative with overflow protection
-                MAX_CUMULATIVE = 100000000  # $1,000,000 max cumulative
-                if snap.cumulative_donations_cents > MAX_CUMULATIVE - units_cents:
-                    logger.warning(f"Cumulative would exceed ${MAX_CUMULATIVE/100:.2f}. Capping.")
-                    snap.cumulative_donations_cents = MAX_CUMULATIVE
-                else:
-                    snap.cumulative_donations_cents += units_cents
+                # Settles decay first, then adds to power ONLY (not evolution), capped
+                apply_power_event(snap, evt)
 
                 # Update metadata
                 snap.version += 1
@@ -1024,7 +1235,8 @@ class ProgressService:
             snap = load_snapshot(self.mech_id)
             apply_decay_on_demand(snap)
 
-            if snap.power_acc > 0:
+            # Use the CURRENT (decayed) power: raw power_acc stays > 0 while decay runs
+            if current_power_cents(snap) > 0:
                 logger.info(f"Power gift skipped: power > 0")
                 persist_snapshot(snap)
                 return compute_ui_state(snap), None
@@ -1050,7 +1262,8 @@ class ProgressService:
             )
             append_event(evt)
 
-            snap.power_acc += gift_cents
+            # Power is 0 here: fold any decay debt and restart the decay clock before adding
+            apply_power_event(snap, evt)
             snap.version += 1
             snap.last_event_seq = evt.seq
             persist_snapshot(snap)
@@ -1063,18 +1276,43 @@ class ProgressService:
         """
         Rebuild snapshot from scratch by replaying all events CHRONOLOGICALLY.
 
-        SIMPLE TIME-AWARE APPROACH:
-        1. Go through events chronologically (by timestamp, not seq!)
-        2. Calculate decay since last event
-        3. Apply event (Donation, PowerGift, etc.)
-        4. apply_donation_units handles level-ups and power reset
-        5. System donations ignored (except initial $3)
-
-        This correctly handles decay over 3+ years by simulating time progression.
+        The replay gives the same state as the live path (an admin delete/restore must not
+        shift the displayed power):
+        1. Events in timestamp order; deleted events (DonationDeleted toggles) are skipped
+        2. Power events go through apply_power_event, like the live path: decay is settled
+           up to the event time, then the donation / system donation / gift is applied
+           (level-ups and the exact-hit bonus happen inside the donation)
+        3. ExactHitBonusGranted / LevelUpCommitted only record what a donation did; a
+           deleted bonus event removes the bonus from its donation
+        4. Level goals are reused from the events and the current snapshot instead of
+           being priced again with today's member count and difficulty
         """
         with LOCK:
             # Read all events for this mech
-            all_events = [e for e in read_events() if e.mech_id == self.mech_id]
+            events, damaged_lines = read_events(count_damaged=True)
+            all_events = [e for e in events if e.mech_id == self.mech_id]
+
+            if damaged_lines:
+                # A rebuild REPLACES the snapshot. With lines missing from the log the replay
+                # is incomplete (level, power and totals would silently drop), so keep the
+                # existing snapshot and let the caller work with it.
+                logger.error(
+                    f"Refusing to rebuild {self.mech_id} from a damaged event log: "
+                    f"{damaged_lines} unreadable line(s) in {EVENT_LOG.name}. Keeping the "
+                    f"current snapshot; repair or restore {EVENT_LOG.name} first."
+                )
+                # Read the snapshot file directly: load_snapshot() would pull in the whole
+                # config/recovery path, and the caller only needs the current state.
+                path = snapshot_path(self.mech_id)
+                snap = Snapshot(mech_id=self.mech_id)
+                if path.exists():
+                    try:
+                        with open(path, "r", encoding="utf-8") as f:
+                            snap = Snapshot.from_json(json.load(f))
+                    except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError) as e:
+                        logger.error(f"Snapshot for {self.mech_id} is unreadable as well ({e})")
+                _ensure_decay_anchor(snap)
+                return compute_ui_state(snap)
 
             # Calculate deleted_seqs using toggle pattern:
             # Each DonationDeleted with the same deleted_seq toggles the state.
@@ -1095,108 +1333,56 @@ class ProgressService:
                 else:
                     logger.info(f"Event seq {seq} restored (toggle count: {count})")
 
+            ordered = sorted(all_events, key=lambda e: e.ts)
+            goals, previous = self._recorded_goals(ordered)
+
             # Create fresh snapshot at Level 1
             snap = Snapshot(mech_id=self.mech_id)
             set_new_goal_for_next_level(snap, user_count=0)
+            if 1 in goals:
+                snap.goal_requirement = goals[1]
             snap.last_decay_day = today_local_str()
 
-            # Track last event timestamp for decay calculation
-            last_timestamp = None
-            # dpp is now dynamic based on level, so we don't pre-calculate it
-
-            # Replay all events in CHRONOLOGICAL ORDER (by timestamp!)
+            last_time: Optional[datetime] = None  # last event time (anchor if power never changed)
+            anchored = False  # a power event set the decay anchor
+            last_bonus = 0  # exact-hit bonus granted by the last replayed power event
+            member_events: List[Event] = []  # member count samples replayed so far
             last_seq = 0
-            for evt in sorted(all_events, key=lambda e: e.ts):
+            for evt in ordered:
                 last_seq = max(last_seq, evt.seq)
-
-                # Skip deleted events
-                if evt.seq in deleted_seqs:
-                    continue
-
-                # Skip DonationDeleted events (metadata, not actual events to replay)
-                if evt.type == "DonationDeleted":
-                    continue
-
-                # STEP 1: Calculate decay since last event
-                if last_timestamp and evt.ts:
-                    try:
-                        from datetime import datetime
-                        from zoneinfo import ZoneInfo
-
-                        # Parse timestamps
-                        last_time = datetime.fromisoformat(last_timestamp.replace('Z', '+00:00'))
-                        current_time = datetime.fromisoformat(evt.ts.replace('Z', '+00:00'))
-
-                        # Calculate elapsed time
-                        elapsed_seconds = (current_time - last_time).total_seconds()
-                        elapsed_days = elapsed_seconds / 86400.0
-
-                        # Calculate decay amount using dynamic dpp for current level
-                        dpp = decay_per_day(snap.level)
-                        decay_amount = int(elapsed_days * dpp)
-
-                        # Apply decay to power
-                        if decay_amount > 0:
-                            snap.power_acc = max(0, snap.power_acc - decay_amount)
-                            logger.debug(f"Applied decay: {elapsed_days:.2f} days = ${decay_amount/100:.2f} "
-                                       f"(power: ${snap.power_acc/100:.2f})")
-                    except (ValueError, AttributeError, ImportError) as e:
-                        logger.warning(f"Could not calculate decay between events: {e}")
-
-                # STEP 2: Apply event based on type
                 payload = evt.payload or {}
 
-                if evt.type == "DonationAdded":
-                    # Apply user donation (affects both power and evolution)
-                    units_cents = payload.get("units", 0)
-                    snap, lvl_evt, bonus_evt = apply_donation_units(snap, units_cents)
-                    logger.debug(f"Applied DonationAdded: ${units_cents/100:.2f} "
-                               f"(power: ${snap.power_acc/100:.2f}, evo: ${snap.evo_acc/100:.2f}, level: {snap.level})")
+                if evt.seq in deleted_seqs:
+                    if evt.type == "ExactHitBonusGranted" and last_bonus:
+                        # Deleted bonus: its donation is replayed without the bonus
+                        snap.power_acc = max(0, snap.power_acc - last_bonus)
+                    if evt.type in POWER_EVENT_TYPES or evt.type == "ExactHitBonusGranted":
+                        # The bonus only ever belongs to the power event right before it. A
+                        # skipped power event leaves no bonus to remove - keeping the previous
+                        # value would subtract an unrelated, earlier bonus when a donation and
+                        # its bonus are both deleted (V2 review B3).
+                        last_bonus = 0
+                    continue
 
-                elif evt.type == "SystemDonationAdded":
-                    # System donations: Ignore ALL except initial $3
-                    is_initial = payload.get("is_initial", False)
-                    if is_initial:
-                        initial_power = payload.get("power_units", 300)  # $3 default
-                        snap.power_acc += initial_power
-                        logger.debug(f"Applied initial SystemDonation: ${initial_power/100:.2f}")
-                    else:
-                        logger.debug("Skipping non-initial SystemDonation")
+                last_time = _event_time(evt.ts) or last_time
 
-                elif evt.type == "PowerGiftGranted":
-                    # Power gift: Power ONLY, no evolution
-                    gift_cents = payload.get("power_units", 0)
-                    snap.power_acc += gift_cents
-                    logger.debug(f"Applied PowerGift: ${gift_cents/100:.2f}")
+                if evt.type == "MemberCountUpdated":
+                    snap.last_user_count_sample = max(0, int(payload.get("member_count", 0) or 0))
+                    member_events.append(evt)
+                elif evt.type in POWER_EVENT_TYPES:
+                    _, bonus_evt = apply_power_event(snap, evt, events=member_events, goals=goals)
+                    last_bonus = int(bonus_evt.payload.get("power_units", 0)) if bonus_evt else 0
+                    anchored = anchored or _event_time(evt.ts) is not None
+                    logger.debug(f"Applied {evt.type} seq {evt.seq} (power: ${snap.power_acc/100:.2f}, "
+                                 f"evo: ${snap.evo_acc/100:.2f}, level: {snap.level})")
+                # DonationDeleted, LevelUpCommitted, ExactHitBonusGranted: nothing to replay
 
-                elif evt.type == "ExactHitBonusGranted":
-                    # Exact hit bonus: Power + counts as donation
-                    bonus_cents = payload.get("power_units", 0)
-                    snap.power_acc += bonus_cents
-                    snap.cumulative_donations_cents += bonus_cents
-                    logger.debug(f"Applied ExactHitBonus: ${bonus_cents/100:.2f}")
-
-                elif evt.type == "MemberCountUpdated":
-                    # Update member count
-                    new_count = payload.get("member_count", 0)
-                    snap.last_user_count_sample = new_count
-
-                elif evt.type == "LevelUpCommitted":
-                    # Skip - these are generated during apply_donation_units
-                    pass
-
-                # Update last_timestamp for next iteration
-                if evt.ts:
-                    last_timestamp = evt.ts
-
-            # Set goal_started_at to last event timestamp
-            # This allows compute_ui_state to calculate decay from last event to NOW
-            if last_timestamp:
-                snap.goal_started_at = last_timestamp
-                logger.info(f"Set goal_started_at to last event timestamp: {last_timestamp}")
-            else:
-                snap.goal_started_at = now_utc_iso()
-                logger.info("No events with timestamp, using current time")
+            if not anchored:
+                # Power never changed (it is 0): start the decay clock at the last event
+                snap.goal_started_at = last_time.isoformat() if last_time else now_utc_iso()
+            if previous is not None and previous.level == snap.level:
+                # Same level as before: keep its difficulty (may have been re-priced at startup)
+                snap.difficulty_bin = previous.difficulty_bin
 
             # Update snapshot metadata
             snap.version += 1
@@ -1208,6 +1394,37 @@ class ProgressService:
                        f"evo=${snap.evo_acc/100:.2f}, level={snap.level})")
 
             return compute_ui_state(snap)
+
+    def _recorded_goals(self, ordered_events: List[Event]) -> Tuple[Dict[int, int], Optional[Snapshot]]:
+        """Goals the live path fixed per level, plus the current snapshot (None if unreadable).
+
+        Difficulty is fixed when a level starts (member count, difficulty mode), so a replay
+        must not price past levels again with today's values. LevelUpCommitted records the
+        goal it completed (and the next goal since this release); the current snapshot holds
+        the goal of the level in progress, including a re-price by the startup step.
+        """
+        goals: Dict[int, int] = {}
+        for evt in ordered_events:
+            if evt.type != "LevelUpCommitted":
+                continue
+            payload = evt.payload or {}
+            for level_key, goal_key in (("from_level", "old_goal_requirement"),
+                                        ("to_level", "new_goal_requirement")):
+                level, goal = payload.get(level_key), _positive_int(payload.get(goal_key))
+                if isinstance(level, int) and 1 <= level <= 10 and goal is not None:
+                    goals[level] = goal
+
+        previous: Optional[Snapshot] = None
+        try:
+            with open(snapshot_path(self.mech_id), "r", encoding="utf-8") as f:
+                previous = Snapshot.from_json(json.load(f))
+        except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError, AttributeError):
+            previous = None
+        if previous is not None and isinstance(previous.level, int) and 1 <= previous.level <= 10:
+            goal = _positive_int(previous.goal_requirement)
+            if goal is not None:
+                goals[previous.level] = goal
+        return goals, previous
 
     def delete_donation(self, donation_seq: int) -> ProgressState:
         """

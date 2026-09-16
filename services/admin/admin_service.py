@@ -4,6 +4,9 @@
 
 import json
 import logging
+import os
+import stat
+import tempfile
 from pathlib import Path
 from typing import List, Optional, Dict, Any, Union
 from datetime import datetime, timedelta
@@ -70,7 +73,7 @@ class AdminService:
             except json.JSONDecodeError as e:
                 logger.error(f"Invalid JSON in admins.json: {e}")
                 return []
-            except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError) as e:
+            except (IOError, OSError, PermissionError, RuntimeError) as e:
                 logger.error(f"Error reading admins.json: {e}", exc_info=True)
                 return []
 
@@ -201,9 +204,24 @@ class AdminService:
                 'admin_notes': admin_notes or {}
             }
 
-            # Write to file
-            with open(admins_file, 'w') as f:
-                json.dump(admin_data, f, indent=2)
+            # Write atomically (temp file in the same directory + os.replace) so a
+            # failed or interrupted write never leaves a truncated admins.json
+            fd, temp_path = tempfile.mkstemp(dir=str(admins_file.parent), prefix='.admins_', suffix='.json.tmp')
+            try:
+                with os.fdopen(fd, 'w') as f:
+                    json.dump(admin_data, f, indent=2)
+                    f.flush()
+                    os.fsync(f.fileno())
+                # Keep the permissions of the file being replaced (mkstemp uses 0600)
+                if admins_file.exists():
+                    os.chmod(temp_path, stat.S_IMODE(admins_file.stat().st_mode))
+                os.replace(temp_path, str(admins_file))
+            except BaseException:
+                try:
+                    os.unlink(temp_path)
+                except OSError:
+                    pass  # Best effort cleanup
+                raise
 
             # Invalidate cache
             self._admin_users_cache = None
@@ -215,7 +233,8 @@ class AdminService:
         except (IOError, OSError, PermissionError) as e:
             logger.error(f"File I/O error saving admin data to {admins_file}: {e}", exc_info=True)
             return False
-        except json.JSONEncodeError as e:
+        except (TypeError, ValueError) as e:
+            # json.dump raises TypeError/ValueError for unserializable data
             logger.error(f"JSON encoding error saving admin data: {e}", exc_info=True)
             return False
         except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError) as e:

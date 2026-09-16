@@ -172,6 +172,8 @@ COPY --chown=ddc:ddc encrypted_assets/ encrypted_assets/
 COPY --chown=ddc:ddc cached_animations/ cached_animations/
 COPY --chown=ddc:ddc cached_displays/ cached_displays/
 COPY --chown=ddc:ddc scripts/entrypoint.sh /app/entrypoint.sh
+# Password reset utility (docs: docker exec -it -u ddc <container> python3 scripts/reset_password.py)
+COPY --chown=ddc:ddc scripts/reset_password.py /app/scripts/reset_password.py
 
 # Setup permissions
 RUN chmod +x /app/entrypoint.sh && \
@@ -184,7 +186,10 @@ RUN chmod +x /app/entrypoint.sh && \
     find /app -type d -name '__pycache__' -prune -exec rm -rf {} +
 
 # Environment
-ENV PYTHONPATH="/app:/opt/runtime/site-packages" \
+# DDC_VERSION: single source for the version shown by the entrypoint banner and /health
+# (bump together with README.md / docs/CHANGELOG.md on release).
+ENV DDC_VERSION="2.4.0" \
+    PYTHONPATH="/app:/opt/runtime/site-packages" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONOPTIMIZE=1 \
@@ -196,4 +201,12 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 # Note: We start as root to fix volume permissions on Unraid/NAS systems
 # The entrypoint.sh will drop privileges to 'ddc' user after fixing permissions
 EXPOSE 9374
+
+# Health check against the unauthenticated /health endpoint of the web UI.
+# No curl/wget in the image (busybox wget is removed above), so use python3.
+# ProxyHandler({}) ignores HTTP(S)_PROXY (urlopen would send 127.0.0.1 to the proxy);
+# the port follows DDC_WEB_PORT with the same fallback to 9374 as run.py.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python3 -c "import os, urllib.request as u; p = os.environ.get('DDC_WEB_PORT', '').strip(); p = p if p.isdigit() and 0 < int(p) < 65536 else '9374'; u.build_opener(u.ProxyHandler({})).open('http://127.0.0.1:' + p + '/health', timeout=8)" || exit 1
+
 ENTRYPOINT ["/app/entrypoint.sh"]

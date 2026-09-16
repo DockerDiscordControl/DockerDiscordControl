@@ -150,6 +150,7 @@ def test_power_decay_reduces_power_over_time(donation_env):
     assert initial.new_power == pytest.approx(0.5)
 
     snapshot = donation_env.progress_service.load_snapshot("main")
+    # Decay runs from goal_started_at (settled on every power change)
     snapshot.goal_started_at = (
         datetime.now(ZoneInfo("UTC")) - timedelta(days=2)
     ).isoformat()

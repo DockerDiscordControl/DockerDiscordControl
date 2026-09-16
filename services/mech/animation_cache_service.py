@@ -86,7 +86,6 @@ class AnimationCacheService:
 
     def __init__(self):
         # V2.0 Cache-Only Architecture: Use correct path for Docker vs Local
-        import os
         if os.path.exists("/app/cached_animations"):
             # Docker environment - V2.0 cache-only (no PNG sources)
             self.assets_dir = None  # V2.0: PNG sources not available in container
@@ -708,6 +707,22 @@ class AnimationCacheService:
         buffer.seek(0)
         return buffer.getvalue()
 
+    def _write_cache_file_atomic(self, path: Path, data: bytes) -> None:
+        """Write a cache file via temp file + os.replace so readers never see a partial file."""
+        import tempfile
+        fd, tmp_path = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+        os.close(fd)
+        try:
+            with open(tmp_path, 'wb') as f:
+                f.write(data)
+            os.replace(tmp_path, path)
+        except Exception:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
+
     def pre_generate_animation(self, evolution_level: int, animation_type: str = "walk", resolution: str = "small"):
         """Pre-generate and cache unified animation for given evolution level, type, and resolution"""
         cache_path = self.get_cached_animation_path(evolution_level, animation_type, resolution)
@@ -732,8 +747,7 @@ class AnimationCacheService:
             unified_webp = self._create_unified_webp(frames)
             # Obfuscate the WebP data before writing to disk
             obfuscated_data = self._obfuscate_data(unified_webp)
-            with open(cache_path, 'wb') as f:
-                f.write(obfuscated_data)
+            self._write_cache_file_atomic(cache_path, obfuscated_data)
             logger.info(f"Generated {animation_type} animation ({resolution}): {cache_path} ({len(unified_webp)} bytes, obfuscated: {len(obfuscated_data)} bytes)")
 
         except (IOError, OSError) as e:
@@ -1036,8 +1050,7 @@ class AnimationCacheService:
         
         # 8. Save to Disk Cache (for next time)
         try:
-            with open(speed_cache_path, 'wb') as f:
-                f.write(adjusted_data)
+            self._write_cache_file_atomic(speed_cache_path, adjusted_data)
             logger.debug(f"💾 Saved speed cache: {speed_cache_path.name}")
         except Exception as e:
             logger.error(f"Failed to save speed cache {speed_cache_path}: {e}")
@@ -1415,62 +1428,14 @@ class AnimationCacheService:
 
     async def perform_initial_cache_warmup(self):
         """Perform initial animation cache warmup on container startup."""
+        # Loading / re-encoding WebP animations is blocking CPU and disk work: run the
+        # (identical) sync warmup in a worker thread so the event loop stays responsive
+        import asyncio
         try:
             logger.info("Performing initial animation cache warmup...")
-
-            # Get current mech status from MechDataStore (Single Point of Truth)
-            from services.mech.mech_data_store import get_mech_data_store, MechDataRequest
-            from services.mech.speed_levels import get_combined_mech_status
-
-            data_store = get_mech_data_store()
-            data_request = MechDataRequest(include_decimals=True)
-            mech_result = data_store.get_comprehensive_data(data_request)
-
-            if not mech_result.success:
-                logger.warning("Could not get mech status for warmup - skipping")
-                return
-
-            current_level = mech_result.current_level
-            current_power = mech_result.current_power
-
-            # Calculate current speed level
-            # SPECIAL CASE: Level 11 is maximum level - always use Speed Level 100 (same logic as MechWebService)
-            if current_level >= 11:
-                current_speed_level = 100  # Level 11 always has maximum speed (divine speed)
-                logger.debug(f"Level 11 cache warmup using maximum speed level: {current_speed_level}")
-            else:
-                speed_status = get_combined_mech_status(current_power)
-                current_speed_level = speed_status['speed']['level']
-
-            logger.info(f"Cache warmup: Level {current_level}, Power {current_power:.2f}, Speed {current_speed_level}")
-
-            # Proactively cache animations for current speed level
-            # This prevents live re-encoding during Discord interactions
-
-            # Determine which animation types to cache based on level
-            animation_types = ["walk"]  # All levels have walk animations
-            if current_level <= 10:
-                animation_types.append("rest")  # Only levels 1-10 have rest animations
-
-            logger.debug(f"Caching animation types for Level {current_level}: {animation_types}")
-
-            for animation_type in animation_types:
-                try:
-                    # ULTRA-FOCUSED: Pre-cache both small and big animations for current state
-                    logger.debug(f"Pre-caching small {animation_type} animation for level {current_level}, speed {current_speed_level}")
-                    self.get_animation_with_speed_and_power(current_level, current_speed_level, current_power)
-
-                    logger.debug(f"Pre-caching big {animation_type} animation for level {current_level}, speed {current_speed_level}")
-                    self.get_animation_with_speed_and_power_big(current_level, current_speed_level, current_power)
-
-                except (IOError, OSError, ValueError, TypeError, AttributeError) as cache_error:
-                    # Animation caching errors (file I/O, image processing)
-                    logger.error(f"Failed to pre-cache {animation_type} animation: {cache_error}", exc_info=True)
-
-            logger.info(f"Initial cache warmup complete - cached animations for speed level {current_speed_level}")
-
-        except (ImportError, AttributeError, RuntimeError) as e:
-            # Service initialization errors (data store unavailable, etc.)
+            await asyncio.get_running_loop().run_in_executor(None, self._perform_sync_cache_warmup)
+        except RuntimeError as e:
+            # Executor/runtime errors (the sync warmup handles its own service errors)
             logger.error(f"Error during initial cache warmup: {e}", exc_info=True)
 
     def _perform_sync_cache_warmup(self):
@@ -1499,7 +1464,10 @@ class AnimationCacheService:
                 current_speed_level = 100  # Level 11 always has maximum speed (divine speed)
                 logger.debug(f"Level 11 sync cache warmup using maximum speed level: {current_speed_level}")
             else:
-                speed_status = get_combined_mech_status(current_power)
+                # Real level + its power bar maximum (same speed as MechWebService)
+                speed_status = get_combined_mech_status(
+                    current_power, evolution_level=current_level,
+                    power_max=getattr(getattr(mech_result, 'bars', None), 'Power_max_for_level', None))
                 current_speed_level = speed_status['speed']['level']
 
             logger.info(f"Sync cache warmup: Level {current_level}, Power {current_power:.2f}, Speed {current_speed_level}")
@@ -1595,47 +1563,27 @@ class AnimationCacheService:
 
     async def _perform_service_first_async_warmup(self):
         """SERVICE FIRST: Async animation warmup using MechWebService."""
+        # get_live_animation may re-encode a WebP (blocking CPU work, seconds for big
+        # animations): run the (identical) sync warmup in a worker thread, not on the event loop
+        import asyncio
         try:
-            # SERVICE FIRST: Use MechWebService for animation requests
-            from services.web.mech_web_service import get_mech_web_service, MechAnimationRequest
+            await asyncio.get_running_loop().run_in_executor(None, self._perform_service_first_sync_warmup)
+        except RuntimeError as e:
+            # Executor/runtime errors (the sync warmup handles its own service errors)
+            logger.error(f"SERVICE FIRST async warmup failed: {e}", exc_info=True)
+
+    def _current_power_bar_max(self) -> Optional[float]:
+        """Power bar maximum of the current mech level (speed scale); None if unavailable."""
+        try:
             from services.mech.mech_data_store import get_mech_data_store, MechDataRequest
 
-            web_service = get_mech_web_service()
-            data_store = get_mech_data_store()
-
-            # Get current mech status via MechDataStore (Single Point of Truth)
-            data_request = MechDataRequest(include_decimals=True)
-            mech_result = data_store.get_comprehensive_data(data_request)
-
-            if not mech_result.success:
-                logger.warning("SERVICE FIRST async warmup: Could not get mech status - skipping")
-                return
-
-            current_power = mech_result.current_power
-            logger.info(f"SERVICE FIRST async warmup: Power {current_power:.2f}")
-
-            # Cache both small and big animations via service requests (async-compatible)
-            for resolution in ["small", "big"]:
-                try:
-                    request = MechAnimationRequest(
-                        force_power=current_power,
-                        resolution=resolution
-                    )
-                    # Note: MechWebService.get_live_animation is sync, but we can call it from async context
-                    result = web_service.get_live_animation(request)
-
-                    if result.success:
-                        logger.debug(f"SERVICE FIRST: Cached {resolution} animation ({len(result.animation_bytes)} bytes)")
-                    else:
-                        logger.warning(f"SERVICE FIRST: Failed to cache {resolution} animation: {result.error}")
-
-                except (ValueError, TypeError, AttributeError) as e:
-                    # Animation request/processing errors
-                    logger.error(f"SERVICE FIRST async warmup error for {resolution}: {e}", exc_info=True)
-
-        except (ImportError, AttributeError, RuntimeError) as e:
-            # Service initialization errors (web service unavailable, data store errors, etc.)
-            logger.error(f"SERVICE FIRST async warmup failed: {e}", exc_info=True)
+            mech_result = get_mech_data_store().get_comprehensive_data(MechDataRequest(include_decimals=True))
+            if mech_result.success:
+                return getattr(getattr(mech_result, 'bars', None), 'Power_max_for_level', None)
+        except (ImportError, AttributeError, TypeError, ValueError, KeyError, RuntimeError, OSError) as e:
+            # Speed then falls back to the level's range from the evolution config
+            logger.debug(f"Could not get power bar maximum: {e}")
+        return None
 
     def get_status_overview_animation(self, evolution_level: int, power_level: float = 1.0) -> bytes:
         """
@@ -1669,9 +1617,11 @@ class AnimationCacheService:
                 speed_level = 100  # Level 11 always has maximum speed (divine speed)
                 logger.debug(f"Status Overview: Level 11 using maximum speed level: {speed_level}")
             else:
-                # Use actual power-based speed calculation (same as MechWebService)
+                # Use actual power-based speed calculation (same as MechWebService): real level
+                # and its power bar maximum instead of a level guessed from the power amount
                 from services.mech.speed_levels import get_combined_mech_status
-                speed_status = get_combined_mech_status(power_level)
+                speed_status = get_combined_mech_status(power_level, evolution_level=evolution_level,
+                                                        power_max=self._current_power_bar_max())
                 speed_level = speed_status['speed']['level']
                 logger.debug(f"Status Overview: Level {evolution_level} using calculated speed level: {speed_level} (power: {power_level})")
 

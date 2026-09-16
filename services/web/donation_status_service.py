@@ -67,7 +67,9 @@ class DonationStatusService:
             # Step 3: Get speed information using cached data
             speed_info = self._calculate_speed_information(
                 power=mech_cache_result.power,
-                total_donated=mech_cache_result.total_donated
+                total_donated=mech_cache_result.total_donated,
+                evolution_level=mech_cache_result.level,
+                power_max=getattr(getattr(mech_cache_result, 'bars', None), 'Power_max_for_level', None)
             )
 
             # Step 4: Get evolution information using cached data
@@ -89,21 +91,29 @@ class DonationStatusService:
             )
 
 
-    def _calculate_speed_information(self, power: float, total_donated: float) -> Dict[str, Any]:
+    def _calculate_speed_information(self, power: float, total_donated: float,
+                                     evolution_level: Optional[int] = None,
+                                     power_max: Optional[float] = None) -> Dict[str, Any]:
         """Calculate speed level and related information.
 
         Args:
             power: Current power amount (for speed calculation within level)
-            total_donated: Total donations received (for evolution level determination)
+            total_donated: Total donations received (legacy level guess if evolution_level is missing)
+            evolution_level: Actual mech level (preferred over a level guessed from total_donated)
+            power_max: Power bar maximum of that level (speed scale)
         """
         try:
-            from services.mech.speed_levels import SPEED_DESCRIPTIONS, get_speed_emoji, _get_evolution_context, _calculate_speed_level_from_power_ratio
+            from services.mech.speed_levels import SPEED_DESCRIPTIONS, get_speed_emoji, _get_evolution_context, _calculate_speed_level_from_power_ratio, get_speed_level_for_state
 
             # Calculate speed level using evolution-based calculation
-            # CRITICAL: Use total_donated for evolution level, power for speed calculation
             try:
-                evolution_level, max_power_for_level = _get_evolution_context(total_donated)
-                level = _calculate_speed_level_from_power_ratio(evolution_level, power, max_power_for_level)
+                if evolution_level is not None:
+                    # Real level + power bar: a level guessed from total_donated is wrong with dynamic costs
+                    level = get_speed_level_for_state(evolution_level, power, power_max)
+                else:
+                    # Legacy: total_donated for evolution level, power for speed calculation
+                    guessed_level, max_power_for_level = _get_evolution_context(total_donated)
+                    level = _calculate_speed_level_from_power_ratio(guessed_level, power, max_power_for_level)
             except (ImportError, ValueError, ZeroDivisionError):
                 # Fallback if evolution system unavailable
                 level = min(int(power), 100) if power > 0 else 0

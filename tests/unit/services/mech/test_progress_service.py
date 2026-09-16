@@ -500,7 +500,7 @@ def test_rebuild_from_events_handles_member_count_event(progress_env):
 
 
 def test_rebuild_from_events_handles_initial_system_donation(progress_env):
-    """is_initial=True system donations are replayed (others ignored)."""
+    """All system donations are replayed like the live path (power + total, no evolution)."""
     svc = progress_env.ProgressService("sysreplay")
     # Manually craft an initial system donation event
     evt = progress_env.Event(
@@ -511,7 +511,7 @@ def test_rebuild_from_events_handles_initial_system_donation(progress_env):
         payload={"is_initial": True, "power_units": 300, "event_name": "init"},
     )
     progress_env.append_event(evt)
-    # And a non-initial one (should be ignored on replay)
+    # And a non-initial one (replayed as well: the live path applied it)
     evt2 = progress_env.Event(
         seq=progress_env.next_seq(),
         ts=progress_env.now_utc_iso(),
@@ -523,8 +523,9 @@ def test_rebuild_from_events_handles_initial_system_donation(progress_env):
 
     progress_env.snapshot_path("sysreplay").unlink(missing_ok=True)
     state = svc.rebuild_from_events()
-    # Only the initial $3 was applied to power
-    assert state.power_current == pytest.approx(3.0, abs=0.5)
+    assert state.power_current == pytest.approx(12.99, abs=0.011)
+    assert state.total_donated == pytest.approx(12.99)
+    assert state.evo_current == 0.0
 
 
 # ---------------------------------------------------------------------------

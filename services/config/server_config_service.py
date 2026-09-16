@@ -97,7 +97,7 @@ class ServerConfigService:
 
                 except json.JSONDecodeError as e:
                     logger.error(f"Invalid JSON in {json_file}: {e}")
-                except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException, json.JSONDecodeError) as e:
+                except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
                     logger.error(f"Error reading {json_file}: {e}", exc_info=True)
 
             # Count total containers including inactive

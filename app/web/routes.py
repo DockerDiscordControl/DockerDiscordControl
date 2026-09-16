@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import docker
 import json
+import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
@@ -66,7 +67,8 @@ def register_routes(app: Flask) -> None:
                 "status": "healthy",
                 "service": "DockerDiscordControl",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "version": "v1.1.3",
+                # DDC_VERSION is set by the Dockerfile (single source for the version)
+                "version": f"v{os.environ['DDC_VERSION']}" if os.environ.get("DDC_VERSION") else "unknown",
             }
 
             try:

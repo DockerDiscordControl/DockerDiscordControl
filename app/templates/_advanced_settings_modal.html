@@ -93,7 +93,7 @@
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label">{{ _t('web.advanced.scheduler_check_interval') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.scheduler_check_interval_tooltip') }}"></i></label>
-                                <input type="number" class="form-control" id="env_DDC_SCHEDULER_CHECK_INTERVAL" name="env_DDC_SCHEDULER_CHECK_INTERVAL" min="1" max="300" value="{{ (config.env.DDC_SCHEDULER_CHECK_INTERVAL if config.env else '') or '' }}" placeholder="120">
+                                <input type="number" class="form-control" id="env_DDC_SCHEDULER_CHECK_INTERVAL" name="env_DDC_SCHEDULER_CHECK_INTERVAL" min="1" max="300" value="{{ (config.env.DDC_SCHEDULER_CHECK_INTERVAL if config.env else '') or '' }}" placeholder="60">
                                 <div class="form-text"><strong>{{ _t('web.advanced.scheduler') }}</strong>: {{ _t('web.advanced.scheduler_check_interval_hint') }}</div>
                             </div>
                             <div class="col-md-4">
@@ -580,15 +580,19 @@ function updateDifficultyDisplay() {
         }
 
         // Update level cost preview with current multiplier
-        if (window.baseMechData) {
-            const newCost = Math.round(window.baseMechData.base_cost * multiplier * (window.baseMechData.total_multiplier / window.baseMechData.difficulty_multiplier));
+        if (window.baseMechData && levelCostPreview && levelCostDetails) {
+            const base = window.baseMechData;
+            // The server's cost is exact for the saved multiplier; other slider positions are estimated.
+            const newCost = multiplier === base.difficulty_multiplier
+                ? base.next_level_cost
+                : Math.round(base.base_cost * multiplier);
 
-            if (window.baseMechData.is_max_level) {
+            if (base.is_max_level) {
                 levelCostPreview.textContent = t('web.advanced.max_level_reached');
                 levelCostDetails.textContent = '(' + t('web.advanced.all_evolutions_done') + ')';
             } else {
-                levelCostPreview.textContent = `${window.baseMechData.next_level_name} ${t('web.advanced.costs_prefix')}: $${newCost}`;
-                levelCostDetails.textContent = `(${t('web.advanced.base_cost_prefix')}: $${window.baseMechData.base_cost}, ${t('web.advanced.community_prefix')}: ${window.baseMechData.community_tier})`;
+                levelCostPreview.textContent = `${base.next_level_name} ${t('web.advanced.costs_prefix')}: $${newCost}`;
+                levelCostDetails.textContent = `(${t('web.advanced.base_cost_prefix')}: $${base.base_cost})`;
             }
         }
     }
@@ -612,11 +616,12 @@ async function loadDifficultyMultiplier() {
         if (response.ok) {
             const data = await response.json();
             const slider = document.getElementById('mech_difficulty_multiplier');
-            const levelCostPreview = document.getElementById('levelCostPreview');
-            const levelCostDetails = document.getElementById('levelCostDetails');
-            
-            if (slider && data.difficulty_multiplier !== undefined) {
-                slider.value = data.difficulty_multiplier;
+
+            // Shape: see MechWebService._get_difficulty() (services/web/mech_web_service.py)
+            if (slider && data.success !== false && data.multiplier !== undefined) {
+                const multiplier = parseFloat(data.multiplier) || 1.0;
+                const evo = data.simple_evolution || {};
+                slider.value = multiplier;
 
                 // Load manual override toggle status for standalone toggle
                 const manualOverrideToggle = document.getElementById('mech_manual_difficulty_override_standalone');
@@ -632,30 +637,23 @@ async function loadDifficultyMultiplier() {
                     buttons.forEach(btn => btn.disabled = !manualOverride);
                 }
 
-                // Store base data for calculations
+                // Store base data for the cost preview. The service only returns costs already scaled
+                // by the multiplier, so the base cost is derived from them.
+                const currentLevel = evo.current_level || 1;
+                const nextLevelInfo = (evo.achieved_levels || {})[String(currentLevel + 1)];
+                const nextLevelCost = evo.next_level_cost || 0;
                 window.baseMechData = {
-                    current_level: data.current_level || 1,
-                    next_level: data.next_level || 2,
-                    next_level_name: data.next_level_name || 'REPAIRED MECH',
-                    next_level_cost: data.next_level_cost || 20,
-                    base_cost: data.base_cost || 20,
-                    member_count: data.member_count || 50,
-                    community_tier: data.community_tier || 'MEDIUM',
-                    total_multiplier: data.total_multiplier || 1.0,
-                    difficulty_multiplier: data.difficulty_multiplier || 1.0,
-                    is_max_level: data.is_max_level || false,
-                    manual_override: data.manual_override || false
+                    current_level: currentLevel,
+                    next_level: currentLevel + 1,
+                    next_level_name: nextLevelInfo ? nextLevelInfo.name : '',
+                    next_level_cost: nextLevelCost,
+                    base_cost: Math.round(nextLevelCost / multiplier),
+                    difficulty_multiplier: multiplier,
+                    is_max_level: !nextLevelInfo || nextLevelCost === 0,
+                    manual_override: !!data.manual_override
                 };
-                
-                // Initial display update
-                if (data.is_max_level) {
-                    levelCostPreview.textContent = t('web.advanced.max_level_reached');
-                    levelCostDetails.textContent = '(' + t('web.advanced.all_evolutions_done') + ')';
-                } else {
-                    levelCostPreview.textContent = `${data.next_level_name} ${t('web.advanced.costs_prefix')}: $${data.next_level_cost}`;
-                    levelCostDetails.textContent = `(${t('web.advanced.base_cost_prefix')}: $${data.base_cost}, ${t('web.advanced.community_prefix')}: ${data.community_tier})`;
-                }
-                
+
+                // Initial display update (value label, slider colour, cost preview)
                 updateDifficultyDisplay();
             }
         }

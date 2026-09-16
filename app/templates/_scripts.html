@@ -169,6 +169,15 @@
         } else {
             console.error("Main save button not found!");
         }
+
+        // Enter in a text field (or a button without type) would submit the form natively as
+        // POST / -> 405 page, unsaved edits lost and the checks in saveConfigAjax() skipped.
+        if (configForm) {
+            configForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                saveConfigAjax();
+            });
+        }
         // --- End Assignment ---
 
         // Event listener for changes in the form (now using global functions)
@@ -1191,6 +1200,56 @@
         }
     }
 
+    // Collect the non-empty channel IDs of one permission table together with their inputs.
+    function collectChannelIdInputs(prefix) {
+        const entries = [];
+        document.querySelectorAll(`input[name^="${prefix}_channel_id_"]`).forEach(input => {
+            const value = (input.value || '').trim();
+            if (value) {
+                entries.push({ value: value, input: input });
+            }
+        });
+        return entries;
+    }
+
+    // A channel ID may appear only once across both permission tables. The backend parses the
+    // status rows first and the control rows second, so a duplicate silently becomes a control
+    // channel and /serverstatus is denied there. Marks the offending inputs and returns the
+    // duplicated IDs.
+    function validateChannelIdUniqueness() {
+        const entries = collectChannelIdInputs('status').concat(collectChannelIdInputs('control'));
+        const seen = {};
+        const duplicates = [];
+
+        entries.forEach(entry => {
+            entry.input.classList.remove('is-invalid');
+            if (seen[entry.value]) {
+                if (duplicates.indexOf(entry.value) === -1) {
+                    duplicates.push(entry.value);
+                }
+            } else {
+                seen[entry.value] = true;
+            }
+        });
+
+        entries.forEach(entry => {
+            if (duplicates.indexOf(entry.value) !== -1) {
+                entry.input.classList.add('is-invalid');
+            }
+        });
+
+        return duplicates;
+    }
+
+    // Re-check while typing so the red marking disappears as soon as the conflict is resolved.
+    // Delegated because channel rows are added dynamically.
+    document.addEventListener('input', function(event) {
+        const name = event.target && event.target.name;
+        if (name && (name.indexOf('status_channel_id_') === 0 || name.indexOf('control_channel_id_') === 0)) {
+            validateChannelIdUniqueness();
+        }
+    });
+
     // AJAX save function
     function saveConfigAjax() {
         const form = document.getElementById('config-form');
@@ -1201,7 +1260,18 @@
             return; // Cancel function
         }
         const originalButtonHtml = saveButton.innerHTML;
-        
+
+        // Block the save while the same channel ID is used twice - it would be stored as a
+        // control channel and /serverstatus would be refused in it.
+        const duplicateChannelIds = validateChannelIdUniqueness();
+        if (duplicateChannelIds.length > 0) {
+            notification.textContent = t('permissions.duplicate_channel_ids', { ids: duplicateChannelIds.join(', ') });
+            notification.className = 'alert alert-danger';
+            notification.style.display = 'block';
+            notification.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+
         console.log("=== SAVE CONFIG DEBUG START ===");
         
         // Check language and timezone fields specifically
@@ -1223,12 +1293,17 @@
             if (element.name === 'selected_servers') {
                 return;
             }
-            
+            // The CSRF field added by _base.html travels as X-CSRFToken header; it must not
+            // end up in the saved configuration.
+            if (element.name === 'csrf_token') {
+                return;
+            }
+
             // Debug output for language and timezone fields
             if (element.name === 'language' || element.name === 'timezone') {
                 console.log(`Processing ${element.name}: ${element.value}`);
             }
-            
+
             // Special debug for language field
             if (element.id === 'language' || element.name === 'language') {
                 console.log(`LANGUAGE FIELD DEBUG:`);
@@ -1506,12 +1581,16 @@
         })
         .then(response => { 
             if (!response.ok) {
+                 // Second then() argument: only a JSON parse failure falls back to the status code,
+                 // the server's message (e.g. an expired CSRF session) is kept.
                  return response.json()
                      .then(errData => {
-                         const message = errData.message || errData.error || `HTTP error ${response.status}`;
+                         // ddcServerErrorMessage (_base.html) translates a rejected CSRF check
+                         const message = (typeof window.ddcServerErrorMessage === 'function')
+                             ? window.ddcServerErrorMessage(errData, `HTTP error ${response.status}`)
+                             : (errData.message || errData.error || `HTTP error ${response.status}`);
                          throw new Error(message);
-                      })
-                     .catch((jsonParseError) => {
+                      }, () => {
                          throw new Error(`HTTP error ${response.status}`);
                       });
              }

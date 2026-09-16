@@ -171,6 +171,8 @@ Licensed under the MIT License
             <div id="alerts"></div>
             
             <form id="setupForm">
+                {# setup.html does not extend _base.html; FormData(this) sends this field along #}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="form-group">
                     <label for="password">
                         <i class="bi bi-lock-fill"></i> {{ _t('web.setup.password_label') }}
@@ -240,8 +242,17 @@ Licensed under the MIT License
                 return;
             }
 
-            if (password.length < 6) {
-                showAlert('{{ _t("web.setup.err_password_too_short") }}', 'danger');
+            // Same rule as the server (main_routes.setup_save): 12+ characters and at least
+            // three of lowercase, uppercase, digit, symbol.
+            if (password.length < 12) {
+                showAlert({{ _t("web.setup.err_password_too_short")|tojson }}, 'danger');
+                return;
+            }
+
+            const characterClasses = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/]
+                .filter(pattern => pattern.test(password)).length;
+            if (characterClasses < 3) {
+                showAlert({{ _t("web.setup.password_requirements")|tojson }}, 'danger');
                 return;
             }
             

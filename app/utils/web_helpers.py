@@ -13,6 +13,8 @@ from threading import Thread
 import threading
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from services.exceptions import ConfigServiceError
+
 # Threading abstraction. We previously preferred gevent greenlets here, but
 # gevent monkey-patching is now opt-in (see app/web/compat.py) — the
 # production waitress process uses plain OS threads and the bot's asyncio
@@ -567,18 +569,56 @@ def start_background_refresh(logger):
 
     logger.info("Started background Docker cache refresh thread")
 
+# Call the named method (logger.warning(...)) rather than logger.log(level, ...): for a real
+# logger both are identical, but callers pass a Mock in tests and a Mock records the two as
+# different calls, so logger.log() would make a warning invisible to logger.warning assertions.
+_SHUTDOWN_LOG_METHODS = {
+    logging.DEBUG: "debug",
+    logging.INFO: "info",
+    logging.WARNING: "warning",
+    logging.ERROR: "error",
+    logging.CRITICAL: "critical",
+}
+
+
+def _log_at_shutdown(logger, message, level=logging.DEBUG):
+    """Log from the stop_* helpers, which also run from the atexit hook.
+
+    Two independent concerns, which is why the level is a parameter:
+      * Normal stops are routine, so they default to debug level.
+      * Whatever the level, once a handler's stream is already closed (interpreter or pytest
+        teardown) nothing is logged, instead of "Logging error ... I/O operation on closed
+        file" plus a traceback on stderr.
+
+    A thread that refuses to terminate is passed with logging.WARNING: it must stay visible
+    (V2 review), but it must not blow up when it happens during shutdown.
+    """
+    # Only walk real loggers: a mock logger (as used in tests) returns a new truthy
+    # object for every attribute, which would make this loop run forever.
+    current = logger
+    while isinstance(current, logging.Logger):
+        for handler in current.handlers:
+            stream = getattr(handler, 'stream', None)
+            if stream is not None and getattr(stream, 'closed', False) is True:
+                return
+        if not current.propagate:
+            break
+        current = current.parent  # root.parent is None -> ends
+    getattr(logger, _SHUTDOWN_LOG_METHODS.get(level, "debug"))(message)
+
+
 def stop_background_refresh(logger):
     """Stops the background thread for cache updates"""
     global background_refresh_thread
 
-    logger.info("Stopping background Docker cache refresh thread")
+    _log_at_shutdown(logger, "Stopping background Docker cache refresh thread")
 
     # Set signal to stop
     stop_background_thread.set()
 
     # If no thread is active, exit immediately
     if background_refresh_thread is None:
-        logger.debug("No background thread to stop")
+        _log_at_shutdown(logger, "No background thread to stop")
         return
 
     try:
@@ -608,7 +648,10 @@ def stop_background_refresh(logger):
 
                 # Warning if thread does not end
                 if thread_to_join.is_alive():
-                    logger.warning("Background thread did not terminate within timeout")
+                    # Stays a warning: a worker that refuses to stop is a real problem and must
+                    # not be hidden (V2 review) - but routed through the shutdown-safe helper,
+                    # because this also runs from atexit, where the log stream is already closed.
+                    _log_at_shutdown(logger, "Background thread did not terminate within timeout", logging.WARNING)
             except (RuntimeError, AttributeError) as e:
                 # Runtime errors (thread join failures, invalid thread state)
                 logger.error(f"Runtime error while joining background thread: {e}", exc_info=True)
@@ -714,14 +757,14 @@ def stop_mech_decay_background(logger):
     """Stops the background thread for mech power decay calculation"""
     global mech_decay_thread
 
-    logger.info("Stopping mech decay background thread")
+    _log_at_shutdown(logger, "Stopping mech decay background thread")
 
     # Set signal to stop
     stop_mech_decay_thread.set()
 
     # If no thread is active, exit immediately
     if mech_decay_thread is None:
-        logger.debug("No mech decay thread to stop")
+        _log_at_shutdown(logger, "No mech decay thread to stop")
         return
 
     try:
@@ -746,7 +789,9 @@ def stop_mech_decay_background(logger):
 
                 # Warning if thread does not end
                 if thread_to_join.is_alive():
-                    logger.warning("Mech decay thread did not terminate within timeout")
+                    # Stays a warning (see stop_background_refresh): a hung worker must stay
+                    # visible, but must not raise on a closed stream during shutdown.
+                    _log_at_shutdown(logger, "Mech decay thread did not terminate within timeout", logging.WARNING)
             except (RuntimeError, AttributeError) as e:
                 # Runtime errors (thread join failures, invalid thread state)
                 logger.error(f"Runtime error while joining mech decay thread: {e}", exc_info=True)
@@ -773,7 +818,9 @@ def set_initial_password_from_env():
         return
     try:
         # Attempt to import config_loader dynamically, as it might also be refactored
-        from services.config.config_service import load_config, save_config
+        from services.config.config_service import (
+            load_config, change_web_ui_password, MIN_WEB_UI_PASSWORD_LENGTH,
+        )
 
         config_path_check = _PROJECT_ROOT_HELPER / "config" / "config.json"
         init_pass_logger.info(f"Attempting to load config from: {config_path_check} for initial password set.")
@@ -798,8 +845,17 @@ def set_initial_password_from_env():
 
         if is_default_or_unset:
             init_pass_logger.info("Setting initial Web UI password from DDC_ADMIN_PASSWORD env var...")
-            config['web_ui_password_hash'] = generate_password_hash(env_password, method="pbkdf2:sha256:600000")
-            save_config(config) # Assumes save_config knows its path or is configured
+            # Hashes the password, re-encrypts an encrypted bot token with the new key and
+            # persists. A plain save_config(load_config()) would leave the token encrypted with
+            # the old key and write derived values (the decrypted token) back to config.json.
+            # A short env password is still accepted (as in earlier versions): rejecting it would
+            # leave no password hash, i.e. first-time setup mode where admin/setup opens every page.
+            if len(env_password) < MIN_WEB_UI_PASSWORD_LENGTH:
+                init_pass_logger.warning(
+                    f"DDC_ADMIN_PASSWORD is shorter than {MIN_WEB_UI_PASSWORD_LENGTH} characters. "
+                    f"It is used anyway, but please change it to a password of at least "
+                    f"{MIN_WEB_UI_PASSWORD_LENGTH} characters.")
+            change_web_ui_password(env_password, enforce_min_length=False)
             init_pass_logger.info("Web UI password hash has been updated from environment variable.")
         else:
             init_pass_logger.debug("Web UI password already set to a non-default value. Skipping update from env var.")
@@ -810,6 +866,9 @@ def set_initial_password_from_env():
     except FileNotFoundError as e_fnf:
         # File I/O errors (config file not found)
         init_pass_logger.error(f"Config file not found during initial password set: {e_fnf}", exc_info=True)
+    except ConfigServiceError as e_cfg:
+        # Persistence errors (config.json not writable, disk full)
+        init_pass_logger.error(f"Could not save initial password: {e_cfg}", exc_info=True)
     except (ValueError, TypeError, KeyError, AttributeError, RuntimeError) as e:
         # Data/service errors (invalid config data, hash generation failures, save failures)
         init_pass_logger.error(f"Error setting initial password: {e}", exc_info=True)

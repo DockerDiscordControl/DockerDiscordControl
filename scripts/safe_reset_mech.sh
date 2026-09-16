@@ -8,7 +8,8 @@ echo "This prevents JSON corruption from concurrent Discord operations"
 echo "=================================================="
 
 # Execute safe reset inside Docker container using unified_donation_service
-docker exec dockerdiscordcontrol python3 -c "
+# (as the ddc user, so no root-owned files end up in the data directories)
+docker exec -u ddc dockerdiscordcontrol python3 -c "
 import sys
 sys.path.insert(0, '/app')
 

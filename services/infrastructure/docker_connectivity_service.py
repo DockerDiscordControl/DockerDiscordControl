@@ -75,8 +75,8 @@ class DockerConnectivityService:
                 operation='ping',
                 container_name='connectivity_check'
             ) as client:
-                # Docker.ping() returns True if daemon is reachable
-                ping_result = client.ping()
+                # Docker.ping() returns True if daemon is reachable (blocking HTTP call -> worker thread)
+                ping_result = await asyncio.to_thread(client.ping)
 
                 if ping_result:
                     self.logger.debug("Docker connectivity check successful (ping: OK)")

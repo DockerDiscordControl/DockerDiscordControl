@@ -32,7 +32,7 @@ class ContainerRefreshRequest:
 class ContainerRefreshResult:
     """Represents the result of container refresh operation."""
     success: bool
-    message: str
+    message: str = ""
     container_count: Optional[int] = None
     timestamp: Optional[float] = None
     formatted_time: Optional[str] = None

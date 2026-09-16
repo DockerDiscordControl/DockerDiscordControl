@@ -203,3 +203,12 @@ app/static/mech_sprites/
 FUEL_SYSTEM_MEMO.md
 FUEL_SYSTEM_FORMULAS.md
 config.backup_*/
+
+# SMB deletion artifacts (macOS on an SMB share)
+.smbdelete*
+
+# Internal, not for publication
+docs/DMC_PROJECT_PLAN.md
+# Audit working document: contains live install details and an incident report.
+# The publishable summary lives in docs/RELEASE_NOTES_NEXT.md.
+AUDIT_2026-09.md

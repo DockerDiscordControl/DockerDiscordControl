@@ -47,32 +47,137 @@ def validate_discord_snowflake(value: str, field_name: str) -> Tuple[bool, str]:
     return True, ""
 
 
+# ReDoS heuristic: a group that contains a repeating quantifier and is itself repeated,
+# e.g. (a+)+, (\w+)*, (.*)+, ([a-z]+){2,}  (the classic catastrophic-backtracking shape)
+_QUANTIFIED_GROUP_RE = re.compile(r'\(((?:[^()\\]|\\.)*)\)(?:[+*]|\{\d+,\d*\})')
+_ESCAPE_OR_CHAR_CLASS_RE = re.compile(r'\\.|\[(?:[^\]\\]|\\.)*\]')
+_REPEAT_QUANTIFIER_RE = re.compile(r'[+*]|\{\d+,\d*\}')
+# A counted repeat directly after a group: "{2,}", "{1,5}", "{3}"
+_COUNTED_REPEAT_RE = re.compile(r'^\{\d+(?:,\d*)?\}')
+# A repeat followed by a separator inside the group body, e.g. "\d+\.", "[a-z]+-", "\w+\s".
+# Every repetition then has to consume that separator, so there is no ambiguity to backtrack.
+# Covered separators: escaped literals (\.), whitespace classes (\s, \t, \n) and plain
+# punctuation/space characters. Excluded are the "wide" classes \w \d \S \D \W and \b.
+_SEPARATOR_AFTER_REPEAT_RE = re.compile(
+    r'(?:[+*]|\{\d+(?:,\d*)?\})\s*(?:\\[^dwSDWb]|[^\\\[\]()+*?{}|\w])(?![?*])'
+)
+
+
+def _repeated_group_bodies(pattern: str) -> List[str]:
+    """Bodies of groups that are themselves repeated, e.g. the "a+" of "(a+)+".
+
+    Parsed by scanning parentheses so nested groups are seen too: the regex-based scan this
+    replaces could not span "((a+))+" and missed it (V2 review B2).
+    """
+    bodies: List[str] = []
+    stack: List[int] = []
+    i = 0
+    while i < len(pattern):
+        ch = pattern[i]
+        if ch == '\\':
+            i += 2
+            continue
+        if ch == '[':  # character class: skip to its end, brackets inside are literal
+            i += 1
+            while i < len(pattern) and pattern[i] != ']':
+                i += 2 if pattern[i] == '\\' else 1
+            i += 1
+            continue
+        if ch == '(':
+            stack.append(i)
+        elif ch == ')' and stack:
+            start = stack.pop()
+            rest = pattern[i + 1:]
+            if rest[:1] in ('+', '*') or _COUNTED_REPEAT_RE.match(rest):
+                bodies.append(pattern[start + 1:i])
+        i += 1
+    return bodies
+
+
+def _has_ambiguous_alternation(body: str) -> bool:
+    """True for alternations whose branches can match the same text, e.g. (a|a), (0|0|0), (\\s|\\s).
+
+    Such a group needs no inner quantifier to blow up once the group itself is repeated.
+    """
+    depth = 0
+    branches: List[str] = []
+    current = []
+    i = 0
+    while i < len(body):
+        ch = body[i]
+        if ch == '\\':
+            current.append(body[i:i + 2])
+            i += 2
+            continue
+        if ch == '[':
+            start = i
+            i += 1
+            while i < len(body) and body[i] != ']':
+                i += 2 if body[i] == '\\' else 1
+            i += 1
+            current.append(body[start:i])
+            continue
+        if ch == '(':
+            depth += 1
+        elif ch == ')':
+            depth -= 1
+        if ch == '|' and depth == 0:
+            branches.append(''.join(current).strip())
+            current = []
+        else:
+            current.append(ch)
+        i += 1
+    branches.append(''.join(current).strip())
+    if len(branches) < 2:
+        return False
+    seen = set()
+    for branch in branches:
+        normalized = branch.lstrip('?:')
+        if normalized in seen:
+            return True
+        seen.add(normalized)
+    return False
+
+
+def _has_nested_quantifier(pattern: str) -> bool:
+    """Check a regex pattern (as text) for catastrophic-backtracking shapes.
+
+    Flags a repeated group whose body either repeats itself ("(a+)+", "(\\w+)*") or contains an
+    ambiguous alternation ("(a|a)+"). A body that must consume a fixed separator, such as
+    "(\\d+\\.)+\\d+" or "([a-z0-9-]+\\.)+[a-z]{2,}", is safe and stays allowed: every repetition
+    makes progress, so there is nothing to backtrack into.
+    """
+    for body in _repeated_group_bodies(pattern):
+        stripped = _ESCAPE_OR_CHAR_CLASS_RE.sub('', body)
+        if _REPEAT_QUANTIFIER_RE.search(stripped):
+            # A literal separator after the repeat (the "(\d+\.)+" shape) keeps it safe
+            if _SEPARATOR_AFTER_REPEAT_RE.search(body):
+                continue
+            return True
+        if _has_ambiguous_alternation(body):
+            return True
+    return False
+
+
 def validate_regex_pattern(pattern: str) -> Tuple[bool, str]:
     """Validate a regex pattern for correctness and ReDoS safety."""
     if not pattern:
         return True, ""  # Empty is allowed
 
-    # Check for potentially dangerous patterns (ReDoS)
-    dangerous_patterns = [
-        r'(\+|\*)\+',           # Nested quantifiers like (a+)+
-        r'\(\.\*\)\+',          # (.*)+
-        r'\(\.\+\)\+',          # (.+)+
-        r'(\w+)+',              # (\w+)+
-        r'(a+)+',               # (a+)+
-    ]
-    for danger in dangerous_patterns:
-        if re.search(danger, pattern):
-            return False, f"Regex pattern may cause ReDoS (catastrophic backtracking): {pattern}"
+    # Limit pattern complexity (simple heuristic) - checked first to bound the checks below
+    if len(pattern) > 500:
+        return False, "Regex pattern too long (max 500 characters)"
+
+    # Check for potentially dangerous patterns (ReDoS). The pattern is inspected as text;
+    # applying a danger list as regexes flagged nearly every pattern with a word char.
+    if _has_nested_quantifier(pattern):
+        return False, f"Regex pattern may cause ReDoS (catastrophic backtracking): {pattern}"
 
     # Try to compile the pattern
     try:
         re.compile(pattern)
     except re.error as e:
         return False, f"Invalid regex pattern: {e}"
-
-    # Limit pattern complexity (simple heuristic)
-    if len(pattern) > 500:
-        return False, "Regex pattern too long (max 500 characters)"
 
     return True, ""
 

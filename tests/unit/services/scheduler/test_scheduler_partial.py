@@ -507,12 +507,14 @@ class TestParsers:
         assert parse_weekday_string("Sun") == 6
         assert parse_weekday_string("WED") == 2
 
-    def test_parse_weekday_string_numeric_zero_based(self):
-        assert parse_weekday_string("0") == 0
-        assert parse_weekday_string("6") == 6
+    def test_parse_weekday_string_numeric_zero_is_invalid(self):
+        # Numeric input is 1-7 (Monday=1) as documented; 0 is out of range.
+        assert parse_weekday_string("0") is None
 
     def test_parse_weekday_string_numeric_one_based(self):
-        # 7 is converted via (n-1) % 7 = 6 (Sunday).
+        # 1 = Monday ... 7 = Sunday, mapped to the internal 0-6 index.
+        assert parse_weekday_string("1") == 0
+        assert parse_weekday_string("6") == 5
         assert parse_weekday_string("7") == 6
 
 

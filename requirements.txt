@@ -34,6 +34,10 @@ zope.interface>=6.2
 # superlance is not required in production and not used in code
 audioop-lts==0.2.1; python_version >= "3.13"  # Python 3.13 compatibility
 Pillow>=12.1.1  # Security fix for CVE-2026-25990 (RCE via PSD)
+waitress==3.0.2  # WSGI server used by run.py (same pin as requirements.prod.txt)
+Flask-WTF>=1.2.1  # CSRF protection (CSRFProtect middleware)
+croniter>=6.0.0,<8.0.0  # Cron schedules for scheduled tasks (same cap as requirements.prod.txt)
+psutil>=7.0.0,<8.0.0  # Memory stats for the performance endpoint (same cap as requirements.prod.txt)
 
 # --- Development/Testing Dependencies ---
 pytest>=9.0.3  # Security fix for CVE-2025-71176

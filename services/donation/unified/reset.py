@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+import os
 from typing import Optional
 
 from services.donation.unified.models import DonationResult
@@ -34,9 +34,12 @@ def reset_donations(
 
         progress_paths = paths or get_progress_paths()
 
-        _clear_event_log(progress_paths)
-        _reset_sequence_counter(progress_paths)
-        _write_fresh_snapshot(progress_paths)
+        # Hold the progress lock so a concurrent donation cannot interleave with the reset
+        from services.mech.progress_service import LOCK as progress_lock
+        with progress_lock:
+            _clear_event_log(progress_paths)
+            _reset_sequence_counter(progress_paths)
+            _write_fresh_snapshot(progress_paths)
 
         new_state = mech_service.get_state()
 
@@ -99,25 +102,35 @@ def _reset_sequence_counter(paths: ProgressPaths) -> None:
 
 
 def _write_fresh_snapshot(paths: ProgressPaths) -> None:
+    # Build the level-1 snapshot with the same helpers a level-up uses, so the goal is the
+    # real level-1 cost and all timestamps are timezone-aware UTC (a naive timestamp
+    # stopped power decay until the first level-up)
+    from services.mech import progress_service
+
     snapshot_file = paths.snapshot_for("main")
-    fresh_snapshot = {
-        "mech_id": "main",
-        "level": 1,
-        "evo_acc": 0,
-        "power_acc": 0,
-        "goal_requirement": 400,
-        "difficulty_bin": 1,
-        "goal_started_at": datetime.now().isoformat(),
-        "last_decay_day": datetime.now().date().isoformat(),
-        "power_decay_per_day": 100,
-        "version": 0,
-        "last_event_seq": 0,
-        "mech_type": "default",
-        "last_user_count_sample": 0,
-        "cumulative_donations_cents": 0,
-    }
+    snap = progress_service.Snapshot(mech_id="main")
+    # Price the new goal for the community size like the startup step prices a new mech
+    # (it will not re-price it: the count did not change). The event log was just
+    # cleared, so this is member_count.json, else the count of the replaced snapshot.
+    # A later rebuild_from_events keeps this goal (it reuses the goals the live path set).
+    snap.last_user_count_sample = _previous_member_count(snapshot_file)
+    progress_service.set_new_goal_for_next_level(
+        snap, user_count=progress_service.member_count_for_goal(snap, events=[], default=0)
+    )
+    snap.last_decay_day = progress_service.today_local_str()
 
     snapshot_file.parent.mkdir(parents=True, exist_ok=True)
-    with snapshot_file.open("w", encoding="utf-8") as handle:
-        json.dump(fresh_snapshot, handle, indent=2)
+    tmp_file = snapshot_file.with_name(f".{snapshot_file.name}.reset.tmp")
+    with tmp_file.open("w", encoding="utf-8") as handle:
+        json.dump(snap.to_json(), handle, indent=2)
+    os.replace(tmp_file, snapshot_file)
+
+
+def _previous_member_count(snapshot_file) -> int:
+    """Return the member count stored in the snapshot being replaced (0 if unavailable)."""
+    try:
+        with snapshot_file.open("r", encoding="utf-8") as handle:
+            return max(0, int(json.load(handle).get("last_user_count_sample", 0) or 0))
+    except (OSError, ValueError, TypeError, AttributeError):
+        return 0
 

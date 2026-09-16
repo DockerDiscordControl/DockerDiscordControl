@@ -99,23 +99,21 @@ docker exec ddc ls -la /app/config/
      - ./config:/app/config
    ```
 
-2. **Check file permissions:**
+2. **Let the container repair it (recommended):**
    ```bash
-   # On Unraid
-   chown -R nobody:users /mnt/user/appdata/dockerdiscordcontrol/config
-   chmod -R 755 /mnt/user/appdata/dockerdiscordcontrol/config
-
-   # On standard Linux
-   chown -R 1000:1000 /path/to/config
-   chmod -R 755 /path/to/config
-   ```
-
-3. **Fix from within container:**
-   ```bash
-   docker exec -u root ddc chown -R ddc:ddc /app/config
-   docker exec ddc chmod -R 755 /app/config
    docker restart ddc
    ```
+   On startup the entrypoint hands every entry in the data directories that the app user
+   (`PUID`/`PGID`, default `1000:1000`) cannot read/write back to that user - without
+   loosening the permissions of the config files.
+
+3. **Fix manually on the host** (use your `PUID:PGID`, default `1000:1000`):
+   ```bash
+   chown -R 1000:1000 /path/to/config
+   ```
+   Don't `chmod -R 755` the config directory: it holds the encrypted bot token and the
+   password hash and should stay private. Run maintenance commands inside the container as
+   the app user (`docker exec -u ddc ddc ...`) so they don't create root-owned files.
 
 ### 4. Containers Not Showing in Discord
 
@@ -290,7 +288,7 @@ v2.2.2 enforces **12 characters minimum + 3 of 4 character classes** (lowercase,
 
 ### "How do I enable the legacy gunicorn-with-gevent worker?"
 
-v2.2.2 made gevent monkey-patching opt-in (default off). The standard waitress runtime in `run.py` works without it. If you use the legacy `scripts/start.sh` gunicorn entrypoint:
+v2.2.2 made gevent monkey-patching opt-in (default off). The standard waitress runtime in `run.py` works without it. The legacy gunicorn mode of `scripts/start.sh` has been removed (it could no longer start; the script now only starts the Docker container). If you run your own gunicorn setup:
 
 ```yaml
 environment:

@@ -110,12 +110,18 @@ class ContainerStatusService:
         # Performance tracking
         self._performance_history: Dict[str, List[float]] = {}
 
+        # Containers whose NotFound was already logged as warning (avoids log spam per poll)
+        self._not_found_logged: set = set()
+
         self.logger.info(f"Container Status Service initialized (SINGLE CACHE) with {self._cache_ttl}s TTL")
 
     def _deactivate_container(self, container_name: str) -> bool:
         """
         Deactivate a container that no longer exists by setting active=false in its config file.
         The JSON file is kept (not deleted) to preserve settings if the container is recreated.
+
+        Note: no longer called automatically on a Docker NotFound (a container that is
+        being recreated, e.g. by an Unraid auto-update, would stay hidden).
 
         Args:
             container_name: Name of the container to deactivate
@@ -379,6 +385,100 @@ class ContainerStatusService:
             self.logger.warning(f"Memory calculation error for {container_name}: {e}")
             return 2.0, 1024.0
 
+    def _query_container_sync(self, client, request: ContainerStatusRequest, start_time: float) -> ContainerStatusResult:
+        """
+        Blocking part of _fetch_container_status - runs in a worker thread.
+
+        Every Docker SDK call here (containers.get, image lookup, stats) is a synchronous
+        HTTP request. Called directly from async code they blocked the event loop, so the
+        "parallel" bulk fetch ran serially and asyncio.wait_for timeouts could only fire
+        after the call had returned.
+        """
+        # Get basic container info
+        try:
+            container = client.containers.get(request.container_name)
+            is_running = container.status == 'running'
+            status = container.status
+
+            # Basic container details (container.image is an extra API call - evaluate once)
+            container_image = container.image
+            image = container_image.tags[0] if container_image.tags else str(container_image.id)[:12]
+
+            # Calculate uptime
+            if is_running and container.attrs.get('State', {}).get('StartedAt'):
+                started_at_str = container.attrs['State']['StartedAt']
+                # Parse Docker's timestamp format
+                started_at = datetime.fromisoformat(started_at_str.replace('Z', '+00:00'))
+                uptime_seconds = int((datetime.now(timezone.utc) - started_at).total_seconds())
+            else:
+                uptime_seconds = 0
+
+            # Get ports info
+            ports = container.attrs.get('NetworkSettings', {}).get('Ports', {}) if request.include_details else {}
+
+        except (AttributeError, KeyError, IndexError) as e:
+            # Container not found or data access error
+            duration_ms = (time.time() - start_time) * 1000
+            self.logger.warning(f"Container data access error for {request.container_name}: {e}")
+            return ContainerStatusResult(
+                success=False,
+                container_name=request.container_name,
+                error_message=f"Container not found or inaccessible: {e}",
+                error_type="container_not_found",
+                query_duration_ms=duration_ms
+            )
+        except (ValueError, TypeError) as e:
+            # Container data format error
+            duration_ms = (time.time() - start_time) * 1000
+            self.logger.error(f"Container data format error for {request.container_name}: {e}", exc_info=True)
+            return ContainerStatusResult(
+                success=False,
+                container_name=request.container_name,
+                error_message=f"Container data format error: {e}",
+                error_type="data_format_error",
+                query_duration_ms=duration_ms
+            )
+
+        # Get stats if requested and container is running
+        cpu_percent = 0.0
+        memory_usage_mb = 0.0
+        memory_limit_mb = 0.0
+
+        if request.include_stats and is_running:
+            try:
+                # stream=False: the daemon samples twice and fills precpu_stats, so CPU% covers
+                # the last ~1s. The first frame of a stream has an empty precpu_stats, which
+                # made CPU% the average since start instead of the current load.
+                stats = container.stats(stream=False)
+
+                # Calculate CPU and memory using helper methods
+                cpu_percent = self._calculate_cpu_percent_from_stats(stats, request.container_name)
+                memory_usage_mb, memory_limit_mb = self._calculate_memory_from_stats(stats, request.container_name)
+
+            except (KeyError, AttributeError, ValueError, TypeError) as e:
+                self.logger.warning(f"Could not get stats for {request.container_name}: {e}")
+                cpu_percent = 0.1
+                memory_usage_mb = 2.0
+                memory_limit_mb = 1024.0
+
+        duration_ms = (time.time() - start_time) * 1000
+
+        return ContainerStatusResult(
+            success=True,
+            container_name=request.container_name,
+            is_running=is_running,
+            status=status,
+            cpu_percent=cpu_percent,
+            memory_usage_mb=memory_usage_mb,
+            memory_limit_mb=memory_limit_mb,
+            uptime_seconds=uptime_seconds,
+            image=image,
+            ports=ports,
+            query_duration_ms=duration_ms,
+            cached=False,
+            cache_age_seconds=0.0
+        )
+
     async def _fetch_container_status(self, request: ContainerStatusRequest) -> ContainerStatusResult:
         """Fetch fresh container status from Docker daemon."""
         start_time = time.time()
@@ -392,99 +492,23 @@ class ContainerStatusService:
                 operation='stats' if request.include_stats else 'info',
                 container_name=request.container_name
             ) as client:
-                # Get basic container info
-                try:
-                    container = client.containers.get(request.container_name)
-                    is_running = container.status == 'running'
-                    status = container.status
+                # One worker thread for all blocking SDK calls of this container
+                result = await asyncio.to_thread(self._query_container_sync, client, request, start_time)
 
-                    # Basic container details
-                    image = container.image.tags[0] if container.image.tags else str(container.image.id)[:12]
-
-                    # Calculate uptime
-                    if is_running and container.attrs.get('State', {}).get('StartedAt'):
-                        started_at_str = container.attrs['State']['StartedAt']
-                        # Parse Docker's timestamp format
-                        started_at = datetime.fromisoformat(started_at_str.replace('Z', '+00:00'))
-                        uptime_seconds = int((datetime.now(timezone.utc) - started_at).total_seconds())
-                    else:
-                        uptime_seconds = 0
-
-                    # Get ports info
-                    ports = container.attrs.get('NetworkSettings', {}).get('Ports', {}) if request.include_details else {}
-
-                except (AttributeError, KeyError, IndexError) as e:
-                    # Container not found or data access error
-                    duration_ms = (time.time() - start_time) * 1000
-                    self.logger.warning(f"Container data access error for {request.container_name}: {e}")
-                    return ContainerStatusResult(
-                        success=False,
-                        container_name=request.container_name,
-                        error_message=f"Container not found or inaccessible: {e}",
-                        error_type="container_not_found",
-                        query_duration_ms=duration_ms
-                    )
-                except (ValueError, TypeError) as e:
-                    # Container data format error
-                    duration_ms = (time.time() - start_time) * 1000
-                    self.logger.error(f"Container data format error for {request.container_name}: {e}", exc_info=True)
-                    return ContainerStatusResult(
-                        success=False,
-                        container_name=request.container_name,
-                        error_message=f"Container data format error: {e}",
-                        error_type="data_format_error",
-                        query_duration_ms=duration_ms
-                    )
-
-                # Get stats if requested and container is running
-                cpu_percent = 0.0
-                memory_usage_mb = 0.0
-                memory_limit_mb = 0.0
-
-                if request.include_stats and is_running:
-                    try:
-                        # Get container stats (use stream=True with decode for single snapshot)
-                        stats_generator = container.stats(stream=True, decode=True)
-                        try:
-                            stats = next(stats_generator)
-                        finally:
-                            stats_generator.close()
-
-                        # Calculate CPU and memory using helper methods
-                        cpu_percent = self._calculate_cpu_percent_from_stats(stats, request.container_name)
-                        memory_usage_mb, memory_limit_mb = self._calculate_memory_from_stats(stats, request.container_name)
-
-                    except (StopIteration, KeyError, AttributeError, ValueError, TypeError) as e:
-                        self.logger.warning(f"Could not get stats for {request.container_name}: {e}")
-                        cpu_percent = 0.1
-                        memory_usage_mb = 2.0
-                        memory_limit_mb = 1024.0
-
-                duration_ms = (time.time() - start_time) * 1000
-
-                return ContainerStatusResult(
-                    success=True,
-                    container_name=request.container_name,
-                    is_running=is_running,
-                    status=status,
-                    cpu_percent=cpu_percent,
-                    memory_usage_mb=memory_usage_mb,
-                    memory_limit_mb=memory_limit_mb,
-                    uptime_seconds=uptime_seconds,
-                    image=image,
-                    ports=ports,
-                    query_duration_ms=duration_ms,
-                    cached=False,
-                    cache_age_seconds=0.0
-                )
+            if result.success:
+                self._not_found_logged.discard(request.container_name)
+            return result
 
         except docker.errors.NotFound as e:
-            # Container not found error - automatically deactivate it
+            # Container not found - report it (status only). The container config is
+            # deliberately NOT changed: during an Unraid auto-update the container is
+            # removed and recreated, and a single NotFound must not hide it permanently.
             duration_ms = (time.time() - start_time) * 1000
-            self.logger.warning(f"Container '{request.container_name}' not found (may have been removed or renamed)")
-
-            # Automatically deactivate the container to prevent future errors
-            self._deactivate_container(request.container_name)
+            if request.container_name not in self._not_found_logged:
+                self._not_found_logged.add(request.container_name)
+                self.logger.warning(f"Container '{request.container_name}' not found (may have been removed, renamed or is being recreated)")
+            else:
+                self.logger.debug(f"Container '{request.container_name}' still not found")
 
             return ContainerStatusResult(
                 success=False,
@@ -515,6 +539,15 @@ class ContainerStatusService:
                 error_type="docker_error",
                 query_duration_ms=duration_ms
             )
+
+    def is_container_not_found(self, container_name: str) -> bool:
+        """True if the last Docker query for this container answered NotFound.
+
+        Lets callers of the compatibility functions (which return None for any failure)
+        tell a deleted/renamed container apart from an unreachable one. Cleared again by
+        the next successful query (e.g. after the container was recreated).
+        """
+        return container_name in self._not_found_logged
 
     def _get_from_cache(self, container_name: str) -> Optional[Dict[str, Any]]:
         """Get container status from cache."""

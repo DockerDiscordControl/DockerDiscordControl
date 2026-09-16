@@ -636,7 +636,8 @@ class TestUpdateScheduleDetails:
         )
         assert task.time_str == "08:00"
         assert task.weekday_val == 2  # Wed
-        assert task.day_val is None
+        # The canonical weekday name is kept so it is persisted (audit A1)
+        assert task.day_val == "wednesday"
 
     def test_monthly_cycle_parses_day_int(self, service):
         task = _FakeScheduledTask(cycle="monthly")

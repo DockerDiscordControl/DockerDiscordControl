@@ -17,6 +17,7 @@ import re
 # Import auth from app.auth
 from app.auth import auth
 from services.config.config_service import load_config, save_config, update_config_fields
+from services.exceptions import ConfigServiceError
 from services.infrastructure.action_logger import log_user_action
 from services.infrastructure.spam_protection_service import get_spam_protection_service
 
@@ -209,6 +210,14 @@ def save_config_api():
             'message': "Data error: Invalid configuration data provided."
         }
         flash("Data error: Invalid configuration data.", 'danger')
+    except ConfigServiceError as e:
+        # Config persistence errors (disk full, permission denied) that escaped the save service
+        logger.error(f"Config service error in save_config_api: {e}", exc_info=True)
+        result = {
+            'success': False,
+            'message': f"Error saving configuration: {e.message}"
+        }
+        flash("Error saving configuration.", 'danger')
 
     # Check if it's an AJAX request (has the X-Requested-With header)
     is_ajax_request = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
@@ -720,6 +729,9 @@ def submit_donation():
                 'donation_info': result.donation_info
             })
         else:
+            if getattr(result, 'status_code', None) == 400:
+                # Validation error: the service message is user-safe (e.g. "Invalid donation amount")
+                return jsonify({'success': False, 'error': result.message or 'Invalid donation data'}), 400
             # Log detailed error server-side, return generic message to user
             current_app.logger.error(f"Donation processing failed: {result.error}", exc_info=True)
             return jsonify({'success': False, 'error': 'Failed to process donation'}), 500
@@ -1124,9 +1136,9 @@ def donations_api():
             'error': 'Data error: Failed to process donation data'
         })
 
-@main_bp.route('/api/donations/delete/<int:index>', methods=['POST'])
+@main_bp.route('/api/donations/delete/<int:seq>', methods=['POST'])
 @auth.login_required
-def delete_donation(index):
+def delete_donation(seq):
     """
     Delete a donation OR restore a deleted donation using Event Sourcing compensation events.
 
@@ -1141,16 +1153,18 @@ def delete_donation(index):
         from services.donation.donation_management_service import get_donation_management_service
 
         service = get_donation_management_service()
-        result = service.delete_donation(index)
+        # seq = stable event seq of the clicked history row (not a list index)
+        result = service.delete_donation(seq)
 
         if result.success:
             action = result.data.get('action', 'Deleted')
             event_type = result.data.get('type', 'Unknown')
-            seq = result.data.get('deleted_seq', 'Unknown')
+            clicked_seq = result.data.get('deleted_seq', seq)
+            target_seq = result.data.get('target_seq', clicked_seq)
 
-            current_app.logger.info(f"{action} event at index {index} (seq {seq}, type {event_type})")
+            current_app.logger.info(f"{action} event seq {clicked_seq} (target seq {target_seq}, type {event_type})")
 
-            message = f"Event {action.lower()} successfully (seq #{seq})"
+            message = f"Event {action.lower()} successfully (seq #{clicked_seq})"
             return jsonify({
                 'success': True,
                 'message': message

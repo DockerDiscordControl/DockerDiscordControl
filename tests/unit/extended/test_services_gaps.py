@@ -469,12 +469,13 @@ class TestSchedulerGaps:
         scheduler_mod.parse_month_string.cache_clear()
         assert scheduler_mod.parse_month_string("Xyzember") is None
 
-    def test_parse_weekday_string_numeric_zero_to_six(self, scheduler_isolated):
+    def test_parse_weekday_string_numeric_one_based(self, scheduler_isolated):
+        # Numeric input is 1-7 with Monday=1 (audit 2026-09 A3); 0 is invalid
         scheduler_mod = scheduler_isolated
         scheduler_mod.parse_weekday_string.cache_clear()
-        assert scheduler_mod.parse_weekday_string("0") == 0
+        assert scheduler_mod.parse_weekday_string("0") is None
         scheduler_mod.parse_weekday_string.cache_clear()
-        assert scheduler_mod.parse_weekday_string("6") == 6
+        assert scheduler_mod.parse_weekday_string("6") == 5
 
     def test_parse_weekday_string_one_to_seven_format(self, scheduler_isolated):
         scheduler_mod = scheduler_isolated

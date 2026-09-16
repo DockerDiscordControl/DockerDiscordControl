@@ -269,7 +269,8 @@ class MechDataStore:
             evolution_data = self._calculate_evolution_data(core_data)
 
             # Step 3: Calculate speed information
-            speed_data = self._calculate_speed_data(core_data, request.language)
+            speed_data = self._calculate_speed_data(core_data, request.language,
+                                                    power_max=evolution_data.get('power_max'))
 
             # Step 4: Calculate decay information
             decay_data = self._calculate_decay_data(core_data)
@@ -570,7 +571,8 @@ class MechDataStore:
                 'next_level': next_level,
                 'next_level_name': next_level_name,
                 'next_threshold': prog_state.evo_max,  # Dynamic threshold from progress service
-                'amount_needed': max(0, prog_state.evo_max - prog_state.evo_current)
+                'amount_needed': max(0, prog_state.evo_max - prog_state.evo_current),
+                'power_max': getattr(prog_state, 'power_max', None)  # Power bar maximum (speed scale)
             }
 
         except (ImportError, AttributeError) as e:
@@ -594,18 +596,22 @@ class MechDataStore:
                 'amount_needed': 0
             }
 
-    def _calculate_speed_data(self, core_data: Dict[str, Any], language: str) -> Dict[str, Any]:
+    def _calculate_speed_data(self, core_data: Dict[str, Any], language: str,
+                              power_max: Optional[float] = None) -> Dict[str, Any]:
         """Calculate speed-related data using get_combined_mech_status (Single Point of Truth)."""
         try:
             from services.mech.speed_levels import get_combined_mech_status
 
             # Use get_combined_mech_status with proper parameters:
             # - Power_amount: current power (after decay)
-            # - total_donations_received: total donations (for correct evolution level)
+            # - evolution_level / power_max: the real level and its power bar maximum
+            #   (the level guessed from total donations is wrong with dynamic costs)
             combined_status = get_combined_mech_status(
                 Power_amount=core_data['power'],
                 total_donations_received=core_data.get('total_donated', core_data['power']),
-                language=language
+                language=language,
+                evolution_level=core_data.get('level'),
+                power_max=power_max
             )
 
             return {

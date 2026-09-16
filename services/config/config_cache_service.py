@@ -61,7 +61,13 @@ class ConfigCacheService:
 
             return None
 
-    def set_cached_config(self, cache_key: str, config: Dict[str, Any], config_dir: Path) -> None:
+    @staticmethod
+    def get_config_dir_mtime(config_dir: Path) -> float:
+        """Return the modification time of the config directory (0 if missing)."""
+        return os.path.getmtime(config_dir) if config_dir.exists() else 0
+
+    def set_cached_config(self, cache_key: str, config: Dict[str, Any], config_dir: Path,
+                          mtime: Optional[float] = None) -> None:
         """
         Cache configuration data.
 
@@ -69,9 +75,12 @@ class ConfigCacheService:
             cache_key: Cache key to store under
             config: Configuration data to cache
             config_dir: Config directory to get modification time
+            mtime: Directory mtime captured BEFORE the config was loaded. A save
+                that lands during the load then invalidates this entry. Falls
+                back to the current mtime when omitted.
         """
         with self._cache_lock:
-            current_time = os.path.getmtime(config_dir) if config_dir.exists() else 0
+            current_time = mtime if mtime is not None else self.get_config_dir_mtime(config_dir)
             self._config_cache[cache_key] = config.copy()
             self._cache_timestamps[cache_key] = current_time
 

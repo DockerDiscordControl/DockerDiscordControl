@@ -221,6 +221,28 @@ def _get_cached_channel_permission(channel_id: int, permission_key: str, current
 # ULTRA-OPTIMIZED ACTION BUTTON CLASS
 # =============================================================================
 
+def _log_background_task_exception(task: asyncio.Task, label: str) -> None:
+    """Done-callback helper: log (instead of silently swallowing) a background task's exception."""
+    if task.cancelled():
+        return
+    exc = task.exception()
+    if exc is not None:
+        logger.error(f"[ACTION_BTN] Background task '{label}' failed: {exc}", exc_info=exc)
+
+
+def _make_action_done_callback(cog, docker_name: str, pending_entry: dict, label: str):
+    """Build the done-callback for a background Docker action task.
+
+    Logs any exception and always releases the container's pending_actions entry - but only
+    if it is still the entry this action created (a newer action may have replaced it).
+    """
+    def _on_done(task: asyncio.Task) -> None:
+        _log_background_task_exception(task, label)
+        if cog.pending_actions.get(docker_name) is pending_entry:
+            del cog.pending_actions[docker_name]
+    return _on_done
+
+
 class ActionButton(Button):
     """Ultra-optimized button for Start, Stop, Restart actions."""
     cog: 'DockerControlCog'
@@ -298,12 +320,13 @@ class ActionButton(Button):
         logger.info(f"[ACTION_BTN] {self.action.upper()} action for '{self.display_name}' triggered by {user.name}")
 
         # Add to pending_actions - use docker_name as key!
-        self.cog.pending_actions[self.docker_name] = {
+        pending_entry = {
             'action': self.action,
             'timestamp': datetime.now(timezone.utc),
             'user': str(user),
             'display_name': self.display_name  # Store for display purposes
         }
+        self.cog.pending_actions[self.docker_name] = pending_entry
 
         try:
             pending_embed = _get_pending_embed(self.display_name)
@@ -311,6 +334,9 @@ class ActionButton(Button):
                 await interaction.edit_original_response(embed=pending_embed, view=None)
             except (discord.NotFound, discord.HTTPException) as e:
                 logger.warning(f"[ACTION_BTN] Interaction expired/invalid for {self.display_name}: {e}")
+                # The action never runs - don't leave the container stuck in "pending"
+                if self.cog.pending_actions.get(self.docker_name) is pending_entry:
+                    del self.cog.pending_actions[self.docker_name]
                 return
 
             log_user_action(
@@ -572,7 +598,8 @@ class ActionButton(Button):
 
                     # Create background task for BOTH Admin Control + Server Overview updates
                     update_task = asyncio.create_task(update_all_views())
-                    update_task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
+                    update_task.add_done_callback(
+                        lambda t: _log_background_task_exception(t, f"update views for {self.docker_name}"))
 
                 except (RuntimeError, OSError, asyncio.TimeoutError) as e:
                     logger.error(f"[ACTION_BTN] Error in background Docker {self.action}: {e}", exc_info=True)
@@ -580,9 +607,10 @@ class ActionButton(Button):
                     if self.docker_name in self.cog.pending_actions:
                         del self.cog.pending_actions[self.docker_name]
 
-            # Create task and handle exceptions properly
+            # Create task; the done-callback logs exceptions and always clears pending_actions
             task = asyncio.create_task(run_docker_action())
-            task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
+            task.add_done_callback(_make_action_done_callback(
+                self.cog, self.docker_name, pending_entry, f"docker {self.action} for {self.docker_name}"))
 
         except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"[ACTION_BTN] Error handling {self.action} for '{self.display_name}': {e}", exc_info=True)
@@ -751,6 +779,10 @@ class ToggleButton(Button):
 
             status_text = translations['online_text'] if running else translations['offline_text']
             current_emoji = "🟢" if running else "🔴"
+            if isinstance(status_result, ContainerStatusResult) and status_result.not_found:
+                # Deleted/renamed container - same rendering as the status loop
+                status_text = _("Not found")
+                current_emoji = "❓"
             is_expanded = self.is_expanded
 
             # Game-server player-count line - shared helper with the status-loop renderer so
@@ -1361,6 +1393,16 @@ class InfoDropdownButton(Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Show container selection dropdown when clicked."""
+        # Acknowledge immediately (container config is read from disk below); reply via followup.
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except discord.errors.NotFound:
+            logger.warning(f"Info button interaction expired for channel {self.channel_id}")
+            return
+        except discord.errors.HTTPException as e:
+            logger.error(f"Error deferring info button interaction: {e}", exc_info=True)
+            return
+
         try:
             # Apply spam protection
             from services.infrastructure.spam_protection_service import get_spam_protection_service
@@ -1373,12 +1415,9 @@ class InfoDropdownButton(Button):
                 user_id = str(interaction.user.id)
                 last_click = getattr(self, f'_last_click_{user_id}', 0)
                 if current_time - last_click < cooldown:
-                    await interaction.response.send_message(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
+                    await interaction.followup.send(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
                     return
                 setattr(self, f'_last_click_{user_id}', current_time)
-
-            # Get containers that have info enabled
-            from services.config.config_service import load_config
 
             # SERVICE FIRST: Use ServerConfigService instead of direct file access
             server_config_service = get_server_config_service()
@@ -1412,7 +1451,7 @@ class InfoDropdownButton(Button):
                     continue
 
             if not containers_with_info:
-                await interaction.response.send_message("ℹ️ No active containers have information configured.", ephemeral=True)
+                await interaction.followup.send("ℹ️ No active containers have information configured.", ephemeral=True)
                 return
 
             # Sort containers by the 'order' field (same as Admin Overview)
@@ -1429,22 +1468,17 @@ class InfoDropdownButton(Button):
                 color=discord.Color.blue()
             )
 
-            # Send as ephemeral response
-            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            # Send as ephemeral response (interaction was deferred above)
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
             logger.info(f"Info selection shown for user {interaction.user.name} in channel {self.channel_id}")
 
-        except (RuntimeError, ValueError, KeyError) as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing info selection: {e}", exc_info=True)
             try:
-                # Check if interaction has already been responded to (avoid double response error)
-                if not interaction.response.is_done():
-                    await interaction.response.send_message("❌ Error showing container selection.", ephemeral=True)
-                else:
-                    # Use followup if interaction already responded
-                    await interaction.followup.send("❌ Error showing container selection.", ephemeral=True)
+                await interaction.followup.send("❌ Error showing container selection.", ephemeral=True)
             except (discord.errors.DiscordException, RuntimeError):
-                # Interaction may have already been responded to or expired
+                # Interaction may have expired
                 pass
 
 class ContainerInfoSelectView(View):
@@ -1714,11 +1748,18 @@ class AdminButton(Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Show admin container selection dropdown when clicked."""
+        # Acknowledge immediately - the checks below do file I/O and can exceed Discord's
+        # 3 s limit (404 Unknown interaction). Everything after this replies via followup.
         try:
-            # Check if user is admin
-            from services.config.config_service import load_config
-            config = load_config()
+            await interaction.response.defer(ephemeral=True)
+        except discord.errors.NotFound:
+            logger.warning(f"Admin button interaction expired for channel {self.channel_id}")
+            return
+        except discord.errors.HTTPException as e:
+            logger.error(f"Error deferring admin button interaction: {e}", exc_info=True)
+            return
 
+        try:
             # SERVICE FIRST: Use AdminService to check permissions
             from services.admin.admin_service import get_admin_service
             admin_service = get_admin_service()
@@ -1726,7 +1767,7 @@ class AdminButton(Button):
             # Check if user is admin
             user_id = str(interaction.user.id)
             if not admin_service.is_user_admin(user_id):
-                await interaction.response.send_message("🛠️ You are not authorized to use admin controls.", ephemeral=True)
+                await interaction.followup.send("🛠️ You are not authorized to use admin controls.", ephemeral=True)
                 return
 
             # Apply spam protection
@@ -1739,13 +1780,9 @@ class AdminButton(Button):
                 current_time = time.time()
                 last_click = getattr(self, f'_last_click_{user_id}', 0)
                 if current_time - last_click < cooldown:
-                    await interaction.response.send_message(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
+                    await interaction.followup.send(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
                     return
                 setattr(self, f'_last_click_{user_id}', current_time)
-
-            # Get active containers
-            from pathlib import Path
-            from services.config.config_service import load_config
 
             # SERVICE FIRST: Use ServerConfigService to get active containers
             server_config_service = get_server_config_service()
@@ -1772,7 +1809,7 @@ class AdminButton(Button):
                     continue
 
             if not active_containers:
-                await interaction.response.send_message("📦 No active containers found.", ephemeral=True)
+                await interaction.followup.send("📦 No active containers found.", ephemeral=True)
                 return
 
             # Log containers BEFORE sorting (with types)
@@ -1809,18 +1846,15 @@ class AdminButton(Button):
                 color=discord.Color.red()
             )
 
-            # Send as ephemeral response
-            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            # Send as ephemeral response (interaction was deferred above)
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
             logger.info(f"Admin panel shown for user {interaction.user.name} in channel {self.channel_id}")
 
-        except (RuntimeError, ValueError, KeyError) as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing admin panel: {e}", exc_info=True)
             try:
-                if not interaction.response.is_done():
-                    await interaction.response.send_message("❌ Error showing admin panel.", ephemeral=True)
-                else:
-                    await interaction.followup.send("❌ Error showing admin panel.", ephemeral=True)
+                await interaction.followup.send("❌ Error showing admin panel.", ephemeral=True)
             except (discord.errors.DiscordException, RuntimeError):
                 pass
 
@@ -2036,6 +2070,16 @@ class HelpButton(Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Show help information when clicked."""
+        # Acknowledge immediately (every _() below reloads the config); reply via followup.
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except discord.errors.NotFound:
+            logger.warning(f"Help button interaction expired for channel {self.channel_id}")
+            return
+        except discord.errors.HTTPException as e:
+            logger.error(f"Error deferring help button interaction: {e}", exc_info=True)
+            return
+
         try:
             # Apply spam protection
             from services.infrastructure.spam_protection_service import get_spam_protection_service
@@ -2048,7 +2092,7 @@ class HelpButton(Button):
                 user_id = str(interaction.user.id)
                 last_click = getattr(self, f'_last_click_{user_id}', 0)
                 if current_time - last_click < cooldown:
-                    await interaction.response.send_message(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
+                    await interaction.followup.send(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
                     return
                 setattr(self, f'_last_click_{user_id}', current_time)
 
@@ -2061,7 +2105,7 @@ class HelpButton(Button):
             embed.add_field(name=f"**{_('Commands')}**", value=f"`/ss` - {_('(Re)generates the Server Overview panel in status channels')}\n`/control` - {_('(Re)generates the Admin Overview in control channels')}" + "\n\u200b", inline=False)
 
             # Status Indicators
-            embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n🔄 {_('Container status loading')}\n🟡 {_('Action pending (starting/stopping)')}" + "\n\u200b", inline=False)
+            embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n❓ {_('Container not found')}\n🔄 {_('Container status loading')}\n🟡 {_('Action pending (starting/stopping)')}" + "\n\u200b", inline=False)
 
             # Buttons in Server Overview
             embed.add_field(name=f"**{_('Buttons')}**", value=f"**{_('Mech')}** - {_('Shows detailed mech stats and donation system')}\nℹ️ **{_('Info')}** - {_('Shows container details (if configured)')}\n🛠️ **{_('Admin')}** - {_('Opens admin control panel')}\n❓ **{_('Help')}** - {_('Shows this help message')}" + "\n\u200b", inline=False)
@@ -2074,22 +2118,17 @@ class HelpButton(Button):
 
             embed.set_footer(text="https://ddc.bot")
 
-            # Send as ephemeral response
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            # Send as ephemeral response (interaction was deferred above)
+            await interaction.followup.send(embed=embed, ephemeral=True)
 
             logger.info(f"Help shown for user {interaction.user.name} in channel {self.channel_id}")
 
-        except (RuntimeError, ValueError, KeyError) as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing help: {e}", exc_info=True)
             try:
-                # Check if interaction has already been responded to (avoid double response error)
-                if not interaction.response.is_done():
-                    await interaction.response.send_message("❌ Error showing help information.", ephemeral=True)
-                else:
-                    # Use followup if interaction already responded
-                    await interaction.followup.send("❌ Error showing help information.", ephemeral=True)
+                await interaction.followup.send("❌ Error showing help information.", ephemeral=True)
             except (discord.errors.DiscordException, RuntimeError):
-                # Interaction may have already been responded to or expired
+                # Interaction may have expired
                 pass
 
 class MechDetailsButton(Button):
@@ -2859,6 +2898,23 @@ class MechDisplayButton(Button):
             custom_id=f"mech_display_{level}"
         )
 
+    def _is_unlocked_now(self) -> bool:
+        """Check the unlock state against the live mech level.
+
+        The custom_id is the same for unlocked buttons and the locked "Next" button, so a
+        persistent view re-registered after a restart can't know which one was clicked.
+        Falls back to the flag given at construction if the level can't be read.
+        """
+        try:
+            from services.mech.mech_service import get_mech_service, GetMechStateRequest
+            state = get_mech_service().get_mech_state_service(GetMechStateRequest(include_decimals=False))
+            if state.success:
+                return self.level <= state.level
+            logger.warning(f"Could not read mech level to verify unlock state of level {self.level}")
+        except (ImportError, AttributeError, RuntimeError, ValueError) as e:
+            logger.warning(f"Could not verify unlock state of mech level {self.level}: {e}")
+        return self.unlocked
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Display the mech using pre-rendered cached images."""
         try:
@@ -2882,7 +2938,7 @@ class MechDisplayButton(Button):
                 await interaction.followup.send(_("❌ Mech data not found."), ephemeral=True)
                 return
 
-            if self.unlocked:
+            if self._is_unlocked_now():
                 # Load pre-rendered unlocked mech from cache
                 image_request = MechDisplayImageRequest(
                     evolution_level=self.level,

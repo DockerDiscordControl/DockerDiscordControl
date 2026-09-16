@@ -20,7 +20,8 @@ services:
       # Note: cached_displays are now built into the Docker image for Community App compatibility
     # user: "99:100"
     environment:
-      # FLASK_SECRET_KEY: Must be set! Best to use a .env file.
+      # FLASK_SECRET_KEY: Optional, best set via a .env file. If empty, DDC generates a
+      # random key once and keeps it in config/.flask_secret_key.
       FLASK_SECRET_KEY: ${FLASK_SECRET_KEY}
       # ENV_FLASK_SECRET_KEY: Is also set to the same value (for Supervisor)
       ENV_FLASK_SECRET_KEY: ${FLASK_SECRET_KEY}
@@ -53,12 +54,8 @@ services:
     #   - SETPCAP        # capability transition for setpriv
     #
     # See AUDIT.md (S10) for the rollback plan.
-    healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9374/health')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+    # healthcheck: provided by the image (Dockerfile HEALTHCHECK - ignores HTTP(S)_PROXY and
+    # follows DDC_WEB_PORT). Don't override it here unless you really need to.
     logging: # Equivalent to --log-driver and --log-opt
       driver: json-file
       options:

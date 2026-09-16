@@ -318,7 +318,8 @@ class GameQueryService:
             from services.docker_service.docker_client_pool import get_docker_client_async
             async with get_docker_client_async(timeout=5.0, operation='game_query_port',
                                                container_name=container_name) as client:
-                container = client.containers.get(container_name)
+                # Blocking SDK call - keep it off the event loop
+                container = await asyncio.to_thread(client.containers.get, container_name)
                 ports = container.attrs.get('NetworkSettings', {}).get('Ports', {}) or {}
                 return self._first_published_port(ports, protocol)
         except Exception as e:  # noqa: BLE001 - autodiscovery is best-effort
@@ -344,7 +345,8 @@ class GameQueryService:
             from services.docker_service.docker_client_pool import get_docker_client_async
             async with get_docker_client_async(timeout=5.0, operation='game_query_target',
                                                container_name=container_name) as client:
-                attrs = client.containers.get(container_name).attrs
+                # Blocking SDK call - keep it off the event loop
+                attrs = (await asyncio.to_thread(client.containers.get, container_name)).attrs
                 net = attrs.get('NetworkSettings', {}) or {}
                 if host is None:
                     host = self._container_ip(net)

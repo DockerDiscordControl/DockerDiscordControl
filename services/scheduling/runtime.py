@@ -40,6 +40,8 @@ class _SchedulerRuntimeState:
     last_modified_time: float = 0.0
     last_file_size: int = 0
     timezone_cache: Dict[str, object] = field(default_factory=dict)
+    # Run state of system tasks (not stored in tasks.json), keyed by task id
+    system_task_state: Dict[str, Dict[str, object]] = field(default_factory=dict)
 
 
 class SchedulerRuntime:
@@ -167,6 +169,16 @@ class SchedulerRuntime:
 
     def clear_timezone_cache(self) -> None:
         self._state.timezone_cache.clear()
+
+    # ------------------------------------------------------------------
+    # System task state
+    # ------------------------------------------------------------------
+    def get_system_task_state(self, task_id: str) -> Dict[str, object]:
+        """Return the remembered run state of a system task (empty if none)."""
+        return dict(self._state.system_task_state.get(task_id, {}))
+
+    def store_system_task_state(self, task_id: str, state: Dict[str, object]) -> None:
+        self._state.system_task_state[task_id] = dict(state)
 
 
 _runtime: Optional[SchedulerRuntime] = None

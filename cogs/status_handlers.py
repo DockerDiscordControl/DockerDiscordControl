@@ -11,6 +11,7 @@ Module containing status handler functions for Docker containers.
 These are implemented as a mixin class to be used with the main DockerControlCog.
 """
 import asyncio
+import os
 import time
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Tuple, Union
@@ -18,7 +19,8 @@ import discord
 
 # Import necessary utilities
 from utils.logging_utils import get_module_logger
-from services.infrastructure.container_status_service import get_docker_info_dict_service_first, get_docker_stats_service_first
+from services.infrastructure.container_status_service import (
+    get_docker_info_dict_service_first, get_docker_stats_service_first, get_container_status_service)
 from utils.time_utils import format_datetime_with_timezone
 from services.config.server_config_service import get_server_config_service
 from services.docker_status import get_performance_service, get_fetch_service, ContainerStatusResult
@@ -33,6 +35,20 @@ from .translation_manager import _
 
 # Configure logger for this module
 logger = get_module_logger('status_handlers')
+
+# Parallel Docker fetches per bulk status run. stats(stream=False) takes ~1.7 s per running
+# container (34 containers: 3 parallel -> 21 s, 8 parallel -> 8 s). Status fetches don't use
+# the DockerClientService pool (get_docker_client_async opens its own client per fetch), but
+# each one blocks a default-executor thread (asyncio.to_thread) for that time.
+BULK_FETCH_MAX_CONCURRENCY = 6
+
+
+def _bulk_fetch_concurrency() -> int:
+    """Parallel fetches for one bulk run: up to 6, but keep 2 default-executor threads free
+    for other asyncio.to_thread work (e.g. the auto-action regex check has a 0.5 s budget)."""
+    cpu_count = getattr(os, 'process_cpu_count', os.cpu_count)() or 1
+    default_workers = min(32, cpu_count + 4)  # ThreadPoolExecutor default used by to_thread
+    return max(3, min(BULK_FETCH_MAX_CONCURRENCY, default_workers - 2))
 
 class StatusHandlersMixin:
     """
@@ -106,8 +122,8 @@ class StatusHandlersMixin:
         if fast_containers:
             logger.debug(f"[INTELLIGENT_BULK_FETCH] Phase 1: Processing {len(fast_containers)} fast containers in parallel")
 
-            # Use semaphore for controlled concurrency
-            MAX_CONCURRENT_FAST = min(3, len(fast_containers))  # Max 3 concurrent to match Docker pool capacity
+            # Use semaphore for controlled concurrency (see _bulk_fetch_concurrency)
+            MAX_CONCURRENT_FAST = min(_bulk_fetch_concurrency(), len(fast_containers))
             semaphore = asyncio.Semaphore(MAX_CONCURRENT_FAST)
 
             async def fetch_fast_container(container_name):
@@ -166,6 +182,17 @@ class StatusHandlersMixin:
             display_name = server_config.get('name', docker_name)
             details_allowed = server_config.get('allow_detailed_status', True)
 
+            if info is None and get_container_status_service().is_container_not_found(docker_name):
+                # Docker answered "no such container" (deleted/renamed/being recreated): cached
+                # like offline, but shown as "not found" instead of 🔴 / an endless 🔄
+                status_results[docker_name] = ContainerStatusResult.not_found_result(
+                    docker_name=docker_name,
+                    display_name=display_name,
+                    details_allowed=details_allowed
+                )
+                successful_fetches += 1
+                continue
+
             if isinstance(info, Exception) or info is None:
                 # Container offline or error - still provide complete status structure
                 logger.debug(f"[INTELLIGENT_BULK_FETCH] {docker_name} appears offline or error: {info}")
@@ -194,7 +221,8 @@ class StatusHandlersMixin:
 
                         days = delta.days
                         hours, remainder = divmod(delta.seconds, 3600)
-                        minutes, _ = divmod(remainder, 60)
+                        # Don't unpack into `_` - that would shadow the translation function
+                        minutes = remainder // 60
                         uptime_parts = []
                         if days > 0:
                             uptime_parts.append(f"{days}d")
@@ -229,10 +257,12 @@ class StatusHandlersMixin:
                                 uptime_parts.append(f"{minutes}m")
                             uptime = " ".join(uptime_parts) if uptime_parts else "< 1m"
                     # Fallback to old stats method if SERVICE FIRST data not available
-                    elif not isinstance(stats, Exception) and stats:
-                        cpu_stat, ram_stat = stats
-                        cpu = cpu_stat if cpu_stat is not None else 'N/A'
-                        ram = ram_stat if ram_stat is not None else 'N/A'
+                    elif isinstance(stats, dict) and stats:
+                        # get_docker_stats_service_first() returns a dict, same as in get_status()
+                        cpu_percent = stats.get('cpu_percent')
+                        memory_mb = stats.get('memory_usage_mb')
+                        cpu = f"{cpu_percent:.1f}%" if cpu_percent is not None else 'N/A'
+                        ram = f"{memory_mb:.0f}MB" if memory_mb is not None else 'N/A'
                     else:
                         # No stats available
                         pass  # Keep N/A values set above
@@ -483,6 +513,14 @@ class StatusHandlersMixin:
         try:
             info = await get_docker_info_dict_service_first(docker_name)
 
+            if not info and get_container_status_service().is_container_not_found(docker_name):
+                # Same "not found" state as bulk_fetch_container_status (keeps it on refreshes)
+                return ContainerStatusResult.not_found_result(
+                    docker_name=docker_name,
+                    display_name=display_name,
+                    details_allowed=details_allowed
+                )
+
             if not info:
                 # Container does not exist or Docker daemon is unreachable
                 logger.warning(f"Container info not found for {docker_name}. Assuming offline.")
@@ -509,7 +547,8 @@ class StatusHandlersMixin:
 
                         days = delta.days
                         hours, remainder = divmod(delta.seconds, 3600)
-                        minutes, _ = divmod(remainder, 60)
+                        # Don't unpack into `_` - that would shadow the translation function
+                        minutes = remainder // 60
                         uptime_parts = []
                         if days > 0:
                             uptime_parts.append(f"{days}d")
@@ -743,6 +782,10 @@ class StatusHandlersMixin:
                 offline_text = cached_translations['offline_text']
                 status_text = online_text if running else offline_text
                 current_emoji = "🟢" if running else "🔴"
+                if status_result.not_found:
+                    # Deleted/renamed container - own state instead of "offline"
+                    status_text = _("Not found")
+                    current_emoji = "❓"
 
                 # Check if we should always collapse
                 # CRITICAL FIX: Use docker_name (stable identifier) instead of display_name for expanded state lookup

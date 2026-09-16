@@ -11,6 +11,9 @@ Action Log Service - Clean service architecture for user action logging
 
 import os
 import json
+import stat
+import tempfile
+import threading
 import pytz
 from datetime import datetime
 from pathlib import Path
@@ -75,6 +78,10 @@ class ServiceResult:
 
 _TEXT_LOG_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
 _TEXT_LOG_BACKUP_COUNT = 3
+
+# Serialises the user_actions.json read-modify-write: actions are logged from
+# waitress threads and the bot event loop at the same time.
+_JSON_LOG_LOCK = threading.Lock()
 
 class ActionLogService:
     """Clean service for managing user action logs with proper separation of concerns."""
@@ -181,36 +188,66 @@ class ActionLogService:
 
     def _save_to_json(self, entry: ActionLogEntry) -> ServiceResult:
         """Save log entry to JSON file."""
+        temp_path = None
         try:
-            # Read existing data
-            actions = []
-            if self.json_log_file.exists():
-                try:
-                    with open(self.json_log_file, 'r', encoding='utf-8') as f:
-                        content = f.read().strip()
-                        if content:
-                            actions = json.loads(content)
-                except (json.JSONDecodeError, IOError):
-                    actions = []
+            with _JSON_LOG_LOCK:
+                # Read existing data. An I/O error propagates (nothing is written),
+                # so an unreadable log is never replaced by a single entry.
+                actions = []
+                if self.json_log_file.exists():
+                    try:
+                        with open(self.json_log_file, 'r', encoding='utf-8') as f:
+                            content = f.read().strip()
+                        actions = json.loads(content) if content else []
+                    except (json.JSONDecodeError, UnicodeDecodeError) as decode_error:
+                        logger.error(f"Could not parse {self.json_log_file.name}: {decode_error}")
+                        actions = None
 
-            # Add new entry
-            actions.append(entry.to_dict())
+                    if not isinstance(actions, list):
+                        # Keep the corrupt history recoverable instead of overwriting it
+                        backup_file = self._backup_corrupt_json_log()
+                        logger.error(f"Moved unreadable action log to {backup_file.name}, starting a new one")
+                        actions = []
 
-            # Keep only last 10000 entries
-            if len(actions) > 10000:
-                actions = actions[-10000:]
+                # Add new entry
+                actions.append(entry.to_dict())
 
-            # Atomic write
-            temp_file = self.json_log_file.with_suffix('.tmp')
-            with open(temp_file, 'w', encoding='utf-8') as f:
-                json.dump(actions, f, indent=2, ensure_ascii=False)
-            temp_file.replace(self.json_log_file)
+                # Keep only last 10000 entries
+                if len(actions) > 10000:
+                    actions = actions[-10000:]
+
+                # Atomic write via a unique temp file in the same directory
+                fd, temp_path = tempfile.mkstemp(dir=str(self.logs_dir), prefix='.user_actions_', suffix='.json.tmp')
+                with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                    json.dump(actions, f, indent=2, ensure_ascii=False)
+                # Keep the permissions of the file being replaced (mkstemp uses 0600)
+                if self.json_log_file.exists():
+                    os.chmod(temp_path, stat.S_IMODE(self.json_log_file.stat().st_mode))
+                os.replace(temp_path, self.json_log_file)
+                temp_path = None
 
             return ServiceResult(success=True)
 
         except (IOError, OSError, PermissionError, json.JSONDecodeError, UnicodeDecodeError, UnicodeEncodeError, TypeError, ValueError) as e:
             # JSON save errors (file I/O, permissions, JSON parsing/serialization, encoding, type/value errors)
             return ServiceResult(success=False, error=str(e))
+        finally:
+            if temp_path:
+                try:
+                    os.unlink(temp_path)
+                except OSError:
+                    pass  # Best effort cleanup
+
+    def _backup_corrupt_json_log(self) -> Path:
+        """Move an unreadable user_actions.json aside (raises OSError on failure)."""
+        stamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_file = self.json_log_file.with_name(f"{self.json_log_file.name}.corrupt-{stamp}")
+        counter = 1
+        while backup_file.exists():
+            backup_file = self.json_log_file.with_name(f"{self.json_log_file.name}.corrupt-{stamp}-{counter}")
+            counter += 1
+        os.replace(self.json_log_file, backup_file)
+        return backup_file
 
     def _text_backup_path(self, index: int) -> Path:
         return self.text_log_file.parent / f"{self.text_log_file.name}.{index}"

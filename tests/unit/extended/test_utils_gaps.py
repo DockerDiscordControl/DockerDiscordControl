@@ -266,8 +266,12 @@ class TestMechDecayLifecycle:
         finally:
             wh.mech_decay_thread = prev
 
-    def test_stop_mech_decay_join_timeout_warning(self, monkeypatch):
-        """Cover the 'thread did not terminate within timeout' warning."""
+    def test_stop_mech_decay_join_timeout_logged(self, monkeypatch):
+        """Cover the 'thread did not terminate within timeout' message.
+
+        Audit 2026-09: shutdown messages are debug level - a stop is routine and
+        this fired twice on every container stop.
+        """
         from app.utils import web_helpers as wh
 
         prev = wh.mech_decay_thread
@@ -291,7 +295,8 @@ class TestMechDecayLifecycle:
         try:
             logger = MagicMock()
             wh.stop_mech_decay_background(logger)
-            # Warning logged about timeout
+            # A thread that refuses to stop stays a WARNING; only the routine "stopping ..."
+            # messages were moved to debug (V2 review).
             calls = [str(c) for c in logger.warning.call_args_list]
             assert any("did not terminate" in c for c in calls)
         finally:
@@ -331,7 +336,7 @@ class TestMechDecayLifecycle:
 class TestStopBackgroundRefreshAlive:
     """Cover stop_background_refresh join paths (lines 593-612)."""
 
-    def test_stop_background_refresh_warning_when_thread_stuck(self, monkeypatch):
+    def test_stop_background_refresh_logs_when_thread_stuck(self, monkeypatch):
         from app.utils import web_helpers as wh
 
         prev = wh.background_refresh_thread
@@ -355,6 +360,7 @@ class TestStopBackgroundRefreshAlive:
         try:
             logger = MagicMock()
             wh.stop_background_refresh(logger)
+            # A thread that refuses to stop stays a WARNING (see the mech decay twin).
             calls = [str(c) for c in logger.warning.call_args_list]
             assert any("did not terminate" in c for c in calls)
         finally:

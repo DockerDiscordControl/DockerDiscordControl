@@ -9,7 +9,7 @@
 Donation Management Service - Clean service architecture for donation administration
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Iterator, Optional
 from dataclasses import dataclass
 import json
 from utils.logging_utils import get_module_logger
@@ -17,6 +17,24 @@ from utils.logging_utils import get_module_logger
 from services.mech.progress_paths import get_progress_paths
 
 logger = get_module_logger('donation_management_service')
+
+# Event types that represent a donation (deletable / restorable)
+_DONATION_EVENT_TYPES = ('DonationAdded', 'PowerGiftGranted', 'SystemDonationAdded', 'ExactHitBonusGranted')
+
+
+def _iter_event_log(event_log) -> Iterator[Dict[str, Any]]:
+    """Yield events from the JSONL event log, skipping damaged lines (e.g. truncated by a crash)."""
+    with open(event_log, 'r', encoding='utf-8') as f:
+        for line_no, line in enumerate(f, start=1):
+            if not line.strip():
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError as e:
+                logger.error(f"Skipping corrupt line {line_no} in donation event log: {e}")
+                continue
+            if isinstance(event, dict):
+                yield event
 
 @dataclass(frozen=True)
 class ServiceResult:
@@ -86,14 +104,10 @@ class DonationManagementService:
             event_log = get_progress_paths().event_log
 
             if event_log.exists():
-                with open(event_log, 'r', encoding='utf-8') as f:
-                    for line in f:
-                        if not line.strip():
-                            continue
-                        event = json.loads(line)
-                        # Include ALL donation types for transparency
-                        if event.get('type') in ['DonationAdded', 'DonationDeleted', 'PowerGiftGranted', 'SystemDonationAdded', 'ExactHitBonusGranted']:
-                            all_events.append(event)
+                for event in _iter_event_log(event_log):
+                    # Include ALL donation types for transparency
+                    if event.get('type') in _DONATION_EVENT_TYPES + ('DonationDeleted',):
+                        all_events.append(event)
 
             # Build nested structure: Donations with their deletion events
             donations_map = {}  # seq -> donation data
@@ -231,7 +245,7 @@ class DonationManagementService:
             logger.error(error_msg, exc_info=True)
             return ServiceResult(success=False, error=error_msg)
 
-    def delete_donation(self, index: int) -> ServiceResult:
+    def delete_donation(self, seq: int) -> ServiceResult:
         """
         Delete a donation OR restore a deleted donation using Event Sourcing compensation events.
 
@@ -242,95 +256,67 @@ class DonationManagementService:
         - All level-ups and costs recalculate correctly
 
         Args:
-            index: The index in the DISPLAY list (includes both donations and deletions, 0-based, newest first)
+            seq: The stable event seq of the clicked history row ('seq' in get_donation_history):
+                 a donation event is deleted, a DonationDeleted event restores its donation.
+                 (A display-list index shifted when an event arrived between page load and
+                 click, so the wrong entry could be deleted.)
 
         Returns:
             ServiceResult with success status
         """
         try:
-            # Get ALL events from event log (same logic as list_donations to get matching indices)
-            all_events = []
             event_log = get_progress_paths().event_log
 
             if not event_log.exists():
                 return ServiceResult(success=False, error="Event log not found")
 
-            with open(event_log, 'r', encoding='utf-8') as f:
-                for line in f:
-                    if not line.strip():
-                        continue
-                    event = json.loads(line)
-                    # Load ALL donation types (same as get_donation_history)
-                    if event.get('type') in ['DonationAdded', 'DonationDeleted', 'PowerGiftGranted', 'SystemDonationAdded', 'ExactHitBonusGranted']:
-                        all_events.append(event)
-
-            # Build the same nested structure as list_donations
-            donations_map = {}
-            deletions_map = {}
-
-            for event in all_events:
+            item = None
+            deletion_counts: Dict[int, int] = {}
+            for event in _iter_event_log(event_log):
                 event_type = event.get('type')
-                if event_type in ['DonationAdded', 'PowerGiftGranted', 'SystemDonationAdded', 'ExactHitBonusGranted']:
-                    seq = event.get('seq')
-                    donations_map[seq] = {
-                        'seq': seq,
-                        'type': event_type,
-                        'deletion_events': []
-                    }
-                elif event_type == 'DonationDeleted':
-                    deleted_seq = event.get('payload', {}).get('deleted_seq')
+                if event.get('seq') == seq and event_type in _DONATION_EVENT_TYPES + ('DonationDeleted',):
+                    item = event
+                if event_type == 'DonationDeleted':
+                    deleted_seq = (event.get('payload') or {}).get('deleted_seq')
                     if deleted_seq:
-                        deletion_event = {
-                            'seq': event.get('seq'),
-                            'deleted_seq': deleted_seq,
-                            'type': 'DonationDeleted'
-                        }
-                        if deleted_seq not in deletions_map:
-                            deletions_map[deleted_seq] = []
-                        deletions_map[deleted_seq].append(deletion_event)
+                        deletion_counts[deleted_seq] = deletion_counts.get(deleted_seq, 0) + 1
 
-            # Attach deletion events to donations
-            for deleted_seq, deletion_events in deletions_map.items():
-                if deleted_seq in donations_map:
-                    donations_map[deleted_seq]['deletion_events'] = deletion_events
+            if item is None:
+                return ServiceResult(success=False, error=f"Donation event with seq {seq} not found")
 
-            # Build flat display list (same as UI)
-            display_list = []
-            for seq in reversed(sorted(donations_map.keys())):
-                display_list.append(donations_map[seq])
-                for deletion in donations_map[seq]['deletion_events']:
-                    display_list.append(deletion)
-
-            # Check if index is valid
-            if index < 0 or index >= len(display_list):
-                return ServiceResult(success=False, error=f"Invalid index: {index}")
-
-            item = display_list[index]
-            item_seq = item['seq']
             item_type = item['type']
+            restore = item_type == 'DonationDeleted'
+            if restore:
+                # Restore: the item is a deletion event — pass the original
+                # donation's seq so progress_service can find the DonationAdded.
+                target_seq = (item.get('payload') or {}).get('deleted_seq')
+            else:
+                # Delete: the item is a donation event — pass its seq directly.
+                target_seq = seq
+
+            # Deletion is a toggle in progress_service. Refuse a click whose intent no longer
+            # matches the current state (stale page, double click) instead of flipping it back.
+            currently_deleted = deletion_counts.get(target_seq, 0) % 2 == 1
+            if restore and not currently_deleted:
+                return ServiceResult(success=False, error=f"Donation seq {target_seq} is not deleted")
+            if not restore and currently_deleted:
+                return ServiceResult(success=False, error=f"Donation seq {target_seq} is already deleted")
 
             # Call progress service to delete
             from services.mech.progress_service import get_progress_service
             progress_service = get_progress_service()
 
-            if item_type == 'DonationDeleted':
-                # Restore: the item is a deletion event — pass the original
-                # donation's seq so progress_service can find the DonationAdded.
-                target_seq = item.get('deleted_seq', item_seq)
-            else:
-                # Delete: the item is a donation event — pass its seq directly.
-                target_seq = item_seq
-
             # Delete/restore event (adds compensation event and rebuilds)
             progress_service.delete_donation(target_seq)
 
-            action = "Deleted" if item_type != 'DonationDeleted' else "Restored"
-            logger.info(f"{action} event at index {index} (seq {item_seq}, type {item_type})")
+            action = "Restored" if restore else "Deleted"
+            logger.info(f"{action} donation seq {target_seq} (clicked seq {seq}, type {item_type})")
 
             return ServiceResult(
                 success=True,
                 data={
-                    'deleted_seq': item_seq,
+                    'deleted_seq': seq,
+                    'target_seq': target_seq,
                     'action': action,
                     'type': item_type
                 }
@@ -388,26 +374,22 @@ class DonationManagementService:
             event_log = get_progress_paths().event_log
 
             if event_log.exists():
-                with open(event_log, 'r', encoding='utf-8') as f:
-                    for line in f:
-                        if not line.strip():
-                            continue
-                        event = json.loads(line)
-                        event_type = event.get('type')
+                for event in _iter_event_log(event_log):
+                    event_type = event.get('type')
 
-                        # Include ALL donation types
-                        if event_type in ['DonationAdded', 'PowerGiftGranted', 'SystemDonationAdded', 'ExactHitBonusGranted']:
-                            seq = event.get('seq')
-                            payload = event.get('payload', {})
-                            amount_key = 'units' if event_type == 'DonationAdded' else 'power_units'
-                            donations_map[seq] = {
-                                'amount': payload.get(amount_key, 0) / 100.0,
-                                'is_deleted': False
-                            }
-                        elif event_type == 'DonationDeleted':
-                            deleted_seq = event.get('payload', {}).get('deleted_seq')
-                            if deleted_seq:
-                                deletions_map[deleted_seq] = deletions_map.get(deleted_seq, 0) + 1
+                    # Include ALL donation types
+                    if event_type in _DONATION_EVENT_TYPES:
+                        seq = event.get('seq')
+                        payload = event.get('payload', {})
+                        amount_key = 'units' if event_type == 'DonationAdded' else 'power_units'
+                        donations_map[seq] = {
+                            'amount': payload.get(amount_key, 0) / 100.0,
+                            'is_deleted': False
+                        }
+                    elif event_type == 'DonationDeleted':
+                        deleted_seq = event.get('payload', {}).get('deleted_seq')
+                        if deleted_seq:
+                            deletions_map[deleted_seq] = deletions_map.get(deleted_seq, 0) + 1
 
             # Mark deleted donations using toggle pattern (odd count = deleted)
             for deleted_seq, count in deletions_map.items():

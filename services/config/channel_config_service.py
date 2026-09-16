@@ -21,6 +21,11 @@ logger = logging.getLogger('ddc.channel_config_service')
 
 _SAFE_DISCORD_ID_RE = re.compile(r'^\d{17,19}$')
 
+# Written into channels/ when the last channel was removed on purpose. Without it the config
+# loader would bring the channels back from a leftover legacy channels_config.json (or the
+# channel_permissions copy in config.json) as soon as it finds no channel files.
+ALL_CHANNELS_REMOVED_MARKER = '.all_channels_removed'
+
 class ChannelConfigService:
     """Service First implementation for channel configuration management.
 
@@ -234,6 +239,7 @@ class ChannelConfigService:
             config_file = self.channels_dir / f"{channel_id}.json"
             self._atomic_write_json(config_file, config)
             logger.info(f"Saved channel config for {channel_id}")
+            self._clear_all_channels_removed_marker()
 
             # Also update main config.json for consistency
             self._update_main_config(channel_id, config)
@@ -262,6 +268,7 @@ class ChannelConfigService:
             if config_file.exists():
                 config_file.unlink()
                 logger.info(f"Deleted channel config for {channel_id}")
+                self._mark_if_all_channels_removed()
 
             # Also remove from main config.json
             self._remove_from_main_config(channel_id)
@@ -273,11 +280,13 @@ class ChannelConfigService:
             logger.error(f"File error deleting channel {channel_id}: {e}")
             return False
 
-    def save_all_channels(self, channels: Dict[str, Dict[str, Any]]) -> bool:
+    def save_all_channels(self, channels: Dict[str, Dict[str, Any]], allow_empty: bool = False) -> bool:
         """Save all channel configurations at once.
 
         Args:
             channels: Dict with channel IDs as keys and configs as values
+            allow_empty: Set when an empty dict is an explicit "remove all channels" (the web
+                form submitted zero channels). Otherwise an empty dict is refused as a safety guard.
 
         Returns:
             True if all successful, False if any failed
@@ -296,15 +305,18 @@ class ChannelConfigService:
                 success = False
                 logger.warning(f"Failed to save channel {channel_id}")
 
-        # Determine which old files to remove
+        # Determine which old files to remove. Only <channel_id>.json files are channel
+        # configs; anything else (notably default.json with the default channel permissions)
+        # is left alone - delete_channel() would reject the name and fail every save.
         existing_files = set(f.stem for f in self.channels_dir.glob('*.json'))
         new_channels = set(channels.keys())
-        to_remove = existing_files - new_channels
+        to_remove = {stem for stem in existing_files - new_channels if self._is_valid_discord_id(stem)}
 
         if to_remove:
             # Safety check: don't delete existing files if no new channels were saved
-            # AND there were channels to save (prevents empty-dict edge case too)
-            if not saved_channels:
+            # AND there were channels to save (prevents empty-dict edge case too),
+            # unless the caller explicitly asked to remove all channels
+            if not saved_channels and (channels or not allow_empty):
                 if channels:
                     logger.error(
                         f"Refusing to delete {len(to_remove)} existing channel files "
@@ -350,11 +362,31 @@ class ChannelConfigService:
             config_file = self.channels_dir / f"{channel_id}.json"
             self._atomic_write_json(config_file, config)
             logger.info(f"Saved channel config for {channel_id}")
+            self._clear_all_channels_removed_marker()
             return True
 
         except (IOError, OSError, PermissionError, TypeError, ValueError) as e:
             logger.error(f"File/JSON error saving channel {channel_id}: {e}")
             return False
+
+    def _mark_if_all_channels_removed(self) -> None:
+        """Record that the last channel file was deleted on purpose (see ALL_CHANNELS_REMOVED_MARKER)."""
+        try:
+            if any(self._is_valid_discord_id(f.stem) for f in self.channels_dir.glob('*.json')):
+                return
+            marker = self.channels_dir / ALL_CHANNELS_REMOVED_MARKER
+            marker.write_text("All channels were removed on purpose; legacy channel files are ignored.\n",
+                              encoding='utf-8')
+            logger.info("Last channel removed - legacy channel fallbacks disabled")
+        except OSError as e:
+            logger.warning(f"Could not write {ALL_CHANNELS_REMOVED_MARKER}: {e}")
+
+    def _clear_all_channels_removed_marker(self) -> None:
+        """A channel exists again - drop the 'all channels removed' marker."""
+        try:
+            (self.channels_dir / ALL_CHANNELS_REMOVED_MARKER).unlink(missing_ok=True)
+        except OSError as e:
+            logger.warning(f"Could not remove {ALL_CHANNELS_REMOVED_MARKER}: {e}")
 
     def _update_main_config(self, channel_id: str, channel_config: Dict[str, Any]) -> None:
         """Update the main config.json with channel configuration.

@@ -129,8 +129,8 @@ class TestCsrfFoundation:
         token_helper = app.jinja_env.globals["csrf_token"]
         assert callable(token_helper)
 
-    def test_blueprints_are_exempted(self):
-        """Every registered blueprint should be exempted via csrf.exempt."""
+    def test_blueprints_are_not_exempted(self):
+        """CSRF is enforced for all blueprints (audit 2026-09, D2-1): no blanket exempt() calls."""
         pytest.importorskip("flask_wtf")
         from app.web import csrf as csrf_module
 
@@ -146,6 +146,7 @@ class TestCsrfFoundation:
                 {
                     "flask_wtf.csrf": MagicMock(
                         CSRFProtect=fake_csrf_class,
+                        CSRFError=type("CSRFError", (Exception,), {}),
                         generate_csrf=lambda: "fake-token",
                     ),
                 },
@@ -153,9 +154,8 @@ class TestCsrfFoundation:
                 # Force re-import of the inner from-import.
                 csrf_module.install_csrf_protection(app)
 
-        assert fake_csrf.exempt.call_count == 3, (
-            f"Expected 3 exempt() calls (one per blueprint), got "
-            f"{fake_csrf.exempt.call_count}"
+        assert fake_csrf.exempt.call_count == 0, (
+            f"Expected no exempt() calls, got {fake_csrf.exempt.call_count}"
         )
 
     def test_fallback_when_flask_wtf_missing(self):
@@ -251,15 +251,20 @@ class TestDockerComposeHardening:
         assert d["services"]["ddc"].get("restart") == "unless-stopped"
 
     def test_compose_healthcheck_uses_python_urllib(self):
+        # Audit R3-2: compose no longer overrides the image's HEALTHCHECK (the old
+        # override used urlopen -> honored HTTP_PROXY, and ignored DDC_WEB_PORT).
         d = _read_compose()
         hc = d["services"]["ddc"].get("healthcheck")
-        assert hc is not None, "healthcheck section missing"
+        if hc is None:
+            dockerfile = _read_text(DOCKERFILE_PATH)
+            assert "HEALTHCHECK" in dockerfile and "urllib" in dockerfile
+            return
         test_cmd = hc.get("test")
         assert test_cmd is not None
-        # Healthcheck command should reference urllib.
         flat = " ".join(map(str, test_cmd)) if isinstance(test_cmd, list) else str(test_cmd)
         assert "urllib" in flat, f"Healthcheck missing urllib check: {flat}"
         assert "python" in flat.lower()
+        assert "ProxyHandler({})" in flat, "healthcheck must ignore HTTP(S)_PROXY"
 
     def test_compose_logging_driver_json_file_with_rotation(self):
         d = _read_compose()
