@@ -165,6 +165,20 @@ class DonationStatusService:
             }
 
 
+    @staticmethod
+    def _next_level_name(level: int) -> str:
+        """Name of the evolution after `level`, or '' when there is none (level 11 is the last).
+
+        Read from the same configured source Discord uses, so both surfaces agree.
+        """
+        try:
+            if level >= 11:
+                return ''
+            from services.mech.mech_service_adapter import get_level_name
+            return get_level_name(level + 1) or ''
+        except (ImportError, AttributeError, RuntimeError, ValueError):
+            return ''
+
     def _build_status_data_from_cache(self, cache_result, speed_info: Dict[str, Any], evolution_info: Dict[str, Any]) -> Dict[str, Any]:
         """Build the comprehensive status data object from cached data - PERFORMANCE OPTIMIZED."""
         try:
@@ -175,6 +189,12 @@ class DonationStatusService:
                 'current_Power_raw': cache_result.power,  # Cache already includes decimals
                 'mech_level': cache_result.level,
                 'mech_level_name': cache_result.name,
+                # The name of the NEXT evolution, so the Web UI does not have to keep its own
+                # copy of the level names. It used to hold a hardcoded list ("STANDARD MECH",
+                # ...) that had drifted away from the configured ones ("The Corewalker
+                # Standard", ...), so the panel and Discord showed different names for the same
+                # level. Empty on level 11, which has no successor.
+                'next_level_name': self._next_level_name(cache_result.level),
                 'next_level_threshold': cache_result.threshold,
                 'glvl': cache_result.glvl,
                 'glvl_max': cache_result.glvl_max,
