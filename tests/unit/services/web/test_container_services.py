@@ -39,7 +39,6 @@ import docker.errors  # noqa: F401
 # --------------------------------------------------------------------------- #
 from services.web.container_log_service import (
     ActionLogRequest,
-    ClearLogRequest,
     ContainerLogRequest,
     ContainerLogService,
     FilteredLogRequest,
@@ -238,15 +237,6 @@ class TestGetContainerLogs:
             result = service.get_container_logs(ContainerLogRequest(container_name="ddc"))
         assert result.success is True
         assert result.content == "hello world"
-
-
-class TestClearLogs:
-    def test_clear_logs_returns_success_message(self):
-        service = ContainerLogService()
-        result = service.clear_logs(ClearLogRequest(log_type="container"))
-        assert result.success is True
-        assert result.data is not None
-        assert "Container" in result.data["message"]
 
 
 class TestGetContainerLogsSync:

@@ -685,12 +685,6 @@
             downloadLogsBtn.addEventListener('click', window.downloadLogs);
         }
         
-        // Initialize clear button  
-        const clearLogsBtn = document.getElementById('clearLogsBtn');
-        if (clearLogsBtn) {
-            clearLogsBtn.addEventListener('click', window.clearLogs);
-        }
-        
         // --- END: Enhanced Log Management Setup ---
 
         // --- Server Selection Table Logic ---
@@ -1833,34 +1827,6 @@
     }
     
     // Function to clear logs (global scope)
-    window.clearLogs = async function() {
-        const logTypeSelect = document.getElementById('logTypeSelect');
-        const logType = logTypeSelect ? logTypeSelect.value : 'container';
-        
-        if (!confirm(t('logs.confirm_clear', {logType: logType}))) {
-            return;
-        }
-        
-        // For now, just clear the display - can be updated when backend endpoint is available
-        const logContent = document.getElementById('logContent');
-        if (logContent) {
-            logContent.innerHTML = '<span class="text-muted">Logs cleared</span>';
-            // Clear cache if it exists
-            if (typeof window.rawLogsCache !== 'undefined') {
-                window.rawLogsCache = '';
-            }
-        }
-        
-        // Show notification
-        const notification = document.getElementById('save-notification');
-        if (notification) {
-            notification.className = 'alert alert-success';
-            notification.textContent = `${logType} logs cleared successfully`;
-            notification.style.display = 'block';
-            setTimeout(() => { notification.style.display = 'none'; }, 3000);
-        }
-    }
-
     // --- Temporary Debug Mode Functions ---
     
     // Timer for refreshing the temporary debug status

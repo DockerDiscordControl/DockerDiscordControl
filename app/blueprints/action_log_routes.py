@@ -6,9 +6,8 @@
 # Licensed under the MIT License                                               #
 # ============================================================================ #
 from flask import (
-    Blueprint, Response, current_app, send_file, jsonify, flash, redirect, url_for, session, request
+    Blueprint, Response, current_app, send_file, flash, redirect, url_for, request
 )
-from datetime import datetime, timezone # For clear_action_log timestamp
 import time
 from app.auth import auth
 
@@ -85,26 +84,3 @@ def download_action_log():
         # Redirect to a relevant page, e.g., the main config page or a dedicated logs page
         # Assuming 'main_bp.config_page' is the route for '/'. Adjust if namespace/name is different after BP registration.
         return redirect(url_for('main_bp.config_page'))
-
-@action_log_bp.route('/clear-action-log', methods=['POST'])
-@auth.login_required
-def clear_action_log():
-    logger = current_app.logger
-    try:
-        user = session.get('user', 'Unknown User') # Get user from session for logging
-        with open(ACTION_LOG_FILE, 'w', encoding='utf-8') as f:
-            f.write(f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')} - Log cleared by user: {user}\n")
-        log_user_action("CLEAR", "Action Log", source="Web UI Blueprint", details=f"Cleared by {user}")
-        logger.info(f"Action log cleared successfully by user: {user}.")
-        flash('Action log cleared successfully.', 'success')
-        return jsonify({'success': True, 'message': 'Action log cleared successfully.'})
-    except (IOError, OSError, PermissionError) as e:
-        # File system errors (access denied, disk full, I/O errors)
-        logger.error(f"File system error clearing action log: {e}", exc_info=True)
-        flash('Error clearing action log. Please check the logs for details.', 'error')
-        return jsonify({'success': False, 'message': 'Error clearing action log. Please check the logs for details.'})
-    except (UnicodeEncodeError, ValueError, KeyError) as e:
-        # Data errors (encoding issues, timestamp formatting, session data issues)
-        logger.error(f"Data error clearing action log: {e}", exc_info=True)
-        flash('Error clearing action log. Please check the logs for details.', 'error')
-        return jsonify({'success': False, 'message': 'Error clearing action log. Please check the logs for details.'})

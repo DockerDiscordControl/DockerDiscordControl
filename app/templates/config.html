@@ -1225,57 +1225,6 @@
             }
         }
         
-        // Consume Power every 3 seconds (backend only, no Next Bar animation)
-        function consumePower() {
-            const powerAmount = document.getElementById('powerAmount');
-            
-            if (powerAmount) {
-                // Parse current Power amount
-                const currentPower = parseFloat(powerAmount.textContent.replace('$', ''));
-                
-                // Only consume Power if we have Power
-                if (currentPower > 0) {
-                    // Actually consume Power on server
-                    fetch('/api/donation/consume-Power', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            // DEAD CODE - this function is never called (its setInterval below is
-                            // commented out) and the URL is wrong anyway: it posts to
-                            // 'consume-Power' while the route is '/api/donation/consume-power'.
-                            // The old literal 0.00003472 was labelled "1$ per day" but is ~3$/day,
-                            // and it ignored the level-specific rate entirely. Kept only so the
-                            // removal of the whole function stays a separate, reviewable step.
-                            amount: 0
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Update display with new amount
-                            powerAmount.textContent = '$' + data.new_Power.toFixed(2);
-                            
-                            // If Power hits 0, refresh mech animation
-                            if (data.new_Power <= 0) {
-                                setTimeout(() => {
-                                    // Use new efficient Power system instead
-                            syncWithServer();
-                                }, 1500);
-                            }
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error consuming Power:', error);
-                    });
-                }
-            }
-        }
-        
-        // OLD: Power consumption moved to efficient client-side system above
-        // setInterval(consumePower, 3000); // DISABLED - using client-side calculation
-        
         // Show the ACTUAL consumption per second, derived from the server's level-specific
         // decay rate. This element used to carry the fixed literal -$0.00003472 (about 3 $/day),
         // which matched no configured rate - the real one is 1.50 $/day on level 6 - and nothing

@@ -240,35 +240,3 @@ def get_action_logs_json():
         # Data errors (invalid request parameters, response processing failures, JSON serialization)
         current_app.logger.error(f"Data error in get_action_logs_json route: {e}", exc_info=True)
         return jsonify({'success': False, 'error': 'Data error occurred'}), 500
-
-@log_bp.route('/clear_logs', methods=['POST'])
-@auth.login_required
-def clear_logs():
-    """Clear logs using ContainerLogService."""
-    try:
-        # Use ContainerLogService for business logic
-        from services.web.container_log_service import get_container_log_service, ClearLogRequest
-
-        log_type = request.json.get('log_type', 'container') if request.json else 'container'
-
-        service = get_container_log_service()
-        request_obj = ClearLogRequest(log_type=log_type)
-
-        # Clear logs through service
-        result = service.clear_logs(request_obj)
-
-        if result.success:
-            return jsonify(result.data)
-        else:
-            # Log detailed error but return generic message to user
-            current_app.logger.error(f"Clear logs request failed: {result.error}")
-            return jsonify({'success': False, 'message': 'Failed to clear logs'}), result.status_code
-
-    except (ImportError, AttributeError, RuntimeError) as e:
-        # Service dependency errors (container_log_service unavailable, service method failures)
-        current_app.logger.error(f"Service error in clear_logs route: {e}", exc_info=True)
-        return jsonify({'success': False, 'message': 'Service error occurred'}), 500
-    except (ValueError, TypeError, KeyError) as e:
-        # Data errors (invalid request parameters, response processing failures, JSON parsing)
-        current_app.logger.error(f"Data error in clear_logs route: {e}", exc_info=True)
-        return jsonify({'success': False, 'message': 'Data error occurred'}), 500

@@ -55,12 +55,6 @@ class ActionLogRequest:
 
 
 @dataclass
-class ClearLogRequest:
-    """Represents a log clearing request."""
-    log_type: str = "container"
-
-
-@dataclass
 class LogResult:
     """Represents the result of log retrieval."""
     success: bool
@@ -191,38 +185,6 @@ class ContainerLogService:
             return LogResult(
                 success=False,
                 error="Error fetching action logs",
-                status_code=500
-            )
-
-    def clear_logs(self, request: ClearLogRequest) -> LogResult:
-        """
-        Clear logs (limited functionality for Docker container logs).
-
-        Args:
-            request: ClearLogRequest with log type
-
-        Returns:
-            LogResult with clearing operation result
-        """
-        try:
-            self.logger.info(f"Clear logs request for type: {request.log_type}")
-
-            # Note: Docker container logs cannot be cleared directly
-            # This is prepared for future file-based logging implementation
-            return LogResult(
-                success=True,
-                data={
-                    'success': True,
-                    'message': f'{request.log_type.capitalize()} logs cleared (Note: Docker container logs persist until container restart)'
-                }
-            )
-
-        except (AttributeError, TypeError, ValueError) as e:
-            # Data/operation errors (invalid attributes, type errors, value errors)
-            self.logger.error(f"Error clearing logs: {e}", exc_info=True)
-            return LogResult(
-                success=False,
-                error=str(e),
                 status_code=500
             )
 
