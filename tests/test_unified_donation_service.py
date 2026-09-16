@@ -40,7 +40,12 @@ class FakeMechService:
     def get_state(self):
         return self.state
 
-    def add_donation(self, amount, donor, channel_id=None):  # noqa: ARG002
+    # ``idempotency_key`` is accepted and forwarded although this fake ignores its
+    # value: the real service threads it from the entry point down to
+    # ProgressService (SPEC.md Z4). A fake that silently swallowed it would keep
+    # passing if that threading ever regressed, so it mirrors the real signature.
+    def add_donation(self, amount, donor, channel_id=None, idempotency_key=None):  # noqa: ARG002
+        self.last_idempotency_key = idempotency_key
         self.state = _make_fake_state(
             level=self.state.level + 1,
             power=self.state.Power + amount,
@@ -48,7 +53,12 @@ class FakeMechService:
         return self.state
 
     async def add_donation_async(self, **kwargs):
-        return self.add_donation(kwargs["amount"], kwargs["donor"], kwargs.get("channel_id"))
+        return self.add_donation(
+            kwargs["amount"],
+            kwargs["donor"],
+            kwargs.get("channel_id"),
+            idempotency_key=kwargs.get("idempotency_key"),
+        )
 
 
 class FakeEventManager:

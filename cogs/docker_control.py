@@ -4832,7 +4832,10 @@ class DonationBroadcastModal(discord.ui.Modal):
                             user_id=str(interaction.user.id),
                             guild_id=str(interaction.guild.id) if interaction.guild else None,
                             channel_id=str(interaction.channel.id) if interaction.channel else None,
-                            bot_instance=self.bot
+                            bot_instance=self.bot,
+                            # Eindeutig je Absendung: erreicht dieselbe Interaktion den
+                            # Dienst zweimal, wird einmal gebucht. SPEC.md Z4.
+                            idempotency_key=str(interaction.id),
                         )
 
                         if not donation_result.success:

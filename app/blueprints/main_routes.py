@@ -716,7 +716,8 @@ def submit_donation():
             amount=data.get('amount', 0),
             donor_name=data.get('donor_name', 'Anonymous'),
             publish_to_discord=data.get('publish_to_discord', True),
-            source=data.get('source', 'web_ui_manual')
+            source=data.get('source', 'web_ui_manual'),
+            idempotency_key=data.get('idempotency_key'),
         )
 
         # Process donation through service

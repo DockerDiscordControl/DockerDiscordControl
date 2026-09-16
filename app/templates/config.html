@@ -1407,12 +1407,26 @@
                 }
             }
             
+            // One-shot token per submission. It is created on the first submit and
+            // only retired after a confirmed booking, so a retry after the 30s
+            // timeout carries the SAME token and books once. crypto.randomUUID
+            // exists only in a secure context; DDC deliberately runs plain HTTP on
+            // the LAN (SPEC.md B3), hence the fallback - without it no token would
+            // be generated at all and the submission would go out unprotected.
+            // See SPEC.md Z4.
+            if (!window.__ddcDonationToken) {
+                window.__ddcDonationToken = (window.crypto && crypto.randomUUID)
+                    ? crypto.randomUUID()
+                    : 'web-' + Date.now().toString(16) + '-' + Math.random().toString(16).slice(2);
+            }
+
             // Prepare donation data
             const donationData = {
                 amount: parseFloat(amount),
                 donor_name: donorName,
                 publish_to_discord: publishToDiscord,
-                source: 'web_ui_manual'
+                source: 'web_ui_manual',
+                idempotency_key: window.__ddcDonationToken
             };
             
             // Debug: Log what we're sending
@@ -1440,6 +1454,10 @@
             })
             .then(data => {
                 if (data.success) {
+                    // Booking confirmed - retire the token so the next donation gets
+                    // a fresh one. A page reload is a genuinely new donation.
+                    window.__ddcDonationToken = null;
+
                     // Reset button first
                     resetSubmitButton();
                     

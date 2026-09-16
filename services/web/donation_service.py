@@ -29,6 +29,8 @@ class DonationRequest:
     donor_name: str
     publish_to_discord: bool = True
     source: str = 'web_ui_manual'
+    # Token des Browsers; ein Wiederholungsversuch traegt dasselbe. SPEC.md Z4.
+    idempotency_key: Optional[str] = None
 
 
 @dataclass
@@ -145,7 +147,8 @@ class DonationService:
 
             donation_result = process_web_ui_donation(
                 donor_name=request.donor_name,
-                amount=request.amount  # already rounded to cents; int() dropped them ($10.75 -> $10)
+                amount=request.amount,  # already rounded to cents; int() dropped them ($10.75 -> $10)
+                idempotency_key=request.idempotency_key,
             )
 
             if not donation_result.success:

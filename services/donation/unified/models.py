@@ -32,6 +32,12 @@ class DonationRequest:
     bot_instance: Optional[Any] = None
     use_member_count: bool = False
 
+    # Carried from the entry point (Discord interaction id, browser token) so the
+    # same submission reaching the service twice books once. Without it
+    # progress_service falls back to a utcnow()-based key, which makes two
+    # identical submissions microseconds apart look like two donations. SPEC.md Z4.
+    idempotency_key: Optional[str] = None
+
 
 @dataclass(frozen=True, slots=True)
 class DonationResult:

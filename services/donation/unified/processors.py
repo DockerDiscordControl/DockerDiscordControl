@@ -37,6 +37,7 @@ def execute_sync_donation(mech_service, request) -> Any:
         amount=float(request.amount),
         donor=request.donor_name,
         channel_id=request.discord_guild_id,
+        idempotency_key=request.idempotency_key,
     )
 
 
@@ -55,5 +56,6 @@ async def execute_async_donation(
         channel_id=request.discord_guild_id,
         guild=guild,
         member_count=member_count,
+        idempotency_key=request.idempotency_key,
     )
 

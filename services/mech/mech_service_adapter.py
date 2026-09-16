@@ -137,9 +137,11 @@ class MechServiceAdapter:
         return prog_state.power_current
 
     def add_donation(self, amount: float, donor: Optional[str] = None,
-                    channel_id: Optional[str] = None) -> MechState:
+                    channel_id: Optional[str] = None,
+                    idempotency_key: Optional[str] = None) -> MechState:
         """Add donation and return updated state"""
-        prog_state = self.progress_service.add_donation(amount, donor, channel_id)
+        prog_state = self.progress_service.add_donation(
+            amount, donor, channel_id, idempotency_key=idempotency_key)
         logger.info(f"Donation added via adapter: ${amount:.2f} from {donor}")
         return self._convert_state(prog_state)
 
@@ -250,7 +252,8 @@ class MechServiceAdapter:
     async def add_donation_async(self, amount: float, donor: Optional[str] = None,
                                 channel_id: Optional[str] = None,
                                 guild: Optional['discord.Guild'] = None,
-                                member_count: Optional[int] = None) -> MechState:
+                                member_count: Optional[int] = None,
+                                idempotency_key: Optional[str] = None) -> MechState:
         """
         Add donation with member count freeze at level-up (Option B).
 
@@ -280,7 +283,8 @@ class MechServiceAdapter:
                 logger.warning("Level-up without member count - difficulty may be incorrect")
 
         # Now add the donation
-        prog_state = self.progress_service.add_donation(amount, donor, channel_id)
+        prog_state = self.progress_service.add_donation(
+            amount, donor, channel_id, idempotency_key=idempotency_key)
         return self._convert_state(prog_state)
 
 

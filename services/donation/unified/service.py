@@ -394,12 +394,14 @@ def get_unified_donation_service() -> UnifiedDonationService:
     return _unified_donation_service
 
 
-def process_web_ui_donation(donor_name: str, amount: float) -> DonationResult:
+def process_web_ui_donation(donor_name: str, amount: float,
+                            idempotency_key: Optional[str] = None) -> DonationResult:
     service = get_unified_donation_service()
     request = DonationRequest(
         donor_name=f"WebUI:{donor_name}",
         amount=amount,
         source="web_ui",
+        idempotency_key=idempotency_key,
     )
     return service.process_donation(request)
 
@@ -411,6 +413,7 @@ async def process_discord_donation(
     guild_id: Optional[str] = None,
     channel_id: Optional[str] = None,
     bot_instance=None,
+    idempotency_key: Optional[str] = None,
 ) -> DonationResult:
     service = get_unified_donation_service()
     request = DonationRequest(
@@ -422,16 +425,19 @@ async def process_discord_donation(
         discord_channel_id=channel_id,
         bot_instance=bot_instance,
         use_member_count=True,
+        idempotency_key=idempotency_key,
     )
     return await service.process_donation_async(request)
 
 
-def process_test_donation(donor_name: str, amount: float) -> DonationResult:
+def process_test_donation(donor_name: str, amount: float,
+                          idempotency_key: Optional[str] = None) -> DonationResult:
     service = get_unified_donation_service()
     request = DonationRequest(
         donor_name=f"Test:{donor_name}",
         amount=amount,
         source="test",
+        idempotency_key=idempotency_key,
     )
     return service.process_donation(request)
 
