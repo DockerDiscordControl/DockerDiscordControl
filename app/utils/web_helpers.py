@@ -705,7 +705,7 @@ def mech_decay_worker(logger):
                     remaining_time -= wait_time
 
             except (ImportError, AttributeError, RuntimeError) as e:
-                # Service dependency errors (mech service unavailable, tick_decay failures)
+                # Service dependency errors (mech service unavailable, get_state() failures)
                 logger.error(f"Service error in mech decay worker: {str(e)}", exc_info=True)
                 # In case of errors, wait briefly and try again
                 for _ in range(5):  # 5x1 second instead of once 5 seconds

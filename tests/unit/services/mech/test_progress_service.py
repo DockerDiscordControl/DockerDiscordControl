@@ -556,6 +556,97 @@ def test_tick_decay_returns_state(progress_env):
     assert state.level == 1
 
 
+def test_get_state_does_not_rewrite_snapshot_on_read(progress_env):
+    """Reading must not write.
+
+    The 30 s decay worker in web_helpers and every web/Discord access go through
+    get_state(). Persisting there rewrote an unchanged file again and again - measured on
+    the live installation: 3 writes of the same 385 bytes within 70 seconds, each one a
+    temp file, fsync and rename on the array.
+    """
+    svc = progress_env.ProgressService("read-only")
+    svc.get_state()  # first call creates and initialises the snapshot file
+
+    writes = []
+    original = progress_env.persist_snapshot
+
+    def recording_persist(snap):
+        writes.append(snap.mech_id)
+        original(snap)
+
+    progress_env.persist_snapshot = recording_persist
+    try:
+        svc.get_state()
+        svc.get_state()
+    finally:
+        progress_env.persist_snapshot = original
+
+    assert writes == []
+
+
+def test_get_state_backfills_missing_decay_day_exactly_once(progress_env):
+    """The one case where a read still has to write: last_decay_day was never set."""
+    svc = progress_env.ProgressService("backfill")
+    svc.get_state()
+    snap = progress_env.load_snapshot("backfill")
+    snap.last_decay_day = ""
+    progress_env.persist_snapshot(snap)
+
+    original = progress_env.persist_snapshot
+    first_writes = []
+
+    def recording_persist(s):
+        first_writes.append(s.last_decay_day)
+        original(s)
+
+    progress_env.persist_snapshot = recording_persist
+    try:
+        svc.get_state()
+    finally:
+        progress_env.persist_snapshot = original
+
+    assert first_writes == [progress_env.today_local_str()]
+
+    # Now that the field is filled, further reads must stay silent again.
+    second_writes = []
+
+    def recording_persist_again(s):
+        second_writes.append(s.mech_id)
+        original(s)
+
+    progress_env.persist_snapshot = recording_persist_again
+    try:
+        svc.get_state()
+    finally:
+        progress_env.persist_snapshot = original
+
+    assert second_writes == []
+
+
+def test_add_donation_still_persists_after_read_optimisation(progress_env):
+    """Guard for the test above: skipping writes on READ must not stop real changes
+    from being saved."""
+    svc = progress_env.ProgressService("donate-writes")
+    svc.get_state()
+
+    writes = []
+    original = progress_env.persist_snapshot
+
+    def recording_persist(snap):
+        writes.append(snap.mech_id)
+        original(snap)
+
+    progress_env.persist_snapshot = recording_persist
+    try:
+        svc.add_donation(1.0, idempotency_key="write-check")
+    finally:
+        progress_env.persist_snapshot = original
+
+    assert writes, "add_donation must still write the snapshot"
+    reloaded = progress_env.load_snapshot("donate-writes")
+    assert reloaded.power_acc > 0
+
+
 def test_power_gift_skipped_when_power_already_positive(progress_env):
     svc = progress_env.ProgressService("gift1")
     # Donate first to ensure power > 0

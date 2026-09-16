@@ -982,8 +982,20 @@ class ProgressService:
         """Get current state with UI-ready fields"""
         with LOCK:
             snap = load_snapshot(self.mech_id)
+            # Only write when something actually changed. apply_decay_on_demand() is a documented
+            # no-op apart from backfilling last_decay_day once - the decay itself is computed in
+            # compute_ui_state() from elapsed time. Persisting unconditionally rewrote the
+            # snapshot on every READ: measured on the live installation, 3 writes in 70 seconds
+            # (two 30 s refresh loops plus every web and Discord access), each a temp file, fsync
+            # and rename on the array, for 385 bytes of identical content. A read also had no
+            # business failing on a PermissionError. The 30 s decay worker in web_helpers calls
+            # exactly this method, so that loop stops rewriting too. tick_decay() below is left
+            # unchanged on purpose: it has no caller in production (only tests and the unused
+            # adapter wrapper), so its write costs the running system nothing.
+            decay_day_before = snap.last_decay_day
             apply_decay_on_demand(snap)
-            persist_snapshot(snap)
+            if snap.last_decay_day != decay_day_before:
+                persist_snapshot(snap)
             return compute_ui_state(snap)
 
     def add_donation(self, amount_dollars: float, donor: Optional[str] = None,
