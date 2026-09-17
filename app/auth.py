@@ -174,6 +174,24 @@ def verify_password(username, password):
     stored_hash = config.get('web_ui_password_hash')
 
     if stored_hash is None:
+        # Ein fehlender Hash hat ZWEI Ursachen, und sie sehen gleich aus: eine
+        # frische Installation - oder eine Konfiguration, die nicht gelesen
+        # werden konnte. _load_json_file liefert in beiden Faellen die Vorgabe
+        # (config_service.py:710-727). Im zweiten Fall stuende admin/setup auf
+        # einer laengst eingerichteten Anlage offen, hinter den 70 Routen mit
+        # @auth.login_required - und niemand bemerkt es, weil die Anmeldung ja
+        # funktioniert. Der Schreibweg ist gegen genau diesen Verlust bereits
+        # verteidigt (config_service.py:385-386); der Leseweg war es nicht.
+        lesefehler = config.get('config_read_errors')
+        if lesefehler:
+            logger.error(
+                "SECURITY: The configuration could not be read (%s). That is a read "
+                "error, not a fresh install - the admin/setup first-time login stays "
+                "closed. Check the permissions on config/ (the app runs as user 'ddc').",
+                "; ".join(str(e) for e in lesefehler)
+            )
+            return None
+
         # FIRST TIME SETUP: Allow special setup password for initial configuration
         if username == "admin" and password == "setup":
             logger.info("FIRST TIME SETUP: Setup mode activated with temporary credentials")
@@ -209,6 +227,17 @@ def auth_error(status):
     try:
         config = load_config()
         if config.get('web_ui_password_hash') is None:
+            if config.get('config_read_errors'):
+                # Die Konfiguration ist da, aber nicht auswertbar. Den Betreiber
+                # jetzt auf /setup zu schicken waere eine Sackgasse - dort kann er
+                # nichts ausrichten, solange config/ nicht lesbar ist. Seit
+                # verify_password diesen Fall verschliesst, ist diese Meldung der
+                # einzige Hinweis, den er bekommt; sie muss den wahren Grund nennen.
+                return jsonify({
+                    "message": "Configuration Unreadable",
+                    "error": "A configuration file exists, but it could not be read",
+                    "hint": "Check the permissions on config/ - the application runs as user 'ddc'"
+                }), 401
             return jsonify({
                 "message": "First Time Setup Required",
                 "error": "No admin password configured yet",

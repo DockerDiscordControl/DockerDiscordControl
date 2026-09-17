@@ -56,7 +56,11 @@ MIN_WEB_UI_PASSWORD_LENGTH = 12
 
 # Keys that get_config() adds at runtime. They must never be written back to
 # config.json - the decrypted token would otherwise end up on disk in plaintext.
-_RUNTIME_ONLY_CONFIG_KEYS = ('bot_token_decrypted_for_usage',)
+# Schluessel, die get_config() zur Laufzeit anhaengt und die NIE auf die Platte
+# duerfen. 'config_read_errors' meldet, dass eine Konfigurationsdatei nicht
+# auswertbar war - gespeichert waere das ein Datum ueber einen laengst
+# vergangenen Zustand.
+_RUNTIME_ONLY_CONFIG_KEYS = ('bot_token_decrypted_for_usage', 'config_read_errors')
 
 logger = logging.getLogger('ddc.config_service')
 
@@ -318,6 +322,12 @@ class ConfigService:
         # of serving the (possibly stale) result cached below.
         load_mtime = self._cache_service.get_config_dir_mtime(self.config_dir)
 
+        # Lesefehler DIESES Ladevorgangs sammeln (siehe _vermerke_lesefehler).
+        # Das Zuruecksetzen ist der Punkt: Ein behobenes Rechteproblem muss die
+        # Anmeldung wieder oeffnen, statt sie fuer die Lebensdauer des Prozesses
+        # gesperrt zu lassen.
+        self._read_errors = []
+
         # Check for v1.1.3D migration first
         self._migrate_legacy_config_if_needed()
 
@@ -334,6 +344,13 @@ class ConfigService:
                 config['bot_token_decrypted_for_usage'] = decrypted_token
             else:
                 logger.error("Token decryption failed in get_config()")
+
+        # Lesefehler an das Ergebnis haengen, damit sie mitgecacht werden und
+        # jeden Aufrufer erreichen - ohne dass ein Aufrufer den Dienst befragen
+        # (und damit konstruieren) muesste. Der Schluessel steht in
+        # _RUNTIME_ONLY_CONFIG_KEYS und wird deshalb nie gespeichert.
+        if self._read_errors:
+            config['config_read_errors'] = list(self._read_errors)
 
         # Cache the result using cache service
         self._cache_service.set_cached_config(cache_key, config, self.config_dir, mtime=load_mtime)
@@ -696,8 +713,35 @@ class ConfigService:
 
     # === Private Helper Methods ===
 
+    def _vermerke_lesefehler(self, file_path: Path, grund: str) -> None:
+        """Merkt, dass eine Konfigurationsdatei nicht auswertbar war.
+
+        WARUM DAS NOETIG IST: Der Rueckgabewert unten ist in jedem Fehlerfall die
+        Vorgabe - und die ist von einem echten Leseergebnis nicht zu
+        unterscheiden. Fuer ``web_ui_password_hash`` heisst das: Eine nicht
+        lesbare config.json sieht aus wie eine frische Installation, und
+        ``app/auth.py:176`` laesst daraufhin admin/setup auf jede der 70 Routen
+        mit ``@auth.login_required``. Der Fehler steht zwar im Protokoll, aber
+        ein Protokoll kann kein Aufrufer auswerten.
+
+        ``hasattr`` statt Zuweisung im Konstruktor: ``_load_json_file`` wird
+        bereits AUS dem Konstruktor heraus gerufen (``ensure_modular_structure``
+        :242, ``_fold_legacy_settings_once`` :248), also bevor eine spaetere
+        Initialisierung liefe.
+        """
+        if not hasattr(self, '_read_errors'):
+            self._read_errors = []
+        eintrag = f"{file_path}: {grund}"
+        if eintrag not in self._read_errors:
+            self._read_errors.append(eintrag)
+
     def _load_json_file(self, file_path: Path, default: Dict[str, Any]) -> Dict[str, Any]:
-        """Load JSON file with fallback to defaults."""
+        """Load JSON file with fallback to defaults.
+
+        Jeder Fehlschlag wird zusaetzlich vermerkt - siehe
+        ``_vermerke_lesefehler``. Ohne diesen Vermerk ist "Datei war kaputt"
+        nicht von "Datei gibt es nicht" zu unterscheiden.
+        """
         try:
             if file_path.exists():
                 with open(file_path, 'r', encoding='utf-8') as f:
@@ -709,14 +753,17 @@ class ConfigService:
             return default.copy()
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON in {file_path}: {e}", exc_info=True)
+            self._vermerke_lesefehler(file_path, f"kein gueltiges JSON ({e})")
             # Return defaults on JSON parse errors
             return default.copy()
         except (IOError, OSError, PermissionError) as e:
             logger.error(f"File access error loading {file_path}: {e}", exc_info=True)
+            self._vermerke_lesefehler(file_path, f"nicht lesbar ({e})")
             # Return defaults on I/O errors
             return default.copy()
         except (TypeError, AttributeError, UnicodeDecodeError) as e:
             logger.error(f"Data format error loading {file_path}: {e}", exc_info=True)
+            self._vermerke_lesefehler(file_path, f"unerwartetes Format ({e})")
             # Return defaults on data format errors
             return default.copy()
 
