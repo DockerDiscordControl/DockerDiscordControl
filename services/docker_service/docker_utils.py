@@ -72,71 +72,144 @@ def _load_timeout_from_config(config_key: str, env_key: str, default: str) -> fl
 
     return float(os.environ.get(env_key, default))
 
-# Load timeout values with Advanced Settings integration
-DEFAULT_FAST_STATS_TIMEOUT = _load_timeout_from_config('DDC_FAST_STATS_TIMEOUT', 'DDC_FAST_STATS_TIMEOUT', '45.0')  # Increased from 10.0 due to slower Docker daemon
-DEFAULT_SLOW_STATS_TIMEOUT = _load_timeout_from_config('DDC_SLOW_STATS_TIMEOUT', 'DDC_SLOW_STATS_TIMEOUT', '60.0')
-DEFAULT_FAST_INFO_TIMEOUT = _load_timeout_from_config('DDC_FAST_INFO_TIMEOUT', 'DDC_FAST_INFO_TIMEOUT', '45.0')  # Increased from 2.0 due to slower Docker daemon
-DEFAULT_SLOW_INFO_TIMEOUT = _load_timeout_from_config('DDC_SLOW_INFO_TIMEOUT', 'DDC_SLOW_INFO_TIMEOUT', '60.0')
-DEFAULT_CONTAINER_LIST_TIMEOUT = _load_timeout_from_config('DDC_CONTAINER_LIST_TIMEOUT', 'DDC_CONTAINER_LIST_TIMEOUT', '30.0')  # Increased from 15.0
+# --------------------------------------------------------------------------- #
+# Timeout values - loaded on FIRST ACCESS, not at import time.
+#
+# These five used to be plain module-level assignments, each calling
+# _load_timeout_from_config() and therefore load_config(). That made a bare
+# ``import`` read configuration off disk: importing anything from
+# ``services.docker_service`` runs ``__init__.py:10``, which pulls this module,
+# which read five config files before a single line of caller code ran.
+#
+# Three problems came with that, and the third is how it was found:
+#   1. A failing read does not break a function, it breaks the IMPORT - as an
+#      ImportError deep inside a nine-level chain instead of a clear message.
+#   2. The net below catches (ConfigLoadError, KeyError, ValueError, TypeError).
+#      An AttributeError went straight through it.
+#   3. WHEN the config is read depended on who imported first. That made two
+#      tests in tests/unit/audit_2026_09/test_r2_g5_mech.py pass in their group
+#      and fail alone - found by running all 127 test files in isolation.
+#      See docs/quality/STUFE3_TESTS_DIE_NICHT_FEHLSCHLAGEN.md.
+#
+# Module-level __getattr__ (PEP 562) keeps every reader unchanged: the names
+# still resolve to floats, CONTAINER_TYPE_PATTERNS and DEFAULT_TIMEOUT_CONFIG
+# still are dicts with the same keys. Only the moment of loading moved.
+# --------------------------------------------------------------------------- #
 
-# Log the loaded timeout values for debugging
-logger.info(f"[TIMEOUT_CONFIG] Loaded timeout values:")
-logger.info(f"[TIMEOUT_CONFIG] - DDC_FAST_STATS_TIMEOUT: {DEFAULT_FAST_STATS_TIMEOUT}s")
-logger.info(f"[TIMEOUT_CONFIG] - DDC_SLOW_STATS_TIMEOUT: {DEFAULT_SLOW_STATS_TIMEOUT}s")
-logger.info(f"[TIMEOUT_CONFIG] - DDC_FAST_INFO_TIMEOUT: {DEFAULT_FAST_INFO_TIMEOUT}s")
-logger.info(f"[TIMEOUT_CONFIG] - DDC_SLOW_INFO_TIMEOUT: {DEFAULT_SLOW_INFO_TIMEOUT}s")
-logger.info(f"[TIMEOUT_CONFIG] - DDC_CONTAINER_LIST_TIMEOUT: {DEFAULT_CONTAINER_LIST_TIMEOUT}s")
+_TIMEOUT_SPECS = {
+    'DEFAULT_FAST_STATS_TIMEOUT': ('DDC_FAST_STATS_TIMEOUT', '45.0'),
+    'DEFAULT_SLOW_STATS_TIMEOUT': ('DDC_SLOW_STATS_TIMEOUT', '60.0'),
+    'DEFAULT_FAST_INFO_TIMEOUT': ('DDC_FAST_INFO_TIMEOUT', '45.0'),
+    'DEFAULT_SLOW_INFO_TIMEOUT': ('DDC_SLOW_INFO_TIMEOUT', '60.0'),
+    'DEFAULT_CONTAINER_LIST_TIMEOUT': ('DDC_CONTAINER_LIST_TIMEOUT', '30.0'),
+}
 
-# Pattern-based timeout configuration (flexible and maintainable)
-CONTAINER_TYPE_PATTERNS = {
-    'game_server': {
-        'patterns': [
-            'minecraft', 'factorio', 'terraria', 'starbound', 'rust', 'ark', 'palworld',
-            'satisfactory', 'valheim', 'v-rising', 'vrising', 'conan', 'dayz', 'csgo',
-            'tf2', 'gmod', 'arma', 'squad', 'insurgency', 'mordhau', 'chivalry',
-            'space-engineers', 'astroneer', 'raft', 'green-hell', 'the-forest',
-            'subnautica', 'no-mans-sky', 'kerbal', 'cities-skylines', 'farming-simulator',
-            'truck-simulator', 'train-simulator', 'flight-simulator', 'assetto-corsa',
-            'project-cars', 'dirt-rally', 'f1-', 'gran-turismo', 'forza'
-        ],
-        'stats_timeout': DEFAULT_FAST_STATS_TIMEOUT,
-        'info_timeout': DEFAULT_FAST_INFO_TIMEOUT  # Fixed: Game servers should also have fast info timeouts
-    },
-    'media_server': {
-        'patterns': [
-            'plex', 'jellyfin', 'emby', 'kodi', 'sonarr', 'radarr', 'lidarr',
-            'bazarr', 'prowlarr', 'jackett', 'transmission', 'qbittorrent',
-            'deluge', 'rtorrent', 'sabnzbd', 'nzbget', 'overseerr', 'ombi',
-            'tautulli', 'organizr', 'heimdall', 'muximux'
-        ],
-        'stats_timeout': DEFAULT_SLOW_STATS_TIMEOUT,
-        'info_timeout': DEFAULT_FAST_INFO_TIMEOUT
-    },
-    'database': {
-        'patterns': [
-            'mysql', 'mariadb', 'postgres', 'postgresql', 'mongodb', 'redis',
-            'elasticsearch', 'influxdb', 'grafana', 'prometheus', 'clickhouse',
-            'cassandra', 'couchdb', 'neo4j', 'memcached', 'sqlite'
-        ],
-        'stats_timeout': DEFAULT_SLOW_STATS_TIMEOUT,
-        'info_timeout': DEFAULT_FAST_INFO_TIMEOUT
-    },
-    'web_server': {
-        'patterns': [
-            'nginx', 'apache', 'httpd', 'caddy', 'traefik', 'haproxy',
-            'nodejs', 'node', 'php', 'python', 'django', 'flask',
-            'wordpress', 'nextcloud', 'owncloud', 'photoprism', 'bitwarden'
-        ],
-        'stats_timeout': DEFAULT_SLOW_STATS_TIMEOUT,
-        'info_timeout': DEFAULT_FAST_INFO_TIMEOUT
+_lazy_values: Dict[str, Any] = {}
+
+
+def _timeout(name: str) -> float:
+    """Return a timeout, loading it from the config once and caching it."""
+    if name not in _lazy_values:
+        key, default = _TIMEOUT_SPECS[name]
+        _lazy_values[name] = _load_timeout_from_config(key, key, default)
+        # Logged here rather than at import: same information, but only once the
+        # value is actually wanted.
+        logger.info(f"[TIMEOUT_CONFIG] {key}: {_lazy_values[name]}s")
+    return _lazy_values[name]
+
+
+def _build_container_type_patterns() -> Dict[str, Any]:
+    """Pattern-based timeout configuration (flexible and maintainable)."""
+    return {
+        'game_server': {
+            'patterns': [
+                'minecraft', 'factorio', 'terraria', 'starbound', 'rust', 'ark', 'palworld',
+                'satisfactory', 'valheim', 'v-rising', 'vrising', 'conan', 'dayz', 'csgo',
+                'tf2', 'gmod', 'arma', 'squad', 'insurgency', 'mordhau', 'chivalry',
+                'space-engineers', 'astroneer', 'raft', 'green-hell', 'the-forest',
+                'subnautica', 'no-mans-sky', 'kerbal', 'cities-skylines', 'farming-simulator',
+                'truck-simulator', 'train-simulator', 'flight-simulator', 'assetto-corsa',
+                'project-cars', 'dirt-rally', 'f1-', 'gran-turismo', 'forza'
+            ],
+            'stats_timeout': _timeout('DEFAULT_FAST_STATS_TIMEOUT'),
+            'info_timeout': _timeout('DEFAULT_FAST_INFO_TIMEOUT')  # Fixed: Game servers should also have fast info timeouts
+        },
+        'media_server': {
+            'patterns': [
+                'plex', 'jellyfin', 'emby', 'kodi', 'sonarr', 'radarr', 'lidarr',
+                'bazarr', 'prowlarr', 'jackett', 'transmission', 'qbittorrent',
+                'deluge', 'rtorrent', 'sabnzbd', 'nzbget', 'overseerr', 'ombi',
+                'tautulli', 'organizr', 'heimdall', 'muximux'
+            ],
+            'stats_timeout': _timeout('DEFAULT_SLOW_STATS_TIMEOUT'),
+            'info_timeout': _timeout('DEFAULT_FAST_INFO_TIMEOUT')
+        },
+        'database': {
+            'patterns': [
+                'mysql', 'mariadb', 'postgres', 'postgresql', 'mongodb', 'redis',
+                'elasticsearch', 'influxdb', 'grafana', 'prometheus', 'clickhouse',
+                'cassandra', 'couchdb', 'neo4j', 'memcached', 'sqlite'
+            ],
+            'stats_timeout': _timeout('DEFAULT_SLOW_STATS_TIMEOUT'),
+            'info_timeout': _timeout('DEFAULT_FAST_INFO_TIMEOUT')
+        },
+        'web_server': {
+            'patterns': [
+                'nginx', 'apache', 'httpd', 'caddy', 'traefik', 'haproxy',
+                'nodejs', 'node', 'php', 'python', 'django', 'flask',
+                'wordpress', 'nextcloud', 'owncloud', 'photoprism', 'bitwarden'
+            ],
+            'stats_timeout': _timeout('DEFAULT_SLOW_STATS_TIMEOUT'),
+            'info_timeout': _timeout('DEFAULT_FAST_INFO_TIMEOUT')
+        }
     }
+
+
+def _build_default_timeout_config() -> Dict[str, Any]:
+    """Default timeout configuration."""
+    return {
+        'stats_timeout': _timeout('DEFAULT_FAST_STATS_TIMEOUT'),  # Use fast stats for default
+        'info_timeout': _timeout('DEFAULT_FAST_INFO_TIMEOUT')     # Use fast info for default
+    }
+
+
+# The names below are resolved on first access instead of at import time.
+# Everything a reader sees stays the same: the five DEFAULT_*_TIMEOUT names are
+# floats, CONTAINER_TYPE_PATTERNS and DEFAULT_TIMEOUT_CONFIG are dicts with the
+# same keys. Only the moment of loading moved. See the block above for why.
+_LAZY_BUILDERS = {
+    'CONTAINER_TYPE_PATTERNS': _build_container_type_patterns,
+    'DEFAULT_TIMEOUT_CONFIG': _build_default_timeout_config,
+    '_CACHE_TTL': lambda: _get_cache_ttl(),
 }
 
-# Default timeout configuration
-DEFAULT_TIMEOUT_CONFIG = {
-    'stats_timeout': DEFAULT_FAST_STATS_TIMEOUT,  # Use fast stats for default (1.5s)
-    'info_timeout': DEFAULT_FAST_INFO_TIMEOUT     # Use fast info for default (2.0s) - Fixed from 30.0s!
-}
+
+def _lazy_wert(name: str) -> Any:
+    """Read one of the lazily built values from inside this module.
+
+    Needed because module-level __getattr__ (PEP 562) is only consulted for
+    attribute access from OUTSIDE (``docker_utils.X``). A bare name inside a
+    function body is looked up in globals() and would raise NameError, so every
+    in-module reader goes through here.
+    """
+    if name not in _lazy_values:
+        _lazy_values[name] = _LAZY_BUILDERS[name]()
+    return _lazy_values[name]
+
+
+def __getattr__(name: str) -> Any:
+    """PEP 562 module-level attribute access for the lazily loaded values.
+
+    Python only calls this for names that are NOT already in the module
+    namespace, so it costs nothing for every other attribute.
+    """
+    if name in _TIMEOUT_SPECS:
+        return _timeout(name)
+    if name in _LAZY_BUILDERS:
+        if name not in _lazy_values:
+            _lazy_values[name] = _LAZY_BUILDERS[name]()
+        return _lazy_values[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 # Load custom timeout configuration from file
 _custom_timeout_config = None
@@ -181,7 +254,7 @@ def get_container_timeouts(container_name: str) -> dict:
         Dict with 'stats_timeout' and 'info_timeout' values
     """
     if not container_name:
-        return DEFAULT_TIMEOUT_CONFIG.copy()
+        return _lazy_wert('DEFAULT_TIMEOUT_CONFIG').copy()
 
     container_lower = container_name.lower()
 
@@ -195,8 +268,8 @@ def get_container_timeouts(container_name: str) -> dict:
             override_config = container_overrides[container_name]
             logger.debug(f"Container '{container_name}' using exact name override")
             return {
-                'stats_timeout': override_config.get('stats_timeout', DEFAULT_TIMEOUT_CONFIG['stats_timeout']),
-                'info_timeout': override_config.get('info_timeout', DEFAULT_TIMEOUT_CONFIG['info_timeout'])
+                'stats_timeout': override_config.get('stats_timeout', _lazy_wert('DEFAULT_TIMEOUT_CONFIG')['stats_timeout']),
+                'info_timeout': override_config.get('info_timeout', _lazy_wert('DEFAULT_TIMEOUT_CONFIG')['info_timeout'])
             }
 
     # 2. Check custom patterns (medium priority)
@@ -207,12 +280,12 @@ def get_container_timeouts(container_name: str) -> dict:
                     if pattern in container_lower:
                         logger.debug(f"Container '{container_name}' matches custom pattern '{pattern}' from {pattern_name}")
                         return {
-                            'stats_timeout': pattern_config.get('stats_timeout', DEFAULT_TIMEOUT_CONFIG['stats_timeout']),
-                            'info_timeout': pattern_config.get('info_timeout', DEFAULT_TIMEOUT_CONFIG['info_timeout'])
+                            'stats_timeout': pattern_config.get('stats_timeout', _lazy_wert('DEFAULT_TIMEOUT_CONFIG')['stats_timeout']),
+                            'info_timeout': pattern_config.get('info_timeout', _lazy_wert('DEFAULT_TIMEOUT_CONFIG')['info_timeout'])
                         }
 
     # 3. Check built-in container type patterns (lowest priority)
-    for container_type, config in CONTAINER_TYPE_PATTERNS.items():
+    for container_type, config in _lazy_wert('CONTAINER_TYPE_PATTERNS').items():
         for pattern in config['patterns']:
             if pattern in container_lower:
                 logger.debug(f"Container '{container_name}' matches built-in {container_type} pattern '{pattern}'")
@@ -223,7 +296,7 @@ def get_container_timeouts(container_name: str) -> dict:
 
     # Return default if no pattern matches
     logger.debug(f"Container '{container_name}' using default timeout configuration")
-    return DEFAULT_TIMEOUT_CONFIG.copy()
+    return _lazy_wert('DEFAULT_TIMEOUT_CONFIG').copy()
 
 def get_container_type_info(container_name: str) -> dict:
     """
@@ -236,7 +309,7 @@ def get_container_type_info(container_name: str) -> dict:
         Dict with container type information including custom configuration
     """
     if not container_name:
-        return {'type': 'unknown', 'matched_pattern': None, 'timeout_config': DEFAULT_TIMEOUT_CONFIG, 'config_source': 'default'}
+        return {'type': 'unknown', 'matched_pattern': None, 'timeout_config': _lazy_wert('DEFAULT_TIMEOUT_CONFIG'), 'config_source': 'default'}
 
     container_lower = container_name.lower()
     custom_config = load_custom_timeout_config()
@@ -250,8 +323,8 @@ def get_container_type_info(container_name: str) -> dict:
                 'type': 'custom_override',
                 'matched_pattern': container_name,
                 'timeout_config': {
-                    'stats_timeout': override_config.get('stats_timeout', DEFAULT_TIMEOUT_CONFIG['stats_timeout']),
-                    'info_timeout': override_config.get('info_timeout', DEFAULT_TIMEOUT_CONFIG['info_timeout'])
+                    'stats_timeout': override_config.get('stats_timeout', _lazy_wert('DEFAULT_TIMEOUT_CONFIG')['stats_timeout']),
+                    'info_timeout': override_config.get('info_timeout', _lazy_wert('DEFAULT_TIMEOUT_CONFIG')['info_timeout'])
                 },
                 'config_source': 'custom_override'
             }
@@ -266,14 +339,14 @@ def get_container_type_info(container_name: str) -> dict:
                             'type': f'custom_{pattern_name}',
                             'matched_pattern': pattern,
                             'timeout_config': {
-                                'stats_timeout': pattern_config.get('stats_timeout', DEFAULT_TIMEOUT_CONFIG['stats_timeout']),
-                                'info_timeout': pattern_config.get('info_timeout', DEFAULT_TIMEOUT_CONFIG['info_timeout'])
+                                'stats_timeout': pattern_config.get('stats_timeout', _lazy_wert('DEFAULT_TIMEOUT_CONFIG')['stats_timeout']),
+                                'info_timeout': pattern_config.get('info_timeout', _lazy_wert('DEFAULT_TIMEOUT_CONFIG')['info_timeout'])
                             },
                             'config_source': 'custom_pattern'
                         }
 
     # Check built-in container type patterns
-    for container_type, config in CONTAINER_TYPE_PATTERNS.items():
+    for container_type, config in _lazy_wert('CONTAINER_TYPE_PATTERNS').items():
         for pattern in config['patterns']:
             if pattern in container_lower:
                 return {
@@ -289,7 +362,7 @@ def get_container_type_info(container_name: str) -> dict:
     return {
         'type': 'default',
         'matched_pattern': None,
-        'timeout_config': DEFAULT_TIMEOUT_CONFIG,
+        'timeout_config': _lazy_wert('DEFAULT_TIMEOUT_CONFIG'),
         'config_source': 'default'
     }
 
@@ -310,30 +383,30 @@ def get_smart_timeout(operation: str = 'default', container_name: str = None) ->
         timeout_config = container_type_info.get('timeout_config', {})
 
         if operation == 'stats':
-            timeout_value = timeout_config.get('stats_timeout', DEFAULT_FAST_STATS_TIMEOUT)
+            timeout_value = timeout_config.get('stats_timeout', _timeout('DEFAULT_FAST_STATS_TIMEOUT'))
             logger.debug(f"[TIMEOUT_DEBUG] {container_name}: stats operation -> {timeout_value}s (type: {container_type_info.get('type', 'unknown')}, source: {container_type_info.get('config_source', 'unknown')})")
             return timeout_value
         elif operation == 'info':
-            timeout_value = timeout_config.get('info_timeout', DEFAULT_FAST_INFO_TIMEOUT)
+            timeout_value = timeout_config.get('info_timeout', _timeout('DEFAULT_FAST_INFO_TIMEOUT'))
             logger.debug(f"[TIMEOUT_DEBUG] {container_name}: info operation -> {timeout_value}s (type: {container_type_info.get('type', 'unknown')}, source: {container_type_info.get('config_source', 'unknown')})")
             return timeout_value
 
     # Global operation timeouts from Advanced Settings
     if operation == 'stats':
-        logger.debug(f"[TIMEOUT_DEBUG] No container specified: stats operation -> {DEFAULT_FAST_STATS_TIMEOUT}s (global)")
-        return DEFAULT_FAST_STATS_TIMEOUT  # From DDC_FAST_STATS_TIMEOUT
+        logger.debug(f"[TIMEOUT_DEBUG] No container specified: stats operation -> {_timeout('DEFAULT_FAST_STATS_TIMEOUT')}s (global)")
+        return _timeout('DEFAULT_FAST_STATS_TIMEOUT')  # From DDC_FAST_STATS_TIMEOUT
     elif operation == 'info':
-        logger.debug(f"[TIMEOUT_DEBUG] No container specified: info operation -> {DEFAULT_FAST_INFO_TIMEOUT}s (global)")
-        return DEFAULT_FAST_INFO_TIMEOUT   # From DDC_FAST_INFO_TIMEOUT
+        logger.debug(f"[TIMEOUT_DEBUG] No container specified: info operation -> {_timeout('DEFAULT_FAST_INFO_TIMEOUT')}s (global)")
+        return _timeout('DEFAULT_FAST_INFO_TIMEOUT')   # From DDC_FAST_INFO_TIMEOUT
     elif operation == 'list':
-        logger.debug(f"[TIMEOUT_DEBUG] No container specified: list operation -> {DEFAULT_CONTAINER_LIST_TIMEOUT}s (global)")
-        return DEFAULT_CONTAINER_LIST_TIMEOUT  # From DDC_CONTAINER_LIST_TIMEOUT
+        logger.debug(f"[TIMEOUT_DEBUG] No container specified: list operation -> {_timeout('DEFAULT_CONTAINER_LIST_TIMEOUT')}s (global)")
+        return _timeout('DEFAULT_CONTAINER_LIST_TIMEOUT')  # From DDC_CONTAINER_LIST_TIMEOUT
     elif operation == 'action':
-        logger.debug(f"[TIMEOUT_DEBUG] No container specified: action operation -> {DEFAULT_FAST_INFO_TIMEOUT}s (global)")
-        return DEFAULT_FAST_INFO_TIMEOUT   # Actions are usually fast
+        logger.debug(f"[TIMEOUT_DEBUG] No container specified: action operation -> {_timeout('DEFAULT_FAST_INFO_TIMEOUT')}s (global)")
+        return _timeout('DEFAULT_FAST_INFO_TIMEOUT')   # Actions are usually fast
     else:
-        logger.debug(f"[TIMEOUT_DEBUG] No container specified: default operation -> {DEFAULT_FAST_STATS_TIMEOUT}s (global)")
-        return DEFAULT_FAST_STATS_TIMEOUT  # Default fallback
+        logger.debug(f"[TIMEOUT_DEBUG] No container specified: default operation -> {_timeout('DEFAULT_FAST_STATS_TIMEOUT')}s (global)")
+        return _timeout('DEFAULT_FAST_STATS_TIMEOUT')  # Default fallback
 
 
 def get_docker_client_async(timeout: float = None, operation: str = 'default', container_name: str = None):
@@ -417,7 +490,7 @@ def get_docker_client():
     try:
         # Method 1: Standard socket (non-blocking)
         logger.info("Trying docker.from_env() for immediate connection...")
-        _docker_client = docker.from_env(timeout=int(DEFAULT_CONTAINER_LIST_TIMEOUT))
+        _docker_client = docker.from_env(timeout=int(_timeout('DEFAULT_CONTAINER_LIST_TIMEOUT')))
 
         # Quick ping test
         _docker_client.ping()
@@ -432,7 +505,7 @@ def get_docker_client():
         try:
             # Method 2: Direct socket path
             logger.info("Trying direct socket path...")
-            _docker_client = docker.DockerClient(base_url='unix:///var/run/docker.sock', timeout=int(DEFAULT_CONTAINER_LIST_TIMEOUT))
+            _docker_client = docker.DockerClient(base_url='unix:///var/run/docker.sock', timeout=int(_timeout('DEFAULT_CONTAINER_LIST_TIMEOUT')))
 
             # Quick ping test
             _docker_client.ping()
@@ -673,7 +746,6 @@ def _get_cache_ttl() -> int:
     except (ConfigLoadError, KeyError, ValueError, TypeError):
         return 30  # Default fallback
 
-_CACHE_TTL = _get_cache_ttl()  # Load from Advanced Settings (typically 30s)
 _containers_cache_lock = threading.Lock()  # Thread safety for container cache
 
 async def list_docker_containers() -> List[Dict[str, Any]]:
@@ -733,7 +805,7 @@ async def get_containers_data() -> List[Dict[str, Any]]:
 
     # Thread-safe cache access
     with _containers_cache_lock:
-        if _containers_cache is not None and (current_time - _cache_timestamp < _CACHE_TTL):
+        if _containers_cache is not None and (current_time - _cache_timestamp < _lazy_wert('_CACHE_TTL')):
             logger.debug("Using cached container data")
             return _containers_cache.copy()  # Return copy to avoid modification
 

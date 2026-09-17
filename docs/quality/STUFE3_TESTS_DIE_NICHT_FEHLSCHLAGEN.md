@@ -70,6 +70,16 @@ etwas Echtes, aber nur, solange jemand anderes vorher importiert hat. Der schwer
 Import mit Nebenwirkung. Im Betrieb ist die Konfiguration echt, der Fall also selten; scheitert er
 aber, kommt er als `ImportError` tief in einer neunstufigen Kette statt als verständliche Meldung.
 
+> **Behoben am 2026-09-17** — für `docker_utils.py`, nicht für `progress_service.py:125`
+> (Begründung in Abschnitt 6). Die Werte laden jetzt beim ersten Zugriff statt beim Import.
+> Der wartende Test kam zuerst und war rot mit genau diesem Stapel;
+> `tests/spec/test_import_ohne_nebenwirkung.py` hält das fest.
+>
+> **Der Wirkungsnachweis ist stärker als eine Mutation:** `test_r2_g5_mech.py` allein vorher
+> 2 von 41 rot, nachher **41 grün — ohne dass ein einziger Test angefasst wurde**. Die
+> Reihenfolgeabhängigkeit verschwand, weil ihre Ursache weg ist. Damit ist die Ursachenanalyse
+> dieses Abschnitts nicht mehr erschlossen, sondern belegt.
+
 ---
 
 ## 2. Gegenprobe durch Zurückdrehen — nur stichprobenhaft
@@ -177,16 +187,30 @@ schließlich fing, existierte da noch nicht.
 
 ## 6. Vorschläge — zu entscheiden, nicht umgesetzt
 
-1. **Die sechs Importe mit Nebenwirkung entschärfen.** `docker_utils.py:76-80`, `:676`,
-   `progress_service.py:125`: Die Werte erst beim ersten Gebrauch laden statt beim Import. Das ist
-   ein Eingriff in Produktivcode und braucht einen wartenden Test — den es noch nicht gibt.
-2. **Die beiden reihenfolgeabhängigen Tests** würden dadurch von selbst allein laufen. Sie vorher
-   zu ändern hieße, das Symptom zu behandeln.
+1. ~~**Die sechs Importe mit Nebenwirkung entschärfen.**~~ **Erledigt am 2026-09-17** — für
+   `docker_utils.py` (fünf Zeitwerte plus `_CACHE_TTL`), **nicht** für `progress_service.py:125`.
+   Die Werte laden jetzt beim ersten Zugriff statt beim Import, über ein modulweites `__getattr__`
+   (PEP 562); für jeden Leser sieht alles unverändert aus. Der wartende Test, den dieser Vorschlag
+   noch vermisste, steht als `tests/spec/test_import_ohne_nebenwirkung.py` und prüft in einem
+   **eigenen Prozess**, dass ein `import` keine Konfiguration liest.
+   *`progress_service.py:125` bleibt bewusst wie es ist:* Fünf Testdateien weisen
+   `progress_service.CFG` von außen zu, es ist damit faktisch eine Schnittstelle. Es träge zu machen
+   wäre kein Umbau ohne wartenden Test, sondern einer **gegen** fünf wartende Tests.
+2. ~~**Die beiden reihenfolgeabhängigen Tests** würden dadurch von selbst allein laufen.~~
+   **Bestätigt:** `test_r2_g5_mech.py` allein vorher 2 von 41 rot, nachher **41 grün — ohne dass ein
+   einziger Test angefasst wurde**. Das ist der Wirkungsnachweis der Korrektur und zugleich der
+   Beleg, dass die Ursachenanalyse dieses Berichts stimmte.
 3. **Das Sicherheitsnetz in `_load_timeout_from_config`** fängt vier Ausnahmetypen. Ob das die
    richtigen sind, lässt sich erst sagen, wenn bekannt ist, was `get_config()` werfen kann.
 4. **Reihenfolgeabhängigkeit dauerhaft messen.** Der Einzeldurchlauf über alle 127 Dateien war eine
    einmalige Aktion. Als wiederkehrende Prüfung würde er Rückfälle fangen — kostet aber 127
    Container-Starts.
 
-**Nichts davon ist umgesetzt.** Alle vier berühren Produktivcode oder Laufzeit und sind Entscheidungen
-des Betreibers.
+**Stand 2026-09-17:** Punkt 1 und 2 sind umgesetzt und gemessen (siehe oben). Punkt 3 und 4 sind es
+**nicht** — beide berühren Produktivcode oder Laufzeit und bleiben Entscheidungen des Betreibers.
+
+*Punkt 1 wurde nicht in der Form umgesetzt, in der er hier ursprünglich stand.* Der Vorschlag nannte
+sechs Stellen in einem Atemzug. Beim Nachzählen der Aufrufstellen zeigte sich, dass
+`progress_service.CFG` von fünf Testdateien von außen zugewiesen wird und damit eine Schnittstelle
+ist — der Vorschlag war dort schlecht, und er war es, weil ich ihn geschrieben hatte, ohne die
+Aufrufstellen zu zählen. Umgesetzt wurde deshalb nur `docker_utils.py`.
