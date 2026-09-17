@@ -58,8 +58,8 @@ services/config/channel_config_service.py:1-519
 services/config/config_cache_service.py:1-133
 services/config/config_form_parser_service.py:1-470
 
-## Abschnitt 12  (865 Zeilen, 2 Stuecke)
-services/config/config_loader_service.py:1-459
+## Abschnitt 12  (876 Zeilen, 2 Stuecke)
+services/config/config_loader_service.py:1-470
 services/config/config_migration_service.py:1-406
 
 ## Abschnitt 13  (1810 Zeilen, 5 Stuecke)

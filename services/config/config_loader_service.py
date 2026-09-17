@@ -270,8 +270,19 @@ class ConfigLoaderService:
         for container_file in self.containers_dir.glob("*.json"):
             try:
                 container_config = self._load_json_file(container_file, {})
-                # ONLY include containers that are marked as active
-                if container_config.get('active', False):
+                # Ein FEHLENDER 'active'-Schluessel bedeutet AKTIV - dieselbe
+                # Vorgabe wie server_config_service.py:90 und
+                # cogs/admin_overview.py:464, die sie beide als Kommentar
+                # ausschreiben. Hier stand False, womit dieselbe Containerdatei
+                # fuer die einen Aufrufer existierte und fuer die anderen nicht.
+                # Der Schluessel fehlt keineswegs nur theoretisch:
+                # config_migration_service.py:230 schreibt Alteintraege aus
+                # docker_config.json wortwoertlich, und das Wort 'active' kommt
+                # in dieser Datei nicht ein einziges Mal vor. Gemeldet wurde der
+                # Verlust allein per logger.debug (unten), das im Normalbetrieb
+                # auf INFO nirgends erscheint.
+                # Ein ausdrueckliches active: False filtert weiterhin.
+                if container_config.get('active', True):
                     servers.append(container_config)
                     logger.debug(f"Loading active container: {container_config.get('container_name', container_file.stem)}")
                 else:

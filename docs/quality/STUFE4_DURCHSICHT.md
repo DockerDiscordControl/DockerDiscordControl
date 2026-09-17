@@ -10,7 +10,7 @@ Durchsicht mit einem anderen Modell. **Drei davon stehen, zwei nicht.**
 
 ## 1. Zuschnitt — steht
 
-37 Abschnitte, 188 Stücke, **60.713 von 60.713 Zeilen** in 183 Dateien (`docs/quality/ABSCHNITTE.txt`).
+37 Abschnitte, 188 Stücke, **60.724 von 60.724 Zeilen** in 183 Dateien (`docs/quality/ABSCHNITTE.txt`).
 Geschnitten wird an Klassen- und Funktionsgrenzen, nicht willkürlich bei Zeile 2000: Ein Abschnitt
 soll am Stück lesbar sein.
 
