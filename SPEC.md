@@ -113,8 +113,9 @@ die Aktion erlaubt — auf **jedem** Weg: Knopf, Zeitplan, Automatikregel, Web-P
 *Gebrochen, wenn:* ein Weg existiert, der einen Container anfasst, ohne beide Prüfungen zu bestehen.
 *Hinweis:* Autorisierung über den **Kanal** ist gewollt (siehe Bewusste Entscheidungen B1). Diese
 Zusicherung verlangt keine Nutzerprüfung — sie verlangt, dass die Kanalprüfung **lückenlos** ist.
-**Heute: offen — wartet auf eine Entscheidung des Betreibers.** Die ursprüngliche Fassung dieser
-Zeile war zu grob und ist beim Nachlesen widerlegt worden:
+**Heute: behoben (2026-09-16), mit einer offenen Nebenfrage** (die Scheduler-Ausnahme, siehe unten).
+Der Weg dorthin gehört hierher, weil die ursprüngliche Fassung dieser Zeile zu grob war und beim
+Nachlesen widerlegt wurde:
 
 - *„Vier Stellen umgehen das Kanalrecht"* — **falsch.** Drei der vier steuern **Darstellung**, nicht
   Berechtigung: `control_ui.py:1019-1025` und `:1072-1079` schalten Info-Anzeige und Admin-Knöpfe,
