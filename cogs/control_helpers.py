@@ -150,3 +150,39 @@ def _get_pending_embed(display_name: str) -> discord.Embed:
     embed.set_footer(text=f"https://ddc.bot")
     # --- End: Adjusted box formatting for Pending --- #
     return embed
+
+
+def validate_custom_address(address: str) -> bool:
+    """Validate custom IP/hostname format for security.
+
+    Stood twice, character for character, in control_ui.py and
+    status_info_integration.py. A security check that exists twice gets
+    corrected once - and the same shape caused a real Z5 break today: the task
+    delete button existed twice and only one copy checked the channel
+    permission. See docs/quality/STUFE0_BESTANDSAUFNAHME.md section 7.
+    """
+    import re
+
+    # Limit length to prevent abuse
+    if len(address) > 255:
+        return False
+
+    # Allow IPs
+    ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
+    if re.match(ip_pattern, address):
+        # Validate IP octets
+        octets = address.split('.')
+        for octet in octets:
+            if int(octet) > 255:
+                return False
+        return True
+
+    # Allow hostnames with ports
+    hostname_pattern = r'^[a-zA-Z0-9.-]+(\:[0-9]{1,5})?$'
+    if re.match(hostname_pattern, address):
+        # Additional validation: no double dots, no leading/trailing dots
+        if '..' in address or address.startswith('.') or address.endswith('.'):
+            return False
+        return True
+
+    return False

@@ -1149,7 +1149,8 @@ class InfoButton(Button):
 
         if custom_ip:
             # Validate custom IP/hostname format for security
-            if self._validate_custom_address(custom_ip):
+            from .control_helpers import validate_custom_address
+            if validate_custom_address(custom_ip):
                 # Add port if provided
                 address = custom_ip
                 if custom_port and custom_port.isdigit():
@@ -1173,34 +1174,6 @@ class InfoButton(Button):
             logger.debug(f"Could not get WAN IP: {e}")
 
         return "**IP:** Auto-detection failed"
-
-    def _validate_custom_address(self, address: str) -> bool:
-        """Validate custom IP/hostname format for security."""
-        import re
-
-        # Limit length to prevent abuse
-        if len(address) > 255:
-            return False
-
-        # Allow IPs
-        ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
-        if re.match(ip_pattern, address):
-            # Validate IP octets
-            octets = address.split('.')
-            for octet in octets:
-                if int(octet) > 255:
-                    return False
-            return True
-
-        # Allow hostnames with ports
-        hostname_pattern = r'^[a-zA-Z0-9.-]+(\:[0-9]{1,5})?$'
-        if re.match(hostname_pattern, address):
-            # Additional validation: no double dots, no leading/trailing dots
-            if '..' in address or address.startswith('.') or address.endswith('.'):
-                return False
-            return True
-
-        return False
 
     async def _get_status_info(self) -> str:
         """Get current container status information."""

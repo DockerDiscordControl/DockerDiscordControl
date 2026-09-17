@@ -29,6 +29,51 @@ from services.automation import get_auto_action_config_service
 
 logger = get_module_logger('status_info_integration')
 
+async def container_logs_text(container_name: str) -> str:
+    """Get the last N log lines for a container, ready for a Discord embed.
+
+    Stood twice, character for character, as a method on LiveLogView and on
+    DebugLogsButton. Both used nothing but ``self.container_name``, so the copy
+    had no reason beyond convenience - and a copy is a correction that only ever
+    lands in one place. See docs/quality/STUFE0_BESTANDSAUFNAHME.md section 7.
+    """
+    try:
+        import docker
+        import asyncio
+        from utils.common_helpers import validate_container_name
+        from utils.settings import get_setting
+
+        # Validate container name for security
+        if not validate_container_name(container_name):
+            return f"Invalid container name format: {container_name}"
+
+        # Use synchronous Docker client for stable log retrieval
+        def get_logs_sync():
+            client = docker.from_env()
+            try:
+                container = client.containers.get(container_name)
+                tail_lines = get_setting('DDC_LIVE_LOGS_TAIL_LINES', 50)
+                logs_bytes = container.logs(tail=tail_lines, timestamps=True)
+                return logs_bytes.decode('utf-8', errors='replace')
+            finally:
+                client.close()
+
+        # Run synchronous operation in thread pool to avoid blocking
+        logs = await asyncio.get_event_loop().run_in_executor(None, get_logs_sync)
+
+        # Limit log output to prevent Discord message limits
+        if len(logs) > 1800:  # Leave room for embed formatting
+            logs = logs[-1800:]
+            logs = "...\n" + logs
+
+        return logs.strip() or "No logs available for this container."
+
+    except docker.errors.NotFound:
+        return f"Container '{container_name}' not found."
+    except (docker.errors.DockerException, RuntimeError, OSError) as e:
+        logger.debug(f"Error getting logs for {container_name}: {e}")
+        return f"Error retrieving logs: {str(e)[:100]}"
+
 class ContainerInfoAdminView(discord.ui.View):
     """
     Admin view for container info with Edit and Debug buttons (control channels only).
@@ -325,7 +370,7 @@ class LiveLogView(discord.ui.View):
             logger.info(f"Auto-recreating Live Logs view for container {self.container_name}")
 
             # Get current logs
-            logs = await self._get_container_logs()
+            logs = await container_logs_text(self.container_name)
 
             # Create new view with same state
             new_view = LiveLogView(self.container_name, self.auto_refresh_enabled)
@@ -398,7 +443,7 @@ class LiveLogView(discord.ui.View):
                 self.refresh_count += 1
 
                 # Get updated logs
-                logs = await self._get_container_logs()
+                logs = await container_logs_text(self.container_name)
 
                 if logs and self.message_ref:
                     # Update embed
@@ -479,7 +524,7 @@ class LiveLogView(discord.ui.View):
             await interaction.response.send_message(_("🔄 Refreshing logs..."), ephemeral=True, delete_after=1)
 
             # Get updated logs
-            logs = await self._get_container_logs()
+            logs = await container_logs_text(self.container_name)
 
             if logs and self.message_ref:
                 # Update the existing message for public messages
@@ -519,7 +564,7 @@ class LiveLogView(discord.ui.View):
 
                 # Update embed
                 if self.message_ref:
-                    logs = await self._get_container_logs()
+                    logs = await container_logs_text(self.container_name)
                     embed = discord.Embed(
                         title=f"⏹️ Debug Logs - {self.container_name}",
                         description=f"```\n{logs}\n```",
@@ -545,7 +590,7 @@ class LiveLogView(discord.ui.View):
 
                 # Update embed and restart auto-refresh
                 if self.message_ref:
-                    logs = await self._get_container_logs()
+                    logs = await container_logs_text(self.container_name)
                     embed = discord.Embed(
                         title=f"▶️ Live Logs - {self.container_name}",
                         description=f"```\n{logs}\n```",
@@ -604,45 +649,6 @@ class LiveLogView(discord.ui.View):
                     logger.debug(f"Failed to update message on timeout: {e}")
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in on_timeout: {e}", exc_info=True)
-
-    async def _get_container_logs(self) -> str:
-        """Get the last 50 log lines for the container."""
-        try:
-            import docker
-            import asyncio
-            from utils.common_helpers import validate_container_name
-
-            # Validate container name for security
-            if not validate_container_name(self.container_name):
-                return f"Invalid container name format: {self.container_name}"
-
-            # Use synchronous Docker client for stable log retrieval
-            def get_logs_sync():
-                client = docker.from_env()
-                try:
-                    container = client.containers.get(self.container_name)
-                    from utils.settings import get_setting
-                    tail_lines = get_setting('DDC_LIVE_LOGS_TAIL_LINES', 50)
-                    logs_bytes = container.logs(tail=tail_lines, timestamps=True)
-                    return logs_bytes.decode('utf-8', errors='replace')
-                finally:
-                    client.close()
-
-            # Run synchronous operation in thread pool to avoid blocking
-            logs = await asyncio.get_event_loop().run_in_executor(None, get_logs_sync)
-
-            # Limit log output to prevent Discord message limits
-            if len(logs) > 1800:  # Leave room for embed formatting
-                logs = logs[-1800:]
-                logs = "...\n" + logs
-
-            return logs.strip() or "No logs available for this container."
-
-        except docker.errors.NotFound:
-            return f"Container '{self.container_name}' not found."
-        except (docker.errors.DockerException, RuntimeError, OSError) as e:
-            logger.debug(f"Error getting logs for {self.container_name}: {e}")
-            return f"Error retrieving logs: {str(e)[:100]}"
 
 class DebugLogsButton(discord.ui.Button):
     """Debug logs button for container info admin view with live updates."""
@@ -716,7 +722,7 @@ class DebugLogsButton(discord.ui.Button):
             auto_start_enabled = get_setting('DDC_LIVE_LOGS_AUTO_START', False, bool)
 
             # Get initial logs
-            log_lines = await self._get_container_logs()
+            log_lines = await container_logs_text(self.container_name)
 
             if log_lines:
                 # Create live log view - auto-refresh based on setting
@@ -775,45 +781,6 @@ class DebugLogsButton(discord.ui.Button):
                     )
             except Exception:
                 pass
-
-    async def _get_container_logs(self) -> str:
-        """Get the last 50 log lines for the container."""
-        try:
-            import docker
-            import asyncio
-            from utils.common_helpers import validate_container_name
-
-            # Validate container name for security
-            if not validate_container_name(self.container_name):
-                return f"Invalid container name format: {self.container_name}"
-
-            # Use synchronous Docker client for stable log retrieval
-            def get_logs_sync():
-                client = docker.from_env()
-                try:
-                    container = client.containers.get(self.container_name)
-                    from utils.settings import get_setting
-                    tail_lines = get_setting('DDC_LIVE_LOGS_TAIL_LINES', 50)
-                    logs_bytes = container.logs(tail=tail_lines, timestamps=True)
-                    return logs_bytes.decode('utf-8', errors='replace')
-                finally:
-                    client.close()
-
-            # Run synchronous operation in thread pool to avoid blocking
-            logs = await asyncio.get_event_loop().run_in_executor(None, get_logs_sync)
-
-            # Limit log output to prevent Discord message limits
-            if len(logs) > 1800:  # Leave room for embed formatting
-                logs = logs[-1800:]
-                logs = "...\n" + logs
-
-            return logs.strip() or "No logs available for this container."
-
-        except docker.errors.NotFound:
-            return f"Container '{self.container_name}' not found."
-        except (docker.errors.DockerException, RuntimeError, OSError) as e:
-            logger.debug(f"Error getting logs for {self.container_name}: {e}")
-            return f"Error retrieving logs: {str(e)[:100]}"
 
 class StatusInfoView(discord.ui.View):
     """
@@ -990,7 +957,8 @@ class StatusInfoButton(discord.ui.Button):
 
         if custom_ip:
             # Validate custom IP/hostname format for security
-            if self._validate_custom_address(custom_ip):
+            from .control_helpers import validate_custom_address
+            if validate_custom_address(custom_ip):
                 # Add port if provided
                 address = custom_ip
                 if custom_port and custom_port.isdigit():
@@ -1015,34 +983,6 @@ class StatusInfoButton(discord.ui.Button):
 
         return "**IP:** Auto-detection failed"
 
-
-    def _validate_custom_address(self, address: str) -> bool:
-        """Validate custom IP/hostname format for security."""
-        import re
-
-        # Limit length to prevent abuse
-        if len(address) > 255:
-            return False
-
-        # Allow IPs
-        ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
-        if re.match(ip_pattern, address):
-            # Validate IP octets
-            octets = address.split('.')
-            for octet in octets:
-                if int(octet) > 255:
-                    return False
-            return True
-
-        # Allow hostnames with ports
-        hostname_pattern = r'^[a-zA-Z0-9.-]+(\:[0-9]{1,5})?$'
-        if re.match(hostname_pattern, address):
-            # Additional validation: no double dots, no leading/trailing dots
-            if '..' in address or address.startswith('.') or address.endswith('.'):
-                return False
-            return True
-
-        return False
 
     def _get_status_info(self) -> Optional[str]:
         """Get current container status information."""
