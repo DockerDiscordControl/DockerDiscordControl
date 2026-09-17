@@ -117,8 +117,7 @@ Zusicherung verlangt keine Nutzerprüfung — sie verlangt, dass die Kanalprüfu
 Der Weg dorthin gehört hierher, weil die ursprüngliche Fassung dieser Zeile zu grob war und beim
 Nachlesen widerlegt wurde:
 
-- *„Vier Stellen umgehen das Kanalrecht"* — **falsch.** Drei der vier steuern **Darstellung**, nicht
-  Berechtigung: `control_ui.py:1019-1025` und `:1072-1079` schalten Info-Anzeige und Admin-Knöpfe,
+- *„Vier Stellen umgehen das Kanalrecht"* — teils widerlegt, **teils zu Unrecht entlastet.**
   `:429` steuert nur das Nachzeichnen der Admin-Nachricht (`:483`). Das dabei gesetzte Kennzeichen
   `_is_admin_control` (`:487`, entfernt bei `:531`) wird an genau zwei Stellen gelesen
   (`status_handlers.py:1051`, `status_info_integration.py:1143`) und unterdrückt dort ebenfalls nur
@@ -135,8 +134,39 @@ Nachlesen widerlegt wurde:
 Admin-Panels **sofort wirkungslos**. Eine Berechtigung darf nicht in einer Nachricht stecken, die
 Monate alt sein kann. `control_ui.py:304` ist damit ein Befund: Die Titel-Heuristik entfällt an
 dieser Stelle, und der Knopf prüft nur noch das **aktuelle** Kanalrecht.
-Die drei rein darstellenden Verwendungen (`:429`, `:1019-1025`, `:1072-1079`) bleiben unberührt —
-sie erteilen kein Recht.
+Die rein darstellende Verwendung bei `:429` bleibt unberührt — sie erteilt kein Recht.
+
+**Nachtrag 2026-09-17 — ein zweiter Weg, und eine falsche Einstufung von gestern.**
+Oben stand, `control_ui.py:1019-1025` und `:1072-1079` seien „rein darstellend". **Das war falsch.**
+Beide berechneten `has_control = is_admin_control or <Kanalrecht>` und entschieden damit, ob
+`ContainerInfoAdminView` gebaut wird. Diese Ansicht hängt `TaskManagementButton` **bedingungslos**
+ein (`status_info_integration.py:55`), und von dort führt ein Weg über `TaskManagementView` →
+`DeleteTasksButton` → `ContainerTaskDeleteButton` zu `delete_task()` — **vier Ebenen, keine einzige
+Rechtsprüfung**. Ein alter Nachrichtentitel genügte also, um Zeitaufträge löschen zu können.
+Der Kommentar bei `:1053` sagte es sogar offen: „Don't re-check channel permission as it would
+ignore admin control context."
+
+*Zweiter Befund an derselben Stelle:* Derselbe Eingriff verlangte je nach Weg ein anderes Recht.
+`control_ui.py:1276` prüft `schedule`; `status_info_integration.py` kannte die Zeichenkette
+`'schedule'` überhaupt nicht. Wer `control` hatte, aber `schedule` bewusst **nicht**, konnte über den
+zweiten Weg trotzdem löschen.
+
+*Behoben:* Beide Stellen entscheiden nur noch nach dem **aktuellen** Kanalrecht (wie `:304` seit
+gestern), die dort tot gewordenen Zeilen sind entfernt, und `ContainerTaskDeleteButton` prüft
+`schedule` wie sein Zwilling.
+*Abgedeckt von* `tests/spec/test_z5_aufgaben_loeschweg.py` (3 Tests).
+*Gegenprobe:* 2 rot wie vorhergesagt, beide aus dem richtigen Grund — der Stapel zeigte, dass die
+Ansicht bei `control: False` allein wegen des Titels gebaut wurde. Nach der Korrektur 3 grün,
+`test_z5_channel_permission.py` unverändert 3, `tests/unit/cogs` unverändert 267.
+
+*Geprüft und diesmal bestätigt:* Das Kennzeichen `_is_admin_control` (`:496`, `:540`, `:1988`,
+`:2034`) wird an zwei Stellen gelesen (`status_handlers.py:1051`,
+`status_info_integration.py:1143`) und unterdrückt dort **nur Anzeige**. Hier hält die Einstufung.
+
+*Ebenfalls geprüft und abgegrenzt:* Die beiden Web-Wege zu `delete_task`
+(`app/blueprints/tasks_bp.py:194`, `services/web/task_management_service.py:817`) hängen an
+`@auth.login_required`. Das Panel hat ein eigenes Rechtemodell, nicht das Kanalmodell — kein Teil
+dieses Befunds.
 **Status: behoben (2026-09-16).** `control_ui.py:304` liest nur noch das aktuelle Kanalrecht.
 *Abgedeckt von* `tests/spec/test_z5_channel_permission.py`.
 *Gegenprobe:* Das Rot fiel **stärker aus als vorhergesagt** — erwartet hatte ich einen Fehlschlag

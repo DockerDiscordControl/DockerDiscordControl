@@ -2571,6 +2571,20 @@ class ContainerTaskDeleteButton(discord.ui.Button):
 
             from services.scheduling.scheduler import delete_task, find_task_by_id
             from services.infrastructure.action_logger import log_user_action
+            from .control_helpers import _channel_has_permission
+
+            # Deleting a scheduled task needs the 'schedule' permission of the
+            # CURRENT channel. The twin button in control_ui.py:1276 checks it;
+            # this path did not, so whoever held 'control' but deliberately not
+            # 'schedule' could still delete tasks here. Same action, same right.
+            # See SPEC.md Z5 - the assurance holds on EVERY path or not at all.
+            config = load_config()
+            if not _channel_has_permission(interaction.channel_id, 'schedule', config):
+                await interaction.followup.send(
+                    f"❌ {_('You do not have permission to delete tasks in this channel.')}",
+                    ephemeral=True
+                )
+                return
 
             # Find the task first to get info for logging
             task = find_task_by_id(self.task_id)

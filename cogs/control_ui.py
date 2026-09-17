@@ -294,20 +294,22 @@ class ActionButton(Button):
             await interaction.followup.send(_("Error: Could not determine channel."), ephemeral=True)
             return
 
-        # Check if this is an admin control message (title contains "Admin Control")
-        is_admin_control = False
-        if interaction.message and interaction.message.embeds:
-            embed_title = interaction.message.embeds[0].title if interaction.message.embeds else ""
-            is_admin_control = "Admin Control" in str(embed_title)
-
         # Only the CURRENT channel permission decides. Previously an "Admin Control"
         # title short-circuited this check (`is_admin_control or ...`), which put the
         # authorization into a Discord message instead of the configuration: a panel
         # posted while the channel had the right kept working after the right was
         # withdrawn, for as long as the message existed. Decided by the operator on
-        # 2026-09-16: old panels become ineffective immediately. The same heuristic
-        # is still used at :429/:1019/:1072 - those only steer what is displayed and
-        # grant nothing. See SPEC.md Z5 and B1.
+        # 2026-09-16: old panels become ineffective immediately.
+        #
+        # The lines that computed `is_admin_control` here were dead after that fix -
+        # nothing read the value any more - and are gone.
+        #
+        # CORRECTION 2026-09-17: this comment used to claim the same heuristic at
+        # :1019/:1072 "only steers what is displayed and grants nothing". That was
+        # wrong. Those two decided whether ContainerInfoAdminView gets built, and
+        # that view carries TaskManagementButton unconditionally - a path to
+        # delete_task(). They granted a right and are corrected as well.
+        # See SPEC.md Z5 and B1.
         channel_has_control = _get_cached_channel_permission(interaction.channel.id, 'control', config)
 
         if not channel_has_control:
@@ -1022,14 +1024,15 @@ class InfoButton(Button):
                 # Check if user can edit (in control channels, users can add info)
                 from .control_helpers import _channel_has_permission
 
-                # Check if this is an admin control message (title contains "Admin Control")
-                is_admin_control = False
-                if interaction.message and interaction.message.embeds:
-                    embed_title = interaction.message.embeds[0].title if interaction.message.embeds else ""
-                    is_admin_control = "Admin Control" in str(embed_title)
-
-                # Admin control messages always have control permission
-                has_control = is_admin_control or (_channel_has_permission(channel_id, 'control', config) if config else False)
+                # Only the CURRENT channel permission decides. The title of the
+                # message used to short-circuit this ("Admin Control" in the embed
+                # title), which meant a panel posted while the channel still had
+                # the right stayed usable after the right was taken away. The view
+                # built below carries TaskManagementButton unconditionally
+                # (status_info_integration.py:55) and therefore a path to
+                # delete_task() - so this was not display, it granted a right.
+                # Same correction as :304. See SPEC.md Z5.
+                has_control = _channel_has_permission(channel_id, 'control', config) if config else False
 
                 if has_control:
                     # Create empty info template with Edit/Log buttons
@@ -1050,8 +1053,8 @@ class InfoButton(Button):
 
                     info_button = StatusInfoButton(self.cog, self.server_config, empty_info_config)
 
-                    # Use the has_control flag we already determined (includes is_admin_control check)
-                    # Don't re-check channel permission as it would ignore admin control context
+                    # Reuse the has_control flag determined above (current channel
+                    # permission only - the admin-control title no longer counts).
                     embed = await info_button._generate_info_embed(include_protected=has_control)
 
                     # Add admin buttons for editing
@@ -1075,15 +1078,9 @@ class InfoButton(Button):
             # Generate info embed using StatusInfoButton logic
             info_button = StatusInfoButton(self.cog, self.server_config, info_config)
 
-            # Check if this is an admin control message (title contains "Admin Control")
-            is_admin_control = False
-            if interaction.message and interaction.message.embeds:
-                embed_title = interaction.message.embeds[0].title if interaction.message.embeds else ""
-                is_admin_control = "Admin Control" in str(embed_title)
-
-            # Since this is in ControlView, we know it's a control channel, so add admin buttons
-            # Admin control messages always have control permission
-            has_control = is_admin_control or (_channel_has_permission(channel_id, 'control', config) if config else False)
+            # Only the CURRENT channel permission decides - see the note above.
+            # SPEC.md Z5.
+            has_control = _channel_has_permission(channel_id, 'control', config) if config else False
 
             # Generate embed with protected info if in control channel
             embed = await info_button._generate_info_embed(include_protected=has_control)
