@@ -119,10 +119,10 @@ services/infrastructure/dynamic_cooldown_manager.py:1-179
 services/infrastructure/event_manager.py:1-111
 services/infrastructure/game_query_service.py:1-525
 
-## Abschnitt 20  (843 Zeilen, 4 Stuecke)
+## Abschnitt 20  (851 Zeilen, 4 Stuecke)
 services/infrastructure/game_query_support_service.py:1-278
 services/infrastructure/spam_protection_service.py:1-332
-services/infrastructure/update_notifier.py:1-203
+services/infrastructure/update_notifier.py:1-211
 services/mech/__init__.py:1-30
 
 ## Abschnitt 21  (1813 Zeilen, 1 Stuecke)

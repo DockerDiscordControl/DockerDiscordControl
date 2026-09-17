@@ -12,7 +12,7 @@ mit 1.513 Namen und keinem einzigen Haken. Ihn zu füllen, ohne die Namen gelese
 
 ## 1. Zuschnitt — steht
 
-37 Abschnitte, 188 Stücke, **60.740 von 60.740 Zeilen** in 183 Dateien (`docs/quality/ABSCHNITTE.txt`).
+37 Abschnitte, 188 Stücke, **60.748 von 60.748 Zeilen** in 183 Dateien (`docs/quality/ABSCHNITTE.txt`).
 Geschnitten wird an Klassen- und Funktionsgrenzen, nicht willkürlich bei Zeile 2000: Ein Abschnitt
 soll am Stück lesbar sein.
 
@@ -79,14 +79,18 @@ viel erreicht wurde", den der Programmtext ablehnt.
 
 | | Abschnitte | Zeilen |
 |---|---|---|
-| enthalten eine Datei, in der etwas geändert wurde | 26 | 45.261 (75 %) |
-| gar nicht berührt | **11** | **15.479 (25 %)** |
+| enthalten eine Datei, in der etwas geändert wurde | 27 | 46.112 (76 %) |
+| gar nicht berührt | **10** | **14.636 (24 %)** |
 
-Die Rechnung offen, damit sie nachprüfbar ist statt geglaubt: Die elf unberührten Abschnitte
-summieren sich gemessen auf 15.479 Zeilen; 60.740 − 15.479 = 45.261. Vorher standen hier 12
-Abschnitte und 17.242 Zeilen — **Abschnitt 13** ist seit der Zweitdurchsicht berührt (`config_service.py`).
+Die Rechnung offen, damit sie nachprüfbar ist statt geglaubt: Die zehn unberührten Abschnitte
+summieren sich gemessen auf 14.636 Zeilen; 60.748 − 14.636 = 46.112.
 
-**Diese 75 % sind keine Abdeckung, und sie dürfen nicht als solche gelesen werden.** „Berührt" heißt:
+**Diese Zahl ist zweimal an einem Nachmittag veraltet** — sie stand erst bei 12 Abschnitten und
+17.242 Zeilen, dann bei 11 und 15.479. Jede Korrektur verschiebt sie: **Abschnitt 13** fiel mit
+`config_service.py` heraus, **Abschnitt 20** mit `update_notifier.py`. Das ist kein Mangel der
+Rechnung, sondern ihre Natur — und der Grund, sie am Ende zu messen statt sie mitzuführen.
+
+**Diese 76 % sind keine Abdeckung, und sie dürfen nicht als solche gelesen werden.** „Berührt" heißt:
 In diesem Abschnitt liegt eine Datei, in der eine einzelne Zeile geändert wurde. Das ist keine
 Durchsicht.
 
@@ -95,7 +99,7 @@ hat, waren gezielte Suchen nach benannten Mustern (nackte `except:`, Umgebungsle
 zeichengleiche Zwillinge, Aufrufstellen) und punktuelle Korrekturen. Diese Suchen waren mechanisch
 und vollständig — aber sie prüfen je eine Frage, nicht den Abschnitt.
 
-### Die elf nie berührten Abschnitte
+### Die zehn nie berührten Abschnitte
 
 | Abschnitt | Zeilen | Inhalt |
 |---|---|---|
@@ -103,7 +107,6 @@ und vollständig — aber sie prüfen je eine Frage, nicht den Abschnitt.
 | 08 | 1.341 | `status_handlers.py` |
 | 14 | 1.435 | `channel_cleanup_service.py`, `embed_helper_service.py`, `status_overview_service.py`, … |
 | 15 | 708 | `docker_client_pool.py` |
-| 20 | 843 | `spam_protection_service.py`, `update_notifier.py`, … |
 | 21 | 1.813 | `animation_cache_service.py` |
 | 22 | 1.935 | `mech_data_store.py`, `mech_evolutions.py`, … |
 | 26 | 1.995 | `scheduler.py` |
@@ -193,11 +196,16 @@ Hätte ich stur „Test zuerst" gemacht, wäre das Rot ausgeblieben — aber ers
 
 ### Kleinbefunde, bewusst tief eingeordnet
 
-- `update_notifier.py:63` und `mech_reset_service.py:243` schreiben nicht-atomar. Beide ohne
-  scharfen Leser: `update_notifier.py:56-58` fängt den Fehler und liefert Vorgaben (Folge: eine
-  weggeklickte Aktualisierungsmeldung erscheint erneut), `evolution_mode.json` geht über
-  `_load_json_file`, das den Lesefehler seit `208ae81` sogar vermerkt. Echte Z7-Textbrüche, aber
-  niemand verliert Daten.
+- `update_notifier.py:63` schrieb nicht-atomar — **behoben**, siehe unten. `mech_reset_service.py:243`
+  hat dieselbe Bauart und bleibt **unkorrigiert**: Die Methode baut ihre Nutzlast selbst, es gibt
+  keinen Injektionspunkt von außen, und ein Fehlschlag ließe sich nur durch Attrappieren von
+  `json.dump` erzwingen — dann prüfte der Test die Attrappe. Anhalten, wo sich nicht messen lässt,
+  was man ändert. Ärgerlich ist der Fall trotzdem: Dieselbe Datei importiert `atomic_write_json` bei
+  `:25` und benutzt es zwölf Zeilen vorher bei `:202`, mit ausgeschriebener Begründung — eine
+  bewusste Umstellung, bei der eine Schwestermethode übrig blieb.
+- **Nebenbei gemessen:** `reset_evolution_mode` hat genau einen Aufrufer (`mech_reset_service.py:106`),
+  und dessen **Erfolgsflagge wird nicht ausgewertet** — bei `:107` wandert nur die Meldung in eine
+  Liste. Ein gescheiterter Rücksetzvorgang ginge als Teil eines erfolgreichen Gesamtrücksetzens durch.
 - `scheduler.py:438-448`: elf unerreichbare Zeilen hinter `return True` (`:436`), wortgleich aus
   `_validate_monthly` kopiert. Harmlos — bis jemand sie „repariert".
 
@@ -205,9 +213,9 @@ Hätte ich stur „Test zuerst" gemacht, wäre das Rot ausgeblieben — aber ers
 
 ## 6. Was NICHT geprüft wurde
 
-- **Kein Abschnitt wurde systematisch durchgelesen.** Die 75 % „berührt" sagen darüber nichts.
+- **Kein Abschnitt wurde systematisch durchgelesen.** Die 76 % „berührt" sagen darüber nichts.
 - **Keiner der 1.513 Namen im Prüfplan ist beurteilt.**
-- **Die elf nie berührten Abschnitte** (15.479 Zeilen, 25 % des Baums) sind in diesem Programm
+- **Die zehn nie berührten Abschnitte** (14.636 Zeilen, 24 % des Baums) sind in diesem Programm
   ausschließlich von den mechanischen Suchen erfasst worden — nicht gelesen. Die Abschnitte 26 und
   37 hat ein zweites Modell gelesen, ich nicht.
 - **Der Verdacht auf Doppelausführung nach einem Absturz** (`scheduler.py`: die Docker-Aktion läuft

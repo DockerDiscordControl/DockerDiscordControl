@@ -16,6 +16,7 @@ import logging
 import discord
 from pathlib import Path
 from typing import Dict, Any, Optional
+from utils.atomic_io import atomic_write_json
 from utils.logging_utils import get_module_logger
 from cogs.translation_manager import _
 
@@ -60,8 +61,15 @@ class UpdateNotifier:
     def save_update_status(self, status: Dict[str, Any]) -> bool:
         """Save update notification status."""
         try:
-            with open(self.status_file, 'w', encoding='utf-8') as f:
-                json.dump(status, f, indent=2, ensure_ascii=False)
+            # Atomar schreiben statt open(..., "w"): Letzteres kuerzt die Datei
+            # beim Oeffnen, und json.dump schreibt stroemend. Gemessen blieb bei
+            # einem Serialisierungsfehler ein HALBER Datensatz zurueck
+            # ('{\n  "last_notified_version": "2.0",\n  "notifications_shown": '),
+            # und get_update_status:56-58 faellt darauf auf die Vorgaben zurueck -
+            # eine laengst weggeklickte Aktualisierungsmeldung erscheint erneut.
+            # atomic_write_json serialisiert VOR dem Oeffnen (utils/atomic_io.py:66-69)
+            # und schreibt mit denselben Parametern (indent=2, ensure_ascii=False).
+            atomic_write_json(self.status_file, status)
             return True
         except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError) as e:
             logger.error(f"Error saving update status: {e}", exc_info=True)
