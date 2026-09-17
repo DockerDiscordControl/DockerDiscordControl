@@ -10,17 +10,24 @@ nach ``config['advanced_settings']`` (``config_form_parser_service.py:415-425``)
 Gelesen werden sie ueber ``_get_advanced_setting``, das ZUERST die Konfiguration
 fragt und erst dann auf ``os.environ`` zurueckfaellt.
 
-Drei dieser Schluessel werden im Discord-Teil aber **direkt aus der Umgebung**
-gelesen, an neun Stellen::
+NEUN dieser Schluessel wurden im Discord-Teil aber **direkt aus der Umgebung**
+gelesen, an **sechzehn** Stellen - und in zwei Runden gefunden, weil die erste
+Fassung dieses Melders nur eine von mehreren Zugriffsformen kannte::
 
-    DDC_DOCKER_CACHE_DURATION   docker_control.py:182, :3643,
-                                container_status_service.py:108,
-                                status_cache_service.py:40
-    DDC_DOCKER_MAX_CACHE_AGE    docker_control.py:2476, :2865, :3057
-    DDC_DOCKER_QUERY_COOLDOWN   docker_control.py:225,
-                                docker_status/fetch_service.py:40
+    ueber os.environ.get (neun Stellen, erste Runde)
+      DDC_DOCKER_CACHE_DURATION   docker_control.py:182, :3643,
+                                  container_status_service.py:108,
+                                  status_cache_service.py:40
+      DDC_DOCKER_MAX_CACHE_AGE    docker_control.py:2476, :2865, :3057
+      DDC_DOCKER_QUERY_COOLDOWN   docker_control.py:225,
+                                  docker_status/fetch_service.py:40
 
-Diese neun sehen ``advanced_settings`` nie. Wer den Wert im Panel aendert,
+    ueber os.getenv (sieben Stellen, zweite Runde - vom Melder zunaechst
+    UEBERSEHEN, alle in status_info_integration.py)
+      DDC_LIVE_LOGS_TIMEOUT, _REFRESH_INTERVAL, _MAX_REFRESHES,
+      _TAIL_LINES (2x), _ENABLED, _AUTO_START
+
+Diese sechzehn sahen ``advanced_settings`` nie. Wer den Wert im Panel aendert,
 aendert ihn fuer den Web-Teil - und fuer den Discord-Teil **nicht**. Keine
 Fehlermeldung, kein Hinweis: die Einstellung ist dort still wirkungslos.
 
@@ -46,6 +53,19 @@ Die drei vorher benannten Fallen sind keine geworden: Die Panel-Schluessel wurde
 gefunden (sonst haette der erste Waechter angeschlagen), die Umgebungssuche
 greift (der zweite Waechter belegt es ueber ``DDC_CONFIG_DIR``, von dem bekannt
 ist, dass es direkt gelesen wird), und die Zahl stimmte.
+
+ZWEITE RUNDE, und sie ist der eigentliche Befund: Beim Zusammenlegen der
+doppelten ``_get_container_logs`` fiel auf, dass ``LiveLogView:245`` einen
+Panel-Schluessel ueber ``os.getenv`` liest - und dieser Test hatte **gruen
+gemeldet**. Er kannte nur ``os.environ.get``. Der Baum benutzt aber auch
+``os.getenv`` (14x), ``_os.environ.get`` und ``(os.environ if env is None else
+env).get``. Ein Waechter, der die halbe Wahrheit prueft und Vollzug meldet, ist
+so wertlos wie ein gruener Test.
+
+Geschaerft ueber die GESTALT des Aufrufs statt ueber einen erwarteten Namen
+(``_liest_umgebung``). Danach rot mit den sieben uebersehenen Stellen, alle in
+``status_info_integration.py``. Zwei davon sind Wahrheitswerte und werden mit
+``value_type=bool`` gelesen.
 
 Nach der Umstellung: 3 gruen. Betroffene Gruppen unveraendert - ``cogs`` 267,
 ``services/infrastructure`` 197, ``services/docker_service`` 86,
@@ -128,22 +148,41 @@ def _direkte_umgebungslesungen():
             except SyntaxError:
                 continue
             for knoten in ast.walk(baum):
-                if not (isinstance(knoten, ast.Call)
-                        and isinstance(knoten.func, ast.Attribute)
-                        and knoten.func.attr == "get"):
+                if not isinstance(knoten, ast.Call) or not knoten.args:
                     continue
-                ziel = knoten.func.value
-                # os.environ.get(...) bzw. environ.get(...)
-                istumgebung = (
-                    (isinstance(ziel, ast.Attribute) and ziel.attr == "environ")
-                    or (isinstance(ziel, ast.Name) and ziel.id == "environ")
-                )
-                if not istumgebung or not knoten.args:
+                if not _liest_umgebung(knoten.func):
                     continue
                 erstes = knoten.args[0]
                 if isinstance(erstes, ast.Constant) and isinstance(erstes.value, str):
                     treffer.append((pfad.relative_to(PROJEKT), knoten.lineno, erstes.value))
     return treffer
+
+
+def _liest_umgebung(func) -> bool:
+    """Erkennt JEDE Schreibweise des Umgebungszugriffs, nicht nur eine.
+
+    Die erste Fassung kannte ausschliesslich ``os.environ.get``. Der Baum
+    benutzt aber auch ``os.getenv`` (14x), ``_os.environ.get`` und Formen wie
+    ``(os.environ if env is None else env).get``. Sieben Panel-Schluessel werden
+    ueber ``os.getenv`` gelesen - und der Test meldete trotzdem gruen.
+
+    Ein Waechter, der die halbe Wahrheit prueft und Vollzug meldet, ist so
+    wertlos wie ein gruener Test. Deshalb wird hier ueber die Gestalt des
+    Aufrufs entschieden, nicht ueber einen erwarteten Namen.
+    """
+    # getenv(...) in jeder Qualifizierung: os.getenv, _os.getenv, getenv
+    if isinstance(func, ast.Attribute) and func.attr == "getenv":
+        return True
+    if isinstance(func, ast.Name) and func.id == "getenv":
+        return True
+    # <irgendwas mit environ>.get(...)
+    if isinstance(func, ast.Attribute) and func.attr == "get":
+        try:
+            ziel = ast.unparse(func.value)
+        except Exception:
+            return False
+        return "environ" in ziel
+    return False
 
 
 def test_das_panel_bietet_ueberhaupt_schluessel_an():

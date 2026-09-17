@@ -14,7 +14,6 @@ Provides read-only info display for channels with only /ss permission.
 import discord
 from services.config.config_service import load_config
 from discord.ui import View, Button
-import os
 from typing import Dict, Any, Optional, List
 from utils.logging_utils import get_module_logger
 from services.infrastructure.container_info_service import get_container_info_service
@@ -241,9 +240,10 @@ class LiveLogView(discord.ui.View):
 
     def __init__(self, container_name: str, auto_refresh: bool = False):
         # Get configuration from environment variables
-        timeout_seconds = int(os.getenv('DDC_LIVE_LOGS_TIMEOUT', '120'))
-        self.refresh_interval = int(os.getenv('DDC_LIVE_LOGS_REFRESH_INTERVAL', '5'))
-        self.max_refreshes = int(os.getenv('DDC_LIVE_LOGS_MAX_REFRESHES', '12'))
+        from utils.settings import get_setting
+        timeout_seconds = get_setting('DDC_LIVE_LOGS_TIMEOUT', 120)
+        self.refresh_interval = get_setting('DDC_LIVE_LOGS_REFRESH_INTERVAL', 5)
+        self.max_refreshes = get_setting('DDC_LIVE_LOGS_MAX_REFRESHES', 12)
 
         # Set timeout to 5 minutes, but auto-recreate before timeout
         super().__init__(timeout=300)
@@ -621,7 +621,8 @@ class LiveLogView(discord.ui.View):
                 client = docker.from_env()
                 try:
                     container = client.containers.get(self.container_name)
-                    tail_lines = int(os.getenv('DDC_LIVE_LOGS_TAIL_LINES', '50'))
+                    from utils.settings import get_setting
+                    tail_lines = get_setting('DDC_LIVE_LOGS_TAIL_LINES', 50)
                     logs_bytes = container.logs(tail=tail_lines, timestamps=True)
                     return logs_bytes.decode('utf-8', errors='replace')
                 finally:
@@ -698,7 +699,8 @@ class DebugLogsButton(discord.ui.Button):
                 self.cog._button_cooldowns[cooldown_key] = current_time
 
             # Check if Live Logs feature is enabled
-            live_logs_enabled = os.getenv('DDC_LIVE_LOGS_ENABLED', 'true').lower() in ['true', '1', 'on', 'yes']
+            from utils.settings import get_setting
+            live_logs_enabled = get_setting('DDC_LIVE_LOGS_ENABLED', True, bool)
 
             if not live_logs_enabled:
                 # Live Logs feature is disabled - show error message
@@ -711,7 +713,7 @@ class DebugLogsButton(discord.ui.Button):
             logger.info(f"Live debug logs (ephemeral) requested for container: {self.container_name}")
 
             # Check if auto-start is enabled via environment variable
-            auto_start_enabled = os.getenv('DDC_LIVE_LOGS_AUTO_START', 'false').lower() in ['true', '1', 'on', 'yes']
+            auto_start_enabled = get_setting('DDC_LIVE_LOGS_AUTO_START', False, bool)
 
             # Get initial logs
             log_lines = await self._get_container_logs()
@@ -790,7 +792,8 @@ class DebugLogsButton(discord.ui.Button):
                 client = docker.from_env()
                 try:
                     container = client.containers.get(self.container_name)
-                    tail_lines = int(os.getenv('DDC_LIVE_LOGS_TAIL_LINES', '50'))
+                    from utils.settings import get_setting
+                    tail_lines = get_setting('DDC_LIVE_LOGS_TAIL_LINES', 50)
                     logs_bytes = container.logs(tail=tail_lines, timestamps=True)
                     return logs_bytes.decode('utf-8', errors='replace')
                 finally:
