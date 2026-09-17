@@ -76,6 +76,9 @@ docker-compose.override.yml
 .ionide/
 
 # Unit test / coverage reports
+# Messartefakt des AST-Zensus (scripts/audit_tests.py) - wird bei jedem Lauf neu
+# erzeugt und gehoert nicht in die Versionierung.
+test_audit.json
 htmlcov/
 .tox/
 .coverage

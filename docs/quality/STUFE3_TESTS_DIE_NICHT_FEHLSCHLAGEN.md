@@ -1,8 +1,12 @@
 # Stufe 3 — Tests aussieben, die nicht fehlschlagen können
 
-**Stand:** 2026-09-17 · **Teilbericht.** Von den vier Prüfungen der Stufe ist eine
-vollständig durchgeführt, eine stichprobenhaft, zwei stehen aus. Was nicht geprüft wurde, steht
-unten in Abschnitt 5 — und ist der wichtigere Teil dieses Berichts.
+**Stand:** 2026-09-17. Von den vier Prüfungen der Stufe sind **drei vollständig durchgeführt**
+(„läuft er allein?", Spiegeltests, Funktion gegen Aufrufstelle), **eine nur stichprobenhaft**
+(Gegenprobe durch Zurückdrehen: genau ein Alttest von 3.962). Was nicht geprüft wurde, steht unten in
+Abschnitt 5 — und ist der wichtigere Teil dieses Berichts.
+
+*Der Kopf sagte bis 2026-09-17 „zwei stehen aus" und widersprach damit Abschnitt 3.
+Nachgezogen — dieselbe Sorte Selbstwiderspruch war heute schon dreimal zu bereinigen.*
 
 **Gelöscht wurde nichts.** Der Programmtext sagt: berichten, nichts ohne Einverständnis entfernen.
 
@@ -112,20 +116,104 @@ besser aussieht. Sie sagt nur: grün beweist nichts.
 
 ---
 
-## 3. Spiegeltests · Funktion gegen Aufrufstelle — nicht durchgeführt
+## 3. Spiegeltests · Funktion gegen Aufrufstelle — durchgeführt (2026-09-17)
 
-Beide Prüfungen der Stufe 3 stehen aus. Was vorliegt, ist die Datengrundlage aus dem AST-Zensus:
+### 3a. Funktion gegen Aufrufstelle — **ein Befund, behoben**
+
+`app/web/app_factory.py:create_app` setzt die Flask-Anwendung aus elf Schritten zusammen. Jeder
+einzelne ist geprüft, die **Verdrahtung** war es nicht. Per Mutation belegt: Vier Schritte einzeln
+entfernt, `tests/test_web_factory.py` blieb **jedes Mal grün** — darunter `install_csrf_protection`.
+Der CSRF-Schutz konnte aus der Anwendung fallen, ohne dass die Suite es merkte.
+
+*Warum die vorhandenen Tests blind waren:* `test_web_factory.py` prüft Flask-Instanz, `/health` und
+`Content-Security-Policy` — damit ist `install_security_handlers` abgedeckt und sonst nichts.
+`test_bundle3_security.py` **ersetzt** `register_blueprints` und `register_routes` per `monkeypatch`,
+prüft also ausdrücklich nicht den echten Aufbau. `test_security_sast.py` importiert aus `app.web_ui`
+und überspringt bei `ImportError`.
+
+*Behoben* durch `tests/spec/test_app_factory_verdrahtung.py`, per Mutation als wirksam belegt.
+
+**Und der lehrreichste Fund der ganzen Stufe ist, dass meine erste Fassung dieses Tests selbst ein
+Spiegeltest war.** Sie zog die Erwartungsliste aus den *Aufrufen innerhalb* von `create_app`. Fällt
+ein Aufruf heraus, verschwindet er zugleich aus der Erwartung — der Test verglich die Datei mit sich
+selbst und konnte nicht fehlschlagen. Bei denselben Mutationen blieb er grün. Der Wächter
+`len(schritte) >= 8` fing es nicht: aus elf werden zehn, die Schwelle hält.
+Zweite Fassung: Erwartung aus den **Importen**, abgegrenzt über die **Signatur des Herkunftsmoduls**.
+Beides steht außerhalb des Prüflings.
+
+### 3b. Spiegeltests — **ein Befund, berichtet**
+
+*Wie gesucht wurde, und warum die erste Suche wertlos war:* Ein grobes Muster („Test liest Quelltext")
+fand **60** Dateien. Die allermeisten sind Fehlalarme: `read_text` steht in fast jedem Z7-Test, weil er
+eine **Datendatei in `tmp_path`** liest, um zu prüfen, ob sie nach einem Absturz noch vollständig ist —
+das Gegenteil eines Spiegeltests. Eingeengt auf Lesevorgänge aus dem **Produktivbaum** bleiben **6**.
+
+Die Grenze, die zählt: *Legitim* ist, eine Produktivdatei gegen eine Regel zu prüfen, die außerhalb
+steht („kein nacktes `except:`", „keine zeichengleichen Zwillinge"). *Spiegel* ist, den Dateiinhalt
+selbst zur Erwartung zu machen — dann fällt bei einer Änderung beides weg.
+
+Fünf der sechs sind Vertragstests. Belegt statt behauptet: `test_einstellungen_wirken_ueberall.py`
+wurde per Mutation geprüft — eine einzige zurückgedrehte Stelle macht ihn rot
+(`docker_control.py:183`), wiederhergestellt wieder grün. Er **beißt**.
+
+**Der eine Befund:** `tests/unit/audit_2026_09/test_pkg_d1_services.py:197-206` liest den Standardwert
+`60` per Regex aus `scheduler_service.py` und vergleicht die Panel-Vorbelegung damit — **beide Seiten
+aus derselben Quelle**. Gerettet wird er allein durch das angehängte `== "60"`, das die Erwartung von
+außen festnagelt. Ohne dieses Literal wäre er ein reiner Spiegeltest. *Nicht korrigiert:* Der Test ist
+im Ergebnis richtig, seine Bauart ist fragil. Das ist eine Entscheidung des Betreibers.
+
+*Alte Fassung dieses Abschnitts:* „Beide Prüfungen der Stufe 3 stehen aus." — erledigt.
+
+Die Datengrundlage aus dem AST-Zensus:
 
 | Kategorie | Anzahl |
 |---|---|
 | gar keine Prüfung | 85 |
-| nur triviale Prüfung (`is None`, `isinstance`, `len`) | 265 |
+| nur triviale Prüfung (`is None`, `isinstance`, `len`) | 264 |
 | Mock-Tautologie | 3 |
 | `pytest.raises(Exception)` — fängt alles | 3 |
 | übersprungen | 6 |
-| **hohl insgesamt** | **362 von 3.962 (9,1 %)** |
+| **hohl insgesamt** | **361 von 4.017 (9,0 %)** |
 
-Davon **45 in Geld-, Lösch- oder Rechte-Nähe**, **134 allein in `tests/unit/extended/`**.
+Davon **134 allein in `tests/unit/extended/`** und **null in `tests/spec/`** — die 21 Dateien und 55
+Tests dieses Programms haben den hohlen Anteil nicht vergrößert. Das ist kein Verdienst, sondern die
+Mindestanforderung; es belegt aber, dass „erst Rot sehen, dann grün" Tests erzeugt, die der Zensus
+nicht beanstandet.
+
+> **Zahlenstand berichtigt 2026-09-17.** Hier stand 362 von 3.962 bei 113 Dateien. Das war der
+> Zensus von gestern Nacht. Ich hatte ihn neu laufen lassen, danach aber die **alte** Ausgabedatei im
+> Scratchpad ausgewertet statt der frischen im Projektverzeichnis — `audit_tests.py` schreibt ohne
+> zweites Argument nach `./test_audit.json`. Aufgefallen ist es nur, weil eine Zahl sich nach 14
+> gelöschten und 55 neuen Tests **nicht gerührt** hatte. Siebte Zahl dieses Programms, die aus einer
+> überholten Quelle stammte.
+
+### Entschieden: gelöscht wird nichts
+
+Der Betreiber hat das Löschen wertloser Tests freigegeben. **Ich nutze die Freigabe nicht**, und das
+ist eine begründete Entscheidung, keine Bequemlichkeit.
+
+Die 85 Tests „ohne Prüfung" wurden nach der Länge ihres Rumpfes aufgeschlüsselt: 13 einzeilig, der
+Rest 2 bis 12 Anweisungen. Die **dreizehn einzeiligen sind vollständig gelesen** — keiner ist leer.
+Zwölf sichern zu, dass ein Aufruf nicht wirft (`_debug_time_conversion` mit kaputter Eingabe,
+`_log_task_deletion` mit fehlenden Schlüsseln, `_perform_sync_cache_warmup` bei fehlendem Modul). Das
+ist eine schwache, aber echte Zusicherung auf Pfaden, die sonst niemand berührt. Sie zu löschen
+verbessert nichts und nimmt Abdeckung weg.
+
+**Und einer ist besser als seine Kategorie:**
+`test_animation_cache_service.py:728` setzt `side_effect=AssertionError("should not reach")` — der
+Test **fällt um**, wenn der Code den verbotenen Pfad nimmt. Die Zusicherung steht in der Attrappe,
+nicht in einem `assert`. Der Zensus sieht sie nicht.
+
+**Das ist ein Befund über das Messwerkzeug selbst**, und er ist ausgezählt statt geschätzt:
+**Drei** der 85 tragen ihre Zusicherung in einem `side_effect` und werden vom Zensus trotzdem als
+„gar keine Prüfung" geführt — `test_animation_cache_service.py:701`, `:728` und `:1221`. Übrig
+bleiben **82** ohne erkennbare Zusicherung.
+
+`scripts/audit_tests.py` zählt `assert`, `pytest.raises`, `mock.assert_*`, `pytest.fail()` und
+Helfer, die `assert*`/`verify*`/`check_*` heißen. Ein `side_effect=AssertionError(...)` steht in
+keiner dieser Formen — die Zusicherung wandert in die Attrappe, und das Werkzeug sieht sie nicht.
+Der Zensus unterschätzt die Abdeckung damit, statt sie zu überschätzen; das ist die harmlosere
+Richtung, aber es ist eine Ungenauigkeit, und sie gehört benannt.
 
 Die Kategorie „nur `mock.assert_*`" (65 Tests) zählt **nicht** als hohl — sie prüft die
 **Aufrufstelle** und ist damit ein Vorzug, kein Mangel.
@@ -170,10 +258,11 @@ schließlich fing, existierte da noch nicht.
 
 ## 5. Was NICHT geprüft wurde
 
-- **Spiegeltests** und **Funktion gegen Aufrufstelle** — beide Prüfungen der Stufe 3 stehen aus.
-- **3.961 der 3.962 Alttests** wurden nie per Mutation oder Zurückdrehen geprüft. Über sie ist
-  nichts bekannt außer: sie sind grün. (Stand nach der Korrektur in Abschnitt 2 — hier stand
-  zunächst 3.959, passend zur dort widerlegten Zahl.)
+- **Praktisch der gesamte Altbestand** wurde nie per Mutation oder Zurückdrehen geprüft. Genau
+  **ein** Test von damals 3.962 ist so geprüft worden (Abschnitt 2) — über die übrigen ist nichts
+  bekannt außer: sie sind grün. Der Baum zählt heute 4.017 Testfunktionen in 134 Dateien; die 55
+  hinzugekommenen sind sämtlich mit gesehenem Rot entstanden, was für den Altbestand nichts besagt.
+  (Hier stand zunächst 3.959, dann 3.961 — beide aus überholten Zensus-Ständen.)
 - **Was `get_config()` werfen kann.** Sein Rumpf enthält weder `raise` noch `except`; er reicht
   weiter, was `_migrate_legacy_config_if_needed`, `_loader_service.load_modular_config`,
   `_decrypt_token_if_needed` und der Cache-Dienst werfen. Diese vier wurden **nicht** gelesen.
@@ -181,7 +270,12 @@ schließlich fing, existierte da noch nicht.
 - **Ob die sechs Importe mit Nebenwirkung im Betrieb je zuschlagen.** `progress/runtime.py:100-112`
   ist gegen `FileNotFoundError` und `json.JSONDecodeError` abgesichert; gegen `OSError` beim
   Schreiben nicht. Ob das im echten Betrieb erreichbar ist, wurde nicht ermittelt.
-- **Die 359 übrigen hohlen Tests** wurden gezählt und einsortiert, aber nicht einzeln gelesen.
+- **Die übrigen hohlen Tests** wurden gezählt und einsortiert, aber nicht einzeln gelesen. Von den
+  361 sind 13 vollständig gelesen (die einzeiligen ohne Prüfung, Abschnitt 3) und 3 als vom Zensus
+  falsch eingestuft belegt. Über die restlichen 345 sagt dieser Bericht nichts.
+- **Ob weitere Zusicherungen in Attrappen stecken.** Gezählt wurde nur `side_effect=AssertionError`
+  und `pytest.raises`. Andere Formen — ein `Mock`, dessen Rückgabe später verglichen wird, oder ein
+  `autospec`, das eine falsche Signatur auffliegen ließe — sind nicht erfasst.
 
 ---
 
