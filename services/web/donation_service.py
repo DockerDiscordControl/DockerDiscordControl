@@ -19,6 +19,8 @@ from datetime import datetime
 from typing import Dict, Any, Tuple, Optional
 from dataclasses import dataclass
 
+from utils.atomic_io import atomic_write_json
+
 logger = logging.getLogger(__name__)
 
 
@@ -194,8 +196,22 @@ class DonationService:
             os.makedirs(self.NOTIFICATION_DIR, exist_ok=True)
             notification_file = f"{self.NOTIFICATION_DIR}/donation_notification.json"
 
-            with open(notification_file, "w") as f:
-                json.dump(notification, f)
+            # Atomar schreiben, nicht mit open(..., "w"): Diese Datei hat einen
+            # NEBENLAEUFIGEN Leser. services/donation/notification_service.py:26
+            # liest sie, cogs/docker_control.py:5152 fragt sie alle 30 Sekunden ab,
+            # und beide Haelften laufen im selben Prozess (Web-UI im Hintergrundfaden,
+            # Bot im Hauptfaden).
+            #
+            # open(..., "w") kuerzt beim Oeffnen, und json.dump schreibt stroemend.
+            # Gemessen: Scheitert die Serialisierung, bleibt ein HALBER, gueltig
+            # beginnender Datensatz zurueck ('{"type": "donation", "donor": "Bob",
+            # "amount": '). Der Leser wirft darauf JSONDecodeError und LOESCHT die
+            # Datei (notification_service.py:56-64) - die Spendenankuendigung ist
+            # dann endgueltig weg, gemeldet nur durch eine logger.error-Zeile.
+            #
+            # atomic_write_json serialisiert VOR dem Oeffnen (utils/atomic_io.py:66-69)
+            # und ersetzt per os.replace: Die Datei erscheint ganz oder gar nicht.
+            atomic_write_json(notification_file, notification)
 
             self.logger.info(f"🔔 Discord notification created: {notification_file}")
             self.logger.info(f"🔔 Notification: {request.donor_name} donated ${request.amount}")
