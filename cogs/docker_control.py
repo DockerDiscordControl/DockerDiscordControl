@@ -179,7 +179,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             raise
 
         # Keep cache_ttl_seconds for compatibility (some code might still reference it)
-        cache_duration = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', '30'))
+        from utils.settings import get_setting
+        cache_duration = get_setting('DDC_DOCKER_CACHE_DURATION', 30)
         self.cache_ttl_seconds = int(cache_duration * 2.5)
         # The refresh interval itself. The status embeds decide from it when a status is old
         # enough to deserve an age hint. Recovering it by dividing cache_ttl_seconds by 2.5
@@ -222,7 +223,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
         # Docker query cooldown tracking
         self.last_docker_query = {}  # Track last query time per container
-        self.docker_query_cooldown = int(os.environ.get('DDC_DOCKER_QUERY_COOLDOWN', '2'))
+        self.docker_query_cooldown = get_setting('DDC_DOCKER_QUERY_COOLDOWN', 2)
 
         # Load server order
         logger.debug("Step 7: Loading server order...")
@@ -2472,8 +2473,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             status_result = None
 
             if cached_entry and cached_entry.get('data'):
-                import os
-                max_cache_age = int(os.environ.get('DDC_DOCKER_MAX_CACHE_AGE', '300'))
+                from utils.settings import get_setting
+                max_cache_age = get_setting('DDC_DOCKER_MAX_CACHE_AGE', 300)
 
                 if 'timestamp' in cached_entry:
                     cache_age = (datetime.now(timezone.utc) - cached_entry['timestamp']).total_seconds()
@@ -2571,7 +2572,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             try:
                 logger.info("DEBUG: Using Mech Status Cache Service")
                 import sys
-                import os
                 # Add project root to Python path for service imports
                 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                 if project_root not in sys.path:
@@ -2861,8 +2861,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             status_result = None
 
             if cached_entry and cached_entry.get('data'):
-                import os
-                max_cache_age = int(os.environ.get('DDC_DOCKER_MAX_CACHE_AGE', '300'))
+                from utils.settings import get_setting
+                max_cache_age = get_setting('DDC_DOCKER_MAX_CACHE_AGE', 300)
 
                 if 'timestamp' in cached_entry:
                     cache_age = (datetime.now(timezone.utc) - cached_entry['timestamp']).total_seconds()
@@ -3053,8 +3053,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             status_result = None
 
             if cached_entry and cached_entry.get('data'):
-                import os
-                max_cache_age = int(os.environ.get('DDC_DOCKER_MAX_CACHE_AGE', '300'))
+                from utils.settings import get_setting
+                max_cache_age = get_setting('DDC_DOCKER_MAX_CACHE_AGE', 300)
 
                 if 'timestamp' in cached_entry:
                     cache_age = (datetime.now(timezone.utc) - cached_entry['timestamp']).total_seconds()
@@ -3151,7 +3151,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         if not donations_disabled:
             try:
                 import sys
-                import os
                 # Add project root to Python path for service imports
                 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                 if project_root not in sys.path:
@@ -3640,7 +3639,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             return
 
         # Get cache duration from environment
-        cache_duration = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', '30'))
+        from utils.settings import get_setting
+        cache_duration = get_setting('DDC_DOCKER_CACHE_DURATION', 30)
 
         # Update cache TTL based on current interval
         calculated_ttl = int(cache_duration * 2.5)

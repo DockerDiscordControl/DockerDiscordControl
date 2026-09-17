@@ -9,7 +9,6 @@
 # SERVICE FIRST: Container Status Cache Service - PASS-THROUGH TO SINGLE CACHE
 
 import logging
-import os
 from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime, timezone
 from copy import deepcopy
@@ -37,7 +36,8 @@ class StatusCacheService:
         self._container_status_service = get_container_status_service()
 
         # Keep cache_ttl_seconds for compatibility, but it's now managed by ContainerStatusService
-        cache_duration = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', '30'))
+        from utils.settings import get_setting
+        cache_duration = get_setting('DDC_DOCKER_CACHE_DURATION', 30)
         self.cache_ttl_seconds = int(cache_duration * 2.5)  # For backward compatibility only
 
         logger.info(f"StatusCacheService initialized as pass-through to ContainerStatusService")

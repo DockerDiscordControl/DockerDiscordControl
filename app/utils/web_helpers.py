@@ -72,30 +72,16 @@ DISCORD_LOG_FILE = LOG_DIR / 'discord.log'
 
 # Helper function to get advanced settings from config
 def _get_advanced_setting(key: str, default_value, value_type=int):
-    """Get advanced setting value with fallback to environment variable."""
-    try:
-        from services.config.config_service import get_config_service
-        config = get_config_service().get_config()
-        advanced_settings = config.get('advanced_settings', {})
-        value = advanced_settings.get(key, os.environ.get(key, default_value))
-        if value_type == bool:
-            # Special handling for boolean values
-            if isinstance(value, bool):
-                return value
-            return str(value).lower() in ('true', '1', 'yes', 'on')
-        return value_type(value)
-    except (ImportError, AttributeError, RuntimeError):
-        # Service dependency errors (config service unavailable)
-        fallback = os.environ.get(key, default_value)
-        if value_type == bool:
-            return str(fallback).lower() in ('true', '1', 'yes', 'on')
-        return value_type(fallback)
-    except (ValueError, TypeError, KeyError):
-        # Data errors (invalid config values, type conversion failures)
-        fallback = os.environ.get(key, default_value)
-        if value_type == bool:
-            return str(fallback).lower() in ('true', '1', 'yes', 'on')
-        return value_type(fallback)
+    """Get advanced setting value with fallback to environment variable.
+
+    A thin wrapper now: this used to be the only place that read Advanced
+    Settings the right way (config first, environment second), while nine other
+    places read the same keys straight from os.environ and therefore never saw
+    what the user had set in the panel. The shared implementation lives in
+    utils/settings.py so both sides read them the same way.
+    """
+    from utils.settings import get_setting
+    return get_setting(key, default_value, value_type)
 
 # Improved cache configuration
 # CRITICAL: Cache duration MUST be shorter than minimum update interval (1 minute)

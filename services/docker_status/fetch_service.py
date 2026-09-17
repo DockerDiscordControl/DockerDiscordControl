@@ -9,7 +9,6 @@ adaptive timeouts, and query cooldown management.
 
 from __future__ import annotations
 
-import os
 import asyncio
 import time
 import logging
@@ -37,7 +36,8 @@ class DockerStatusFetchService:
     def __init__(self):
         """Initialize Docker status fetch service."""
         self._last_docker_query: Dict[str, float] = {}
-        self._query_cooldown = int(os.environ.get('DDC_DOCKER_QUERY_COOLDOWN', '2'))
+        from utils.settings import get_setting
+        self._query_cooldown = get_setting('DDC_DOCKER_QUERY_COOLDOWN', 2)
         logger.info(f"DockerStatusFetchService initialized (cooldown: {self._query_cooldown}s)")
 
     async def fetch_with_retries(self, docker_name: str) -> Tuple[str, Any, Any]:

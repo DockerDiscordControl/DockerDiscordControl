@@ -105,7 +105,8 @@ class ContainerStatusService:
         self._formatted_cache: Dict[str, Dict[str, Any]] = {}
 
         # Make TTL configurable from environment
-        cache_duration = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', '30'))
+        from utils.settings import get_setting
+        cache_duration = get_setting('DDC_DOCKER_CACHE_DURATION', 30)
         self._cache_ttl = float(cache_duration)  # Now configurable!
 
         # Performance tracking
