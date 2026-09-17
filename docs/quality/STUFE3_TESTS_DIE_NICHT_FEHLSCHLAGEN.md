@@ -78,12 +78,27 @@ Während der Stufen 1 und 2 wurde für **jede** neue Zusicherung die Gegenprobe 
 Test rot sehen und den Grund prüfen, dann korrigieren. Zusätzlich wurde bei fünf Z7-Tests per
 **Mutation** belegt, dass sie greifen.
 
-Vom **Altbestand** wurden so nur **drei** von 3.962 Tests geprüft — und **einer davon war kaputt**:
+Vom **Altbestand** wurde so genau **ein** Test von 3.962 geprüft — und **der war kaputt**:
 `tests/unit/extended/test_docker_infra_gaps.py` steuerte denselben Fehlerpfad an wie ein neuer Test
 und war seit jeher grün, weil sein `_bad_open` schon beim **Lesen** warf, lange vor dem Schreiben.
 Der erste Reparaturversuch war wirkungslos; belegt wurde das erst durch eine Mutation.
 
-**Drei von 3.962 erlauben keine Hochrechnung.** Die Stichprobe sagt nur: grün beweist nichts.
+**Aus einer einzigen Probe folgt über die übrigen 3.961 exakt nichts** — auch nicht, dass es dort
+besser aussieht. Sie sagt nur: grün beweist nichts.
+
+> **Korrektur, nachgetragen 2026-09-17.** Hier stand bis eben „drei von 3.962" und „Drei von 3.962
+> erlauben keine Hochrechnung". Die Zahl war nie ausgezählt, sie stammte aus meiner Erinnerung an
+> denselben Arbeitstag. Die Auszählung ergibt: Mutationsnachweise tragen drei `tests/spec`-Dateien —
+> die sind **neu**, nicht Altbestand. Der einzige mutationsgeprüfte Altbestandstest ist
+> `test_docker_infra_gaps.py`. Ein Treffer in `tests/unit/utils/test_crypto_cache.py:519`
+> („Mutation isolation") ist ein Fehltreffer der Textsuche und beschreibt einen Schlüssel-Cache.
+>
+> *Beim Auszählen mitgefunden:* `tests/spec/test_z7_server_order_write.py` trägt **keinen**
+> Mutationsvermerk, obwohl die Mutation nachweislich gefahren wurde (belegt in SPEC.md Z10-Abschnitt
+> zu Z7). Vier Mutationen, drei vermerkt — dieselbe Lücke, nur in der Dokumentation.
+>
+> Damit ist dies die sechste Zahl dieses Programms, die ich aus dem Gedächtnis statt aus einer
+> Messung übernommen hatte. Die fünf übrigen stehen in `STUFE0_BESTANDSAUFNAHME.md`.
 
 ---
 
@@ -146,8 +161,9 @@ schließlich fing, existierte da noch nicht.
 ## 5. Was NICHT geprüft wurde
 
 - **Spiegeltests** und **Funktion gegen Aufrufstelle** — beide Prüfungen der Stufe 3 stehen aus.
-- **3.959 der 3.962 Alttests** wurden nie per Mutation oder Zurückdrehen geprüft. Über sie ist
-  nichts bekannt außer: sie sind grün.
+- **3.961 der 3.962 Alttests** wurden nie per Mutation oder Zurückdrehen geprüft. Über sie ist
+  nichts bekannt außer: sie sind grün. (Stand nach der Korrektur in Abschnitt 2 — hier stand
+  zunächst 3.959, passend zur dort widerlegten Zahl.)
 - **Was `get_config()` werfen kann.** Sein Rumpf enthält weder `raise` noch `except`; er reicht
   weiter, was `_migrate_legacy_config_if_needed`, `_loader_service.load_modular_config`,
   `_decrypt_token_if_needed` und der Cache-Dienst werfen. Diese vier wurden **nicht** gelesen.

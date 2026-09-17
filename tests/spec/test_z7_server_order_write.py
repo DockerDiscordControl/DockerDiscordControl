@@ -36,7 +36,29 @@ Schreibvorgang selbst ab, keiner wird durch ``atomic_write_json`` stumpf. Es gib
 nichts nachzuziehen - anders als bei ``_deactivate_container``, wo ein Test
 mitgezogen werden musste.
 
-GEGENPROBE: ausstehend - wird nach dem Messen eingetragen, nicht vorher.
+GEGENPROBE (durchgefuehrt 2026-09-16): Vor der Korrektur rot an genau der
+nutzerseitigen Zusicherung - ``load_server_order()`` lieferte ``[]`` statt der
+gelegten Reihenfolge. Beide Waechter hielten: ``getroffen`` schlug an (der
+Abfang griff also), und ``ergebnis is False`` galt. Das Protokoll zeigte die
+ganze Kette: erst ``Error saving server order``, dann ``Error loading server
+order: Expecting value: line 1 column 1`` - und danach nichts mehr.
+
+WIRKUNGSNACHWEIS per Mutation: Mit einem ``atomic_write_text``, dessen
+``except BaseException`` den Fehler verschluckt statt ihn weiterzureichen, wird
+dieser Test rot - und zwar an der richtigen Stelle::
+
+    assert True is False
+    # Ein gescheiterter Schreibvorgang darf nicht als Erfolg gelten
+
+Wiederhergestellt wieder 3 gruen, ohne Mutationsrest. Das ist die schaerfere
+Probe als das blosse Zurueckdrehen: Sie belegt, dass der Test auch eine
+SUBTILERE Brechung faengt - einen Schreibfehler, der verschluckt und als Erfolg
+gemeldet wird.
+
+Nachgetragen 2026-09-17: Dieser Absatz fehlte, obwohl die Mutation am 2026-09-16
+gefahren wurde (belegt in SPEC.md, Z7-Abschnitt). Die vier uebrigen Z7-Tests
+tragen ihren Nachweis bei sich, dieser nicht - wer ihn spaeter liest, haette ihn
+fuer ungeprueft gehalten. Gefunden beim Auszaehlen fuer den Stufe-3-Bericht.
 """
 
 import json
