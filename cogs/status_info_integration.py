@@ -163,7 +163,7 @@ class ProtectedInfoEditButton(discord.ui.Button):
                     _("❌ Could not open protected info edit modal. Please try again later."),
                     ephemeral=True
                 )
-            except:
+            except Exception:
                 pass
 
 class EditInfoButton(discord.ui.Button):
@@ -233,7 +233,7 @@ class EditInfoButton(discord.ui.Button):
                     _("❌ Could not open edit modal. Please try again later."),
                     ephemeral=True
                 )
-            except:
+            except Exception:
                 pass
 
 class LiveLogView(discord.ui.View):
@@ -771,7 +771,7 @@ class DebugLogsButton(discord.ui.Button):
                         "❌ Error retrieving debug logs. Please try again later.",
                         ephemeral=True
                     )
-            except:
+            except Exception:
                 pass
 
     async def _get_container_logs(self) -> str:
@@ -924,7 +924,7 @@ class StatusInfoButton(discord.ui.Button):
                     color=discord.Color.red()
                 )
                 await interaction.followup.send(embed=error_embed, ephemeral=True)
-            except:
+            except Exception:
                 pass  # Ignore errors in error handling
 
     async def _generate_info_embed(self, include_protected: bool = False) -> discord.Embed:
@@ -1117,7 +1117,7 @@ class ProtectedInfoButton(discord.ui.Button):
                     _("❌ Could not open protected info modal. Please try again later."),
                     ephemeral=True
                 )
-            except:
+            except Exception:
                 pass
 
 def create_enhanced_status_embed(
@@ -1264,7 +1264,7 @@ class TaskManagementButton(discord.ui.Button):
             logger.error(f"Error in task management button: {e}", exc_info=True)
             try:
                 await interaction.followup.send("❌ Error opening task management.", ephemeral=True)
-            except:
+            except Exception:
                 pass
 
     async def _show_task_list(self, interaction: discord.Interaction):
@@ -1331,7 +1331,7 @@ class TaskManagementButton(discord.ui.Button):
             logger.error(f"Error showing task list: {e}", exc_info=True)
             try:
                 await interaction.followup.send("❌ Error loading task list.", ephemeral=True)
-            except:
+            except Exception:
                 pass  # Interaction might have expired
 
 class TaskManagementView(discord.ui.View):
@@ -2615,7 +2615,7 @@ class ContainerTaskDeleteButton(discord.ui.Button):
                 # Update the original message to remove the deleted task button
                 try:
                     await interaction.edit_original_response(view=self.view)
-                except:
+                except Exception:
                     # If editing fails, it's not critical
                     pass
 

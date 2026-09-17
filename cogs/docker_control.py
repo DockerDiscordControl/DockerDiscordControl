@@ -2072,7 +2072,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         # IMMEDIATELY defer to prevent timeout - this MUST be first!
         try:
             await ctx.defer(ephemeral=True)
-        except:
+        except Exception:
             # Interaction already expired - nothing we can do
             return
 
@@ -2080,7 +2080,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         if not await self._check_spam_protection(ctx, "help"):
             try:
                 await ctx.followup.send(".", delete_after=0.1)
-            except:
+            except Exception:
                 pass
             return
         """Displays help information about available commands."""
@@ -2121,7 +2121,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # Fallback - try to send minimal message
             try:
                 await ctx.followup.send(_("Help information is temporarily unavailable."), ephemeral=True)
-            except:
+            except Exception:
                 pass
 
     @commands.slash_command(name="ping", description=_("Shows the bot's latency"), guild_ids=get_guild_id())
@@ -2140,7 +2140,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         # IMMEDIATELY defer to prevent timeout - this MUST be first!
         try:
             await ctx.defer(ephemeral=True)
-        except:
+        except Exception:
             # Interaction already expired - nothing we can do
             return
 
@@ -2169,7 +2169,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 from services.mech.mech_service import get_mech_service
                 mech_service = get_mech_service()
                 mech_service_available = True
-            except:
+            except Exception:
                 pass
 
             # Create donation embed
@@ -2195,7 +2195,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Update view with message reference and start auto-delete timer
                 view.message = message
                 view.auto_delete_task = asyncio.create_task(view.start_auto_delete_timer())
-            except:
+            except Exception:
                 await ctx.followup.send(embed=embed)
 
         except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
@@ -2210,7 +2210,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             if is_donations_disabled():
                 # Silently ignore
                 return
-        except:
+        except Exception:
             pass
 
         try:
@@ -2225,7 +2225,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 from services.mech.mech_service import get_mech_service
                 mech_service = get_mech_service()
                 mech_service_available = True
-            except:
+            except Exception:
                 pass
 
             # Create donation embed
@@ -2249,7 +2249,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 view = DonationView(mech_service_available, bot=self.bot)
                 # Note: Ephemeral messages don't need auto-delete as they're private
                 await interaction.followup.send(embed=embed, view=view, ephemeral=True)
-            except:
+            except Exception:
                 await interaction.followup.send(embed=embed, ephemeral=True)
 
         except discord.NotFound:
@@ -2414,7 +2414,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     await ctx.followup.send(_("An error occurred while retrieving container information."), ephemeral=True)
                 else:
                     await ctx.respond(_("An error occurred while retrieving container information."), ephemeral=True)
-            except:
+            except Exception:
                 pass  # If we can't send error message, just log it
 
     # NOTE: Old _create_overview_embed method was removed
@@ -3286,7 +3286,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 config_service = get_config_service()
                 config = config_service.get_config()
                 donations_disabled = bool(config.get('donation_disable_key'))
-            except:
+            except Exception:
                 donations_disabled = False
 
             if donations_disabled:
@@ -3334,7 +3334,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     color=discord.Color.red()
                 )
                 await interaction.response.send_message(embed=error_embed, ephemeral=True)
-            except:
+            except Exception:
                 # If we can't respond, it means the interaction was already responded to
                 pass
 
@@ -4066,13 +4066,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # Send success confirmation
             try:
                 await ctx.followup.send(_("✅ Control panel regenerated successfully!"), ephemeral=True)
-            except:
+            except Exception:
                 pass  # Followup might have already been used or expired
         except (discord.errors.DiscordException, RuntimeError, OSError) as e_regen:
             logger.error(f"Error during control panel regeneration: {e_regen}", exc_info=True)
             try:
                 await ctx.followup.send(_("❌ Error regenerating control panel. Check logs for details."), ephemeral=True)
-            except:
+            except Exception:
                 pass
 
     # --- TASK COMMANDS REMOVED ---
@@ -4273,7 +4273,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                                 current_glvl = mech_cache_result.glvl
                                 self.last_glvl_per_channel[channel_id] = current_glvl
                                 self.mech_state_manager.set_last_glvl(channel_id, current_glvl)
-                        except:
+                        except Exception:
                             pass
 
                         updated_count += 1
@@ -5003,7 +5003,7 @@ class DonationBroadcastModal(discord.ui.Modal):
             if processing_msg:
                 try:
                     await processing_msg.delete()
-                except:
+                except Exception:
                     pass  # Ignore if already deleted or expired
 
         except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
@@ -5013,7 +5013,7 @@ class DonationBroadcastModal(discord.ui.Modal):
             if processing_msg:
                 try:
                     await processing_msg.delete()
-                except:
+                except Exception:
                     pass
 
             try:

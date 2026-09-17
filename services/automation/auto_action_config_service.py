@@ -508,7 +508,7 @@ class AutoActionConfigService:
             if os.path.exists(temp_path):
                 try:
                     os.unlink(temp_path)
-                except:
+                except Exception:
                     pass
             return False
 

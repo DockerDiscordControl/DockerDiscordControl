@@ -88,7 +88,7 @@ class ConfigCache:
         """Returns approximate cache size in MB."""
         try:
             return sys.getsizeof(self._cache) / (1024 * 1024)
-        except:
+        except Exception:
             return 0.0
 
     def get_config(self) -> Dict[str, Any]:

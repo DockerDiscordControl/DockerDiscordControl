@@ -329,7 +329,7 @@ class ConfigMigrationService:
                     test_data = json.load(f)
                     if 'servers' in test_data or 'docker_name' in test_data:
                         legacy_file = self.legacy_config_file
-            except:
+            except Exception:
                 pass
         elif self.legacy_alt_config.exists():
             legacy_file = self.legacy_alt_config

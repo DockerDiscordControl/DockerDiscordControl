@@ -265,7 +265,7 @@ class MechStatusDetailsService:
                         language = 'en'
                 else:
                     language = 'en'
-            except:
+            except Exception:
                 language = 'en'
 
             # Get infinity message using existing translation structure
