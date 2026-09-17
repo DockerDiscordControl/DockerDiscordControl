@@ -329,8 +329,24 @@ class ConfigMigrationService:
                     test_data = json.load(f)
                     if 'servers' in test_data or 'docker_name' in test_data:
                         legacy_file = self.legacy_config_file
-            except Exception:
-                pass
+            except (OSError, ValueError) as exc:
+                # Say something. Swallowing this made an UNREADABLE legacy config
+                # indistinguishable from "there is no legacy config": the method
+                # falls through to `if not legacy_file: return` and the user comes
+                # up with an empty configuration - no containers, no channel
+                # permissions - without ever learning why. This runs on every
+                # get_config() (config_service.py:322), so it is the first thing
+                # that happens after an upgrade from v1.1.x.
+                #
+                # Deliberately only the file NAME, never its content: a v1.1.x
+                # config.json carries the bot token, and a log file is disk.
+                # See SPEC.md Z9.
+                logger.warning(
+                    "Legacy config %s exists but could not be read (%s: %s) - "
+                    "migration skipped. If this is a v1.1.x config, fix or remove "
+                    "the file; otherwise DDC starts with an empty configuration.",
+                    self.legacy_config_file.name, type(exc).__name__, exc,
+                )
         elif self.legacy_alt_config.exists():
             legacy_file = self.legacy_alt_config
 
