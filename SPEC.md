@@ -418,9 +418,23 @@ Er senkt die Iterationszahl nicht und hilft keinem Angreifer; der Schlüssel ent
 Passwort-Hash, sodass ein Passwortwechsel alle Einträge sofort unerreichbar macht
 (`app/auth.py:23-42`).
 
-**B10 — Ohne Begründung, bitte entscheiden:** Der Spam-Schutz am Toggle-Knopf wurde „intentionally
-removed" (`cogs/control_ui.py:655`). Entweder es gibt einen Grund — dann gehört er hierher — oder
-es war ein Versehen.
+**B10 — Es war ein Versehen. Wiederhergestellt am 2026-09-18.** Der Spam-Schutz am Toggle-Knopf war
+„intentionally removed", aber eine Begründung stand nirgends — weder im Kommentar noch in der
+Commit-Nachricht. Der entfernte Code (`0195074^`) war funktionsfähig. Jeder andere Knopf derselben
+Datei prüft; dieser war die einzige Ausnahme, obwohl jeder Druck ein `message.edit` gegen die
+Discord-API auslöst — der Knopf mit der niedrigsten Hemmschwelle war der einzige ohne Bremse.
+
+*Nicht zurückgekippt, sondern dem Hausmuster angepasst:* Der alte Code hatte eine **unübersetzte**
+Meldung und fing `Exception`. Verwendet wird jetzt der vorhandene Katalogeintrag ohne
+`{action}`-Platzhalter (`locales/*.json:1453`, im Code bereits viermal benutzt) und der enge
+Fehlerfang `(RuntimeError, AttributeError, KeyError)`.
+
+**Was daran offen bleibt und deine Entscheidung ist:** Der Schlüssel `refresh` hat **kein Feld im
+Panel** — dort steht `live_refresh`, ein anderer Schlüssel. Die Abklingzeit liegt damit fest bei
+5 Sekunden und ist nicht einstellbar. Das ist genau das, was damals entfernt wurde, widerspricht
+aber dem Grundsatz „das Panel bestimmt". Soll `refresh` ein Panel-Feld bekommen? Dieselbe Frage
+stellt sich für `auto_refresh`: ebenfalls kein Feld im Panel — und anders als `refresh` hat er
+auch nach dieser Korrektur keinen einzigen Abnehmer im Code.
 
 **B11 — Ein Zeitauftrag behält sein Recht, auch wenn der Kanal es verliert.**
 `ScheduledTask.__slots__` (`services/scheduling/scheduler.py:167-172`) hat 21 Felder, **keines
@@ -461,6 +475,8 @@ verloren gehen:
 ## Zu entscheiden
 
 1. Welche der zehn Zusicherungen gelten? Streichen, ergänzen, umformulieren — das ist deine Entscheidung.
-2. **B10:** Gab es einen Grund für das Entfernen des Spam-Schutzes am Toggle-Knopf?
+2. ~~**B10:** Gab es einen Grund für das Entfernen des Spam-Schutzes am Toggle-Knopf?~~ **Beantwortet
+   am 2026-09-18: ein Versehen, wiederhergestellt.** Offen bleibt nur die Wertfrage — soll `refresh`
+   ein Panel-Feld bekommen, damit die Abklingzeit einstellbar wird?
 3. Reihenfolge für Stufe 2: Ich schlage vor, mit **Z2** zu beginnen (ein Testlauf, der echte Daten
    zerstören kann, ist die gefährlichste offene Stelle), dann **Z1**, dann **Z4**.

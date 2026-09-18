@@ -661,7 +661,44 @@ class ToggleButton(Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """ULTRA-OPTIMIZED toggle function mit allen 6 Performance-Optimierungen."""
-        # Note: Spam protection for toggle button was intentionally removed
+        # Hier stand "Spam protection for toggle button was intentionally
+        # removed" - ohne Begruendung, weder im Kommentar noch in der
+        # Commit-Nachricht. Jeder andere Knopf dieser Datei prueft (:265-282,
+        # :981-990, :1221-1228); dieser war die einzige Ausnahme, obwohl jeder
+        # Druck ein message.edit gegen die Discord-API ausloest - der Knopf mit
+        # der niedrigsten Hemmschwelle war der einzige ohne Bremse.
+        #
+        # NICHT zurueckgekippt, sondern dem Hausmuster angepasst: Der alte Code
+        # (0195074^) hatte eine unuebersetzte f-Zeichenkette und fing Exception.
+        # Benutzt wird der vorhandene Katalogeintrag OHNE {action}-Platzhalter
+        # (locales/*.json:1453, im Code schon viermal in
+        # status_info_integration.py). Die Meldung bei :274 fuellt {action} aus
+        # self.action - das hat ToggleButton nicht, und "refresh" waere an einem
+        # Aufklapp-Knopf ein falsches Wort fuer den Nutzer.
+        #
+        # Zum Schluessel "refresh": Er kommt im Anwendungscode sonst nur als
+        # Eintrag im Vorgabe-Woerterbuch vor (spam_protection_service.py:301) -
+        # niemand teilt sich den Eimer. Weil das Panel kein refresh-Feld hat
+        # (es kennt live_refresh, ein anderer Schluessel), ist die Abklingzeit
+        # fest bei 5 Sekunden und dort nicht aenderbar. Ob ein Panel-Feld
+        # dazukommt, ist eine Wertentscheidung des Betreibers.
+        from services.infrastructure.spam_protection_service import get_spam_protection_service
+        spam_service = get_spam_protection_service()
+
+        if spam_service.is_enabled():
+            try:
+                if spam_service.is_on_cooldown(interaction.user.id, "refresh"):
+                    remaining_time = spam_service.get_remaining_cooldown(interaction.user.id, "refresh")
+                    await interaction.response.send_message(
+                        _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                            remaining=remaining_time
+                        ),
+                        ephemeral=True
+                    )
+                    return
+                spam_service.add_user_cooldown(interaction.user.id, "refresh")
+            except (RuntimeError, AttributeError, KeyError) as e:
+                logger.error(f"Spam protection error for toggle button: {e}", exc_info=True)
 
         await interaction.response.defer()
 
