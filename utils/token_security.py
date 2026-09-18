@@ -239,12 +239,19 @@ class TokenSecurityManager:
         }
 
         try:
-            if not self.config_manager:
-                result['error'] = "ConfigManager not available"
+            # config_service, nicht config_manager: __init__ (:51-59) setzt NUR
+            # config_service. Das Attribut config_manager existierte nie - der
+            # AttributeError wurde bei :247 gefangen und als Fehlertext
+            # durchgereicht, sodass der Betreiber im Token-Fenster den rohen
+            # Python-Text als Dialog zu sehen bekam. Damit war dieser Weg seit
+            # jeher unerreichbar, und SPEC.md B5 beschrieb ein Risiko, das es
+            # faktisch nicht gab.
+            if not self.config_service:
+                result['error'] = "ConfigService not available"
                 return result
 
             # Load current configuration
-            config = self.config_manager.get_config()
+            config = self.config_service.get_config()
             decrypted_token = config.get('bot_token_decrypted_for_usage')
 
             if decrypted_token:

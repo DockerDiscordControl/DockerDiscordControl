@@ -1125,12 +1125,15 @@ def test_format_datetime_with_timezone_zoneinfo_and_pytz_fail_berlin(monkeypatch
 def test_migrate_to_environment_variable_success_with_decrypted_token():
     """Success branch: config has bot_token_decrypted_for_usage."""
     mgr = ts.TokenSecurityManager(config_service=MagicMock())
-    # Provide the missing config_manager attribute that the method reads
+    # config_service ist das Attribut, das __init__ setzt und die Methode liest.
+    # Bis 2026-09-18 stand hier config_manager - ein Attribut, das es produktiv
+    # nie gab; der Test pruefte damit einen Erfolgspfad, den der echte Code nie
+    # erreichte, und konnte fuer ihn nicht fehlschlagen.
     fake_manager = MagicMock()
     fake_manager.get_config.return_value = {
         "bot_token_decrypted_for_usage": "PLAIN-TOKEN-123"
     }
-    mgr.config_manager = fake_manager
+    mgr.config_service = fake_manager
 
     result = mgr.migrate_to_environment_variable()
     assert result["success"] is True
@@ -1143,7 +1146,7 @@ def test_migrate_to_environment_variable_no_decrypted_token():
     mgr = ts.TokenSecurityManager(config_service=MagicMock())
     fake_manager = MagicMock()
     fake_manager.get_config.return_value = {"bot_token": "still-encrypted"}
-    mgr.config_manager = fake_manager
+    mgr.config_service = fake_manager
 
     result = mgr.migrate_to_environment_variable()
     assert result["success"] is False
@@ -1156,7 +1159,7 @@ def test_migrate_to_environment_variable_propagates_attr_error():
     mgr = ts.TokenSecurityManager(config_service=MagicMock())
     fake_manager = MagicMock()
     fake_manager.get_config.side_effect = AttributeError("nope")
-    mgr.config_manager = fake_manager
+    mgr.config_service = fake_manager
 
     result = mgr.migrate_to_environment_variable()
     assert result["success"] is False

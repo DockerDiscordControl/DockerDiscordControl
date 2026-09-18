@@ -329,11 +329,17 @@ class TestTokenSecurityManager:
         assert status["is_encrypted"] is True
         assert any("encrypted and secure" in r for r in status["recommendations"])
 
-    def test_migrate_to_environment_variable_no_manager(self) -> None:
+    def test_migrate_to_environment_variable_without_config_service(self) -> None:
         mgr = TokenSecurityManager(config_service=MagicMock())
-        # config_manager attribute is never set, so the AttributeError path
-        # is exercised. The function should return a result dict with error
-        # set, not raise.
+        # Ohne Konfigurationsdienst muss die Methode ein Fehler-Woerterbuch
+        # liefern statt zu werfen.
+        #
+        # Bis 2026-09-18 las die Methode self.config_manager - ein Attribut, das
+        # __init__ nie setzt. Damit lief JEDER Aufruf in diesen Zweig, und der
+        # Weg war faktisch tot; dieser Test hielt das als erwartetes Verhalten
+        # fest, statt es zu melden. Jetzt wird der Zweig ausdruecklich
+        # hergestellt, statt sich auf einen Defekt zu verlassen.
+        mgr.config_service = None
         result = mgr.migrate_to_environment_variable()
         assert isinstance(result, dict)
         assert result["success"] is False

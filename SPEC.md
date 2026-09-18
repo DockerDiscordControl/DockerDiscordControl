@@ -396,6 +396,13 @@ Beabsichtigt, hinter Anmeldung, Zweck ist der Umzug auf eine Umgebungsvariable
 (`services/web/security_service.py:175`). *Risiko mit Ansage:* der Token landet im DOM und damit in
 Verlauf und Entwicklerwerkzeugen des Browsers.
 
+*Nachtrag 2026-09-18:* Dieses Risiko bestand bis heute **faktisch nicht** — der Weg war
+unerreichbar. `migrate_to_environment_variable` las `self.config_manager`, ein Attribut, das
+`__init__` nie setzt; der `AttributeError` wurde gefangen, und der Betreiber sah im Token-Fenster
+den rohen Python-Text statt seines Tokens. Mit der Reparatur (Entscheidung des Betreibers) gilt B5
+erstmals so, wie es hier steht. Wer den Eintrag vorher las, hielt ein Risiko für real, das keines
+war — und hätte umgekehrt nie erfahren, dass die Funktion dahinter tot ist.
+
 **B6 — Stop und Restart werden nach einem Timeout nie ein zweites Mal geschickt.**
 Der erste Versuch läuft möglicherweise noch (`services/scheduling/scheduler.py:1812`).
 

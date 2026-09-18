@@ -267,5 +267,5 @@ utils/performance_metrics.py:1-389
 utils/settings.py:1-98
 utils/time_utils.py:1-374
 
-## Abschnitt 37  (314 Zeilen, 1 Stuecke)
-utils/token_security.py:1-314
+## Abschnitt 37  (321 Zeilen, 1 Stuecke)
+utils/token_security.py:1-321
