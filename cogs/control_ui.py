@@ -2298,7 +2298,16 @@ class MechExpandButton(Button):
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
             if spam_service.is_enabled():
-                cooldown = spam_service.get_button_cooldown("info")
+                # self.custom_id, nicht "info": Hier wurde der Regler des
+                # INFO-Knopfes abgefragt. Folge war zweierlei - der
+                # mech_expand-Regler im Panel bewegte nichts, und alle
+                # Mech-Knoepfe teilten sich einen Eimer mit dem Info-Knopf
+                # (wer aufklappte, sperrte sich die Info-Anzeige).
+                # get_button_cooldown:178-184 leitet aus "mech_expand_<kanal>"
+                # den Schluessel "mech_expand" ab; diese Praefix-Logik war
+                # vorhanden und getestet (test_infrastructure_services.py:
+                # 793-796), aber von niemandem benutzt.
+                cooldown = spam_service.get_button_cooldown(self.custom_id)
                 # Use simple rate limiting for buttons
                 import time
                 current_time = time.time()
@@ -2396,7 +2405,10 @@ class MechCollapseButton(Button):
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
             if spam_service.is_enabled():
-                cooldown = spam_service.get_button_cooldown("info")
+                # self.custom_id, nicht "info" - siehe MechExpandButton: Der
+                # mech_collapse-Regler im Panel (Vorgabe 2) bewegte nichts,
+                # gebremst wurde nach dem Info-Regler (3).
+                cooldown = spam_service.get_button_cooldown(self.custom_id)
                 # Use simple rate limiting for buttons
                 import time
                 current_time = time.time()
@@ -2528,7 +2540,10 @@ class MechHistoryButton(Button):
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
             if spam_service.is_enabled():
-                cooldown = spam_service.get_button_cooldown("info")
+                # self.custom_id, nicht "info" - siehe MechExpandButton: Der
+                # mech_history-Regler im Panel (Vorgabe 5) bewegte nichts,
+                # gebremst wurde nach dem Info-Regler (3).
+                cooldown = spam_service.get_button_cooldown(self.custom_id)
                 import time
                 current_time = time.time()
                 user_id = str(interaction.user.id)
