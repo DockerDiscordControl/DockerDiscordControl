@@ -681,28 +681,31 @@ class DebugLogsButton(discord.ui.Button):
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_manager = get_spam_protection_service()
 
+            # Ueber den Dienst statt am Cog vorbei. Vorher fuehrte diese Stelle
+            # ihre eigene Buchhaltung: Zeitstempel unter button_logs_<nutzer> in
+            # self.cog._button_cooldowns, waehrend vom Dienst nur die DAUER
+            # geholt wurde. Folge war, dass die MINUTENGRENZE aus dem Panel hier
+            # nicht wirkte - sie zaehlt in add_user_cooldown, und dort kam
+            # dieser Weg nie an. Die Abklingzeit funktionierte, die Minutengrenze
+            # nicht; genau die Mischung, die niemandem auffaellt.
+            # Schluessel, Dauer und Eimer bleiben unveraendert ("logs", 10s, von
+            # keiner anderen Stelle als Sperre benutzt). Neu ist nur, dass der
+            # Druck vermerkt wird und damit in die Minutengrenze einzahlt.
+            # Abgewiesen wird ueber followup, weil oben bereits bestaetigt wurde.
             if spam_manager.is_enabled():
-                cooldown_seconds = spam_manager.get_button_cooldown("logs")  # Use logs cooldown
-                current_time = time.time()
-                cooldown_key = f"button_logs_{interaction.user.id}"
-
-                if hasattr(self.cog, '_button_cooldowns'):
-                    if cooldown_key in self.cog._button_cooldowns:
-                        last_use = self.cog._button_cooldowns[cooldown_key]
-                        if current_time - last_use < cooldown_seconds:
-                            remaining = cooldown_seconds - (current_time - last_use)
-                            await interaction.followup.send(
-                                _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
-                                    remaining=remaining
-                                ),
-                                ephemeral=True
-                            )
-                            return
-                else:
-                    self.cog._button_cooldowns = {}
-
-                # Record button use
-                self.cog._button_cooldowns[cooldown_key] = current_time
+                try:
+                    if spam_manager.is_on_cooldown(interaction.user.id, "logs"):
+                        remaining = spam_manager.get_remaining_cooldown(interaction.user.id, "logs")
+                        await interaction.followup.send(
+                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                                remaining=remaining
+                            ),
+                            ephemeral=True
+                        )
+                        return
+                    spam_manager.add_user_cooldown(interaction.user.id, "logs")
+                except (RuntimeError, AttributeError, KeyError) as e:
+                    logger.error(f"Spam protection error for debug logs button: {e}", exc_info=True)
 
             # Check if Live Logs feature is enabled
             from utils.settings import get_setting

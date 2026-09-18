@@ -37,11 +37,11 @@ cogs/scheduler_commands.py:1-795
 ## Abschnitt 08  (1341 Zeilen, 1 Stuecke)
 cogs/status_handlers.py:1-1341
 
-## Abschnitt 09  (1970 Zeilen, 1 Stuecke)
-cogs/status_info_integration.py:1-1970
+## Abschnitt 09  (1973 Zeilen, 1 Stuecke)
+cogs/status_info_integration.py:1-1973
 
 ## Abschnitt 10  (1877 Zeilen, 8 Stuecke)
-cogs/status_info_integration.py:1971-2590
+cogs/status_info_integration.py:1974-2593
 cogs/translation_manager.py:1-117
 cogs/translation_monitor.py:1-97
 services/__init__.py:1-51
