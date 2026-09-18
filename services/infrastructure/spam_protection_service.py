@@ -312,7 +312,17 @@ class SpamProtectionService:
             },
             global_enabled=True,
             max_commands_per_minute=20,
-            max_buttons_per_minute=35,
+            # 30, nicht 35: Fuer dieses eine Feld nannten drei Stellen zwei
+            # verschiedene Vorgaben - from_dict (:41) und das Panel
+            # (_spam_protection_modal.html:51) sagen 30, hier stand 35. Welche
+            # Zahl galt, hing damit davon ab, ob config/channels_config.json
+            # existiert: fehlt sie, kommt die Vorgabe von hier (get_config:103-106),
+            # ist sie da, aus from_dict. Der Betreiber las im Panel eine andere
+            # Zahl als die, nach der gebremst wurde. Die Befehlsgrenze daneben
+            # war an allen drei Stellen schon einig (20) und bleibt unangetastet.
+            # Das ist eine Vereinheitlichung, KEINE Anhebung: Welcher Wert gilt,
+            # bestimmt weiterhin das Panel.
+            max_buttons_per_minute=30,
             cooldown_message=True,
             log_violations=True
         )
