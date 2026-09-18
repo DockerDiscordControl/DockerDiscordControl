@@ -154,7 +154,14 @@ class TokenSecurityManager:
             if env_token:
                 status['environment_token_used'] = True
                 status['recommendations'].append("✅ Using secure environment variable")
-                return status
+                # KEIN vorzeitiges return mehr: Dass die Umgebungsvariable benutzt
+                # wird, sagt NICHTS darueber, was in bot_config.json steht. Vorher
+                # blieben token_exists/is_encrypted auf ihren False-Vorgaben, und
+                # damit meldete security_service.py:265 40/40 und "Excellent",
+                # das Panel zeigte Gruen, und auto_encrypt_token_on_startup
+                # (app/bootstrap/runtime.py:194) lief nie an - waehrend ein
+                # Klartext-Token in der Datei liegen konnte. Die Wertung bleibt
+                # unveraendert bei 40/40; hinzu kommt nur die Warnung unten.
 
             # Check config files
             # Robust absolute path relative to project root
@@ -183,8 +190,23 @@ class TokenSecurityManager:
                 status['can_encrypt'] = status['password_hash_available']
 
             # Generate recommendations
-            if not status['token_exists']:
-                status['recommendations'].append("⚠️  No bot token configured")
+            if (status['token_exists'] and not status['is_encrypted']
+                    and status['environment_token_used']):
+                # Die gefaehrliche Kombination: sichere Quelle IN BENUTZUNG,
+                # unsichere Kopie trotzdem lesbar auf der Platte. Vor dieser
+                # Korrektur wurde sie nie gemeldet, weil die Funktion oben
+                # zurueckkehrte, bevor sie die Datei ansah.
+                status['recommendations'].append(
+                    "⚠️ Plaintext bot token still present in bot_config.json - the "
+                    "environment variable is in use, but the file copy is readable. "
+                    "Encrypt it or remove it."
+                )
+            elif not status['token_exists']:
+                # Nur melden, wenn es WIRKLICH keinen Token gibt. Wird er ueber die
+                # Umgebungsvariable bezogen, ist "kein Token konfiguriert" falsch und
+                # unnoetig alarmierend - genau der Normalfall einer sauberen Anlage.
+                if not status['environment_token_used']:
+                    status['recommendations'].append("⚠️  No bot token configured")
             elif not status['is_encrypted'] and status['can_encrypt']:
                 status['recommendations'].append("🔒 Token can be encrypted for better security")
             elif not status['is_encrypted'] and not status['can_encrypt']:

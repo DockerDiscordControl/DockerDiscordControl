@@ -12,7 +12,7 @@ mit 1.513 Namen und keinem einzigen Haken. Ihn zu füllen, ohne die Namen gelese
 
 ## 1. Zuschnitt — steht
 
-37 Abschnitte, 188 Stücke, **60.748 von 60.748 Zeilen** in 183 Dateien (`docs/quality/ABSCHNITTE.txt`).
+37 Abschnitte, 188 Stücke, **60.770 von 60.770 Zeilen** in 183 Dateien (`docs/quality/ABSCHNITTE.txt`).
 Geschnitten wird an Klassen- und Funktionsgrenzen, nicht willkürlich bei Zeile 2000: Ein Abschnitt
 soll am Stück lesbar sein.
 
@@ -79,16 +79,17 @@ viel erreicht wurde", den der Programmtext ablehnt.
 
 | | Abschnitte | Zeilen |
 |---|---|---|
-| enthalten eine Datei, in der etwas geändert wurde | 27 | 46.112 (76 %) |
-| gar nicht berührt | **10** | **14.636 (24 %)** |
+| enthalten eine Datei, in der etwas geändert wurde | 28 | 46.426 (76 %) |
+| gar nicht berührt | **9** | **14.344 (24 %)** |
 
-Die Rechnung offen, damit sie nachprüfbar ist statt geglaubt: Die zehn unberührten Abschnitte
-summieren sich gemessen auf 14.636 Zeilen; 60.748 − 14.636 = 46.112.
+Die Rechnung offen, damit sie nachprüfbar ist statt geglaubt: Die neun unberührten Abschnitte
+summieren sich gemessen auf 14.344 Zeilen; 60.770 − 14.344 = 46.426.
 
-**Diese Zahl ist zweimal an einem Nachmittag veraltet** — sie stand erst bei 12 Abschnitten und
-17.242 Zeilen, dann bei 11 und 15.479. Jede Korrektur verschiebt sie: **Abschnitt 13** fiel mit
-`config_service.py` heraus, **Abschnitt 20** mit `update_notifier.py`. Das ist kein Mangel der
-Rechnung, sondern ihre Natur — und der Grund, sie am Ende zu messen statt sie mitzuführen.
+**Diese Zahl ist inzwischen viermal veraltet** — 12 Abschnitte mit 17.242 Zeilen, dann 11 mit
+15.479, dann 10 mit 14.636, jetzt 9 mit 14.344. Jede Korrektur verschiebt sie: **Abschnitt 13**
+fiel mit `config_service.py` heraus, **Abschnitt 20** mit `update_notifier.py`, **Abschnitt 37**
+mit `token_security.py`. Das ist kein Mangel der Rechnung, sondern ihre Natur — und der Grund, sie
+am Ende zu messen statt sie mitzuführen.
 
 **Diese 76 % sind keine Abdeckung, und sie dürfen nicht als solche gelesen werden.** „Berührt" heißt:
 In diesem Abschnitt liegt eine Datei, in der eine einzelne Zeile geändert wurde. Das ist keine
@@ -99,7 +100,7 @@ hat, waren gezielte Suchen nach benannten Mustern (nackte `except:`, Umgebungsle
 zeichengleiche Zwillinge, Aufrufstellen) und punktuelle Korrekturen. Diese Suchen waren mechanisch
 und vollständig — aber sie prüfen je eine Frage, nicht den Abschnitt.
 
-### Die zehn nie berührten Abschnitte
+### Die neun nie berührten Abschnitte
 
 | Abschnitt | Zeilen | Inhalt |
 |---|---|---|
@@ -112,12 +113,14 @@ und vollständig — aber sie prüfen je eine Frage, nicht den Abschnitt.
 | 26 | 1.995 | `scheduler.py` |
 | 28 | 1.834 | `translation_service.py`, `configuration_page_service.py`, … |
 | 33 | 1.892 | `translation_routes.py`, `performance.py`, `runtime.py`, +21 |
-| 37 | 292 | `token_security.py` |
 
-Auffällig darunter: **Abschnitt 26** (`scheduler.py` — die dokumentierte Z5-Ausnahme sitzt dort) und
-**Abschnitt 37** (`token_security.py` — Z9). Beide wurden inzwischen von einem zweiten Modell
-gelesen (Punkt 5), aber weiterhin nicht von mir — was dort steht, stammt aus geprüften Meldungen,
-nicht aus eigener Lektüre.
+Auffällig darunter: **Abschnitt 26** (`scheduler.py` — die dokumentierte Z5-Ausnahme sitzt dort).
+Er wurde von einem zweiten Modell gelesen (Punkt 5), aber weiterhin nicht von mir — was dort steht,
+stammt aus geprüften Meldungen, nicht aus eigener Lektüre.
+
+**Abschnitt 37** (`token_security.py` — Z9) stand hier bis zur Korrektur der Token-Anzeige
+ebenfalls; er ist seitdem berührt. Gelesen habe ich ihn deshalb trotzdem nicht am Stück — berührt
+heißt auch hier nur, dass in dieser Datei Zeilen geändert wurden.
 
 ---
 
@@ -164,18 +167,24 @@ Hätte ich stur „Test zuerst" gemacht, wäre das Rot ausgeblieben — aber ers
 
 ### Betreiberfragen — nicht von mir zu entscheiden
 
-1. **Die Sicherheitsanzeige setzt „sichere Quelle wird benutzt" mit „es existiert keine unsichere
-   Kopie" gleich.** Ist `DISCORD_BOT_TOKEN` gesetzt, kehrt `verify_token_encryption_status`
-   (`utils/token_security.py:153-157`) sofort zurück; `token_exists` bleibt `False`. Folge:
-   `security_service.py:265` vergibt 40/40 und „✅ Excellent", das Panel zeigt bei
-   `_token_security_modal.html:74-79` ein grünes „Excellent", und `auto_encrypt_token_on_startup`
-   (verdrahtet in `app/bootstrap/runtime.py:194`) läuft nie an — **während ein Klartext-Token in
-   `bot_config.json` liegen kann.** Das berührt Z9.
-   **Warum ich es nicht korrigiert habe:** Jeder einzelne Schritt ist gewollt und getestet —
-   `test_crypto_cache.py:272-274` nagelt den frühen Rücksprung ausdrücklich fest („should remain
-   False defaults"), `test_utils_completion.py:530-534` das Überspringen beim Start. Eine Korrektur
-   macht absichtliche Tests rot. Das ist deine Entscheidung, nicht meine.
-   *Entlastend:* `/encrypt-token` hängt **nicht** an diesem Status und funktioniert.
+1. **Die Sicherheitsanzeige setzte „sichere Quelle wird benutzt" mit „es existiert keine unsichere
+   Kopie" gleich — ENTSCHIEDEN UND BEHOBEN (2026-09-18).** War `DISCORD_BOT_TOKEN` gesetzt, kehrte
+   `verify_token_encryption_status` sofort zurück; `token_exists` blieb `False`. Folge:
+   `security_service.py:265` vergab 40/40 und „✅ Excellent", das Panel zeigte Grün, und
+   `auto_encrypt_token_on_startup` (verdrahtet in `app/bootstrap/runtime.py:194`) lief nie an —
+   **während ein Klartext-Token in `bot_config.json` liegen konnte.** Das berührte Z9.
+   **Entscheidung des Betreibers:** Warnung neben dem Grün, kein Punktabzug. Die Umgebungsvariable
+   ist richtig und behält ihre 40/40; zusätzlich meldet die Anzeige nun die Klartext-Kopie. Dass die
+   Warnung sichtbar wird, ist geprüft und nicht angenommen: `_token_security_modal.html:181-186`
+   rendert die `recommendations`-Liste unter eigener Überschrift.
+   **Was dabei NICHT eintrat:** Ich hatte zwei absichtlich geschriebene Tests als Opfer angekündigt
+   (`test_crypto_cache.py:272-274`, `test_utils_completion.py:530-534`). Gemessen blieben beide
+   grün — ihre Vorrichtungen legen ein leeres Konfigurationsverzeichnis an, dort ändert der
+   entfallene Rücksprung nichts. Die Ankündigung war falsch, die Berichtigung davor richtig.
+   **Ein Nebeneffekt, der nicht eingebaut wurde:** Ohne Schutz hätte der Code künftig „⚠️ No bot
+   token configured" auf einer sauberen Anlage gemeldet, die den Token ausschließlich über die
+   Umgebungsvariable bezieht. Diese Meldung erscheint jetzt nur noch, wenn wirklich kein Token da ist.
+   *Entlastend war schon vorher:* `/encrypt-token` hängt **nicht** an diesem Status.
 2. **`migrate_to_environment_variable` ist tot — und als tot festgeschrieben.** Die Methode liest
    `self.config_manager`, gesetzt wird nur `self.config_service` (`:51-59`). Der `AttributeError`
    wird bei `:247` gefangen, der Betreiber sieht den rohen Python-Text als Fehlermeldung.
@@ -215,7 +224,7 @@ Hätte ich stur „Test zuerst" gemacht, wäre das Rot ausgeblieben — aber ers
 
 - **Kein Abschnitt wurde systematisch durchgelesen.** Die 76 % „berührt" sagen darüber nichts.
 - **Keiner der 1.513 Namen im Prüfplan ist beurteilt.**
-- **Die zehn nie berührten Abschnitte** (14.636 Zeilen, 24 % des Baums) sind in diesem Programm
+- **Die neun nie berührten Abschnitte** (14.344 Zeilen, 24 % des Baums) sind in diesem Programm
   ausschließlich von den mechanischen Suchen erfasst worden — nicht gelesen. Die Abschnitte 26 und
   37 hat ein zweites Modell gelesen, ich nicht.
 - **Der Verdacht auf Doppelausführung nach einem Absturz** (`scheduler.py`: die Docker-Aktion läuft
