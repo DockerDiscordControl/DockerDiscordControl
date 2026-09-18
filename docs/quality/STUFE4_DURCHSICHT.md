@@ -165,6 +165,37 @@ kein Bruch. **Es gibt hier nichts zu korrigieren.**
 
 Hätte ich stur „Test zuerst" gemacht, wäre das Rot ausgeblieben — aber erst nach der Arbeit.
 
+### Ebenfalls weitgehend widerlegt: die Doppelausführung nach einem Neustart
+
+Gemeldet war: Die Docker-Aktion (`scheduler.py:1829`) läuft vor `_persist_executed_task`
+(`:1877`); geht der Prozess dazwischen unter, steht der alte `next_run_ts` noch da, und nach dem
+Neustart führt `should_run()` den Auftrag ein zweites Mal aus. Ich hatte den Verdacht übernommen
+und als ungeprüft vermerkt.
+
+**Der wahrscheinliche Fall ist bereits abgedeckt**, und zwar ausdrücklich:
+`scheduler_service.py:392-396` überspringt eine Ausführung, deren Termin schon gelaufen ist
+(*„Skip if this occurrence already ran (its reschedule could not be saved)"*), und `:453-454`
+vermerkt den Termin **vor** der Ausführung (*„Remember the executed occurrence before execute_task()
+moves next_run"*). Scheitert also nur das Speichern, während der Prozess weiterläuft, greift die
+Sperre. Gefunden habe ich sie erst spät: Ich hatte nach `running`, `in_progress`, `lock` und
+`idempot` gesucht — `_executed_runs` stand in keinem dieser Muster. Wieder nach erwarteten **Namen**
+gesucht statt den Weg gelesen.
+
+**Was übrig bleibt, ist vernachlässigbar.** `_executed_runs` ist ein Instanzfeld und nach einem
+echten Prozessneustart leer. Es bräuchte also einen Neustart, der *genau* in die Spanne zwischen
+Rückkehr der Docker-Aktion und dem Schreiben von `tasks.json` fällt — Millisekunden bis
+Zehntelsekunden — und binnen der Nachfrist abgeschlossen ist. Die Nachfrist ist inzwischen gemessen:
+`CHECK_INTERVAL = 60`, `MISSED_RUN_GRACE_SECONDS = max(180, 300)` = **300 Sekunden**
+(`scheduler_service.py:47,52`); `_service_loop:278-281` fährt beim Start sofort einen Zyklus, ohne
+vorher zu schlafen. Die Folge wäre ein zweiter Neustart desselben Containers — ärgerlich, kein
+Datenverlust.
+
+**Keine Zusicherung, kein Umbau.** Eine Absicherung verlangte, `_executed_runs` zu persistieren; das
+wäre eine neue Zusicherung über Absturzverhalten und damit die Entscheidung des Betreibers. Auf die
+Frage „warum soll der Prozess denn abstürzen?" ist die ehrliche Antwort: gar nicht — Neustarts sind
+zwar alltäglich (`rebuild.sh`, Unraid-Auto-Update, siehe B7), aber das Fenster ist zu schmal, als
+dass sich eine Absicherung lohnte.
+
 ### Betreiberfragen — nicht von mir zu entscheiden
 
 1. **Die Sicherheitsanzeige setzte „sichere Quelle wird benutzt" mit „es existiert keine unsichere
@@ -227,12 +258,13 @@ Hätte ich stur „Test zuerst" gemacht, wäre das Rot ausgeblieben — aber ers
 - **Die neun nie berührten Abschnitte** (14.344 Zeilen, 24 % des Baums) sind in diesem Programm
   ausschließlich von den mechanischen Suchen erfasst worden — nicht gelesen. Die Abschnitte 26 und
   37 hat ein zweites Modell gelesen, ich nicht.
-- **Der Verdacht auf Doppelausführung nach einem Absturz** (`scheduler.py`: die Docker-Aktion läuft
-  vor `_persist_executed_task`, ein Absturz dazwischen lässt den alten `next_run_ts` stehen) wurde
-  gemeldet, aber von mir **nie nachgemessen**. Er steht unbestätigt im Raum.
-- **Die Poll-Frequenz des Scheduler-Loops** kenne ich nicht; sie bestimmt, wie scharf der Verdacht
-  oben in der Praxis wäre.
-- **Ob `_impl_schedule_*` in `cogs/scheduler_commands.py` überhaupt noch erreichbar ist** (keine
-  sichtbaren Dekoratoren, keine Referenz außerhalb der Datei und eines Tests) — ungeklärt.
+- ~~Der Verdacht auf Doppelausführung nach einem Absturz~~ und ~~die unbekannte Poll-Frequenz~~
+  standen hier bis zum 2026-09-18. **Beides ist inzwischen gemessen** — Ergebnis unter Punkt 5,
+  „Widerlegt".
+- ~~Ob `_impl_schedule_*` in `cogs/scheduler_commands.py` erreichbar ist~~ — **geklärt am
+  2026-09-18: toter Code.** Die Erweiterungsliste (`app/bot/startup_steps/commands.py:26-30`) lädt
+  nur `docker_control`, `auto_action_monitor` und `translation_monitor`; nichts referenziert den
+  Mixin. Der lebende Weg für Zeitaufträge aus Discord ist der Knopf bei
+  `cogs/status_info_integration.py:2331`. Festgehalten in `SPEC.md` B11.
 - **Ob der Zuschnitt sinnvoll ist**, wurde nicht beurteilt. Er ist maschinell erzeugt und erfüllt die
   Grenze; ob die Abschnitte thematisch zusammenhängen, hat niemand geprüft.
