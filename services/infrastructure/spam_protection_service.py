@@ -302,6 +302,21 @@ class SpamProtectionService:
                 "logs": 10,
                 "live_refresh": 5,
                 "auto_refresh": 5,
+                # Diese vier werden von lebenden Knoepfen angefordert
+                # (control_ui.py:1791 admin, :2102 help, :1258 task_delete;
+                # status_info_integration.py:1190 tasks), standen hier aber
+                # nicht. get_button_cooldown:186 lieferte dafuer stumm 5
+                # Sekunden - der Betreiber konnte den Wert weder sehen noch
+                # aendern. "help" war dabei besonders irrefuehrend: Das Panel
+                # zeigt einen /help-Regler (3), der aber den BEFEHL steuert und
+                # nicht den Knopf; beide Namen sind gleich, die Woerterbuecher
+                # verschieden.
+                # Vorgabe 5 ist genau das, was die Ersatzregel heute liefert -
+                # KEINE Anhebung, nur Sichtbarkeit. Erhoehen bestimmt das Panel.
+                "admin": 5,
+                "help": 5,
+                "tasks": 5,
+                "task_delete": 5,
                 "mech_expand": 3,
                 "mech_collapse": 2,
                 "mech_donate": 10,

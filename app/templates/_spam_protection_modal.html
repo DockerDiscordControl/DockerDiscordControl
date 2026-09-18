@@ -158,6 +158,22 @@
                                 <label for="button_mech_music" class="form-label">{{ _t('web.spam.button_mech_music') }}</label>
                                 <input type="number" class="form-control form-control-sm" id="button_mech_music" value="8" min="0" max="300">
                             </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="button_admin" class="form-label">{{ _t('web.spam.button_admin') }}</label>
+                                <input type="number" class="form-control form-control-sm" id="button_admin" value="5" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="button_help" class="form-label">{{ _t('web.spam.button_help') }}</label>
+                                <input type="number" class="form-control form-control-sm" id="button_help" value="5" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="button_tasks" class="form-label">{{ _t('web.spam.button_tasks') }}</label>
+                                <input type="number" class="form-control form-control-sm" id="button_tasks" value="5" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="button_task_delete" class="form-label">{{ _t('web.spam.button_task_delete') }}</label>
+                                <input type="number" class="form-control form-control-sm" id="button_task_delete" value="5" min="0" max="300">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -239,7 +255,11 @@ function saveSpamProtection() {
             mech_history: parseInt(document.getElementById('button_mech_history').value),
             mech_display: parseInt(document.getElementById('button_mech_display').value),
             mech_story: parseInt(document.getElementById('button_mech_story').value),
-            mech_music: parseInt(document.getElementById('button_mech_music').value)
+            mech_music: parseInt(document.getElementById('button_mech_music').value),
+            admin: parseInt(document.getElementById('button_admin').value),
+            help: parseInt(document.getElementById('button_help').value),
+            tasks: parseInt(document.getElementById('button_tasks').value),
+            task_delete: parseInt(document.getElementById('button_task_delete').value)
         }
     };
 
