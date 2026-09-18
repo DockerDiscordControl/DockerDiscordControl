@@ -10,7 +10,9 @@ Spam Protection Service - Clean service architecture for rate limiting and spam 
 """
 
 import json
+import threading
 import time
+from collections import deque
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Dict, Any, Optional
@@ -90,6 +92,16 @@ class SpamProtectionService:
 
         # In-memory cooldown tracking
         self._user_cooldowns: Dict[str, float] = {}
+
+        # Gleitendes Minutenfenster je Nutzer und Art:
+        # {(user_id, ist_befehl): deque[zeitstempel]}. Getrennte Eimer, weil
+        # das Panel zwei Grenzen fuehrt (max_commands_per_minute und
+        # max_buttons_per_minute). Eigene Sperre, weil dieser Dienst aus dem
+        # Waitress-Faden (main_routes.py) UND aus der Bot-Schleife gerufen wird;
+        # _user_cooldowns daneben ist ungesichert - ein eigener Befund, der hier
+        # nicht nebenbei mitgeaendert wird.
+        self._minutenfenster: Dict[tuple, deque] = {}
+        self._fenster_sperre = threading.Lock()
 
         logger.info(f"Spam protection service initialized: {self.config_dir}")
 
@@ -199,6 +211,78 @@ class SpamProtectionService:
         """
         return self.get_config()
 
+    # Namen, die als BEFEHL gelten. Diese Liste stand bis hierher ZWEIMAL
+    # woertlich im Code (in is_on_cooldown und get_remaining_cooldown); das
+    # Minutenfenster braucht sie ein drittes Mal, deshalb jetzt an einer Stelle.
+    # INHALT UNVERAENDERT uebernommen: Die Liste hat bekannte Schwaechen
+    # ('ss' steht in keinem Woerterbuch, 'donatebroadcast' und 'info_edit'
+    # fehlen), aber sie zu aendern waere ein eigener Befund mit eigener Messung
+    # - hier wird nur die Doppelung beseitigt, nicht die Auswahl.
+    _BEFEHLSNAMEN = frozenset([
+        'serverstatus', 'ss', 'control', 'info', 'help', 'ping', 'donate',
+        'command', 'language', 'forceupdate', 'start', 'stop', 'restart'
+    ])
+
+    _FENSTER_SEKUNDEN = 60.0
+
+    def _ist_befehl(self, action_type: str) -> bool:
+        return action_type in self._BEFEHLSNAMEN
+
+    def _abklingdauer(self, action_type: str) -> int:
+        """Abklingzeit je Aktion - Befehl oder Knopf."""
+        if self._ist_befehl(action_type):
+            return self.get_command_cooldown(action_type)
+        return self.get_button_cooldown(action_type)
+
+    def _minutengrenze(self, ist_befehl: bool) -> int:
+        """Die Grenze aus dem Panel. Faellt der Zugriff aus, gilt die Vorgabe."""
+        ergebnis = self.get_config()
+        config = ergebnis.data if ergebnis.success else self._get_default_config()
+        return config.max_commands_per_minute if ist_befehl else config.max_buttons_per_minute
+
+    @classmethod
+    def _fenster_beschneiden(cls, eimer, jetzt: float) -> None:
+        """Wirft alles aelter als eine Minute weg. Beim LESEN wie beim SCHREIBEN.
+
+        Nur beim Schreiben aufzuraeumen waere ein Fehler: Wer die Grenze
+        erreicht und dann nichts mehr tut, bliebe dauerhaft gesperrt, weil ohne
+        neuen Eintrag nie beschnitten wuerde.
+        """
+        grenzzeit = jetzt - cls._FENSTER_SEKUNDEN
+        while eimer and eimer[0] <= grenzzeit:
+            eimer.popleft()
+
+    def _fenster_ueberschritten(self, user_id: int, ist_befehl: bool, jetzt: float) -> bool:
+        with self._fenster_sperre:
+            eimer = self._minutenfenster.get((user_id, ist_befehl))
+            if not eimer:
+                return False
+            self._fenster_beschneiden(eimer, jetzt)
+            return len(eimer) >= self._minutengrenze(ist_befehl)
+
+    def _fenster_restzeit(self, user_id: int, ist_befehl: bool, jetzt: float) -> float:
+        """Wie lange, bis wieder Platz im Fenster ist."""
+        with self._fenster_sperre:
+            eimer = self._minutenfenster.get((user_id, ist_befehl))
+            if not eimer:
+                return 0.0
+            self._fenster_beschneiden(eimer, jetzt)
+            if len(eimer) < self._minutengrenze(ist_befehl):
+                return 0.0
+            # Der aelteste Eintrag faellt zuerst heraus.
+            return max(0.0, self._FENSTER_SEKUNDEN - (jetzt - eimer[0]))
+
+    def _fenster_eintragen(self, user_id: int, ist_befehl: bool, jetzt: float) -> None:
+        with self._fenster_sperre:
+            eimer = self._minutenfenster.setdefault((user_id, ist_befehl), deque())
+            self._fenster_beschneiden(eimer, jetzt)
+            eimer.append(jetzt)
+            # Leere Eimer wegraeumen, sonst waechst die aeussere Ablage je
+            # Nutzer unbegrenzt - dieselbe Vorsorge wie das 300-Sekunden-
+            # Aufraeumen in add_user_cooldown.
+            for schluessel in [k for k, v in self._minutenfenster.items() if not v]:
+                del self._minutenfenster[schluessel]
+
     def is_on_cooldown(self, user_id: int, action_type: str) -> bool:
         """Check if user is on cooldown for specific action.
 
@@ -212,19 +296,19 @@ class SpamProtectionService:
         if not self.is_enabled():
             return False
 
-        cooldown_key = f"{user_id}:{action_type}"
-        last_used = self._user_cooldowns.get(cooldown_key, 0)
         current_time = time.time()
 
-        # Get appropriate cooldown duration
-        # Check if it's a command first
-        if action_type in ['serverstatus', 'ss', 'control', 'info', 'help', 'ping', 'donate', 'command', 'language', 'forceupdate', 'start', 'stop', 'restart']:
-            cooldown_duration = self.get_command_cooldown(action_type)
-        else:
-            # It's a button (including Mech buttons)
-            cooldown_duration = self.get_button_cooldown(action_type)
+        # Die Minutengrenze aus dem Panel. Bis hierher wurden
+        # max_commands_per_minute und max_buttons_per_minute gespeichert, im
+        # Panel angezeigt und ueber to_dict/from_dict sauber durchgereicht -
+        # aber NIE abgefragt. Es gab keine Stelle, an der ein Druck gezaehlt
+        # wurde; die Abklingzeit je Knopf merkt sich nur den LETZTEN Zeitpunkt.
+        if self._fenster_ueberschritten(user_id, self._ist_befehl(action_type), current_time):
+            return True
 
-        return (current_time - last_used) < cooldown_duration
+        cooldown_key = f"{user_id}:{action_type}"
+        last_used = self._user_cooldowns.get(cooldown_key, 0)
+        return (current_time - last_used) < self._abklingdauer(action_type)
 
     def get_remaining_cooldown(self, user_id: int, action_type: str) -> float:
         """Get remaining cooldown time for user action.
@@ -239,20 +323,19 @@ class SpamProtectionService:
         if not self.is_enabled():
             return 0.0
 
-        cooldown_key = f"{user_id}:{action_type}"
-        last_used = self._user_cooldowns.get(cooldown_key, 0)
         current_time = time.time()
 
-        # Get appropriate cooldown duration
-        # Check if it's a command first
-        if action_type in ['serverstatus', 'ss', 'control', 'info', 'help', 'ping', 'donate', 'command', 'language', 'forceupdate', 'start', 'stop', 'restart']:
-            cooldown_duration = self.get_command_cooldown(action_type)
-        else:
-            # It's a button (including Mech buttons)
-            cooldown_duration = self.get_button_cooldown(action_type)
+        cooldown_key = f"{user_id}:{action_type}"
+        last_used = self._user_cooldowns.get(cooldown_key, 0)
+        rest_aktion = max(0.0, self._abklingdauer(action_type) - (current_time - last_used))
 
-        remaining = cooldown_duration - (current_time - last_used)
-        return max(0.0, remaining)
+        # Ohne den Fensteranteil stuende beim Nutzer "bitte warte 0.0 Sekunden",
+        # wenn die Abweisung von der Minutengrenze kommt: Ein frisch gedrueckter
+        # Knopf hat in _user_cooldowns gar keinen Eintrag. Alle Aufrufer fragen
+        # direkt nach is_on_cooldown hier nach.
+        rest_fenster = self._fenster_restzeit(user_id, self._ist_befehl(action_type), current_time)
+
+        return max(rest_aktion, rest_fenster)
 
     def add_user_cooldown(self, user_id: int, action_type: str) -> None:
         """Add user to cooldown for specific action.
@@ -264,11 +347,17 @@ class SpamProtectionService:
         if not self.is_enabled():
             return
 
+        current_time = time.time()
         cooldown_key = f"{user_id}:{action_type}"
-        self._user_cooldowns[cooldown_key] = time.time()
+        self._user_cooldowns[cooldown_key] = current_time
+
+        # Gezaehlt wird der ANGENOMMENE Druck, nicht die Nachfrage. Zaehlte
+        # schon is_on_cooldown mit, verbrauchte jede abgewiesene Wiederholung
+        # weiteres Kontingent - wer einmal gebremst wurde, kaeme nie wieder
+        # heraus.
+        self._fenster_eintragen(user_id, self._ist_befehl(action_type), current_time)
 
         # Clean old cooldowns (older than 5 minutes)
-        current_time = time.time()
         old_keys = [key for key, timestamp in self._user_cooldowns.items()
                    if current_time - timestamp > 300]
         for key in old_keys:

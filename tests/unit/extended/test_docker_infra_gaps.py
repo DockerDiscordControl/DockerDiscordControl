@@ -1581,8 +1581,11 @@ class TestSpamProtectionFallbacks:
 
 
 class TestSpamProtectionRemainingForCommand:
-    """Lines 248-252: get_remaining_cooldown command branch (action_type
-    is one of the listed commands)."""
+    """get_remaining_cooldown, command branch (action_type is one of the
+    listed commands).
+
+    Bewusst OHNE Zeilennummern: Sie veralten mit jeder Aenderung der Datei
+    still, und ein Kommentar, der ins Leere zeigt, ist schlechter als keiner."""
 
     def test_get_remaining_cooldown_for_command_action(
         self, tmp_path, monkeypatch
@@ -1599,7 +1602,7 @@ class TestSpamProtectionRemainingForCommand:
 
 
 class TestSpamProtectionAddCooldownDisabled:
-    """Line 265: add_user_cooldown returns early when disabled."""
+    """add_user_cooldown returns early when disabled."""
 
     def test_add_user_cooldown_no_op_when_disabled(self, tmp_path):
         svc = SpamProtectionService(config_dir=str(tmp_path))
