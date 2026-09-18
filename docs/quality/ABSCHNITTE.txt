@@ -37,11 +37,11 @@ cogs/scheduler_commands.py:1-795
 ## Abschnitt 08  (1341 Zeilen, 1 Stuecke)
 cogs/status_handlers.py:1-1341
 
-## Abschnitt 09  (1973 Zeilen, 1 Stuecke)
-cogs/status_info_integration.py:1-1973
+## Abschnitt 09  (1962 Zeilen, 1 Stuecke)
+cogs/status_info_integration.py:1-1962
 
 ## Abschnitt 10  (1877 Zeilen, 8 Stuecke)
-cogs/status_info_integration.py:1974-2593
+cogs/status_info_integration.py:1963-2582
 cogs/translation_manager.py:1-117
 cogs/translation_monitor.py:1-97
 services/__init__.py:1-51
@@ -119,9 +119,9 @@ services/infrastructure/dynamic_cooldown_manager.py:1-179
 services/infrastructure/event_manager.py:1-111
 services/infrastructure/game_query_service.py:1-525
 
-## Abschnitt 20  (965 Zeilen, 4 Stuecke)
+## Abschnitt 20  (977 Zeilen, 4 Stuecke)
 services/infrastructure/game_query_support_service.py:1-278
-services/infrastructure/spam_protection_service.py:1-446
+services/infrastructure/spam_protection_service.py:1-458
 services/infrastructure/update_notifier.py:1-211
 services/mech/__init__.py:1-30
 

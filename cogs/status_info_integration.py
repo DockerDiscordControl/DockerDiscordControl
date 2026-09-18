@@ -161,28 +161,27 @@ class ProtectedInfoEditButton(discord.ui.Button):
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
 
+        # Ueber den Dienst statt am Cog vorbei. Vorher lag der Zeitstempel unter
+        # button_protected_edit_<nutzer> in self.cog._button_cooldowns, und vom
+        # Dienst kam nur die DAUER. Die Minutengrenze aus dem Panel wirkte hier
+        # deshalb nicht - sie zaehlt in add_user_cooldown, und dort kam dieser
+        # Weg nie an. Eigener Schluessel mit Wert 3 (dem bisherigen "info"),
+        # damit die heute getrennten Eimer getrennt BLEIBEN: Ein gemeinsames
+        # "info" wuerde drei Sperren zu einer verschmelzen.
         if spam_manager.is_enabled():
-            cooldown_seconds = spam_manager.get_button_cooldown("info")
-            current_time = time.time()
-            cooldown_key = f"button_protected_edit_{interaction.user.id}"
-
-            if hasattr(self.cog, '_button_cooldowns'):
-                if cooldown_key in self.cog._button_cooldowns:
-                    last_use = self.cog._button_cooldowns[cooldown_key]
-                    if current_time - last_use < cooldown_seconds:
-                        remaining = cooldown_seconds - (current_time - last_use)
-                        await interaction.response.send_message(
-                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
-                                remaining=remaining
-                            ),
-                            ephemeral=True
-                        )
-                        return
-            else:
-                self.cog._button_cooldowns = {}
-
-            # Record button use
-            self.cog._button_cooldowns[cooldown_key] = current_time
+            try:
+                if spam_manager.is_on_cooldown(interaction.user.id, "protected_info_edit"):
+                    remaining = spam_manager.get_remaining_cooldown(interaction.user.id, "protected_info_edit")
+                    await interaction.response.send_message(
+                        _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                            remaining=remaining
+                        ),
+                        ephemeral=True
+                    )
+                    return
+                spam_manager.add_user_cooldown(interaction.user.id, "protected_info_edit")
+            except (RuntimeError, AttributeError, KeyError) as e:
+                logger.error(f"Spam protection error for protected info edit button: {e}", exc_info=True)
 
         try:
             # Import modal from enhanced_info_modal_simple
@@ -231,28 +230,23 @@ class EditInfoButton(discord.ui.Button):
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
 
+        # Ueber den Dienst statt am Cog vorbei - Begruendung wie bei
+        # ProtectedInfoEditButton. Eigener Schluessel "edit_info" mit Wert 3,
+        # damit der bisher getrennte Eimer getrennt bleibt.
         if spam_manager.is_enabled():
-            cooldown_seconds = spam_manager.get_button_cooldown("info")
-            current_time = time.time()
-            cooldown_key = f"button_info_{interaction.user.id}"
-
-            if hasattr(self.cog, '_button_cooldowns'):
-                if cooldown_key in self.cog._button_cooldowns:
-                    last_use = self.cog._button_cooldowns[cooldown_key]
-                    if current_time - last_use < cooldown_seconds:
-                        remaining = cooldown_seconds - (current_time - last_use)
-                        await interaction.response.send_message(
-                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
-                                remaining=remaining
-                            ),
-                            ephemeral=True
-                        )
-                        return
-            else:
-                self.cog._button_cooldowns = {}
-
-            # Record button use
-            self.cog._button_cooldowns[cooldown_key] = current_time
+            try:
+                if spam_manager.is_on_cooldown(interaction.user.id, "edit_info"):
+                    remaining = spam_manager.get_remaining_cooldown(interaction.user.id, "edit_info")
+                    await interaction.response.send_message(
+                        _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                            remaining=remaining
+                        ),
+                        ephemeral=True
+                    )
+                    return
+                spam_manager.add_user_cooldown(interaction.user.id, "edit_info")
+            except (RuntimeError, AttributeError, KeyError) as e:
+                logger.error(f"Spam protection error for edit info button: {e}", exc_info=True)
 
         try:
             # Import modal from enhanced_info_modal_simple
@@ -1016,28 +1010,23 @@ class ProtectedInfoButton(discord.ui.Button):
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
 
+        # Ueber den Dienst statt am Cog vorbei - Begruendung wie bei
+        # ProtectedInfoEditButton. Eigener Schluessel "protected_info" mit
+        # Wert 3, damit der bisher getrennte Eimer getrennt bleibt.
         if spam_manager.is_enabled():
-            cooldown_seconds = spam_manager.get_button_cooldown("info")
-            current_time = time.time()
-            cooldown_key = f"button_protected_{interaction.user.id}"
-
-            if hasattr(self.cog, '_button_cooldowns'):
-                if cooldown_key in self.cog._button_cooldowns:
-                    last_use = self.cog._button_cooldowns[cooldown_key]
-                    if current_time - last_use < cooldown_seconds:
-                        remaining = cooldown_seconds - (current_time - last_use)
-                        await interaction.response.send_message(
-                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
-                                remaining=remaining
-                            ),
-                            ephemeral=True
-                        )
-                        return
-            else:
-                self.cog._button_cooldowns = {}
-
-            # Record button use
-            self.cog._button_cooldowns[cooldown_key] = current_time
+            try:
+                if spam_manager.is_on_cooldown(interaction.user.id, "protected_info"):
+                    remaining = spam_manager.get_remaining_cooldown(interaction.user.id, "protected_info")
+                    await interaction.response.send_message(
+                        _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                            remaining=remaining
+                        ),
+                        ephemeral=True
+                    )
+                    return
+                spam_manager.add_user_cooldown(interaction.user.id, "protected_info")
+            except (RuntimeError, AttributeError, KeyError) as e:
+                logger.error(f"Spam protection error for protected info button: {e}", exc_info=True)
 
         try:
             # Import password validation modal from enhanced_info_modal_simple

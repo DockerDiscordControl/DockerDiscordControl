@@ -406,6 +406,18 @@ class SpamProtectionService:
                 "help": 5,
                 "tasks": 5,
                 "task_delete": 5,
+                # Die drei Info-Knoepfe in status_info_integration.py fuehrten
+                # ihre Abklingzeit selbst (button_protected_edit_<n>,
+                # button_info_<n>, button_protected_<n> im Woerterbuch des Cogs)
+                # und holten die DAUER gemeinsam unter "info". Sie haben also
+                # drei GETRENNTE Eimer bei gleicher Dauer. Damit die Umstellung
+                # auf den Dienst daran nichts aendert, bekommt jeder seinen
+                # eigenen Namen - und den Wert 3, exakt den von "info".
+                # Ohne Eintrag griffe die 5-Sekunden-Ersatzregel, und die
+                # Knoepfe waeren langsamer als vorher, ohne Beschluss.
+                "protected_info_edit": 3,
+                "edit_info": 3,
+                "protected_info": 3,
                 "mech_expand": 3,
                 "mech_collapse": 2,
                 "mech_donate": 10,

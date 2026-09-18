@@ -174,6 +174,18 @@
                                 <label for="button_task_delete" class="form-label">{{ _t('web.spam.button_task_delete') }}</label>
                                 <input type="number" class="form-control form-control-sm" id="button_task_delete" value="5" min="0" max="300">
                             </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="button_edit_info" class="form-label">{{ _t('web.spam.button_edit_info') }}</label>
+                                <input type="number" class="form-control form-control-sm" id="button_edit_info" value="3" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="button_protected_info" class="form-label">{{ _t('web.spam.button_protected_info') }}</label>
+                                <input type="number" class="form-control form-control-sm" id="button_protected_info" value="3" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="button_protected_info_edit" class="form-label">{{ _t('web.spam.button_protected_info_edit') }}</label>
+                                <input type="number" class="form-control form-control-sm" id="button_protected_info_edit" value="3" min="0" max="300">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -259,7 +271,10 @@ function saveSpamProtection() {
             admin: parseInt(document.getElementById('button_admin').value),
             help: parseInt(document.getElementById('button_help').value),
             tasks: parseInt(document.getElementById('button_tasks').value),
-            task_delete: parseInt(document.getElementById('button_task_delete').value)
+            task_delete: parseInt(document.getElementById('button_task_delete').value),
+            edit_info: parseInt(document.getElementById('button_edit_info').value),
+            protected_info: parseInt(document.getElementById('button_protected_info').value),
+            protected_info_edit: parseInt(document.getElementById('button_protected_info_edit').value)
         }
     };
 
