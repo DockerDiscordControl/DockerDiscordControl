@@ -422,6 +422,25 @@ Passwort-Hash, sodass ein Passwortwechsel alle Einträge sofort unerreichbar mac
 removed" (`cogs/control_ui.py:655`). Entweder es gibt einen Grund — dann gehört er hierher — oder
 es war ein Versehen.
 
+**B11 — Ein Zeitauftrag behält sein Recht, auch wenn der Kanal es verliert.**
+`ScheduledTask.__slots__` (`services/scheduling/scheduler.py:167-172`) hat 21 Felder, **keines
+kanalbezogen** — nur `created_by` mit dem Nutzernamen. Eine erneute Kanalrechtsprüfung zur
+Ausführungszeit ist damit für **keinen** Zeitauftrag möglich, nicht nur für die Web-UI-Ausnahme.
+Entziehst du einem Kanal das Steuerrecht, feuern dort früher angelegte Aufträge weiter.
+*Vom Betreiber entschieden am 2026-09-18: festhalten, nicht umbauen.* Wer einen Auftrag anlegen
+durfte, behält ihn; Altaufträge bleiben unverändert gültig.
+
+*Damit die Tragweite nicht falsch eingeschätzt wird:* Der Schrägstrich-Befehl-Mixin in
+`cogs/scheduler_commands.py` ist **toter Code** — die Erweiterungsliste (`app/bot/startup_steps/
+commands.py:26-30`) lädt nur `docker_control`, `auto_action_monitor` und `translation_monitor`, und
+nichts referenziert den Mixin. Der lebende Weg ist der Knopf bei
+`cogs/status_info_integration.py:2331` („TASK_CREATE_BUTTON"). Zeitaufträge entstehen aus Discord
+also weiterhin — nur über eine andere Tür als zunächst vermutet.
+
+**Nicht „reparieren"** durch nachträgliches Mitführen von `channel_id`, ohne das vorher zu
+entscheiden: Das Datenformat änderte sich, und für Altaufträge ohne Feld bräuchte es eine eigene
+Regel (weiterlaufen oder pausieren).
+
 ---
 
 ## Regeln des Qualitätsprogramms
