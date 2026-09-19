@@ -1634,9 +1634,14 @@ class ContainerInfoDropdown(discord.ui.Select):
                 # Check if this is a control channel
                 from services.config.config_service import load_config
                 config = load_config()
-                channel_perms = config.get('channel_permissions', {})
-                channel_config = channel_perms.get(str(channel.id), {})
-                is_control_channel = channel_config.get('allow_start', False) or channel_config.get('allow_stop', False)
+                # The channel's real 'control' permission - or a registered admin
+                # (SPEC.md B2), like every other permission decision in this file.
+                # This read channel_config['allow_start'/'allow_stop'], keys a channel
+                # configuration does not have (they live under 'commands'), so the
+                # answer was always False and protected content without a password was
+                # never shown in a control channel (review A8).
+                is_control_channel = (_get_cached_channel_permission(channel.id, 'control', config)
+                                      or _is_registered_admin(interaction.user.id))
 
                 # Log channel type for debugging
                 logger.debug(f"Channel {channel.id} - is_control: {is_control_channel}, protected_enabled: {info_config.get('protected_enabled', False)}")
