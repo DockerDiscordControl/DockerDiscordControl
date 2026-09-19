@@ -677,11 +677,10 @@ class ToggleButton(Button):
         # Aufklapp-Knopf ein falsches Wort fuer den Nutzer.
         #
         # Zum Schluessel "refresh": Er kommt im Anwendungscode sonst nur als
-        # Eintrag im Vorgabe-Woerterbuch vor (spam_protection_service.py:301) -
-        # niemand teilt sich den Eimer. Weil das Panel kein refresh-Feld hat
-        # (es kennt live_refresh, ein anderer Schluessel), ist die Abklingzeit
-        # fest bei 5 Sekunden und dort nicht aenderbar. Ob ein Panel-Feld
-        # dazukommt, ist eine Wertentscheidung des Betreibers.
+        # Eintrag im Vorgabe-Woerterbuch vor - niemand teilt sich den Eimer.
+        # Seit 2026-09-19 hat er ein eigenes Panel-Feld (SPEC.md B10,
+        # entschieden); vorher kannte das Panel nur live_refresh, einen
+        # anderen Schluessel, und die Abklingzeit lag fest bei 5 Sekunden.
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_service = get_spam_protection_service()
 

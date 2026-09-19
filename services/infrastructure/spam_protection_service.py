@@ -434,7 +434,9 @@ class SpamProtectionService:
                 "refresh": 5,
                 "logs": 10,
                 "live_refresh": 5,
-                "auto_refresh": 5,
+                # "auto_refresh" stand hier ohne Abnehmer (kein Code fragt ihn)
+                # und ist entfernt: Seit get_config fehlende Schluessel aus den
+                # Vorgaben ergaenzt, landete er in jeder Konfiguration.
                 # Diese vier werden von lebenden Knoepfen angefordert
                 # (control_ui.py:1791 admin, :2102 help, :1258 task_delete;
                 # status_info_integration.py:1190 tasks), standen hier aber

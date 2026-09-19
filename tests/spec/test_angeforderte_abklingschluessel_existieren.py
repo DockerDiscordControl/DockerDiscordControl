@@ -38,10 +38,9 @@ ohne dass jemand sie anfordert (``auto_refresh``, ``mech_music`` und weitere),
 machen hier NICHT rot. Das sind eigene Befunde mit eigener Entscheidung des
 Betreibers - dieser Test nimmt sie nicht vorweg.
 
-``refresh`` IST AUSGENOMMEN von den beiden Panel-Behauptungen. Er steht in den
-Vorgaben, hat aber kein Feld, und ob er eines bekommen soll, ist die noch
-OFFENE Betreiberfrage aus SPEC.md B10. Eine unbeantwortete Entscheidung durch
-einen Test vorwegzunehmen waere nicht meine Sache.
+``refresh`` WAR AUSGENOMMEN von den beiden Panel-Behauptungen, solange die
+Betreiberfrage aus SPEC.md B10 offen war. Sie ist am 2026-09-19 entschieden
+("refresh ins Panel"); die Ausnahme ist damit entfallen.
 
 WIE HIER GEPRUEFT WIRD: Erwartung und Behauptung kommen aus verschiedenen
 Quellen. Die **Erwartung** ist der Quelltext unter cogs/, services/, app/. Die
@@ -69,8 +68,8 @@ MUSTER = (
     re.compile(r'add_user_cooldown\([^,]+,\s*"([a-z_]+)"\s*\)'),
 )
 
-# Siehe Kopftext: offene Betreiberfrage, SPEC.md B10.
-OHNE_PANELFELD_ENTSCHIEDEN = {"refresh"}
+# Siehe Kopftext: SPEC.md B10, entschieden 2026-09-19 - keine Ausnahme mehr.
+OHNE_PANELFELD_ENTSCHIEDEN = set()
 
 
 def _angeforderte_schluessel() -> dict:
@@ -180,6 +179,7 @@ def test_jeder_angeforderte_schluessel_ueberlebt_das_speichern(tmp_path):
 
     assert not verloren, (
         "Diese Schluessel fehlen im Speicherblock des Panels "
-        "(_spam_protection_modal.html). Beim ersten Speichern verschwinden sie "
-        f"aus der Konfiguration und fallen auf 5 Sekunden zurueck: {verloren}"
+        "(_spam_protection_modal.html). Ein im Panel eingestellter Wert wird "
+        "nie gespeichert; seit 1b77428 greift danach die Vorgabe (vorher die "
+        f"5-Sekunden-Ersatzregel): {verloren}"
     )

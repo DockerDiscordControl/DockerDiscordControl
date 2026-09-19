@@ -429,7 +429,9 @@ Meldung und fing `Exception`. Verwendet wird jetzt der vorhandene Katalogeintrag
 `{action}`-Platzhalter (`locales/*.json:1453`, im Code bereits viermal benutzt) und der enge
 Fehlerfang `(RuntimeError, AttributeError, KeyError)`.
 
-**Was daran offen bleibt und deine Entscheidung ist:** Der Schlüssel `refresh` hat **kein Feld im
+**Entschieden am 2026-09-19: „refresh ins Panel".** `refresh` hat jetzt ein eigenes Panel-Feld
+(Vorgabe 5), `auto_refresh` ist aus den Vorgaben entfernt. Die ursprüngliche Frage lautete:
+Der Schlüssel `refresh` hat **kein Feld im
 Panel** — dort steht `live_refresh`, ein anderer Schlüssel. Die Abklingzeit liegt damit fest bei
 5 Sekunden und ist nicht einstellbar. Das ist genau das, was damals entfernt wurde, widerspricht
 aber dem Grundsatz „das Panel bestimmt". Soll `refresh` ein Panel-Feld bekommen? Dieselbe Frage
@@ -476,7 +478,7 @@ verloren gehen:
 
 1. Welche der zehn Zusicherungen gelten? Streichen, ergänzen, umformulieren — das ist deine Entscheidung.
 2. ~~**B10:** Gab es einen Grund für das Entfernen des Spam-Schutzes am Toggle-Knopf?~~ **Beantwortet
-   am 2026-09-18: ein Versehen, wiederhergestellt.** Offen bleibt nur die Wertfrage — soll `refresh`
-   ein Panel-Feld bekommen, damit die Abklingzeit einstellbar wird?
+   am 2026-09-18: ein Versehen, wiederhergestellt.** ~~Offen bleibt nur die Wertfrage — soll `refresh`
+   ein Panel-Feld bekommen?~~ **Entschieden am 2026-09-19: ja; `auto_refresh` entfernt.**
 3. Reihenfolge für Stufe 2: Ich schlage vor, mit **Z2** zu beginnen (ein Testlauf, der echte Daten
    zerstören kann, ist die gefährlichste offene Stelle), dann **Z1**, dann **Z4**.

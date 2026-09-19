@@ -131,6 +131,10 @@
                                 <input type="number" class="form-control form-control-sm" id="button_live_refresh" value="5" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
+                                <label for="button_refresh" class="form-label">{{ _t('web.spam.button_refresh') }}</label>
+                                <input type="number" class="form-control form-control-sm" id="button_refresh" value="5" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
                                 <label for="button_mech_expand" class="form-label">{{ _t('web.spam.button_mech_expand') }}</label>
                                 <input type="number" class="form-control form-control-sm" id="button_mech_expand" value="3" min="0" max="300">
                             </div>
@@ -265,6 +269,7 @@ function saveSpamProtection() {
             info: parseInt(document.getElementById('button_info').value),
             logs: parseInt(document.getElementById('button_logs').value),
             live_refresh: parseInt(document.getElementById('button_live_refresh').value),
+            refresh: parseInt(document.getElementById('button_refresh').value),
             mech_expand: parseInt(document.getElementById('button_mech_expand').value),
             mech_collapse: parseInt(document.getElementById('button_mech_collapse').value),
             mech_donate: parseInt(document.getElementById('button_mech_donate').value),
