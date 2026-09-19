@@ -346,7 +346,7 @@ class ProtectedInfoModal(discord.ui.Modal):
             value="X" if protected_enabled else "",
             max_length=1,
             required=False,
-            placeholder=_("'X' eingeben zum Aktivieren, leer lassen zum Deaktivieren")
+            placeholder=_("Type 'X' to enable, leave empty to disable")
         )
         self.add_item(self.protected_enabled)
 

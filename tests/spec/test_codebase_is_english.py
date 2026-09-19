@@ -67,7 +67,6 @@ WORD = re.compile(r"[A-Za-zäöüÄÖÜß]+")
 STILL_GERMAN = {
     "AUDIT.md": 75,
     "SPEC.md": 326,
-    "cogs/enhanced_info_modal_simple.py": 1,
     "docs/archive/proposals/FEATURE_IDEA_WARNING_SYSTEM.md": 10,
     "docs/archive/proposals/FEATURE_PLAN_AUTO_ACTIONS.md": 49,
     "docs/archive/proposals/HOT_RELOAD_PLAN.md": 26,
