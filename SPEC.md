@@ -366,6 +366,18 @@ workflow files, not a real GitHub run. That the `test` job starts there and actu
 `build_and_push` will only be shown by the first push. These tests prove that the gate
 **is in place** — not that GitHub executes it that way.
 
+**Shown on 2026-09-19 — the first real runs on `develop`.** The gate bit twice before it went
+green, both times on something that had been invisible:
+- `b20f101`: red — 7 spec tests matched only the Python 3.14 wording of a `TypeError`; CI runs
+  3.10. Fixed in `47ef54d`.
+- `47ef54d`: red — the Bandit scan passed `--exclude` five times and Bandit keeps only the last,
+  so it scanned `tests/`. The Unraid runtime has no Bandit, so there the scan skips. Fixed in
+  `2b09986`.
+- `2b09986`: **green**. All 43 groups ran (42 unit groups plus integration): 4,775 passed,
+  1 skipped.
+Still not shown: that the `test` job blocks `build_and_push` in `docker-publish.yml`. That
+workflow runs only on `main` and on tags.
+
 ---
 
 ## Deliberate decisions
