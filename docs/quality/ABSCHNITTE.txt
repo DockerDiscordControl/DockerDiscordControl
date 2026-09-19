@@ -40,7 +40,7 @@ cogs/status_handlers.py:1-1341
 ## Abschnitt 09  (1972 Zeilen, 1 Stuecke)
 cogs/status_info_integration.py:1-1972
 
-## Abschnitt 10  (1886 Zeilen, 8 Stuecke)
+## Abschnitt 10  (1890 Zeilen, 8 Stuecke)
 cogs/status_info_integration.py:1973-2592
 cogs/translation_manager.py:1-117
 cogs/translation_monitor.py:1-97
@@ -48,10 +48,10 @@ services/__init__.py:1-51
 services/admin/__init__.py:1-5
 services/admin/admin_service.py:1-292
 services/automation/__init__.py:1-14
-services/automation/auto_action_config_service.py:1-690
+services/automation/auto_action_config_service.py:1-694
 
-## Abschnitt 11  (1981 Zeilen, 6 Stuecke)
-services/automation/auto_action_state_service.py:1-341
+## Abschnitt 11  (1985 Zeilen, 6 Stuecke)
+services/automation/auto_action_state_service.py:1-345
 services/automation/automation_service.py:1-500
 services/config/__init__.py:1-16
 services/config/channel_config_service.py:1-521

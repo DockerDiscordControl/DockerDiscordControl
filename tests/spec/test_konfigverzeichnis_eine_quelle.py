@@ -50,8 +50,6 @@ MUSTER = (
 NOCH_OFFEN = {
     "app/utils/web_helpers.py": 1,
     "app/web/config.py": 3,
-    "services/automation/auto_action_config_service.py": 1,
-    "services/automation/auto_action_state_service.py": 1,
     "services/config/config_service.py": 2,
     "services/docker_service/docker_utils.py": 2,
     "services/docker_service/server_order.py": 2,

@@ -43,7 +43,11 @@ class AutoActionStateService:
         except Exception:
             self.base_dir = Path(".")
             
-        self.state_file = self.base_dir / "config" / "auto_actions_state.json"
+        # Via utils/config_paths.py (DDC_CONFIG_DIR). Derived from
+        # Path(__file__).parents[2] before: the file sat outside a volume given
+        # by DDC_CONFIG_DIR, and in test runs it landed in the real config/.
+        from utils.config_paths import get_config_dir
+        self.state_file = get_config_dir() / "auto_actions_state.json"
         self._lock = Lock()
         
         # Runtime State
