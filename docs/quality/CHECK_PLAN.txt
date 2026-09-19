@@ -577,7 +577,7 @@
 [ ] services/donation/unified/processors.py:44 execute_async_donation
 [ ] services/donation/unified/reset.py:26 reset_donations
 
-## Section 18  (1613 lines, 88 public names)
+## Section 18  (1579 lines, 87 public names)
 [ ] services/donation/unified/service.py:39 UnifiedDonationService
 [ ] services/donation/unified/service.py:49 UnifiedDonationService.process_donation
 [ ] services/donation/unified/service.py:218 UnifiedDonationService.process_donation_async
@@ -664,8 +664,7 @@
 [ ] services/infrastructure/container_info_service.py:100 ContainerInfoService.get_container_info
 [ ] services/infrastructure/container_info_service.py:155 ContainerInfoService.save_container_info
 [ ] services/infrastructure/container_info_service.py:209 ContainerInfoService.delete_container_info
-[ ] services/infrastructure/container_info_service.py:270 ContainerInfoService.list_all_containers
-[ ] services/infrastructure/container_info_service.py:307 get_container_info_service
+[ ] services/infrastructure/container_info_service.py:273 get_container_info_service
 
 ## Section 19  (1877 lines, 54 public names)
 [ ] services/infrastructure/container_status_service.py:31 ContainerStatusRequest

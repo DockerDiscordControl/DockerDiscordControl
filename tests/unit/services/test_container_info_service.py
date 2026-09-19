@@ -16,7 +16,6 @@ rewritten to exercise the actual public surface:
 * :meth:`ContainerInfoService.get_container_info`
 * :meth:`ContainerInfoService.save_container_info`
 * :meth:`ContainerInfoService.delete_container_info`
-* :meth:`ContainerInfoService.list_all_containers`
 """
 
 import json
@@ -212,29 +211,6 @@ class TestContainerInfoService:
 
         # Real service treats missing file as success (idempotent reset).
         assert result.success is True
-
-    def test_list_all_containers(self, tmp_path):
-        """list_all_containers reads names via the server config service."""
-        service = _make_service(tmp_path)
-        # config_file must exist for the real method to proceed.
-        service.config_file.write_text("{}", encoding="utf-8")
-
-        fake_server_config = MagicMock()
-        fake_server_config.get_all_servers.return_value = [
-            {"docker_name": "container1", "name": "container1"},
-            {"name": "container2"},
-            {"docker_name": "container3"},
-        ]
-
-        with patch(
-            "services.infrastructure.container_info_service.get_server_config_service",
-            return_value=fake_server_config,
-        ):
-            result = service.list_all_containers()
-
-        assert result.success is True
-        assert isinstance(result.data, list)
-        assert set(result.data) == {"container1", "container2", "container3"}
 
     def test_validate_protected_password_success(self, tmp_path):
         """The real service exposes a protected_password field — validate via get_container_info."""

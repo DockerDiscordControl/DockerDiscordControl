@@ -267,40 +267,6 @@ class ContainerInfoService:
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
 
-    def list_all_containers(self) -> ServiceResult:
-        """List all containers from docker_config.json servers array.
-
-        Returns:
-            ServiceResult with list of container names
-        """
-        try:
-            container_names = []
-
-            if not self.config_file.exists():
-                logger.debug("Docker config file not found, returning empty list")
-                return ServiceResult(success=True, data=container_names)
-
-            with open(self.config_file, 'r', encoding='utf-8') as f:
-                docker_config = json.load(f)
-
-            # Extract container names from servers array
-            # SERVICE FIRST: Use ServerConfigService instead of direct config access
-            server_config_service = get_server_config_service()
-            servers = server_config_service.get_all_servers()
-            for server in servers:
-                # Use docker_name as primary, fallback to name
-                container_name = server.get('docker_name') or server.get('name')
-                if container_name:
-                    container_names.append(container_name)
-
-            logger.debug(f"Found {len(container_names)} containers in docker config")
-            return ServiceResult(success=True, data=container_names)
-
-        except (IOError, OSError, PermissionError, RuntimeError, TypeError, ValueError, json.JSONDecodeError, docker.errors.APIError, docker.errors.DockerException) as e:
-            error_msg = f"Error listing containers from docker config: {e}"
-            logger.error(error_msg)
-            return ServiceResult(success=False, error=error_msg)
-
 # Singleton instance
 _container_info_service = None
 
