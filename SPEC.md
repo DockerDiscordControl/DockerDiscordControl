@@ -1,13 +1,12 @@
 # SPEC — what DDC guarantees
 
-**As of:** 2026-09-16 · **Status: in progress.**
+**As of:** 2026-09-19 · **Status: confirmed.**
 
-The list of ten guarantees was presented, but **not confirmed point by point** — the operator
-delegated the work and decided two individual questions (Z4: browser token; Z5: old admin panels
-lose their effect immediately). Formally, the list as a whole therefore still stands as
-*presented*. **Z10** (test gate in CI) was decided on 2026-09-17 — full gate, group by group — and
-is implemented. Still open is the question whether the documented scheduler exception under Z5
-should become a deliberate decision.
+The operator confirmed all ten guarantees **point by point on 2026-09-19**, unchanged. Before that
+the list stood only as *presented*: the operator had decided individual questions (Z4: browser
+token; Z5: old admin panels lose their effect immediately; Z10: full gate, group by group), not
+the list. The same day decided the two open side questions: the scheduler exception under Z5 is
+intended (B12), and Z7 applies to the application code, not to `scripts/` (B13).
 
 Without a yardstick, a review is only opinion. This file records what DDC promises — so that a
 behaviour can be *refuted* instead of argued about as a matter of taste.
@@ -113,7 +112,8 @@ allows the action — on **every** path: button, schedule, automation rule, web 
 *Broken if:* a path exists that touches a container without passing both checks.
 *Note:* authorization via the **channel** is intended (see Deliberate decisions B1). This guarantee
 does not demand a user check — it demands that the channel check is **complete**.
-**Today: fixed (2026-09-16), with one open side question** (the scheduler exception, see below).
+**Today: fixed (2026-09-16).** The side question about the scheduler exception was decided on
+2026-09-19: intended, recorded as B12.
 The way there belongs here, because the original version of this line was too coarse and was
 refuted on re-reading:
 
@@ -181,8 +181,7 @@ down; a mere `assert_awaited()` would also have been satisfied by the "no channe
 
 *Not covered:* The scheduler path. `scheduler.py:1791-1794` explicitly exempts web panel tasks
 from re-checking ("Web UI tasks are admin tasks and always run (R4-1)"). That is a documented
-decision, not a gap — but it is **not** confirmed by the operator and is not listed under
-"Deliberate decisions" either. Open.
+decision, not a gap. **Confirmed by the operator on 2026-09-19** and recorded as B12.
 
 ### Z6 — DDC never removes or destroys a container.
 There are exactly three actions: `start`, `stop`, `restart`. No `kill`, no `remove`, no `prune`.
@@ -272,13 +271,15 @@ redirect `ORDER_FILE` and work with real files; the only one that intercepts (`o
 hits a place **before** the write and remains unaffected. Unlike with
 `_deactivate_container`, no test had to be adjusted here.
 
-*Open — and a question to you, not a construction site:* the scripts in `scripts/`. Counted, not
+*Decided on 2026-09-19 (operator): Z7 applies to the application code, not to the scripts — B13.*
+The question as it was put: the scripts in `scripts/`. Counted, not
 estimated: **33 write sites in 16 scripts** (one grep line was a false hit, `migrate_to_modular.sh:281`
 only reads). Two of them touch the same files as the program — `migrate_to_modular.sh` writes
 the complete configuration set, `reset_mech.sh` the donation ledger.
 My proposal: **Z7 applies to the application code, not to the scripts.** They run once, triggered
 by the operator, who watches while they run — the damage would be noticed, not go unnoticed. That
-would be a deliberate decision (B11) instead of an open guarantee. Your decision, not mine.
+would be a deliberate decision instead of an open guarantee. (Written as "B11" at the time; B11 was
+assigned to another decision first, so it became **B13**.)
 
 *Found along the way while counting, two side findings on the reset scripts:*
 1. `reset_mech.sh` looks dangerous — it writes `mech_donations.json` directly — **but it is
@@ -457,6 +458,21 @@ created from Discord — just through a different door than first assumed.
 beforehand: the data format would change, and legacy tasks without the field would need a rule of
 their own (keep running or pause).
 
+**B12 — Tasks created in the web panel run without a channel permission check.**
+`services/scheduling/scheduler.py:1791-1794`: "Web UI tasks are admin tasks and always run (R4-1)".
+Such a task does not come from a Discord channel but from the administrator logged in to the
+panel, and the panel has its own permission model (the login, `@auth.login_required`). A channel
+check would have no channel to check.
+*Confirmed by the operator on 2026-09-19.* This is the documented exception to Z5, no longer an
+open question.
+
+**B13 — Z7 (atomic writes) applies to the application code, not to `scripts/`.**
+The scripts are started by the operator, who watches while they run: a broken write would be
+noticed, not go unnoticed. Counted on 2026-09-16: 33 non-atomic write sites in 16 scripts, two of
+them on real data (`migrate_to_modular.sh`, `reset_mech.sh`).
+*Decided by the operator on 2026-09-19.* The two side findings on `reset_mech.sh` (dead code after
+`exit 1`, a reference to a non-existent `safe_reset_mech.py`) are not covered by this exemption.
+
 ---
 
 ## Rules of the quality programme
@@ -476,9 +492,17 @@ lost:
 
 ## To be decided
 
-1. Which of the ten guarantees apply? Delete, add, rephrase — that is your decision.
+1. ~~Which of the ten guarantees apply?~~ **Decided on 2026-09-19: all ten, unchanged.**
 2. ~~**B10:** Was there a reason for removing the spam protection on the toggle button?~~ **Answered
    on 2026-09-18: an oversight, restored.** ~~What remains open is only the value question — should
    `refresh` get a panel field?~~ **Decided on 2026-09-19: yes; `auto_refresh` removed.**
-3. Order for stage 2: I propose starting with **Z2** (a test run that can destroy real data is the
-   most dangerous open spot), then **Z1**, then **Z4**.
+3. ~~Order for stage 2~~ — stage 2 has been carried out; every guarantee has a test (R2).
+4. **Decided on 2026-09-19 — the plan from here:**
+   - Z8 (known, confirmed, still broken) is worked off **before** the review, one finding per commit.
+   - Stage 4 review: all 37 sections one pass each with a verdict on every name of the check plan,
+     the most sensitive sections (money, permissions, deletion, token) three passes each.
+   - The single-file run of every test file (stage 3, proposal 4) becomes a check before every
+     release, not a CI job.
+   - Splitting `DockerControlCog` is planned as a strand of its own **after** the review.
+   - The state of `quality-programme` goes to `develop` now, after the operator has approved the
+     merge summary.
