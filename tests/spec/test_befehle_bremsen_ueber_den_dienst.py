@@ -124,7 +124,11 @@ async def test_der_dienst_wird_als_befehl_gefragt_und_vermerkt(tmp_path):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("name,weg", [("ping", "respond"), ("serverstatus", "followup")])
+# serverstatus seit dem 2026-09-19 "respond": Die Bremse laeuft dort VOR dem
+# defer (test_serverstatus_weist_privat_ab.py). donate stellt ephemeral zurueck
+# und bleibt beim followup.
+@pytest.mark.parametrize("name,weg", [("ping", "respond"), ("serverstatus", "respond"),
+                                      ("donate", "followup")])
 async def test_ein_vermerkter_befehl_wird_abgewiesen(tmp_path, monkeypatch, name, weg):
     """DER BEFUND, Wirkung - auf dem Abfuhrweg, den dieser Befehl heute nimmt.
 

@@ -1741,8 +1741,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         spam_manager.get_remaining_cooldown(ctx.author.id, command_name, art="befehl")
                     )
                     try:
-                        # Check if we need to use followup (for commands that defer early)
-                        if command_name in ['donate', 'donatebroadcast', 'serverstatus', 'ss']:
+                        # Check if we need to use followup (for commands that defer early).
+                        # serverstatus fehlt bewusst: Es prueft VOR seinem defer,
+                        # ein followup haette dort keine Antwort, an die es anschliesst.
+                        if command_name in ['donate', 'donatebroadcast', 'ss']:
                             await ctx.followup.send(_("❌ Command on cooldown. Try again in {remaining} seconds.").format(remaining=remaining))
                         else:
                             await ctx.respond(_("❌ Command on cooldown. Try again in {remaining} seconds.").format(remaining=remaining), ephemeral=True)
@@ -1760,7 +1762,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     async def serverstatus(self, ctx: discord.ApplicationContext):
         """Shows an overview of all server statuses in a single message."""
         try:
-            # CRITICAL: Defer FIRST to prevent Discord timeout (must respond within 3 seconds)
+            # Spamschutz VOR dem defer (Betreiberentscheidung 2026-09-19): Das
+            # defer unten ist oeffentlich, und eine Abweisung danach ersetzte
+            # die "denkt nach..."-Nachricht fuer den ganzen Kanal. Davor geht
+            # sie per respond(ephemeral=True) nur an den Nutzer. Preis: ein
+            # Lesen der Konfiguration vor dem defer - bei ueberlastetem Bot
+            # minimal mehr Risiko fuer "Unknown interaction".
+            if not await self._check_spam_protection(ctx, "serverstatus"):
+                return
+
+            # CRITICAL: Defer early to prevent Discord timeout (must respond within 3 seconds)
             # ROBUST: Handle "Unknown interaction" gracefully (happens when bot is slow/overloaded)
             try:
                 await ctx.defer()
@@ -1771,10 +1782,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     return
                 else:
                     raise  # Re-raise other NotFound errors
-
-            # Check spam protection after defer
-            if not await self._check_spam_protection(ctx, "serverstatus"):
-                return
 
             # Import translation function locally to ensure it's accessible
             from .translation_manager import _ as translate
