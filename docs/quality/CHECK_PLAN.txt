@@ -928,7 +928,7 @@
 [ ] services/mech/progress_paths.py:170 get_progress_paths
 [ ] services/mech/progress_paths.py:183 clear_progress_paths_cache
 
-## Section 24  (1979 lines, 46 public names)
+## Section 24  (1993 lines, 46 public names)
 [ ] services/mech/progress_service.py:119 load_config
 [ ] services/mech/progress_service.py:138 Snapshot
 [ ] services/mech/progress_service.py:157 Snapshot.to_json
@@ -958,25 +958,25 @@
 [ ] services/mech/progress_service.py:777 compute_ui_state
 [ ] services/mech/progress_service.py:813 deterministic_gift_1_3
 [ ] services/mech/progress_service.py:823 apply_donation_units
-[ ] services/mech/progress_service.py:930 add_system_power
-[ ] services/mech/progress_service.py:957 apply_power_event
-[ ] services/mech/progress_service.py:989 ProgressService
-[ ] services/mech/progress_service.py:996 ProgressService.get_state
-[ ] services/mech/progress_service.py:1016 ProgressService.add_donation
-[ ] services/mech/progress_service.py:1084 ProgressService.add_system_donation
-[ ] services/mech/progress_service.py:1237 ProgressService.update_member_count
-[ ] services/mech/progress_service.py:1256 ProgressService.tick_decay
-[ ] services/mech/progress_service.py:1264 ProgressService.power_gift
-[ ] services/mech/progress_service.py:1307 ProgressService.rebuild_from_events
-[ ] services/mech/progress_service.py:1461 ProgressService.delete_donation
-[ ] services/mech/progress_service.py:1544 get_progress_service
+[ ] services/mech/progress_service.py:943 add_system_power
+[ ] services/mech/progress_service.py:970 apply_power_event
+[ ] services/mech/progress_service.py:1002 ProgressService
+[ ] services/mech/progress_service.py:1009 ProgressService.get_state
+[ ] services/mech/progress_service.py:1042 ProgressService.add_donation
+[ ] services/mech/progress_service.py:1112 ProgressService.add_system_donation
+[ ] services/mech/progress_service.py:1266 ProgressService.update_member_count
+[ ] services/mech/progress_service.py:1286 ProgressService.tick_decay
+[ ] services/mech/progress_service.py:1294 ProgressService.power_gift
+[ ] services/mech/progress_service.py:1338 ProgressService.rebuild_from_events
+[ ] services/mech/progress_service.py:1492 ProgressService.delete_donation
+[ ] services/mech/progress_service.py:1575 get_progress_service
 [ ] services/mech/speed_levels.py:221 get_speed_info
 [ ] services/mech/speed_levels.py:252 get_speed_emoji
 [ ] services/mech/speed_levels.py:259 get_translated_speed_description
 [ ] services/mech/speed_levels.py:295 get_speed_level_for_state
 [ ] services/mech/speed_levels.py:313 get_combined_mech_status
 
-## Section 25  (968 lines, 43 public names)
+## Section 25  (985 lines, 43 public names)
 [ ] services/member_count/service.py:36 MemberCountService
 [ ] services/member_count/service.py:47 MemberCountService.resolve_guild
 [ ] services/member_count/service.py:64 MemberCountService.first_connected_guild

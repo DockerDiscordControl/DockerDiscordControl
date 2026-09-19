@@ -927,6 +927,19 @@ MAX_CUMULATIVE = 100000000  # $1,000,000 max cumulative
 POWER_EVENT_TYPES = ("DonationAdded", "SystemDonationAdded", "PowerGiftGranted")
 
 
+def _snapshot_lags(snap: Snapshot, events: List[Event]) -> bool:
+    """True if the log holds a power event of this mech that the snapshot does not carry.
+
+    The event is appended BEFORE the snapshot is written. When that write failed (disk
+    full, permission, an SMB hiccup), the donation was in the ledger but not in the mech,
+    and nothing replayed it: a retry with the same key was "already booked" and got the
+    old state (stage 4 review, section 24 F1). No new snapshot field for this - the schema
+    must stay identical to v2.3.1, which refuses unknown keys (downgrade safety, R1-8).
+    """
+    return any(e.mech_id == snap.mech_id and e.type in POWER_EVENT_TYPES
+               and e.seq > snap.last_event_seq for e in events)
+
+
 def add_system_power(snap: Snapshot, units_cents: int) -> None:
     """System donation: adds power and counts in the total, never evolution progress."""
     # Validate current state before modifying
@@ -1013,6 +1026,19 @@ class ProgressService:
                 persist_snapshot(snap)
             return compute_ui_state(snap)
 
+    def _heal_if_lagging(self, events: List[Event]) -> None:
+        """Rebuild from the log BEFORE a write if the snapshot lacks a logged power event.
+
+        Every method that moves last_event_seq forward calls this first (add_donation,
+        add_system_donation, update_member_count, power_gift). Otherwise one of them would
+        persist the stale snapshot with a HIGHER last_event_seq, and the missing donation
+        could no longer be seen - buried for good. Caller holds LOCK (an RLock).
+        """
+        if _snapshot_lags(load_snapshot(self.mech_id), events):
+            logger.error(f"Snapshot of {self.mech_id} lacks a power event from the log "
+                         f"(an earlier snapshot write failed) - rebuilding from the log")
+            self.rebuild_from_events()
+
     def add_donation(self, amount_dollars: float, donor: Optional[str] = None,
                     channel_id: Optional[str] = None, idempotency_key: Optional[str] = None) -> ProgressState:
         """Add a donation and return updated state"""
@@ -1028,8 +1054,10 @@ class ProgressService:
             ).hexdigest()[:16]
 
         with LOCK:
-            # Check idempotency
             all_events = read_events()
+            self._heal_if_lagging(all_events)
+
+            # Check idempotency
             existing = [e for e in all_events
                        if e.mech_id == self.mech_id
                        and e.type == "DonationAdded"
@@ -1173,6 +1201,7 @@ class ProgressService:
             idempotency_key = str(idempotency_key)[:32]
 
         with LOCK:
+            self._heal_if_lagging(read_events())
             # If amount rounds to zero, just return current state (no-op)
             if units_cents == 0:
                 logger.info(f"System donation of ${amount_dollars} rounds to $0.00 - skipping (no effect)")
@@ -1237,6 +1266,7 @@ class ProgressService:
     def update_member_count(self, member_count: int) -> None:
         """Update member count for difficulty calculation"""
         with LOCK:
+            self._heal_if_lagging(read_events())
             # Create MemberCountUpdated event for replay capability
             evt = Event(
                 seq=next_seq(),
@@ -1264,6 +1294,7 @@ class ProgressService:
     def power_gift(self, campaign_id: str) -> Tuple[ProgressState, Optional[int]]:
         """Grant power gift if power is 0 AND campaign hasn't been used. Returns (state, gift_dollars or None)"""
         with LOCK:
+            self._heal_if_lagging(read_events())
             snap = load_snapshot(self.mech_id)
             apply_decay_on_demand(snap)
 
