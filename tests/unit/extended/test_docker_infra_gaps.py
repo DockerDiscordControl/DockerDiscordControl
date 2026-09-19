@@ -1499,37 +1499,10 @@ class TestContainerStatusCompatibilityFallbacks:
 # =========================================================================== #
 
 
-class TestSpamProtectionPathException:
-    """Line 81-82: __file__.parents[2] resolution failure."""
-
-    def test_init_falls_back_when_parents_resolution_fails(
-        self, monkeypatch, tmp_path
-    ):
-        # We can't easily monkeypatch __file__ so instead trigger the
-        # except by passing config_dir=None and patching ``Path(__file__)``
-        # only for this module.  The import-time service has already
-        # resolved successfully, so we re-create with explicit None and
-        # observe the error-handling fallback by mocking Path itself.
-        original_path = Path
-
-        class _ExplodingPath(original_path):
-            @property
-            def parents(self):
-                raise RuntimeError("no parents")
-
-        # When Path(__file__) is called inside __init__ it returns our
-        # exploding path which fails on .parents access. ``except Exception``
-        # catches it and falls back to ``Path("config")`` (line 82).
-        monkeypatch.setattr(
-            "services.infrastructure.spam_protection_service.Path",
-            _ExplodingPath,
-        )
-        # Also redirect cwd so the fallback "config" path is created in
-        # tmp_path -- otherwise it would land in the project root.
-        monkeypatch.chdir(tmp_path)
-        svc = SpamProtectionService(config_dir=None)
-        # Fallback "config" directory should now exist relative to cwd.
-        assert svc.config_dir == _ExplodingPath("config")
+# TestSpamProtectionPathException was removed on 2026-09-19: it forced
+# ``Path(__file__).parents`` to raise so __init__ fell back to Path("config").
+# That branch no longer exists - the directory comes from
+# utils.config_paths.get_config_dir() (tests/spec/test_konfigverzeichnis_spamschutz.py).
 
 
 class TestSpamProtectionSaveConfigFailure:

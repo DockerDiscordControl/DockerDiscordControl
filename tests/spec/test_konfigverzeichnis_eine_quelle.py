@@ -53,7 +53,6 @@ NOCH_OFFEN = {
     "services/config/config_service.py": 2,
     "services/infrastructure/container_status_service.py": 1,
     "services/infrastructure/game_query_support_service.py": 2,
-    "services/infrastructure/spam_protection_service.py": 2,
     "services/mech/mech_reset_service.py": 2,
     "services/mech/progress_service.py": 2,
 }

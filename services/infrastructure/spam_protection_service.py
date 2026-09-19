@@ -76,12 +76,12 @@ class SpamProtectionService:
             config_dir: Directory to store config files. Defaults to config/
         """
         if config_dir is None:
-            # Robust absolute path relative to project root
-            try:
-                base_dir = Path(__file__).parents[2]
-                config_dir = base_dir / "config"
-            except Exception:
-                config_dir = Path("config")
+            # Via utils/config_paths.py (DDC_CONFIG_DIR). Derived from __file__
+            # before - but channels_config.json is shared with config_service,
+            # which follows the variable: with it set there were TWO files, and
+            # the spam settings went to the wrong one.
+            from utils.config_paths import get_config_dir
+            config_dir = get_config_dir()
         else:
             config_dir = Path(config_dir)
 
