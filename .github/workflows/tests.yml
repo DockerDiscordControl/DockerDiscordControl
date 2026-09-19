@@ -50,7 +50,12 @@ jobs:
         # run died within seconds at collection and cost nothing. Three entries
         # plus code-quality.yml made four full runs per push - too much for the
         # minutes quota. Now two.
-        python-version: ['3.10']
+        # The image version, not the older one used until 2026-09-19: the image
+        # runs alpine:3.24, and a green run on another Python does not prove the
+        # shipped one - seven spec tests failed on the old version only. Every
+        # workflow uses the image Python;
+        # tests/spec/test_ci_python_is_the_shipped_python.py keeps it that way.
+        python-version: ['3.14']
       fail-fast: false
 
     steps:
@@ -96,7 +101,7 @@ jobs:
           echo "✅ Unit tests completed" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload coverage reports
-        if: matrix.python-version == '3.10'
+        if: matrix.python-version == '3.14'
         uses: codecov/codecov-action@v3
         with:
           files: ./coverage.xml
@@ -105,7 +110,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload coverage HTML
-        if: matrix.python-version == '3.10'
+        if: matrix.python-version == '3.14'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-html
@@ -121,10 +126,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.10
+      - name: Set up Python 3.14
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.14'
           cache: 'pip'
 
       - name: Install dependencies
