@@ -52,7 +52,11 @@ class SchedulerRuntime:
         if base_dir:
             self._config_dir = Path(base_dir)
         else:
-            self._config_dir = Path(__file__).resolve().parents[2] / "config"
+            # Fallback via utils/config_paths.py (DDC_CONFIG_DIR); the dedicated
+            # DDC_SCHEDULER_CONFIG_DIR above keeps priority. Derived from
+            # __file__ before: tasks.json ignored DDC_CONFIG_DIR.
+            from utils.config_paths import get_config_dir
+            self._config_dir = get_config_dir()
 
         self._tasks_file = self._config_dir / "tasks.json"
         self._state = _SchedulerRuntimeState()

@@ -223,12 +223,10 @@ def load_custom_timeout_config():
         return _custom_timeout_config
 
     _custom_config_loaded = True
-    # Robust absolute path relative to project root
-    try:
-        config_path = Path(__file__).parents[2] / "config" / "container_timeouts.json"
-    except Exception:
-        # Fallback if path resolution fails
-        config_path = Path("config/container_timeouts.json")
+    # Via utils/config_paths.py (DDC_CONFIG_DIR) - derived from __file__
+    # before, so custom timeouts in a DDC_CONFIG_DIR volume were never read.
+    from utils.config_paths import get_config_dir
+    config_path = get_config_dir() / "container_timeouts.json"
 
     try:
         if config_path.exists():

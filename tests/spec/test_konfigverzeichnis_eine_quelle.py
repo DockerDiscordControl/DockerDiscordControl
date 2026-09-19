@@ -51,13 +51,10 @@ NOCH_OFFEN = {
     "app/utils/web_helpers.py": 1,
     "app/web/config.py": 3,
     "services/config/config_service.py": 2,
-    "services/docker_service/docker_utils.py": 2,
-    "services/docker_service/server_order.py": 2,
     "services/donation/notification_service.py": 1,
     "services/infrastructure/container_status_service.py": 1,
     "services/infrastructure/game_query_support_service.py": 2,
     "services/infrastructure/spam_protection_service.py": 2,
-    "services/infrastructure/update_notifier.py": 1,
     "services/mech/mech_evolutions.py": 2,
     "services/mech/mech_reset_service.py": 2,
     "services/mech/mech_state_manager.py": 1,
@@ -65,8 +62,6 @@ NOCH_OFFEN = {
     "services/mech/progress_paths.py": 1,
     "services/mech/progress_service.py": 2,
     "services/mech/speed_levels.py": 1,
-    "services/scheduling/runtime.py": 1,
-    "services/translation/translation_config_service.py": 1,
     "services/web/donation_service.py": 1,
 }
 

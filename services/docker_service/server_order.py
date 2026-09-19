@@ -21,12 +21,17 @@ from utils.atomic_io import atomic_write_json
 from services.config.server_config_service import get_server_config_service
 logger = setup_logger('ddc.server_order', level=logging.DEBUG)
 
-# Base directory - should point to project root
-# Robust absolute path relative to project root
-try:
-    ORDER_FILE = Path(__file__).parents[2] / "config" / "server_order.json"
-except Exception:
-    ORDER_FILE = Path("config/server_order.json")
+# None = resolve on every call via utils/config_paths.py (DDC_CONFIG_DIR). It was
+# computed at import from Path(__file__).parents[2], blind to the variable.
+# Kept as a settable module value: tests redirect it with monkeypatch.
+ORDER_FILE = None
+
+
+def _order_file() -> Path:
+    if ORDER_FILE is not None:
+        return Path(ORDER_FILE)
+    from utils.config_paths import get_config_dir
+    return get_config_dir() / "server_order.json"
 
 def save_server_order(server_order: List[str]) -> bool:
     """
@@ -40,14 +45,14 @@ def save_server_order(server_order: List[str]) -> bool:
     """
     try:
         # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(ORDER_FILE), exist_ok=True)
+        os.makedirs(os.path.dirname(_order_file()), exist_ok=True)
 
         # Write atomically: ``open(path, 'w')`` truncates on open, so a crash
         # mid-write leaves the order the user arranged by hand gone - silently,
         # because load_server_order() swallows the JSONDecodeError and returns
         # an empty list, and the display falls back to the default order with
         # no message at all. See SPEC.md Z7.
-        atomic_write_json(ORDER_FILE, {"server_order": server_order})
+        atomic_write_json(_order_file(), {"server_order": server_order})
 
         logger.info(f"Server order saved: {server_order}")
         return True
@@ -63,11 +68,11 @@ def load_server_order() -> List[str]:
         List[str]: List of docker container names in the saved display order
     """
     try:
-        if not os.path.exists(ORDER_FILE):
+        if not os.path.exists(_order_file()):
             logger.info("Server order file does not exist, returning empty list")
             return []
 
-        with open(ORDER_FILE, 'r') as f:
+        with open(_order_file(), 'r') as f:
             data = json.load(f)
             server_order = data.get("server_order", [])
 

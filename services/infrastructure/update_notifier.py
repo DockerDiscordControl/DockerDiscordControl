@@ -34,8 +34,10 @@ class UpdateNotifier:
         if config_dir:
             self.config_dir = Path(config_dir)
         else:
-            # Robust absolute path relative to project root
-            self.config_dir = Path(__file__).parents[2] / "config"
+            # Via utils/config_paths.py (DDC_CONFIG_DIR) - derived from
+            # __file__ before, blind to the variable.
+            from utils.config_paths import get_config_dir
+            self.config_dir = get_config_dir()
             
         self.config_dir.mkdir(parents=True, exist_ok=True)
         self.status_file = self.config_dir / "update_status.json"

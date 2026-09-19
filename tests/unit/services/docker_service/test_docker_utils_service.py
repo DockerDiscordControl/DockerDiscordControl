@@ -370,26 +370,19 @@ class TestLoadCustomTimeoutConfig:
         assert result is None
 
     def test_loads_valid_json(self, tmp_path, monkeypatch):
-        # Create file at expected location
+        # The real function, pointed at tmp_path via DDC_CONFIG_DIR. This used
+        # to call a local re-implementation ("we cannot easily monkeypatch
+        # parents[2]") and so could not fail; the module now reads
+        # utils.config_paths.get_config_dir().
         cfg_path = tmp_path / "container_timeouts.json"
         payload = {"container_overrides": {"a": {"stats_timeout": 1.0}}}
         cfg_path.write_text(json.dumps(payload))
+        monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
 
-        # Re-route the module-level resolution
         docker_utils._custom_config_loaded = False
         docker_utils._custom_timeout_config = None
 
-        original_init = Path.__truediv__
-
-        def fake_load_custom():
-            # Re-run with our path
-            docker_utils._custom_config_loaded = True
-            with open(cfg_path, "r", encoding="utf-8") as f:
-                docker_utils._custom_timeout_config = json.load(f)
-            return docker_utils._custom_timeout_config
-
-        # We cannot easily monkeypatch parents[2], so just call our shim:
-        result = fake_load_custom()
+        result = docker_utils.load_custom_timeout_config()
         assert result == payload
 
     def test_caches_after_first_load(self, monkeypatch):

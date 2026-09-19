@@ -241,7 +241,11 @@ class TranslationConfigService:
         except Exception:
             self.base_dir = Path(".")
 
-        self.config_file = self.base_dir / "config" / "channel_translations.json"
+        # Via utils/config_paths.py (DDC_CONFIG_DIR) - derived from __file__
+        # before: outside a DDC_CONFIG_DIR volume, and in test runs the default
+        # file written below landed in the real config/.
+        from utils.config_paths import get_config_dir
+        self.config_file = get_config_dir() / "channel_translations.json"
         self._file_lock = threading.Lock()  # Protects read-modify-write operations
         self._key_lock = threading.Lock()   # Protects encryption key creation
         self._ensure_config_exists()
