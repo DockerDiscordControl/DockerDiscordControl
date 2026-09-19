@@ -96,7 +96,12 @@ def _atomic_update(mutate, path: Optional[Path] = None) -> None:
         tmp.write_text(json.dumps(state), encoding='utf-8')
         tmp.replace(path)
     except Exception as e:  # noqa: BLE001
-        logger.debug(f"[QUERY_SUPPORT] atomic update failed: {e}")
+        # ERROR, not DEBUG: this file carries the verdicts AND the 'testing' flag
+        # behind the panel's re-test spinner. A swallowed write leaves the spinner
+        # turning for good, and the caller in main_routes.py cannot notice - its own
+        # "except Exception: pass" never sees anything, because everything ends here
+        # (SPEC.md Z8, review A10).
+        logger.error(f"[QUERY_SUPPORT] verdicts file could not be written: {e}", exc_info=True)
 
 
 def set_testing(name: str, testing: bool = True) -> None:
