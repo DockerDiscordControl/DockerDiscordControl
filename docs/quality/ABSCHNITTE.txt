@@ -147,9 +147,9 @@ services/mech/progress/__init__.py:1-17
 services/mech/progress/runtime.py:1-153
 services/mech/progress_paths.py:1-188
 
-## Abschnitt 24  (1978 Zeilen, 3 Stuecke)
+## Abschnitt 24  (1979 Zeilen, 3 Stuecke)
 services/mech/progress_service.py:1-1549
-services/mech/speed_levels.py:1-412
+services/mech/speed_levels.py:1-413
 services/member_count/__init__.py:1-17
 
 ## Abschnitt 25  (968 Zeilen, 5 Stuecke)

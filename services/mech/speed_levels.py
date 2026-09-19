@@ -18,10 +18,11 @@ from pathlib import Path
 
 # Load speed translations from JSON
 try:
-    # Via utils/config_paths.py (DDC_CONFIG_DIR), read once at import - derived
-    # from __file__ before, blind to the variable.
-    from utils.config_paths import get_config_dir
-    translations_path = get_config_dir() / "mech" / "speed_translations.json"
+    # The operator's <config dir>/mech/speed_translations.json, else the shipped
+    # default (services/mech/mech_defaults.py) - read once at import. Without the
+    # shipped file a fresh installation had English speed texts only.
+    from services.mech.mech_defaults import resolve_mech_file
+    translations_path = resolve_mech_file("speed_translations.json")
     if translations_path.exists():
         with open(translations_path, "r", encoding="utf-8") as f:
             SPEED_TRANSLATIONS = json.load(f)
