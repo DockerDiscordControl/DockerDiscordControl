@@ -744,8 +744,10 @@ class ToggleButton(Button):
             current_config = load_config()
             if not current_config:
                 logger.error("[ULTRA_FAST_TOGGLE] Could not load configuration for toggle.")
-                # Show a generic error to the user
-                await interaction.response.send_message(_("Error: Could not load configuration to process this action."), ephemeral=True)
+                # followup, not response: the interaction was deferred above, so a second
+                # response raises InteractionResponded - it was logged and the user saw
+                # nothing, the panel simply did not react (review A12).
+                await interaction.followup.send(_("Error: Could not load configuration to process this action."), ephemeral=True)
                 return
 
             # Check if container is in pending status - use docker_name as key
