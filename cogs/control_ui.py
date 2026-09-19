@@ -36,7 +36,6 @@ logger = get_module_logger('control_ui')
 
 # Global caches for performance optimization
 _timestamp_format_cache = {}      # Cache for formatted timestamps
-_permission_cache = {}            # Cache for channel permissions
 _view_cache = {}                 # Cache for view objects
 _translation_cache = OrderedDict()  # Cache for translations (LRU via OrderedDict)
 _box_element_cache = OrderedDict()  # Cache for box elements (LRU via OrderedDict)
@@ -58,7 +57,6 @@ _description_templates = {
 def _clear_caches():
     """Clears all performance caches - called periodically."""
     _timestamp_format_cache.clear()
-    _permission_cache.clear()
     _view_cache.clear()
     _translation_cache.clear()
     _box_element_cache.clear()
@@ -203,19 +201,16 @@ def _return_embed_to_pool(embed: discord.Embed):
 # =============================================================================
 
 def _get_cached_channel_permission(channel_id: int, permission_key: str, current_config: dict) -> bool:
-    """Ultra-fast cached channel permission checking."""
-    config_timestamp = current_config.get('_cache_timestamp', 0)
-    cache_key = f"{channel_id}_{permission_key}_{config_timestamp}"
+    """The channel's permission as the given configuration says NOW.
 
-    if cache_key not in _permission_cache:
-        _permission_cache[cache_key] = _channel_has_permission(channel_id, permission_key, current_config)
-
-        if len(_permission_cache) > 50:
-            keys_to_remove = list(_permission_cache.keys())[:10]
-            for key in keys_to_remove:
-                del _permission_cache[key]
-
-    return _permission_cache[cache_key]
+    No cache any more (the name stays for its callers). It cached under a key
+    built from config['_cache_timestamp'], which nothing ever sets, and the
+    hot-reload after a panel save did not clear it - a revoked control right
+    stayed effective until the 5-minute cache clear. The operator decided on
+    2026-09-16 that a revoked right is ineffective immediately (SPEC.md Z5),
+    and the lookup it saved is a dictionary read (review A4).
+    """
+    return _channel_has_permission(channel_id, permission_key, current_config)
 
 # =============================================================================
 # ULTRA-OPTIMIZED ACTION BUTTON CLASS
