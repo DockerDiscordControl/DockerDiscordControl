@@ -211,26 +211,49 @@ class SpamProtectionService:
         """
         return self.get_config()
 
-    # Namen, die als BEFEHL gelten. Diese Liste stand bis hierher ZWEIMAL
-    # woertlich im Code (in is_on_cooldown und get_remaining_cooldown); das
-    # Minutenfenster braucht sie ein drittes Mal, deshalb jetzt an einer Stelle.
-    # INHALT UNVERAENDERT uebernommen: Die Liste hat bekannte Schwaechen
-    # ('ss' steht in keinem Woerterbuch, 'donatebroadcast' und 'info_edit'
-    # fehlen), aber sie zu aendern waere ein eigener Befund mit eigener Messung
-    # - hier wird nur die Doppelung beseitigt, nicht die Auswahl.
-    _BEFEHLSNAMEN = frozenset([
-        'serverstatus', 'ss', 'control', 'info', 'help', 'ping', 'donate',
-        'command', 'language', 'forceupdate', 'start', 'stop', 'restart'
-    ])
+    # "Befehl oder Knopf?" entscheidet der AUFRUFER, nicht der Name.
+    #
+    # Bis hierher entschied eine fest verdrahtete Namensliste (serverstatus,
+    # ss, control, info, help, ping, donate, command, language, forceupdate,
+    # start, stop, restart). Hiess ein KNOPF wie ein Befehl, bremste er nach
+    # dem BEFEHLS-Regler und zaehlte ins Befehls-Minutenfenster: der Info-Knopf
+    # 5 s statt 3 s, der Hilfe-Knopf 3 s statt 5 s, der Neustart-Knopf 15 s
+    # statt 20 s. Der Betreiber stellte im Panel den Knopf-Regler ein, und er
+    # bewegte nichts. InfoDropdownButton und HelpButton hat erst die Umstellung
+    # auf diesen Dienst (Commit 3785fc0) in diese Liste geschickt - vorher
+    # fragten sie ausdruecklich get_button_cooldown.
+    #
+    # Alle Aufrufer dieser Methoden sind Knoepfe (gemessen; Befehle bremsen
+    # ueber _check_spam_protection in docker_control.py). Knopf ist deshalb die
+    # Vorgabe, und ein Befehl weist sich mit art="befehl" aus. Die Liste
+    # entfaellt samt ihren Macken ('ss' stand in keinem Woerterbuch,
+    # 'donatebroadcast' und 'info_edit' fehlten).
+    _ARTEN = ("knopf", "befehl")
 
     _FENSTER_SEKUNDEN = 60.0
 
-    def _ist_befehl(self, action_type: str) -> bool:
-        return action_type in self._BEFEHLSNAMEN
+    @classmethod
+    def _ist_befehl(cls, art: str) -> bool:
+        """Prueft die Art LAUT: Ein Tippfehler wirft, statt still als Knopf zu gelten."""
+        if art not in cls._ARTEN:
+            raise ValueError(f"art muss eine von {cls._ARTEN} sein, nicht {art!r}")
+        return art == "befehl"
 
-    def _abklingdauer(self, action_type: str) -> int:
-        """Abklingzeit je Aktion - Befehl oder Knopf."""
-        if self._ist_befehl(action_type):
+    @staticmethod
+    def _schluessel(user_id: int, action_type: str, ist_befehl: bool) -> str:
+        """Eigener Schluesselraum fuer Befehle.
+
+        Knoepfe behalten ihren bisherigen Schluessel "<nutzer>:<name>". Befehle
+        bekommen "<nutzer>:befehl:<name>" - sonst teilten sich /info und der
+        Info-KNOPF einen Eimer, sobald beide ueber diesen Dienst bremsen.
+        """
+        if ist_befehl:
+            return f"{user_id}:befehl:{action_type}"
+        return f"{user_id}:{action_type}"
+
+    def _abklingdauer(self, action_type: str, ist_befehl: bool) -> int:
+        """Abklingzeit je Aktion - aus dem Woerterbuch der angegebenen Art."""
+        if ist_befehl:
             return self.get_command_cooldown(action_type)
         return self.get_button_cooldown(action_type)
 
@@ -283,16 +306,18 @@ class SpamProtectionService:
             for schluessel in [k for k, v in self._minutenfenster.items() if not v]:
                 del self._minutenfenster[schluessel]
 
-    def is_on_cooldown(self, user_id: int, action_type: str) -> bool:
+    def is_on_cooldown(self, user_id: int, action_type: str, art: str = "knopf") -> bool:
         """Check if user is on cooldown for specific action.
 
         Args:
             user_id: Discord user ID
-            action_type: Type of action (command or button name)
+            action_type: Name of the button or command
+            art: "knopf" (default) or "befehl"
 
         Returns:
             True if user is on cooldown, False otherwise
         """
+        ist_befehl = self._ist_befehl(art)
         if not self.is_enabled():
             return False
 
@@ -303,59 +328,63 @@ class SpamProtectionService:
         # Panel angezeigt und ueber to_dict/from_dict sauber durchgereicht -
         # aber NIE abgefragt. Es gab keine Stelle, an der ein Druck gezaehlt
         # wurde; die Abklingzeit je Knopf merkt sich nur den LETZTEN Zeitpunkt.
-        if self._fenster_ueberschritten(user_id, self._ist_befehl(action_type), current_time):
+        if self._fenster_ueberschritten(user_id, ist_befehl, current_time):
             return True
 
-        cooldown_key = f"{user_id}:{action_type}"
+        cooldown_key = self._schluessel(user_id, action_type, ist_befehl)
         last_used = self._user_cooldowns.get(cooldown_key, 0)
-        return (current_time - last_used) < self._abklingdauer(action_type)
+        return (current_time - last_used) < self._abklingdauer(action_type, ist_befehl)
 
-    def get_remaining_cooldown(self, user_id: int, action_type: str) -> float:
+    def get_remaining_cooldown(self, user_id: int, action_type: str, art: str = "knopf") -> float:
         """Get remaining cooldown time for user action.
 
         Args:
             user_id: Discord user ID
-            action_type: Type of action (command or button name)
+            action_type: Name of the button or command
+            art: "knopf" (default) or "befehl"
 
         Returns:
             Remaining cooldown time in seconds
         """
+        ist_befehl = self._ist_befehl(art)
         if not self.is_enabled():
             return 0.0
 
         current_time = time.time()
 
-        cooldown_key = f"{user_id}:{action_type}"
+        cooldown_key = self._schluessel(user_id, action_type, ist_befehl)
         last_used = self._user_cooldowns.get(cooldown_key, 0)
-        rest_aktion = max(0.0, self._abklingdauer(action_type) - (current_time - last_used))
+        rest_aktion = max(0.0, self._abklingdauer(action_type, ist_befehl) - (current_time - last_used))
 
         # Ohne den Fensteranteil stuende beim Nutzer "bitte warte 0.0 Sekunden",
         # wenn die Abweisung von der Minutengrenze kommt: Ein frisch gedrueckter
         # Knopf hat in _user_cooldowns gar keinen Eintrag. Alle Aufrufer fragen
         # direkt nach is_on_cooldown hier nach.
-        rest_fenster = self._fenster_restzeit(user_id, self._ist_befehl(action_type), current_time)
+        rest_fenster = self._fenster_restzeit(user_id, ist_befehl, current_time)
 
         return max(rest_aktion, rest_fenster)
 
-    def add_user_cooldown(self, user_id: int, action_type: str) -> None:
+    def add_user_cooldown(self, user_id: int, action_type: str, art: str = "knopf") -> None:
         """Add user to cooldown for specific action.
 
         Args:
             user_id: Discord user ID
-            action_type: Type of action (command or button name)
+            action_type: Name of the button or command
+            art: "knopf" (default) or "befehl"
         """
+        ist_befehl = self._ist_befehl(art)
         if not self.is_enabled():
             return
 
         current_time = time.time()
-        cooldown_key = f"{user_id}:{action_type}"
+        cooldown_key = self._schluessel(user_id, action_type, ist_befehl)
         self._user_cooldowns[cooldown_key] = current_time
 
         # Gezaehlt wird der ANGENOMMENE Druck, nicht die Nachfrage. Zaehlte
         # schon is_on_cooldown mit, verbrauchte jede abgewiesene Wiederholung
         # weiteres Kontingent - wer einmal gebremst wurde, kaeme nie wieder
         # heraus.
-        self._fenster_eintragen(user_id, self._ist_befehl(action_type), current_time)
+        self._fenster_eintragen(user_id, ist_befehl, current_time)
 
         # Clean old cooldowns (older than 5 minutes)
         old_keys = [key for key, timestamp in self._user_cooldowns.items()

@@ -1595,9 +1595,12 @@ class TestSpamProtectionRemainingForCommand:
         import time as _t
 
         monkeypatch.setattr(_t, "time", lambda: 2000.0)
-        svc.add_user_cooldown(11, "ping")
+        # art="befehl": Befehl oder Knopf entscheidet seit der Korrektur der
+        # Aufrufer, nicht mehr eine Namensliste. Dieser Test prueft ausdruecklich
+        # den Befehlszweig und muss es deshalb sagen.
+        svc.add_user_cooldown(11, "ping", art="befehl")
         # ping has command cooldown of 3 (default config)
-        remaining = svc.get_remaining_cooldown(11, "ping")
+        remaining = svc.get_remaining_cooldown(11, "ping", art="befehl")
         assert 2.9 <= remaining <= 3.0
 
 
