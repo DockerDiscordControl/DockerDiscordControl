@@ -43,8 +43,9 @@ class ServerConfigService:
             # files and the directory is derived from this file's location, so the main config
             # was never actually used - it only cost a full config load on every single call
             # (and this runs dozens of times per status render).
-            base_dir = Path(__file__).parents[2]
-            containers_dir = base_dir / 'config' / 'containers'
+            # DDC_CONFIG_DIR via utils/config_paths.py - see there (split config, SPEC.md Z2).
+            from utils.config_paths import get_config_dir
+            containers_dir = get_config_dir() / 'containers'
 
             if not containers_dir.exists():
                 logger.warning(f"Containers directory not found: {containers_dir}")

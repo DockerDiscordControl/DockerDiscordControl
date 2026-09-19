@@ -50,11 +50,11 @@ services/admin/admin_service.py:1-283
 services/automation/__init__.py:1-14
 services/automation/auto_action_config_service.py:1-690
 
-## Abschnitt 11  (1979 Zeilen, 6 Stuecke)
+## Abschnitt 11  (1981 Zeilen, 6 Stuecke)
 services/automation/auto_action_state_service.py:1-341
 services/automation/automation_service.py:1-500
 services/config/__init__.py:1-16
-services/config/channel_config_service.py:1-519
+services/config/channel_config_service.py:1-521
 services/config/config_cache_service.py:1-133
 services/config/config_form_parser_service.py:1-470
 
@@ -62,11 +62,11 @@ services/config/config_form_parser_service.py:1-470
 services/config/config_loader_service.py:1-470
 services/config/config_migration_service.py:1-406
 
-## Abschnitt 13  (1810 Zeilen, 5 Stuecke)
+## Abschnitt 13  (1813 Zeilen, 5 Stuecke)
 services/config/config_service.py:1-1218
 services/config/config_validation_service.py:1-212
-services/config/container_config_save_service.py:1-148
-services/config/server_config_service.py:1-212
+services/config/container_config_save_service.py:1-150
+services/config/server_config_service.py:1-213
 services/discord/__init__.py:1-20
 
 ## Abschnitt 14  (1435 Zeilen, 6 Stuecke)
@@ -102,7 +102,7 @@ services/donation/unified/models.py:1-97
 services/donation/unified/processors.py:1-61
 services/donation/unified/reset.py:1-174
 
-## Abschnitt 18  (1592 Zeilen, 8 Stuecke)
+## Abschnitt 18  (1593 Zeilen, 8 Stuecke)
 services/donation/unified/service.py:1-448
 services/donation/unified/validation.py:1-37
 services/donation/unified_donation_service.py:1-31
@@ -110,7 +110,7 @@ services/exceptions.py:1-299
 services/infrastructure/__init__.py:1-0
 services/infrastructure/action_log_service.py:1-373
 services/infrastructure/action_logger.py:1-89
-services/infrastructure/container_info_service.py:1-315
+services/infrastructure/container_info_service.py:1-316
 
 ## Abschnitt 19  (1884 Zeilen, 5 Stuecke)
 services/infrastructure/container_status_service.py:1-813
@@ -242,7 +242,7 @@ app/web/background.py:1-85
 app/web/blueprints.py:1-31
 app/web/compat.py:1-102
 
-## Abschnitt 35  (1936 Zeilen, 16 Stuecke)
+## Abschnitt 35  (1976 Zeilen, 17 Stuecke)
 app/web/config.py:1-171
 app/web/csrf.py:1-125
 app/web/diagnostics.py:1-30
@@ -257,6 +257,7 @@ utils/app_commands_helper.py:1-150
 utils/atomic_io.py:1-70
 utils/common_helpers.py:1-475
 utils/config_cache.py:1-307
+utils/config_paths.py:1-40
 utils/import_utils.py:1-160
 utils/key_crypto.py:1-79
 

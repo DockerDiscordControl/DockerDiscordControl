@@ -34,8 +34,8 @@ Gattung, die Stufe 3 aussiebt. Beim Verdrahtungstest (test_app_factory_
 verdrahtung.py) war die erste Fassung tatsaechlich so einer: Sie zog Erwartung
 UND Behauptung aus derselben Datei und blieb bei entferntem CSRF-Schutz gruen.
 
-STAND DES ZUSCHNITTS: 37 Abschnitte, 188 Stuecke, 61.128 von 61.128 Zeilen in
-183 Dateien. Vier Dateien liegen ueber 2000 Zeilen und mussten geteilt werden;
+STAND DES ZUSCHNITTS: 37 Abschnitte, 189 Stuecke, 61.174 von 61.174 Zeilen in
+184 Dateien. Vier Dateien liegen ueber 2000 Zeilen und mussten geteilt werden;
 ``DockerControlCog`` ist mit 4.485 Zeilen eine EINZIGE Klasse und laesst sich nur
 an Methodengrenzen schneiden - ein eigener struktureller Befund, festgehalten im
 Stufe-4-Bericht.

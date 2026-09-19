@@ -91,9 +91,10 @@ class ContainerInfoService:
         Args:
             config_file: Path to docker config file (kept for compatibility, not used)
         """
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        self.containers_dir = Path(base_dir) / "config" / "containers"
-        self.config_file = Path(base_dir) / "config" / "docker_config.json"  # Keep for backward compatibility
+        # DDC_CONFIG_DIR via utils/config_paths.py - see there (split config, SPEC.md Z2).
+        from utils.config_paths import get_config_dir
+        self.containers_dir = get_config_dir() / "containers"
+        self.config_file = get_config_dir() / "docker_config.json"  # Keep for backward compatibility
         logger.info(f"Container info service initialized using container files in: {self.containers_dir}")
 
     def get_container_info(self, container_name: str) -> ServiceResult:

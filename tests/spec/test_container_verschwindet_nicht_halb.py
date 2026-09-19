@@ -102,7 +102,6 @@ import json
 
 import pytest
 
-from services.config import server_config_service as scs_mod
 from services.config.config_loader_service import LEGACY_FOLD_MARKER, ConfigLoaderService
 from services.config.config_service import get_config_service
 from services.config.server_config_service import ServerConfigService
@@ -121,11 +120,11 @@ def beide_leser(tmp_path, monkeypatch):
     aus einem frueheren Test diesen Lauf gruen. Uebernommen aus
     ``tests/unit/services/configuration/test_config_service.py:41``.
 
-    ServerConfigService: Es leitet sein Verzeichnis aus ``Path(__file__)
-    .parents[2]`` ab und beachtet ``DDC_CONFIG_DIR`` NICHT (:46-47). Deshalb
-    wird ``__file__`` auf eine Scheindatei drei Ebenen tief unter ``tmp_path``
-    gezeigt - so laeuft der ECHTE Rumpf, nicht ein Nachbau. Uebernommen aus
-    ``test_config_full.py:964``.
+    ServerConfigService: ueber ``DDC_CONFIG_DIR``. Bis 2026-09-19 beachtete
+    er die Variable nicht, und hier wurde deshalb sein ``__file__`` auf eine
+    Scheindatei umgebogen; seitdem liest er utils.config_paths.get_config_dir()
+    (test_konfigverzeichnis_container_und_kanaele.py). So laeuft weiterhin der
+    ECHTE Rumpf, nicht ein Nachbau.
     """
     config_dir = tmp_path / "config"
     containers_dir = config_dir / "containers"
@@ -171,12 +170,8 @@ def beide_leser(tmp_path, monkeypatch):
     dienst._cache_service.invalidate_cache()
     dienst._cache_service.clear_token_cache()
 
-    # ServerConfigService auf dasselbe tmp_path zeigen lassen.
-    schein_verzeichnis = tmp_path / "services" / "config"
-    schein_verzeichnis.mkdir(parents=True, exist_ok=True)
-    schein_datei = schein_verzeichnis / "server_config_service.py"
-    schein_datei.write_text("# Platzhalter fuer den Test\n", encoding="utf-8")
-    monkeypatch.setattr(scs_mod, "__file__", str(schein_datei))
+    # ServerConfigService auf dasselbe Verzeichnis zeigen lassen.
+    monkeypatch.setenv("DDC_CONFIG_DIR", str(config_dir))
 
     try:
         yield type("Leser", (), {

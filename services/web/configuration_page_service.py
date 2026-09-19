@@ -163,9 +163,9 @@ class ConfigurationPageService:
 
         # Load order values from container JSON files
         container_orders = {}
-        import os
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        containers_dir = Path(base_dir) / "config" / "containers"
+        # DDC_CONFIG_DIR via utils/config_paths.py - see there (split config, SPEC.md Z2).
+        from utils.config_paths import get_config_dir
+        containers_dir = get_config_dir() / "containers"
         if containers_dir.exists():
             for container_file in containers_dir.glob("*.json"):
                 try:

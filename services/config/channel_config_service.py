@@ -37,8 +37,10 @@ class ChannelConfigService:
         """Initialize the ChannelConfigService."""
         # Robust absolute path relative to project root (3 levels up from services/config/channel_config_service.py)
         self.base_dir = Path(__file__).parents[2]
-        self.channels_dir = self.base_dir / 'config' / 'channels'
-        self.config_file = self.base_dir / 'config' / 'config.json'
+        # DDC_CONFIG_DIR via utils/config_paths.py - see there (split config, SPEC.md Z2).
+        from utils.config_paths import get_config_dir
+        self.channels_dir = get_config_dir() / 'channels'
+        self.config_file = get_config_dir() / 'config.json'
 
         # Ensure channels directory exists
         self.channels_dir.mkdir(parents=True, exist_ok=True)
