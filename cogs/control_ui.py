@@ -937,8 +937,12 @@ class ControlView(View):
         display_name = server_config.get('name', docker_name)
 
         # Check for pending status (simple read in __init__, race acceptable here)
-        # Lock not used because __init__ is synchronous and only reads
-        is_pending = display_name in self.cog.pending_actions
+        # Lock not used because __init__ is synchronous and only reads.
+        # Keyed by DOCKER name like every writer of pending_actions. This read the
+        # display name, so for "V-Rising"/"vrising" the admin panel - which builds
+        # this view without a pending check of its own - offered start/stop while an
+        # action was still running: a second Docker action in parallel (review A2).
+        is_pending = docker_name in self.cog.pending_actions
 
         if is_pending:
             logger.debug(f"[ControlView] Server '{display_name}' is pending. No buttons will be added.")
