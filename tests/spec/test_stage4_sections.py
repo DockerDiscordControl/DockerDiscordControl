@@ -5,13 +5,13 @@ NO ``@covers`` marker: that would be a new guarantee, and those are the
 operator's decision.
 
 WHAT THIS IS ABOUT: stage 4 requires a review with verifiable coverage.
-For that, the application code is split in ``docs/quality/ABSCHNITTE.txt`` into
+For that, the application code is split in ``docs/quality/SECTIONS.txt`` into
 sections of at most 2000 lines. The proof is only worth as much as the
 guarantee that this list REALLY covers the tree completely - otherwise a
 section is overlooked and nobody notices.
 
 THE TRAP AVOIDED HERE: expectation and claim must not come from the same
-source. The **claim** is ABSCHNITTE.txt. The **expectation** is the tree
+source. The **claim** is SECTIONS.txt. The **expectation** is the tree
 itself - all ``.py`` under cogs/, services/, app/, utils/ with their real line
 counts. Deriving both from the section file would be a mirror test; exactly
 such a one slipped past me today in the wiring test and stayed green with the
@@ -19,7 +19,7 @@ CSRF protection removed.
 
 COUNTER-CHECK (carried out 2026-09-17): this test is green from the start - the
 guarantee does hold right now. Its value therefore depends entirely on whether
-it can bite at all. Four mutations of ABSCHNITTE.txt, each on its own::
+it can bite at all. Four mutations of SECTIONS.txt, each on its own::
 
     file removed from the list          -> 1 failed
     gap torn open (range from 5)        -> 1 failed
@@ -48,7 +48,7 @@ from pathlib import Path
 import pytest
 
 PROJECT = Path(__file__).resolve().parents[2]
-SECTIONS = PROJECT / "docs" / "quality" / "ABSCHNITTE.txt"
+SECTIONS = PROJECT / "docs" / "quality" / "SECTIONS.txt"
 DIRECTORIES = ("cogs", "services", "app", "utils")
 LIMIT = 2000
 
@@ -56,11 +56,11 @@ LINE = re.compile(r"^(?P<path>[^:#]+\.py):(?P<start>\d+)-(?P<end>\d+)\s*$")
 
 
 def _claim():
-    """What ABSCHNITTE.txt claims: {path: [(start, end), ...]}, plus section sizes."""
+    """What SECTIONS.txt claims: {path: [(start, end), ...]}, plus section sizes."""
     pieces = defaultdict(list)
     sizes, current = [], 0
     for line in SECTIONS.read_text(encoding="utf-8").splitlines():
-        if line.startswith("## Abschnitt"):
+        if line.startswith("## Section"):
             if current:
                 sizes.append(current)
             current = 0

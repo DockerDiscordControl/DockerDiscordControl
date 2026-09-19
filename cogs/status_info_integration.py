@@ -35,7 +35,7 @@ async def container_logs_text(container_name: str) -> str:
     Stood twice, character for character, as a method on LiveLogView and on
     DebugLogsButton. Both used nothing but ``self.container_name``, so the copy
     had no reason beyond convenience - and a copy is a correction that only ever
-    lands in one place. See docs/quality/STUFE0_BESTANDSAUFNAHME.md section 7.
+    lands in one place. See docs/quality/STAGE0_INVENTORY.md section 7.
     """
     try:
         import docker

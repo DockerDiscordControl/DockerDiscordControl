@@ -1,13 +1,13 @@
-# Stufe 4 - Pruefplan je Abschnitt
+# Stage 4 - check plan per section
 #
-# Fuer jeden Abschnitt die oeffentlichen Namen oberster Ebene, die bei einer
-# Durchsicht einzeln zu beurteilen WAEREN.
+# For every section the public top-level names that a review WOULD have to
+# judge one by one.
 #
-# DIESER PLAN IST EINE AUFGABENLISTE, KEIN NACHWEIS. Kein Haken bedeutet:
-# nicht beurteilt. Stand 2026-09-17 ist KEIN Abschnitt systematisch
-# durchgelesen - siehe STUFE4_DURCHSICHT.md, Abschnitt 'Was NICHT geprueft wurde'.
+# THIS PLAN IS A TO-DO LIST, NOT EVIDENCE. No tick means: not judged. As of
+# 2026-09-17 NO section has been read systematically - see STAGE4_REVIEW.md,
+# section 'What was NOT checked'.
 
-## Abschnitt 01  (1472 Zeilen, 33 oeffentliche Namen)
+## Section 01  (1472 lines, 33 public names)
 [ ] admin_overview.py:39 AdminOverviewView
 [ ] admin_overview.py:54 AdminOverviewAdminButton
 [ ] admin_overview.py:156 AdminOverviewRestartAllButton
@@ -42,7 +42,7 @@
 [ ] control_helpers.py:38 container_select
 [ ] control_helpers.py:155 validate_custom_address
 
-## Abschnitt 02  (1848 Zeilen, 27 oeffentliche Namen)
+## Section 02  (1848 lines, 27 public names)
 [ ] control_ui.py:246 ActionButton
 [ ] control_ui.py:634 ToggleButton
 [ ] control_ui.py:870 ControlView
@@ -71,7 +71,7 @@
 [ ] control_ui.py:1800 get_sort_key
 [ ] control_ui.py:461 update_all_views
 
-## Abschnitt 03  (1445 Zeilen, 30 oeffentliche Namen)
+## Section 03  (1445 lines, 30 public names)
 [ ] control_ui.py:1849 AdminContainerDropdown
 [ ] control_ui.py:2033 HelpButton
 [ ] control_ui.py:2111 MechDetailsButton
@@ -103,7 +103,7 @@
 [ ] control_ui.py:3267 callback
 [ ] control_ui.py:1866 get_order_key
 
-## Abschnitt 04  (1932 Zeilen, 12 oeffentliche Namen)
+## Section 04  (1932 lines, 12 public names)
 [ ] docker_control.py:83 DockerControlCog
 [ ] docker_control.py:320 config
 [ ] docker_control.py:338 on_ready
@@ -117,7 +117,7 @@
 [ ] docker_control.py:1927 ss
 [ ] docker_control.py:663 send_initial_after_delay
 
-## Abschnitt 05  (1900 Zeilen, 14 oeffentliche Namen)
+## Section 05  (1900 lines, 14 public names)
 [ ] docker_control.py:1933 control
 [ ] docker_control.py:2016 addadmin
 [ ] docker_control.py:2072 help_command
@@ -133,7 +133,7 @@
 [ ] docker_control.py:3729 initial_animation_cache_warmup
 [ ] docker_control.py:3826 before_initial_animation_cache_warmup
 
-## Abschnitt 06  (1423 Zeilen, 24 oeffentliche Namen)
+## Section 06  (1423 lines, 24 public names)
 [ ] docker_control.py:4569 DonationView
 [ ] docker_control.py:4655 DonationBroadcastModal
 [ ] docker_control.py:5027 AddAdminModal
@@ -159,7 +159,7 @@
 [ ] docker_control.py:4520 PersistentMechSelectionView
 [ ] docker_control.py:4532 PersistentMechStoryView
 
-## Abschnitt 07  (1391 Zeilen, 7 oeffentliche Namen)
+## Section 07  (1391 lines, 7 public names)
 [ ] enhanced_info_modal_simple.py:28 SimplifiedContainerInfoModal
 [ ] enhanced_info_modal_simple.py:300 ProtectedInfoModal
 [ ] enhanced_info_modal_simple.py:490 PasswordValidationModal
@@ -168,7 +168,7 @@
 [ ] enhanced_info_modal_simple.py:515 callback
 [ ] scheduler_commands.py:59 ScheduleCommandsMixin
 
-## Abschnitt 08  (1341 Zeilen, 6 oeffentliche Namen)
+## Section 08  (1341 lines, 6 public names)
 [ ] status_handlers.py:74 StatusHandlersMixin
 [ ] status_handlers.py:80 bulk_fetch_container_status
 [ ] status_handlers.py:478 bulk_update_status_cache
@@ -176,7 +176,7 @@
 [ ] status_handlers.py:1070 send_server_status
 [ ] status_handlers.py:150 fetch_fast_container
 
-## Abschnitt 09  (1970 Zeilen, 52 oeffentliche Namen)
+## Section 09  (1970 lines, 52 public names)
 [ ] status_info_integration.py:32 container_logs_text
 [ ] status_info_integration.py:77 ContainerInfoAdminView
 [ ] status_info_integration.py:143 ProtectedInfoEditButton
@@ -230,7 +230,7 @@
 [ ] status_info_integration.py:1958 callback
 [ ] status_info_integration.py:51 get_logs_sync
 
-## Abschnitt 10  (1877 Zeilen, 59 oeffentliche Namen)
+## Section 10  (1877 lines, 59 public names)
 [ ] status_info_integration.py:1971 YeardayDropdown
 [ ] status_info_integration.py:2077 ManualDateView
 [ ] status_info_integration.py:2093 DaySelectDropdown
@@ -291,7 +291,7 @@
 [ ] auto_action_config_service.py:645 update_global_settings
 [ ] auto_action_config_service.py:657 increment_trigger_count
 
-## Abschnitt 11  (1979 Zeilen, 38 oeffentliche Namen)
+## Section 11  (1979 lines, 38 public names)
 [ ] auto_action_state_service.py:24 TriggerEvent
 [ ] auto_action_state_service.py:37 AutoActionStateService
 [ ] auto_action_state_service.py:337 get_auto_action_state_service
@@ -331,7 +331,7 @@
 [ ] config_form_parser_service.py:232 find_duplicate_channel_ids
 [ ] config_form_parser_service.py:348 process_config_form
 
-## Abschnitt 12  (865 Zeilen, 29 oeffentliche Namen)
+## Section 12  (865 lines, 29 public names)
 [ ] config_loader_service.py:29 ConfigLoaderService
 [ ] config_loader_service.py:65 load_modular_config
 [ ] config_loader_service.py:73 legacy_settings_files
@@ -362,7 +362,7 @@
 [ ] config_migration_service.py:293 migrate_web_configs_to_files
 [ ] config_migration_service.py:316 migrate_legacy_v1_config_if_needed
 
-## Abschnitt 13  (1763 Zeilen, 50 oeffentliche Namen)
+## Section 13  (1763 lines, 50 public names)
 [ ] config_service.py:65 GetConfigRequest
 [ ] config_service.py:70 GetConfigResult
 [ ] config_service.py:77 ValidateDonationKeyRequest
@@ -414,7 +414,7 @@
 [ ] server_config_service.py:169 validate_server_config
 [ ] server_config_service.py:188 get_base_directory
 
-## Abschnitt 14  (1435 Zeilen, 43 oeffentliche Namen)
+## Section 14  (1435 lines, 43 public names)
 [ ] channel_cleanup_service.py:33 ChannelCleanupRequest
 [ ] channel_cleanup_service.py:59 ChannelCleanupResult
 [ ] channel_cleanup_service.py:78 ChannelCleanupService
@@ -459,7 +459,7 @@
 [ ] docker_action_service.py:256 docker_action_service_first
 [ ] docker_action_service.py:98 execute_docker_action
 
-## Abschnitt 15  (708 Zeilen, 14 oeffentliche Namen)
+## Section 15  (708 lines, 14 public names)
 [ ] docker_client_pool.py:36 DockerClientRequest
 [ ] docker_client_pool.py:44 DockerClientResult
 [ ] docker_client_pool.py:62 DockerPoolStatsRequest
@@ -475,7 +475,7 @@
 [ ] docker_client_pool.py:582 get_queue_stats
 [ ] docker_client_pool.py:592 close_all
 
-## Abschnitt 16  (1898 Zeilen, 35 oeffentliche Namen)
+## Section 16  (1898 lines, 35 public names)
 [ ] docker_utils.py:218 load_custom_timeout_config
 [ ] docker_utils.py:246 get_container_timeouts
 [ ] docker_utils.py:301 get_container_type_info
@@ -512,7 +512,7 @@
 [ ] fetch_service.py:221 set_query_cooldown
 [ ] fetch_service.py:231 clear_query_history
 
-## Abschnitt 17  (1720 Zeilen, 61 oeffentliche Namen)
+## Section 17  (1720 lines, 61 public names)
 [ ] models.py:22 PerformanceProfile
 [ ] models.py:63 PerformanceConfig
 [ ] models.py:79 StatusFetchRequest
@@ -575,7 +575,7 @@
 [ ] processors.py:44 execute_async_donation
 [ ] reset.py:26 reset_donations
 
-## Abschnitt 18  (1592 Zeilen, 88 oeffentliche Namen)
+## Section 18  (1592 lines, 88 public names)
 [ ] service.py:39 UnifiedDonationService
 [ ] service.py:390 get_unified_donation_service
 [ ] service.py:397 process_web_ui_donation
@@ -665,7 +665,7 @@
 [ ] container_info_service.py:208 delete_container_info
 [ ] container_info_service.py:269 list_all_containers
 
-## Abschnitt 19  (1884 Zeilen, 54 oeffentliche Namen)
+## Section 19  (1884 lines, 54 public names)
 [ ] container_status_service.py:31 ContainerStatusRequest
 [ ] container_status_service.py:39 ContainerBulkStatusRequest
 [ ] container_status_service.py:48 ContainerStatusResult
@@ -721,7 +721,7 @@
 [ ] game_query_service.py:435 resolve_query_target
 [ ] game_query_service.py:505 clear_cache
 
-## Abschnitt 20  (843 Zeilen, 40 oeffentliche Namen)
+## Section 20  (843 lines, 40 public names)
 [ ] game_query_support_service.py:79 read_support_verdicts
 [ ] game_query_support_service.py:103 set_testing
 [ ] game_query_support_service.py:112 record_manual_success
@@ -763,7 +763,7 @@
 [ ] update_notifier.py:86 create_update_embed
 [ ] update_notifier.py:131 send_update_notification
 
-## Abschnitt 21  (1813 Zeilen, 26 oeffentliche Namen)
+## Section 21  (1813 lines, 26 public names)
 [ ] animation_cache_service.py:35 MechAnimationRequest
 [ ] animation_cache_service.py:50 MechAnimationResult
 [ ] animation_cache_service.py:75 AnimationCacheService
@@ -791,7 +791,7 @@
 [ ] animation_cache_service.py:1590 get_status_overview_animation
 [ ] animation_cache_service.py:1733 get_discord_optimized_animation
 
-## Abschnitt 22  (1935 Zeilen, 55 oeffentliche Namen)
+## Section 22  (1935 lines, 55 public names)
 [ ] mech_data_store.py:41 BarsCompat
 [ ] mech_data_store.py:54 MechDataRequest
 [ ] mech_data_store.py:63 LevelDataRequest
@@ -848,7 +848,7 @@
 [ ] mech_high_res_service.py:56 get_mech_resolution_info
 [ ] mech_high_res_service.py:208 get_canvas_size_for_resolution
 
-## Abschnitt 23  (1913 Zeilen, 75 oeffentliche Namen)
+## Section 23  (1913 lines, 75 public names)
 [ ] mech_reset_service.py:30 ResetResult
 [ ] mech_reset_service.py:36 MechResetService
 [ ] mech_reset_service.py:338 get_mech_reset_service
@@ -925,7 +925,7 @@
 [ ] progress_paths.py:44 from_base_dir
 [ ] progress_paths.py:87 snapshot_for
 
-## Abschnitt 24  (1978 Zeilen, 46 oeffentliche Namen)
+## Section 24  (1978 lines, 46 public names)
 [ ] progress_service.py:119 load_config
 [ ] progress_service.py:138 Snapshot
 [ ] progress_service.py:174 Event
@@ -973,7 +973,7 @@
 [ ] speed_levels.py:292 get_speed_level_for_state
 [ ] speed_levels.py:310 get_combined_mech_status
 
-## Abschnitt 25  (964 Zeilen, 43 oeffentliche Namen)
+## Section 25  (964 lines, 43 public names)
 [ ] service.py:36 MemberCountService
 [ ] service.py:278 get_member_count_service
 [ ] service.py:285 reset_member_count_service
@@ -1018,7 +1018,7 @@
 [ ] schedule_helpers.py:149 handle_schedule_command_error
 [ ] schedule_helpers.py:161 create_task_success_message
 
-## Abschnitt 26  (1995 Zeilen, 29 oeffentliche Namen)
+## Section 26  (1995 lines, 29 public names)
 [ ] scheduler.py:46 initialize_logging
 [ ] scheduler.py:99 normalize_weekday
 [ ] scheduler.py:163 ScheduledTask
@@ -1049,7 +1049,7 @@
 [ ] scheduler.py:787 update_after_execution
 [ ] scheduler.py:818 get_second_sunday
 
-## Abschnitt 27  (1562 Zeilen, 51 oeffentliche Namen)
+## Section 27  (1562 lines, 51 public names)
 [ ] scheduler.py:1996 validate_new_task_input
 [ ] scheduler.py:2045 parse_time_string
 [ ] scheduler.py:2103 parse_month_string
@@ -1102,7 +1102,7 @@
 [ ] translation_config_service.py:574 get_source_channel_ids
 [ ] translation_config_service.py:582 get_target_channel_ids
 
-## Abschnitt 28  (1834 Zeilen, 39 oeffentliche Namen)
+## Section 28  (1834 lines, 39 public names)
 [ ] translation_service.py:54 TranslationContext
 [ ] translation_service.py:81 TranslationResult
 [ ] translation_service.py:115 TranslationProvider
@@ -1143,7 +1143,7 @@
 [ ] configuration_save_service.py:522 get_configuration_save_service
 [ ] configuration_save_service.py:52 save_configuration
 
-## Abschnitt 29  (1793 Zeilen, 50 oeffentliche Namen)
+## Section 29  (1793 lines, 50 public names)
 [ ] container_log_service.py:26 LogType
 [ ] container_log_service.py:37 ContainerLogRequest
 [ ] container_log_service.py:44 FilteredLogRequest
@@ -1195,7 +1195,7 @@
 [ ] i18n_service.py:197 get_language_meta
 [ ] i18n_service.py:201 is_rtl
 
-## Abschnitt 30  (1812 Zeilen, 39 oeffentliche Namen)
+## Section 30  (1812 lines, 39 public names)
 [ ] mech_music_service.py:23 MechMusicRequest
 [ ] mech_music_service.py:29 MechMusicInfoRequest
 [ ] mech_music_service.py:35 MechMusicResult
@@ -1236,7 +1236,7 @@
 [ ] security_service.py:142 get_migration_help
 [ ] security_service.py:194 get_security_audit
 
-## Abschnitt 31  (1884 Zeilen, 51 oeffentliche Namen)
+## Section 31  (1884 lines, 51 public names)
 [ ] task_management_service.py:25 AddTaskRequest
 [ ] task_management_service.py:37 AddTaskResult
 [ ] task_management_service.py:46 ListTasksRequest
@@ -1289,7 +1289,7 @@
 [ ] log_routes.py:180 get_action_logs
 [ ] log_routes.py:213 get_action_logs_json
 
-## Abschnitt 32  (1976 Zeilen, 46 oeffentliche Namen)
+## Section 32  (1976 lines, 46 public names)
 [ ] main_routes.py:91 config_page
 [ ] main_routes.py:133 set_ui_language
 [ ] main_routes.py:149 save_config_api
@@ -1337,7 +1337,7 @@
 [ ] tasks_bp.py:195 delete_task_route
 [ ] tasks_bp.py:233 edit_task_route
 
-## Abschnitt 33  (1892 Zeilen, 49 oeffentliche Namen)
+## Section 33  (1892 lines, 49 public names)
 [ ] translation_routes.py:46 get_pairs
 [ ] translation_routes.py:59 create_pair
 [ ] translation_routes.py:74 update_pair
@@ -1388,7 +1388,7 @@
 [ ] container_info_web_handler.py:63 load_container_info_for_web
 [ ] container_info_web_handler.py:103 save_container_configs_from_web
 
-## Abschnitt 34  (1865 Zeilen, 34 oeffentliche Namen)
+## Section 34  (1865 lines, 34 public names)
 [ ] port_diagnostics.py:18 PortDiagnostics
 [ ] port_diagnostics.py:586 run_port_diagnostics
 [ ] port_diagnostics.py:592 log_port_diagnostics
@@ -1424,7 +1424,7 @@
 [ ] compat.py:72 safer_after_fork_in_child
 [ ] compat.py:90 runner
 
-## Abschnitt 35  (1936 Zeilen, 89 oeffentliche Namen)
+## Section 35  (1936 lines, 89 public names)
 [ ] config.py:125 resolve_secret_key
 [ ] config.py:143 build_config
 [ ] csrf.py:56 csrf_error_reason
@@ -1515,7 +1515,7 @@
 [ ] key_crypto.py:41 encrypt_key
 [ ] key_crypto.py:72 get_valid_donation_keys
 
-## Abschnitt 36  (1907 Zeilen, 68 oeffentliche Namen)
+## Section 36  (1907 lines, 68 public names)
 [ ] logging_utils.py:38 is_debug_mode_enabled
 [ ] logging_utils.py:109 DebugModeFilter
 [ ] logging_utils.py:133 TimezoneFormatter
@@ -1585,7 +1585,7 @@
 [ ] time_utils.py:314 get_log_timestamp
 [ ] time_utils.py:341 parse_timestamp
 
-## Abschnitt 37  (292 Zeilen, 7 oeffentliche Namen)
+## Section 37  (292 lines, 7 public names)
 [ ] token_security.py:48 TokenSecurityManager
 [ ] token_security.py:253 auto_encrypt_token_on_startup
 [ ] token_security.py:286 encrypt_existing_plaintext_token

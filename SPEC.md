@@ -15,7 +15,7 @@ Verhalten *widerlegen* kann, statt über Geschmack zu streiten.
 Eine Zusicherung sagt in einem Satz, was **nie** passieren darf oder **immer** gelten muss, sie
 lässt sich widerlegen, und sie bedeutet dem Nutzer etwas — nicht nur dem Entwickler.
 
-Grundlage ist die Bestandsaufnahme in [`docs/quality/STUFE0_BESTANDSAUFNAHME.md`](docs/quality/STUFE0_BESTANDSAUFNAHME.md).
+Grundlage ist die Bestandsaufnahme in [`docs/quality/STAGE0_INVENTORY.md`](docs/quality/STAGE0_INVENTORY.md).
 Die Spalte **Heute** ist bewusst unbequem: mehrere dieser Zusicherungen sind derzeit gebrochen.
 
 ---

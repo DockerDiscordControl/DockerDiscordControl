@@ -159,7 +159,7 @@ def validate_custom_address(address: str) -> bool:
     status_info_integration.py. A security check that exists twice gets
     corrected once - and the same shape caused a real Z5 break today: the task
     delete button existed twice and only one copy checked the channel
-    permission. See docs/quality/STUFE0_BESTANDSAUFNAHME.md section 7.
+    permission. See docs/quality/STAGE0_INVENTORY.md section 7.
     """
     import re
 

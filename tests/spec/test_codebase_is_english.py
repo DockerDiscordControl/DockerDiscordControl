@@ -70,11 +70,9 @@ STILL_GERMAN = {
     "docs/archive/proposals/FEATURE_IDEA_WARNING_SYSTEM.md": 10,
     "docs/archive/proposals/FEATURE_PLAN_AUTO_ACTIONS.md": 49,
     "docs/archive/proposals/HOT_RELOAD_PLAN.md": 26,
-    "docs/quality/ABSCHNITTE.txt": 5,
-    "docs/quality/PRUEFPLAN.txt": 3,
-    "docs/quality/STUFE0_BESTANDSAUFNAHME.md": 396,
-    "docs/quality/STUFE3_TESTS_DIE_NICHT_FEHLSCHLAGEN.md": 195,
-    "docs/quality/STUFE4_DURCHSICHT.md": 164,
+    "docs/quality/STAGE0_INVENTORY.md": 396,
+    "docs/quality/STAGE3_TESTS_THAT_CANNOT_FAIL.md": 195,
+    "docs/quality/STAGE4_REVIEW.md": 164,
 }
 
 

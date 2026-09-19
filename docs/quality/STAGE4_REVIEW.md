@@ -12,7 +12,7 @@ mit 1.513 Namen und keinem einzigen Haken. Ihn zu füllen, ohne die Namen gelese
 
 ## 1. Zuschnitt — steht
 
-37 Abschnitte, 190 Stücke, **61.252 von 61.252 Zeilen** in 185 Dateien (`docs/quality/ABSCHNITTE.txt`).
+37 Abschnitte, 190 Stücke, **61.252 von 61.252 Zeilen** in 185 Dateien (`docs/quality/SECTIONS.txt`).
 Geschnitten wird an Klassen- und Funktionsgrenzen, nicht willkürlich bei Zeile 2000: Ein Abschnitt
 soll am Stück lesbar sein.
 
@@ -39,7 +39,7 @@ Test — genau das, was der Programmtext ausschließt. Es ist eine Entscheidung 
 `tests/spec/test_stage4_sections.py` prüft: jede Quelldatei liegt in **genau einem** Abschnitt,
 lückenlos und überschneidungsfrei, kein Abschnitt über 2000 Zeilen.
 
-**Behauptung und Erwartung kommen aus verschiedenen Quellen** — die Behauptung aus `ABSCHNITTE.txt`,
+**Behauptung und Erwartung kommen aus verschiedenen Quellen** — die Behauptung aus `SECTIONS.txt`,
 die Erwartung aus dem Dateisystem. Zöge man beides aus der Abschnittsdatei, wäre es ein Spiegeltest;
 genau so einer ist beim Verdrahtungstest der Stufe 3 unterlaufen und blieb bei entferntem CSRF-Schutz
 grün.
@@ -59,7 +59,7 @@ Wiederhergestellt: 3 grün, Datei bitgleich zur Sicherung.
 
 ## 3. Prüfplan — Gerüst steht, kein einziger Haken
 
-`docs/quality/PRUEFPLAN.txt` listet je Abschnitt die öffentlichen Namen, die bei einer Durchsicht
+`docs/quality/CHECK_PLAN.txt` listet je Abschnitt die öffentlichen Namen, die bei einer Durchsicht
 einzeln zu beurteilen wären.
 
 Es sind **1.513 Namen** auf 37 Abschnitte, im Schnitt 41 je Abschnitt.

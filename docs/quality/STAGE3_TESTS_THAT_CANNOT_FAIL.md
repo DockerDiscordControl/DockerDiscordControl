@@ -112,7 +112,7 @@ besser aussieht. Sie sagt nur: grün beweist nichts.
 > zu Z7). Vier Mutationen, drei vermerkt — dieselbe Lücke, nur in der Dokumentation.
 >
 > Damit ist dies die sechste Zahl dieses Programms, die ich aus dem Gedächtnis statt aus einer
-> Messung übernommen hatte. Die fünf übrigen stehen in `STUFE0_BESTANDSAUFNAHME.md`.
+> Messung übernommen hatte. Die fünf übrigen stehen in `STAGE0_INVENTORY.md`.
 
 ---
 
@@ -227,7 +227,7 @@ aber nur fest, dass nichts fliegt — nie, ob das Wegräumen das **Richtige** ta
 Drei wurden vollständig gelesen, samt der Code-Stellen dahinter. **Ergebnis: keine der drei
 Code-Stellen rechtfertigt einen Eingriff.** Der Befund sind die Tests, nicht der Code. Details und
 die zwei Fehlreihungen, die mir dabei unterliefen, stehen in
-`STUFE0_BESTANDSAUFNAHME.md`, Abschnitt zum Zensus.
+`STAGE0_INVENTORY.md`, Abschnitt zum Zensus.
 
 ---
 

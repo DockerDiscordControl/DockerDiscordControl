@@ -89,7 +89,7 @@ def _load_timeout_from_config(config_key: str, env_key: str, default: str) -> fl
 #   3. WHEN the config is read depended on who imported first. That made two
 #      tests in tests/unit/audit_2026_09/test_r2_g5_mech.py pass in their group
 #      and fail alone - found by running all 127 test files in isolation.
-#      See docs/quality/STUFE3_TESTS_DIE_NICHT_FEHLSCHLAGEN.md.
+#      See docs/quality/STAGE3_TESTS_THAT_CANNOT_FAIL.md.
 #
 # Module-level __getattr__ (PEP 562) keeps every reader unchanged: the names
 # still resolve to floats, CONTAINER_TYPE_PATTERNS and DEFAULT_TIMEOUT_CONFIG

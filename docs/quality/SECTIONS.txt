@@ -1,46 +1,46 @@
-# Stufe 4 - Zuschnitt des Anwendungscodes in pruefbare Abschnitte
+# Stage 4 - the application code cut into reviewable sections
 #
-# Format je Zeile:  <pfad>:<erste>-<letzte>
-# Abschnitte sind durch '## Abschnitt NN' getrennt und umfassen hoechstens
-# 2000 Zeilen. Geschnitten wird an Klassen- und Funktionsgrenzen, bei zu
-# grossen Klassen an Methodengrenzen - ein Abschnitt soll am Stueck lesbar sein.
+# Format per line:  <path>:<first>-<last>
+# Sections are separated by '## Section NN' and span at most 2000 lines. Cuts
+# are made at class and function boundaries, for classes that are too large at
+# method boundaries - a section should be readable in one go.
 #
-# tests/spec/test_stage4_sections.py prueft: jede Quelldatei liegt in genau
-# einem Abschnitt, lueckenlos und ueberschneidungsfrei.
+# tests/spec/test_stage4_sections.py checks: every source file lies in exactly
+# one section, without gaps or overlaps.
 
-## Abschnitt 01  (1472 Zeilen, 5 Stuecke)
+## Section 01  (1472 lines, 5 pieces)
 cogs/__init__.py:1-7
 cogs/admin_overview.py:1-795
 cogs/auto_action_monitor.py:1-74
 cogs/autocomplete_handlers.py:1-408
 cogs/control_helpers.py:1-188
 
-## Abschnitt 02  (1902 Zeilen, 1 Stuecke)
+## Section 02  (1902 lines, 1 pieces)
 cogs/control_ui.py:1-1902
 
-## Abschnitt 03  (1554 Zeilen, 1 Stuecke)
+## Section 03  (1554 lines, 1 pieces)
 cogs/control_ui.py:1903-3456
 
-## Abschnitt 04  (1942 Zeilen, 1 Stuecke)
+## Section 04  (1942 lines, 1 pieces)
 cogs/docker_control.py:1-1942
 
-## Abschnitt 05  (1900 Zeilen, 1 Stuecke)
+## Section 05  (1900 lines, 1 pieces)
 cogs/docker_control.py:1943-3842
 
-## Abschnitt 06  (1423 Zeilen, 1 Stuecke)
+## Section 06  (1423 lines, 1 pieces)
 cogs/docker_control.py:3843-5265
 
-## Abschnitt 07  (1391 Zeilen, 2 Stuecke)
+## Section 07  (1391 lines, 2 pieces)
 cogs/enhanced_info_modal_simple.py:1-596
 cogs/scheduler_commands.py:1-795
 
-## Abschnitt 08  (1341 Zeilen, 1 Stuecke)
+## Section 08  (1341 lines, 1 pieces)
 cogs/status_handlers.py:1-1341
 
-## Abschnitt 09  (1971 Zeilen, 1 Stuecke)
+## Section 09  (1971 lines, 1 pieces)
 cogs/status_info_integration.py:1-1971
 
-## Abschnitt 10  (1890 Zeilen, 8 Stuecke)
+## Section 10  (1890 lines, 8 pieces)
 cogs/status_info_integration.py:1972-2591
 cogs/translation_manager.py:1-117
 cogs/translation_monitor.py:1-97
@@ -50,7 +50,7 @@ services/admin/admin_service.py:1-292
 services/automation/__init__.py:1-14
 services/automation/auto_action_config_service.py:1-694
 
-## Abschnitt 11  (1985 Zeilen, 6 Stuecke)
+## Section 11  (1985 lines, 6 pieces)
 services/automation/auto_action_state_service.py:1-345
 services/automation/automation_service.py:1-500
 services/config/__init__.py:1-16
@@ -58,18 +58,18 @@ services/config/channel_config_service.py:1-521
 services/config/config_cache_service.py:1-133
 services/config/config_form_parser_service.py:1-470
 
-## Abschnitt 12  (874 Zeilen, 2 Stuecke)
+## Section 12  (874 lines, 2 pieces)
 services/config/config_loader_service.py:1-468
 services/config/config_migration_service.py:1-406
 
-## Abschnitt 13  (1806 Zeilen, 5 Stuecke)
+## Section 13  (1806 lines, 5 pieces)
 services/config/config_service.py:1-1211
 services/config/config_validation_service.py:1-212
 services/config/container_config_save_service.py:1-150
 services/config/server_config_service.py:1-213
 services/discord/__init__.py:1-20
 
-## Abschnitt 14  (1435 Zeilen, 6 Stuecke)
+## Section 14  (1435 lines, 6 pieces)
 services/discord/channel_cleanup_service.py:1-443
 services/discord/conditional_update_cache_service.py:1-169
 services/discord/embed_helper_service.py:1-163
@@ -77,17 +77,17 @@ services/discord/status_overview_service.py:1-356
 services/docker_service/__init__.py:1-28
 services/docker_service/docker_action_service.py:1-276
 
-## Abschnitt 15  (708 Zeilen, 1 Stuecke)
+## Section 15  (708 lines, 1 pieces)
 services/docker_service/docker_client_pool.py:1-708
 
-## Abschnitt 16  (1901 Zeilen, 5 Stuecke)
+## Section 16  (1901 lines, 5 pieces)
 services/docker_service/docker_utils.py:1-1404
 services/docker_service/server_order.py:1-111
 services/docker_service/status_cache_runtime.py:1-101
 services/docker_status/__init__.py:1-34
 services/docker_status/fetch_service.py:1-251
 
-## Abschnitt 17  (1726 Zeilen, 13 Stuecke)
+## Section 17  (1726 lines, 13 pieces)
 services/docker_status/models.py:1-376
 services/docker_status/performance_service.py:1-234
 services/donation/__init__.py:1-24
@@ -102,7 +102,7 @@ services/donation/unified/models.py:1-97
 services/donation/unified/processors.py:1-61
 services/donation/unified/reset.py:1-174
 
-## Abschnitt 18  (1593 Zeilen, 8 Stuecke)
+## Section 18  (1593 lines, 8 pieces)
 services/donation/unified/service.py:1-448
 services/donation/unified/validation.py:1-37
 services/donation/unified_donation_service.py:1-31
@@ -112,30 +112,30 @@ services/infrastructure/action_log_service.py:1-373
 services/infrastructure/action_logger.py:1-89
 services/infrastructure/container_info_service.py:1-316
 
-## Abschnitt 19  (1870 Zeilen, 5 Stuecke)
+## Section 19  (1870 lines, 5 pieces)
 services/infrastructure/container_status_service.py:1-816
 services/infrastructure/docker_connectivity_service.py:1-239
 services/infrastructure/dynamic_cooldown_manager.py:1-179
 services/infrastructure/event_manager.py:1-111
 services/infrastructure/game_query_service.py:1-525
 
-## Abschnitt 20  (1024 Zeilen, 4 Stuecke)
+## Section 20  (1024 lines, 4 pieces)
 services/infrastructure/game_query_support_service.py:1-277
 services/infrastructure/spam_protection_service.py:1-504
 services/infrastructure/update_notifier.py:1-213
 services/mech/__init__.py:1-30
 
-## Abschnitt 21  (1813 Zeilen, 1 Stuecke)
+## Section 21  (1813 lines, 1 pieces)
 services/mech/animation_cache_service.py:1-1813
 
-## Abschnitt 22  (1972 Zeilen, 5 Stuecke)
+## Section 22  (1972 lines, 5 pieces)
 services/mech/mech_data_store.py:1-886
 services/mech/mech_defaults.py:1-34
 services/mech/mech_display_cache_service.py:1-387
 services/mech/mech_evolutions.py:1-417
 services/mech/mech_high_res_service.py:1-248
 
-## Abschnitt 23  (1932 Zeilen, 10 Stuecke)
+## Section 23  (1932 lines, 10 pieces)
 services/mech/mech_reset_service.py:1-376
 services/mech/mech_service.py:1-32
 services/mech/mech_service_adapter.py:1-300
@@ -147,22 +147,22 @@ services/mech/progress/__init__.py:1-17
 services/mech/progress/runtime.py:1-153
 services/mech/progress_paths.py:1-188
 
-## Abschnitt 24  (1979 Zeilen, 3 Stuecke)
+## Section 24  (1979 lines, 3 pieces)
 services/mech/progress_service.py:1-1549
 services/mech/speed_levels.py:1-413
 services/member_count/__init__.py:1-17
 
-## Abschnitt 25  (968 Zeilen, 5 Stuecke)
+## Section 25  (968 lines, 5 pieces)
 services/member_count/service.py:1-287
 services/scheduling/__init__.py:1-36
 services/scheduling/donation_message_service.py:1-196
 services/scheduling/runtime.py:1-201
 services/scheduling/schedule_helpers.py:1-248
 
-## Abschnitt 26  (1995 Zeilen, 1 Stuecke)
+## Section 26  (1995 lines, 1 pieces)
 services/scheduling/scheduler.py:1-1995
 
-## Abschnitt 27  (1566 Zeilen, 6 Stuecke)
+## Section 27  (1566 lines, 6 pieces)
 services/scheduling/scheduler.py:1996-2165
 services/scheduling/scheduler_service.py:1-539
 services/status/__init__.py:1-13
@@ -170,13 +170,13 @@ services/status/status_cache_service.py:1-225
 services/translation/__init__.py:1-12
 services/translation/translation_config_service.py:1-607
 
-## Abschnitt 28  (1838 Zeilen, 4 Stuecke)
+## Section 28  (1838 lines, 4 pieces)
 services/translation/translation_service.py:1-741
 services/web/__init__.py:1-12
 services/web/configuration_page_service.py:1-554
 services/web/configuration_save_service.py:1-531
 
-## Abschnitt 29  (1815 Zeilen, 7 Stuecke)
+## Section 29  (1815 lines, 7 pieces)
 services/web/container_log_service.py:1-439
 services/web/container_refresh_service.py:1-201
 services/web/diagnostics_service.py:1-263
@@ -185,14 +185,14 @@ services/web/donation_status_service.py:1-245
 services/web/donation_tracking_service.py:1-163
 services/web/i18n_service.py:1-214
 
-## Abschnitt 30  (1812 Zeilen, 5 Stuecke)
+## Section 30  (1812 lines, 5 pieces)
 services/web/mech_music_service.py:1-224
 services/web/mech_status_details_service.py:1-401
 services/web/mech_web_service.py:1-676
 services/web/performance_stats_service.py:1-172
 services/web/security_service.py:1-339
 
-## Abschnitt 31  (1913 Zeilen, 6 Stuecke)
+## Section 31  (1913 lines, 6 pieces)
 services/web/task_management_service.py:1-1056
 app/__init__.py:1-13
 app/auth.py:1-249
@@ -200,12 +200,12 @@ app/blueprints/action_log_routes.py:1-86
 app/blueprints/automation_routes.py:1-267
 app/blueprints/log_routes.py:1-242
 
-## Abschnitt 32  (1976 Zeilen, 3 Stuecke)
+## Section 32  (1976 lines, 3 pieces)
 app/blueprints/main_routes.py:1-1483
 app/blueprints/security_routes.py:1-193
 app/blueprints/tasks_bp.py:1-300
 
-## Abschnitt 33  (1895 Zeilen, 25 Stuecke)
+## Section 33  (1895 lines, 25 pieces)
 app/blueprints/translation_routes.py:1-350
 app/bootstrap/__init__.py:1-34
 app/bootstrap/performance.py:1-55
@@ -232,7 +232,7 @@ app/constants.py:1-17
 app/utils/__init__.py:1-7
 app/utils/container_info_web_handler.py:1-256
 
-## Abschnitt 34  (1864 Zeilen, 9 Stuecke)
+## Section 34  (1864 lines, 9 pieces)
 app/utils/port_diagnostics.py:1-595
 app/utils/shared_data.py:1-97
 app/utils/web_helpers.py:1-861
@@ -243,7 +243,7 @@ app/web/background.py:1-85
 app/web/blueprints.py:1-31
 app/web/compat.py:1-102
 
-## Abschnitt 35  (1981 Zeilen, 17 Stuecke)
+## Section 35  (1981 lines, 17 pieces)
 app/web/config.py:1-169
 app/web/csrf.py:1-125
 app/web/diagnostics.py:1-30
@@ -262,12 +262,12 @@ utils/config_paths.py:1-47
 utils/import_utils.py:1-160
 utils/key_crypto.py:1-79
 
-## Abschnitt 36  (1907 Zeilen, 5 Stuecke)
+## Section 36  (1907 lines, 5 pieces)
 utils/logging_utils.py:1-467
 utils/observability.py:1-579
 utils/performance_metrics.py:1-389
 utils/settings.py:1-98
 utils/time_utils.py:1-374
 
-## Abschnitt 37  (318 Zeilen, 1 Stuecke)
+## Section 37  (318 lines, 1 pieces)
 utils/token_security.py:1-318
