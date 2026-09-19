@@ -491,27 +491,32 @@ class LiveLogView(discord.ui.View):
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
 
+        # Ueber den Dienst statt auf der Ansicht. Vorher lag der Zeitstempel
+        # unter button_refresh_<nutzer> in self._button_cooldowns - einem
+        # Woerterbuch, das die Ansicht sich selbst anlegte. Zwei Folgen:
+        # Die MINUTENGRENZE aus dem Panel wirkte hier nicht (sie zaehlt in
+        # add_user_cooldown, und dieser Weg kam dort nie an), und die Sperre
+        # starb mit der ANSICHT. Das wog hier besonders schwer, weil sich die
+        # Live-Log-Ansicht selbst erneuert (_start_auto_recreation baut sie
+        # 30 Sekunden vor dem Zeitablauf neu) - wer so lange wartete, war jede
+        # Abklingzeit los, ohne dass etwas davon sichtbar gewesen waere.
+        # Die Meldung war ausserdem unuebersetzt; benutzt wird jetzt der
+        # vorhandene Katalogeintrag. Abgewiesen wird ueber send_message, weil
+        # an dieser Stelle noch nicht bestaetigt wurde.
         if spam_manager.is_enabled():
-            cooldown_seconds = spam_manager.get_button_cooldown("live_refresh")
-            current_time = time.time()
-            cooldown_key = f"button_refresh_{interaction.user.id}"
-
-            # Simple cooldown tracking on the view
-            if not hasattr(self, '_button_cooldowns'):
-                self._button_cooldowns = {}
-
-            if cooldown_key in self._button_cooldowns:
-                last_use = self._button_cooldowns[cooldown_key]
-                if current_time - last_use < cooldown_seconds:
-                    remaining = cooldown_seconds - (current_time - last_use)
+            try:
+                if spam_manager.is_on_cooldown(interaction.user.id, "live_refresh"):
+                    remaining = spam_manager.get_remaining_cooldown(interaction.user.id, "live_refresh")
                     await interaction.response.send_message(
-                        f"⏰ Please wait {remaining:.1f} more seconds before refreshing again.",
+                        _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                            remaining=remaining
+                        ),
                         ephemeral=True
                     )
                     return
-
-            # Record button use
-            self._button_cooldowns[cooldown_key] = current_time
+                spam_manager.add_user_cooldown(interaction.user.id, "live_refresh")
+            except (RuntimeError, AttributeError, KeyError) as e:
+                logger.error(f"Spam protection error for live log refresh button: {e}", exc_info=True)
 
         try:
             # Immediately send response to avoid timeout
