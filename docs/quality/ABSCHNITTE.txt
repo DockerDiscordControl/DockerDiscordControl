@@ -21,14 +21,14 @@ cogs/control_ui.py:1-1899
 ## Abschnitt 03  (1496 Zeilen, 1 Stuecke)
 cogs/control_ui.py:1900-3395
 
-## Abschnitt 04  (1932 Zeilen, 1 Stuecke)
-cogs/docker_control.py:1-1932
+## Abschnitt 04  (1935 Zeilen, 1 Stuecke)
+cogs/docker_control.py:1-1935
 
 ## Abschnitt 05  (1900 Zeilen, 1 Stuecke)
-cogs/docker_control.py:1933-3832
+cogs/docker_control.py:1936-3835
 
 ## Abschnitt 06  (1423 Zeilen, 1 Stuecke)
-cogs/docker_control.py:3833-5255
+cogs/docker_control.py:3836-5258
 
 ## Abschnitt 07  (1391 Zeilen, 2 Stuecke)
 cogs/enhanced_info_modal_simple.py:1-596

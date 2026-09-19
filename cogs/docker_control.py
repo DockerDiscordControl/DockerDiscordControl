@@ -1723,33 +1723,36 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
 
+        # Ueber den Dienst, als BEFEHL ausgewiesen. Vorher fuehrte dieser Weg
+        # eine eigene Buchhaltung in einem Woerterbuch, das er VON AUSSEN an das
+        # Dienst-Objekt heftete (spam_manager._command_cooldowns): nie
+        # aufgeraeumt, dem Dienst unbekannt - und die Befehls-Minutengrenze aus
+        # dem Panel wirkte nicht, weil sie in add_user_cooldown zaehlt. Das war
+        # die letzte von dreizehn Stellen mit eigener Buchhaltung.
+        # art="befehl" gibt es seit Commit 8f47f7c; ohne sie teilten sich
+        # /info und der Info-Knopf einen Eimer.
+        # Ein Befehl mit Abklingzeit 0 hat keine Pause je Befehl, zaehlt aber
+        # ins Minutenfenster: "0" heisst nicht "von der Minutengrenze
+        # ausgenommen".
         if spam_manager.is_enabled():
-            cooldown_seconds = spam_manager.get_command_cooldown(command_name)
-            if cooldown_seconds > 0:
-                import time
-                current_time = time.time()
-                cooldown_key = f"cmd_{command_name}_{ctx.author.id}"
-
-                # Check if user is on cooldown
-                if hasattr(spam_manager, '_command_cooldowns'):
-                    last_use = spam_manager._command_cooldowns.get(cooldown_key, 0)
-                    if current_time - last_use < cooldown_seconds:
-                        remaining = int(cooldown_seconds - (current_time - last_use))
-                        try:
-                            # Check if we need to use followup (for commands that defer early)
-                            if command_name in ['donate', 'donatebroadcast', 'serverstatus', 'ss']:
-                                await ctx.followup.send(_("❌ Command on cooldown. Try again in {remaining} seconds.").format(remaining=remaining))
-                            else:
-                                await ctx.respond(_("❌ Command on cooldown. Try again in {remaining} seconds.").format(remaining=remaining), ephemeral=True)
-                        except (discord.errors.HTTPException, discord.errors.NotFound):
-                            # If response fails, still prevent command execution
-                            pass
-                        return False
-                else:
-                    spam_manager._command_cooldowns = {}
-
-                # Update cooldown
-                spam_manager._command_cooldowns[cooldown_key] = current_time
+            try:
+                if spam_manager.is_on_cooldown(ctx.author.id, command_name, art="befehl"):
+                    remaining = int(
+                        spam_manager.get_remaining_cooldown(ctx.author.id, command_name, art="befehl")
+                    )
+                    try:
+                        # Check if we need to use followup (for commands that defer early)
+                        if command_name in ['donate', 'donatebroadcast', 'serverstatus', 'ss']:
+                            await ctx.followup.send(_("❌ Command on cooldown. Try again in {remaining} seconds.").format(remaining=remaining))
+                        else:
+                            await ctx.respond(_("❌ Command on cooldown. Try again in {remaining} seconds.").format(remaining=remaining), ephemeral=True)
+                    except (discord.errors.HTTPException, discord.errors.NotFound):
+                        # If response fails, still prevent command execution
+                        pass
+                    return False
+                spam_manager.add_user_cooldown(ctx.author.id, command_name, art="befehl")
+            except (RuntimeError, AttributeError, KeyError) as e:
+                logger.error(f"Spam protection error for command '{command_name}': {e}", exc_info=True)
 
         return True
 
