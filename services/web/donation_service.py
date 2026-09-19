@@ -52,7 +52,11 @@ class DonationService:
     MAX_DONATION_AMOUNT = 999999.0
     MAX_DONOR_NAME_LENGTH = 50
     DONOR_NAME_PATTERN = r'[^a-zA-Z0-9\s\-_\.]'  # Remove anything not alphanumeric, space, dash, underscore, dot
-    NOTIFICATION_DIR = "/app/config"
+    # None = the config directory via utils/config_paths.py (DDC_CONFIG_DIR).
+    # Was hard-wired to "/app/config": blind to the variable, and outside the
+    # container creating it failed and the announcement was lost. Kept as a
+    # settable attribute - tests redirect it per instance.
+    NOTIFICATION_DIR = None
 
     def __init__(self):
         self.logger = logger
@@ -193,8 +197,10 @@ class DonationService:
             }
 
             # Write notification file that bot can pick up
-            os.makedirs(self.NOTIFICATION_DIR, exist_ok=True)
-            notification_file = f"{self.NOTIFICATION_DIR}/donation_notification.json"
+            from utils.config_paths import get_config_dir
+            notification_dir = self.NOTIFICATION_DIR or str(get_config_dir())
+            os.makedirs(notification_dir, exist_ok=True)
+            notification_file = f"{notification_dir}/donation_notification.json"
 
             # Atomar schreiben, nicht mit open(..., "w"): Diese Datei hat einen
             # NEBENLAEUFIGEN Leser. services/donation/notification_service.py:26

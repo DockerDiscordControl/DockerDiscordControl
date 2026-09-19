@@ -51,7 +51,6 @@ NOCH_OFFEN = {
     "app/utils/web_helpers.py": 1,
     "app/web/config.py": 3,
     "services/config/config_service.py": 2,
-    "services/donation/notification_service.py": 1,
     "services/infrastructure/container_status_service.py": 1,
     "services/infrastructure/game_query_support_service.py": 2,
     "services/infrastructure/spam_protection_service.py": 2,
@@ -62,7 +61,6 @@ NOCH_OFFEN = {
     "services/mech/progress_paths.py": 1,
     "services/mech/progress_service.py": 2,
     "services/mech/speed_levels.py": 1,
-    "services/web/donation_service.py": 1,
 }
 
 

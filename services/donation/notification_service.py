@@ -20,7 +20,13 @@ logger = logging.getLogger(__name__)
 class DonationNotificationService:
     """Service for checking and retrieving donation notifications."""
 
-    def __init__(self, notification_path: str = "/app/config/donation_notification.json"):
+    def __init__(self, notification_path: Optional[str] = None):
+        # Default via utils/config_paths.py (DDC_CONFIG_DIR) - the same place
+        # services/web/donation_service.py writes to. Was hard-wired to
+        # "/app/config/donation_notification.json".
+        if notification_path is None:
+            from utils.config_paths import get_config_dir
+            notification_path = str(get_config_dir() / "donation_notification.json")
         self.notification_file = Path(notification_path)
 
     def check_and_retrieve_notification(self) -> Optional[Dict[str, Any]]:
