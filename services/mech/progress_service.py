@@ -323,8 +323,11 @@ def _recover_corrupt_snapshot(mech_id: str, p: Path, error: Exception) -> Snapsh
     except OSError as move_error:
         logger.warning(f"Corrupted snapshot file detected ({error}); backup failed ({move_error}), "
                        f"rebuilding from events...")
-    # rebuild_from_events persists a fresh snapshot (replacing the corrupt file)
-    ProgressService(mech_id).rebuild_from_events()
+    # rebuild_from_events persists a fresh snapshot (replacing the corrupt file). A
+    # damaged log is allowed HERE only: the snapshot was just moved aside, so there is no
+    # good state the refusal could protect, and refusing left a level-1 mech with no
+    # donations at all (review A6). The readable events are the best state there is.
+    ProgressService(mech_id).rebuild_from_events(allow_damaged_log=True)
     try:
         with open(p, "r", encoding="utf-8") as f:
             return Snapshot.from_json(json.load(f))
@@ -1335,7 +1338,7 @@ class ProgressService:
             logger.info(f"Power gift granted: ${gift_dollars:.2f}")
             return compute_ui_state(snap), gift_dollars
 
-    def rebuild_from_events(self) -> ProgressState:
+    def rebuild_from_events(self, allow_damaged_log: bool = False) -> ProgressState:
         """
         Rebuild snapshot from scratch by replaying all events CHRONOLOGICALLY.
 
@@ -1355,7 +1358,13 @@ class ProgressService:
             events, damaged_lines = read_events(count_damaged=True)
             all_events = [e for e in events if e.mech_id == self.mech_id]
 
-            if damaged_lines:
+            if damaged_lines and allow_damaged_log:
+                logger.error(
+                    f"Rebuilding {self.mech_id} from a damaged event log: {damaged_lines} "
+                    f"unreadable line(s) in {EVENT_LOG.name} are skipped - there is no good "
+                    f"snapshot to keep. Repair or restore {EVENT_LOG.name} to recover them."
+                )
+            elif damaged_lines:
                 # A rebuild REPLACES the snapshot. With lines missing from the log the replay
                 # is incomplete (level, power and totals would silently drop), so keep the
                 # existing snapshot and let the caller work with it.
