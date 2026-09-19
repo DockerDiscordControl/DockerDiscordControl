@@ -2179,6 +2179,11 @@ class MechDetailsButton(Button):
         try:
             logger.info(f"Mech details requested by user {interaction.user.name} in channel {self.channel_id}")
 
+            # self.custom_id = mech_details_<kanal> -> Regler mech_details.
+            # Frueher ungebremst und ohne Regler; siehe _mechknopf_gebremst.
+            if await _mechknopf_gebremst(interaction, self.custom_id):
+                return
+
             # Defer the response as ephemeral (private message)
             await interaction.response.defer(ephemeral=True)
 

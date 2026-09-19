@@ -1316,6 +1316,7 @@
   "web.spam.button_live_refresh": "Livelogg-uppdatering",
   "web.spam.button_logs": "Livelogg-knapp",
   "web.spam.button_mech_collapse": "Mech-komprimering",
+  "web.spam.button_mech_details": "Mech Details",
   "web.spam.button_mech_display": "Mech-visning",
   "web.spam.button_mech_donate": "Mech-donation",
   "web.spam.button_mech_expand": "Mech-expandering",

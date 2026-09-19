@@ -1316,6 +1316,7 @@
   "web.spam.button_live_refresh": "Обновление живых логов",
   "web.spam.button_logs": "Кнопка живых логов",
   "web.spam.button_mech_collapse": "Свернуть Мех",
+  "web.spam.button_mech_details": "Mech Details",
   "web.spam.button_mech_display": "Отображение Мех-а",
   "web.spam.button_mech_donate": "Пожертвование Мех-у",
   "web.spam.button_mech_expand": "Развернуть Мех",

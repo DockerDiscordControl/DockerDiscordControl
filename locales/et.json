@@ -1316,6 +1316,7 @@
   "web.spam.button_live_refresh": "Reaalajas logide värskendamine",
   "web.spam.button_logs": "Reaalajas logide nupp",
   "web.spam.button_mech_collapse": "Mechi kokkuvoltimine",
+  "web.spam.button_mech_details": "Mech Details",
   "web.spam.button_mech_display": "Mechi kuvamine",
   "web.spam.button_mech_donate": "Mechi annetamine",
   "web.spam.button_mech_expand": "Mechi laiendamine",

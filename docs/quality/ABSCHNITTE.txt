@@ -18,8 +18,8 @@ cogs/control_helpers.py:1-188
 ## Abschnitt 02  (1899 Zeilen, 1 Stuecke)
 cogs/control_ui.py:1-1899
 
-## Abschnitt 03  (1548 Zeilen, 1 Stuecke)
-cogs/control_ui.py:1900-3447
+## Abschnitt 03  (1553 Zeilen, 1 Stuecke)
+cogs/control_ui.py:1900-3452
 
 ## Abschnitt 04  (1935 Zeilen, 1 Stuecke)
 cogs/docker_control.py:1-1935
@@ -119,9 +119,9 @@ services/infrastructure/dynamic_cooldown_manager.py:1-179
 services/infrastructure/event_manager.py:1-111
 services/infrastructure/game_query_service.py:1-525
 
-## Abschnitt 20  (1006 Zeilen, 4 Stuecke)
+## Abschnitt 20  (1011 Zeilen, 4 Stuecke)
 services/infrastructure/game_query_support_service.py:1-278
-services/infrastructure/spam_protection_service.py:1-487
+services/infrastructure/spam_protection_service.py:1-492
 services/infrastructure/update_notifier.py:1-211
 services/mech/__init__.py:1-30
 

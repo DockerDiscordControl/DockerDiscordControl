@@ -1316,6 +1316,7 @@
   "web.spam.button_live_refresh": "실시간 로그 새로고침",
   "web.spam.button_logs": "실시간 로그 버튼",
   "web.spam.button_mech_collapse": "Mech 접기",
+  "web.spam.button_mech_details": "Mech Details",
   "web.spam.button_mech_display": "Mech 표시",
   "web.spam.button_mech_donate": "Mech 기부",
   "web.spam.button_mech_expand": "Mech 펼치기",

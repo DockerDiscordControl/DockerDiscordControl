@@ -1316,6 +1316,7 @@
   "web.spam.button_live_refresh": "Osvežitev dnevnikov v živo",
   "web.spam.button_logs": "Gumb za dnevnike v živo",
   "web.spam.button_mech_collapse": "Zapri Mecha",
+  "web.spam.button_mech_details": "Mech Details",
   "web.spam.button_mech_display": "Prikaz Mecha",
   "web.spam.button_mech_donate": "Doniraj Mechu",
   "web.spam.button_mech_expand": "Razširi Mecha",

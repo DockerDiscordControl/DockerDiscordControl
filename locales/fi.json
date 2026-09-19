@@ -1316,6 +1316,7 @@
   "web.spam.button_live_refresh": "Reaaliaikainen lokipäivitys",
   "web.spam.button_logs": "Reaaliaikainen lokipainike",
   "web.spam.button_mech_collapse": "Mech-pienennys",
+  "web.spam.button_mech_details": "Mech Details",
   "web.spam.button_mech_display": "Mech-näyttö",
   "web.spam.button_mech_donate": "Mech-lahjoitus",
   "web.spam.button_mech_expand": "Mech-laajennus",

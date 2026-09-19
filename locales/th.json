@@ -1316,6 +1316,7 @@
   "web.spam.button_live_refresh": "รีเฟรชบันทึกสด",
   "web.spam.button_logs": "ปุ่มบันทึกสด",
   "web.spam.button_mech_collapse": "ยุบ Mech",
+  "web.spam.button_mech_details": "Mech Details",
   "web.spam.button_mech_display": "แสดง Mech",
   "web.spam.button_mech_donate": "บริจาค Mech",
   "web.spam.button_mech_expand": "ขยาย Mech",

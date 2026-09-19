@@ -451,6 +451,11 @@ class SpamProtectionService:
                 "mech_collapse": 2,
                 "mech_donate": 10,
                 "mech_history": 5,
+                # MechDetailsButton bremste frueher gar nicht und hatte keinen
+                # Regler. 5 wie mech_history, dem verwandten privaten Blick -
+                # zugleich die Ersatzregel, der Eintrag macht den Wert also
+                # erst sichtbar und einstellbar.
+                "mech_details": 5,
                 "mech_display": 3,
                 "mech_story": 5,
                 "mech_music": 8

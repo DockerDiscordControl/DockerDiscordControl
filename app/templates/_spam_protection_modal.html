@@ -147,6 +147,10 @@
                                 <input type="number" class="form-control form-control-sm" id="button_mech_history" value="5" min="0" max="300">
                             </div>
                             <div class="col-md-4 mb-2">
+                                <label for="button_mech_details" class="form-label">{{ _t('web.spam.button_mech_details') }}</label>
+                                <input type="number" class="form-control form-control-sm" id="button_mech_details" value="5" min="0" max="300">
+                            </div>
+                            <div class="col-md-4 mb-2">
                                 <label for="button_mech_display" class="form-label">{{ _t('web.spam.button_mech_display') }}</label>
                                 <input type="number" class="form-control form-control-sm" id="button_mech_display" value="3" min="0" max="300">
                             </div>
@@ -265,6 +269,7 @@ function saveSpamProtection() {
             mech_collapse: parseInt(document.getElementById('button_mech_collapse').value),
             mech_donate: parseInt(document.getElementById('button_mech_donate').value),
             mech_history: parseInt(document.getElementById('button_mech_history').value),
+            mech_details: parseInt(document.getElementById('button_mech_details').value),
             mech_display: parseInt(document.getElementById('button_mech_display').value),
             mech_story: parseInt(document.getElementById('button_mech_story').value),
             mech_music: parseInt(document.getElementById('button_mech_music').value),

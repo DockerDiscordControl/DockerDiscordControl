@@ -1316,6 +1316,7 @@
   "web.spam.button_live_refresh": "Actualisation des journaux en direct",
   "web.spam.button_logs": "Bouton journaux en direct",
   "web.spam.button_mech_collapse": "Réduction du mech",
+  "web.spam.button_mech_details": "Mech Details",
   "web.spam.button_mech_display": "Affichage du mech",
   "web.spam.button_mech_donate": "Don mech",
   "web.spam.button_mech_expand": "Extension du mech",

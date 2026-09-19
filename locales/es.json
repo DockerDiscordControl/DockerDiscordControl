@@ -1316,6 +1316,7 @@
   "web.spam.button_live_refresh": "Actualización de registros en vivo",
   "web.spam.button_logs": "Botón de registros en vivo",
   "web.spam.button_mech_collapse": "Colapsar Mech",
+  "web.spam.button_mech_details": "Mech Details",
   "web.spam.button_mech_display": "Mostrar Mech",
   "web.spam.button_mech_donate": "Donar Mech",
   "web.spam.button_mech_expand": "Expandir Mech",
