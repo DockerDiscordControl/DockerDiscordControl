@@ -17,6 +17,9 @@ from services.exceptions import ConfigServiceError
 
 logger = logging.getLogger('ddc.config_form_parser')
 
+# The panel's channel table has at most this many rows (it numbers them from 1).
+MAX_CHANNEL_ROWS = 50
+
 
 class ConfigFormParserService:
     """
@@ -152,9 +155,13 @@ class ConfigFormParserService:
             default_commands: Default command permissions for this channel type
         """
         channels = {}
-        count = 1
 
-        while count <= 50:
+        # Every slot, not "until a gap": an empty row used to make this look ahead
+        # only NINE slots and stop otherwise. Rows deleted in the panel can leave a
+        # bigger gap, and the channels behind it never reached the parser - saving
+        # then deleted exactly their permission files (save_all_channels removes every
+        # <channel_id>.json that is not in the parsed set). Review B, section 11 F4.
+        for count in range(1, MAX_CHANNEL_ROWS + 1):
             channel_id_key = f'{prefix}_channel_id_{count}'
             raw = form_data.get(channel_id_key, '')
             channel_id = raw.strip() if isinstance(raw, str) else str(raw).strip()
@@ -162,19 +169,9 @@ class ConfigFormParserService:
             # Skip invalid Discord IDs (must be 17-19 digit numeric string)
             if channel_id and (not channel_id.isdigit() or not (17 <= len(channel_id) <= 19)):
                 logger.warning(f"Skipping invalid {prefix} channel ID: {channel_id}")
-                count += 1
                 continue
 
             if not channel_id:
-                # Check if there are more (non-sequential gaps from deleted rows)
-                found_more = False
-                for i in range(count + 1, count + 10):
-                    if form_data.get(f'{prefix}_channel_id_{i}'):
-                        count = i
-                        found_more = True
-                        break
-                if not found_more:
-                    break
                 continue
 
             # Build channel config
@@ -189,7 +186,6 @@ class ConfigFormParserService:
                 'inactivity_timeout_minutes': int(form_data.get(f'{prefix}_inactivity_timeout_{count}', 1) or 1)
             }
             channels[channel_id] = channel_config
-            count += 1
 
         return channels
 

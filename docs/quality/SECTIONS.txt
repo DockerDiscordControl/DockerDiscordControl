@@ -50,13 +50,13 @@ services/admin/admin_service.py:1-292
 services/automation/__init__.py:1-14
 services/automation/auto_action_config_service.py:1-727
 
-## Section 11  (1995 lines, 6 pieces)
+## Section 11  (1991 lines, 6 pieces)
 services/automation/auto_action_state_service.py:1-345
 services/automation/automation_service.py:1-510
 services/config/__init__.py:1-16
 services/config/channel_config_service.py:1-521
 services/config/config_cache_service.py:1-133
-services/config/config_form_parser_service.py:1-470
+services/config/config_form_parser_service.py:1-466
 
 ## Section 12  (874 lines, 2 pieces)
 services/config/config_loader_service.py:1-468

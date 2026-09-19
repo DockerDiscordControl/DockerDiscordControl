@@ -294,7 +294,7 @@
 [ ] services/automation/auto_action_config_service.py:694 AutoActionConfigService.increment_trigger_count
 [ ] services/automation/auto_action_config_service.py:722 get_auto_action_config_service
 
-## Section 11  (1995 lines, 38 public names)
+## Section 11  (1991 lines, 38 public names)
 [ ] services/automation/auto_action_state_service.py:24 TriggerEvent
 [ ] services/automation/auto_action_state_service.py:34 TriggerEvent.to_dict
 [ ] services/automation/auto_action_state_service.py:37 AutoActionStateService
@@ -328,11 +328,11 @@
 [ ] services/config/config_cache_service.py:96 ConfigCacheService.get_cached_token
 [ ] services/config/config_cache_service.py:115 ConfigCacheService.set_cached_token
 [ ] services/config/config_cache_service.py:129 ConfigCacheService.clear_token_cache
-[ ] services/config/config_form_parser_service.py:21 ConfigFormParserService
-[ ] services/config/config_form_parser_service.py:74 ConfigFormParserService.parse_servers_from_form
-[ ] services/config/config_form_parser_service.py:197 ConfigFormParserService.parse_channel_permissions_from_form
-[ ] services/config/config_form_parser_service.py:232 ConfigFormParserService.find_duplicate_channel_ids
-[ ] services/config/config_form_parser_service.py:348 ConfigFormParserService.process_config_form
+[ ] services/config/config_form_parser_service.py:24 ConfigFormParserService
+[ ] services/config/config_form_parser_service.py:77 ConfigFormParserService.parse_servers_from_form
+[ ] services/config/config_form_parser_service.py:193 ConfigFormParserService.parse_channel_permissions_from_form
+[ ] services/config/config_form_parser_service.py:228 ConfigFormParserService.find_duplicate_channel_ids
+[ ] services/config/config_form_parser_service.py:344 ConfigFormParserService.process_config_form
 
 ## Section 12  (874 lines, 29 public names)
 [ ] services/config/config_loader_service.py:29 ConfigLoaderService
