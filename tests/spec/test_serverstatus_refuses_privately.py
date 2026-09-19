@@ -33,6 +33,7 @@ import pytest
 
 from cogs.docker_control import DockerControlCog
 from services.infrastructure.spam_protection_service import SpamProtectionService
+from tests.spec import is_not_awaitable_error
 
 SPAM_PATH = "services.infrastructure.spam_protection_service.get_spam_protection_service"
 USER = 9955
@@ -79,7 +80,7 @@ async def _call(command, cog, ctx, service):
         except TypeError as e:
             # Only from deep AFTER brake and defer (cog methods on a
             # MagicMock). The tests assert POSITIVELY via the log.
-            if "can't be awaited" not in str(e):
+            if not is_not_awaitable_error(e):
                 raise
 
 

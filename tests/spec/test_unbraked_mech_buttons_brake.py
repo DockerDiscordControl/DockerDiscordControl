@@ -55,6 +55,7 @@ from cogs.control_ui import (EpilogueButton, MechDisplayButton, MechDonateButton
                              MechPrivateDonateButton, MechPrivateHistoryButton,
                              PlaySongButton, ReadStoryButton)
 from services.infrastructure.spam_protection_service import SpamProtectionService
+from tests.spec import is_not_awaitable_error
 
 SPAM_PATH = "services.infrastructure.spam_protection_service.get_spam_protection_service"
 USER = 5522
@@ -117,12 +118,12 @@ async def _press(button, service, disabled=False):
         try:
             await button.callback(interaction)
         except TypeError as e:
-            # ONLY "can't be awaited", from deep down AFTER the brake (cog methods
+            # ONLY the not-awaitable TypeError, from deep down AFTER the brake (cog methods
             # on a MagicMock) - reasoning as in
             # test_mech_buttons_brake_through_the_service.py. The tests then
             # assert POSITIVELY; an error in the brake would show up as an empty
             # recording.
-            if "can't be awaited" not in str(e):
+            if not is_not_awaitable_error(e):
                 raise
     return interaction
 

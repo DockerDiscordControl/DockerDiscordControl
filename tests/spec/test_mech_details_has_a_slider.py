@@ -31,6 +31,7 @@ import pytest
 
 from cogs.control_ui import MechDetailsButton
 from services.infrastructure.spam_protection_service import SpamProtectionService
+from tests.spec import is_not_awaitable_error
 
 PROJECT = Path(__file__).resolve().parents[2]
 TEMPLATE = PROJECT / "app" / "templates" / "_spam_protection_modal.html"
@@ -79,7 +80,7 @@ async def _press(service, cog=None):
             await button.callback(interaction)
         except TypeError as e:
             # Reasoning as in test_mech_buttons_brake_through_the_service.py.
-            if "can't be awaited" not in str(e):
+            if not is_not_awaitable_error(e):
                 raise
     return interaction
 

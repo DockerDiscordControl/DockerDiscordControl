@@ -62,6 +62,7 @@ import pytest
 
 from cogs.control_ui import MechCollapseButton, MechExpandButton, MechHistoryButton
 from services.infrastructure.spam_protection_service import SpamProtectionService
+from tests.spec import is_not_awaitable_error
 
 SPAM_PATH = "services.infrastructure.spam_protection_service.get_spam_protection_service"
 USER = 6644
@@ -142,7 +143,7 @@ async def _press(button, service):
             # POSITIVELY (asked/noted are filled, the refusal
             # was sent). A TypeError from the BRAKE would thus not be
             # hidden but visible as an empty recording.
-            if "can't be awaited" not in str(e):
+            if not is_not_awaitable_error(e):
                 raise
     return interaction
 
