@@ -2669,29 +2669,31 @@ class MechHistoryButton(Button):
             # Apply spam protection
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
+
+            # CRITICAL: Defer IMMEDIATELY to avoid "Unknown interaction" errors
+            # ROBUST: Handle interaction expiration (15 min timeout) gracefully
+            # Outside the spam block since 2026-09-20: it used to sit inside
+            # "if spam_service.is_enabled()", and everything below answers through
+            # followup, which needs this acknowledgement. With spam protection
+            # switched off the button failed on every press and the user saw
+            # Discord's "This interaction failed" (review B4). The comment here
+            # called that "current behaviour, a separate decision" - it was a bug.
+            try:
+                await interaction.response.defer(ephemeral=True)
+            except discord.NotFound as e:
+                if e.code == 10062:  # Unknown interaction (expired after 15 minutes)
+                    logger.info(f"⏱️ Mech History: Interaction expired (user waited >15 min). User: {interaction.user.name}")
+                    # Cannot respond - interaction is dead. User needs to re-open mech details
+                    return
+                else:
+                    raise  # Re-raise other NotFound errors
+
             if spam_service.is_enabled():
                 # self.custom_id, not "info" - see MechExpandButton: the
                 # mech_history slider in the panel (default 5) moved nothing;
                 # braking used the info slider (3).
                 # Through the service instead of an attribute on the button - same
-                # reason as in MechExpandButton. The defer section below stays
-                # unchanged: it sits in the middle of the brake block and is not
-                # incidental, and that it only runs with spam protection enabled
-                # is current behaviour - changing that would be a separate
-                # decision.
-
-                # CRITICAL: Defer IMMEDIATELY to avoid "Unknown interaction" errors
-                # ROBUST: Handle interaction expiration (15 min timeout) gracefully
-                try:
-                    await interaction.response.defer(ephemeral=True)
-                except discord.NotFound as e:
-                    if e.code == 10062:  # Unknown interaction (expired after 15 minutes)
-                        logger.info(f"⏱️ Mech History: Interaction expired (user waited >15 min). User: {interaction.user.name}")
-                        # Cannot respond - interaction is dead. User needs to re-open mech details
-                        return
-                    else:
-                        raise  # Re-raise other NotFound errors
-
+                # reason as in MechExpandButton.
                 try:
                     if spam_service.is_on_cooldown(interaction.user.id, self.custom_id):
                         remaining = spam_service.get_remaining_cooldown(interaction.user.id, self.custom_id)

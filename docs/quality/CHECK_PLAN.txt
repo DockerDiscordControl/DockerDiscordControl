@@ -73,7 +73,7 @@
 [ ] cogs/control_ui.py:1904 AdminButton.callback.get_sort_key
 [ ] cogs/control_ui.py:1941 AdminContainerSelectView
 
-## Section 03  (1554 lines, 30 public names)
+## Section 03  (1556 lines, 30 public names)
 [ ] cogs/control_ui.py:1952 AdminContainerDropdown
 [ ] cogs/control_ui.py:1969 AdminContainerDropdown.__init__.get_order_key
 [ ] cogs/control_ui.py:2012 AdminContainerDropdown.callback
@@ -89,21 +89,21 @@
 [ ] cogs/control_ui.py:2621 MechDonateButton.callback
 [ ] cogs/control_ui.py:2652 MechHistoryButton
 [ ] cogs/control_ui.py:2666 MechHistoryButton.callback
-[ ] cogs/control_ui.py:3026 MechSelectionView
-[ ] cogs/control_ui.py:3059 MechDisplayButton
-[ ] cogs/control_ui.py:3090 MechDisplayButton.callback
-[ ] cogs/control_ui.py:3188 EpilogueButton
-[ ] cogs/control_ui.py:3200 EpilogueButton.callback
-[ ] cogs/control_ui.py:3256 MechStoryView
-[ ] cogs/control_ui.py:3271 ReadStoryButton
-[ ] cogs/control_ui.py:3284 ReadStoryButton.callback
-[ ] cogs/control_ui.py:3354 PlaySongButton
-[ ] cogs/control_ui.py:3368 PlaySongButton.callback
-[ ] cogs/control_ui.py:3415 MechDetailsView
-[ ] cogs/control_ui.py:3428 MechPrivateDonateButton
-[ ] cogs/control_ui.py:3440 MechPrivateDonateButton.callback
-[ ] cogs/control_ui.py:3467 MechPrivateHistoryButton
-[ ] cogs/control_ui.py:3479 MechPrivateHistoryButton.callback
+[ ] cogs/control_ui.py:3028 MechSelectionView
+[ ] cogs/control_ui.py:3061 MechDisplayButton
+[ ] cogs/control_ui.py:3092 MechDisplayButton.callback
+[ ] cogs/control_ui.py:3190 EpilogueButton
+[ ] cogs/control_ui.py:3202 EpilogueButton.callback
+[ ] cogs/control_ui.py:3258 MechStoryView
+[ ] cogs/control_ui.py:3273 ReadStoryButton
+[ ] cogs/control_ui.py:3286 ReadStoryButton.callback
+[ ] cogs/control_ui.py:3356 PlaySongButton
+[ ] cogs/control_ui.py:3370 PlaySongButton.callback
+[ ] cogs/control_ui.py:3417 MechDetailsView
+[ ] cogs/control_ui.py:3430 MechPrivateDonateButton
+[ ] cogs/control_ui.py:3442 MechPrivateDonateButton.callback
+[ ] cogs/control_ui.py:3469 MechPrivateHistoryButton
+[ ] cogs/control_ui.py:3481 MechPrivateHistoryButton.callback
 
 ## Section 04  (1942 lines, 12 public names)
 [ ] cogs/docker_control.py:83 DockerControlCog
