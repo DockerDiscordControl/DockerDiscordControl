@@ -324,8 +324,11 @@ parsing with a fallback value. **Found and fixed:** the web-panel donation annou
 (`check_donation_notifications`) — after the notification file was consumed, an `AttributeError`
 was logged only at DEBUG, and any other exception type stopped the loop for good. *Covered by*
 `tests/spec/test_z8_web_donation_announcement_is_not_lost_silently.py`.
-**Still open:** `event_manager.py:78` catches only `RuntimeError` — any other exception in one
-listener skips the remaining listeners. **Not read one by one:** the DEBUG-only handlers were sorted
+**Also fixed:** `event_manager.py` caught only `RuntimeError` per listener — any other exception
+skipped the remaining listeners and flew back into the emitter. For `donation_completed` that is
+the donation service *after* the booking, which then reported `success=False`/`DATA_ERROR` for
+money that was in the ledger (Z3 in reverse; a donor told "failed" may pay twice). *Covered by*
+`tests/spec/test_z8_one_failing_listener_breaks_nothing_else.py`. **Not read one by one:** the DEBUG-only handlers were sorted
 by the calls in their `try` body, not each read in full. This guarantee is therefore **not**
 fulfilled everywhere — recorded so that it is not considered done.
 

@@ -75,7 +75,14 @@ class EventManager:
             for callback in self._listeners[event_type]:
                 try:
                     callback(event_data)
-                except (RuntimeError) as e:
+                except Exception as e:
+                    # Deliberately broad (SPEC.md Z8/Z3). Listeners are independent
+                    # of each other and of the emitter. This caught only
+                    # RuntimeError: any other type skipped the remaining listeners
+                    # and flew back into the emitter - for 'donation_completed'
+                    # that is the donation service AFTER the booking, which then
+                    # reported success=False/DATA_ERROR for money that was in the
+                    # ledger. One listener's failure is logged here and stays here.
                     self.logger.error(f"Error in event listener for {event_type}: {e}", exc_info=True)
 
         self.logger.debug(f"Event emitted: {event_type} from {source_service}")

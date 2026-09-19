@@ -112,11 +112,11 @@ services/infrastructure/action_log_service.py:1-373
 services/infrastructure/action_logger.py:1-89
 services/infrastructure/container_info_service.py:1-316
 
-## Section 19  (1870 lines, 5 pieces)
+## Section 19  (1877 lines, 5 pieces)
 services/infrastructure/container_status_service.py:1-816
 services/infrastructure/docker_connectivity_service.py:1-239
 services/infrastructure/dynamic_cooldown_manager.py:1-179
-services/infrastructure/event_manager.py:1-111
+services/infrastructure/event_manager.py:1-118
 services/infrastructure/game_query_service.py:1-525
 
 ## Section 20  (1024 lines, 4 pieces)
