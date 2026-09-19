@@ -158,8 +158,9 @@ class TestR55LegacyPlaintextToken:
         monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
         (tmp_path / "config").mkdir()
         (tmp_path / "config" / "bot_config.json").write_text(json.dumps({"bot_token": "legacy-plain"}))
-        # get_decrypted_bot_token resolves the config dir from Path(__file__).parents[2]
-        monkeypatch.setattr(bot_token, "__file__", str(tmp_path / "app" / "bot" / "token.py"))
+        # get_decrypted_bot_token reads utils.config_paths.get_config_dir()
+        # (DDC_CONFIG_DIR); this used to fake the module's __file__.
+        monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path / "config"))
         return tmp_path
 
     def _runtime(self, config, factory=None):

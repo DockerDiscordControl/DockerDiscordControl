@@ -48,7 +48,6 @@ MUSTER = (
 
 # Datei -> Zahl der heute noch abweichenden Zeilen. NUR SCHRUMPFEN LASSEN.
 NOCH_OFFEN = {
-    "app/bot/token.py": 1,
     "app/utils/web_helpers.py": 1,
     "app/web/config.py": 3,
     "services/automation/auto_action_config_service.py": 1,
@@ -71,7 +70,6 @@ NOCH_OFFEN = {
     "services/scheduling/runtime.py": 1,
     "services/translation/translation_config_service.py": 1,
     "services/web/donation_service.py": 1,
-    "utils/token_security.py": 4,
 }
 
 

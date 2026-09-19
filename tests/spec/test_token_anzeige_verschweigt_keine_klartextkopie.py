@@ -106,7 +106,6 @@ import json
 
 import pytest
 
-from utils import token_security as ts_mod
 from utils.token_security import TokenSecurityManager
 
 KLARTEXT_TOKEN = "MTIzNDU2Nzg5MDEyMzQ1Njc4.GaBcDe.ThisLooksLikeARealToken1234"
@@ -117,19 +116,15 @@ VERSCHLUESSELT = "gAAAAABmZ2VyeXRoaW5nSXNFbmNyeXB0ZWRIZXJlAAAA"
 def anlage(tmp_path, monkeypatch):
     """TokenSecurityManager auf ein Wegwerf-Verzeichnis zeigen lassen.
 
-    ``Path(__file__).parents[1] / "config"`` wird in der Funktion ausgewertet,
-    also reicht es, ``__file__`` des Moduls umzubiegen. Die Scheindatei muss
-    eine Ebene tief unter ``tmp_path`` liegen, damit ``parents[1]`` auf
-    ``tmp_path`` zeigt.
+    Ueber ``DDC_CONFIG_DIR``. Bis 2026-09-19 wurde hier ``__file__`` des Moduls
+    umgebogen, weil der Dienst das Verzeichnis selbst herleitete; seitdem liest
+    er utils.config_paths.get_config_dir() (test_konfigverzeichnis_token.py).
+    Als der Kniff nicht mehr griff, blieb test_die_gute_nachricht_bleibt
+    GRUEN, ohne etwas zu pruefen - die Umgebungsvariable allein erfuellt ihn.
     """
-    schein_verzeichnis = tmp_path / "utils"
-    schein_verzeichnis.mkdir()
-    schein_datei = schein_verzeichnis / "token_security.py"
-    schein_datei.write_text("# Platzhalter fuer den Test\n", encoding="utf-8")
-    monkeypatch.setattr(ts_mod, "__file__", str(schein_datei))
-
     config_dir = tmp_path / "config"
     config_dir.mkdir()
+    monkeypatch.setenv("DDC_CONFIG_DIR", str(config_dir))
 
     def bot_config_schreiben(token):
         (config_dir / "bot_config.json").write_text(

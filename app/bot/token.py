@@ -31,7 +31,10 @@ def get_decrypted_bot_token(runtime: BotRuntime) -> Optional[str]:
 
     logger.warning("⚠️  Environment variable DISCORD_BOT_TOKEN not found, falling back to config file")
 
-    config_dir = Path(__file__).resolve().parents[2] / "config"
+    # Via utils/config_paths.py (DDC_CONFIG_DIR), where config_service keeps
+    # bot_config.json - derived from __file__ before, blind to the variable.
+    from utils.config_paths import get_config_dir
+    config_dir = get_config_dir()
     bot_config_file = config_dir / "bot_config.json"
 
     # The token saved in the Web UI (config.json, decrypted by the config service)

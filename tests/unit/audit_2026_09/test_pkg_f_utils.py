@@ -103,13 +103,12 @@ class TestF2SecretKey:
 
 @pytest.fixture
 def ts_config_dir(tmp_path, monkeypatch):
-    import utils.token_security as ts
-
-    # Path(__file__).parents[1] / "config" -> tmp_path / "config"
-    monkeypatch.setattr(ts, "__file__", str(tmp_path / "utils" / "token_security.py"))
+    # token_security reads utils.config_paths.get_config_dir() (DDC_CONFIG_DIR);
+    # this used to fake the module's __file__ when it derived the path itself.
     monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
     cfg = tmp_path / "config"
     cfg.mkdir()
+    monkeypatch.setenv("DDC_CONFIG_DIR", str(cfg))
     return cfg
 
 

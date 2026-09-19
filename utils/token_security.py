@@ -67,11 +67,12 @@ class TokenSecurityManager:
             bool: True if encryption was successful or not needed, False if failed
         """
         try:
-            # Robust absolute path relative to project root
-            try:
-                config_dir = Path(__file__).parents[1] / "config"
-            except Exception:
-                config_dir = Path("config")
+            # Via utils/config_paths.py (DDC_CONFIG_DIR) - config_service writes
+            # bot_config.json/web_config.json there. Derived from __file__ before,
+            # this looked at the old place: with the files missing there, the
+            # migration reported "nothing to do" and the status "no token".
+            from utils.config_paths import get_config_dir
+            config_dir = get_config_dir()
 
             bot_config_file = config_dir / "bot_config.json"
             web_config_file = config_dir / "web_config.json"
@@ -163,12 +164,10 @@ class TokenSecurityManager:
                 # Klartext-Token in der Datei liegen konnte. Die Wertung bleibt
                 # unveraendert bei 40/40; hinzu kommt nur die Warnung unten.
 
-            # Check config files
-            # Robust absolute path relative to project root
-            try:
-                config_dir = Path(__file__).parents[1] / "config"
-            except Exception:
-                config_dir = Path("config")
+            # Check config files - via utils/config_paths.py, see
+            # encrypt_existing_plaintext_token.
+            from utils.config_paths import get_config_dir
+            config_dir = get_config_dir()
 
             bot_config_file = config_dir / "bot_config.json"
             web_config_file = config_dir / "web_config.json"

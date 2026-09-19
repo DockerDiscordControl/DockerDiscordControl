@@ -58,43 +58,14 @@ from utils.token_security import (
 @pytest.fixture
 def fake_config_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """
-    Creates a config/ dir under tmp_path and patches the Path used by
-    token_security so its ``Path(__file__).parents[1] / 'config'`` resolves
-    to this temp directory.
+    Creates a config/ dir under tmp_path and points token_security at it via
+    DDC_CONFIG_DIR. This used to replace the module's ``Path`` symbol, because
+    token_security derived ``Path(__file__).parents[1] / 'config'`` itself; it
+    now reads utils.config_paths.get_config_dir().
     """
     cfg = tmp_path / "config"
     cfg.mkdir()
-
-    real_path = Path
-
-    class _PatchedPath(type(real_path())):
-        # Pathlib uses concrete subclasses depending on platform; we only need
-        # to intercept ``Path(__file__).parents[1] / 'config'``. Easiest is to
-        # monkeypatch the symbol the module imported.
-        pass
-
-    # Replace the Path symbol inside token_security with a stub that, when
-    # called with the module's __file__, returns a path whose parents[1]
-    # points at tmp_path (so 'config' resolves to ``cfg``).
-    class _Stub:
-        def __init__(self, p):
-            self._p = real_path(p)
-
-        @property
-        def parents(self):
-            # parents[1] should be tmp_path
-            return [tmp_path / "fake0", tmp_path]
-
-        def __truediv__(self, other):
-            return self._p / other
-
-    def _factory(arg):
-        # When called with a string (e.g. "config" fallback) or with __file__
-        if isinstance(arg, str) and arg == "config":
-            return cfg
-        return _Stub(arg)
-
-    monkeypatch.setattr(token_security, "Path", _factory)
+    monkeypatch.setenv("DDC_CONFIG_DIR", str(cfg))
     return cfg
 
 

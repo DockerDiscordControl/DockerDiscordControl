@@ -204,7 +204,7 @@ app/blueprints/main_routes.py:1-1483
 app/blueprints/security_routes.py:1-193
 app/blueprints/tasks_bp.py:1-300
 
-## Abschnitt 33  (1892 Zeilen, 25 Stuecke)
+## Abschnitt 33  (1895 Zeilen, 25 Stuecke)
 app/blueprints/translation_routes.py:1-350
 app/bootstrap/__init__.py:1-34
 app/bootstrap/performance.py:1-55
@@ -226,7 +226,7 @@ app/bot/startup_steps/notifications.py:1-35
 app/bot/startup_steps/power.py:1-36
 app/bot/startup_steps/scheduler.py:1-27
 app/bot/startup_steps/sequence.py:1-25
-app/bot/token.py:1-98
+app/bot/token.py:1-101
 app/constants.py:1-17
 app/utils/__init__.py:1-7
 app/utils/container_info_web_handler.py:1-256
@@ -268,5 +268,5 @@ utils/performance_metrics.py:1-389
 utils/settings.py:1-98
 utils/time_utils.py:1-374
 
-## Abschnitt 37  (321 Zeilen, 1 Stuecke)
-utils/token_security.py:1-321
+## Abschnitt 37  (320 Zeilen, 1 Stuecke)
+utils/token_security.py:1-320

@@ -274,6 +274,12 @@ _ensure_pkg("app.bot")
 sys.modules["app.bot.runtime"] = _runtime_stub
 setattr(sys.modules["app.bot"], "runtime", _runtime_stub)
 
+# app.bot.token imports utils.config_paths at call time. The bare ``utils``
+# placeholder package above has no such module, so load the real source (it
+# only needs os and pathlib) the same way as the other modules here.
+_load_source("utils.config_paths", "utils/config_paths.py")
+
+
 # Load app.bot.token under its canonical name.
 def _load_token_module():
     src = PROJECT_ROOT / "app/bot/token.py"
@@ -1072,37 +1078,15 @@ class TestBotDependencies:
 # =============================================================================
 
 def _patch_token_config_dir(tmp_path: Path):
-    """Helper: patch ``bot_token.Path`` so config_dir resolves to tmp_path/config.
+    """Helper: point app/bot/token.py at tmp_path/config via DDC_CONFIG_DIR.
 
-    Returns a context manager.  The patched module behaviour:
-        Path(__file__).resolve().parents[2] / "config"  -> tmp_path / "config"
-    All other ``Path(...)`` calls in the module return real ``pathlib.Path``
-    instances so that ``.exists()``, ``.read_text()`` etc. work normally.
+    Returns a context manager. This used to replace ``bot_token.Path`` so that
+    ``Path(__file__).resolve().parents[2] / "config"`` landed in tmp_path; the
+    module now reads utils.config_paths.get_config_dir().
     """
-    real_path_cls = bot_token.Path
     config_dir = tmp_path / "config"
     config_dir.mkdir(exist_ok=True)
-
-    class _FakeFile:
-        """Sentinel returned by Path(__file__) so we can override .resolve()."""
-
-        def resolve(self):
-            return _FakeResolved()
-
-    class _FakeResolved:
-        @property
-        def parents(self):
-            # Return a list whose [2] element is tmp_path; / "config" then
-            # yields a real Path.
-            return [real_path_cls("/x"), real_path_cls("/x/y"), real_path_cls(str(tmp_path))]
-
-    def path_factory(*args, **kwargs):
-        # __file__ goes through here exactly once at function entry.
-        if args and isinstance(args[0], str) and args[0].endswith("token.py"):
-            return _FakeFile()
-        return real_path_cls(*args, **kwargs)
-
-    return patch.object(bot_token, "Path", side_effect=path_factory)
+    return patch.dict(os.environ, {"DDC_CONFIG_DIR": str(config_dir)})
 
 
 class TestBotToken:

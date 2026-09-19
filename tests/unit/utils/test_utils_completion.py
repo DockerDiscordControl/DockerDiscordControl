@@ -1175,26 +1175,9 @@ def test_encrypt_existing_plaintext_writes_when_encryption_returns_value(
     (cfg / "bot_config.json").write_text(json.dumps({"bot_token": "plain"}))
     (cfg / "web_config.json").write_text(json.dumps({"web_ui_password_hash": "ph"}))
 
-    class _Stub:
-        def __init__(self, p):
-            self._p = Path(p)
-
-        @property
-        def parents(self):
-            return [tmp_path / "fake0", tmp_path]
-
-        def __truediv__(self, other):
-            return self._p / other
-
-    def _path_factory(arg):
-        # The legacy fallback `Path("config")` returns the cfg directory.
-        if isinstance(arg, str) and arg == "config":
-            return cfg
-        # Otherwise return a stub whose parents[1] is tmp_path (so
-        # parents[1] / "config" resolves to the real cfg dir).
-        return _Stub(arg)
-
-    monkeypatch.setattr(ts, "Path", _path_factory)
+    # token_security reads utils.config_paths.get_config_dir(); this used to
+    # replace the module's Path symbol when it derived the directory itself.
+    monkeypatch.setenv("DDC_CONFIG_DIR", str(cfg))
 
     svc = MagicMock()
     svc.encrypt_token.return_value = "gAAAAA-encrypted-by-test"
@@ -1206,36 +1189,12 @@ def test_encrypt_existing_plaintext_writes_when_encryption_returns_value(
     assert new["bot_token"] == "gAAAAA-encrypted-by-test"
 
 
-def test_encrypt_existing_with_broken_path_uses_fallback(monkeypatch, tmp_path):
-    """Force Path(__file__) to raise so the except clause uses Path('config')."""
-    nonexistent = tmp_path / "definitely_does_not_exist"
-
-    def _path_factory(arg):
-        # Path(__file__) raises; fallback Path("config") returns a tmp dir that
-        # does not exist -> files-missing branch returns True.
-        if arg != "config":
-            raise RuntimeError("simulated parents failure")
-        return nonexistent
-
-    monkeypatch.setattr(ts, "Path", _path_factory)
-    mgr = ts.TokenSecurityManager(config_service=MagicMock())
-    assert mgr.encrypt_existing_plaintext_token() is True
-
-
-def test_verify_status_with_broken_path_uses_fallback(monkeypatch, tmp_path):
-    """Same fallback path covered for verify_token_encryption_status."""
-    nonexistent = tmp_path / "definitely_does_not_exist"
-
-    def _path_factory(arg):
-        if arg != "config":
-            raise RuntimeError("simulated parents failure")
-        return nonexistent
-
-    monkeypatch.setattr(ts, "Path", _path_factory)
-    monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
-    mgr = ts.TokenSecurityManager(config_service=MagicMock())
-    status = mgr.verify_token_encryption_status()
-    assert isinstance(status, dict)
+# test_encrypt_existing_with_broken_path_uses_fallback and
+# test_verify_status_with_broken_path_uses_fallback were removed on 2026-09-19:
+# they forced Path(__file__) to raise so the ``except`` branch fell back to
+# Path("config"). That branch no longer exists - the directory comes from
+# utils.config_paths.get_config_dir() - and both tests had become unable to
+# fail (they replaced a Path symbol the code no longer calls).
 
 
 def test_verify_status_handles_runtime_error_during_processing(monkeypatch):
@@ -1270,26 +1229,9 @@ def test_legacy_wrapper_encrypt_existing_runs_through(monkeypatch, tmp_path):
     cfg = tmp_path / "config"
     cfg.mkdir()
 
-    class _Stub:
-        def __init__(self, p):
-            self._p = Path(p)
-
-        @property
-        def parents(self):
-            return [tmp_path / "fake0", tmp_path]
-
-        def __truediv__(self, other):
-            return self._p / other
-
-    def _path_factory(arg):
-        # The legacy fallback `Path("config")` returns the cfg directory.
-        if isinstance(arg, str) and arg == "config":
-            return cfg
-        # Otherwise return a stub whose parents[1] is tmp_path (so
-        # parents[1] / "config" resolves to the real cfg dir).
-        return _Stub(arg)
-
-    monkeypatch.setattr(ts, "Path", _path_factory)
+    # token_security reads utils.config_paths.get_config_dir(); this used to
+    # replace the module's Path symbol when it derived the directory itself.
+    monkeypatch.setenv("DDC_CONFIG_DIR", str(cfg))
 
     # No bot_config.json exists -> returns True (no migration needed)
     assert ts.encrypt_existing_plaintext_token() is True

@@ -12,7 +12,7 @@ mit 1.513 Namen und keinem einzigen Haken. Ihn zu füllen, ohne die Namen gelese
 
 ## 1. Zuschnitt — steht
 
-37 Abschnitte, 189 Stücke, **61.185 von 61.185 Zeilen** in 184 Dateien (`docs/quality/ABSCHNITTE.txt`).
+37 Abschnitte, 189 Stücke, **61.187 von 61.187 Zeilen** in 184 Dateien (`docs/quality/ABSCHNITTE.txt`).
 Geschnitten wird an Klassen- und Funktionsgrenzen, nicht willkürlich bei Zeile 2000: Ein Abschnitt
 soll am Stück lesbar sein.
 
@@ -79,19 +79,19 @@ viel erreicht wurde", den der Programmtext ablehnt.
 
 | | Abschnitte | Zeilen |
 |---|---|---|
-| enthalten eine Datei, in der etwas geändert wurde | 29 | 48.675 (80 %) |
-| gar nicht berührt | **8** | **12.510 (20 %)** |
+| enthalten eine Datei, in der etwas geändert wurde | 30 | 50.569 (83 %) |
+| gar nicht berührt | **7** | **10.618 (17 %)** |
 
-Die Rechnung offen, damit sie nachprüfbar ist statt geglaubt: Die acht unberührten Abschnitte
-summieren sich gemessen auf 12.510 Zeilen; 61.185 − 12.510 = 48.675.
+Die Rechnung offen, damit sie nachprüfbar ist statt geglaubt: Die sieben unberührten Abschnitte
+summieren sich gemessen auf 10.618 Zeilen; 61.187 − 10.618 = 50.569.
 
-**Diese Zahl ist inzwischen fünfmal veraltet** — 12 Abschnitte mit 17.242 Zeilen, dann 11 mit
-15.479, dann 10 mit 14.636, dann 9 mit 14.344, jetzt 8 mit 12.510. Jede Korrektur verschiebt sie: **Abschnitt 13**
+**Diese Zahl ist inzwischen sechsmal veraltet** — 12 Abschnitte mit 17.242 Zeilen, dann 11 mit
+15.479, dann 10 mit 14.636, dann 9 mit 14.344, dann 8 mit 12.510, jetzt 7 mit 10.618. Jede Korrektur verschiebt sie: **Abschnitt 13**
 fiel mit `config_service.py` heraus, **Abschnitt 20** mit `update_notifier.py`, **Abschnitt 37**
-mit `token_security.py`, **Abschnitt 28** mit `configuration_save_service.py`. Das ist kein Mangel der Rechnung, sondern ihre Natur — und der Grund, sie
+mit `token_security.py`, **Abschnitt 28** mit `configuration_save_service.py`, **Abschnitt 33** mit `app/bot/token.py`. Das ist kein Mangel der Rechnung, sondern ihre Natur — und der Grund, sie
 am Ende zu messen statt sie mitzuführen.
 
-**Diese 80 % sind keine Abdeckung, und sie dürfen nicht als solche gelesen werden.** „Berührt" heißt:
+**Diese 83 % sind keine Abdeckung, und sie dürfen nicht als solche gelesen werden.** „Berührt" heißt:
 In diesem Abschnitt liegt eine Datei, in der eine einzelne Zeile geändert wurde. Das ist keine
 Durchsicht.
 
@@ -100,7 +100,7 @@ hat, waren gezielte Suchen nach benannten Mustern (nackte `except:`, Umgebungsle
 zeichengleiche Zwillinge, Aufrufstellen) und punktuelle Korrekturen. Diese Suchen waren mechanisch
 und vollständig — aber sie prüfen je eine Frage, nicht den Abschnitt.
 
-### Die acht nie berührten Abschnitte
+### Die sieben nie berührten Abschnitte
 
 | Abschnitt | Zeilen | Inhalt |
 |---|---|---|
@@ -111,7 +111,6 @@ und vollständig — aber sie prüfen je eine Frage, nicht den Abschnitt.
 | 21 | 1.813 | `animation_cache_service.py` |
 | 22 | 1.935 | `mech_data_store.py`, `mech_evolutions.py`, … |
 | 26 | 1.995 | `scheduler.py` |
-| 33 | 1.892 | `translation_routes.py`, `performance.py`, `runtime.py`, +21 |
 
 Auffällig darunter: **Abschnitt 26** (`scheduler.py` — die dokumentierte Z5-Ausnahme sitzt dort).
 Er wurde von einem zweiten Modell gelesen (Punkt 5), aber weiterhin nicht von mir — was dort steht,
@@ -258,9 +257,9 @@ dass sich eine Absicherung lohnte.
 
 ## 6. Was NICHT geprüft wurde
 
-- **Kein Abschnitt wurde systematisch durchgelesen.** Die 80 % „berührt" sagen darüber nichts.
+- **Kein Abschnitt wurde systematisch durchgelesen.** Die 83 % „berührt" sagen darüber nichts.
 - **Keiner der 1.513 Namen im Prüfplan ist beurteilt.**
-- **Die acht nie berührten Abschnitte** (12.510 Zeilen, 20 % des Baums) sind in diesem Programm
+- **Die sieben nie berührten Abschnitte** (10.618 Zeilen, 17 % des Baums) sind in diesem Programm
   ausschließlich von den mechanischen Suchen erfasst worden — nicht gelesen. Die Abschnitte 26 und
   37 hat ein zweites Modell gelesen, ich nicht.
 - ~~Der Verdacht auf Doppelausführung nach einem Absturz~~ und ~~die unbekannte Poll-Frequenz~~
