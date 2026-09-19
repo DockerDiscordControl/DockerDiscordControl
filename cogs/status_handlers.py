@@ -776,18 +776,19 @@ class StatusHandlersMixin:
         if status_result is None:
             # Check if we have cache age indicator to determine type of message
             if 'embed_cache_indicator' in locals() and 'loading' in embed_cache_indicator:
-                # Loading status
+                # Loading status. Plain lines, no box: this used to draw a
+                # ┌── │ └── frame inside a code block, which does not reflow and
+                # broke apart on a phone (same finding as the "processing"
+                # message in control_ui.py, 2026-09-19). The footer was a
+                # hard-coded English "Background data collection in progress".
                 embed = discord.Embed(
-                    description=_("""```
-┌── Loading Status ───────────
-│ 🔄 Fetching container data...
-│ ⏱️ Background process running
-│ 📊 Please wait for fresh data
-└─────────────────────────────
-```"""),
+                    title=f"🔄 {_('Loading Status')}",
+                    description=f"{_('Fetching container data...')}\n"
+                                f"⏱️ {_('Background process running')}\n"
+                                f"📊 {_('Please wait for fresh data')}",
                     color=0x3498db
                 )
-                embed.set_footer(text="Background data collection in progress • https://ddc.bot")
+                embed.set_footer(text="https://ddc.bot")
             else:
                 # Error status
                 embed = discord.Embed(
