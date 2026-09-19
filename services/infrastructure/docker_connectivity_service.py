@@ -47,6 +47,48 @@ class DockerErrorEmbedResult:
     footer_text: str = "No container operations available until resolved • https://ddc.bot"
     error: Optional[str] = None
 
+# Catalog source strings (English) for the connectivity error embed, per context:
+# (title, description with an {error} placeholder, footer). Translations are in
+# locales/*.json; keep the keys there in sync when changing a text here.
+_EMBED_TEXTS = {
+    "serverstatus": (
+        "🚨 Container Monitoring Unavailable",
+        "**Docker connectivity issue detected**\n\n"
+        "Unable to retrieve container status information.\n"
+        "Please contact the system administrator.\n\n"
+        "**Technical Details:** {error}\n\n"
+        "**System Administrator Actions Required:**\n"
+        "• Check Docker daemon status\n"
+        "• Verify DDC container configuration\n"
+        "• Restart DDC container if needed",
+        "No container information available • https://ddc.bot",
+    ),
+    "individual_container": (
+        "🚨 System Administrator Required",
+        "**Docker connectivity issue detected**\n\n"
+        "The container monitoring system cannot connect to Docker.\n"
+        "All container status information is unavailable.\n\n"
+        "**Technical Details:** {error}\n\n"
+        "**Required Action:**\n"
+        "• System administrator must fix Docker connectivity\n"
+        "• Check Docker daemon status\n"
+        "• Verify DDC container configuration\n"
+        "• Restart DDC container if needed",
+        "No container operations available until resolved • https://ddc.bot",
+    ),
+    "general": (
+        "🚨 Docker Connectivity Issue",
+        "**Docker connectivity problem detected**\n\n"
+        "**Technical Details:** {error}\n\n"
+        "**Administrator Actions Required:**\n"
+        "• Check Docker daemon status\n"
+        "• Verify container configuration\n"
+        "• Restart services if needed",
+        "System administrator intervention required • https://ddc.bot",
+    ),
+}
+
+
 class DockerConnectivityService:
     """Clean service for Docker connectivity checking and error handling."""
 
@@ -151,76 +193,17 @@ class DockerConnectivityService:
             DockerErrorEmbedResult with Discord embed data
         """
         try:
-            # Context-specific titles and descriptions
-            if request.context == 'serverstatus':
-                if request.language == 'en':
-                    title = "🚨 Container Monitoring Unavailable"
-                    description = ("**Docker connectivity issue detected**\n\n"
-                                 "Unable to retrieve container status information.\n"
-                                 "Please contact the system administrator.\n\n"
-                                 f"**Technical Details:** {request.error_message}\n\n"
-                                 "**System Administrator Actions Required:**\n"
-                                 "• Check Docker daemon status\n"
-                                 "• Verify DDC container configuration\n"
-                                 "• Restart DDC container if needed")
-                    footer_text = "No container information available • https://ddc.bot"
-                else:  # German (default)
-                    title = "🚨 Container-Überwachung nicht verfügbar"
-                    description = ("**Docker-Konnektivitätsproblem erkannt**\n\n"
-                                 "Container-Statusinformationen können nicht abgerufen werden.\n"
-                                 "Bitte kontaktieren Sie den Systemadministrator.\n\n"
-                                 f"**Technische Details:** {request.error_message}\n\n"
-                                 "**Erforderliche Maßnahmen für Systemadministrator:**\n"
-                                 "• Docker Daemon Status prüfen\n"
-                                 "• DDC Container-Konfiguration überprüfen\n"
-                                 "• DDC Container bei Bedarf neu starten")
-                    footer_text = "Keine Container-Informationen verfügbar • https://ddc.bot"
-
-            elif request.context == 'individual_container':
-                if request.language == 'en':
-                    title = "🚨 System Administrator Required"
-                    description = ("**Docker connectivity issue detected**\n\n"
-                                 "The container monitoring system cannot connect to Docker.\n"
-                                 "All container status information is unavailable.\n\n"
-                                 f"**Technical Details:** {request.error_message}\n\n"
-                                 "**Required Action:**\n"
-                                 "• System administrator must fix Docker connectivity\n"
-                                 "• Check Docker daemon status\n"
-                                 "• Verify DDC container configuration\n"
-                                 "• Restart DDC container if needed")
-                    footer_text = "No container operations available until resolved • https://ddc.bot"
-                else:  # German (default)
-                    title = "🚨 Systemadministrator erforderlich"
-                    description = ("**Docker-Konnektivitätsproblem erkannt**\n\n"
-                                 "Das Container-Überwachungssystem kann nicht mit Docker verbinden.\n"
-                                 "Alle Container-Statusinformationen sind nicht verfügbar.\n\n"
-                                 f"**Technische Details:** {request.error_message}\n\n"
-                                 "**Erforderliche Maßnahme:**\n"
-                                 "• Systemadministrator muss Docker-Konnektivität beheben\n"
-                                 "• Docker Daemon Status prüfen\n"
-                                 "• DDC Container-Konfiguration überprüfen\n"
-                                 "• DDC Container bei Bedarf neu starten")
-                    footer_text = "Keine Container-Operationen verfügbar bis zur Lösung • https://ddc.bot"
-
-            else:  # general context
-                if request.language == 'en':
-                    title = "🚨 Docker Connectivity Issue"
-                    description = ("**Docker connectivity problem detected**\n\n"
-                                 f"**Technical Details:** {request.error_message}\n\n"
-                                 "**Administrator Actions Required:**\n"
-                                 "• Check Docker daemon status\n"
-                                 "• Verify container configuration\n"
-                                 "• Restart services if needed")
-                    footer_text = "System administrator intervention required • https://ddc.bot"
-                else:  # German (default)
-                    title = "🚨 Docker-Konnektivitätsproblem"
-                    description = ("**Docker-Konnektivitätsproblem erkannt**\n\n"
-                                 f"**Technische Details:** {request.error_message}\n\n"
-                                 "**Erforderliche Administrator-Maßnahmen:**\n"
-                                 "• Docker Daemon Status prüfen\n"
-                                 "• Container-Konfiguration überprüfen\n"
-                                 "• Services bei Bedarf neu starten")
-                    footer_text = "Systemadministrator-Eingriff erforderlich • https://ddc.bot"
+            # English source strings, translated through the catalog in the
+            # server's language. Until 2026-09-19 there were two hard-wired
+            # variants: 'en' got English and EVERY other language got German, so
+            # French, Spanish, Japanese ... servers saw this error in German.
+            # German now lives in locales/de.json like every other translation.
+            from cogs.translation_manager import translation_manager
+            title, description, footer_text = _EMBED_TEXTS.get(request.context, _EMBED_TEXTS["general"])
+            title = translation_manager.translate(title, request.language)
+            description = translation_manager.translate(description, request.language).format(
+                error=request.error_message)
+            footer_text = translation_manager.translate(footer_text, request.language)
 
             return DockerErrorEmbedResult(
                 success=True,

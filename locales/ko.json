@@ -1,4 +1,13 @@
 {
+  "🚨 Container Monitoring Unavailable": "🚨 Container Monitoring Unavailable",
+  "**Docker connectivity issue detected**\n\nUnable to retrieve container status information.\nPlease contact the system administrator.\n\n**Technical Details:** {error}\n\n**System Administrator Actions Required:**\n• Check Docker daemon status\n• Verify DDC container configuration\n• Restart DDC container if needed": "**Docker connectivity issue detected**\n\nUnable to retrieve container status information.\nPlease contact the system administrator.\n\n**Technical Details:** {error}\n\n**System Administrator Actions Required:**\n• Check Docker daemon status\n• Verify DDC container configuration\n• Restart DDC container if needed",
+  "No container information available • https://ddc.bot": "No container information available • https://ddc.bot",
+  "🚨 System Administrator Required": "🚨 System Administrator Required",
+  "**Docker connectivity issue detected**\n\nThe container monitoring system cannot connect to Docker.\nAll container status information is unavailable.\n\n**Technical Details:** {error}\n\n**Required Action:**\n• System administrator must fix Docker connectivity\n• Check Docker daemon status\n• Verify DDC container configuration\n• Restart DDC container if needed": "**Docker connectivity issue detected**\n\nThe container monitoring system cannot connect to Docker.\nAll container status information is unavailable.\n\n**Technical Details:** {error}\n\n**Required Action:**\n• System administrator must fix Docker connectivity\n• Check Docker daemon status\n• Verify DDC container configuration\n• Restart DDC container if needed",
+  "No container operations available until resolved • https://ddc.bot": "No container operations available until resolved • https://ddc.bot",
+  "🚨 Docker Connectivity Issue": "🚨 Docker Connectivity Issue",
+  "**Docker connectivity problem detected**\n\n**Technical Details:** {error}\n\n**Administrator Actions Required:**\n• Check Docker daemon status\n• Verify container configuration\n• Restart services if needed": "**Docker connectivity problem detected**\n\n**Technical Details:** {error}\n\n**Administrator Actions Required:**\n• Check Docker daemon status\n• Verify container configuration\n• Restart services if needed",
+  "System administrator intervention required • https://ddc.bot": "System administrator intervention required • https://ddc.bot",
   "\nFailed: **{count}** containers": "\n실패: **{count}**개 컨테이너",
   "\n\nTip: Use format like: 10.50 or 5 ($ will be added automatically)": "\n\n팁: 10.50 또는 5와 같은 형식을 사용하세요 ($는 자동으로 추가됩니다)",
   "\nSkipped (action not allowed): **{count}** containers": "\n건너뜀 (허용되지 않은 작업): **{count}**개 컨테이너",

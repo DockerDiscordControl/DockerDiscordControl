@@ -17,6 +17,11 @@ are language DATA (``locales/``, the shipped German story in
 the repository at all - each exclusion is checked against ``.gitignore``, so an
 exclusion can never silently hide a published file.
 
+LANGUAGE DATA inside code (e.g. the German text a test expects from
+de.json) is exempt line by line with an explicit trailing ``# language data``
+marker. The marker only counts on a line that holds a string literal - it
+cannot silence German prose in a comment.
+
 THE LIMIT OF THE DETECTOR, stated plainly: it is a heuristic. A line counts
 as German when it holds at least two words from a German signal vocabulary
 (ALL-CAPS words such as "MIT" or "API" do not count), or one such word plus an
@@ -71,7 +76,6 @@ STILL_GERMAN = {
     "docs/quality/STUFE0_BESTANDSAUFNAHME.md": 396,
     "docs/quality/STUFE3_TESTS_DIE_NICHT_FEHLSCHLAGEN.md": 195,
     "docs/quality/STUFE4_DURCHSICHT.md": 164,
-    "services/infrastructure/docker_connectivity_service.py": 8,
     "tests/GROUPS.txt": 11,
     "tests/spec/__init__.py": 3,
     "tests/spec/test_angeforderte_abklingschluessel_existieren.py": 60,
@@ -142,6 +146,16 @@ STILL_GERMAN = {
 }
 
 
+DATA_MARKER = "# language data"
+_STRING = re.compile(r"""(['"]).*\1""")
+
+
+def is_exempt(line: str) -> bool:
+    """A string literal marked as language data - never a comment."""
+    code, sep, _rest = line.partition(DATA_MARKER)
+    return bool(sep) and bool(_STRING.search(code)) and not code.lstrip().startswith("#")
+
+
 def is_german(line: str) -> bool:
     words = [w.lower() for w in WORD.findall(line) if not w.isupper()]
     hits = sum(1 for w in words if w in SIGNAL)
@@ -170,7 +184,7 @@ def german_lines() -> dict:
             text = path.read_text(encoding="utf-8")
         except (UnicodeDecodeError, OSError):
             continue
-        count = sum(1 for line in text.splitlines() if is_german(line))
+        count = sum(1 for line in text.splitlines() if is_german(line) and not is_exempt(line))
         if count:
             found[rel] = count
     return found
@@ -195,6 +209,12 @@ def test_the_detector_finds_german(line):
 ])
 def test_the_detector_does_not_flag_english(line):
     assert not is_german(line), line
+
+
+def test_the_data_marker_only_exempts_string_literals():
+    assert is_exempt('    "de": "Nicht verfügbar",  # language data')
+    assert not is_exempt("    # Der Knopf ist nicht da  # language data")
+    assert not is_exempt("x = 1  # Der Knopf ist nicht da - language data")
 
 
 def test_private_exclusions_are_really_gitignored():
