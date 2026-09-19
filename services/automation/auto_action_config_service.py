@@ -199,6 +199,14 @@ def sanitize_string(value: str, max_length: int = 100) -> str:
     return clean[:max_length].strip()
 
 
+class ConfigUnreadable(RuntimeError):
+    """auto_actions.json exists but could not be read - never write over it."""
+
+
+UNREADABLE_MESSAGE = ("auto_actions.json could not be read; not overwriting it - "
+                      "repair or restore the file first")
+
+
 def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str] = None) -> Tuple[bool, str, List[str]]:
     """
     Comprehensive validation of rule data.
@@ -480,12 +488,27 @@ class AutoActionConfigService:
             self._save_config_file(default_config)
 
     def _load_config_file(self) -> Dict[str, Any]:
-        """Load raw JSON config from file."""
+        """Load raw JSON config from file.
+
+        An unreadable file raises ConfigUnreadable. It used to answer with an EMPTY
+        structure, which every writer then saved back over the file: one bad read
+        (a partial copy, a hand edit, disk trouble) wiped every rule the operator had
+        and reported success (review B, section 10 F1). Readers may fall back to
+        "no rules" - that only stops automation - but nothing may WRITE on top of a
+        configuration it could not read.
+        """
         try:
             with open(self.config_file, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except (json.JSONDecodeError, IOError) as e:
             logger.error(f"Error loading auto_actions.json: {e}")
+            raise ConfigUnreadable(str(e)) from e
+
+    def _load_for_reading(self) -> Dict[str, Any]:
+        """The configuration, or an empty one if it cannot be read (readers only)."""
+        try:
+            return self._load_config_file()
+        except ConfigUnreadable:
             return {"global_settings": {}, "auto_actions": []}
 
     def _save_config_file(self, data: Dict[str, Any]) -> bool:
@@ -520,7 +543,7 @@ class AutoActionConfigService:
 
     def get_rules(self) -> List[AutoActionRule]:
         """Get all configured rules as objects."""
-        data = self._load_config_file()
+        data = self._load_for_reading()
         rules = []
         for rule_data in data.get('auto_actions', []):
             try:
@@ -539,7 +562,7 @@ class AutoActionConfigService:
 
     def get_global_settings(self) -> Dict[str, Any]:
         """Get global AAS settings."""
-        data = self._load_config_file()
+        data = self._load_for_reading()
         return data.get('global_settings', {
             "enabled": True,
             "global_cooldown_seconds": 30,
@@ -550,7 +573,7 @@ class AutoActionConfigService:
         """Add a new rule with comprehensive validation."""
         try:
             # Get protected containers for validation warnings
-            config = self._load_config_file()
+            config = self._load_config_file()   # raises ConfigUnreadable - see below
             protected = config.get('global_settings', {}).get('protected_containers', [])
 
             # Validate rule data
@@ -583,6 +606,8 @@ class AutoActionConfigService:
             else:
                 return ConfigResult(success=False, error="Failed to save config file")
 
+        except ConfigUnreadable as e:
+            return ConfigResult(success=False, error=f"{UNREADABLE_MESSAGE}: {e}")
         except Exception as e:
             logger.error(f"AAS: Error adding rule: {e}")
             return ConfigResult(success=False, error=str(e))
@@ -628,13 +653,18 @@ class AutoActionConfigService:
             else:
                 return ConfigResult(success=False, error="Failed to save config file")
 
+        except ConfigUnreadable as e:
+            return ConfigResult(success=False, error=f"{UNREADABLE_MESSAGE}: {e}")
         except Exception as e:
             logger.error(f"AAS: Error updating rule {rule_id}: {e}")
             return ConfigResult(success=False, error=str(e))
 
     def delete_rule(self, rule_id: str) -> ConfigResult:
         """Delete a rule by ID."""
-        config = self._load_config_file()
+        try:
+            config = self._load_config_file()
+        except ConfigUnreadable as e:
+            return ConfigResult(success=False, error=f"{UNREADABLE_MESSAGE}: {e}")
         original_len = len(config.get('auto_actions', []))
         
         config['auto_actions'] = [r for r in config.get('auto_actions', []) if r.get('id') != rule_id]
@@ -648,7 +678,10 @@ class AutoActionConfigService:
 
     def update_global_settings(self, settings: Dict[str, Any]) -> ConfigResult:
         """Update global settings."""
-        config = self._load_config_file()
+        try:
+            config = self._load_config_file()
+        except ConfigUnreadable as e:
+            return ConfigResult(success=False, error=f"{UNREADABLE_MESSAGE}: {e}")
         # Merge with existing settings to prevent data loss
         current = config.get('global_settings', {})
         current.update(settings)
@@ -662,7 +695,7 @@ class AutoActionConfigService:
         """Increment the trigger count for a rule after successful execution."""
         try:
             config = self._load_config_file()
-            rules = config.get('auto_actions', [])
+            rules = config.get('auto_actions', [])   # ConfigUnreadable -> caught below
 
             for rule in rules:
                 if rule.get('id') == rule_id:

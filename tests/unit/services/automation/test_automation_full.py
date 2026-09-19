@@ -471,12 +471,23 @@ class TestConfigService:
     def test_load_config_handles_corrupt_file(
         self, config_service: AutoActionConfigService
     ):
-        # Write invalid JSON
+        """Readers survive a corrupt file; the raw loader reports it.
+
+        Until 2026-09-20 the raw loader answered with the empty fallback, and every
+        writer saved THAT back over the file - one bad read wiped all rules (review
+        B, section 10 F1). Readers still fall back; writers now refuse.
+        """
+        from services.automation.auto_action_config_service import ConfigUnreadable
+
         config_service.config_file.write_text("{not-json")
-        data = config_service._load_config_file()
-        # Returns sane fallback
+
+        with pytest.raises(ConfigUnreadable):
+            config_service._load_config_file()
+
+        data = config_service._load_for_reading()
         assert "global_settings" in data
         assert data["auto_actions"] == []
+        assert config_service.get_rules() == []
 
     def test_get_rules_skips_invalid_entries(
         self, config_service: AutoActionConfigService

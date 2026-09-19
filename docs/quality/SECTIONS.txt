@@ -40,7 +40,7 @@ cogs/status_handlers.py:1-1342
 ## Section 09  (1971 lines, 1 pieces)
 cogs/status_info_integration.py:1-1971
 
-## Section 10  (1894 lines, 8 pieces)
+## Section 10  (1927 lines, 8 pieces)
 cogs/status_info_integration.py:1972-2595
 cogs/translation_manager.py:1-117
 cogs/translation_monitor.py:1-97
@@ -48,7 +48,7 @@ services/__init__.py:1-51
 services/admin/__init__.py:1-5
 services/admin/admin_service.py:1-292
 services/automation/__init__.py:1-14
-services/automation/auto_action_config_service.py:1-694
+services/automation/auto_action_config_service.py:1-727
 
 ## Section 11  (1995 lines, 6 pieces)
 services/automation/auto_action_state_service.py:1-345
