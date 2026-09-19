@@ -63,14 +63,14 @@ class UpdateNotifier:
     def save_update_status(self, status: Dict[str, Any]) -> bool:
         """Save update notification status."""
         try:
-            # Atomar schreiben statt open(..., "w"): Letzteres kuerzt die Datei
-            # beim Oeffnen, und json.dump schreibt stroemend. Gemessen blieb bei
-            # einem Serialisierungsfehler ein HALBER Datensatz zurueck
+            # Write atomically instead of open(..., "w"): the latter truncates the
+            # file on open, and json.dump writes as a stream. Measured: on a
+            # serialisation error a HALF record was left behind
             # ('{\n  "last_notified_version": "2.0",\n  "notifications_shown": '),
-            # und get_update_status:56-58 faellt darauf auf die Vorgaben zurueck -
-            # eine laengst weggeklickte Aktualisierungsmeldung erscheint erneut.
-            # atomic_write_json serialisiert VOR dem Oeffnen (utils/atomic_io.py:66-69)
-            # und schreibt mit denselben Parametern (indent=2, ensure_ascii=False).
+            # and get_update_status:56-58 then falls back to the defaults - a
+            # long-dismissed update notice appears again.
+            # atomic_write_json serialises BEFORE opening (utils/atomic_io.py:66-69)
+            # and writes with the same parameters (indent=2, ensure_ascii=False).
             atomic_write_json(self.status_file, status)
             return True
         except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError) as e:

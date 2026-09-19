@@ -41,10 +41,10 @@ _view_cache = {}                 # Cache for view objects
 _translation_cache = OrderedDict()  # Cache for translations (LRU via OrderedDict)
 _box_element_cache = OrderedDict()  # Cache for box elements (LRU via OrderedDict)
 _container_static_data = {}      # Cache for static container data
-_embed_pool = []                 # Pool für wiederverwendbare Embed-Objekte
+_embed_pool = []                 # Pool of reusable embed objects
 _view_template_cache = {}        # Cache for view templates per container state
 
-# Description Templates für ultra-schnelle String-Generierung
+# Description templates for fast string generation
 # {player_line} is the optional game-server player-count line ("│ Players: 🎮 x/y\n" or "").
 # It must mirror the background status-loop renderer (cogs/status_handlers.py) so the count
 # does NOT flicker away when the user toggles Expand/Collapse.
@@ -139,7 +139,7 @@ def _get_cached_box_elements(display_name: str, box_width: int = 28) -> dict:
 # =============================================================================
 
 def _get_container_static_data(display_name: str, docker_name: str) -> dict:
-    """Cache für statische Container-Daten die sich nie ändern - 80% schneller."""
+    """Cache for static container data that never changes - 80% faster."""
     if display_name not in _container_static_data:
         _container_static_data[display_name] = {
             'custom_id_toggle': f"toggle_{docker_name}",
@@ -170,7 +170,7 @@ def _get_description_ultra_fast(template_key: str, **kwargs) -> str:
 # =============================================================================
 
 def _get_recycled_embed(description: str, color: int) -> discord.Embed:
-    """Wiederverwendete Embed-Objekte für bessere Performance - 90% schneller."""
+    """Reused embed objects for better performance - 90% faster."""
     if _embed_pool:
         embed = _embed_pool.pop()
         embed.description = description
@@ -183,8 +183,8 @@ def _get_recycled_embed(description: str, color: int) -> discord.Embed:
     return embed
 
 def _return_embed_to_pool(embed: discord.Embed):
-    """Embed nach Nutzung zum Pool zurückgeben."""
-    if len(_embed_pool) < 10:  # Max 10 Embeds im Pool
+    """Return an embed to the pool after use."""
+    if len(_embed_pool) < 10:  # At most 10 embeds in the pool
         # Clean all embed attributes to prevent memory leaks
         embed.clear_fields()
         embed.title = None
@@ -632,7 +632,7 @@ class ActionButton(Button):
 # =============================================================================
 
 class ToggleButton(Button):
-    """Ultra-optimized toggle button mit allen 6 Performance-Optimierungen."""
+    """Ultra-optimized toggle button with all 6 performance optimizations."""
     cog: 'DockerControlCog'
 
     def __init__(self, cog_instance: 'DockerControlCog', server_config: dict, is_running: bool, row: int):
@@ -660,27 +660,27 @@ class ToggleButton(Button):
         return self._channel_permissions_cache[channel_id]
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        """ULTRA-OPTIMIZED toggle function mit allen 6 Performance-Optimierungen."""
-        # Hier stand "Spam protection for toggle button was intentionally
-        # removed" - ohne Begruendung, weder im Kommentar noch in der
-        # Commit-Nachricht. Jeder andere Knopf dieser Datei prueft (:265-282,
-        # :981-990, :1221-1228); dieser war die einzige Ausnahme, obwohl jeder
-        # Druck ein message.edit gegen die Discord-API ausloest - der Knopf mit
-        # der niedrigsten Hemmschwelle war der einzige ohne Bremse.
+        """ULTRA-OPTIMIZED toggle function with all 6 performance optimizations."""
+        # This said "Spam protection for toggle button was intentionally
+        # removed" - with no reason, neither in the comment nor in the commit
+        # message. Every other button in this file checks (:265-282, :981-990,
+        # :1221-1228); this one was the only exception, although every press
+        # triggers a message.edit against the Discord API - the button with the
+        # lowest threshold was the only one without a brake.
         #
-        # NICHT zurueckgekippt, sondern dem Hausmuster angepasst: Der alte Code
-        # (0195074^) hatte eine unuebersetzte f-Zeichenkette und fing Exception.
-        # Benutzt wird der vorhandene Katalogeintrag OHNE {action}-Platzhalter
-        # (locales/*.json:1453, im Code schon viermal in
-        # status_info_integration.py). Die Meldung bei :274 fuellt {action} aus
-        # self.action - das hat ToggleButton nicht, und "refresh" waere an einem
-        # Aufklapp-Knopf ein falsches Wort fuer den Nutzer.
+        # NOT reverted, but adapted to the house pattern: the old code
+        # (0195074^) had an untranslated f-string and caught Exception. It now
+        # uses the existing catalog entry WITHOUT an {action} placeholder
+        # (locales/*.json:1453, already used four times in
+        # status_info_integration.py). The message at :274 fills {action} from
+        # self.action - ToggleButton has none, and "refresh" would be the wrong
+        # word for the user on an expand button.
         #
-        # Zum Schluessel "refresh": Er kommt im Anwendungscode sonst nur als
-        # Eintrag im Vorgabe-Woerterbuch vor - niemand teilt sich den Eimer.
-        # Seit 2026-09-19 hat er ein eigenes Panel-Feld (SPEC.md B10,
-        # entschieden); vorher kannte das Panel nur live_refresh, einen
-        # anderen Schluessel, und die Abklingzeit lag fest bei 5 Sekunden.
+        # About the key "refresh": elsewhere in the application code it only
+        # appears as an entry in the defaults dictionary - nobody shares the
+        # bucket. Since 2026-09-19 it has its own panel field (SPEC.md B10,
+        # decided); before, the panel only knew live_refresh, a different key,
+        # and the cooldown was fixed at 5 seconds.
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_service = get_spam_protection_service()
 
@@ -787,7 +787,7 @@ class ToggleButton(Button):
             self.cog.last_channel_activity[interaction.channel.id] = datetime.now(timezone.utc)
 
     async def _generate_ultra_fast_toggle_embed_and_view(self, channel_id: int, status_result, current_config: dict, cached_entry: dict) -> tuple[Optional[discord.Embed], Optional[discord.ui.View]]:
-        """Ultra-fast embed/view generation mit allen 6 Optimierungen."""
+        """Ultra-fast embed/view generation with all 6 optimizations."""
         try:
             # Handle both ContainerStatusResult (modern) and tuple (legacy) formats
             from services.docker_status.models import ContainerStatusResult
@@ -1256,8 +1256,8 @@ class TaskDeleteButton(Button):
             try:
                 if spam_service.is_on_cooldown(interaction.user.id, "task_delete"):
                     remaining_time = spam_service.get_remaining_cooldown(interaction.user.id, "task_delete")
-                    # Vorhandener, uebersetzter Katalogeintrag statt eines
-                    # englischen f-Strings - Hausmuster wie SPEC.md B10.
+                    # The existing, translated catalog entry instead of an English
+                    # f-string - house pattern as in SPEC.md B10.
                     await interaction.response.send_message(
                         _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
                             remaining=remaining_time
@@ -1424,13 +1424,13 @@ class InfoDropdownButton(Button):
             # Apply spam protection
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
-            # Ueber den Dienst statt als Attribut am Knopf. Vorher lag der
-            # Zeitstempel in _last_click_<nutzer> AUF DEM OBJEKT - eine Sperre,
-            # die beim naechsten Neuaufbau der Ansicht verschwindet. Vom Dienst
-            # kam nur die DAUER, weshalb die Minutengrenze aus dem Panel hier
-            # nicht wirkte: Sie zaehlt in add_user_cooldown, und dort kam dieser
-            # Weg nie an. Die Meldung war ausserdem unuebersetzt; benutzt wird
-            # jetzt der vorhandene Katalogeintrag.
+            # Through the service instead of an attribute on the button. Before,
+            # the timestamp lived in _last_click_<user> ON THE OBJECT - a lock
+            # that vanished the next time the view was rebuilt. Only the DURATION
+            # came from the service, so the per-minute limit from the panel had
+            # no effect here: it counts in add_user_cooldown, and this path never
+            # got there. The message was also untranslated; the existing catalog
+            # entry is used now.
             if spam_service.is_enabled():
                 try:
                     if spam_service.is_on_cooldown(interaction.user.id, "info"):
@@ -1798,9 +1798,9 @@ class AdminButton(Button):
             # Apply spam protection
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
-            # Ueber den Dienst statt als Attribut am Knopf - Begruendung wie bei
-            # InfoDropdownButton. Das user_id aus :1782 bleibt, es wird weiter
-            # oben fuer die Berechtigungspruefung gebraucht.
+            # Through the service instead of an attribute on the button - same
+            # reason as in InfoDropdownButton. The user_id from :1782 stays; it
+            # is needed further up for the permission check.
             if spam_service.is_enabled():
                 try:
                     if spam_service.is_on_cooldown(interaction.user.id, "admin"):
@@ -2114,8 +2114,8 @@ class HelpButton(Button):
             # Apply spam protection
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
-            # Ueber den Dienst statt als Attribut am Knopf - Begruendung wie bei
-            # InfoDropdownButton.
+            # Through the service instead of an attribute on the button - same
+            # reason as in InfoDropdownButton.
             if spam_service.is_enabled():
                 try:
                     if spam_service.is_on_cooldown(interaction.user.id, "help"):
@@ -2182,8 +2182,8 @@ class MechDetailsButton(Button):
         try:
             logger.info(f"Mech details requested by user {interaction.user.name} in channel {self.channel_id}")
 
-            # self.custom_id = mech_details_<kanal> -> Regler mech_details.
-            # Frueher ungebremst und ohne Regler; siehe _mechknopf_gebremst.
+            # self.custom_id = mech_details_<channel> -> slider mech_details.
+            # Unbraked and without a slider before; see _mechknopf_gebremst.
             if await _mechknopf_gebremst(interaction, self.custom_id):
                 return
 
@@ -2323,23 +2323,22 @@ class MechExpandButton(Button):
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
             if spam_service.is_enabled():
-                # self.custom_id, nicht "info": Hier wurde der Regler des
-                # INFO-Knopfes abgefragt. Folge war zweierlei - der
-                # mech_expand-Regler im Panel bewegte nichts, und alle
-                # Mech-Knoepfe teilten sich einen Eimer mit dem Info-Knopf
-                # (wer aufklappte, sperrte sich die Info-Anzeige).
-                # get_button_cooldown:178-184 leitet aus "mech_expand_<kanal>"
-                # den Schluessel "mech_expand" ab; diese Praefix-Logik war
-                # vorhanden und getestet (test_infrastructure_services.py:
-                # 793-796), aber von niemandem benutzt.
+                # self.custom_id, not "info": this asked for the slider of the
+                # INFO button. Two consequences - the mech_expand slider in the
+                # panel moved nothing, and all mech buttons shared a bucket with
+                # the info button (expanding locked your own info display).
+                # get_button_cooldown:178-184 derives the key "mech_expand" from
+                # "mech_expand_<channel>"; that prefix logic existed and was
+                # tested (test_infrastructure_services.py:793-796), but nobody
+                # used it.
                 #
-                # Und ueber den DIENST statt als Attribut am Knopf: Der
-                # Zeitstempel lag in _last_click_<nutzer> AUF DEM OBJEKT und
-                # verschwand mit ihm - bei jedem Neuaufbau der Ansicht war die
-                # Sperre weg. Die Minutengrenze aus dem Panel wirkte hier
-                # ebenfalls nicht, weil sie in add_user_cooldown zaehlt und
-                # dieser Weg dort nie ankam. Der Schluessel bleibt
-                # self.custom_id; ein Literal ergaebe einen anderen Eimer.
+                # And through the SERVICE instead of an attribute on the button:
+                # the timestamp lived in _last_click_<user> ON THE OBJECT and
+                # vanished with it - every rebuild of the view dropped the lock.
+                # The per-minute limit from the panel had no effect here either,
+                # because it counts in add_user_cooldown and this path never got
+                # there. The key stays self.custom_id; a literal would give a
+                # different bucket.
                 try:
                     if spam_service.is_on_cooldown(interaction.user.id, self.custom_id):
                         remaining = spam_service.get_remaining_cooldown(interaction.user.id, self.custom_id)
@@ -2368,12 +2367,11 @@ class MechExpandButton(Button):
                 self.cog.mech_state_manager.set_expanded_state(self.channel_id, True)
 
                 # Create expanded embed
-                # _unbenutzt statt _: Der Name _ ist projektweit die
-                # Uebersetzungsfunktion (Modulimport :28). Als Wegwerf-Name in
-                # einer Entpackung bindet er sich LOKAL fuer die ganze Funktion
-                # - jedes _("…") weiter oben liefe dann in einen
-                # UnboundLocalError. Genau das ist bei der Umstellung auf den
-                # Spam-Dienst passiert.
+                # _unbenutzt instead of _: the name _ is the translation function
+                # project-wide (module import :28). As a throwaway name in an
+                # unpacking it binds LOCALLY for the whole function - every _("…")
+                # further up would then raise UnboundLocalError. Exactly that
+                # happened during the switch to the spam service.
                 embed, _unbenutzt = await self._create_expanded_ss_embed()
 
                 # Create new view for expanded state
@@ -2447,11 +2445,11 @@ class MechCollapseButton(Button):
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
             if spam_service.is_enabled():
-                # self.custom_id, nicht "info" - siehe MechExpandButton: Der
-                # mech_collapse-Regler im Panel (Vorgabe 2) bewegte nichts,
-                # gebremst wurde nach dem Info-Regler (3).
-                # Ueber den Dienst statt als Attribut am Knopf - Begruendung
-                # wie bei MechExpandButton.
+                # self.custom_id, not "info" - see MechExpandButton: the
+                # mech_collapse slider in the panel (default 2) moved nothing;
+                # braking used the info slider (3).
+                # Through the service instead of an attribute on the button - same
+                # reason as in MechExpandButton.
                 try:
                     if spam_service.is_on_cooldown(interaction.user.id, self.custom_id):
                         remaining = spam_service.get_remaining_cooldown(interaction.user.id, self.custom_id)
@@ -2480,7 +2478,7 @@ class MechCollapseButton(Button):
                 self.cog.mech_state_manager.set_expanded_state(self.channel_id, False)
 
                 # Create collapsed embed
-                # _unbenutzt statt _ - Begruendung wie bei MechExpandButton.
+                # _unbenutzt instead of _ - same reason as in MechExpandButton.
                 embed, _unbenutzt = await self._create_collapsed_ss_embed()
 
                 # Create new view for collapsed state
@@ -2528,14 +2526,14 @@ class MechCollapseButton(Button):
         return await self.cog._create_overview_embed_collapsed(ordered_servers, config)
 
 async def _mechknopf_gebremst(interaction: discord.Interaction, name: str) -> bool:
-    """Spam-Bremse fuer Mech-Knoepfe, die noch nicht geantwortet haben.
+    """Spam brake for mech buttons that have not responded yet.
 
-    True heisst: abgewiesen, der Rueckruf kehrt zurueck. Diese Knoepfe fragten
-    den Dienst frueher gar nicht - ihre Regler im Panel (mech_donate,
-    mech_display, mech_story, mech_music) bewegten nichts, und die
-    Minutengrenze erreichte sie nicht. Der Name muss mit "mech_<regler>_"
-    beginnen: Nur daraus leitet get_button_cooldown den Regler ab.
-    Wie an den uebrigen Knoepfen gilt: Ein Fehler im Dienst sperrt nicht.
+    True means: refused, the callback returns. These buttons used not to ask
+    the service at all - their sliders in the panel (mech_donate, mech_display,
+    mech_story, mech_music) moved nothing, and the per-minute limit did not
+    reach them. The name must start with "mech_<slider>_": get_button_cooldown
+    derives the slider only from that. As for the other buttons: an error in the
+    service does not lock.
     """
     from services.infrastructure.spam_protection_service import get_spam_protection_service
     spam_service = get_spam_protection_service()
@@ -2574,8 +2572,8 @@ class MechDonateButton(Button):
     async def callback(self, interaction: discord.Interaction) -> None:
         """Trigger the donate functionality."""
         try:
-            # self.custom_id = mech_donate_<kanal>. Der private Spendenknopf
-            # leitet hierher weiter und teilt sich damit diesen Eimer.
+            # self.custom_id = mech_donate_<channel>. The private donate button
+            # forwards here and so shares this bucket.
             if await _mechknopf_gebremst(interaction, self.custom_id):
                 return
 
@@ -2623,15 +2621,15 @@ class MechHistoryButton(Button):
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
             if spam_service.is_enabled():
-                # self.custom_id, nicht "info" - siehe MechExpandButton: Der
-                # mech_history-Regler im Panel (Vorgabe 5) bewegte nichts,
-                # gebremst wurde nach dem Info-Regler (3).
-                # Ueber den Dienst statt als Attribut am Knopf - Begruendung
-                # wie bei MechExpandButton. Der defer-Abschnitt darunter bleibt
-                # unveraendert: Er liegt mitten im Bremsblock und ist kein
-                # Beiwerk, und dass er nur bei eingeschaltetem Spamschutz laeuft,
-                # ist heutiges Verhalten - das zu aendern waere eine eigene
-                # Entscheidung.
+                # self.custom_id, not "info" - see MechExpandButton: the
+                # mech_history slider in the panel (default 5) moved nothing;
+                # braking used the info slider (3).
+                # Through the service instead of an attribute on the button - same
+                # reason as in MechExpandButton. The defer section below stays
+                # unchanged: it sits in the middle of the brake block and is not
+                # incidental, and that it only runs with spam protection enabled
+                # is current behaviour - changing that would be a separate
+                # decision.
 
                 # CRITICAL: Defer IMMEDIATELY to avoid "Unknown interaction" errors
                 # ROBUST: Handle interaction expiration (15 min timeout) gracefully
@@ -3048,7 +3046,7 @@ class MechDisplayButton(Button):
                 await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
                 return
 
-            # self.custom_id = mech_display_<stufe> -> Regler mech_display.
+            # self.custom_id = mech_display_<level> -> slider mech_display.
             if await _mechknopf_gebremst(interaction, self.custom_id):
                 return
 
@@ -3158,8 +3156,8 @@ class EpilogueButton(Button):
                 await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
                 return
 
-            # Nicht self.custom_id ("epilogue_button"): Ohne "mech_story_"
-            # vorn erreichte der Name den Story-Regler nie.
+            # Not self.custom_id ("epilogue_button"): without "mech_story_" in
+            # front, the name never reached the story slider.
             if await _mechknopf_gebremst(interaction, "mech_story_epilogue"):
                 return
 
@@ -3242,7 +3240,7 @@ class ReadStoryButton(Button):
                 await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
                 return
 
-            # Nicht self.custom_id (read_story_<stufe>) - siehe EpilogueButton.
+            # Not self.custom_id (read_story_<level>) - see EpilogueButton.
             if await _mechknopf_gebremst(interaction, f"mech_story_{self.level}"):
                 return
 
@@ -3326,7 +3324,7 @@ class PlaySongButton(Button):
                 await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
                 return
 
-            # Nicht self.custom_id (play_song_<stufe>) - siehe EpilogueButton.
+            # Not self.custom_id (play_song_<level>) - see EpilogueButton.
             if await _mechknopf_gebremst(interaction, f"mech_music_{self.level}"):
                 return
 

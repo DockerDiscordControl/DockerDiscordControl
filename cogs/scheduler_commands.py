@@ -62,17 +62,17 @@ class ScheduleCommandsMixin:
     To be used with the main DockerControlCog class.
     """
 
-    # Helfer-Funktion zum Umwandeln von Monatszahlen in lokalisierte Monatsnamen
+    # Helper to turn month numbers into localized month names
     def _get_localized_month_name(self, month_int: int, language: str = "de") -> str:
         """
-        Konvertiert eine Monatszahl (1-12) in einen lokalisierten Monatsnamen.
+        Converts a month number (1-12) into a localized month name.
 
         Args:
-            month_int: Monatszahl (1-12)
-            language: Sprachcode (de, en)
+            month_int: month number (1-12)
+            language: language code (de, en)
 
         Returns:
-            Lokalisierter Monatsname
+            Localized month name
         """
         months_de = ["Januar", "Februar", "März", "April", "Mai", "Juni",
                     "Juli", "August", "September", "Oktober", "November", "Dezember"]

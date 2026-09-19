@@ -93,13 +93,13 @@ class SpamProtectionService:
         # In-memory cooldown tracking
         self._user_cooldowns: Dict[str, float] = {}
 
-        # Gleitendes Minutenfenster je Nutzer und Art:
-        # {(user_id, ist_befehl): deque[zeitstempel]}. Getrennte Eimer, weil
-        # das Panel zwei Grenzen fuehrt (max_commands_per_minute und
-        # max_buttons_per_minute). Eigene Sperre, weil dieser Dienst aus dem
-        # Waitress-Faden (main_routes.py) UND aus der Bot-Schleife gerufen wird;
-        # _user_cooldowns daneben ist ungesichert - ein eigener Befund, der hier
-        # nicht nebenbei mitgeaendert wird.
+        # Sliding one-minute window per user and kind:
+        # {(user_id, ist_befehl): deque[timestamps]}. Separate buckets because
+        # the panel has two limits (max_commands_per_minute and
+        # max_buttons_per_minute). Own lock because this service is called from
+        # the Waitress thread (main_routes.py) AND from the bot loop;
+        # _user_cooldowns next to it is unguarded - a separate finding, not
+        # changed along the way here.
         self._minutenfenster: Dict[tuple, deque] = {}
         self._fenster_sperre = threading.Lock()
 
@@ -123,15 +123,14 @@ class SpamProtectionService:
             # Extract spam_protection section from channels_config.json
             spam_data = channels_data.get('spam_protection', {})
             config = SpamProtectionConfig.from_dict(spam_data)
-            # Fehlende Schluessel aus den Vorgaben ergaenzen; Gespeichertes
-            # gewinnt. Ohne das las der Dienst in jeder echten Installation
-            # (die Datei existiert immer) NUR die gespeicherten Schluessel:
-            # Alles Fehlende bremste stumm mit der 5-Sekunden-Ersatzregel,
-            # fehlte der Abschnitt, bremste alles mit 5 - und das Panel zeigte
-            # dazu seine HTML-Startwerte. Neu hinzugekommene Schluessel
-            # (edit_info, mech_details, ...) erreichten bestehende
-            # Installationen nie. Bewusst hier und nicht in from_dict: from_dict
-            # baut auch die Nutzlast der POST-Route, dort wird nichts ergaenzt.
+            # Fill in missing keys from the defaults; saved values win. Without
+            # this, every real installation (the file always exists) read ONLY
+            # the saved keys: anything missing was silently braked with the
+            # 5-second fallback, a missing section braked everything with 5 - and
+            # the panel showed its HTML start values meanwhile. Newly added keys
+            # (edit_info, mech_details, ...) never reached existing
+            # installations. Deliberately here and not in from_dict: from_dict
+            # also builds the payload of the POST route, where nothing is added.
             vorgaben = self._get_default_config()
             config = replace(
                 config,
@@ -226,65 +225,65 @@ class SpamProtectionService:
         """
         return self.get_config()
 
-    # "Befehl oder Knopf?" entscheidet der AUFRUFER, nicht der Name.
+    # "Command or button?" is decided by the CALLER, not by the name.
     #
-    # Bis hierher entschied eine fest verdrahtete Namensliste (serverstatus,
-    # ss, control, info, help, ping, donate, command, language, forceupdate,
-    # start, stop, restart). Hiess ein KNOPF wie ein Befehl, bremste er nach
-    # dem BEFEHLS-Regler und zaehlte ins Befehls-Minutenfenster: der Info-Knopf
-    # 5 s statt 3 s, der Hilfe-Knopf 3 s statt 5 s, der Neustart-Knopf 15 s
-    # statt 20 s. Der Betreiber stellte im Panel den Knopf-Regler ein, und er
-    # bewegte nichts. InfoDropdownButton und HelpButton hat erst die Umstellung
-    # auf diesen Dienst (Commit 3785fc0) in diese Liste geschickt - vorher
-    # fragten sie ausdruecklich get_button_cooldown.
+    # Until now a hard-wired list of names decided it (serverstatus, ss,
+    # control, info, help, ping, donate, command, language, forceupdate, start,
+    # stop, restart). A BUTTON named like a command was braked by the COMMAND
+    # slider and counted into the command minute window: the info button 5 s
+    # instead of 3 s, the help button 3 s instead of 5 s, the restart button
+    # 15 s instead of 20 s. The operator set the button slider in the panel,
+    # and it moved nothing. InfoDropdownButton and HelpButton were only sent
+    # into this list by the switch to this service (commit 3785fc0) - before,
+    # they asked get_button_cooldown explicitly.
     #
-    # Alle Aufrufer dieser Methoden sind Knoepfe (gemessen; Befehle bremsen
-    # ueber _check_spam_protection in docker_control.py). Knopf ist deshalb die
-    # Vorgabe, und ein Befehl weist sich mit art="befehl" aus. Die Liste
-    # entfaellt samt ihren Macken ('ss' stand in keinem Woerterbuch,
-    # 'donatebroadcast' und 'info_edit' fehlten).
+    # All callers of these methods are buttons (measured; commands brake via
+    # _check_spam_protection in docker_control.py). Button is therefore the
+    # default, and a command identifies itself with art="befehl". The list is
+    # gone, along with its quirks ('ss' was in no dictionary, 'donatebroadcast'
+    # and 'info_edit' were missing).
     _ARTEN = ("knopf", "befehl")
 
     _FENSTER_SEKUNDEN = 60.0
 
     @classmethod
     def _ist_befehl(cls, art: str) -> bool:
-        """Prueft die Art LAUT: Ein Tippfehler wirft, statt still als Knopf zu gelten."""
+        """Checks the kind LOUDLY: a typo raises instead of silently counting as a button."""
         if art not in cls._ARTEN:
-            raise ValueError(f"art muss eine von {cls._ARTEN} sein, nicht {art!r}")
+            raise ValueError(f"art must be one of {cls._ARTEN}, not {art!r}")
         return art == "befehl"
 
     @staticmethod
     def _schluessel(user_id: int, action_type: str, ist_befehl: bool) -> str:
-        """Eigener Schluesselraum fuer Befehle.
+        """Separate key space for commands.
 
-        Knoepfe behalten ihren bisherigen Schluessel "<nutzer>:<name>". Befehle
-        bekommen "<nutzer>:befehl:<name>" - sonst teilten sich /info und der
-        Info-KNOPF einen Eimer, sobald beide ueber diesen Dienst bremsen.
+        Buttons keep their key "<user>:<name>". Commands get
+        "<user>:befehl:<name>" - otherwise /info and the info BUTTON would
+        share a bucket as soon as both brake through this service.
         """
         if ist_befehl:
             return f"{user_id}:befehl:{action_type}"
         return f"{user_id}:{action_type}"
 
     def _abklingdauer(self, action_type: str, ist_befehl: bool) -> int:
-        """Abklingzeit je Aktion - aus dem Woerterbuch der angegebenen Art."""
+        """Cooldown per action - from the dictionary of the given kind."""
         if ist_befehl:
             return self.get_command_cooldown(action_type)
         return self.get_button_cooldown(action_type)
 
     def _minutengrenze(self, ist_befehl: bool) -> int:
-        """Die Grenze aus dem Panel. Faellt der Zugriff aus, gilt die Vorgabe."""
+        """The limit from the panel. If reading it fails, the default applies."""
         ergebnis = self.get_config()
         config = ergebnis.data if ergebnis.success else self._get_default_config()
         return config.max_commands_per_minute if ist_befehl else config.max_buttons_per_minute
 
     @classmethod
     def _fenster_beschneiden(cls, eimer, jetzt: float) -> None:
-        """Wirft alles aelter als eine Minute weg. Beim LESEN wie beim SCHREIBEN.
+        """Drops everything older than one minute - when READING as well as WRITING.
 
-        Nur beim Schreiben aufzuraeumen waere ein Fehler: Wer die Grenze
-        erreicht und dann nichts mehr tut, bliebe dauerhaft gesperrt, weil ohne
-        neuen Eintrag nie beschnitten wuerde.
+        Pruning only on write would be a bug: someone who reaches the limit and
+        then does nothing would stay blocked forever, because without a new
+        entry nothing would ever be pruned.
         """
         grenzzeit = jetzt - cls._FENSTER_SEKUNDEN
         while eimer and eimer[0] <= grenzzeit:
@@ -299,7 +298,7 @@ class SpamProtectionService:
             return len(eimer) >= self._minutengrenze(ist_befehl)
 
     def _fenster_restzeit(self, user_id: int, ist_befehl: bool, jetzt: float) -> float:
-        """Wie lange, bis wieder Platz im Fenster ist."""
+        """How long until there is room in the window again."""
         with self._fenster_sperre:
             eimer = self._minutenfenster.get((user_id, ist_befehl))
             if not eimer:
@@ -307,7 +306,7 @@ class SpamProtectionService:
             self._fenster_beschneiden(eimer, jetzt)
             if len(eimer) < self._minutengrenze(ist_befehl):
                 return 0.0
-            # Der aelteste Eintrag faellt zuerst heraus.
+            # The oldest entry drops out first.
             return max(0.0, self._FENSTER_SEKUNDEN - (jetzt - eimer[0]))
 
     def _fenster_eintragen(self, user_id: int, ist_befehl: bool, jetzt: float) -> None:
@@ -315,9 +314,9 @@ class SpamProtectionService:
             eimer = self._minutenfenster.setdefault((user_id, ist_befehl), deque())
             self._fenster_beschneiden(eimer, jetzt)
             eimer.append(jetzt)
-            # Leere Eimer wegraeumen, sonst waechst die aeussere Ablage je
-            # Nutzer unbegrenzt - dieselbe Vorsorge wie das 300-Sekunden-
-            # Aufraeumen in add_user_cooldown.
+            # Remove empty buckets, otherwise the outer store grows without
+            # bound per user - the same precaution as the 300-second cleanup in
+            # add_user_cooldown.
             for schluessel in [k for k, v in self._minutenfenster.items() if not v]:
                 del self._minutenfenster[schluessel]
 
@@ -338,11 +337,10 @@ class SpamProtectionService:
 
         current_time = time.time()
 
-        # Die Minutengrenze aus dem Panel. Bis hierher wurden
-        # max_commands_per_minute und max_buttons_per_minute gespeichert, im
-        # Panel angezeigt und ueber to_dict/from_dict sauber durchgereicht -
-        # aber NIE abgefragt. Es gab keine Stelle, an der ein Druck gezaehlt
-        # wurde; die Abklingzeit je Knopf merkt sich nur den LETZTEN Zeitpunkt.
+        # The per-minute limit from the panel. Until now max_commands_per_minute
+        # and max_buttons_per_minute were saved, shown in the panel and passed
+        # through to_dict/from_dict cleanly - but NEVER checked. No place counted
+        # a press; the per-button cooldown only remembers the LAST time.
         if self._fenster_ueberschritten(user_id, ist_befehl, current_time):
             return True
 
@@ -371,10 +369,10 @@ class SpamProtectionService:
         last_used = self._user_cooldowns.get(cooldown_key, 0)
         rest_aktion = max(0.0, self._abklingdauer(action_type, ist_befehl) - (current_time - last_used))
 
-        # Ohne den Fensteranteil stuende beim Nutzer "bitte warte 0.0 Sekunden",
-        # wenn die Abweisung von der Minutengrenze kommt: Ein frisch gedrueckter
-        # Knopf hat in _user_cooldowns gar keinen Eintrag. Alle Aufrufer fragen
-        # direkt nach is_on_cooldown hier nach.
+        # Without the window part the user would read "please wait 0.0 seconds"
+        # when the refusal comes from the per-minute limit: a freshly pressed
+        # button has no entry in _user_cooldowns at all. All callers ask here
+        # right after is_on_cooldown.
         rest_fenster = self._fenster_restzeit(user_id, ist_befehl, current_time)
 
         return max(rest_aktion, rest_fenster)
@@ -395,10 +393,9 @@ class SpamProtectionService:
         cooldown_key = self._schluessel(user_id, action_type, ist_befehl)
         self._user_cooldowns[cooldown_key] = current_time
 
-        # Gezaehlt wird der ANGENOMMENE Druck, nicht die Nachfrage. Zaehlte
-        # schon is_on_cooldown mit, verbrauchte jede abgewiesene Wiederholung
-        # weiteres Kontingent - wer einmal gebremst wurde, kaeme nie wieder
-        # heraus.
+        # The ACCEPTED press is counted, not the check. If is_on_cooldown counted
+        # as well, every refused retry would use up more quota - someone braked
+        # once would never get out again.
         self._fenster_eintragen(user_id, ist_befehl, current_time)
 
         # Clean old cooldowns (older than 5 minutes)
@@ -434,33 +431,32 @@ class SpamProtectionService:
                 "refresh": 5,
                 "logs": 10,
                 "live_refresh": 5,
-                # "auto_refresh" stand hier ohne Abnehmer (kein Code fragt ihn)
-                # und ist entfernt: Seit get_config fehlende Schluessel aus den
-                # Vorgaben ergaenzt, landete er in jeder Konfiguration.
-                # Diese vier werden von lebenden Knoepfen angefordert
+                # "auto_refresh" was here without a consumer (no code asks for it)
+                # and is removed: since get_config fills missing keys from the
+                # defaults, it would have landed in every configuration.
+                # These four are requested by live buttons
                 # (control_ui.py:1791 admin, :2102 help, :1258 task_delete;
-                # status_info_integration.py:1190 tasks), standen hier aber
-                # nicht. get_button_cooldown:186 lieferte dafuer stumm 5
-                # Sekunden - der Betreiber konnte den Wert weder sehen noch
-                # aendern. "help" war dabei besonders irrefuehrend: Das Panel
-                # zeigt einen /help-Regler (3), der aber den BEFEHL steuert und
-                # nicht den Knopf; beide Namen sind gleich, die Woerterbuecher
-                # verschieden.
-                # Vorgabe 5 ist genau das, was die Ersatzregel heute liefert -
-                # KEINE Anhebung, nur Sichtbarkeit. Erhoehen bestimmt das Panel.
+                # status_info_integration.py:1190 tasks) but were missing here.
+                # get_button_cooldown:186 silently returned 5 seconds for them -
+                # the operator could neither see nor change the value. "help" was
+                # especially misleading: the panel shows a /help slider (3), but
+                # it controls the COMMAND, not the button; same name, different
+                # dictionaries.
+                # Default 5 is exactly what the fallback returns today - NO
+                # increase, only visibility. The panel decides any increase.
                 "admin": 5,
                 "help": 5,
                 "tasks": 5,
                 "task_delete": 5,
-                # Die drei Info-Knoepfe in status_info_integration.py fuehrten
-                # ihre Abklingzeit selbst (button_protected_edit_<n>,
-                # button_info_<n>, button_protected_<n> im Woerterbuch des Cogs)
-                # und holten die DAUER gemeinsam unter "info". Sie haben also
-                # drei GETRENNTE Eimer bei gleicher Dauer. Damit die Umstellung
-                # auf den Dienst daran nichts aendert, bekommt jeder seinen
-                # eigenen Namen - und den Wert 3, exakt den von "info".
-                # Ohne Eintrag griffe die 5-Sekunden-Ersatzregel, und die
-                # Knoepfe waeren langsamer als vorher, ohne Beschluss.
+                # The three info buttons in status_info_integration.py kept their
+                # own cooldowns (button_protected_edit_<n>, button_info_<n>,
+                # button_protected_<n> in the cog's dictionary) and fetched the
+                # DURATION together under "info". They have three SEPARATE buckets
+                # with the same duration. So that the switch to the service
+                # changes nothing, each gets its own name - and the value 3,
+                # exactly that of "info". Without an entry the 5-second fallback
+                # would apply, and the buttons would be slower than before without
+                # a decision.
                 "protected_info_edit": 3,
                 "edit_info": 3,
                 "protected_info": 3,
@@ -468,10 +464,10 @@ class SpamProtectionService:
                 "mech_collapse": 2,
                 "mech_donate": 10,
                 "mech_history": 5,
-                # MechDetailsButton bremste frueher gar nicht und hatte keinen
-                # Regler. 5 wie mech_history, dem verwandten privaten Blick -
-                # zugleich die Ersatzregel, der Eintrag macht den Wert also
-                # erst sichtbar und einstellbar.
+                # MechDetailsButton used not to brake at all and had no slider.
+                # 5 like mech_history, the related private view - also the
+                # fallback value, so the entry only makes the value visible and
+                # adjustable.
                 "mech_details": 5,
                 "mech_display": 3,
                 "mech_story": 5,
@@ -479,16 +475,15 @@ class SpamProtectionService:
             },
             global_enabled=True,
             max_commands_per_minute=20,
-            # 30, nicht 35: Fuer dieses eine Feld nannten drei Stellen zwei
-            # verschiedene Vorgaben - from_dict (:41) und das Panel
-            # (_spam_protection_modal.html:51) sagen 30, hier stand 35. Welche
-            # Zahl galt, hing damit davon ab, ob config/channels_config.json
-            # existiert: fehlt sie, kommt die Vorgabe von hier (get_config:103-106),
-            # ist sie da, aus from_dict. Der Betreiber las im Panel eine andere
-            # Zahl als die, nach der gebremst wurde. Die Befehlsgrenze daneben
-            # war an allen drei Stellen schon einig (20) und bleibt unangetastet.
-            # Das ist eine Vereinheitlichung, KEINE Anhebung: Welcher Wert gilt,
-            # bestimmt weiterhin das Panel.
+            # 30, not 35: for this one field three places named two different
+            # defaults - from_dict (:41) and the panel
+            # (_spam_protection_modal.html:51) say 30, this said 35. Which number
+            # applied depended on whether config/channels_config.json exists:
+            # without it the default comes from here (get_config:103-106), with it
+            # from from_dict. The operator read a different number in the panel
+            # than the one braking. The command limit next to it already agreed
+            # in all three places (20) and stays untouched.
+            # This unifies, it does NOT raise: the panel still decides the value.
             max_buttons_per_minute=30,
             cooldown_message=True,
             log_violations=True

@@ -18,8 +18,8 @@ cogs/control_helpers.py:1-188
 ## Abschnitt 02  (1902 Zeilen, 1 Stuecke)
 cogs/control_ui.py:1-1902
 
-## Abschnitt 03  (1556 Zeilen, 1 Stuecke)
-cogs/control_ui.py:1903-3458
+## Abschnitt 03  (1554 Zeilen, 1 Stuecke)
+cogs/control_ui.py:1903-3456
 
 ## Abschnitt 04  (1942 Zeilen, 1 Stuecke)
 cogs/docker_control.py:1-1942
@@ -37,11 +37,11 @@ cogs/scheduler_commands.py:1-795
 ## Abschnitt 08  (1341 Zeilen, 1 Stuecke)
 cogs/status_handlers.py:1-1341
 
-## Abschnitt 09  (1972 Zeilen, 1 Stuecke)
-cogs/status_info_integration.py:1-1972
+## Abschnitt 09  (1971 Zeilen, 1 Stuecke)
+cogs/status_info_integration.py:1-1971
 
 ## Abschnitt 10  (1890 Zeilen, 8 Stuecke)
-cogs/status_info_integration.py:1973-2592
+cogs/status_info_integration.py:1972-2591
 cogs/translation_manager.py:1-117
 cogs/translation_monitor.py:1-97
 services/__init__.py:1-51
@@ -58,12 +58,12 @@ services/config/channel_config_service.py:1-521
 services/config/config_cache_service.py:1-133
 services/config/config_form_parser_service.py:1-470
 
-## Abschnitt 12  (876 Zeilen, 2 Stuecke)
-services/config/config_loader_service.py:1-470
+## Abschnitt 12  (874 Zeilen, 2 Stuecke)
+services/config/config_loader_service.py:1-468
 services/config/config_migration_service.py:1-406
 
-## Abschnitt 13  (1810 Zeilen, 5 Stuecke)
-services/config/config_service.py:1-1215
+## Abschnitt 13  (1806 Zeilen, 5 Stuecke)
+services/config/config_service.py:1-1211
 services/config/config_validation_service.py:1-212
 services/config/container_config_save_service.py:1-150
 services/config/server_config_service.py:1-213
@@ -119,9 +119,9 @@ services/infrastructure/dynamic_cooldown_manager.py:1-179
 services/infrastructure/event_manager.py:1-111
 services/infrastructure/game_query_service.py:1-525
 
-## Abschnitt 20  (1029 Zeilen, 4 Stuecke)
+## Abschnitt 20  (1024 Zeilen, 4 Stuecke)
 services/infrastructure/game_query_support_service.py:1-277
-services/infrastructure/spam_protection_service.py:1-509
+services/infrastructure/spam_protection_service.py:1-504
 services/infrastructure/update_notifier.py:1-213
 services/mech/__init__.py:1-30
 
@@ -269,5 +269,5 @@ utils/performance_metrics.py:1-389
 utils/settings.py:1-98
 utils/time_utils.py:1-374
 
-## Abschnitt 37  (320 Zeilen, 1 Stuecke)
-utils/token_security.py:1-320
+## Abschnitt 37  (318 Zeilen, 1 Stuecke)
+utils/token_security.py:1-318

@@ -294,12 +294,12 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          # Eine Gruppe je Aufruf - die Begruendung steht in tests/GROUPS.txt.
-          # Bis 2026-09-17 stand hier ein einzelnes "pytest tests/" mit
-          # continue-on-error: true. Dieser Aufruf brach mit 18 Fehlern beim
-          # Einsammeln ab, es lief kein einziger Test, und der Schritt galt
-          # trotzdem als erfolgreich - die Abdeckung, die SonarCloud danach
-          # auswertet, entstand also aus nichts. Siehe SPEC.md Z10.
+          # One group per invocation - the reason is in tests/GROUPS.txt.
+          # Until 2026-09-17 this was a single "pytest tests/" with
+          # continue-on-error: true. That call aborted with 18 collection errors,
+          # not a single test ran, and the step still counted as successful - the
+          # coverage SonarCloud evaluates afterwards was made from nothing. See
+          # SPEC.md Z10.
           rm -f .coverage
           while read -r gruppe; do
             case "$gruppe" in ''|'#'*) continue ;; esac

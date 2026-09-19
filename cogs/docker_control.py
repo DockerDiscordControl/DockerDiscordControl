@@ -1723,17 +1723,17 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
 
-        # Ueber den Dienst, als BEFEHL ausgewiesen. Vorher fuehrte dieser Weg
-        # eine eigene Buchhaltung in einem Woerterbuch, das er VON AUSSEN an das
-        # Dienst-Objekt heftete (spam_manager._command_cooldowns): nie
-        # aufgeraeumt, dem Dienst unbekannt - und die Befehls-Minutengrenze aus
-        # dem Panel wirkte nicht, weil sie in add_user_cooldown zaehlt. Das war
-        # die letzte von dreizehn Stellen mit eigener Buchhaltung.
-        # art="befehl" gibt es seit Commit 8f47f7c; ohne sie teilten sich
-        # /info und der Info-Knopf einen Eimer.
-        # Ein Befehl mit Abklingzeit 0 hat keine Pause je Befehl, zaehlt aber
-        # ins Minutenfenster: "0" heisst nicht "von der Minutengrenze
-        # ausgenommen".
+        # Through the service, identified as a COMMAND. Before, this path kept
+        # its own books in a dictionary it attached FROM OUTSIDE to the service
+        # object (spam_manager._command_cooldowns): never cleaned up, unknown to
+        # the service - and the command per-minute limit from the panel had no
+        # effect, because it counts in add_user_cooldown. That was the last of
+        # thirteen places with their own books.
+        # art="befehl" exists since commit 8f47f7c; without it, /info and the
+        # info button would share a bucket.
+        # A command with cooldown 0 has no per-command pause but still counts
+        # into the minute window: "0" does not mean "exempt from the per-minute
+        # limit".
         if spam_manager.is_enabled():
             try:
                 if spam_manager.is_on_cooldown(ctx.author.id, command_name, art="befehl"):
@@ -1742,8 +1742,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     )
                     try:
                         # Check if we need to use followup (for commands that defer early).
-                        # serverstatus fehlt bewusst: Es prueft VOR seinem defer,
-                        # ein followup haette dort keine Antwort, an die es anschliesst.
+                        # serverstatus is deliberately missing: it checks BEFORE its
+                        # defer, so a followup would have no response to attach to.
                         if command_name in ['donate', 'donatebroadcast', 'ss']:
                             await ctx.followup.send(_("❌ Command on cooldown. Try again in {remaining} seconds.").format(remaining=remaining))
                         else:
@@ -1762,12 +1762,12 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
     async def serverstatus(self, ctx: discord.ApplicationContext):
         """Shows an overview of all server statuses in a single message."""
         try:
-            # Spamschutz VOR dem defer (Betreiberentscheidung 2026-09-19): Das
-            # defer unten ist oeffentlich, und eine Abweisung danach ersetzte
-            # die "denkt nach..."-Nachricht fuer den ganzen Kanal. Davor geht
-            # sie per respond(ephemeral=True) nur an den Nutzer. Preis: ein
-            # Lesen der Konfiguration vor dem defer - bei ueberlastetem Bot
-            # minimal mehr Risiko fuer "Unknown interaction".
+            # Spam protection BEFORE the defer (operator decision 2026-09-19):
+            # the defer below is public, and a refusal after it replaced the
+            # "thinking..." message for the whole channel. Before it, the refusal
+            # goes to the user only via respond(ephemeral=True). Cost: one read of
+            # the configuration before the defer - with an overloaded bot a
+            # slightly higher risk of "Unknown interaction".
             if not await self._check_spam_protection(ctx, "serverstatus"):
                 return
 
@@ -4843,8 +4843,8 @@ class DonationBroadcastModal(discord.ui.Modal):
                             guild_id=str(interaction.guild.id) if interaction.guild else None,
                             channel_id=str(interaction.channel.id) if interaction.channel else None,
                             bot_instance=self.bot,
-                            # Eindeutig je Absendung: erreicht dieselbe Interaktion den
-                            # Dienst zweimal, wird einmal gebucht. SPEC.md Z4.
+                            # Unique per submission: if the same interaction reaches
+                            # the service twice, it is booked once. SPEC.md Z4.
                             idempotency_key=str(interaction.id),
                         )
 

@@ -174,14 +174,14 @@ def verify_password(username, password):
     stored_hash = config.get('web_ui_password_hash')
 
     if stored_hash is None:
-        # Ein fehlender Hash hat ZWEI Ursachen, und sie sehen gleich aus: eine
-        # frische Installation - oder eine Konfiguration, die nicht gelesen
-        # werden konnte. _load_json_file liefert in beiden Faellen die Vorgabe
-        # (config_service.py:710-727). Im zweiten Fall stuende admin/setup auf
-        # einer laengst eingerichteten Anlage offen, hinter den 70 Routen mit
-        # @auth.login_required - und niemand bemerkt es, weil die Anmeldung ja
-        # funktioniert. Der Schreibweg ist gegen genau diesen Verlust bereits
-        # verteidigt (config_service.py:385-386); der Leseweg war es nicht.
+        # A missing hash has TWO causes, and they look the same: a fresh
+        # installation - or a configuration that could not be read.
+        # _load_json_file returns the default in both cases
+        # (config_service.py:710-727). In the second case admin/setup would be
+        # open on a long-established installation, behind the 70 routes with
+        # @auth.login_required - and nobody notices, because the login works.
+        # The write path is already defended against exactly this loss
+        # (config_service.py:385-386); the read path was not.
         lesefehler = config.get('config_read_errors')
         if lesefehler:
             logger.error(
@@ -228,11 +228,11 @@ def auth_error(status):
         config = load_config()
         if config.get('web_ui_password_hash') is None:
             if config.get('config_read_errors'):
-                # Die Konfiguration ist da, aber nicht auswertbar. Den Betreiber
-                # jetzt auf /setup zu schicken waere eine Sackgasse - dort kann er
-                # nichts ausrichten, solange config/ nicht lesbar ist. Seit
-                # verify_password diesen Fall verschliesst, ist diese Meldung der
-                # einzige Hinweis, den er bekommt; sie muss den wahren Grund nennen.
+                # The configuration exists but cannot be parsed. Sending the
+                # operator to /setup now would be a dead end - nothing can be done
+                # there while config/ is unreadable. Since verify_password closes
+                # this case, this message is the only hint the operator gets; it
+                # must name the real reason.
                 return jsonify({
                     "message": "Configuration Unreadable",
                     "error": "A configuration file exists, but it could not be read",

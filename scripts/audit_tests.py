@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Mechanische Bestandsaufnahme der Testsuite (Stufe 0).
+"""Mechanical inventory of the test suite (stage 0).
 
-Liest JEDE Testfunktion per AST und stuft sie ein. Kein Modell, keine Stichprobe:
-was hier steht, ist abzaehlbar und wiederholbar.
+Reads EVERY test function via AST and classifies it. No model, no sampling:
+what is written here is countable and repeatable.
 
-Kategorien:
-  no_verification   - keine assert, kein pytest.raises, kein mock.assert_*
-  only_trivial      - es gibt asserts, aber ALLE sind inhaltsleer
+Categories:
+  no_verification   - no assert, no pytest.raises, no mock.assert_*
+  only_trivial      - there are asserts, but ALL of them say nothing
                       (is not None / isinstance / hasattr / assert True / x == x)
-  broad_raises      - pytest.raises(Exception) o.ae.: faengt alles
-  mock_tautology    - prueft ein Literal, das der Test selbst als return_value gesetzt hat
-  only_mock_calls   - verifiziert ausschliesslich ueber mock.assert_called*(...)
-Zusaetzlich: Modulweite Verschmutzung (sys.modules, os.environ, importlib.reload)
-auf Modulebene, also beim Import - das ist die Quelle von Reihenfolge-Abhaengigkeit.
+  broad_raises      - pytest.raises(Exception) or similar: catches everything
+  mock_tautology    - checks a literal the test itself set as return_value
+  only_mock_calls   - verifies exclusively through mock.assert_called*(...)
+Additionally: module-wide pollution (sys.modules, os.environ, importlib.reload)
+at module level, i.e. on import - the source of order dependence.
 """
 from __future__ import annotations
 
@@ -44,7 +44,7 @@ def src(node) -> str:
 
 
 def classify_assert(node: ast.Assert) -> str | None:
-    """Gibt den Trivialitaetsgrund zurueck, oder None wenn der assert etwas aussagt."""
+    """Returns the reason an assert is trivial, or None if the assert says something."""
     t = node.test
 
     # assert True / assert 1 / assert "x"
@@ -77,7 +77,7 @@ def classify_assert(node: ast.Assert) -> str | None:
 
 
 def is_broad_raises(call: ast.Call) -> bool:
-    """pytest.raises(Exception) oder ein Tupel, das Exception/BaseException enthaelt."""
+    """pytest.raises(Exception) or a tuple containing Exception/BaseException."""
     if not call.args:
         return False
     targets = call.args[0].elts if isinstance(call.args[0], ast.Tuple) else [call.args[0]]
@@ -94,12 +94,12 @@ class FuncAnalysis:
         self.mock_asserts = 0
         self.unittest_asserts = 0
         self.explicit_fails = 0   # pytest.fail(...) / self.fail(...) / raise AssertionError
-        self.helper_asserts = 0   # Aufruf einer Hilfsfunktion namens assert_* / verify_*
+        self.helper_asserts = 0   # call to a helper named assert_* / verify_*
         self.return_value_literals: dict[str, ast.AST] = {}
         self.tautologies: list[tuple[int, str]] = []
-        # Zeilen der asserts, die nichts aussagen (trivial ODER Tautologie).
-        # Ein Test ist erst hohl, wenn ALLE seine asserts hier stehen - ein
-        # einzelner hohler assert neben einer echten Pruefung ist harmlos.
+        # Lines of the asserts that say nothing (trivial OR tautology).
+        # A test is only hollow when ALL its asserts are here - a single
+        # hollow assert next to a real check is harmless.
         self.hollow_lines: set[int] = set()
         self.skipped = False
 
@@ -120,7 +120,7 @@ class FuncAnalysis:
             return "skipped"
         if self.verifications() == 0:
             return "no_verification"
-        # Andere Pruefwege als plain assert - wenn es die gibt, ist der Test nicht hohl.
+        # Other ways of checking than a plain assert - if there are any, the test is not hollow.
         other = (self.mock_asserts + self.unittest_asserts + self.explicit_fails
                  + self.helper_asserts + len(self.raises))
         if self.asserts and len(self.hollow_lines) == len(self.asserts) and other == 0:
@@ -140,7 +140,7 @@ def analyse_function(fn, path, cls) -> FuncAnalysis:
         if "skip" in d or "xfail" in d:
             a.skipped = True
 
-    # Erst die vom Test selbst gesetzten return_value-Literale einsammeln.
+    # First collect the return_value literals the test set itself.
     for node in ast.walk(fn):
         if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant):
             for tgt in node.targets:
@@ -154,7 +154,7 @@ def analyse_function(fn, path, cls) -> FuncAnalysis:
             if reason:
                 a.trivial_reasons.append(reason)
                 a.hollow_lines.add(node.lineno)
-            # Tautologie: vergleicht gegen ein Literal, das der Test selbst gesetzt hat
+            # Tautology: compares against a literal the test set itself
             t = node.test
             if isinstance(t, ast.Compare) and len(t.ops) == 1 and isinstance(t.ops[0], ast.Eq):
                 for side in (t.left, t.comparators[0]):
@@ -164,7 +164,7 @@ def analyse_function(fn, path, cls) -> FuncAnalysis:
                             a.hollow_lines.add(node.lineno)
                         break
         elif isinstance(node, ast.Raise):
-            # raise AssertionError(...) ist eine Pruefung wie ein assert.
+            # raise AssertionError(...) is a check just like an assert.
             exc = node.exc
             nm = exc.func if isinstance(exc, ast.Call) else exc
             if isinstance(nm, ast.Name) and nm.id in ("AssertionError", "Failed"):
@@ -176,7 +176,7 @@ def analyse_function(fn, path, cls) -> FuncAnalysis:
                     a.raises.append(node)
                     if is_broad_raises(node):
                         a.broad_raises.append(node)
-                # pytest.fail(...) / self.fail(...) - prueft, ohne assert zu heissen.
+                # pytest.fail(...) / self.fail(...) - checks without being called assert.
                 elif f.attr in ("fail", "assertRaises", "assertRaisesRegex"):
                     a.explicit_fails += 1
                 elif f.attr.startswith("assert_"):
@@ -184,7 +184,7 @@ def analyse_function(fn, path, cls) -> FuncAnalysis:
                 elif f.attr.startswith("assert") and f.attr != "assert_":
                     a.unittest_asserts += 1
             elif isinstance(f, ast.Name):
-                # Hilfsfunktion, die im Namen sagt, dass sie prueft.
+                # Helper function whose name says that it checks.
                 if f.id.lstrip("_").startswith(("assert", "verify", "expect", "check_")):
                     a.helper_asserts += 1
                 elif f.id == "fail":
@@ -193,7 +193,7 @@ def analyse_function(fn, path, cls) -> FuncAnalysis:
 
 
 def module_pollution(tree, path) -> list[str]:
-    """Nur Modulebene: was beim IMPORT der Datei prozessweit passiert."""
+    """Module level only: what happens process-wide on IMPORT of the file."""
     found = []
     for node in tree.body:
         for sub in ast.walk(node):
@@ -219,7 +219,7 @@ def module_pollution(tree, path) -> list[str]:
 
 
 def walk_module(tree, path):
-    """Testfunktionen finden, inkl. der in Test-Klassen."""
+    """Find test functions, including those in test classes."""
     out = []
 
     def visit(body, cls):

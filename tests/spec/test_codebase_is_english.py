@@ -60,18 +60,9 @@ WORD = re.compile(r"[A-Za-zäöüÄÖÜß]+")
 
 # file -> number of German lines still in it. ONLY EVER SHRINK THIS.
 STILL_GERMAN = {
-    ".github/workflows/code-quality.yml": 5,
-    ".github/workflows/docker-publish.yml": 6,
-    ".github/workflows/tests.yml": 11,
     "AUDIT.md": 75,
     "SPEC.md": 326,
-    "app/auth.py": 11,
-    "app/templates/_server_selection.html": 1,
-    "cogs/control_ui.py": 74,
-    "cogs/docker_control.py": 17,
     "cogs/enhanced_info_modal_simple.py": 9,
-    "cogs/scheduler_commands.py": 2,
-    "cogs/status_info_integration.py": 38,
     "docs/archive/proposals/FEATURE_IDEA_WARNING_SYSTEM.md": 10,
     "docs/archive/proposals/FEATURE_PLAN_AUTO_ACTIONS.md": 49,
     "docs/archive/proposals/HOT_RELOAD_PLAN.md": 26,
@@ -80,18 +71,8 @@ STILL_GERMAN = {
     "docs/quality/STUFE0_BESTANDSAUFNAHME.md": 396,
     "docs/quality/STUFE3_TESTS_DIE_NICHT_FEHLSCHLAGEN.md": 195,
     "docs/quality/STUFE4_DURCHSICHT.md": 164,
-    "scripts/audit_tests.py": 17,
-    "scripts/reset_donations.sh": 5,
-    "scripts/show_order_source.py": 7,
-    "services/config/config_loader_service.py": 7,
-    "services/config/config_service.py": 21,
-    "services/docker_service/docker_utils.py": 6,
-    "services/donation/unified/reset.py": 10,
     "services/infrastructure/docker_connectivity_service.py": 8,
-    "services/infrastructure/spam_protection_service.py": 83,
-    "services/infrastructure/update_notifier.py": 4,
-    "services/mech/animation_cache_service.py": 2,
-    "services/web/donation_service.py": 8,
+    "services/infrastructure/spam_protection_service.py": 6,
     "tests/GROUPS.txt": 11,
     "tests/spec/__init__.py": 3,
     "tests/spec/test_angeforderte_abklingschluessel_existieren.py": 60,
@@ -159,7 +140,6 @@ STILL_GERMAN = {
     "tests/unit/extended/test_docker_infra_gaps.py": 5,
     "tests/unit/utils/test_crypto_cache.py": 6,
     "tests/unit/utils/test_utils_completion.py": 4,
-    "utils/token_security.py": 17,
 }
 
 

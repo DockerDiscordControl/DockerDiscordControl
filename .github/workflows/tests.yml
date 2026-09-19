@@ -45,11 +45,11 @@ jobs:
 
     strategy:
       matrix:
-        # Eine Version statt drei (2026-09-17). Seit die Suite gruppenweise
-        # wirklich durchlaeuft, kostet jeder Matrix-Eintrag einen vollen
-        # Suite-Lauf; vorher starb jeder Lauf nach Sekunden beim Einsammeln und
-        # kostete nichts. Drei Eintraege plus code-quality.yml ergaben vier volle
-        # Laeufe je Push - zu viel fuer das Minutenkontingent. Jetzt zwei.
+        # One version instead of three (2026-09-17). Since the suite really runs
+        # group by group, every matrix entry costs a full suite run; before, every
+        # run died within seconds at collection and cost nothing. Three entries
+        # plus code-quality.yml made four full runs per push - too much for the
+        # minutes quota. Now two.
         python-version: ['3.10']
       fail-fast: false
 
@@ -74,14 +74,13 @@ jobs:
           echo "## Unit Tests - Python ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Eine Gruppe je Aufruf - die Begruendung steht in tests/GROUPS.txt.
-          # Bis 2026-09-17 stand hier ein einzelnes "pytest tests/unit/" mit einem
-          # "|| true" am Ende. Dieser Aufruf brach mit 79 Fehlern beim Einsammeln
-          # ab, es lief kein einziger Test, und das "|| true" liess den Schritt
-          # trotzdem gruen erscheinen - samt der Meldung unten, die Tests seien
-          # durchgelaufen. Siehe SPEC.md Z10.
+          # One group per invocation - the reason is in tests/GROUPS.txt.
+          # Until 2026-09-17 this was a single "pytest tests/unit/" with a
+          # "|| true" at the end. That call aborted with 79 collection errors, not
+          # a single test ran, and the "|| true" still made the step look green -
+          # including the message below that the tests had passed. See SPEC.md Z10.
           #
-          # Die Integrationstests hat der eigene Job weiter unten.
+          # The integration tests have their own job further down.
           rm -f .coverage
           grep -v '^tests/integration' tests/GROUPS.txt | while read -r gruppe; do
             case "$gruppe" in ''|'#'*) continue ;; esac
@@ -138,8 +137,8 @@ jobs:
           echo "## Integration Tests" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Kein "|| true" und kein continue-on-error mehr: ein roter
-          # Integrationstest muss den Job rot machen. Siehe SPEC.md Z10.
+          # No "|| true" and no continue-on-error any more: a red integration
+          # test must turn the job red. See SPEC.md Z10.
           python -m pytest tests/integration/ -v
 
           echo "" >> $GITHUB_STEP_SUMMARY

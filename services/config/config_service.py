@@ -56,10 +56,8 @@ MIN_WEB_UI_PASSWORD_LENGTH = 12
 
 # Keys that get_config() adds at runtime. They must never be written back to
 # config.json - the decrypted token would otherwise end up on disk in plaintext.
-# Schluessel, die get_config() zur Laufzeit anhaengt und die NIE auf die Platte
-# duerfen. 'config_read_errors' meldet, dass eine Konfigurationsdatei nicht
-# auswertbar war - gespeichert waere das ein Datum ueber einen laengst
-# vergangenen Zustand.
+# 'config_read_errors' reports that a configuration file could not be parsed -
+# saved, it would be a statement about a long-gone state.
 _RUNTIME_ONLY_CONFIG_KEYS = ('bot_token_decrypted_for_usage', 'config_read_errors')
 
 logger = logging.getLogger('ddc.config_service')
@@ -319,10 +317,9 @@ class ConfigService:
         # of serving the (possibly stale) result cached below.
         load_mtime = self._cache_service.get_config_dir_mtime(self.config_dir)
 
-        # Lesefehler DIESES Ladevorgangs sammeln (siehe _vermerke_lesefehler).
-        # Das Zuruecksetzen ist der Punkt: Ein behobenes Rechteproblem muss die
-        # Anmeldung wieder oeffnen, statt sie fuer die Lebensdauer des Prozesses
-        # gesperrt zu lassen.
+        # Collect the read errors of THIS load (see _vermerke_lesefehler).
+        # The reset is the point: a fixed permission problem must reopen the
+        # login instead of keeping it locked for the lifetime of the process.
         self._read_errors = []
 
         # Check for v1.1.3D migration first
@@ -342,10 +339,10 @@ class ConfigService:
             else:
                 logger.error("Token decryption failed in get_config()")
 
-        # Lesefehler an das Ergebnis haengen, damit sie mitgecacht werden und
-        # jeden Aufrufer erreichen - ohne dass ein Aufrufer den Dienst befragen
-        # (und damit konstruieren) muesste. Der Schluessel steht in
-        # _RUNTIME_ONLY_CONFIG_KEYS und wird deshalb nie gespeichert.
+        # Attach the read errors to the result so they are cached with it and
+        # reach every caller - without a caller having to ask (and so construct)
+        # the service. The key is in _RUNTIME_ONLY_CONFIG_KEYS and is therefore
+        # never saved.
         if self._read_errors:
             config['config_read_errors'] = list(self._read_errors)
 
@@ -711,20 +708,19 @@ class ConfigService:
     # === Private Helper Methods ===
 
     def _vermerke_lesefehler(self, file_path: Path, grund: str) -> None:
-        """Merkt, dass eine Konfigurationsdatei nicht auswertbar war.
+        """Records that a configuration file could not be parsed.
 
-        WARUM DAS NOETIG IST: Der Rueckgabewert unten ist in jedem Fehlerfall die
-        Vorgabe - und die ist von einem echten Leseergebnis nicht zu
-        unterscheiden. Fuer ``web_ui_password_hash`` heisst das: Eine nicht
-        lesbare config.json sieht aus wie eine frische Installation, und
-        ``app/auth.py:176`` laesst daraufhin admin/setup auf jede der 70 Routen
-        mit ``@auth.login_required``. Der Fehler steht zwar im Protokoll, aber
-        ein Protokoll kann kein Aufrufer auswerten.
+        WHY THIS IS NEEDED: the return value below is the default in every error
+        case - and that cannot be told apart from a real read result. For
+        ``web_ui_password_hash`` this means: an unreadable config.json looks
+        like a fresh installation, and ``app/auth.py:176`` then lets admin/setup
+        onto every one of the 70 routes with ``@auth.login_required``. The error
+        is in the log, but no caller can evaluate a log.
 
-        ``hasattr`` statt Zuweisung im Konstruktor: ``_load_json_file`` wird
-        bereits AUS dem Konstruktor heraus gerufen (``ensure_modular_structure``
-        :242, ``_fold_legacy_settings_once`` :248), also bevor eine spaetere
-        Initialisierung liefe.
+        ``hasattr`` instead of an assignment in the constructor:
+        ``_load_json_file`` is already called FROM the constructor
+        (``ensure_modular_structure`` :242, ``_fold_legacy_settings_once`` :248),
+        i.e. before any later initialisation would run.
         """
         if not hasattr(self, '_read_errors'):
             self._read_errors = []
@@ -735,9 +731,9 @@ class ConfigService:
     def _load_json_file(self, file_path: Path, default: Dict[str, Any]) -> Dict[str, Any]:
         """Load JSON file with fallback to defaults.
 
-        Jeder Fehlschlag wird zusaetzlich vermerkt - siehe
-        ``_vermerke_lesefehler``. Ohne diesen Vermerk ist "Datei war kaputt"
-        nicht von "Datei gibt es nicht" zu unterscheiden.
+        Every failure is also recorded - see ``_vermerke_lesefehler``. Without
+        that record, "file was broken" cannot be told apart from "file does not
+        exist".
         """
         try:
             if file_path.exists():

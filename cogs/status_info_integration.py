@@ -161,13 +161,13 @@ class ProtectedInfoEditButton(discord.ui.Button):
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
 
-        # Ueber den Dienst statt am Cog vorbei. Vorher lag der Zeitstempel unter
-        # button_protected_edit_<nutzer> in self.cog._button_cooldowns, und vom
-        # Dienst kam nur die DAUER. Die Minutengrenze aus dem Panel wirkte hier
-        # deshalb nicht - sie zaehlt in add_user_cooldown, und dort kam dieser
-        # Weg nie an. Eigener Schluessel mit Wert 3 (dem bisherigen "info"),
-        # damit die heute getrennten Eimer getrennt BLEIBEN: Ein gemeinsames
-        # "info" wuerde drei Sperren zu einer verschmelzen.
+        # Through the service instead of past it. Before, the timestamp lived
+        # under button_protected_edit_<user> in self.cog._button_cooldowns, and
+        # only the DURATION came from the service. The per-minute limit from the
+        # panel therefore had no effect here - it counts in add_user_cooldown,
+        # and this path never got there. Own key with value 3 (the former
+        # "info"), so that today's separate buckets STAY separate: a shared
+        # "info" would merge three locks into one.
         if spam_manager.is_enabled():
             try:
                 if spam_manager.is_on_cooldown(interaction.user.id, "protected_info_edit"):
@@ -230,9 +230,9 @@ class EditInfoButton(discord.ui.Button):
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
 
-        # Ueber den Dienst statt am Cog vorbei - Begruendung wie bei
-        # ProtectedInfoEditButton. Eigener Schluessel "edit_info" mit Wert 3,
-        # damit der bisher getrennte Eimer getrennt bleibt.
+        # Through the service instead of past it - same reason as in
+        # ProtectedInfoEditButton. Own key "edit_info" with value 3, so the
+        # formerly separate bucket stays separate.
         if spam_manager.is_enabled():
             try:
                 if spam_manager.is_on_cooldown(interaction.user.id, "edit_info"):
@@ -491,18 +491,17 @@ class LiveLogView(discord.ui.View):
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
 
-        # Ueber den Dienst statt auf der Ansicht. Vorher lag der Zeitstempel
-        # unter button_refresh_<nutzer> in self._button_cooldowns - einem
-        # Woerterbuch, das die Ansicht sich selbst anlegte. Zwei Folgen:
-        # Die MINUTENGRENZE aus dem Panel wirkte hier nicht (sie zaehlt in
-        # add_user_cooldown, und dieser Weg kam dort nie an), und die Sperre
-        # starb mit der ANSICHT. Das wog hier besonders schwer, weil sich die
-        # Live-Log-Ansicht selbst erneuert (_start_auto_recreation baut sie
-        # 30 Sekunden vor dem Zeitablauf neu) - wer so lange wartete, war jede
-        # Abklingzeit los, ohne dass etwas davon sichtbar gewesen waere.
-        # Die Meldung war ausserdem unuebersetzt; benutzt wird jetzt der
-        # vorhandene Katalogeintrag. Abgewiesen wird ueber send_message, weil
-        # an dieser Stelle noch nicht bestaetigt wurde.
+        # Through the service instead of on the view. Before, the timestamp
+        # lived under button_refresh_<user> in self._button_cooldowns - a
+        # dictionary the view created for itself. Two consequences: the
+        # per-minute LIMIT from the panel had no effect (it counts in
+        # add_user_cooldown, and this path never got there), and the lock died
+        # with the VIEW. That weighed especially here, because the live-log view
+        # renews itself (_start_auto_recreation rebuilds it 30 seconds before the
+        # timeout) - whoever waited that long lost every cooldown, without any
+        # of it being visible. The message was also untranslated; the existing
+        # catalog entry is used now. Refused via send_message, because nothing
+        # has been acknowledged at this point.
         if spam_manager.is_enabled():
             try:
                 if spam_manager.is_on_cooldown(interaction.user.id, "live_refresh"):
@@ -680,17 +679,17 @@ class DebugLogsButton(discord.ui.Button):
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_manager = get_spam_protection_service()
 
-            # Ueber den Dienst statt am Cog vorbei. Vorher fuehrte diese Stelle
-            # ihre eigene Buchhaltung: Zeitstempel unter button_logs_<nutzer> in
-            # self.cog._button_cooldowns, waehrend vom Dienst nur die DAUER
-            # geholt wurde. Folge war, dass die MINUTENGRENZE aus dem Panel hier
-            # nicht wirkte - sie zaehlt in add_user_cooldown, und dort kam
-            # dieser Weg nie an. Die Abklingzeit funktionierte, die Minutengrenze
-            # nicht; genau die Mischung, die niemandem auffaellt.
-            # Schluessel, Dauer und Eimer bleiben unveraendert ("logs", 10s, von
-            # keiner anderen Stelle als Sperre benutzt). Neu ist nur, dass der
-            # Druck vermerkt wird und damit in die Minutengrenze einzahlt.
-            # Abgewiesen wird ueber followup, weil oben bereits bestaetigt wurde.
+            # Through the service instead of past it. Before, this place kept
+            # its own books: timestamp under button_logs_<user> in
+            # self.cog._button_cooldowns, while only the DURATION came from the
+            # service. As a result the per-minute LIMIT from the panel had no
+            # effect here - it counts in add_user_cooldown, and this path never
+            # got there. The cooldown worked, the per-minute limit did not;
+            # exactly the mix nobody notices.
+            # Key, duration and bucket stay unchanged ("logs", 10 s, not used as
+            # a lock anywhere else). New is only that the press is recorded and
+            # so counts towards the per-minute limit.
+            # Refused via followup, because it was acknowledged above.
             if spam_manager.is_enabled():
                 try:
                     if spam_manager.is_on_cooldown(interaction.user.id, "logs"):
@@ -1015,9 +1014,9 @@ class ProtectedInfoButton(discord.ui.Button):
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
 
-        # Ueber den Dienst statt am Cog vorbei - Begruendung wie bei
-        # ProtectedInfoEditButton. Eigener Schluessel "protected_info" mit
-        # Wert 3, damit der bisher getrennte Eimer getrennt bleibt.
+        # Through the service instead of past it - same reason as in
+        # ProtectedInfoEditButton. Own key "protected_info" with value 3, so the
+        # formerly separate bucket stays separate.
         if spam_manager.is_enabled():
             try:
                 if spam_manager.is_on_cooldown(interaction.user.id, "protected_info"):
@@ -1183,10 +1182,10 @@ class TaskManagementButton(discord.ui.Button):
             # Check spam protection after deferring
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
-            # Ueber den Dienst statt als Attribut am Knopf - Begruendung wie bei
-            # InfoDropdownButton in control_ui.py. Die Sperre lag bisher auf dem
-            # Objekt und verschwand mit ihm; die Minutengrenze aus dem Panel
-            # wirkte hier nicht, und die Meldung war unuebersetzt.
+            # Through the service instead of an attribute on the button - same
+            # reason as in InfoDropdownButton in control_ui.py. The lock lived on
+            # the object and vanished with it; the per-minute limit from the
+            # panel had no effect here, and the message was untranslated.
             if spam_service.is_enabled():
                 try:
                     if spam_service.is_on_cooldown(interaction.user.id, "tasks"):

@@ -31,7 +31,7 @@ class DonationRequest:
     donor_name: str
     publish_to_discord: bool = True
     source: str = 'web_ui_manual'
-    # Token des Browsers; ein Wiederholungsversuch traegt dasselbe. SPEC.md Z4.
+    # The browser's token; a retry carries the same one. SPEC.md Z4.
     idempotency_key: Optional[str] = None
 
 
@@ -202,21 +202,21 @@ class DonationService:
             os.makedirs(notification_dir, exist_ok=True)
             notification_file = f"{notification_dir}/donation_notification.json"
 
-            # Atomar schreiben, nicht mit open(..., "w"): Diese Datei hat einen
-            # NEBENLAEUFIGEN Leser. services/donation/notification_service.py:26
-            # liest sie, cogs/docker_control.py:5152 fragt sie alle 30 Sekunden ab,
-            # und beide Haelften laufen im selben Prozess (Web-UI im Hintergrundfaden,
-            # Bot im Hauptfaden).
+            # Write atomically, not with open(..., "w"): this file has a
+            # CONCURRENT reader. services/donation/notification_service.py:26
+            # reads it, cogs/docker_control.py:5152 polls it every 30 seconds,
+            # and both halves run in the same process (web UI in a background
+            # thread, bot in the main thread).
             #
-            # open(..., "w") kuerzt beim Oeffnen, und json.dump schreibt stroemend.
-            # Gemessen: Scheitert die Serialisierung, bleibt ein HALBER, gueltig
-            # beginnender Datensatz zurueck ('{"type": "donation", "donor": "Bob",
-            # "amount": '). Der Leser wirft darauf JSONDecodeError und LOESCHT die
-            # Datei (notification_service.py:56-64) - die Spendenankuendigung ist
-            # dann endgueltig weg, gemeldet nur durch eine logger.error-Zeile.
+            # open(..., "w") truncates on open, and json.dump writes as a stream.
+            # Measured: if serialisation fails, a HALF record that starts validly
+            # is left behind ('{"type": "donation", "donor": "Bob", "amount": ').
+            # The reader then raises JSONDecodeError and DELETES the file
+            # (notification_service.py:56-64) - the donation announcement is gone
+            # for good, reported only by a logger.error line.
             #
-            # atomic_write_json serialisiert VOR dem Oeffnen (utils/atomic_io.py:66-69)
-            # und ersetzt per os.replace: Die Datei erscheint ganz oder gar nicht.
+            # atomic_write_json serialises BEFORE opening (utils/atomic_io.py:66-69)
+            # and replaces via os.replace: the file appears whole or not at all.
             atomic_write_json(notification_file, notification)
 
             self.logger.info(f"🔔 Discord notification created: {notification_file}")

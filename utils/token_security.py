@@ -155,14 +155,14 @@ class TokenSecurityManager:
             if env_token:
                 status['environment_token_used'] = True
                 status['recommendations'].append("✅ Using secure environment variable")
-                # KEIN vorzeitiges return mehr: Dass die Umgebungsvariable benutzt
-                # wird, sagt NICHTS darueber, was in bot_config.json steht. Vorher
-                # blieben token_exists/is_encrypted auf ihren False-Vorgaben, und
-                # damit meldete security_service.py:265 40/40 und "Excellent",
-                # das Panel zeigte Gruen, und auto_encrypt_token_on_startup
-                # (app/bootstrap/runtime.py:194) lief nie an - waehrend ein
-                # Klartext-Token in der Datei liegen konnte. Die Wertung bleibt
-                # unveraendert bei 40/40; hinzu kommt nur die Warnung unten.
+                # NO early return any more: that the environment variable is used
+                # says NOTHING about what is in bot_config.json. Before,
+                # token_exists/is_encrypted stayed at their False defaults, so
+                # security_service.py:265 reported 40/40 and "Excellent", the
+                # panel showed green, and auto_encrypt_token_on_startup
+                # (app/bootstrap/runtime.py:194) never ran - while a plaintext
+                # token could sit in the file. The score stays 40/40; only the
+                # warning below is added.
 
             # Check config files - via utils/config_paths.py, see
             # encrypt_existing_plaintext_token.
@@ -191,19 +191,18 @@ class TokenSecurityManager:
             # Generate recommendations
             if (status['token_exists'] and not status['is_encrypted']
                     and status['environment_token_used']):
-                # Die gefaehrliche Kombination: sichere Quelle IN BENUTZUNG,
-                # unsichere Kopie trotzdem lesbar auf der Platte. Vor dieser
-                # Korrektur wurde sie nie gemeldet, weil die Funktion oben
-                # zurueckkehrte, bevor sie die Datei ansah.
+                # The dangerous combination: secure source IN USE, insecure copy
+                # still readable on disk. Before this fix it was never reported,
+                # because the function above returned before looking at the file.
                 status['recommendations'].append(
                     "⚠️ Plaintext bot token still present in bot_config.json - the "
                     "environment variable is in use, but the file copy is readable. "
                     "Encrypt it or remove it."
                 )
             elif not status['token_exists']:
-                # Nur melden, wenn es WIRKLICH keinen Token gibt. Wird er ueber die
-                # Umgebungsvariable bezogen, ist "kein Token konfiguriert" falsch und
-                # unnoetig alarmierend - genau der Normalfall einer sauberen Anlage.
+                # Only report when there REALLY is no token. If it comes from the
+                # environment variable, "no token configured" is wrong and needlessly
+                # alarming - exactly the normal case of a clean setup.
                 if not status['environment_token_used']:
                     status['recommendations'].append("⚠️  No bot token configured")
             elif not status['is_encrypted'] and status['can_encrypt']:
@@ -238,13 +237,12 @@ class TokenSecurityManager:
         }
 
         try:
-            # config_service, nicht config_manager: __init__ (:51-59) setzt NUR
-            # config_service. Das Attribut config_manager existierte nie - der
-            # AttributeError wurde bei :247 gefangen und als Fehlertext
-            # durchgereicht, sodass der Betreiber im Token-Fenster den rohen
-            # Python-Text als Dialog zu sehen bekam. Damit war dieser Weg seit
-            # jeher unerreichbar, und SPEC.md B5 beschrieb ein Risiko, das es
-            # faktisch nicht gab.
+            # config_service, not config_manager: __init__ (:51-59) sets ONLY
+            # config_service. The attribute config_manager never existed - the
+            # AttributeError was caught at :247 and passed on as the error text,
+            # so the operator saw the raw Python text as a dialog in the token
+            # window. This path was therefore unreachable from the start, and
+            # SPEC.md B5 described a risk that did not exist in practice.
             if not self.config_service:
                 result['error'] = "ConfigService not available"
                 return result

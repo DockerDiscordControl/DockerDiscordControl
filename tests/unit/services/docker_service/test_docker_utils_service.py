@@ -1114,7 +1114,7 @@ class TestPerformanceHelpers:
         out = await docker_utils.compare_container_performance(
             container_names=None
         )
-        assert "Keine laufenden Container" in out
+        assert "No running containers" in out
 
     @pytest.mark.asyncio
     async def test_compare_container_performance_runs_for_explicit_names(
@@ -1148,7 +1148,7 @@ class TestPerformanceHelpers:
             _make_async_client_cm(fake_docker_client),
         )
         out = await docker_utils.compare_container_performance(["nginx"])
-        assert "DOCKER STATS PERFORMANCE VERGLEICH" in out
+        assert "DOCKER STATS PERFORMANCE COMPARISON" in out
         # Restore wait_for to be safe between tests
         monkeypatch.setattr(asyncio, "wait_for", original_wait_for)
 

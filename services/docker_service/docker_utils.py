@@ -1022,14 +1022,14 @@ async def test_docker_performance(container_names: List[str] = None, iterations:
 
 async def analyze_docker_stats_performance(container_name: str, iterations: int = 5) -> dict:
     """
-    Detaillierte Analyse warum ein Container langsame Docker Stats hat.
+    Detailed analysis of why a container has slow Docker stats.
 
     Args:
-        container_name: Name des Docker-Containers
-        iterations: Anzahl der Test-Iterationen
+        container_name: name of the Docker container
+        iterations: number of test iterations
 
     Returns:
-        Dict mit detaillierten Performance-Metriken
+        Dict with detailed performance metrics
     """
     if not container_name:
         return {}
@@ -1092,7 +1092,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
         for iteration in range(iterations):
             logger.info(f"Performance analysis iteration {iteration + 1}/{iterations} for '{container_name}'")
 
-            # 1. Container-Objekt abrufen (sollte schnell sein, da gecacht)
+            # 1. Get the container object (should be fast, as it is cached)
             start_time = time.time()
             try:
                 # Note: container name already validated above, safe to use
@@ -1115,7 +1115,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
 
                 # 3. Analyze stats data for trends
                 if stats:
-                    # CPU-Metriken
+                    # CPU metrics
                     cpu_stats = stats.get('cpu_stats', {})
                     if cpu_stats:
                         cpu_usage = cpu_stats.get('cpu_usage', {}).get('total_usage', 0)
@@ -1127,7 +1127,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                             'online_cpus': cpu_stats.get('online_cpus', 1)
                         })
 
-                    # Memory-Metriken
+                    # Memory metrics
                     memory_stats = stats.get('memory_stats', {})
                     if memory_stats:
                         memory_usage = memory_stats.get('usage', 0)
@@ -1141,7 +1141,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                             'memory_percent': (memory_usage / memory_limit * 100) if memory_limit > 0 else 0
                         })
 
-                    # I/O-Metriken
+                    # I/O metrics
                     blkio_stats = stats.get('blkio_stats', {})
                     if blkio_stats:
                         io_service_bytes = blkio_stats.get('io_service_bytes_recursive', [])
@@ -1154,7 +1154,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                             'stats_call_time_ms': stats_call_time
                         })
 
-                    # Network-Metriken
+                    # Network metrics
                     networks = stats.get('networks', {})
                     if networks:
                         total_rx_bytes = sum(net.get('rx_bytes', 0) for net in networks.values())
@@ -1180,11 +1180,11 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                 logger.error(f"Error retrieving stats (iteration {iteration}): {e}", exc_info=True)
                 continue
 
-            # Kurze Pause zwischen Iterationen
+            # Short pause between iterations
             if iteration < iterations - 1:
                 await asyncio.sleep(0.5)
 
-        # Analyse der Ergebnisse
+        # Analyse the results
         if results['timing_breakdown']['stats_call_times']:
             stats_times = results['timing_breakdown']['stats_call_times']
             avg_stats_time = sum(stats_times) / len(stats_times)
@@ -1201,17 +1201,17 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                 'min_stats_time_ms': min_stats_time,
                 'std_deviation_ms': std_deviation,
                 'variability_high': std_deviation > (avg_stats_time * 0.3),  # >30% variability
-                'consistently_slow': avg_stats_time > 1000,  # Durchschnitt >1s
-                'performance_category': 'langsam' if avg_stats_time > 1000 else 'mittel' if avg_stats_time > 500 else 'schnell'
+                'consistently_slow': avg_stats_time > 1000,  # average >1s
+                'performance_category': 'slow' if avg_stats_time > 1000 else 'medium' if avg_stats_time > 500 else 'fast'
             }
 
-            # Korrelations-Analyse (falls genug Daten)
+            # Correlation analysis (if there is enough data)
             if len(results['container_metrics']['memory_usage_trend']) >= 3:
                 memory_usage = [m['memory_percent'] for m in results['container_metrics']['memory_usage_trend']]
-                # Einfache Korrelation zwischen Memory-Nutzung und Stats-Zeit
+                # Simple correlation between memory usage and stats time
                 if len(memory_usage) == len(stats_times):
                     avg_memory = sum(memory_usage) / len(memory_usage)
-                    memory_high = avg_memory > 70  # >70% Memory-Nutzung
+                    memory_high = avg_memory > 70  # >70% memory usage
                     results['analysis']['memory_correlation'] = {
                         'avg_memory_percent': avg_memory,
                         'high_memory_usage': memory_high,
@@ -1243,28 +1243,28 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
 
 async def compare_container_performance(container_names: List[str] = None) -> str:
     """
-    Einfacher Vergleich der Docker Stats Performance zwischen Containern.
-    Zeigt dem User, warum manche Container langsamer sind.
+    Simple comparison of Docker stats performance between containers.
+    Shows the user why some containers are slower.
 
     Args:
-        container_names: Liste der Container zum Vergleichen
+        container_names: list of containers to compare
 
     Returns:
-        Formatierter String mit Vergleichsergebnissen
+        Formatted string with the comparison results
     """
     if not container_names:
-        # Automatisch laufende Container finden
+        # Find running containers automatically
         containers_data = await get_containers_data()
-        container_names = [c['name'] for c in containers_data if c.get('running', False)][:5]  # Max 5 Container
+        container_names = [c['name'] for c in containers_data if c.get('running', False)][:5]  # at most 5 containers
 
     if not container_names:
-        return "❌ Keine laufenden Container gefunden zum Testen."
+        return "❌ No running containers found to test."
 
-    logger.info(f"Vergleiche Performance von {len(container_names)} Containern")
+    logger.info(f"Comparing performance of {len(container_names)} containers")
     results = []
 
     for container_name in container_names:
-        logger.info(f"Teste Container: {container_name}")
+        logger.info(f"Testing container: {container_name}")
 
         # 🔒 SECURITY: Validate container name format before Docker API call
         from utils.common_helpers import validate_container_name
@@ -1272,14 +1272,14 @@ async def compare_container_performance(container_names: List[str] = None) -> st
             logger.error(f"compare_container_performance: Invalid container name format: {container_name}")
             continue
 
-        # Einfacher Performance-Test (3 Iterationen)
+        # Simple performance test (3 iterations)
         times = []
         try:
             # 🔧 PERFORMANCE: Use Advanced Settings timeout for performance comparison
             async with get_docker_client_async(operation='stats', container_name=container_name) as client:
                 container = await asyncio.to_thread(client.containers.get, container_name)
 
-                # 3 schnelle Tests
+                # 3 quick tests
                 for i in range(3):
                     start_time = time.time()
                     try:
@@ -1290,7 +1290,7 @@ async def compare_container_performance(container_names: List[str] = None) -> st
                         elapsed = (time.time() - start_time) * 1000
                         times.append(elapsed)
 
-                        # Kurze Pause
+                        # Short pause
                         if i < 2:
                             await asyncio.sleep(0.2)
 
@@ -1305,18 +1305,18 @@ async def compare_container_performance(container_names: List[str] = None) -> st
                     min_time = min(times)
                     max_time = max(times)
 
-                    # Container-Typ ermitteln
+                    # Determine the container type
                     container_type_info = get_container_type_info(container_name)
                     container_type = container_type_info.get('type', 'unknown')
                     matched_pattern = container_type_info.get('matched_pattern', 'none')
 
-                    # Performance-Kategorie
+                    # Performance category
                     if avg_time > 2000:
                         category = "🔴 VERY SLOW"
                     elif avg_time > 1000:
                         category = "🟡 SLOW"
                     elif avg_time > 500:
-                        category = "🟠 MITTEL"
+                        category = "🟠 MEDIUM"
                     else:
                         category = "🟢 FAST"
 
@@ -1335,16 +1335,16 @@ async def compare_container_performance(container_names: List[str] = None) -> st
             results.append({
                 'name': container_name,
                 'avg_time': -1,
-                'category': "❌ FEHLER",
+                'category': "❌ ERROR",
                 'error': str(e)
             })
 
-    # Ergebnisse sortieren (langsamste zuerst)
+    # Sort the results (slowest first)
     results.sort(key=lambda x: x.get('avg_time', 0), reverse=True)
 
-    # Formatierte Ausgabe erstellen
+    # Build the formatted output
     output_lines = [
-        "🔍 **DOCKER STATS PERFORMANCE VERGLEICH**",
+        "🔍 **DOCKER STATS PERFORMANCE COMPARISON**",
         "=" * 50,
         ""
     ]
@@ -1353,9 +1353,9 @@ async def compare_container_performance(container_names: List[str] = None) -> st
         if result.get('avg_time', -1) >= 0:
             output_lines.extend([
                 f"**{i+1}. {result['name']}** {result['category']}",
-                f"   ⏱️  Durchschnitt: {result['avg_time']:.0f}ms",
-                f"   📊 Bereich: {result['min_time']:.0f}ms - {result['max_time']:.0f}ms",
-                f"   🏷️  Typ: {result.get('type', 'unknown')} (Pattern: {result.get('pattern', 'none')})",
+                f"   ⏱️  Average: {result['avg_time']:.0f}ms",
+                f"   📊 Range: {result['min_time']:.0f}ms - {result['max_time']:.0f}ms",
+                f"   🏷️  Type: {result.get('type', 'unknown')} (pattern: {result.get('pattern', 'none')})",
                 ""
             ])
         else:

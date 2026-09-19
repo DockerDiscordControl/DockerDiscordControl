@@ -895,8 +895,8 @@ class TestDockerUtilsCompareBranches:
         )
 
         out = await docker_utils.compare_container_performance(["alpha"])
-        # Path 1261-1268: error entry appended, formatted as "❌ FEHLER"
-        assert "FEHLER" in out
+        # Path 1261-1268: error entry appended, formatted as "❌ ERROR"
+        assert "❌ ERROR" in out
 
 
 # =========================================================================== #

@@ -40,14 +40,14 @@ def reset_donations(
         # Hold the progress lock so a concurrent donation cannot interleave with the reset
         from services.mech.progress_service import LOCK as progress_lock
         with progress_lock:
-            # Das Ereignislog ist die einzige Aufzeichnung der echten Spenden dieser
-            # Instanz. Vorher schrieb _clear_event_log() ersatzlos "" hinein - ein
-            # versehentlicher Aufruf vernichtete die Historie endgueltig. Die Sicherung
-            # laeuft deshalb VOR dem Loeschen und innerhalb derselben Sperre, und ein
-            # Fehler dabei bricht den Reset ab (die OSError-Behandlung unten faengt ihn),
-            # statt nur zu warnen: eine Sicherung, die im Fehlerfall weiterloescht,
-            # waere keine. Dieselbe Konvention benutzt scripts/reset_donations.sh:32-44.
-            # Siehe SPEC.md Z1.
+            # The event log is the only record of this instance's real donations.
+            # Before, _clear_event_log() wrote "" into it with no copy - one
+            # accidental call destroyed the history for good. The backup therefore
+            # runs BEFORE the deletion and inside the same lock, and a failure
+            # aborts the reset (the OSError handling below catches it) instead of
+            # just warning: a backup that keeps deleting on failure would be none.
+            # scripts/reset_donations.sh:32-44 uses the same convention.
+            # See SPEC.md Z1.
             _backup_before_reset(progress_paths)
             _clear_event_log(progress_paths)
             _reset_sequence_counter(progress_paths)
@@ -103,14 +103,14 @@ def reset_donations(
 
 
 def _backup_before_reset(paths: ProgressPaths) -> Path:
-    """Lege eine wiederherstellbare Kopie des Spendenbuchs an.
+    """Create a restorable copy of the donation ledger.
 
-    Kopiert Ereignislog, Sequenzzaehler und Snapshots nach
-    ``<data_dir>/backup_<Zeitstempel>/``. Der Zeitstempel bekommt bei Bedarf einen
-    Zaehler, damit zwei Resets in derselben Sekunde nicht dieselbe Sicherung
-    ueberschreiben - sonst koennte ein Doppelklick beide Staende vernichten.
+    Copies the event log, the sequence counter and the snapshots to
+    ``<data_dir>/backup_<timestamp>/``. The timestamp gets a counter when needed,
+    so two resets in the same second do not overwrite the same backup -
+    otherwise a double click could destroy both states.
 
-    Fehler werden absichtlich NICHT gefangen: der Aufrufer bricht den Reset ab.
+    Errors are deliberately NOT caught: the caller aborts the reset.
     """
     ziel = paths.data_dir / f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     lauf = 2

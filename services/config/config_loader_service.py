@@ -270,18 +270,16 @@ class ConfigLoaderService:
         for container_file in self.containers_dir.glob("*.json"):
             try:
                 container_config = self._load_json_file(container_file, {})
-                # Ein FEHLENDER 'active'-Schluessel bedeutet AKTIV - dieselbe
-                # Vorgabe wie server_config_service.py:90 und
-                # cogs/admin_overview.py:464, die sie beide als Kommentar
-                # ausschreiben. Hier stand False, womit dieselbe Containerdatei
-                # fuer die einen Aufrufer existierte und fuer die anderen nicht.
-                # Der Schluessel fehlt keineswegs nur theoretisch:
-                # config_migration_service.py:230 schreibt Alteintraege aus
-                # docker_config.json wortwoertlich, und das Wort 'active' kommt
-                # in dieser Datei nicht ein einziges Mal vor. Gemeldet wurde der
-                # Verlust allein per logger.debug (unten), das im Normalbetrieb
-                # auf INFO nirgends erscheint.
-                # Ein ausdrueckliches active: False filtert weiterhin.
+                # A MISSING 'active' key means ACTIVE - the same default as
+                # server_config_service.py:90 and cogs/admin_overview.py:464,
+                # both of which spell it out as a comment. This said False, so
+                # the same container file existed for some callers and not for
+                # others. The key is by no means only missing in theory:
+                # config_migration_service.py:230 writes legacy entries from
+                # docker_config.json verbatim, and the word 'active' does not
+                # occur once in that file. The loss was reported only via
+                # logger.debug (below), which appears nowhere at the normal INFO
+                # level. An explicit active: False still filters.
                 if container_config.get('active', True):
                     servers.append(container_config)
                     logger.debug(f"Loading active container: {container_config.get('container_name', container_file.stem)}")

@@ -592,8 +592,8 @@ class AnimationCacheService:
                 crop_height = max_y - min_y
                 logger.debug(f"Smart crop found: {crop_width}x{crop_height} (from {min_x},{min_y} to {max_x},{max_y})")
 
-            # KOMPLETT KEINE SKALIERUNG: Nur pures Smart Cropping, sonst nichts!
-            # Direkt das gecroppte Resultat verwenden - ZERO weitere Manipulation
+            # NO SCALING AT ALL: pure smart cropping, nothing else!
+            # Use the cropped result directly - ZERO further manipulation
 
             logger.debug(f"Using pure crop result: {crop_width}x{crop_height} (ZERO scaling, ZERO canvas manipulation)")
 
@@ -606,7 +606,7 @@ class AnimationCacheService:
                 else:
                     cropped = frame
 
-                # DIREKTES Resultat ohne jegliche weitere Veränderung!
+                # DIRECT result without any further change!
                 frames.append(cropped)
 
         logger.debug(f"Processed {len(frames)} frames for evolution {evolution_level} with pure crop size {crop_width}x{crop_height}")
