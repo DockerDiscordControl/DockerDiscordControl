@@ -5232,8 +5232,17 @@ def setup(bot):
                 except (discord.errors.DiscordException, RuntimeError, ValueError) as embed_error:
                     logger.error(f"🔔 Error creating/sending donation embed: {embed_error}", exc_info=True)
 
-        except (ImportError, AttributeError, RuntimeError) as e:
-            logger.debug(f"Error checking donation notifications: {e}")
+        except Exception as e:
+            # Deliberately broad, and ERROR, not DEBUG (SPEC.md Z8). Once
+            # check_and_retrieve_notification() has returned, the notification
+            # file is deleted - a failure after that loses the announcement for
+            # good. This used to catch only three types and log them at DEBUG,
+            # so a lost announcement left no visible trace; any other type
+            # (TypeError, KeyError, ...) left the body, and a tasks.loop whose
+            # body raises stops for good - no web donation was announced again
+            # until a restart. This is the loop boundary: log loudly, keep going.
+            logger.error(f"Donation notification from the web panel was not announced: {e}",
+                         exc_info=True)
 
     # Start the task and add to cog
     check_donation_notifications.start()

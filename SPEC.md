@@ -310,11 +310,24 @@ message, booking money — the error becomes visible. Never just `except: pass`.
 *Broken if:* such an error ends up only in the debug log, or nowhere at all.
 **Today: fixed on the donation path (2026-09-16), otherwise still broken.** Fixed: a swallowed
 booking error led to a thank-you message to all channels — see Z3.
-**Still open:** 25 bare `except:` in `cogs/` (33 in the whole project), two of them around message deletions
-(`docker_control.py:4966`, `:4976`); `event_manager.py:78` catches only `RuntimeError`, any other
-exception takes the remaining handlers down with it. This guarantee is therefore **not** fulfilled,
-but only enforced in one place — this is explicitly recorded so that it is not considered
-done.
+~~**Still open:** 25 bare `except:` in `cogs/` (33 in the whole project)~~ — **measured on 2026-09-19:
+0 bare `except:` left**; they were removed in `e93100a` (they also swallowed the cancellation
+signal). The two message deletions named here (now `docker_control.py:5016`, `:5026`) only remove
+a "processing" message after the result was shown — a failure leaves a stale message, nothing is
+lost.
+
+**The Z8 sweep of 2026-09-19**, counted with an AST scan of the application code: **107** handlers
+whose body is only `pass`/`continue`, **119** that log only at DEBUG. Sorted by what their `try`
+does, most are harmless: a fallback error reply to the user after the real error was already
+logged, removing a temp file after a failed atomic write (the original error is re-raised),
+parsing with a fallback value. **Found and fixed:** the web-panel donation announcement
+(`check_donation_notifications`) — after the notification file was consumed, an `AttributeError`
+was logged only at DEBUG, and any other exception type stopped the loop for good. *Covered by*
+`tests/spec/test_z8_web_donation_announcement_is_not_lost_silently.py`.
+**Still open:** `event_manager.py:78` catches only `RuntimeError` — any other exception in one
+listener skips the remaining listeners. **Not read one by one:** the DEBUG-only handlers were sorted
+by the calls in their `try` body, not each read in full. This guarantee is therefore **not**
+fulfilled everywhere — recorded so that it is not considered done.
 
 ### Z9 — The bot token never lies on disk in plain text.
 Not in `config.json`, not in its backup, not in logs.
