@@ -144,15 +144,15 @@ def test_befehle_behalten_ihren_regler_wenn_sie_es_sagen(tmp_path, monkeypatch):
     """
     for methode in ("is_on_cooldown", "get_remaining_cooldown", "add_user_cooldown"):
         parameter = inspect.signature(getattr(SpamProtectionService, methode)).parameters
-        assert "art" in parameter, (
+        assert "kind" in parameter, (
             f"{methode} kennt keinen Parameter 'art' - ein Befehl kann sich nicht "
             "als solcher ausweisen."
         )
 
     dienst = _dienst(tmp_path, monkeypatch)
-    dienst.add_user_cooldown(NUTZER, "info", art="befehl")
+    dienst.add_user_cooldown(NUTZER, "info", kind="command")
 
-    assert dienst.get_remaining_cooldown(NUTZER, "info", art="befehl") == pytest.approx(
+    assert dienst.get_remaining_cooldown(NUTZER, "info", kind="command") == pytest.approx(
         dienst.get_command_cooldown("info")
     )
 
@@ -168,12 +168,12 @@ def test_befehl_und_knopf_gleichen_namens_teilen_keinen_eimer(tmp_path, monkeypa
     dienst = _dienst(tmp_path, monkeypatch)
 
     dienst.add_user_cooldown(NUTZER, "info")
-    assert dienst.is_on_cooldown(NUTZER, "info", art="befehl") is False, (
+    assert dienst.is_on_cooldown(NUTZER, "info", kind="command") is False, (
         "Ein Druck auf den Info-KNOPF sperrt den /info-BEFEHL - beide teilen "
         "sich einen Eimer."
     )
 
-    dienst.add_user_cooldown(NUTZER, "help", art="befehl")
+    dienst.add_user_cooldown(NUTZER, "help", kind="command")
     assert dienst.is_on_cooldown(NUTZER, "help") is False, (
         "Der /help-BEFEHL sperrt den Hilfe-KNOPF - beide teilen sich einen Eimer."
     )
@@ -191,4 +191,4 @@ def test_ein_tippfehler_bei_der_art_scheitert_laut(tmp_path, monkeypatch):
     for methode in (dienst.is_on_cooldown, dienst.get_remaining_cooldown,
                     dienst.add_user_cooldown):
         with pytest.raises(ValueError):
-            methode(NUTZER, "info", art="befhel")
+            methode(NUTZER, "info", kind="befhel")

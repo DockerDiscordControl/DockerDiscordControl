@@ -184,7 +184,7 @@ _LAZY_BUILDERS = {
 }
 
 
-def _lazy_wert(name: str) -> Any:
+def _lazy_value(name: str) -> Any:
     """Read one of the lazily built values from inside this module.
 
     Needed because module-level __getattr__ (PEP 562) is only consulted for
@@ -252,7 +252,7 @@ def get_container_timeouts(container_name: str) -> dict:
         Dict with 'stats_timeout' and 'info_timeout' values
     """
     if not container_name:
-        return _lazy_wert('DEFAULT_TIMEOUT_CONFIG').copy()
+        return _lazy_value('DEFAULT_TIMEOUT_CONFIG').copy()
 
     container_lower = container_name.lower()
 
@@ -266,8 +266,8 @@ def get_container_timeouts(container_name: str) -> dict:
             override_config = container_overrides[container_name]
             logger.debug(f"Container '{container_name}' using exact name override")
             return {
-                'stats_timeout': override_config.get('stats_timeout', _lazy_wert('DEFAULT_TIMEOUT_CONFIG')['stats_timeout']),
-                'info_timeout': override_config.get('info_timeout', _lazy_wert('DEFAULT_TIMEOUT_CONFIG')['info_timeout'])
+                'stats_timeout': override_config.get('stats_timeout', _lazy_value('DEFAULT_TIMEOUT_CONFIG')['stats_timeout']),
+                'info_timeout': override_config.get('info_timeout', _lazy_value('DEFAULT_TIMEOUT_CONFIG')['info_timeout'])
             }
 
     # 2. Check custom patterns (medium priority)
@@ -278,12 +278,12 @@ def get_container_timeouts(container_name: str) -> dict:
                     if pattern in container_lower:
                         logger.debug(f"Container '{container_name}' matches custom pattern '{pattern}' from {pattern_name}")
                         return {
-                            'stats_timeout': pattern_config.get('stats_timeout', _lazy_wert('DEFAULT_TIMEOUT_CONFIG')['stats_timeout']),
-                            'info_timeout': pattern_config.get('info_timeout', _lazy_wert('DEFAULT_TIMEOUT_CONFIG')['info_timeout'])
+                            'stats_timeout': pattern_config.get('stats_timeout', _lazy_value('DEFAULT_TIMEOUT_CONFIG')['stats_timeout']),
+                            'info_timeout': pattern_config.get('info_timeout', _lazy_value('DEFAULT_TIMEOUT_CONFIG')['info_timeout'])
                         }
 
     # 3. Check built-in container type patterns (lowest priority)
-    for container_type, config in _lazy_wert('CONTAINER_TYPE_PATTERNS').items():
+    for container_type, config in _lazy_value('CONTAINER_TYPE_PATTERNS').items():
         for pattern in config['patterns']:
             if pattern in container_lower:
                 logger.debug(f"Container '{container_name}' matches built-in {container_type} pattern '{pattern}'")
@@ -294,7 +294,7 @@ def get_container_timeouts(container_name: str) -> dict:
 
     # Return default if no pattern matches
     logger.debug(f"Container '{container_name}' using default timeout configuration")
-    return _lazy_wert('DEFAULT_TIMEOUT_CONFIG').copy()
+    return _lazy_value('DEFAULT_TIMEOUT_CONFIG').copy()
 
 def get_container_type_info(container_name: str) -> dict:
     """
@@ -307,7 +307,7 @@ def get_container_type_info(container_name: str) -> dict:
         Dict with container type information including custom configuration
     """
     if not container_name:
-        return {'type': 'unknown', 'matched_pattern': None, 'timeout_config': _lazy_wert('DEFAULT_TIMEOUT_CONFIG'), 'config_source': 'default'}
+        return {'type': 'unknown', 'matched_pattern': None, 'timeout_config': _lazy_value('DEFAULT_TIMEOUT_CONFIG'), 'config_source': 'default'}
 
     container_lower = container_name.lower()
     custom_config = load_custom_timeout_config()
@@ -321,8 +321,8 @@ def get_container_type_info(container_name: str) -> dict:
                 'type': 'custom_override',
                 'matched_pattern': container_name,
                 'timeout_config': {
-                    'stats_timeout': override_config.get('stats_timeout', _lazy_wert('DEFAULT_TIMEOUT_CONFIG')['stats_timeout']),
-                    'info_timeout': override_config.get('info_timeout', _lazy_wert('DEFAULT_TIMEOUT_CONFIG')['info_timeout'])
+                    'stats_timeout': override_config.get('stats_timeout', _lazy_value('DEFAULT_TIMEOUT_CONFIG')['stats_timeout']),
+                    'info_timeout': override_config.get('info_timeout', _lazy_value('DEFAULT_TIMEOUT_CONFIG')['info_timeout'])
                 },
                 'config_source': 'custom_override'
             }
@@ -337,14 +337,14 @@ def get_container_type_info(container_name: str) -> dict:
                             'type': f'custom_{pattern_name}',
                             'matched_pattern': pattern,
                             'timeout_config': {
-                                'stats_timeout': pattern_config.get('stats_timeout', _lazy_wert('DEFAULT_TIMEOUT_CONFIG')['stats_timeout']),
-                                'info_timeout': pattern_config.get('info_timeout', _lazy_wert('DEFAULT_TIMEOUT_CONFIG')['info_timeout'])
+                                'stats_timeout': pattern_config.get('stats_timeout', _lazy_value('DEFAULT_TIMEOUT_CONFIG')['stats_timeout']),
+                                'info_timeout': pattern_config.get('info_timeout', _lazy_value('DEFAULT_TIMEOUT_CONFIG')['info_timeout'])
                             },
                             'config_source': 'custom_pattern'
                         }
 
     # Check built-in container type patterns
-    for container_type, config in _lazy_wert('CONTAINER_TYPE_PATTERNS').items():
+    for container_type, config in _lazy_value('CONTAINER_TYPE_PATTERNS').items():
         for pattern in config['patterns']:
             if pattern in container_lower:
                 return {
@@ -360,7 +360,7 @@ def get_container_type_info(container_name: str) -> dict:
     return {
         'type': 'default',
         'matched_pattern': None,
-        'timeout_config': _lazy_wert('DEFAULT_TIMEOUT_CONFIG'),
+        'timeout_config': _lazy_value('DEFAULT_TIMEOUT_CONFIG'),
         'config_source': 'default'
     }
 
@@ -803,7 +803,7 @@ async def get_containers_data() -> List[Dict[str, Any]]:
 
     # Thread-safe cache access
     with _containers_cache_lock:
-        if _containers_cache is not None and (current_time - _cache_timestamp < _lazy_wert('_CACHE_TTL')):
+        if _containers_cache is not None and (current_time - _cache_timestamp < _lazy_value('_CACHE_TTL')):
             logger.debug("Using cached container data")
             return _containers_cache.copy()  # Return copy to avoid modification
 

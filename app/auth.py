@@ -182,13 +182,13 @@ def verify_password(username, password):
         # @auth.login_required - and nobody notices, because the login works.
         # The write path is already defended against exactly this loss
         # (config_service.py:385-386); the read path was not.
-        lesefehler = config.get('config_read_errors')
-        if lesefehler:
+        read_errors = config.get('config_read_errors')
+        if read_errors:
             logger.error(
                 "SECURITY: The configuration could not be read (%s). That is a read "
                 "error, not a fresh install - the admin/setup first-time login stays "
                 "closed. Check the permissions on config/ (the app runs as user 'ddc').",
-                "; ".join(str(e) for e in lesefehler)
+                "; ".join(str(e) for e in read_errors)
             )
             return None
 

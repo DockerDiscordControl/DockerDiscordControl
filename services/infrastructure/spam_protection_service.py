@@ -94,14 +94,14 @@ class SpamProtectionService:
         self._user_cooldowns: Dict[str, float] = {}
 
         # Sliding one-minute window per user and kind:
-        # {(user_id, ist_befehl): deque[timestamps]}. Separate buckets because
+        # {(user_id, is_command): deque[timestamps]}. Separate buckets because
         # the panel has two limits (max_commands_per_minute and
         # max_buttons_per_minute). Own lock because this service is called from
         # the Waitress thread (main_routes.py) AND from the bot loop;
         # _user_cooldowns next to it is unguarded - a separate finding, not
         # changed along the way here.
-        self._minutenfenster: Dict[tuple, deque] = {}
-        self._fenster_sperre = threading.Lock()
+        self._minute_windows: Dict[tuple, deque] = {}
+        self._window_lock = threading.Lock()
 
         logger.info(f"Spam protection service initialized: {self.config_dir}")
 
@@ -131,11 +131,11 @@ class SpamProtectionService:
             # (edit_info, mech_details, ...) never reached existing
             # installations. Deliberately here and not in from_dict: from_dict
             # also builds the payload of the POST route, where nothing is added.
-            vorgaben = self._get_default_config()
+            defaults = self._get_default_config()
             config = replace(
                 config,
-                command_cooldowns={**vorgaben.command_cooldowns, **config.command_cooldowns},
-                button_cooldowns={**vorgaben.button_cooldowns, **config.button_cooldowns},
+                command_cooldowns={**defaults.command_cooldowns, **config.command_cooldowns},
+                button_cooldowns={**defaults.button_cooldowns, **config.button_cooldowns},
             )
             return ServiceResult(success=True, data=config)
 
@@ -239,99 +239,99 @@ class SpamProtectionService:
     #
     # All callers of these methods are buttons (measured; commands brake via
     # _check_spam_protection in docker_control.py). Button is therefore the
-    # default, and a command identifies itself with art="befehl". The list is
+    # default, and a command identifies itself with kind="command". The list is
     # gone, along with its quirks ('ss' was in no dictionary, 'donatebroadcast'
     # and 'info_edit' were missing).
-    _ARTEN = ("knopf", "befehl")
+    _KINDS = ("button", "command")
 
-    _FENSTER_SEKUNDEN = 60.0
+    _WINDOW_SECONDS = 60.0
 
     @classmethod
-    def _ist_befehl(cls, art: str) -> bool:
+    def _is_command(cls, kind: str) -> bool:
         """Checks the kind LOUDLY: a typo raises instead of silently counting as a button."""
-        if art not in cls._ARTEN:
-            raise ValueError(f"art must be one of {cls._ARTEN}, not {art!r}")
-        return art == "befehl"
+        if kind not in cls._KINDS:
+            raise ValueError(f"kind must be one of {cls._KINDS}, not {kind!r}")
+        return kind == "command"
 
     @staticmethod
-    def _schluessel(user_id: int, action_type: str, ist_befehl: bool) -> str:
+    def _key(user_id: int, action_type: str, is_command: bool) -> str:
         """Separate key space for commands.
 
         Buttons keep their key "<user>:<name>". Commands get
-        "<user>:befehl:<name>" - otherwise /info and the info BUTTON would
+        "<user>:command:<name>" - otherwise /info and the info BUTTON would
         share a bucket as soon as both brake through this service.
         """
-        if ist_befehl:
-            return f"{user_id}:befehl:{action_type}"
+        if is_command:
+            return f"{user_id}:command:{action_type}"
         return f"{user_id}:{action_type}"
 
-    def _abklingdauer(self, action_type: str, ist_befehl: bool) -> int:
+    def _cooldown_for(self, action_type: str, is_command: bool) -> int:
         """Cooldown per action - from the dictionary of the given kind."""
-        if ist_befehl:
+        if is_command:
             return self.get_command_cooldown(action_type)
         return self.get_button_cooldown(action_type)
 
-    def _minutengrenze(self, ist_befehl: bool) -> int:
+    def _minute_limit(self, is_command: bool) -> int:
         """The limit from the panel. If reading it fails, the default applies."""
-        ergebnis = self.get_config()
-        config = ergebnis.data if ergebnis.success else self._get_default_config()
-        return config.max_commands_per_minute if ist_befehl else config.max_buttons_per_minute
+        result = self.get_config()
+        config = result.data if result.success else self._get_default_config()
+        return config.max_commands_per_minute if is_command else config.max_buttons_per_minute
 
     @classmethod
-    def _fenster_beschneiden(cls, eimer, jetzt: float) -> None:
+    def _prune_window(cls, bucket, now: float) -> None:
         """Drops everything older than one minute - when READING as well as WRITING.
 
         Pruning only on write would be a bug: someone who reaches the limit and
         then does nothing would stay blocked forever, because without a new
         entry nothing would ever be pruned.
         """
-        grenzzeit = jetzt - cls._FENSTER_SEKUNDEN
-        while eimer and eimer[0] <= grenzzeit:
-            eimer.popleft()
+        cutoff = now - cls._WINDOW_SECONDS
+        while bucket and bucket[0] <= cutoff:
+            bucket.popleft()
 
-    def _fenster_ueberschritten(self, user_id: int, ist_befehl: bool, jetzt: float) -> bool:
-        with self._fenster_sperre:
-            eimer = self._minutenfenster.get((user_id, ist_befehl))
-            if not eimer:
+    def _window_exceeded(self, user_id: int, is_command: bool, now: float) -> bool:
+        with self._window_lock:
+            bucket = self._minute_windows.get((user_id, is_command))
+            if not bucket:
                 return False
-            self._fenster_beschneiden(eimer, jetzt)
-            return len(eimer) >= self._minutengrenze(ist_befehl)
+            self._prune_window(bucket, now)
+            return len(bucket) >= self._minute_limit(is_command)
 
-    def _fenster_restzeit(self, user_id: int, ist_befehl: bool, jetzt: float) -> float:
+    def _window_remaining(self, user_id: int, is_command: bool, now: float) -> float:
         """How long until there is room in the window again."""
-        with self._fenster_sperre:
-            eimer = self._minutenfenster.get((user_id, ist_befehl))
-            if not eimer:
+        with self._window_lock:
+            bucket = self._minute_windows.get((user_id, is_command))
+            if not bucket:
                 return 0.0
-            self._fenster_beschneiden(eimer, jetzt)
-            if len(eimer) < self._minutengrenze(ist_befehl):
+            self._prune_window(bucket, now)
+            if len(bucket) < self._minute_limit(is_command):
                 return 0.0
             # The oldest entry drops out first.
-            return max(0.0, self._FENSTER_SEKUNDEN - (jetzt - eimer[0]))
+            return max(0.0, self._WINDOW_SECONDS - (now - bucket[0]))
 
-    def _fenster_eintragen(self, user_id: int, ist_befehl: bool, jetzt: float) -> None:
-        with self._fenster_sperre:
-            eimer = self._minutenfenster.setdefault((user_id, ist_befehl), deque())
-            self._fenster_beschneiden(eimer, jetzt)
-            eimer.append(jetzt)
+    def _record_in_window(self, user_id: int, is_command: bool, now: float) -> None:
+        with self._window_lock:
+            bucket = self._minute_windows.setdefault((user_id, is_command), deque())
+            self._prune_window(bucket, now)
+            bucket.append(now)
             # Remove empty buckets, otherwise the outer store grows without
             # bound per user - the same precaution as the 300-second cleanup in
             # add_user_cooldown.
-            for schluessel in [k for k, v in self._minutenfenster.items() if not v]:
-                del self._minutenfenster[schluessel]
+            for key in [k for k, v in self._minute_windows.items() if not v]:
+                del self._minute_windows[key]
 
-    def is_on_cooldown(self, user_id: int, action_type: str, art: str = "knopf") -> bool:
+    def is_on_cooldown(self, user_id: int, action_type: str, kind: str = "button") -> bool:
         """Check if user is on cooldown for specific action.
 
         Args:
             user_id: Discord user ID
             action_type: Name of the button or command
-            art: "knopf" (default) or "befehl"
+            kind: "button" (default) or "command"
 
         Returns:
             True if user is on cooldown, False otherwise
         """
-        ist_befehl = self._ist_befehl(art)
+        is_command = self._is_command(kind)
         if not self.is_enabled():
             return False
 
@@ -341,62 +341,62 @@ class SpamProtectionService:
         # and max_buttons_per_minute were saved, shown in the panel and passed
         # through to_dict/from_dict cleanly - but NEVER checked. No place counted
         # a press; the per-button cooldown only remembers the LAST time.
-        if self._fenster_ueberschritten(user_id, ist_befehl, current_time):
+        if self._window_exceeded(user_id, is_command, current_time):
             return True
 
-        cooldown_key = self._schluessel(user_id, action_type, ist_befehl)
+        cooldown_key = self._key(user_id, action_type, is_command)
         last_used = self._user_cooldowns.get(cooldown_key, 0)
-        return (current_time - last_used) < self._abklingdauer(action_type, ist_befehl)
+        return (current_time - last_used) < self._cooldown_for(action_type, is_command)
 
-    def get_remaining_cooldown(self, user_id: int, action_type: str, art: str = "knopf") -> float:
+    def get_remaining_cooldown(self, user_id: int, action_type: str, kind: str = "button") -> float:
         """Get remaining cooldown time for user action.
 
         Args:
             user_id: Discord user ID
             action_type: Name of the button or command
-            art: "knopf" (default) or "befehl"
+            kind: "button" (default) or "command"
 
         Returns:
             Remaining cooldown time in seconds
         """
-        ist_befehl = self._ist_befehl(art)
+        is_command = self._is_command(kind)
         if not self.is_enabled():
             return 0.0
 
         current_time = time.time()
 
-        cooldown_key = self._schluessel(user_id, action_type, ist_befehl)
+        cooldown_key = self._key(user_id, action_type, is_command)
         last_used = self._user_cooldowns.get(cooldown_key, 0)
-        rest_aktion = max(0.0, self._abklingdauer(action_type, ist_befehl) - (current_time - last_used))
+        action_remaining = max(0.0, self._cooldown_for(action_type, is_command) - (current_time - last_used))
 
         # Without the window part the user would read "please wait 0.0 seconds"
         # when the refusal comes from the per-minute limit: a freshly pressed
         # button has no entry in _user_cooldowns at all. All callers ask here
         # right after is_on_cooldown.
-        rest_fenster = self._fenster_restzeit(user_id, ist_befehl, current_time)
+        window_remaining = self._window_remaining(user_id, is_command, current_time)
 
-        return max(rest_aktion, rest_fenster)
+        return max(action_remaining, window_remaining)
 
-    def add_user_cooldown(self, user_id: int, action_type: str, art: str = "knopf") -> None:
+    def add_user_cooldown(self, user_id: int, action_type: str, kind: str = "button") -> None:
         """Add user to cooldown for specific action.
 
         Args:
             user_id: Discord user ID
             action_type: Name of the button or command
-            art: "knopf" (default) or "befehl"
+            kind: "button" (default) or "command"
         """
-        ist_befehl = self._ist_befehl(art)
+        is_command = self._is_command(kind)
         if not self.is_enabled():
             return
 
         current_time = time.time()
-        cooldown_key = self._schluessel(user_id, action_type, ist_befehl)
+        cooldown_key = self._key(user_id, action_type, is_command)
         self._user_cooldowns[cooldown_key] = current_time
 
         # The ACCEPTED press is counted, not the check. If is_on_cooldown counted
         # as well, every refused retry would use up more quota - someone braked
         # once would never get out again.
-        self._fenster_eintragen(user_id, ist_befehl, current_time)
+        self._record_in_window(user_id, is_command, current_time)
 
         # Clean old cooldowns (older than 5 minutes)
         old_keys = [key for key, timestamp in self._user_cooldowns.items()

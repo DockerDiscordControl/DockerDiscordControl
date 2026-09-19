@@ -1571,9 +1571,9 @@ class TestSpamProtectionRemainingForCommand:
         # art="befehl": Befehl oder Knopf entscheidet seit der Korrektur der
         # Aufrufer, nicht mehr eine Namensliste. Dieser Test prueft ausdruecklich
         # den Befehlszweig und muss es deshalb sagen.
-        svc.add_user_cooldown(11, "ping", art="befehl")
+        svc.add_user_cooldown(11, "ping", kind="command")
         # ping has command cooldown of 3 (default config)
-        remaining = svc.get_remaining_cooldown(11, "ping", art="befehl")
+        remaining = svc.get_remaining_cooldown(11, "ping", kind="command")
         assert 2.9 <= remaining <= 3.0
 
 

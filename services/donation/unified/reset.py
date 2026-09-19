@@ -112,20 +112,20 @@ def _backup_before_reset(paths: ProgressPaths) -> Path:
 
     Errors are deliberately NOT caught: the caller aborts the reset.
     """
-    ziel = paths.data_dir / f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-    lauf = 2
-    while ziel.exists():
-        ziel = ziel.with_name(f"{ziel.name.split('__')[0]}__{lauf}")
-        lauf += 1
-    ziel.mkdir(parents=True)
+    target = paths.data_dir / f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    attempt = 2
+    while target.exists():
+        target = target.with_name(f"{target.name.split('__')[0]}__{attempt}")
+        attempt += 1
+    target.mkdir(parents=True)
 
     if paths.event_log.exists():
-        shutil.copy2(paths.event_log, ziel / paths.event_log.name)
+        shutil.copy2(paths.event_log, target / paths.event_log.name)
     if paths.seq_file.exists():
-        shutil.copy2(paths.seq_file, ziel / paths.seq_file.name)
+        shutil.copy2(paths.seq_file, target / paths.seq_file.name)
     if paths.snapshot_dir.exists():
-        shutil.copytree(paths.snapshot_dir, ziel / paths.snapshot_dir.name)
-    return ziel
+        shutil.copytree(paths.snapshot_dir, target / paths.snapshot_dir.name)
+    return target
 
 
 def _clear_event_log(paths: ProgressPaths) -> None:

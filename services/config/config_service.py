@@ -317,7 +317,7 @@ class ConfigService:
         # of serving the (possibly stale) result cached below.
         load_mtime = self._cache_service.get_config_dir_mtime(self.config_dir)
 
-        # Collect the read errors of THIS load (see _vermerke_lesefehler).
+        # Collect the read errors of THIS load (see _record_read_error).
         # The reset is the point: a fixed permission problem must reopen the
         # login instead of keeping it locked for the lifetime of the process.
         self._read_errors = []
@@ -707,7 +707,7 @@ class ConfigService:
 
     # === Private Helper Methods ===
 
-    def _vermerke_lesefehler(self, file_path: Path, grund: str) -> None:
+    def _record_read_error(self, file_path: Path, reason: str) -> None:
         """Records that a configuration file could not be parsed.
 
         WHY THIS IS NEEDED: the return value below is the default in every error
@@ -724,14 +724,14 @@ class ConfigService:
         """
         if not hasattr(self, '_read_errors'):
             self._read_errors = []
-        eintrag = f"{file_path}: {grund}"
-        if eintrag not in self._read_errors:
-            self._read_errors.append(eintrag)
+        entry = f"{file_path}: {reason}"
+        if entry not in self._read_errors:
+            self._read_errors.append(entry)
 
     def _load_json_file(self, file_path: Path, default: Dict[str, Any]) -> Dict[str, Any]:
         """Load JSON file with fallback to defaults.
 
-        Every failure is also recorded - see ``_vermerke_lesefehler``. Without
+        Every failure is also recorded - see ``_record_read_error``. Without
         that record, "file was broken" cannot be told apart from "file does not
         exist".
         """
@@ -746,17 +746,17 @@ class ConfigService:
             return default.copy()
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON in {file_path}: {e}", exc_info=True)
-            self._vermerke_lesefehler(file_path, f"kein gueltiges JSON ({e})")
+            self._record_read_error(file_path, f"not valid JSON ({e})")
             # Return defaults on JSON parse errors
             return default.copy()
         except (IOError, OSError, PermissionError) as e:
             logger.error(f"File access error loading {file_path}: {e}", exc_info=True)
-            self._vermerke_lesefehler(file_path, f"nicht lesbar ({e})")
+            self._record_read_error(file_path, f"not readable ({e})")
             # Return defaults on I/O errors
             return default.copy()
         except (TypeError, AttributeError, UnicodeDecodeError) as e:
             logger.error(f"Data format error loading {file_path}: {e}", exc_info=True)
-            self._vermerke_lesefehler(file_path, f"unerwartetes Format ({e})")
+            self._record_read_error(file_path, f"unexpected format ({e})")
             # Return defaults on data format errors
             return default.copy()
 

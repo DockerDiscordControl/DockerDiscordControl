@@ -2183,8 +2183,8 @@ class MechDetailsButton(Button):
             logger.info(f"Mech details requested by user {interaction.user.name} in channel {self.channel_id}")
 
             # self.custom_id = mech_details_<channel> -> slider mech_details.
-            # Unbraked and without a slider before; see _mechknopf_gebremst.
-            if await _mechknopf_gebremst(interaction, self.custom_id):
+            # Unbraked and without a slider before; see _mech_button_braked.
+            if await _mech_button_braked(interaction, self.custom_id):
                 return
 
             # Defer the response as ephemeral (private message)
@@ -2367,12 +2367,12 @@ class MechExpandButton(Button):
                 self.cog.mech_state_manager.set_expanded_state(self.channel_id, True)
 
                 # Create expanded embed
-                # _unbenutzt instead of _: the name _ is the translation function
+                # _unused instead of _: the name _ is the translation function
                 # project-wide (module import :28). As a throwaway name in an
                 # unpacking it binds LOCALLY for the whole function - every _("…")
                 # further up would then raise UnboundLocalError. Exactly that
                 # happened during the switch to the spam service.
-                embed, _unbenutzt = await self._create_expanded_ss_embed()
+                embed, _unused = await self._create_expanded_ss_embed()
 
                 # Create new view for expanded state
                 view = MechView(self.cog, self.channel_id)
@@ -2478,8 +2478,8 @@ class MechCollapseButton(Button):
                 self.cog.mech_state_manager.set_expanded_state(self.channel_id, False)
 
                 # Create collapsed embed
-                # _unbenutzt instead of _ - same reason as in MechExpandButton.
-                embed, _unbenutzt = await self._create_collapsed_ss_embed()
+                # _unused instead of _ - same reason as in MechExpandButton.
+                embed, _unused = await self._create_collapsed_ss_embed()
 
                 # Create new view for collapsed state
                 view = MechView(self.cog, self.channel_id)
@@ -2525,7 +2525,7 @@ class MechCollapseButton(Button):
         # Create the collapsed embed (only mech animation, no details)
         return await self.cog._create_overview_embed_collapsed(ordered_servers, config)
 
-async def _mechknopf_gebremst(interaction: discord.Interaction, name: str) -> bool:
+async def _mech_button_braked(interaction: discord.Interaction, name: str) -> bool:
     """Spam brake for mech buttons that have not responded yet.
 
     True means: refused, the callback returns. These buttons used not to ask
@@ -2574,7 +2574,7 @@ class MechDonateButton(Button):
         try:
             # self.custom_id = mech_donate_<channel>. The private donate button
             # forwards here and so shares this bucket.
-            if await _mechknopf_gebremst(interaction, self.custom_id):
+            if await _mech_button_braked(interaction, self.custom_id):
                 return
 
             # Call the existing donate interaction handler
@@ -3047,7 +3047,7 @@ class MechDisplayButton(Button):
                 return
 
             # self.custom_id = mech_display_<level> -> slider mech_display.
-            if await _mechknopf_gebremst(interaction, self.custom_id):
+            if await _mech_button_braked(interaction, self.custom_id):
                 return
 
             # Defer response to prevent Discord interaction timeout
@@ -3158,7 +3158,7 @@ class EpilogueButton(Button):
 
             # Not self.custom_id ("epilogue_button"): without "mech_story_" in
             # front, the name never reached the story slider.
-            if await _mechknopf_gebremst(interaction, "mech_story_epilogue"):
+            if await _mech_button_braked(interaction, "mech_story_epilogue"):
                 return
 
             epilogue_text = """**Epilogue: W#!sp*r of th3 [ERROR_CODE_11]**
@@ -3241,7 +3241,7 @@ class ReadStoryButton(Button):
                 return
 
             # Not self.custom_id (read_story_<level>) - see EpilogueButton.
-            if await _mechknopf_gebremst(interaction, f"mech_story_{self.level}"):
+            if await _mech_button_braked(interaction, f"mech_story_{self.level}"):
                 return
 
             # Defer response to prevent timeout during story loading
@@ -3325,7 +3325,7 @@ class PlaySongButton(Button):
                 return
 
             # Not self.custom_id (play_song_<level>) - see EpilogueButton.
-            if await _mechknopf_gebremst(interaction, f"mech_music_{self.level}"):
+            if await _mech_button_braked(interaction, f"mech_music_{self.level}"):
                 return
 
             # Defer response to prevent timeout during music service calls

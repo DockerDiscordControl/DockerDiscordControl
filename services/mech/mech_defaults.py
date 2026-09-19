@@ -28,7 +28,7 @@ DEFAULTS_DIR = Path(__file__).resolve().parent / "defaults"
 def resolve_mech_file(relative: str) -> Path:
     """``<config dir>/mech/<relative>`` if it exists, else the shipped default."""
     from utils.config_paths import get_config_dir
-    eigene = get_config_dir() / "mech" / relative
-    if eigene.exists():
-        return eigene
+    own_copy = get_config_dir() / "mech" / relative
+    if own_copy.exists():
+        return own_copy
     return DEFAULTS_DIR / relative

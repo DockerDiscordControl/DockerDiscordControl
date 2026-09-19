@@ -53,14 +53,14 @@ def get_setting(key: str, default: Any, value_type: Callable[[Any], Any] = int) 
     Never raises: a broken setting must not take a service down with it. What it
     does instead of raising is say so.
     """
-    rohwert = None
-    quelle = None
+    raw_value = None
+    source = None
 
     try:
         from services.config.config_service import get_config_service
         advanced = get_config_service().get_config().get('advanced_settings') or {}
         if key in advanced:
-            rohwert, quelle = advanced[key], 'config'
+            raw_value, source = advanced[key], 'config'
     except Exception as exc:  # noqa: BLE001 - see the docstring: never raise here
         # Not silent: this is why a panel setting may appear to have no effect.
         logger.warning(
@@ -68,29 +68,29 @@ def get_setting(key: str, default: Any, value_type: Callable[[Any], Any] = int) 
             "falling back to environment/default.", key, type(exc).__name__, exc,
         )
 
-    if rohwert is None and key in os.environ:
-        rohwert, quelle = os.environ[key], 'environment'
+    if raw_value is None and key in os.environ:
+        raw_value, source = os.environ[key], 'environment'
 
-    if rohwert is None:
-        return _wandeln(key, default, value_type, default)
+    if raw_value is None:
+        return _convert(key, default, value_type, default)
 
-    wert = _wandeln(key, rohwert, value_type, default)
-    logger.debug("Advanced setting %s = %r (from %s)", key, wert, quelle)
-    return wert
+    value = _convert(key, raw_value, value_type, default)
+    logger.debug("Advanced setting %s = %r (from %s)", key, value, source)
+    return value
 
 
-def _wandeln(key: str, rohwert: Any, value_type: Callable[[Any], Any], default: Any) -> Any:
+def _convert(key: str, raw_value: Any, value_type: Callable[[Any], Any], default: Any) -> Any:
     """Convert to the wanted type; on nonsense fall back to ``default`` loudly."""
     try:
         if value_type is bool:
-            if isinstance(rohwert, bool):
-                return rohwert
-            return str(rohwert).strip().lower() in ('true', '1', 'yes', 'on')
-        return value_type(rohwert)
+            if isinstance(raw_value, bool):
+                return raw_value
+            return str(raw_value).strip().lower() in ('true', '1', 'yes', 'on')
+        return value_type(raw_value)
     except (TypeError, ValueError):
         logger.warning(
             "Advanced setting %s has the unusable value %r - using the default %r instead.",
-            key, rohwert, default,
+            key, raw_value, default,
         )
         try:
             return value_type(default) if value_type is not bool else bool(default)

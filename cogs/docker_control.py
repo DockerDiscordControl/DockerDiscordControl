@@ -1729,16 +1729,16 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         # the service - and the command per-minute limit from the panel had no
         # effect, because it counts in add_user_cooldown. That was the last of
         # thirteen places with their own books.
-        # art="befehl" exists since commit 8f47f7c; without it, /info and the
+        # kind="command" exists since commit 8f47f7c; without it, /info and the
         # info button would share a bucket.
         # A command with cooldown 0 has no per-command pause but still counts
         # into the minute window: "0" does not mean "exempt from the per-minute
         # limit".
         if spam_manager.is_enabled():
             try:
-                if spam_manager.is_on_cooldown(ctx.author.id, command_name, art="befehl"):
+                if spam_manager.is_on_cooldown(ctx.author.id, command_name, kind="command"):
                     remaining = int(
-                        spam_manager.get_remaining_cooldown(ctx.author.id, command_name, art="befehl")
+                        spam_manager.get_remaining_cooldown(ctx.author.id, command_name, kind="command")
                     )
                     try:
                         # Check if we need to use followup (for commands that defer early).
@@ -1752,7 +1752,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         # If response fails, still prevent command execution
                         pass
                     return False
-                spam_manager.add_user_cooldown(ctx.author.id, command_name, art="befehl")
+                spam_manager.add_user_cooldown(ctx.author.id, command_name, kind="command")
             except (RuntimeError, AttributeError, KeyError) as e:
                 logger.error(f"Spam protection error for command '{command_name}': {e}", exc_info=True)
 

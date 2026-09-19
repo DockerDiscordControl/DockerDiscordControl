@@ -72,7 +72,6 @@ STILL_GERMAN = {
     "docs/quality/STUFE3_TESTS_DIE_NICHT_FEHLSCHLAGEN.md": 195,
     "docs/quality/STUFE4_DURCHSICHT.md": 164,
     "services/infrastructure/docker_connectivity_service.py": 8,
-    "services/infrastructure/spam_protection_service.py": 6,
     "tests/GROUPS.txt": 11,
     "tests/spec/__init__.py": 3,
     "tests/spec/test_angeforderte_abklingschluessel_existieren.py": 60,

@@ -46,9 +46,9 @@ class _Dienst:
         self._echt = echt
         self._ablauf = ablauf
 
-    def is_on_cooldown(self, user_id, action_type, art="knopf"):
+    def is_on_cooldown(self, user_id, action_type, kind="button"):
         self._ablauf.append("bremse")
-        return self._echt.is_on_cooldown(user_id, action_type, art=art)
+        return self._echt.is_on_cooldown(user_id, action_type, kind=kind)
 
     def __getattr__(self, name):
         return getattr(self._echt, name)
@@ -58,7 +58,7 @@ def _aufbau(tmp_path, gesperrt):
     ablauf = []
     echt = SpamProtectionService(config_dir=str(tmp_path))
     if gesperrt:
-        echt.add_user_cooldown(NUTZER, "serverstatus", art="befehl")
+        echt.add_user_cooldown(NUTZER, "serverstatus", kind="command")
     ctx = MagicMock()
     ctx.author.id = NUTZER
     ctx.defer = AsyncMock(side_effect=lambda *a, **k: ablauf.append("defer"))

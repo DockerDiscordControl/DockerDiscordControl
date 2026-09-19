@@ -84,14 +84,14 @@ class MechStoryService:
         if language in self._story_cache:
             return self._story_cache[language]
 
-        dateiname = self.language_files.get(language, 'en.txt')
-        story_file = self.story_dir / dateiname
+        file_name = self.language_files.get(language, 'en.txt')
+        story_file = self.story_dir / file_name
         if self._fallback_to_shipped and not story_file.exists():
             # The stories used to exist only on the maintainer's server - a fresh
             # installation had none. The shipped copy is the fallback; an
             # operator's own file above still wins.
             from services.mech.mech_defaults import DEFAULTS_DIR
-            story_file = DEFAULTS_DIR / "stories" / dateiname
+            story_file = DEFAULTS_DIR / "stories" / file_name
         content = {}
 
         try:

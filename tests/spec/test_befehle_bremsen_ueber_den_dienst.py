@@ -66,13 +66,13 @@ class _Mitschrift:
         self.__dict__["gefragt"] = []
         self.__dict__["vermerkt"] = []
 
-    def is_on_cooldown(self, user_id, action_type, art="knopf"):
-        self.gefragt.append((user_id, action_type, art))
-        return self._echt.is_on_cooldown(user_id, action_type, art=art)
+    def is_on_cooldown(self, user_id, action_type, kind="button"):
+        self.gefragt.append((user_id, action_type, kind))
+        return self._echt.is_on_cooldown(user_id, action_type, kind=kind)
 
-    def add_user_cooldown(self, user_id, action_type, art="knopf"):
-        self.vermerkt.append((user_id, action_type, art))
-        return self._echt.add_user_cooldown(user_id, action_type, art=art)
+    def add_user_cooldown(self, user_id, action_type, kind="button"):
+        self.vermerkt.append((user_id, action_type, kind))
+        return self._echt.add_user_cooldown(user_id, action_type, kind=kind)
 
     def __getattr__(self, name):
         return getattr(self._echt, name)
@@ -116,11 +116,11 @@ async def test_der_dienst_wird_als_befehl_gefragt_und_vermerkt(tmp_path):
     erlaubt, _ = await _pruefe(dienst, "ping")
 
     assert erlaubt is True
-    assert dienst.gefragt == [(NUTZER, "ping", "befehl")], (
+    assert dienst.gefragt == [(NUTZER, "ping", "command")], (
         f"is_on_cooldown wurde nicht als Befehl mit 'ping' gerufen, sondern "
         f"{dienst.gefragt!r}. Der Befehlsweg bremst am Dienst vorbei."
     )
-    assert dienst.vermerkt == [(NUTZER, "ping", "befehl")]
+    assert dienst.vermerkt == [(NUTZER, "ping", "command")]
 
 
 @pytest.mark.asyncio
@@ -140,7 +140,7 @@ async def test_ein_vermerkter_befehl_wird_abgewiesen(tmp_path, monkeypatch, name
     dienst = _dienst(tmp_path)
     dauer = dienst._echt.get_command_cooldown(name)
     assert dauer > 0, f"/{name} hat keine Abklingzeit - der Test bewiese nichts."
-    dienst._echt.add_user_cooldown(NUTZER, name, art="befehl")
+    dienst._echt.add_user_cooldown(NUTZER, name, kind="command")
 
     erlaubt, ctx = await _pruefe(dienst, name)
 
@@ -180,7 +180,7 @@ async def test_die_befehls_minutengrenze_greift(tmp_path):
     dienst = _dienst(tmp_path)
     grenze = dienst._echt._get_default_config().max_commands_per_minute
     for i in range(grenze):
-        dienst._echt.add_user_cooldown(NUTZER, f"probe_{i}", art="befehl")
+        dienst._echt.add_user_cooldown(NUTZER, f"probe_{i}", kind="command")
 
     erlaubt, _ = await _pruefe(dienst, "ping")
 
