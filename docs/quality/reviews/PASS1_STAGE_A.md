@@ -43,7 +43,33 @@ holds), **partly** (the matter or the reasoning holds, not both), **refuted**,
 **dead code** (holds, but nothing can reach it), **not re-checked** (low, see
 the end).
 
-### Confirmed - to be fixed, one finding per commit
+### Confirmed - all fixed, one finding per commit (2026-09-19/20)
+
+| # | Commit | # | Commit |
+|---|---|---|---|
+| A1 | `d3ddcdb` | A8 | `077232c` |
+| A2 | `46dfa0e` | A9 | `25ebf65` |
+| A3 | `58f37eb` | A10 | `7d12b89` |
+| A4 | `115a59e` | A11 | `16d5bb4` |
+| A5 | `d4a19fe` | A12 | `7a48826` |
+| A6 | `62c89d2` | A13 | `54c1045` |
+| A7 | `626fd56` | A14 | `9d66001` (test only, no code change) |
+
+The dead code was removed as well: `requirement_for_bin` (`0aa0694`),
+`ContainerInfoService.list_all_containers` (`3321782`), the
+donation-broadcast "simulation" endpoint with its JavaScript caller
+(`dfa3662`). Each of those took its own tests with it, after checking that
+they targeted nothing else.
+
+*What the fixes cost in surprises, honestly:* A1's first version added a
+snapshot field and broke the v2.3.1 downgrade guard (three tests caught it);
+A2's first test was green for the wrong reason until its counter-check
+turned red; A13's mutation showed the test had no counter-check at all; the
+deletion in `3321782` first took the module's singleton with it (six red
+tests, restored). Section 14, never touched before this programme, is
+touched now - two sections remain.
+
+### The findings, one per commit
 
 | # | Report | What | Severity after re-check |
 |---|---|---|---|
