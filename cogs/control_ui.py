@@ -2324,16 +2324,27 @@ class MechExpandButton(Button):
                 # den Schluessel "mech_expand" ab; diese Praefix-Logik war
                 # vorhanden und getestet (test_infrastructure_services.py:
                 # 793-796), aber von niemandem benutzt.
-                cooldown = spam_service.get_button_cooldown(self.custom_id)
-                # Use simple rate limiting for buttons
-                import time
-                current_time = time.time()
-                user_id = str(interaction.user.id)
-                last_click = getattr(self, f'_last_click_{user_id}', 0)
-                if current_time - last_click < cooldown:
-                    await interaction.response.send_message(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
-                    return
-                setattr(self, f'_last_click_{user_id}', current_time)
+                #
+                # Und ueber den DIENST statt als Attribut am Knopf: Der
+                # Zeitstempel lag in _last_click_<nutzer> AUF DEM OBJEKT und
+                # verschwand mit ihm - bei jedem Neuaufbau der Ansicht war die
+                # Sperre weg. Die Minutengrenze aus dem Panel wirkte hier
+                # ebenfalls nicht, weil sie in add_user_cooldown zaehlt und
+                # dieser Weg dort nie ankam. Der Schluessel bleibt
+                # self.custom_id; ein Literal ergaebe einen anderen Eimer.
+                try:
+                    if spam_service.is_on_cooldown(interaction.user.id, self.custom_id):
+                        remaining = spam_service.get_remaining_cooldown(interaction.user.id, self.custom_id)
+                        await interaction.response.send_message(
+                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                                remaining=remaining
+                            ),
+                            ephemeral=True
+                        )
+                        return
+                    spam_service.add_user_cooldown(interaction.user.id, self.custom_id)
+                except (RuntimeError, AttributeError, KeyError) as e:
+                    logger.error(f"Spam protection error for mech expand button: {e}", exc_info=True)
 
             await interaction.response.defer()
 
@@ -2349,7 +2360,13 @@ class MechExpandButton(Button):
                 self.cog.mech_state_manager.set_expanded_state(self.channel_id, True)
 
                 # Create expanded embed
-                embed, _ = await self._create_expanded_ss_embed()
+                # _unbenutzt statt _: Der Name _ ist projektweit die
+                # Uebersetzungsfunktion (Modulimport :28). Als Wegwerf-Name in
+                # einer Entpackung bindet er sich LOKAL fuer die ganze Funktion
+                # - jedes _("…") weiter oben liefe dann in einen
+                # UnboundLocalError. Genau das ist bei der Umstellung auf den
+                # Spam-Dienst passiert.
+                embed, _unbenutzt = await self._create_expanded_ss_embed()
 
                 # Create new view for expanded state
                 view = MechView(self.cog, self.channel_id)
@@ -2425,16 +2442,21 @@ class MechCollapseButton(Button):
                 # self.custom_id, nicht "info" - siehe MechExpandButton: Der
                 # mech_collapse-Regler im Panel (Vorgabe 2) bewegte nichts,
                 # gebremst wurde nach dem Info-Regler (3).
-                cooldown = spam_service.get_button_cooldown(self.custom_id)
-                # Use simple rate limiting for buttons
-                import time
-                current_time = time.time()
-                user_id = str(interaction.user.id)
-                last_click = getattr(self, f'_last_click_{user_id}', 0)
-                if current_time - last_click < cooldown:
-                    await interaction.response.send_message(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
-                    return
-                setattr(self, f'_last_click_{user_id}', current_time)
+                # Ueber den Dienst statt als Attribut am Knopf - Begruendung
+                # wie bei MechExpandButton.
+                try:
+                    if spam_service.is_on_cooldown(interaction.user.id, self.custom_id):
+                        remaining = spam_service.get_remaining_cooldown(interaction.user.id, self.custom_id)
+                        await interaction.response.send_message(
+                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                                remaining=remaining
+                            ),
+                            ephemeral=True
+                        )
+                        return
+                    spam_service.add_user_cooldown(interaction.user.id, self.custom_id)
+                except (RuntimeError, AttributeError, KeyError) as e:
+                    logger.error(f"Spam protection error for mech collapse button: {e}", exc_info=True)
 
             await interaction.response.defer()
 
@@ -2450,7 +2472,8 @@ class MechCollapseButton(Button):
                 self.cog.mech_state_manager.set_expanded_state(self.channel_id, False)
 
                 # Create collapsed embed
-                embed, _ = await self._create_collapsed_ss_embed()
+                # _unbenutzt statt _ - Begruendung wie bei MechExpandButton.
+                embed, _unbenutzt = await self._create_collapsed_ss_embed()
 
                 # Create new view for collapsed state
                 view = MechView(self.cog, self.channel_id)
@@ -2560,10 +2583,12 @@ class MechHistoryButton(Button):
                 # self.custom_id, nicht "info" - siehe MechExpandButton: Der
                 # mech_history-Regler im Panel (Vorgabe 5) bewegte nichts,
                 # gebremst wurde nach dem Info-Regler (3).
-                cooldown = spam_service.get_button_cooldown(self.custom_id)
-                import time
-                current_time = time.time()
-                user_id = str(interaction.user.id)
+                # Ueber den Dienst statt als Attribut am Knopf - Begruendung
+                # wie bei MechExpandButton. Der defer-Abschnitt darunter bleibt
+                # unveraendert: Er liegt mitten im Bremsblock und ist kein
+                # Beiwerk, und dass er nur bei eingeschaltetem Spamschutz laeuft,
+                # ist heutiges Verhalten - das zu aendern waere eine eigene
+                # Entscheidung.
 
                 # CRITICAL: Defer IMMEDIATELY to avoid "Unknown interaction" errors
                 # ROBUST: Handle interaction expiration (15 min timeout) gracefully
@@ -2577,11 +2602,19 @@ class MechHistoryButton(Button):
                     else:
                         raise  # Re-raise other NotFound errors
 
-                last_click = getattr(self, f'_last_click_{user_id}', 0)
-                if current_time - last_click < cooldown:
-                    await interaction.followup.send(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
-                    return
-                setattr(self, f'_last_click_{user_id}', current_time)
+                try:
+                    if spam_service.is_on_cooldown(interaction.user.id, self.custom_id):
+                        remaining = spam_service.get_remaining_cooldown(interaction.user.id, self.custom_id)
+                        await interaction.followup.send(
+                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                                remaining=remaining
+                            ),
+                            ephemeral=True
+                        )
+                        return
+                    spam_service.add_user_cooldown(interaction.user.id, self.custom_id)
+                except (RuntimeError, AttributeError, KeyError) as e:
+                    logger.error(f"Spam protection error for mech history button: {e}", exc_info=True)
 
             # Check if donations are disabled (after defer, use followup)
             if is_donations_disabled():
