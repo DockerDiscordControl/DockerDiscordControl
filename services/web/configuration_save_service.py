@@ -278,8 +278,12 @@ class ConfigurationSaveService:
             else:
                 self.logger.warning("[SAVE_DEBUG] No 'servers' key in processed_data!")
 
-            # Get ALL containers from the containers directory, not just active ones
-            containers_dir = Path('config/containers')
+            # Get ALL containers from the containers directory, not just active ones.
+            # Via utils/config_paths.py: this was Path('config/containers'), relative to
+            # the working directory and blind to DDC_CONFIG_DIR - with the list empty,
+            # the info save below was skipped silently.
+            from utils.config_paths import get_config_dir
+            containers_dir = get_config_dir() / 'containers'
             all_container_names = []
             if containers_dir.exists():
                 for json_file in containers_dir.glob('*.json'):

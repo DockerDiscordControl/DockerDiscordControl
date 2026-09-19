@@ -72,7 +72,6 @@ NOCH_OFFEN = {
     "services/mech/speed_levels.py": 1,
     "services/scheduling/runtime.py": 1,
     "services/translation/translation_config_service.py": 1,
-    "services/web/configuration_save_service.py": 1,
     "services/web/donation_service.py": 1,
     "utils/token_security.py": 4,
 }

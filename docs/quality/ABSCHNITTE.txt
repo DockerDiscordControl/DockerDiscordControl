@@ -169,11 +169,11 @@ services/status/status_cache_service.py:1-225
 services/translation/__init__.py:1-12
 services/translation/translation_config_service.py:1-603
 
-## Abschnitt 28  (1834 Zeilen, 4 Stuecke)
+## Abschnitt 28  (1838 Zeilen, 4 Stuecke)
 services/translation/translation_service.py:1-741
 services/web/__init__.py:1-12
 services/web/configuration_page_service.py:1-554
-services/web/configuration_save_service.py:1-527
+services/web/configuration_save_service.py:1-531
 
 ## Abschnitt 29  (1809 Zeilen, 7 Stuecke)
 services/web/container_log_service.py:1-439

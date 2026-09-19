@@ -12,7 +12,7 @@ mit 1.513 Namen und keinem einzigen Haken. Ihn zu füllen, ohne die Namen gelese
 
 ## 1. Zuschnitt — steht
 
-37 Abschnitte, 189 Stücke, **61.174 von 61.174 Zeilen** in 184 Dateien (`docs/quality/ABSCHNITTE.txt`).
+37 Abschnitte, 189 Stücke, **61.178 von 61.178 Zeilen** in 184 Dateien (`docs/quality/ABSCHNITTE.txt`).
 Geschnitten wird an Klassen- und Funktionsgrenzen, nicht willkürlich bei Zeile 2000: Ein Abschnitt
 soll am Stück lesbar sein.
 
@@ -79,19 +79,19 @@ viel erreicht wurde", den der Programmtext ablehnt.
 
 | | Abschnitte | Zeilen |
 |---|---|---|
-| enthalten eine Datei, in der etwas geändert wurde | 28 | 46.830 (76 %) |
-| gar nicht berührt | **9** | **14.344 (24 %)** |
+| enthalten eine Datei, in der etwas geändert wurde | 29 | 48.668 (80 %) |
+| gar nicht berührt | **8** | **12.510 (20 %)** |
 
-Die Rechnung offen, damit sie nachprüfbar ist statt geglaubt: Die neun unberührten Abschnitte
-summieren sich gemessen auf 14.344 Zeilen; 61.174 − 14.344 = 46.830.
+Die Rechnung offen, damit sie nachprüfbar ist statt geglaubt: Die acht unberührten Abschnitte
+summieren sich gemessen auf 12.510 Zeilen; 61.178 − 12.510 = 48.668.
 
-**Diese Zahl ist inzwischen viermal veraltet** — 12 Abschnitte mit 17.242 Zeilen, dann 11 mit
-15.479, dann 10 mit 14.636, jetzt 9 mit 14.344. Jede Korrektur verschiebt sie: **Abschnitt 13**
+**Diese Zahl ist inzwischen fünfmal veraltet** — 12 Abschnitte mit 17.242 Zeilen, dann 11 mit
+15.479, dann 10 mit 14.636, dann 9 mit 14.344, jetzt 8 mit 12.510. Jede Korrektur verschiebt sie: **Abschnitt 13**
 fiel mit `config_service.py` heraus, **Abschnitt 20** mit `update_notifier.py`, **Abschnitt 37**
-mit `token_security.py`. Das ist kein Mangel der Rechnung, sondern ihre Natur — und der Grund, sie
+mit `token_security.py`, **Abschnitt 28** mit `configuration_save_service.py`. Das ist kein Mangel der Rechnung, sondern ihre Natur — und der Grund, sie
 am Ende zu messen statt sie mitzuführen.
 
-**Diese 76 % sind keine Abdeckung, und sie dürfen nicht als solche gelesen werden.** „Berührt" heißt:
+**Diese 80 % sind keine Abdeckung, und sie dürfen nicht als solche gelesen werden.** „Berührt" heißt:
 In diesem Abschnitt liegt eine Datei, in der eine einzelne Zeile geändert wurde. Das ist keine
 Durchsicht.
 
@@ -100,7 +100,7 @@ hat, waren gezielte Suchen nach benannten Mustern (nackte `except:`, Umgebungsle
 zeichengleiche Zwillinge, Aufrufstellen) und punktuelle Korrekturen. Diese Suchen waren mechanisch
 und vollständig — aber sie prüfen je eine Frage, nicht den Abschnitt.
 
-### Die neun nie berührten Abschnitte
+### Die acht nie berührten Abschnitte
 
 | Abschnitt | Zeilen | Inhalt |
 |---|---|---|
@@ -111,7 +111,6 @@ und vollständig — aber sie prüfen je eine Frage, nicht den Abschnitt.
 | 21 | 1.813 | `animation_cache_service.py` |
 | 22 | 1.935 | `mech_data_store.py`, `mech_evolutions.py`, … |
 | 26 | 1.995 | `scheduler.py` |
-| 28 | 1.834 | `translation_service.py`, `configuration_page_service.py`, … |
 | 33 | 1.892 | `translation_routes.py`, `performance.py`, `runtime.py`, +21 |
 
 Auffällig darunter: **Abschnitt 26** (`scheduler.py` — die dokumentierte Z5-Ausnahme sitzt dort).
@@ -121,6 +120,12 @@ stammt aus geprüften Meldungen, nicht aus eigener Lektüre.
 **Abschnitt 37** (`token_security.py` — Z9) stand hier bis zur Korrektur der Token-Anzeige
 ebenfalls; er ist seitdem berührt. Gelesen habe ich ihn deshalb trotzdem nicht am Stück — berührt
 heißt auch hier nur, dass in dieser Datei Zeilen geändert wurden.
+
+**Abschnitt 28** (`configuration_page_service.py`, …) ist seit Commit 16eca1e berührt. Dort habe
+ich ihn **nicht** ausgetragen: Die Datei änderte sich ohne Zeilendifferenz, keine Kopfzeile
+bewegte sich — und „berührt" hatte ich an den Kopfzeilen abgelesen statt an der Dateiliste des
+Diffs. Aufgefallen ist es erst im Folgecommit, als dieselbe Abschnittsnummer eine Kopfzeilenänderung
+zeigte. Berichtigt in dem Commit, der `configuration_save_service.py` umstellt.
 
 ---
 
@@ -253,9 +258,9 @@ dass sich eine Absicherung lohnte.
 
 ## 6. Was NICHT geprüft wurde
 
-- **Kein Abschnitt wurde systematisch durchgelesen.** Die 76 % „berührt" sagen darüber nichts.
+- **Kein Abschnitt wurde systematisch durchgelesen.** Die 80 % „berührt" sagen darüber nichts.
 - **Keiner der 1.513 Namen im Prüfplan ist beurteilt.**
-- **Die neun nie berührten Abschnitte** (14.344 Zeilen, 24 % des Baums) sind in diesem Programm
+- **Die acht nie berührten Abschnitte** (12.510 Zeilen, 20 % des Baums) sind in diesem Programm
   ausschließlich von den mechanischen Suchen erfasst worden — nicht gelesen. Die Abschnitte 26 und
   37 hat ein zweites Modell gelesen, ich nicht.
 - ~~Der Verdacht auf Doppelausführung nach einem Absturz~~ und ~~die unbekannte Poll-Frequenz~~
