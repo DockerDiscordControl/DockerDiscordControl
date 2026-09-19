@@ -2267,6 +2267,21 @@ class CreateTaskButton(discord.ui.Button):
         try:
             await interaction.response.defer(ephemeral=True)
 
+            # The channel's CURRENT 'schedule' permission, or a registered admin
+            # (SPEC.md B2) - the same rule as the twin that DELETES a task
+            # (ContainerTaskDeleteButton). Creating one was checked nowhere: neither
+            # at the click nor here, so the same thing needed a permission on one path
+            # and none on the other, and a view still open after a revocation kept
+            # creating tasks for up to ~890 s (SPEC.md Z5, review B3).
+            from .control_helpers import _channel_has_permission, _is_registered_admin
+            if not (_channel_has_permission(interaction.channel_id, 'schedule', load_config())
+                    or _is_registered_admin(interaction.user.id)):
+                await interaction.followup.send(
+                    f"❌ {_('This action is not allowed in this channel.')}",
+                    ephemeral=True
+                )
+                return
+
             # Re-check allowed actions at creation time (config may have changed)
             if self.view.selected_action not in _get_allowed_task_actions(self.container_name):
                 error_msg = _("You don't have permission to perform '{action}' on '{container}'.").format(

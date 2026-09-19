@@ -232,7 +232,7 @@
 [ ] cogs/status_info_integration.py:1948 MonthdayDropdown
 [ ] cogs/status_info_integration.py:1959 MonthdayDropdown.callback
 
-## Section 10  (1927 lines, 60 public names)
+## Section 10  (1942 lines, 60 public names)
 [ ] cogs/status_info_integration.py:1972 YeardayDropdown
 [ ] cogs/status_info_integration.py:2035 YeardayDropdown.callback
 [ ] cogs/status_info_integration.py:2078 ManualDateView
@@ -246,10 +246,10 @@
 [ ] cogs/status_info_integration.py:2221 DateDropdown.callback
 [ ] cogs/status_info_integration.py:2234 CreateTaskButton
 [ ] cogs/status_info_integration.py:2247 CreateTaskButton.callback
-[ ] cogs/status_info_integration.py:2405 should_show_info_in_status_channel
-[ ] cogs/status_info_integration.py:2426 ContainerTaskDeleteView
-[ ] cogs/status_info_integration.py:2497 ContainerTaskDeleteButton
-[ ] cogs/status_info_integration.py:2511 ContainerTaskDeleteButton.callback
+[ ] cogs/status_info_integration.py:2420 should_show_info_in_status_channel
+[ ] cogs/status_info_integration.py:2441 ContainerTaskDeleteView
+[ ] cogs/status_info_integration.py:2512 ContainerTaskDeleteButton
+[ ] cogs/status_info_integration.py:2526 ContainerTaskDeleteButton.callback
 [ ] cogs/translation_manager.py:22 TranslationManager
 [ ] cogs/translation_manager.py:57 TranslationManager.reload_translations
 [ ] cogs/translation_manager.py:63 TranslationManager.get_available_languages
