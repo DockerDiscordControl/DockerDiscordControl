@@ -341,7 +341,7 @@ class ProtectedInfoModal(discord.ui.Modal):
         # Protected Info Enable field
         protected_enabled = self.container_info.get('protected_enabled', False)
         self.protected_enabled = discord.ui.InputText(
-            label=_("🔐 Geschützte Informationen aktivieren"),
+            label=_("🔐 Enable Protected Information"),
             style=InputTextStyle.short,
             value="X" if protected_enabled else "",
             max_length=1,
@@ -352,23 +352,23 @@ class ProtectedInfoModal(discord.ui.Modal):
 
         # Protected Content field
         self.protected_content = discord.ui.InputText(
-            label=_("🔒 Geschützte Information"),
+            label=_("🔒 Protected Information"),
             style=InputTextStyle.long,
             value=self.container_info.get('protected_content', ''),
             max_length=250,
             required=False,
-            placeholder=_("Geheime Server-Details, Admin-Passwörter, etc. (max 250 Zeichen)")
+            placeholder=_("Secret server details, admin passwords, etc. (max 250 characters)")
         )
         self.add_item(self.protected_content)
 
         # Protected Password field
         self.protected_password = discord.ui.InputText(
-            label=_("🗝️ Passwort für geschützte Informationen"),
+            label=_("🗝️ Password for Protected Information"),
             style=InputTextStyle.short,
             value=self.container_info.get('protected_password', ''),
             max_length=60,
             required=False,
-            placeholder=_("Passwort zum Schutz der geheimen Informationen (max 60 Zeichen)")
+            placeholder=_("Password to protect secret information (max 60 characters)")
         )
         self.add_item(self.protected_password)
 
@@ -388,14 +388,14 @@ class ProtectedInfoModal(discord.ui.Modal):
             # Validate inputs
             if protected_enabled and not protected_content:
                 await interaction.response.send_message(
-                    _("❌ Geschützte Informationen sind aktiviert, aber kein Inhalt angegeben."),
+                    _("❌ Protected information is enabled but no content provided."),
                     ephemeral=True
                 )
                 return
 
             if protected_enabled and not protected_password:
                 await interaction.response.send_message(
-                    _("❌ Geschützte Informationen sind aktiviert, aber kein Passwort angegeben."),
+                    _("❌ Protected information is enabled but no password provided."),
                     ephemeral=True
                 )
                 return
@@ -444,21 +444,21 @@ class ProtectedInfoModal(discord.ui.Modal):
 
                 # Create success embed
                 embed = discord.Embed(
-                    title=_("🔒 Geschützte Informationen aktualisiert"),
-                    description=_("Geschützte Informationen für **{name}** erfolgreich gespeichert").format(name=self.display_name),
+                    title=_("🔒 Protected Information Updated"),
+                    description=_("Protected information for **{name}** successfully saved").format(name=self.display_name),
                     color=discord.Color.green()
                 )
 
                 if protected_enabled:
                     embed.add_field(
                         name=_("✅ Status"),
-                        value=_("🔐 Geschützte Informationen aktiviert\n🗝️ Passwort gesetzt\n📄 {content_length} Zeichen Inhalt").format(content_length=len(protected_content)),
+                        value=_("🔐 Protected information enabled\n🗝️ Password set\n📄 {content_length} characters of content").format(content_length=len(protected_content)),
                         inline=False
                     )
                 else:
                     embed.add_field(
                         name=_("❌ Status"),
-                        value=_("🔓 Geschützte Informationen deaktiviert"),
+                        value=_("🔓 Protected information disabled"),
                         inline=False
                     )
 
@@ -468,7 +468,7 @@ class ProtectedInfoModal(discord.ui.Modal):
             else:
                 logger.error(f"Protected info save failed for {self.container_name}: {result.error}")
                 await interaction.response.send_message(
-                    _("❌ Fehler beim Speichern der geschützten Informationen für **{name}**").format(name=self.display_name),
+                    _("❌ Error saving protected information for **{name}**").format(name=self.display_name),
                     ephemeral=True
                 )
 
@@ -477,12 +477,12 @@ class ProtectedInfoModal(discord.ui.Modal):
 
             if not interaction.response.is_done():
                 await interaction.response.send_message(
-                    _("❌ Ein Fehler ist aufgetreten: {error}").format(error=str(e)[:100]),
+                    _("❌ An error occurred: {error}").format(error=str(e)[:100]),
                     ephemeral=True
                 )
             else:
                 await interaction.followup.send(
-                    _("❌ Ein Fehler ist aufgetreten: {error}").format(error=str(e)[:100]),
+                    _("❌ An error occurred: {error}").format(error=str(e)[:100]),
                     ephemeral=True
                 )
 
