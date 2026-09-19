@@ -766,21 +766,6 @@ def test_mech_animation():
         current_app.logger.error(f"Data error in test_mech_animation route: {e}", exc_info=True)
         return jsonify({'error': 'Data error: Invalid test animation parameters'}), 400
 
-@main_bp.route('/api/simulate-donation-broadcast', methods=['POST'])
-@auth.login_required
-def simulate_donation_broadcast():
-    """Simulate a donation broadcast for testing purposes."""
-    try:
-        current_app.logger.info("Simulating donation broadcast...")
-        return jsonify({
-            'success': True,
-            'message': 'Donation broadcast simulation not yet implemented'
-        })
-    except RuntimeError as e:
-        # Runtime errors (simulation failures)
-        current_app.logger.error(f"Runtime error simulating donation broadcast: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': 'Runtime error in simulation'}), 500
-
 @main_bp.route('/api/mech-speed-config', methods=['POST'])
 @auth.login_required
 def get_mech_speed_config():

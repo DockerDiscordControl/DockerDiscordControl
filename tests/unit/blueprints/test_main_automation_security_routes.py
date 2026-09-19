@@ -983,20 +983,6 @@ class TestPortDiagnostics:
         assert resp.status_code == 503
 
 
-# ---- /api/simulate-donation-broadcast ---------------------------------------
-
-
-class TestSimulateBroadcast:
-    def test_simulate_returns_stub_message(self, main_app):
-        resp = main_app.test_client().post(
-            "/api/simulate-donation-broadcast", headers=_AUTH_HEADER
-        )
-        assert resp.status_code == 200
-        body = resp.get_json()
-        assert body["success"] is True
-        assert "not yet implemented" in body["message"].lower()
-
-
 # ===========================================================================
 # automation_routes
 # ===========================================================================

@@ -1799,17 +1799,6 @@
             `;
         }
         
-        function simulateDonationBroadcast() {
-            const donorName = document.getElementById('test-donor-name').value;
-            const amount = document.getElementById('test-amount').value;
-            const totalDonations = document.getElementById('test-total-donations').value;
-            
-            if (confirm(`This will send a test donation broadcast to Discord.\n\nDonor: ${donorName}\nAmount: ${amount}\n\nContinue?`)) {
-                fetch('/api/simulate-donation-broadcast', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
                     body: JSON.stringify({
                         donor_name: donorName,
                         amount: amount,

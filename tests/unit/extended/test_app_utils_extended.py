@@ -2441,14 +2441,6 @@ class TestMainRoutesAdditional:
         body = resp.get_json()
         assert body["success"] is False
 
-    def test_simulate_donation_broadcast_returns_stub(self, main_app):
-        resp = main_app.test_client().post(
-            "/api/simulate-donation-broadcast", headers=_AUTH_HEADER
-        )
-        assert resp.status_code == 200
-        body = resp.get_json()
-        assert body["success"] is True
-
     def test_config_page_renders_with_service_data(self, main_app, monkeypatch):
         svc = MagicMock()
         svc.prepare_page_data.return_value = SimpleNamespace(
