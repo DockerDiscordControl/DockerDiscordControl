@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from .docker_control import DockerControlCog
 
 from utils.time_utils import format_datetime_with_timezone
-from .control_helpers import _channel_has_permission, _get_pending_embed
+from .control_helpers import _channel_has_permission, _get_pending_embed, _is_registered_admin
 from utils.logging_utils import get_module_logger
 from services.infrastructure.action_logger import log_user_action
 from .translation_manager import _
@@ -310,7 +310,14 @@ class ActionButton(Button):
         # that view carries TaskManagementButton unconditionally - a path to
         # delete_task(). They granted a right and are corrected as well.
         # See SPEC.md Z5 and B1.
-        channel_has_control = _get_cached_channel_permission(interaction.channel.id, 'control', config)
+        #
+        # CORRECTION 2026-09-19: removing the title put NOTHING in its place, and
+        # the title had been the only way registered admins got through in a
+        # STATUS channel - which is what the admin list exists for (SPEC.md B2).
+        # The operator was refused there. A registered admin passes again, read
+        # from the CURRENT admin list, not from the message.
+        channel_has_control = (_get_cached_channel_permission(interaction.channel.id, 'control', config)
+                               or _is_registered_admin(user.id))
 
         if not channel_has_control:
             await interaction.followup.send(_("This action is not allowed in this channel."), ephemeral=True)
@@ -1078,7 +1085,9 @@ class InfoButton(Button):
                 # (status_info_integration.py:55) and therefore a path to
                 # delete_task() - so this was not display, it granted a right.
                 # Same correction as :304. See SPEC.md Z5.
-                has_control = _channel_has_permission(channel_id, 'control', config) if config else False
+                # A registered admin counts as well (SPEC.md B2) - see :304.
+                has_control = ((_channel_has_permission(channel_id, 'control', config) if config else False)
+                               or _is_registered_admin(interaction.user.id))
 
                 if has_control:
                     # Create empty info template with Edit/Log buttons
@@ -1124,9 +1133,10 @@ class InfoButton(Button):
             # Generate info embed using StatusInfoButton logic
             info_button = StatusInfoButton(self.cog, self.server_config, info_config)
 
-            # Only the CURRENT channel permission decides - see the note above.
-            # SPEC.md Z5.
-            has_control = _channel_has_permission(channel_id, 'control', config) if config else False
+            # The CURRENT channel permission or a registered admin decides - see the
+            # note above and :304. SPEC.md Z5 and B2.
+            has_control = ((_channel_has_permission(channel_id, 'control', config) if config else False)
+                           or _is_registered_admin(interaction.user.id))
 
             # Generate embed with protected info if in control channel
             embed = await info_button._generate_info_embed(include_protected=has_control)
@@ -1293,7 +1303,10 @@ class TaskDeleteButton(Button):
             from services.scheduling.scheduler import delete_task
 
             config = load_config()
-            if not _get_cached_channel_permission(interaction.channel.id, 'schedule', config):
+            # A registered admin may delete as well (SPEC.md B2) - the same rule as
+            # the twin in status_info_integration.py; same action, same right.
+            if not (_get_cached_channel_permission(interaction.channel.id, 'schedule', config)
+                    or _is_registered_admin(interaction.user.id)):
                 await interaction.followup.send(_("You do not have permission to delete tasks in this channel."), ephemeral=True)
                 return
 

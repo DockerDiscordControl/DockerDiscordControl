@@ -112,6 +112,14 @@ allows the action — on **every** path: button, schedule, automation rule, web 
 *Broken if:* a path exists that touches a container without passing both checks.
 *Note:* authorization via the **channel** is intended (see Deliberate decisions B1). This guarantee
 does not demand a user check — it demands that the channel check is **complete**.
+*Clarified 2026-09-19 (operator):* "channel permission" includes **B2** — a user in the CURRENT
+admin list may act where the channel alone permits nothing (the status channels). The Z5 fix of
+2026-09-16/17 removed the "Admin Control" message title as a permission but put nothing in its
+place; that title had been the only way admins got through in status channels, so the operator —
+a registered admin — was refused there. Restored on every path the fix had touched (start/stop/
+restart, the info admin view, both task delete buttons). The admin list is read at the moment of
+the press, never from a message, so an old title still grants nothing to a non-admin.
+*Covered by* `tests/spec/test_z5_admins_act_in_status_channels.py`.
 **Today: fixed (2026-09-16).** The side question about the scheduler exception was decided on
 2026-09-19: intended, recorded as B12.
 The way there belongs here, because the original version of this line was too coarse and was

@@ -2515,15 +2515,19 @@ class ContainerTaskDeleteButton(discord.ui.Button):
 
             from services.scheduling.scheduler import delete_task, find_task_by_id
             from services.infrastructure.action_logger import log_user_action
-            from .control_helpers import _channel_has_permission
+            from .control_helpers import _channel_has_permission, _is_registered_admin
 
             # Deleting a scheduled task needs the 'schedule' permission of the
             # CURRENT channel. The twin button in control_ui.py:1276 checks it;
             # this path did not, so whoever held 'control' but deliberately not
             # 'schedule' could still delete tasks here. Same action, same right.
             # See SPEC.md Z5 - the assurance holds on EVERY path or not at all.
+            # A registered admin may delete as well (SPEC.md B2): this is the
+            # button of the admin info view, which admins open in status
+            # channels. Added 2026-09-19 after the operator was refused there.
             config = load_config()
-            if not _channel_has_permission(interaction.channel_id, 'schedule', config):
+            if not (_channel_has_permission(interaction.channel_id, 'schedule', config)
+                    or _is_registered_admin(interaction.user.id)):
                 await interaction.followup.send(
                     f"❌ {_('You do not have permission to delete tasks in this channel.')}",
                     ephemeral=True

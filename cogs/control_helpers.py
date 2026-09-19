@@ -108,6 +108,23 @@ def _channel_has_permission(channel_id: int, permission_key: str, config: dict =
         default_permissions = config.get('default_channel_permissions', {})
         return default_permissions.get('commands', {}).get(permission_key, False)
 
+def _is_registered_admin(user_id) -> bool:
+    """True if ``user_id`` is in the CURRENT admin list (``admins.json``, /addadmin).
+
+    SPEC.md B2: the admin list exists so that admins may act where the channel
+    alone permits nothing - the status channels. The Z5 fix of 2026-09-16/17
+    removed the "Admin Control" message title as a permission and put nothing
+    in its place, so admins were refused in status channels (operator's report
+    of 2026-09-19). The list is read at the moment of the press, never taken
+    from a message. A failing lookup counts as "not an admin".
+    """
+    try:
+        from services.admin.admin_service import get_admin_service
+        return bool(get_admin_service().is_user_admin(user_id))
+    except (ImportError, OSError, ValueError, RuntimeError) as e:
+        logger.error(f"Admin list could not be read for user {user_id}: {e}", exc_info=True)
+        return False
+
 def _get_pending_embed(display_name: str) -> discord.Embed:
     """Generates a standardized embed for the pending status in the box design."""
     # --- Start: Adjusted box formatting for Pending --- #
