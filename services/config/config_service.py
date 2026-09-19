@@ -179,14 +179,11 @@ class ConfigService:
 
         # Directory setup. ``DDC_CONFIG_DIR`` lets tests (and special
         # deployments) point the service at an alternative writable
-        # directory without monkey-patching the singleton.
-        import os
+        # directory without monkey-patching the singleton - resolved in
+        # utils/config_paths.py, the one place that knows the rule.
+        from utils.config_paths import get_config_dir
         self.project_root = Path(__file__).parent.parent.parent
-        config_dir_override = os.environ.get('DDC_CONFIG_DIR', '').strip()
-        if config_dir_override:
-            self.config_dir = Path(config_dir_override)
-        else:
-            self.config_dir = self.project_root / "config"
+        self.config_dir = get_config_dir()
         try:
             self.config_dir.mkdir(parents=True, exist_ok=True)
         except PermissionError:

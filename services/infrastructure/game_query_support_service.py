@@ -59,10 +59,9 @@ _VERDICT_FIELDS = ('supported', 'final', 'protocol', 'port', 'probing_since')
 
 
 def _config_dir() -> Path:
-    override = os.environ.get('DDC_CONFIG_DIR', '').strip()
-    if override:
-        return Path(override)
-    return Path(__file__).resolve().parent.parent.parent / 'config'
+    # The rule lives in utils/config_paths.py; this was a copy of it.
+    from utils.config_paths import get_config_dir
+    return get_config_dir()
 
 
 def _read_verdicts_at(path: Path) -> Dict[str, Dict[str, Any]]:

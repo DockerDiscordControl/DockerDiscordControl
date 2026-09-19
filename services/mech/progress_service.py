@@ -561,13 +561,9 @@ def get_decay_config_data() -> dict:
         return _decay_config_cache["data"]
         
     try:
-        # Honor DDC_CONFIG_DIR (used by tests + alternative deployments) and
-        # fall back to the project-relative path.
-        env_dir = os.environ.get("DDC_CONFIG_DIR", "").strip()
-        if env_dir:
-            base_dir = Path(env_dir)
-        else:
-            base_dir = Path(__file__).parents[2] / "config"
+        # Honor DDC_CONFIG_DIR via utils/config_paths.py (was a copy of the rule).
+        from utils.config_paths import get_config_dir
+        base_dir = get_config_dir()
         config_path = base_dir / "mech" / "decay.json"
         if config_path.exists():
             with open(config_path, "r") as f:

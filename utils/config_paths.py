@@ -24,17 +24,24 @@ before a service is constructed takes effect.
 
 import os
 from pathlib import Path
+from typing import Mapping, Optional
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
-def get_config_dir() -> Path:
+def get_config_dir(environ: Optional[Mapping[str, str]] = None) -> Path:
     """``DDC_CONFIG_DIR`` if set and non-empty, else ``<project>/config``.
 
     Inside the container the project root is ``/app``, so the default is
     ``/app/config`` - exactly what the individual derivations produced.
+
+    ``environ`` defaults to ``os.environ``; app/web/config.build_config passes the
+    mapping it was given, so it keeps reading from that and not from the process.
     """
-    override = os.environ.get("DDC_CONFIG_DIR", "").strip()
+    # One expression, not a helper variable: tests/spec/test_einstellungen_wirken_ueberall.py
+    # finds direct environment reads by the shape of the call, and this is now
+    # THE direct read of DDC_CONFIG_DIR.
+    override = ((os.environ if environ is None else environ).get("DDC_CONFIG_DIR") or "").strip()
     if override:
         return Path(override)
     return _PROJECT_ROOT / "config"

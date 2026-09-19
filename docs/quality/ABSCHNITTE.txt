@@ -62,8 +62,8 @@ services/config/config_form_parser_service.py:1-470
 services/config/config_loader_service.py:1-470
 services/config/config_migration_service.py:1-406
 
-## Abschnitt 13  (1813 Zeilen, 5 Stuecke)
-services/config/config_service.py:1-1218
+## Abschnitt 13  (1810 Zeilen, 5 Stuecke)
+services/config/config_service.py:1-1215
 services/config/config_validation_service.py:1-212
 services/config/container_config_save_service.py:1-150
 services/config/server_config_service.py:1-213
@@ -112,15 +112,15 @@ services/infrastructure/action_log_service.py:1-373
 services/infrastructure/action_logger.py:1-89
 services/infrastructure/container_info_service.py:1-316
 
-## Abschnitt 19  (1884 Zeilen, 5 Stuecke)
-services/infrastructure/container_status_service.py:1-813
+## Abschnitt 19  (1887 Zeilen, 5 Stuecke)
+services/infrastructure/container_status_service.py:1-816
 services/infrastructure/docker_connectivity_service.py:1-256
 services/infrastructure/dynamic_cooldown_manager.py:1-179
 services/infrastructure/event_manager.py:1-111
 services/infrastructure/game_query_service.py:1-525
 
-## Abschnitt 20  (1030 Zeilen, 4 Stuecke)
-services/infrastructure/game_query_support_service.py:1-278
+## Abschnitt 20  (1029 Zeilen, 4 Stuecke)
+services/infrastructure/game_query_support_service.py:1-277
 services/infrastructure/spam_protection_service.py:1-509
 services/infrastructure/update_notifier.py:1-213
 services/mech/__init__.py:1-30
@@ -134,8 +134,8 @@ services/mech/mech_display_cache_service.py:1-387
 services/mech/mech_evolutions.py:1-417
 services/mech/mech_high_res_service.py:1-248
 
-## Abschnitt 23  (1924 Zeilen, 10 Stuecke)
-services/mech/mech_reset_service.py:1-378
+## Abschnitt 23  (1922 Zeilen, 10 Stuecke)
+services/mech/mech_reset_service.py:1-376
 services/mech/mech_service.py:1-32
 services/mech/mech_service_adapter.py:1-300
 services/mech/mech_state_manager.py:1-152
@@ -146,8 +146,8 @@ services/mech/progress/__init__.py:1-17
 services/mech/progress/runtime.py:1-153
 services/mech/progress_paths.py:1-188
 
-## Abschnitt 24  (1980 Zeilen, 3 Stuecke)
-services/mech/progress_service.py:1-1551
+## Abschnitt 24  (1976 Zeilen, 3 Stuecke)
+services/mech/progress_service.py:1-1547
 services/mech/speed_levels.py:1-412
 services/member_count/__init__.py:1-17
 
@@ -231,10 +231,10 @@ app/constants.py:1-17
 app/utils/__init__.py:1-7
 app/utils/container_info_web_handler.py:1-256
 
-## Abschnitt 34  (1863 Zeilen, 9 Stuecke)
+## Abschnitt 34  (1864 Zeilen, 9 Stuecke)
 app/utils/port_diagnostics.py:1-595
 app/utils/shared_data.py:1-97
-app/utils/web_helpers.py:1-860
+app/utils/web_helpers.py:1-861
 app/web/__init__.py:1-12
 app/web/action_logger.py:1-20
 app/web/app_factory.py:1-61
@@ -242,8 +242,8 @@ app/web/background.py:1-85
 app/web/blueprints.py:1-31
 app/web/compat.py:1-102
 
-## Abschnitt 35  (1976 Zeilen, 17 Stuecke)
-app/web/config.py:1-171
+## Abschnitt 35  (1981 Zeilen, 17 Stuecke)
+app/web/config.py:1-169
 app/web/csrf.py:1-125
 app/web/diagnostics.py:1-30
 app/web/extensions.py:1-26
@@ -257,7 +257,7 @@ utils/app_commands_helper.py:1-150
 utils/atomic_io.py:1-70
 utils/common_helpers.py:1-475
 utils/config_cache.py:1-307
-utils/config_paths.py:1-40
+utils/config_paths.py:1-47
 utils/import_utils.py:1-160
 utils/key_crypto.py:1-79
 

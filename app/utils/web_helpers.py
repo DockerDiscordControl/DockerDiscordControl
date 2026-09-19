@@ -808,7 +808,8 @@ def set_initial_password_from_env():
             load_config, change_web_ui_password, MIN_WEB_UI_PASSWORD_LENGTH,
         )
 
-        config_path_check = _PROJECT_ROOT_HELPER / "config" / "config.json"
+        from utils.config_paths import get_config_dir
+        config_path_check = get_config_dir() / "config.json"
         init_pass_logger.info(f"Attempting to load config from: {config_path_check} for initial password set.")
 
         config = load_config() # Assumes load_config knows its path or is configured

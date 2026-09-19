@@ -46,16 +46,13 @@ MUSTER = (
     re.compile(r"""DDC_CONFIG_DIR['"]"""),                # eigene Kopie der Regel
 )
 
-# Datei -> Zahl der heute noch abweichenden Zeilen. NUR SCHRUMPFEN LASSEN.
-NOCH_OFFEN = {
-    "app/utils/web_helpers.py": 1,
-    "app/web/config.py": 3,
-    "services/config/config_service.py": 2,
-    "services/infrastructure/container_status_service.py": 1,
-    "services/infrastructure/game_query_support_service.py": 2,
-    "services/mech/mech_reset_service.py": 2,
-    "services/mech/progress_service.py": 2,
-}
+# Datei -> Zahl der noch abweichenden Zeilen. Seit 2026-09-19 LEER: Die letzten
+# Eintraege waren sechs Kopien der Regel (config_service, app/web/config,
+# container_status_service, game_query_support_service, mech_reset_service,
+# progress_service) und eine Log-Zeile in app/utils/web_helpers.py - alle ohne
+# Nutzerwirkung, aber jede eine Stelle, an der die Regel wieder auseinanderlaufen
+# konnte (container_status_service nahm eine Variable aus Leerzeichen woertlich).
+NOCH_OFFEN = {}
 
 
 def _trifft(zeile: str) -> bool:
@@ -111,6 +108,18 @@ def test_keine_neue_herleitung_und_die_liste_luegt_nicht():
         "Diese Dateien leiten weniger Pfade selbst her als NOCH_OFFEN sagt - "
         f"die Liste nachziehen (Soll, Ist): {erledigt}"
     )
+
+
+def test_die_quelle_nimmt_eine_eigene_umgebung(tmp_path, monkeypatch):
+    """app/web/config.build_config liest aus einem UEBERGEBENEN env-Mapping, nicht
+    aus os.environ - die Quelle muss das koennen, sonst aenderte die Umstellung
+    still die Bedeutung von build_config. Zuerst die Signatur, damit ein Fehlen
+    als Fehlschlag erscheint und nicht als TypeError."""
+    import inspect
+    assert "environ" in inspect.signature(config_paths.get_config_dir).parameters
+    monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path / "prozess"))
+    assert config_paths.get_config_dir(environ={"DDC_CONFIG_DIR": str(tmp_path / "eigen")}) == tmp_path / "eigen"
+    assert config_paths.get_config_dir(environ={}) == PROJEKT / "config"
 
 
 def test_die_quelle_folgt_der_variablen(tmp_path, monkeypatch):

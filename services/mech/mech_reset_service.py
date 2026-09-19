@@ -54,11 +54,9 @@ class MechResetService:
         # follows the same rule as config_service.py:181 and progress_service.py:561,
         # so the redirection in tests/conftest.py takes effect. See SPEC.md Z2.
         if config_dir is None:
-            env_dir = os.environ.get('DDC_CONFIG_DIR', '').strip()
-            if env_dir:
-                self.config_dir = Path(env_dir)
-            else:
-                self.config_dir = Path(__file__).parent.parent.parent / "config"
+            # The rule itself now lives in utils/config_paths.py.
+            from utils.config_paths import get_config_dir
+            self.config_dir = get_config_dir()
         elif not config_dir.startswith('/'):
             # An explicitly passed relative path keeps resolving against the project
             # root - unchanged behaviour, pinned by test_mech_data_services.py:791.

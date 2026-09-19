@@ -132,7 +132,10 @@ class ContainerStatusService:
             True if deactivation was successful, False otherwise
         """
         try:
-            config_path = Path(os.environ.get('DDC_CONFIG_DIR', '/app/config'))
+            # Via utils/config_paths.py. This copy took a value of only spaces
+            # (or with surrounding spaces) literally, unlike the other five.
+            from utils.config_paths import get_config_dir
+            config_path = get_config_dir()
             container_file = config_path / 'containers' / f'{container_name}.json'
 
             if not container_file.exists():

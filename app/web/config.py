@@ -143,23 +143,21 @@ def resolve_secret_key(env: Mapping[str, str], key_file: Optional[Path] = None) 
 def build_config(env: Mapping[str, str], overrides: Optional[Mapping[str, object]] = None) -> MutableMapping[str, object]:
     """Construct the Flask configuration dictionary."""
     config: MutableMapping[str, object] = dict(DEFAULTS)
-    # Robust absolute path relative to project root
-    try:
-        project_root = Path(__file__).parents[2]
-    except Exception:
-        project_root = Path(".")
 
-    # Same DDC_CONFIG_DIR override as ConfigService, so tests and special
-    # deployments keep the secret key file out of the real config directory.
-    config_dir_override = (env.get("DDC_CONFIG_DIR") or "").strip()
-    config_dir = Path(config_dir_override) if config_dir_override else project_root / "config"
+    # Same DDC_CONFIG_DIR rule as everywhere (utils/config_paths.py), read from
+    # the ``env`` mapping given here, so tests and special deployments keep the
+    # secret key file out of the real config directory.
+    from utils.config_paths import get_config_dir
+    config_dir = get_config_dir(environ=env)
 
     config.update(
         SECRET_KEY=resolve_secret_key(env, config_dir / SECRET_KEY_FILENAME),
         DOCKER_SOCKET=env.get("DOCKER_SOCKET", DEFAULTS["DOCKER_SOCKET"]),
         LOG_LEVEL=env.get("LOG_LEVEL", DEFAULTS["LOG_LEVEL"]),
         HOST_DOCKER_PATH=env.get("HOST_DOCKER_PATH", DEFAULTS["HOST_DOCKER_PATH"]),
-        CONFIG_FILE=str(project_root / "config" / "config.json"),
+        # Was <project>/config even with DDC_CONFIG_DIR set (no reader today,
+        # but it named the wrong file).
+        CONFIG_FILE=str(config_dir / "config.json"),
     )
 
     if _is_dev_environment(env):
