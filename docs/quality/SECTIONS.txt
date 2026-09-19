@@ -108,8 +108,8 @@ services/donation/unified/validation.py:1-37
 services/donation/unified_donation_service.py:1-31
 services/exceptions.py:1-299
 services/infrastructure/__init__.py:1-0
-services/infrastructure/action_log_service.py:1-373
-services/infrastructure/action_logger.py:1-89
+services/infrastructure/action_log_service.py:1-376
+services/infrastructure/action_logger.py:1-86
 services/infrastructure/container_info_service.py:1-316
 
 ## Section 19  (1877 lines, 5 pieces)
@@ -232,10 +232,10 @@ app/constants.py:1-17
 app/utils/__init__.py:1-7
 app/utils/container_info_web_handler.py:1-256
 
-## Section 34  (1864 lines, 9 pieces)
+## Section 34  (1865 lines, 9 pieces)
 app/utils/port_diagnostics.py:1-595
 app/utils/shared_data.py:1-97
-app/utils/web_helpers.py:1-861
+app/utils/web_helpers.py:1-862
 app/web/__init__.py:1-12
 app/web/action_logger.py:1-20
 app/web/app_factory.py:1-61

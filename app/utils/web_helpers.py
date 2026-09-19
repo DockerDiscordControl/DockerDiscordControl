@@ -65,9 +65,10 @@ except Exception:
     _APP_DIR_HELPER = Path("app/utils")
     _PROJECT_ROOT_HELPER = Path(".")
 
-# Constants - keep paths in sync with utils/action_logger.py
+# Constants. ACTION_LOG_FILE comes from the action log service - "keep paths in
+# sync" by hand is how action_logger drifted to a file nothing writes (review A3).
 LOG_DIR = _PROJECT_ROOT_HELPER / 'logs'
-ACTION_LOG_FILE = LOG_DIR / 'user_actions.log'
+from services.infrastructure.action_log_service import DEFAULT_TEXT_LOG_FILE as ACTION_LOG_FILE  # noqa: E402
 DISCORD_LOG_FILE = LOG_DIR / 'discord.log'
 
 # Helper function to get advanced settings from config

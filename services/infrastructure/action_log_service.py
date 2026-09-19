@@ -83,6 +83,16 @@ _TEXT_LOG_BACKUP_COUNT = 3
 # waitress threads and the bot event loop at the same time.
 _JSON_LOG_LOCK = threading.Lock()
 
+# The ONE place that names the action log files. action_logger.ACTION_LOG_FILE and
+# app/utils/web_helpers.ACTION_LOG_FILE refer to DEFAULT_TEXT_LOG_FILE. They used to
+# name the file themselves, and one drifted to logs/action_log.json - a file nothing
+# writes - so the panel's download button answered "not found" (review A3).
+DEFAULT_LOGS_DIR = Path(__file__).parents[2] / "logs"
+JSON_LOG_NAME = "user_actions.json"
+TEXT_LOG_NAME = "user_actions.log"
+DEFAULT_TEXT_LOG_FILE = DEFAULT_LOGS_DIR / TEXT_LOG_NAME
+
+
 class ActionLogService:
     """Clean service for managing user action logs with proper separation of concerns."""
 
@@ -92,19 +102,12 @@ class ActionLogService:
         Args:
             logs_dir: Directory to store log files. Defaults to logs/
         """
-        if logs_dir is None:
-            # Robust absolute path relative to project root
-            try:
-                self.logs_dir = Path(__file__).parents[2] / "logs"
-            except Exception:
-                self.logs_dir = Path("logs")
-        else:
-            self.logs_dir = Path(logs_dir)
+        self.logs_dir = DEFAULT_LOGS_DIR if logs_dir is None else Path(logs_dir)
 
         self.logs_dir.mkdir(parents=True, exist_ok=True)
 
-        self.json_log_file = self.logs_dir / 'user_actions.json'
-        self.text_log_file = self.logs_dir / 'user_actions.log'
+        self.json_log_file = self.logs_dir / JSON_LOG_NAME
+        self.text_log_file = self.logs_dir / TEXT_LOG_NAME
 
         logger.info(f"Action log service initialized: {self.logs_dir}")
 

@@ -9,10 +9,9 @@
 Action Logger Compatibility Layer - Maintains existing API while using new service
 """
 
-import os
 import logging
 from pathlib import Path
-from services.infrastructure.action_log_service import get_action_log_service
+from services.infrastructure.action_log_service import get_action_log_service, DEFAULT_TEXT_LOG_FILE
 from typing import Dict, Any, List
 
 # Compatibility: Create the user_action_logger that was expected
@@ -20,13 +19,11 @@ user_action_logger = logging.getLogger('user_actions')
 user_action_logger.setLevel(logging.INFO)
 user_action_logger.propagate = False
 
-# Compatibility: Export ACTION_LOG_FILE path constant
-# Robust absolute path relative to project root
-try:
-    _ACTION_LOG_FILE = str(Path(__file__).parents[2] / "logs" / "action_log.json")
-except Exception:
-    _ACTION_LOG_FILE = os.path.join("logs", "action_log.json")
-    
+# Compatibility: Export ACTION_LOG_FILE path constant - the file ActionLogService
+# writes. This named logs/action_log.json on its own, a file nothing writes, so the
+# panel's download button and /action-log answered "not found" (review A3).
+_ACTION_LOG_FILE = str(DEFAULT_TEXT_LOG_FILE)
+
 ACTION_LOG_FILE = _ACTION_LOG_FILE  # Both names for compatibility
 
 def log_user_action(action: str, target: str, user: str = "System",
