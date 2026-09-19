@@ -21,11 +21,9 @@ import stat
 import threading
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import MagicMock
 
 import pytest
 
-import services.admin.admin_service as admin_mod
 import services.discord.status_overview_service as sov
 from services.admin.admin_service import AdminService
 from services.infrastructure.action_log_service import ActionLogEntry, ActionLogService
@@ -135,17 +133,12 @@ class TestC25ActionLog:
 
 @pytest.fixture
 def admins_file(monkeypatch, tmp_path):
-    """Redirect admin_service's Path(__file__).parents[2] to tmp_path."""
-    real_path = admin_mod.Path
+    """Point admin_service at tmp_path/config via DDC_CONFIG_DIR.
 
-    def fake_path(arg=None, *args, **kwargs):
-        if isinstance(arg, str) and arg.endswith("admin_service.py"):
-            stub = MagicMock()
-            stub.parents = [None, None, tmp_path]
-            return stub
-        return real_path(arg, *args, **kwargs)
-
-    monkeypatch.setattr(admin_mod, "Path", fake_path)
+    Used to stub the module's Path, because the service derived its file from
+    Path(__file__).parents[2]; it now reads utils.config_paths.get_config_dir().
+    """
+    monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path / "config"))
     import services.config.config_service as cs
     monkeypatch.setattr(cs, "load_config", lambda: {"version": "test"})
     (tmp_path / "config").mkdir()

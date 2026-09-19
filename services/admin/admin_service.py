@@ -15,6 +15,18 @@ from threading import Lock
 
 logger = logging.getLogger('ddc.admin_service')
 
+def _admins_file() -> Path:
+    """admins.json in the config directory - DDC_CONFIG_DIR, else <project>/config.
+
+    Was derived at three places from Path(__file__).parents[2], ignoring the
+    variable: a user pointing DDC_CONFIG_DIR at their volume kept the admin list
+    outside it and lost it on container re-creation, and in test runs
+    save_admin_data wrote into the real config/ (SPEC.md Z2).
+    """
+    from utils.config_paths import get_config_dir
+    return get_config_dir() / 'admins.json'
+
+
 class AdminService:
     """Service First implementation for admin user management.
 
@@ -41,9 +53,8 @@ class AdminService:
         try:
             # Get base directory from config
             from services.config.config_service import load_config
-            # Robust absolute path relative to project root
-            base_dir = Path(__file__).parents[2]
-            admins_file = base_dir / 'config' / 'admins.json'
+            # Via utils/config_paths.py (DDC_CONFIG_DIR): see _admins_file().
+            admins_file = _admins_file()
 
             if not admins_file.exists():
                 logger.info("admins.json not found, no admins configured")
@@ -152,9 +163,8 @@ class AdminService:
         try:
             from services.config.config_service import load_config
             config = load_config()
-            # Robust absolute path relative to project root
-            base_dir = Path(__file__).parents[2]
-            admins_file = base_dir / 'config' / 'admins.json'
+            # Via utils/config_paths.py (DDC_CONFIG_DIR): see _admins_file().
+            admins_file = _admins_file()
 
             if not admins_file.exists():
                 return {'discord_admin_users': [], 'admin_notes': {}}
@@ -191,9 +201,8 @@ class AdminService:
                 logger.error("Config unavailable, cannot save admin data")
                 return False
 
-            # Robust absolute path relative to project root
-            base_dir = Path(__file__).parents[2]
-            admins_file = base_dir / 'config' / 'admins.json'
+            # Via utils/config_paths.py (DDC_CONFIG_DIR): see _admins_file().
+            admins_file = _admins_file()
 
             # Ensure directory exists
             admins_file.parent.mkdir(parents=True, exist_ok=True)
