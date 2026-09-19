@@ -65,14 +65,6 @@ WORD = re.compile(r"[A-Za-zäöüÄÖÜß]+")
 
 # file -> number of German lines still in it. ONLY EVER SHRINK THIS.
 STILL_GERMAN = {
-    "AUDIT.md": 75,
-    "SPEC.md": 326,
-    "docs/archive/proposals/FEATURE_IDEA_WARNING_SYSTEM.md": 10,
-    "docs/archive/proposals/FEATURE_PLAN_AUTO_ACTIONS.md": 49,
-    "docs/archive/proposals/HOT_RELOAD_PLAN.md": 26,
-    "docs/quality/STAGE0_INVENTORY.md": 396,
-    "docs/quality/STAGE3_TESTS_THAT_CANNOT_FAIL.md": 195,
-    "docs/quality/STAGE4_REVIEW.md": 164,
 }
 
 

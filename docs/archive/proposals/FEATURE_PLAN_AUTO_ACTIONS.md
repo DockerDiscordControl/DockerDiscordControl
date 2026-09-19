@@ -14,7 +14,7 @@ A generic, flexible system that allows DDC users to automatically trigger contai
 - **Recreate Container:** For updates requiring image pulls.
 - **Notification Only:** Admin alerts without action.
 - **Multiple containers:** One update triggers multiple servers (e.g., Cluster).
-- **Chain Reactions:** Trigger secondary actions after primary completes (z.B. Backup → Stop → Pull → Start).
+- **Chain Reactions:** Trigger secondary actions after primary completes (e.g. Backup → Stop → Pull → Start).
 - **Version Tracking:** Extract version numbers from messages for logging/display.
 
 ## 🏗️ Architecture Design (Service First)
@@ -104,22 +104,22 @@ The implementation will strictly follow the Service First architecture pattern.
     "default_notification_channel": null,       // Fallback if not set per rule
     "global_cooldown_seconds": 30,              // Min time between ANY AAS execution
     "log_all_checks": false,                    // Debug mode: Log every message check
-    "protected_containers": ["ddc"],            // Container die NICHT via AAS gesteuert werden dürfen
-    "audit_channel_id": null,                   // Optional: Dedizierter Channel für AAS-Events
+    "protected_containers": ["ddc"],            // Containers that must NOT be controlled via AAS
+    "audit_channel_id": null,                   // Optional: dedicated channel for AAS events
     "audit_level": "actions_only"               // "all" | "actions_only" | "errors_only"
   }
 }
 ```
 
-### Schema-Erklärungen
+### Schema explanations
 
-| Feld | Zweck |
+| Field | Purpose |
 |------|-------|
-| `priority` | Bei mehreren matchenden Regeln wird die mit höchster Priorität ausgeführt |
-| `search_in` | Wichtig! Discord-Bots senden oft **Embeds**, nicht plain text |
-| `is_webhook` | Forwarding-Bots (wie Discohook) erscheinen als Webhooks |
-| `metadata` | Wird automatisch vom System gepflegt, nicht vom User editiert |
-| `global_cooldown_seconds` | Verhindert Spam bei vielen gleichzeitigen Triggern |
+| `priority` | When several rules match, the one with the highest priority is executed |
+| `search_in` | Important! Discord bots often send **embeds**, not plain text |
+| `is_webhook` | Forwarding bots (such as Discohook) appear as webhooks |
+| `metadata` | Maintained automatically by the system, not edited by the user |
+| `global_cooldown_seconds` | Prevents spam when many triggers fire at the same time |
 
 ## 🎨 UI & UX Strategy
 
@@ -161,87 +161,87 @@ The "Tasks" section will be split into two tabs:
 ### Phase 3: Advanced Features (Future)
 - "Recreate" Action (requires Docker Image Pull logic).
 - Multi-Stage Actions (Backup → Update → Restart).
-- Approval Workflow (Admin muss Aktion bestätigen bevor sie ausgeführt wird).
-- Import/Export von Regeln (JSON download/upload).
+- Approval Workflow (admin must confirm the action before it is executed).
+- Import/Export of rules (JSON download/upload).
 
 ---
 
-## ⚠️ Edge Cases & Fehlerbehandlung
+## ⚠️ Edge Cases & Error Handling
 
 ### Message Parsing
-| Szenario | Lösung |
+| Scenario | Solution |
 |----------|--------|
-| Message hat nur Embeds, kein Content | `search_in: ["embeds"]` muss Embed-Title + Description + Fields durchsuchen |
-| Webhook-Messages (z.B. von Discohook/MEE6) | `author.bot = true` UND `webhook_id` vorhanden → `is_webhook` Filter |
-| Edited Messages | `on_message_edit` Event ebenfalls monitoren? (Opt-in per Regel) |
-| Deleted Messages | Ignorieren - Action bereits getriggert oder nicht relevant |
-| Bot's eigene Messages | **Immer ignorieren** um Loops zu verhindern |
+| Message has only embeds, no content | `search_in: ["embeds"]` must search embed title + description + fields |
+| Webhook messages (e.g. from Discohook/MEE6) | `author.bot = true` AND `webhook_id` present → `is_webhook` filter |
+| Edited Messages | Monitor the `on_message_edit` event as well? (opt-in per rule) |
+| Deleted Messages | Ignore - action already triggered or not relevant |
+| Bot's own messages | **Always ignore** to prevent loops |
 
 ### Execution Failures
-| Szenario | Lösung |
+| Scenario | Solution |
 |----------|--------|
-| Container existiert nicht | Log Error + Discord-Nachricht "⚠️ AAS Failed: Container 'X' not found" |
-| Docker API Timeout | Retry 1x nach 5s, dann Error-Notification |
-| Container bereits im gewünschten State | Kein Error, aber Info-Log "Container already running, skipping" |
-| Mehrere Regeln matchen gleichzeitig | Nur höchste Priorität ausführen, andere loggen als "skipped (lower priority)" |
+| Container does not exist | Log error + Discord message "⚠️ AAS Failed: Container 'X' not found" |
+| Docker API Timeout | Retry 1x after 5s, then error notification |
+| Container already in the desired state | No error, but info log "Container already running, skipping" |
+| Several rules match at the same time | Execute only the highest priority, log the others as "skipped (lower priority)" |
 
 ### Safety
-| Szenario | Lösung |
+| Scenario | Solution |
 |----------|--------|
-| Cooldown aktiv | Log: "Skipped: Cooldown active (X min remaining)" |
-| `only_if_running` aber Container stopped | Skip + optional notification |
-| Rapid-Fire Messages (Spam) | `global_cooldown_seconds` verhindert alle AAS für N Sekunden |
+| Cooldown active | Log: "Skipped: Cooldown active (X min remaining)" |
+| `only_if_running` but container stopped | Skip + optional notification |
+| Rapid-Fire Messages (Spam) | `global_cooldown_seconds` blocks all AAS for N seconds |
 
 ---
 
 ## 🔒 Security & Access Control
 
-### 1. Berechtigungen (Access Control)
+### 1. Permissions (Access Control)
 
 #### Web UI
-| Aktion | Erforderliche Berechtigung |
+| Action | Required permission |
 |--------|---------------------------|
-| AAS-Regeln anzeigen | Authentifiziert (Login) |
-| Regel erstellen/bearbeiten | Authentifiziert (Login) |
-| Regel löschen | Authentifiziert (Login) |
-| Global Settings ändern | Authentifiziert (Login) |
+| View AAS rules | Authenticated (login) |
+| Create/edit rule | Authenticated (login) |
+| Delete rule | Authenticated (login) |
+| Change global settings | Authenticated (login) |
 
-> **Hinweis:** DDC hat derzeit ein Single-User-Konzept. Falls Multi-User geplant ist, sollte ein Role-System (Admin/Operator/Viewer) eingeführt werden.
+> **Note:** DDC currently has a single-user concept. If multi-user is planned, a role system (Admin/Operator/Viewer) should be introduced.
 
-#### Discord Commands (falls implementiert)
-| Aktion | Erforderlich |
+#### Discord Commands (if implemented)
+| Action | Required |
 |--------|-------------|
-| AAS-Status anzeigen | Definierte `ALLOWED_USER_IDS` |
-| Regel aktivieren/deaktivieren | Definierte `ALLOWED_USER_IDS` |
-| Regel erstellen via Discord | **Nicht implementieren** - zu komplex, Web UI nutzen |
+| Show AAS status | Defined `ALLOWED_USER_IDS` |
+| Enable/disable rule | Defined `ALLOWED_USER_IDS` |
+| Create rule via Discord | **Do not implement** - too complex, use the Web UI |
 
 ### 2. Input Validation
 
-| Feld | Validierung |
+| Field | Validation |
 |------|-------------|
-| `name` | Max 100 Zeichen, keine HTML/Script-Tags, alphanumerisch + Leerzeichen |
-| `channel_ids` | Muss gültige Discord Snowflake IDs sein (17-19 Ziffern) |
-| `keywords` | Max 50 Keywords, je max 100 Zeichen |
-| `regex_pattern` | Regex-Syntax validieren, Timeout bei Ausführung (max 100ms) |
-| `containers` | Gegen existierende Container-Liste validieren bei Speichern |
-| `delay_seconds` | 0-3600 (max 1 Stunde) |
-| `cooldown_minutes` | 1-10080 (1 Minute bis 7 Tage) |
+| `name` | Max 100 characters, no HTML/script tags, alphanumeric + spaces |
+| `channel_ids` | Must be valid Discord snowflake IDs (17-19 digits) |
+| `keywords` | Max 50 keywords, each max 100 characters |
+| `regex_pattern` | Validate regex syntax, timeout on execution (max 100ms) |
+| `containers` | Validate against the existing container list on save |
+| `delay_seconds` | 0-3600 (max 1 hour) |
+| `cooldown_minutes` | 1-10080 (1 minute to 7 days) |
 
-#### Regex-Sicherheit (ReDoS Prevention)
+#### Regex safety (ReDoS Prevention)
 ```python
-# Beispiel: Sichere Regex-Ausführung mit Timeout
+# Example: safe regex execution with timeout
 import re
 import signal
 
 def safe_regex_match(pattern, text, timeout_ms=100):
-    """Führt Regex mit Timeout aus um ReDoS zu verhindern."""
-    # Implementation mit Threading/Signal-Timeout
+    """Runs a regex with a timeout to prevent ReDoS."""
+    # Implementation with threading/signal timeout
     pass
 ```
 
-### 3. Container-Schutz
+### 3. Container protection
 
-#### Blacklist für kritische Container
+#### Blacklist for critical containers
 ```json
 {
   "global_settings": {
@@ -251,49 +251,49 @@ def safe_regex_match(pattern, text, timeout_ms=100):
 }
 ```
 
-| Container | Grund für Schutz |
+| Container | Reason for protection |
 |-----------|-----------------|
-| `ddc` | Selbst-Stopp würde AAS deaktivieren |
-| `portainer` | Management-Tool |
-| `traefik` / `nginx-proxy` | Netzwerk-Infrastruktur |
+| `ddc` | Stopping itself would disable AAS |
+| `portainer` | Management tool |
+| `traefik` / `nginx-proxy` | Network infrastructure |
 
-> **Empfehlung:** Warning bei Versuch, geschützte Container in Regel aufzunehmen. Override nur mit expliziter Bestätigung.
+> **Recommendation:** Warning when trying to add protected containers to a rule. Override only with explicit confirmation.
 
-### 4. Channel-Validierung
+### 4. Channel validation
 
-**Problem:** User könnte Channel-ID eingeben, die der Bot nicht lesen kann.
+**Problem:** A user could enter a channel ID that the bot cannot read.
 
-**Lösung:**
+**Solution:**
 ```python
 async def validate_channel_access(channel_id: str) -> tuple[bool, str]:
-    """Prüft ob Bot den Channel lesen kann."""
+    """Checks whether the bot can read the channel."""
     channel = bot.get_channel(int(channel_id))
     if not channel:
-        return False, "Channel nicht gefunden oder Bot hat keinen Zugriff"
+        return False, "Channel not found or bot has no access"
 
     permissions = channel.permissions_for(channel.guild.me)
     if not permissions.read_messages:
-        return False, "Bot hat keine Leserechte in diesem Channel"
+        return False, "Bot has no read permission in this channel"
 
     return True, "OK"
 ```
 
-- Bei Regel-Speicherung: Validierung durchführen, Warning anzeigen wenn fehlgeschlagen
-- Regel trotzdem speichern erlauben (Channel könnte später verfügbar werden)
+- On saving a rule: run the validation, show a warning if it failed
+- Still allow saving the rule (the channel could become available later)
 
 ### 5. Abuse Prevention
 
-| Risiko | Mitigation |
+| Risk | Mitigation |
 |--------|-----------|
-| Spam-Trigger (viele Messages in kurzer Zeit) | `global_cooldown_seconds` (Standard: 30s) |
-| Selbst-Trigger (Bot reagiert auf eigene Messages) | Immer `message.author.id != bot.user.id` prüfen |
-| Cross-Rule Cascade (Regel A triggert Regel B) | AAS-Feedback-Messages von Matching ausschließen |
-| Regex-Bomb (komplexe Regex blockiert System) | Timeout + Komplexitäts-Check |
-| Unauthorized Rule Creation | Web UI Login erforderlich |
+| Spam trigger (many messages in a short time) | `global_cooldown_seconds` (default: 30s) |
+| Self-trigger (bot reacts to its own messages) | Always check `message.author.id != bot.user.id` |
+| Cross-rule cascade (rule A triggers rule B) | Exclude AAS feedback messages from matching |
+| Regex bomb (complex regex blocks the system) | Timeout + complexity check |
+| Unauthorized Rule Creation | Web UI login required |
 
-### 6. Audit Trail für Konfigurationsänderungen
+### 6. Audit trail for configuration changes
 
-Jede Änderung an AAS-Regeln wird geloggt:
+Every change to AAS rules is logged:
 
 ```json
 {
@@ -321,9 +321,9 @@ Jede Änderung an AAS-Regeln wird geloggt:
 
 ## 📊 Logging & Monitoring
 
-### Log-Kategorien und Levels
+### Log categories and levels
 
-| Kategorie | Level | Beispiel |
+| Category | Level | Example |
 |-----------|-------|----------|
 | **AAS.Match** | INFO | Rule matched message |
 | **AAS.Execute** | INFO | Executing action |
@@ -332,10 +332,10 @@ Jede Änderung an AAS-Regeln wird geloggt:
 | **AAS.Config** | INFO | Rule created/modified/deleted |
 | **AAS.Security** | WARNING | Validation failed, protected container |
 
-### Strukturiertes Log-Format
+### Structured log format
 
 ```python
-# Integration mit bestehendem logging_utils.py
+# Integration with the existing logging_utils.py
 logger.info(
     "AAS rule matched",
     extra={
@@ -373,7 +373,7 @@ logger.info(
 ```json
 {
   "global_settings": {
-    "audit_channel_id": "123456789",  // Dedizierter Channel für alle AAS-Events
+    "audit_channel_id": "123456789",  // Dedicated channel for all AAS events
     "audit_level": "all"              // "all" | "actions_only" | "errors_only"
   }
 }
@@ -385,21 +385,21 @@ logger.info(
 - `❌ [AAS] Failed to stop 'Unknown' - container not found`
 
 ### Web UI - History View (Phase 2+)
-- Tabelle mit letzten 50 AAS-Events
+- Table with the last 50 AAS events
 - Spalten: Timestamp, Rule Name, Trigger Message (snippet), Action, Result (✅/❌)
 - Filter: By Rule, By Container, By Result
-- **Export:** CSV/JSON Download für Analyse
+- **Export:** CSV/JSON download for analysis
 
 ### Log Retention
-| Log-Typ | Retention |
+| Log type | Retention |
 |---------|-----------|
-| Execution Logs | 30 Tage (in `auto_actions_history.json`) |
-| Config Audit Log | 90 Tage |
-| Debug Logs | 7 Tage (nur bei `log_all_checks: true`) |
+| Execution Logs | 30 days (in `auto_actions_history.json`) |
+| Config Audit Log | 90 days |
+| Debug Logs | 7 days (only with `log_all_checks: true`) |
 
 ---
 
-## 🧪 Testing-Strategie
+## 🧪 Testing Strategy
 
 ### Unit Tests
 - `test_auto_action_config_service.py`: CRUD, Validation, ID-Uniqueness
@@ -410,20 +410,20 @@ logger.info(
 - Mock Docker API → Verify correct commands sent
 
 ### Manual Testing Checklist
-- [ ] Regel erstellen via Web UI
-- [ ] Regel editieren via Web UI
-- [ ] Regel löschen via Web UI
-- [ ] Trigger mit Keyword in message.content
-- [ ] Trigger mit Keyword in Embed
-- [ ] Trigger von Webhook-Source
-- [ ] Cooldown verhindert Re-Trigger
+- [ ] Create rule via Web UI
+- [ ] Edit rule via Web UI
+- [ ] Delete rule via Web UI
+- [ ] Trigger with keyword in message.content
+- [ ] Trigger with keyword in embed
+- [ ] Trigger from webhook source
+- [ ] Cooldown prevents re-trigger
 - [ ] Multiple Container Action
-- [ ] "Test Rule" Button funktioniert
-- [ ] AAS-History zeigt Events korrekt
+- [ ] "Test Rule" button works
+- [ ] AAS history shows events correctly
 
 ---
 
-## 🔄 Message Flow Diagramm
+## 🔄 Message Flow Diagram
 
 ```
 Discord Message
@@ -465,65 +465,65 @@ Discord Message
 
 ---
 
-## 🤔 Offene Fragen / Entscheidungen
+## 🤔 Open Questions / Decisions
 
-1. **Regex in Phase 1 oder 2?**
-   - Pro Phase 1: Viele Update-Bots haben strukturierte Messages ("Version 1.2.3")
-   - Contra: Erhöht Komplexität, Keywords reichen für MVP
+1. **Regex in Phase 1 or 2?**
+   - Pro Phase 1: many update bots have structured messages ("Version 1.2.3")
+   - Contra: increases complexity, keywords are enough for the MVP
 
 2. **Notification Channel Strategy**
-   - Option A: Immer im Source-Channel antworten
-   - Option B: Dedizierter AAS-Log-Channel (konfigurierbar)
-   - Option C: Beides (per-rule override)
-   - **Empfehlung:** Option C - flexibel für verschiedene Setups
+   - Option A: always reply in the source channel
+   - Option B: dedicated AAS log channel (configurable)
+   - Option C: both (per-rule override)
+   - **Recommendation:** Option C - flexible for different setups
 
 3. **Container-Name vs Container-ID**
-   - Container-Namen können sich ändern (Docker recreate)
-   - IDs sind stabil aber user-unfreundlich
-   - **Empfehlung:** Namen verwenden, bei nicht-gefunden Fehler werfen
+   - Container names can change (Docker recreate)
+   - IDs are stable but user-unfriendly
+   - **Recommendation:** use names, raise an error if not found
 
-4. **Edit-Events monitoren?**
-   - Manche Bots editieren Announcements nachträglich
-   - Risiko: Doppel-Trigger wenn Edit Keywords enthält
-   - **Empfehlung:** Opt-in per Regel, default OFF
+4. **Monitor edit events?**
+   - Some bots edit announcements afterwards
+   - Risk: double trigger if the edit contains keywords
+   - **Recommendation:** opt-in per rule, default OFF
 
-5. **Persistenz der Metadata**
-   - Im gleichen `auto_actions.json` speichern?
-   - Separates `auto_actions_state.json`?
-   - **Empfehlung:** Separates State-File für cleane Trennung
+5. **Persistence of the metadata**
+   - Store in the same `auto_actions.json`?
+   - Separate `auto_actions_state.json`?
+   - **Recommendation:** separate state file for a clean separation
 
-6. **Protected Containers - Hardcoded oder Konfigurierbar?**
-   - Option A: DDC immer hardcoded schützen, Rest konfigurierbar
-   - Option B: Alles konfigurierbar (User-Verantwortung)
-   - **Empfehlung:** Option A - DDC-Selbstschutz ist kritisch
+6. **Protected Containers - hardcoded or configurable?**
+   - Option A: always protect DDC hardcoded, the rest configurable
+   - Option B: everything configurable (user responsibility)
+   - **Recommendation:** Option A - DDC self-protection is critical
 
 7. **Audit Log Storage**
-   - Option A: Eigene JSON-Datei (`config/aas_audit.json`)
-   - Option B: In bestehenden `AuditLogService` integrieren
-   - Option C: Beides (strukturiert in JSON + menschenlesbar in bestehenden Logs)
-   - **Empfehlung:** Option C - maximale Flexibilität
+   - Option A: own JSON file (`config/aas_audit.json`)
+   - Option B: integrate into the existing `AuditLogService`
+   - Option C: both (structured in JSON + human-readable in the existing logs)
+   - **Recommendation:** Option C - maximum flexibility
 
-8. **Rate Limiting bei Validation-Checks**
-   - Soll jede Discord-Message gegen alle Regeln geprüft werden?
-   - Bei 100 Regeln und aktivem Channel = Performance-Problem
-   - **Empfehlung:** Channel-ID Index für O(1) Lookup statt O(n) Iteration
+8. **Rate limiting for validation checks**
+   - Should every Discord message be checked against all rules?
+   - With 100 rules and an active channel = performance problem
+   - **Recommendation:** channel ID index for O(1) lookup instead of O(n) iteration
 
 ---
 
-## 📁 Datei-Struktur (Übersicht)
+## 📁 File Structure (Overview)
 
 ```
 config/
-├── auto_actions.json          # Regel-Definitionen (User-editierbar)
-├── auto_actions_state.json    # Runtime-State (last_triggered, counts)
-└── auto_actions_audit.json    # Config-Änderungshistorie
+├── auto_actions.json          # Rule definitions (user-editable)
+├── auto_actions_state.json    # Runtime state (last_triggered, counts)
+└── auto_actions_audit.json    # Config change history
 
 services/
 └── automation/
     ├── __init__.py
-    ├── auto_action_config_service.py   # CRUD für Regeln
-    ├── auto_action_state_service.py    # State-Management (Cooldowns, Counts)
-    └── automation_service.py           # Matching-Engine + Execution
+    ├── auto_action_config_service.py   # CRUD for rules
+    ├── auto_action_state_service.py    # State management (cooldowns, counts)
+    └── automation_service.py           # Matching engine + execution
 
 cogs/
 └── auto_action_monitor.py     # Discord Event Listener

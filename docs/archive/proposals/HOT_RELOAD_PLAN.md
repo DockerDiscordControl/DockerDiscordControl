@@ -1,28 +1,28 @@
 # DDC Hot-Reload Implementation Plan
 
-## Ziel
-Nach dem Speichern von Konfigurationsänderungen soll kein Container-Neustart mehr nötig sein (außer für Bot Token und Guild ID).
+## Goal
+After saving configuration changes, a container restart should no longer be necessary (except for the Bot Token and Guild ID).
 
 ---
 
-## Phase 1: Live Config für Bot (Größter Impact)
+## Phase 1: Live Config for the Bot (biggest impact)
 
 ### Problem
-Der Bot hält eine statische Kopie der Konfiguration:
+The bot holds a static copy of the configuration:
 ```python
 # cogs/docker_control.py
 class DockerControlCog(commands.Cog):
     def __init__(self, bot, config, runtime):
-        self.config = config  # Snapshot - wird nie aktualisiert!
+        self.config = config  # Snapshot - never updated!
 ```
 
-### Lösung: Config-Property statt Snapshot
+### Solution: config property instead of a snapshot
 
-**Änderungen in `cogs/docker_control.py`:**
+**Changes in `cogs/docker_control.py`:**
 ```python
 class DockerControlCog(commands.Cog):
     def __init__(self, bot, config, runtime):
-        self._initial_config = config  # Nur für Startup
+        self._initial_config = config  # Only for startup
         self.bot = bot
         self.runtime = runtime
 
@@ -33,31 +33,31 @@ class DockerControlCog(commands.Cog):
         return get_config_service().get_config()
 ```
 
-**Betroffene Dateien:**
-- `cogs/docker_control.py` - Hauptcog
-- `cogs/control_ui.py` - UI Components
-- `cogs/status_handlers.py` - Status Updates
-- `cogs/control_helpers.py` - Helper Functions
-- `cogs/scheduler_commands.py` - Scheduled Tasks
+**Affected files:**
+- `cogs/docker_control.py` - main cog
+- `cogs/control_ui.py` - UI components
+- `cogs/status_handlers.py` - status updates
+- `cogs/control_helpers.py` - helper functions
+- `cogs/scheduler_commands.py` - scheduled tasks
 
-### Was damit hot-reloadbar wird:
-- ✅ Container-Auswahl (welche Container aktiv sind)
-- ✅ Container-Reihenfolge
-- ✅ Container Display-Namen
-- ✅ Allowed Actions pro Container
-- ✅ Channel Permissions (welche Commands in welchen Channels)
-- ✅ Admin Users Liste
+### What becomes hot-reloadable with this:
+- ✅ Container selection (which containers are active)
+- ✅ Container order
+- ✅ Container display names
+- ✅ Allowed actions per container
+- ✅ Channel permissions (which commands in which channels)
+- ✅ Admin users list
 
 ---
 
-## Phase 2: Web UI Passwort Hot-Reload
+## Phase 2: Web UI Password Hot-Reload
 
 ### Problem
-Das Passwort wird beim Flask-Start geladen und gecacht.
+The password is loaded and cached when Flask starts.
 
-### Lösung: Auth-Decorator mit Live-Check
+### Solution: auth decorator with a live check
 
-**Änderungen in `app/auth.py`:**
+**Changes in `app/auth.py`:**
 ```python
 def check_password(username, password):
     """Check password - always fresh from config."""
@@ -67,17 +67,17 @@ def check_password(username, password):
     return check_password_hash(stored_hash, password)
 ```
 
-### Was damit hot-reloadbar wird:
-- ✅ Web UI Passwort
+### What becomes hot-reloadable with this:
+- ✅ Web UI password
 
 ---
 
-## Phase 3: Event-System für Reload-Benachrichtigung (Optional)
+## Phase 3: Event System for Reload Notification (Optional)
 
-### Konzept
-Ein Event-System das den Bot über Config-Änderungen informiert.
+### Concept
+An event system that informs the bot about config changes.
 
-**Neuer Service: `services/infrastructure/config_reload_service.py`:**
+**New service: `services/infrastructure/config_reload_service.py`:**
 ```python
 class ConfigReloadService:
     """Service to handle configuration reload events."""
@@ -109,7 +109,7 @@ def save_configuration(self, ...):
     ConfigReloadService.notify_config_changed(['servers', 'channel_permissions'])
 ```
 
-**Bot-Registration in `cogs/docker_control.py`:**
+**Bot registration in `cogs/docker_control.py`:**
 ```python
 def __init__(self, bot, config, runtime):
     # Register for config change notifications
@@ -123,43 +123,43 @@ def _on_config_changed(self, changed_sections):
 
 ---
 
-## Phase 4: UI-Anpassungen
+## Phase 4: UI Adjustments
 
-### Restart-Alert entfernen für hot-reloadbare Settings
+### Remove the restart alert for hot-reloadable settings
 
-**Änderungen in Templates:**
+**Changes in templates:**
 
-1. `_server_selection.html` - Entferne `requires-restart` von:
-   - Container Selection Checkboxes
-   - Move Up/Down Buttons
+1. `_server_selection.html` - remove `requires-restart` from:
+   - Container selection checkboxes
+   - Move Up/Down buttons
 
-2. `_channel_settings.html` - Behalte `requires-restart` nur für Guild ID
+2. `_channel_settings.html` - keep `requires-restart` only for Guild ID
 
-3. `_auth_settings.html` - Entferne `requires-restart` von Web UI Password
+3. `_auth_settings.html` - remove `requires-restart` from Web UI Password
 
-### Neues Feedback-System
+### New feedback system
 
-Statt "Neustart erforderlich" zeigen wir:
-- ✅ "Änderungen wurden übernommen" (grün)
-- ⚠️ "Bot Token/Guild ID erfordern Neustart" (nur wenn diese geändert wurden)
+Instead of "Restart required" we show:
+- ✅ "Changes have been applied" (green)
+- ⚠️ "Bot Token/Guild ID require a restart" (only if these were changed)
 
 ---
 
-## Technische Details
+## Technical Details
 
 ### Thread-Safety
-Die ConfigService verwendet bereits Thread-Locks:
+The ConfigService already uses thread locks:
 ```python
 # services/config/config_service.py
 self._lock = threading.Lock()
 ```
 
 ### Performance
-- Config wird gecacht mit mtime-Check
-- Nur bei Dateiänderung wird neu geladen
-- Kein Performance-Impact bei jedem Command
+- Config is cached with an mtime check
+- It is reloaded only when the file changes
+- No performance impact on every command
 
-### Caching-Strategie
+### Caching strategy
 ```python
 def get_config(self, force_reload=False):
     if not force_reload and self._cache_service.is_cache_valid():
@@ -169,64 +169,64 @@ def get_config(self, force_reload=False):
 
 ---
 
-## Implementierungsreihenfolge
+## Implementation order
 
-### Step 1: Config-Property in DockerControlCog
-- [ ] `cogs/docker_control.py` - Property statt Attribut
-- [ ] Testen: Container-Änderungen ohne Restart
+### Step 1: Config property in DockerControlCog
+- [ ] `cogs/docker_control.py` - property instead of attribute
+- [ ] Test: container changes without restart
 
-### Step 2: Weitere Cogs anpassen
+### Step 2: Adapt further cogs
 - [ ] `cogs/control_ui.py`
 - [ ] `cogs/status_handlers.py`
 - [ ] `cogs/control_helpers.py`
 - [ ] `cogs/scheduler_commands.py`
 
 ### Step 3: Web UI Password
-- [ ] `app/auth.py` - Live Password Check
+- [ ] `app/auth.py` - live password check
 
 ### Step 4: UI Templates
-- [ ] `requires-restart` Klassen entfernen
-- [ ] Neues Feedback-System
+- [ ] Remove `requires-restart` classes
+- [ ] New feedback system
 
 ### Step 5: Testing
-- [ ] Container hinzufügen/entfernen ohne Restart
-- [ ] Channel Permissions ändern ohne Restart
-- [ ] Admin Users ändern ohne Restart
-- [ ] Web UI Passwort ändern ohne Restart
+- [ ] Add/remove containers without restart
+- [ ] Change channel permissions without restart
+- [ ] Change admin users without restart
+- [ ] Change the Web UI password without restart
 
 ---
 
-## Was NICHT hot-reloadbar sein kann
+## What CANNOT be hot-reloadable
 
-| Setting | Technischer Grund |
+| Setting | Technical reason |
 |---------|-------------------|
-| **Bot Token** | Discord WebSocket Session muss neu aufgebaut werden. Erfordert `bot.close()` und `bot.run(new_token)` |
-| **Guild ID** | Slash Commands sind guild-spezifisch registriert. Erfordert `bot.tree.sync(guild=new_guild)` was nur beim Start sauber funktioniert |
+| **Bot Token** | The Discord WebSocket session must be rebuilt. Requires `bot.close()` and `bot.run(new_token)` |
+| **Guild ID** | Slash commands are registered per guild. Requires `bot.tree.sync(guild=new_guild)`, which only works cleanly at startup |
 
-Diese Settings behalten die `requires-restart` Klasse.
-
----
-
-## Risiken & Mitigationen
-
-### Risiko: Race Conditions
-**Mitigation:** ConfigService verwendet bereits Thread-Locks
-
-### Risiko: Inkonsistente Zustände
-**Mitigation:** Config wird atomar geladen, nicht partiell
-
-### Risiko: Memory Leaks bei Listeners
-**Mitigation:** WeakRef für Event-Listeners verwenden
+These settings keep the `requires-restart` class.
 
 ---
 
-## Geschätzter Aufwand
+## Risks & Mitigations
 
-| Phase | Aufwand | Impact |
+### Risk: Race conditions
+**Mitigation:** ConfigService already uses thread locks
+
+### Risk: Inconsistent states
+**Mitigation:** Config is loaded atomically, not partially
+
+### Risk: Memory leaks with listeners
+**Mitigation:** Use WeakRef for event listeners
+
+---
+
+## Estimated effort
+
+| Phase | Effort | Impact |
 |-------|---------|--------|
-| Phase 1 | 2-3 Stunden | Hoch - Container & Channels |
-| Phase 2 | 30 Min | Mittel - Web UI Password |
-| Phase 3 | 1-2 Stunden | Optional - Saubere Architektur |
-| Phase 4 | 30 Min | UI Polish |
+| Phase 1 | 2-3 hours | High - containers & channels |
+| Phase 2 | 30 min | Medium - Web UI Password |
+| Phase 3 | 1-2 hours | Optional - clean architecture |
+| Phase 4 | 30 min | UI polish |
 
-**Empfehlung:** Phase 1 + 2 + 4 implementieren, Phase 3 optional später.
+**Recommendation:** Implement Phase 1 + 2 + 4, Phase 3 optionally later.

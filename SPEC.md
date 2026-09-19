@@ -1,484 +1,484 @@
-# SPEC — was DDC zusichert
+# SPEC — what DDC guarantees
 
-**Stand:** 2026-09-16 · **Status: in Arbeit.**
+**As of:** 2026-09-16 · **Status: in progress.**
 
-Die Liste der zehn Zusicherungen wurde vorgelegt, aber **nicht Punkt für Punkt bestätigt** — der
-Betreiber hat die Abarbeitung delegiert und zwei Einzelfragen entschieden (Z4: Browser-Token;
-Z5: alte Admin-Panels werden sofort wirkungslos). Formal steht die Liste als Ganzes damit weiterhin
-auf *vorgelegt*. **Z10** (Testgatter in der CI) wurde am 2026-09-17 entschieden — volles Gatter,
-gruppenweise — und ist umgesetzt. Offen bleibt die Frage, ob die dokumentierte Scheduler-Ausnahme
-unter Z5 eine bewusste Entscheidung werden soll.
+The list of ten guarantees was presented, but **not confirmed point by point** — the operator
+delegated the work and decided two individual questions (Z4: browser token; Z5: old admin panels
+lose their effect immediately). Formally, the list as a whole therefore still stands as
+*presented*. **Z10** (test gate in CI) was decided on 2026-09-17 — full gate, group by group — and
+is implemented. Still open is the question whether the documented scheduler exception under Z5
+should become a deliberate decision.
 
-Ohne Maßstab ist ein Review nur Meinung. Diese Datei hält fest, was DDC verspricht — damit man ein
-Verhalten *widerlegen* kann, statt über Geschmack zu streiten.
+Without a yardstick, a review is only opinion. This file records what DDC promises — so that a
+behaviour can be *refuted* instead of argued about as a matter of taste.
 
-Eine Zusicherung sagt in einem Satz, was **nie** passieren darf oder **immer** gelten muss, sie
-lässt sich widerlegen, und sie bedeutet dem Nutzer etwas — nicht nur dem Entwickler.
+A guarantee states in one sentence what must **never** happen or must **always** hold; it can be
+refuted, and it means something to the user — not only to the developer.
 
-Grundlage ist die Bestandsaufnahme in [`docs/quality/STAGE0_INVENTORY.md`](docs/quality/STAGE0_INVENTORY.md).
-Die Spalte **Heute** ist bewusst unbequem: mehrere dieser Zusicherungen sind derzeit gebrochen.
+The basis is the inventory in [`docs/quality/STAGE0_INVENTORY.md`](docs/quality/STAGE0_INVENTORY.md).
+The **Today** column is deliberately uncomfortable: several of these guarantees are currently broken.
 
 ---
 
-## Zusicherungen
+## Guarantees
 
-### Z1 — Das Spendenbuch geht nie ohne Sicherung verloren.
-Kein Vorgang leert oder überschreibt das Ereignislog, ohne vorher eine wiederherstellbare Kopie
-anzulegen — auch dann nicht, wenn der Betreiber den Vorgang selbst auslöst.
+### Z1 — The donation ledger is never lost without a backup.
+No operation empties or overwrites the event log without first creating a restorable copy — not
+even when the operator triggers the operation themselves.
 
-*Gebrochen, wenn:* nach einem Reset keine Datei mehr existiert, aus der sich der vorherige Stand
-herstellen lässt.
-*Warum es zählt:* das Buch ist die einzige Aufzeichnung der echten Spenden dieser Instanz.
-**Heute: behoben (2026-09-16).** Vorher schrieb `reset.py:96` ersatzlos `""` in das Log. Jetzt legt
-`_backup_before_reset()` vor dem Löschen und innerhalb derselben Sperre eine Kopie von Ereignislog,
-Sequenzzähler und Snapshots unter `<data_dir>/backup_<Zeitstempel>/` an — dieselbe Konvention, die
-`scripts/reset_donations.sh:32-44` schon benutzte. Scheitert die Sicherung, **bricht der Reset ab**,
-statt nur zu warnen. Zwei Resets ergeben zwei Sicherungen, nicht eine überschriebene.
-*Abgedeckt von* `tests/spec/test_z1_donation_ledger_backup.py`.
-*Gegenprobe:* vorher alle 3 Tests rot, jeder an seiner eigenen Zusicherung; danach grün;
-vollständiger Lauf 4.470 grün, 0 Fehlschläge.
+*Broken if:* after a reset, no file exists any more from which the previous state can be
+restored.
+*Why it matters:* the ledger is the only record of the real donations of this instance.
+**Today: fixed (2026-09-16).** Previously `reset.py:96` wrote `""` into the log with no
+replacement. Now `_backup_before_reset()`, before deleting and within the same lock, creates a copy
+of the event log, sequence counter and snapshots under `<data_dir>/backup_<timestamp>/` — the same
+convention that `scripts/reset_donations.sh:32-44` already used. If the backup fails, **the reset
+aborts** instead of merely warning. Two resets produce two backups, not one overwritten one.
+*Covered by* `tests/spec/test_z1_donation_ledger_backup.py`.
+*Counter-check:* before, all 3 tests red, each on its own guarantee; afterwards green;
+full run 4,470 green, 0 failures.
 
-### Z2 — Ein Testlauf fasst niemals Produktivdaten an.
-Kein Test schreibt in das echte `config/`, gleich mit welchem Runner er gestartet wird und gleich,
-ob `DDC_CONFIG_DIR` gesetzt ist.
+### Z2 — A test run never touches production data.
+No test writes to the real `config/`, regardless of which runner starts it and regardless of
+whether `DDC_CONFIG_DIR` is set.
 
-*Gebrochen, wenn:* nach einem Testlauf eine Datei unter `config/` verändert oder gelöscht ist.
-**Heute: behoben (2026-09-16).** Vorher löste `MechResetService` `config_dir="config"` gegen die
-Projektwurzel auf und ignorierte `DDC_CONFIG_DIR`; `test_mech_data_services.py:944` ruft
-`quick_mech_reset()` scharf auf, und nur der leere Mount in `scripts/ddc_test.sh` verhinderte den
-Schaden. Jetzt folgt der Standardfall derselben Regel wie `config_service.py:181` und
-`progress_service.py:561`. Ein ausdrücklich übergebener Pfad verhält sich unverändert.
-*Abgedeckt von* `tests/spec/test_z2_config_isolation.py`.
-*Gegenprobe:* vor der Korrektur 2 der 3 Tests rot, danach 3 grün; vollständiger Lauf 4.467 grün,
-0 Fehlschläge.
+*Broken if:* after a test run, a file under `config/` has been changed or deleted.
+**Today: fixed (2026-09-16).** Previously `MechResetService` resolved `config_dir="config"` against
+the project root and ignored `DDC_CONFIG_DIR`; `test_mech_data_services.py:944` calls
+`quick_mech_reset()` for real, and only the empty mount in `scripts/ddc_test.sh` prevented the
+damage. Now the default case follows the same rule as `config_service.py:181` and
+`progress_service.py:561`. An explicitly passed path behaves unchanged.
+*Covered by* `tests/spec/test_z2_config_isolation.py`.
+*Counter-check:* before the fix 2 of the 3 tests red, afterwards 3 green; full run 4,467 green,
+0 failures.
 
-### Z3 — Kein Erfolg wird gemeldet, der nicht stattgefunden hat.
-Sagt die Oberfläche „erledigt", hat der Server den Vorgang bestätigt. Ein halb ausgeführter Vorgang
-wird nie als abgeschlossen dargestellt.
+### Z3 — No success is reported that did not happen.
+When the interface says "done", the server has confirmed the operation. A half-executed operation
+is never presented as completed.
 
-*Gebrochen, wenn:* eine Erfolgsmeldung erscheint, ohne dass eine Anfrage gestellt wurde oder obwohl
-die Antwort ein Scheitern meldete.
-**Heute: behoben für die beiden bekannten Fälle (2026-09-16).** Der „Clear"-Knopf meldete Erfolg
-ohne jede Anfrage — entfernt. Der Spenden-Broadcast sendete eine Dankesmeldung auch dann, wenn die
-Buchung geworfen hatte (`:4885-4887` fing die Ausnahme, die Ausführung fiel in den Broadcast) oder
-wenn mangels Buchungsdienst gar nicht gebucht wurde (`:4789`). Jetzt entscheidet ein ausdrückliches
-`donation_booked`, und der Nutzer bekommt bei ausgebliebener Buchung eine ehrliche Meldung statt
-„Donation broadcast sent!".
-*Abgedeckt von* `tests/spec/test_z3_z8_donation_broadcast.py`.
-*Gegenprobe:* zweimal Fehlstart am Testgerüst (rot aus dem falschen Grund, korrigiert wurde der
-Test); dann berechtigtes Rot an allen drei Zusicherungen; die **erste Korrektur war unvollständig**
-und der Test zeigte es (`{100: 1, 200: 0}`) — die Sperre hing an `donation_amount_euros`, das erst
-im übersprungenen Block zugewiesen wird. Vollständiger Lauf **4.478 grün, 0 Fehlschläge**.
-*Dabei gefunden und mitbehoben:* Ein unbedingter Zugriff auf ein möglicherweise unzugewiesenes
-`new_state` ließ den Callback im Fall „Spende ohne Betrag" mit `UnboundLocalError` abstürzen — von
-beiden `except`-Blöcken ungefangen, sodass der Nutzer dauerhaft „Processing…" sah und die
-Unterstützungsmeldung nie hinausging. Drei Stellen betroffen, alle auf `new_evolution_level`
-umgestellt. *Gegenprobe:* vorher 1 rot / 14 grün, danach 15 grün.
+*Broken if:* a success message appears without a request having been made, or although the
+response reported a failure.
+**Today: fixed for the two known cases (2026-09-16).** The "Clear" button reported success
+without any request — removed. The donation broadcast sent a thank-you message even when the
+booking had thrown (`:4885-4887` caught the exception, execution fell through into the broadcast)
+or when, for lack of a booking service, nothing was booked at all (`:4789`). Now an explicit
+`donation_booked` decides, and when the booking did not happen the user gets an honest message
+instead of "Donation broadcast sent!".
+*Covered by* `tests/spec/test_z3_z8_donation_broadcast.py`.
+*Counter-check:* two false starts in the test scaffolding (red for the wrong reason; the test was
+what got corrected); then a legitimate red on all three guarantees; the **first fix was incomplete**
+and the test showed it (`{100: 1, 200: 0}`) — the lock depended on `donation_amount_euros`, which is
+only assigned in the skipped block. Full run **4,478 green, 0 failures**.
+*Found and fixed along the way:* An unconditional access to a possibly unassigned `new_state` made
+the callback crash with `UnboundLocalError` in the "donation without amount" case — caught by
+neither `except` block, so the user saw "Processing…" permanently and the support message never
+went out. Three places affected, all switched to `new_evolution_level`. *Counter-check:* before
+1 red / 14 green, afterwards 15 green.
 
-### Z4 — Geld wird nie doppelt oder unbelegt gutgeschrieben.
-Jede Spende trägt einen Idempotenzschlüssel, der nicht von der Uhrzeit abhängt. Zweimal dieselbe
-Spende ergibt einen Eintrag, nicht zwei.
+### Z4 — Money is never credited twice or without evidence.
+Every donation carries an idempotency key that does not depend on the clock time. The same donation
+twice produces one entry, not two.
 
-*Gebrochen, wenn:* zwei identische Buchungen im selben Moment zwei Einträge erzeugen.
-**Heute: behoben (2026-09-16).** Der Befund war ein Durchreichungsfehler, kein fehlendes Verfahren:
-`ProgressService.add_donation` konnte Idempotenz längst und war dafür getestet
-(`test_progress_service.py:322`) — der Schlüssel ging nur zwischen Eintrittsstelle und Dienst
-verloren, worauf `progress_service.py:1024` auf `donor|amount|utcnow()` zurückfiel.
+*Broken if:* two identical bookings at the same moment produce two entries.
+**Today: fixed (2026-09-16).** The finding was a pass-through error, not a missing mechanism:
+`ProgressService.add_donation` had supported idempotency for a long time and was tested for it
+(`test_progress_service.py:322`) — the key was merely lost between the entry point and the service,
+whereupon `progress_service.py:1024` fell back to `donor|amount|utcnow()`.
 
-Jetzt trägt `DonationRequest` ein Feld dafür, und der Schlüssel läuft durch alle fünf Schichten
-(`models` → `processors` → `mech_service_adapter` → `progress_service`). Die Eintrittsstellen
-liefern ihn: Discord nimmt `interaction.id` (`docker_control.py:4822`), der Browser erzeugt beim
-ersten Absenden ein Token und lässt es erst nach **bestätigter** Buchung verfallen — ein
-Wiederholungsversuch nach dem 30-Sekunden-Abbruch trägt damit dasselbe Token, ein Neuladen
-dagegen ein neues, weil das eine echte zweite Spende ist.
+Now `DonationRequest` carries a field for it, and the key runs through all five layers
+(`models` → `processors` → `mech_service_adapter` → `progress_service`). The entry points supply
+it: Discord uses `interaction.id` (`docker_control.py:4822`); the browser generates a token on the
+first submit and lets it expire only after a **confirmed** booking — a retry after the 30-second
+abort therefore carries the same token, whereas a reload carries a new one, because that is a real
+second donation.
 
-*Vom Betreiber entschieden:* Browser-Token statt Zeitfenster über (Spender, Betrag) — ein Fenster
-hätte eine echte schnelle Zweitspende verschluckt und damit echtes Geld verloren.
-*Beachte:* `crypto.randomUUID` gibt es nur im sicheren Kontext; da DDC bewusst als reines HTTP
-läuft (B3), hat die Erzeugung einen Ersatzweg — ohne ihn entstünde gar kein Token.
+*Decided by the operator:* browser token instead of a time window over (donor, amount) — a window
+would have swallowed a real quick second donation and thus lost real money.
+*Note:* `crypto.randomUUID` exists only in a secure context; since DDC deliberately runs as plain
+HTTP (B3), the generation has a fallback path — without it no token would be created at all.
 
-*Abgedeckt von* `tests/spec/test_z4_donation_idempotency.py` (3 Dienst-Tests + 2 Verträge zur
-Oberfläche, weil eine reine Backend-Durchreichung die Zusicherung im Alltag nicht erfüllt).
-*Gegenprobe:* Dienst-Tests vorher `TypeError` (Verfahren fehlte) — ein ehrliches, aber schwaches
-Rot. Die beiden Vertragstests waren zuerst aus dem **falschen** Grund rot (Fehler im Test selbst);
-nach deren Korrektur wurde die Gegenprobe echt nachgeholt: Token im Frontend entschärft → genau
-diese zwei rot, wiederhergestellt → alle grün. Vollständiger Lauf **4.475 grün, 0 Fehlschläge**.
-*Dabei gefunden:* `FakeMechService` in `tests/test_unified_donation_service.py` nagelte die alte
-Signatur fest — mitbehoben.
+*Covered by* `tests/spec/test_z4_donation_idempotency.py` (3 service tests + 2 contracts on the
+interface, because a pure backend pass-through does not fulfil the guarantee in everyday use).
+*Counter-check:* service tests before: `TypeError` (the mechanism was missing) — an honest but weak
+red. The two contract tests were at first red for the **wrong** reason (an error in the test
+itself); after correcting them the counter-check was properly redone: token in the frontend
+disabled → exactly these two red, restored → all green. Full run **4,475 green, 0 failures**.
+*Found along the way:* `FakeMechService` in `tests/test_unified_donation_service.py` pinned down
+the old signature — fixed as well.
 
-### Z5 — Kein Eingriff an einem Container ohne Kanalrecht und erlaubte Aktion.
-Start, Stopp und Neustart geschehen nur, wenn der Kanal die Berechtigung trägt **und** der Container
-die Aktion erlaubt — auf **jedem** Weg: Knopf, Zeitplan, Automatikregel, Web-Panel.
+### Z5 — No action on a container without channel permission and an allowed action.
+Start, stop and restart happen only if the channel holds the permission **and** the container
+allows the action — on **every** path: button, schedule, automation rule, web panel.
 
-*Gebrochen, wenn:* ein Weg existiert, der einen Container anfasst, ohne beide Prüfungen zu bestehen.
-*Hinweis:* Autorisierung über den **Kanal** ist gewollt (siehe Bewusste Entscheidungen B1). Diese
-Zusicherung verlangt keine Nutzerprüfung — sie verlangt, dass die Kanalprüfung **lückenlos** ist.
-**Heute: behoben (2026-09-16), mit einer offenen Nebenfrage** (die Scheduler-Ausnahme, siehe unten).
-Der Weg dorthin gehört hierher, weil die ursprüngliche Fassung dieser Zeile zu grob war und beim
-Nachlesen widerlegt wurde:
+*Broken if:* a path exists that touches a container without passing both checks.
+*Note:* authorization via the **channel** is intended (see Deliberate decisions B1). This guarantee
+does not demand a user check — it demands that the channel check is **complete**.
+**Today: fixed (2026-09-16), with one open side question** (the scheduler exception, see below).
+The way there belongs here, because the original version of this line was too coarse and was
+refuted on re-reading:
 
-- *„Vier Stellen umgehen das Kanalrecht"* — teils widerlegt, **teils zu Unrecht entlastet.**
-  `:429` steuert nur das Nachzeichnen der Admin-Nachricht (`:483`). Das dabei gesetzte Kennzeichen
-  `_is_admin_control` (`:487`, entfernt bei `:531`) wird an genau zwei Stellen gelesen
-  (`status_handlers.py:1051`, `status_info_integration.py:1143`) und unterdrückt dort ebenfalls nur
-  Anzeige — die Berechtigung kommt unverändert aus `_channel_has_permission` (`status_handlers.py:1040`).
-- *Übrig bleibt **eine** tragende Stelle:* `control_ui.py:304` — `is_admin_control or <Kanalrecht>`.
-  Sie ist redundant, solange das Panel in einem Control-Kanal steht (`/control` prüft das Recht
-  bereits, `docker_control.py:1947`). Sie wird nur dann zur Lücke, wenn **die Nachricht das Recht
-  überdauert**: Panel gepostet, danach Control-Recht entzogen, Panel bleibt bedienbar.
-- *Die Scheduler-Ausnahme ist **dokumentiert gewollt***, nicht vergessen:
-  `scheduler.py:1791-1794` — „Web UI tasks are admin tasks and always run (R4-1)". Sie gehört unter
-  **Bewusste Entscheidungen**, sofern der Betreiber nicht widerspricht.
+- *"Four places bypass the channel permission"* — partly refuted, **partly cleared wrongly.**
+  `:429` only controls the redrawing of the admin message (`:483`). The flag set there,
+  `_is_admin_control` (`:487`, removed at `:531`), is read in exactly two places
+  (`status_handlers.py:1051`, `status_info_integration.py:1143`) and there, too, only suppresses
+  display — the permission still comes unchanged from `_channel_has_permission` (`status_handlers.py:1040`).
+- *What remains is **one** load-bearing place:* `control_ui.py:304` — `is_admin_control or <channel permission>`.
+  It is redundant as long as the panel sits in a control channel (`/control` already checks the
+  permission, `docker_control.py:1947`). It becomes a gap only when **the message outlives the
+  permission**: panel posted, control permission revoked afterwards, panel remains usable.
+- *The scheduler exception is **documented as intended***, not forgotten:
+  `scheduler.py:1791-1794` — "Web UI tasks are admin tasks and always run (R4-1)". It belongs under
+  **Deliberate decisions**, unless the operator objects.
 
-**Entschieden 2026-09-16 (Betreiber): (a)** — verliert ein Kanal sein `control`-Recht, werden alte
-Admin-Panels **sofort wirkungslos**. Eine Berechtigung darf nicht in einer Nachricht stecken, die
-Monate alt sein kann. `control_ui.py:304` ist damit ein Befund: Die Titel-Heuristik entfällt an
-dieser Stelle, und der Knopf prüft nur noch das **aktuelle** Kanalrecht.
-Die rein darstellende Verwendung bei `:429` bleibt unberührt — sie erteilt kein Recht.
+**Decided 2026-09-16 (operator): (a)** — if a channel loses its `control` permission, old admin
+panels **lose their effect immediately**. A permission must not reside in a message that can be
+months old. `control_ui.py:304` is therefore a finding: the title heuristic is dropped at this
+place, and the button checks only the **current** channel permission.
+The purely presentational use at `:429` remains untouched — it grants no permission.
 
-**Nachtrag 2026-09-17 — ein zweiter Weg, und eine falsche Einstufung von gestern.**
-Oben stand, `control_ui.py:1019-1025` und `:1072-1079` seien „rein darstellend". **Das war falsch.**
-Beide berechneten `has_control = is_admin_control or <Kanalrecht>` und entschieden damit, ob
-`ContainerInfoAdminView` gebaut wird. Diese Ansicht hängt `TaskManagementButton` **bedingungslos**
-ein (`status_info_integration.py:55`), und von dort führt ein Weg über `TaskManagementView` →
-`DeleteTasksButton` → `ContainerTaskDeleteButton` zu `delete_task()` — **vier Ebenen, keine einzige
-Rechtsprüfung**. Ein alter Nachrichtentitel genügte also, um Zeitaufträge löschen zu können.
-Der Kommentar bei `:1053` sagte es sogar offen: „Don't re-check channel permission as it would
+**Addendum 2026-09-17 — a second path, and a wrong classification from yesterday.**
+Above it said that `control_ui.py:1019-1025` and `:1072-1079` were "purely presentational". **That
+was wrong.** Both computed `has_control = is_admin_control or <channel permission>` and used it to
+decide whether `ContainerInfoAdminView` is built. This view attaches `TaskManagementButton`
+**unconditionally** (`status_info_integration.py:55`), and from there a path leads via
+`TaskManagementView` → `DeleteTasksButton` → `ContainerTaskDeleteButton` to `delete_task()` —
+**four levels, not a single permission check**. An old message title was therefore enough to be
+able to delete scheduled tasks.
+The comment at `:1053` even said so openly: "Don't re-check channel permission as it would
 ignore admin control context."
 
-*Zweiter Befund an derselben Stelle:* Derselbe Eingriff verlangte je nach Weg ein anderes Recht.
-`control_ui.py:1276` prüft `schedule`; `status_info_integration.py` kannte die Zeichenkette
-`'schedule'` überhaupt nicht. Wer `control` hatte, aber `schedule` bewusst **nicht**, konnte über den
-zweiten Weg trotzdem löschen.
+*Second finding at the same place:* the same action required a different permission depending on
+the path. `control_ui.py:1276` checks `schedule`; `status_info_integration.py` did not know the
+string `'schedule'` at all. Anyone who had `control` but deliberately **not** `schedule` could
+still delete via the second path.
 
-*Behoben:* Beide Stellen entscheiden nur noch nach dem **aktuellen** Kanalrecht (wie `:304` seit
-gestern), die dort tot gewordenen Zeilen sind entfernt, und `ContainerTaskDeleteButton` prüft
-`schedule` wie sein Zwilling.
-*Abgedeckt von* `tests/spec/test_z5_task_delete_path.py` (3 Tests).
-*Gegenprobe:* 2 rot wie vorhergesagt, beide aus dem richtigen Grund — der Stapel zeigte, dass die
-Ansicht bei `control: False` allein wegen des Titels gebaut wurde. Nach der Korrektur 3 grün,
-`test_z5_channel_permission.py` unverändert 3, `tests/unit/cogs` unverändert 267.
+*Fixed:* Both places now decide only by the **current** channel permission (like `:304` since
+yesterday), the lines that became dead there are removed, and `ContainerTaskDeleteButton` checks
+`schedule` like its twin.
+*Covered by* `tests/spec/test_z5_task_delete_path.py` (3 tests).
+*Counter-check:* 2 red as predicted, both for the right reason — the stack showed that the view was
+built with `control: False` purely because of the title. After the fix 3 green,
+`test_z5_channel_permission.py` unchanged at 3, `tests/unit/cogs` unchanged at 267.
 
-*Geprüft und diesmal bestätigt:* Das Kennzeichen `_is_admin_control` (`:496`, `:540`, `:1988`,
-`:2034`) wird an zwei Stellen gelesen (`status_handlers.py:1051`,
-`status_info_integration.py:1143`) und unterdrückt dort **nur Anzeige**. Hier hält die Einstufung.
+*Checked and this time confirmed:* The flag `_is_admin_control` (`:496`, `:540`, `:1988`,
+`:2034`) is read in two places (`status_handlers.py:1051`,
+`status_info_integration.py:1143`) and there suppresses **only display**. Here the classification holds.
 
-*Ebenfalls geprüft und abgegrenzt:* Die beiden Web-Wege zu `delete_task`
-(`app/blueprints/tasks_bp.py:194`, `services/web/task_management_service.py:817`) hängen an
-`@auth.login_required`. Das Panel hat ein eigenes Rechtemodell, nicht das Kanalmodell — kein Teil
-dieses Befunds.
-**Status: behoben (2026-09-16).** `control_ui.py:304` liest nur noch das aktuelle Kanalrecht.
-*Abgedeckt von* `tests/spec/test_z5_channel_permission.py`.
-*Gegenprobe:* Das Rot fiel **stärker aus als vorhergesagt** — erwartet hatte ich einen Fehlschlag
-an `pending_actions == {}`, tatsächlich riss schon der Stolperdraht bei `:332`, und das Protokoll
-zeigte `[ACTION_BTN] STOP action for 'nginx' triggered by Irgendwer`: Ohne Kanalrecht, allein wegen
-des Titels, war der Eingriff nicht bloß vorgemerkt, sondern in vollem Gange. Nach der Korrektur
-21 grün, `tests/unit/cogs` unverändert 267 grün, vollständiger Lauf **4.485 grün, 0 Fehlschläge**.
-*Danach verschärft:* Ein Test, der vorher über einen Stolperdraht fiel, kann danach grün sein, weil
-der Draht nicht mehr reißt — nicht, weil die Zusicherung hält. Der Ablehnungstext wird deshalb
-festgenagelt; ein bloßes `assert_awaited()` wäre auch vom Pfad „kein Kanal" (`:294`) erfüllt worden.
+*Also checked and delimited:* The two web paths to `delete_task`
+(`app/blueprints/tasks_bp.py:194`, `services/web/task_management_service.py:817`) depend on
+`@auth.login_required`. The panel has its own permission model, not the channel model — not part
+of this finding.
+**Status: fixed (2026-09-16).** `control_ui.py:304` now reads only the current channel permission.
+*Covered by* `tests/spec/test_z5_channel_permission.py`.
+*Counter-check:* The red turned out **stronger than predicted** — I had expected a failure at
+`pending_actions == {}`; in fact the tripwire at `:332` already snapped, and the log showed
+`[ACTION_BTN] STOP action for 'nginx' triggered by Somebody`: without channel permission, purely
+because of the title, the action was not merely queued but in full progress. After the fix
+21 green, `tests/unit/cogs` unchanged at 267 green, full run **4,485 green, 0 failures**.
+*Tightened afterwards:* A test that previously failed via a tripwire can be green afterwards because
+the wire no longer snaps — not because the guarantee holds. The rejection text is therefore pinned
+down; a mere `assert_awaited()` would also have been satisfied by the "no channel" path (`:294`).
 
-*Nicht abgedeckt:* Der Scheduler-Weg. `scheduler.py:1791-1794` nimmt Web-Panel-Aufgaben
-ausdrücklich von der Nachprüfung aus („Web UI tasks are admin tasks and always run (R4-1)"). Das
-ist eine dokumentierte Entscheidung, keine Lücke — aber sie ist **nicht** vom Betreiber bestätigt
-und steht auch nicht unter „Bewusste Entscheidungen". Offen.
+*Not covered:* The scheduler path. `scheduler.py:1791-1794` explicitly exempts web panel tasks
+from re-checking ("Web UI tasks are admin tasks and always run (R4-1)"). That is a documented
+decision, not a gap — but it is **not** confirmed by the operator and is not listed under
+"Deliberate decisions" either. Open.
 
-### Z6 — DDC entfernt oder zerstört niemals einen Container.
-Es gibt genau drei Aktionen: `start`, `stop`, `restart`. Kein `kill`, kein `remove`, kein `prune`.
+### Z6 — DDC never removes or destroys a container.
+There are exactly three actions: `start`, `stop`, `restart`. No `kill`, no `remove`, no `prune`.
 
-*Gebrochen, wenn:* irgendein Pfad eine andere Docker-Aktion auslöst.
-**Heute: hält — und ist seit 2026-09-16 festgenagelt.** Zwei Implementierungen, beide auf diese
-drei begrenzt (`docker_action_service.py:90-94`, `docker_utils.py:626-631`).
-*Abgedeckt von* `tests/spec/test_z6_docker_actions.py`: beide Aktionslisten, plus eine
-projektweite Suche nach zerstörenden Aufrufen (`container.remove()` und Verwandte) — die prüft die
-**Aufrufstelle**, nicht nur die Funktion.
-*Gegenprobe, hier anders gelagert:* Die Zusicherung hält, es gibt also keinen Fehler zum
-Rückgängigmachen. Alle vier Tests waren sofort grün — was sie verdächtig macht. Dagegen belegt ein
-eigener Test, dass das Suchmuster überhaupt anschlägt. Nötig war das: Die erste Fassung übersprang
-ausgerechnet `container.remove()` und konnte für den wichtigsten Fall nicht fehlschlagen; eine
-zweite Stelle enthielt `assert ... is None or True`. Beides beim Gegenlesen gefunden, nicht im Lauf.
+*Broken if:* any path triggers a different Docker action.
+**Today: holds — and has been pinned down since 2026-09-16.** Two implementations, both limited to
+these three (`docker_action_service.py:90-94`, `docker_utils.py:626-631`).
+*Covered by* `tests/spec/test_z6_docker_actions.py`: both action lists, plus a project-wide search
+for destructive calls (`container.remove()` and relatives) — it checks the **call site**, not just
+the function.
+*Counter-check, different in this case:* The guarantee holds, so there is no bug to revert. All
+four tests were green immediately — which makes them suspicious. As a counterweight, a separate
+test proves that the search pattern matches at all. That was necessary: the first version skipped
+precisely `container.remove()` and could not fail for the most important case; a second place
+contained `assert ... is None or True`. Both found while cross-reading, not in the run.
 
-### Z7 — Eine Konfiguration überlebt jeden Schreibvorgang.
-Jeder Schreibvorgang auf Konfigurations- oder Zustandsdateien ist atomar (Temp-Datei + Umbenennen).
-Ein Absturz mitten im Schreiben lässt die alte Datei unversehrt.
+### Z7 — A configuration survives every write.
+Every write to configuration or state files is atomic (temp file + rename). A crash in the middle
+of a write leaves the old file intact.
 
-*Gebrochen, wenn:* ein Abbruch während des Schreibens eine leere oder abgeschnittene Datei hinterlässt.
-**Heute: alle fünf Stellen im Anwendungscode behoben (2026-09-16).** Die Skripte in `scripts/` sind
-ausgenommen — das ist eine offene Frage an dich, siehe am Ende dieses Abschnitts.
+*Broken if:* an abort during the write leaves an empty or truncated file behind.
+**Today: all five places in the application code fixed (2026-09-16).** The scripts in `scripts/`
+are excluded — that is an open question to you, see the end of this section.
 
-*Behoben:* `progress_service.py:264` — der Sequenzzähler des Spendenbuchs. Die schwerwiegendste der
-fünf: Ein Abbruch ließ die Datei nicht veraltet, sondern **leer** zurück (`open(..., "w")` kürzt beim
-Öffnen), `next_seq()` las danach `int("" or 0)` und begann wieder bei 1 — mitten in einem
-Ereignislog, in dem diese Nummern schon vergeben sind. Läuft jetzt über den neuen gemeinsamen
-Helfer `utils/atomic_io.py`.
-*Abgedeckt von* `tests/spec/test_z7_atomic_writes.py`.
-*Gegenprobe:* vorher `assert '' == '5'`, danach 18 grün; vollständiger Lauf **4.482 grün, 0 Fehlschläge**.
+*Fixed:* `progress_service.py:264` — the sequence counter of the donation ledger. The most serious
+of the five: an abort left the file not stale but **empty** (`open(..., "w")` truncates on open),
+`next_seq()` then read `int("" or 0)` and started again at 1 — in the middle of an event log in
+which these numbers are already taken. Now goes through the new shared helper `utils/atomic_io.py`.
+*Covered by* `tests/spec/test_z7_atomic_writes.py`.
+*Counter-check:* before `assert '' == '5'`, afterwards 18 green; full run **4,482 green, 0 failures**.
 
-*Ebenfalls behoben:* `container_status_service.py:153` — die vom Nutzer gepflegte
-Container-Konfiguration (Anzeigename, erlaubte Aktionen, Reihenfolge). Ein Abbruch ließ sie
-**restlos leer** zurück, und zwar in einem Vorgang, den der Nutzer nie auslöst und nicht sieht:
-dem automatischen Deaktivieren, wenn Docker einen Container dauerhaft als abwesend meldet.
-*Abgedeckt von* `tests/spec/test_z7_container_config_write.py`.
-*Gegenprobe:* vorher `assert ''`, danach grün; vollständiger Lauf **4.497 grün**, 2 rot (nur Z10).
+*Also fixed:* `container_status_service.py:153` — the container configuration maintained by the
+user (display name, allowed actions, order). An abort left it **completely empty**, and in an
+operation that the user never triggers and never sees: the automatic deactivation when Docker
+reports a container as permanently absent.
+*Covered by* `tests/spec/test_z7_container_config_write.py`.
+*Counter-check:* before `assert ''`, afterwards green; full run **4,497 green**, 2 red (Z10 only).
 
-*Dabei der lehrreichste Fund des Tages:* `tests/unit/extended/test_docker_infra_gaps.py` sollte
-denselben Fehlerpfad prüfen und war seit jeher grün — aber sein `_bad_open` warf bei **jedem**
-Zugriff, also schon beim **Lesen**, lange vor dem Schreiben. Die Methode gab `False` zurück, die
-Zusicherung war erfüllt, der Schreibpfad wurde nie erreicht. Der erste Reparaturversuch
-(`os.fdopen` mitpatchen) war wirkungslos; belegt wurde das erst durch eine **Mutation**: mit einem
-Helfer, der alle Schreibfehler verschluckt, blieb er grün, während der neue Test rot wurde. Erst
-die zweite Fassung — nur Schreibzugriffe scheitern lassen — greift nachweislich.
-**Allgemein:** Ein grüner Test sagt nichts darüber, ob er greift. Von den 3.962 Alttests wurde
-genau einer so geprüft, und er war kaputt. Das gehört nach Stufe 3.
+*The most instructive find of the day along the way:* `tests/unit/extended/test_docker_infra_gaps.py`
+was supposed to check the same error path and had always been green — but its `_bad_open` threw on
+**every** access, i.e. already on **reading**, long before the write. The method returned `False`,
+the assertion was satisfied, the write path was never reached. The first repair attempt
+(also patching `os.fdopen`) had no effect; that was only proven by a **mutation**: with a helper
+that swallows all write errors, it stayed green while the new test turned red. Only the second
+version — letting only write accesses fail — demonstrably takes effect.
+**In general:** A green test says nothing about whether it takes effect. Of the 3,962 legacy tests,
+exactly one was checked this way, and it was broken. That belongs in stage 3.
 
-*Ebenfalls behoben:* `member_count/service.py:174` — die Mitgliederzahl-Momentaufnahme. Kein
-kosmetischer Verlust: Die Zahl fließt in `requirement_for_level_and_bin()` und bestimmt damit, was
-die nächste Mech-Stufe **kostet**. Eine leere oder halbe Datei verschiebt das lautlos, während die
-Anzeige normal aussieht. Geschrieben wurde über `Path.write_text`, das beim Öffnen kürzt.
-*Abgedeckt von* `tests/spec/test_z7_member_count_write.py`.
-*Gegenprobe:* Dieser Test war **zweimal wertlos**, bevor er etwas bewies — beide Male grün. Einmal
-lag der Abfangpunkt *vor* dem Schaden (die Attrappe warf, bevor die Datei gekürzt wurde), einmal
-zählte die Restprüfung fremde Dateien derselben Ablage mit. Erst die dritte Fassung, die den Schaden
-*nachstellt* statt ihn zu verhindern, wurde rot (`assert ''`). Zusätzlich per **Mutation** belegt,
-dass der Test greift.
+*Also fixed:* `member_count/service.py:174` — the member count snapshot. Not a cosmetic loss: the
+number flows into `requirement_for_level_and_bin()` and thereby determines what the next mech level
+**costs**. An empty or half-written file shifts that silently while the display looks normal. It
+was written via `Path.write_text`, which truncates on open.
+*Covered by* `tests/spec/test_z7_member_count_write.py`.
+*Counter-check:* This test was **worthless twice** before it proved anything — green both times.
+Once the interception point lay *before* the damage (the stub threw before the file was
+truncated), once the leftover check also counted unrelated files in the same directory. Only the
+third version, which *reproduces* the damage instead of preventing it, turned red (`assert ''`).
+Additionally proven by **mutation** that the test takes effect.
 
-*Ebenfalls behoben:* `mech_reset_service.py:194` — der Mech-Zustand. Verloren ging dort nicht ein
-Zählerstand, sondern die **Zuordnung**: `last_glvl_per_channel` und `mech_expanded_states` halten
-fest, welcher Discord-Kanal welchen Stand hatte. Die Methode behält diese Struktur und setzt nur
-Werte zurück — ein Abbruch beim Schreiben vernichtete sie ganz.
-*Abgedeckt von* `tests/spec/test_z7_mech_state_write.py`.
-*Gegenprobe:* beim ersten Anlauf getroffen (`assert ''`), Wächter schlug nicht an; per Mutation
-belegt, dass der Test greift. Dass es diesmal sofort saß, lag daran, dass die beiden Fallen der
-vorigen Durchgänge vorher benannt waren: Abfangpunkt **hinter** der Kürzung, und **nur**
-Schreibzugriffe treffen.
-*Mitgeprüft:* `mech_reset_service.py:302` greift ebenfalls auf dieselbe Datei zu — nur lesend, kein
-Z7-Fall.
+*Also fixed:* `mech_reset_service.py:194` — the mech state. What was lost there was not a counter
+value but the **mapping**: `last_glvl_per_channel` and `mech_expanded_states` record which Discord
+channel had which state. The method keeps this structure and only resets values — an abort during
+the write destroyed it entirely.
+*Covered by* `tests/spec/test_z7_mech_state_write.py`.
+*Counter-check:* hit on the first attempt (`assert ''`), the guard did not trigger; proven by
+mutation that the test takes effect. That it was right immediately this time was because the two
+traps of the previous rounds had been named beforehand: interception point **after** the
+truncation, and hit **only** write accesses.
+*Checked as well:* `mech_reset_service.py:302` accesses the same file too — read-only, not a
+Z7 case.
 
-*Ebenfalls behoben — die fünfte von fünf:* `server_order.py:45` — die Serverreihenfolge. Die
-Einstufung „kosmetisch" bleibt richtig: die Reihenfolge ist jederzeit neu zu legen. Der Grund, es
-trotzdem zu tun, ist ein anderer — **der Verlust meldet sich nie**. `load_server_order()` fängt den
-`JSONDecodeError` ab und gibt kommentarlos `[]` zurück (:72-74), die Anzeige fällt ohne Fehlermeldung
-auf die Standardreihenfolge. Der Lauf hat genau diese Kette protokolliert: erst `Error saving server
-order`, dann `Error loading server order: Expecting value: line 1 column 1` — und danach nichts mehr.
-Geprüft wird deshalb nicht „die Datei hat Bytes", sondern die nutzerseitige Aussage: nach dem
-gescheiterten Schreibvorgang liefert `load_server_order()` noch die gelegte Reihenfolge.
-*Abgedeckt von* `tests/spec/test_z7_server_order_write.py`.
-*Gegenprobe:* vor der Korrektur rot an genau dieser Zusicherung, beide Wächter hielten. Zusätzlich per
-**Mutation** belegt: mit einem `atomic_write_text`, das Fehler verschluckt statt sie weiterzureichen,
-wird der Test rot (`assert True is False` — „Ein gescheiterter Schreibvorgang darf nicht als Erfolg
-gelten"); wiederhergestellt wieder grün, ohne Mutationsrest.
-*Mitgeprüft, nichts nachzuziehen:* Die sieben vorhandenen Tests in `test_coverage_push_v3.py:138-225`
-leiten `ORDER_FILE` um und arbeiten mit echten Dateien; der einzige, der abfängt (`os.makedirs`, :182),
-trifft eine Stelle **vor** dem Schreibvorgang und bleibt unberührt. Anders als bei
-`_deactivate_container` musste hier kein Test mitgezogen werden.
+*Also fixed — the fifth of five:* `server_order.py:45` — the server order. The classification
+"cosmetic" remains correct: the order can be set again at any time. The reason to do it anyway is a
+different one — **the loss never reports itself**. `load_server_order()` catches the
+`JSONDecodeError` and silently returns `[]` (:72-74); the display falls back to the default order
+without an error message. The run logged exactly this chain: first `Error saving server
+order`, then `Error loading server order: Expecting value: line 1 column 1` — and nothing after that.
+What is checked is therefore not "the file has bytes" but the user-facing statement: after the
+failed write, `load_server_order()` still returns the order that was set.
+*Covered by* `tests/spec/test_z7_server_order_write.py`.
+*Counter-check:* before the fix red on exactly this guarantee, both guards held. Additionally proven
+by **mutation**: with an `atomic_write_text` that swallows errors instead of passing them on, the
+test turns red (`assert True is False` — "A failed write must not count as success"); restored,
+green again, without mutation leftovers.
+*Also checked, nothing to follow up:* The seven existing tests in `test_coverage_push_v3.py:138-225`
+redirect `ORDER_FILE` and work with real files; the only one that intercepts (`os.makedirs`, :182)
+hits a place **before** the write and remains unaffected. Unlike with
+`_deactivate_container`, no test had to be adjusted here.
 
-*Offen — und eine Frage an dich, keine Baustelle:* die Skripte in `scripts/`. Gezählt, nicht geschätzt:
-**33 Schreibstellen in 16 Skripten** (eine Grep-Zeile war ein Fehltreffer, `migrate_to_modular.sh:281`
-liest nur). Zwei davon fassen dieselben Dateien an wie das Programm — `migrate_to_modular.sh` schreibt
-den kompletten Konfigurationssatz, `reset_mech.sh` das Spendenbuch.
-Mein Vorschlag: **Z7 gilt für den Anwendungscode, nicht für die Skripte.** Sie laufen einmalig, vom
-Betreiber angestoßen, der dabei zusieht — der Schaden wäre bemerkt, nicht unbemerkt. Das wäre eine
-bewusste Entscheidung (B11) statt einer offenen Zusicherung. Deine Entscheidung, nicht meine.
+*Open — and a question to you, not a construction site:* the scripts in `scripts/`. Counted, not
+estimated: **33 write sites in 16 scripts** (one grep line was a false hit, `migrate_to_modular.sh:281`
+only reads). Two of them touch the same files as the program — `migrate_to_modular.sh` writes
+the complete configuration set, `reset_mech.sh` the donation ledger.
+My proposal: **Z7 applies to the application code, not to the scripts.** They run once, triggered
+by the operator, who watches while they run — the damage would be noticed, not go unnoticed. That
+would be a deliberate decision (B11) instead of an open guarantee. Your decision, not mine.
 
-*Beim Zählen mitgefunden, zwei Nebenbefunde zu den Reset-Skripten:*
-1. `reset_mech.sh` sieht gefährlich aus — es schreibt `mech_donations.json` direkt — **ist es aber
-   nicht**: Zeile 15 bricht mit `exit 1` ab, der gesamte Code darunter ist unerreichbar. Geprüft,
-   kein Z1-Loch.
-2. Dasselbe Skript verweist in :3 und :12 auf `scripts/safe_reset_mech.**py**`. Vorhanden ist
-   `safe_reset_mech.**sh**`. Wer der Anweisung wörtlich folgt, bekommt „No such file or directory".
-   Eine Zeichenkette, kein Datenverlust — aber der Betreiber steht im Reset-Fall vor einer Sackgasse.
+*Found along the way while counting, two side findings on the reset scripts:*
+1. `reset_mech.sh` looks dangerous — it writes `mech_donations.json` directly — **but it is
+   not**: line 15 aborts with `exit 1`, all the code below it is unreachable. Checked,
+   not a Z1 hole.
+2. The same script refers in :3 and :12 to `scripts/safe_reset_mech.**py**`. What exists is
+   `safe_reset_mech.**sh**`. Anyone following the instruction literally gets "No such file or directory".
+   A string, not data loss — but the operator faces a dead end in a reset situation.
 
-*Nebenbefund:* Es gab bereits **zwei** Helfer für atomares Schreiben, und sie wichen voneinander ab —
-`utils/token_security.py:25` erhält die Dateirechte und nutzt `os.replace`;
-`services/config/channel_config_service.py:47` tut beides nicht und entfernt unter Windows die
-Zieldatei vorher, was ein Fenster ohne Datei öffnet. `utils/atomic_io.py` übernimmt die sichere der
-beiden. Die Zusammenführung der Altbestände ist ein eigener Punkt, kein Teil dieser Korrektur.
+*Side finding:* There were already **two** helpers for atomic writing, and they differed —
+`utils/token_security.py:25` preserves the file permissions and uses `os.replace`;
+`services/config/channel_config_service.py:47` does neither and on Windows removes the target file
+beforehand, which opens a window with no file. `utils/atomic_io.py` adopts the safe one of the
+two. Merging the legacy helpers is a separate item, not part of this fix.
 
-### Z8 — Kein stummer Fehlschlag bei etwas Unwiderruflichem.
-Schlägt eine Handlung fehl, die sich nicht zurücknehmen lässt — Container anfassen, Datei löschen,
-Nachricht senden, Geld buchen —, wird der Fehler sichtbar. Nie nur `except: pass`.
+### Z8 — No silent failure on something irreversible.
+If an action fails that cannot be undone — touching a container, deleting a file, sending a
+message, booking money — the error becomes visible. Never just `except: pass`.
 
-*Gebrochen, wenn:* ein solcher Fehler ausschließlich im Debug-Log landet oder gar nicht.
-**Heute: am Spendenpfad behoben (2026-09-16), sonst weiterhin gebrochen.** Behoben: ein
-verschluckter Buchungsfehler führte zu einer Dankesmeldung an alle Kanäle — siehe Z3.
-**Offen geblieben:** 25 nackte `except:` in `cogs/` (33 im ganzen Projekt), zwei davon um Nachrichtenlöschungen
-(`docker_control.py:4966`, `:4976`); `event_manager.py:78` fängt nur `RuntimeError`, jede andere
-Ausnahme reißt die restlichen Handler mit. Diese Zusicherung ist damit **nicht** erfüllt, sondern
-nur an einer Stelle durchgesetzt — das ist ausdrücklich festgehalten, damit sie nicht als erledigt
-gilt.
+*Broken if:* such an error ends up only in the debug log, or nowhere at all.
+**Today: fixed on the donation path (2026-09-16), otherwise still broken.** Fixed: a swallowed
+booking error led to a thank-you message to all channels — see Z3.
+**Still open:** 25 bare `except:` in `cogs/` (33 in the whole project), two of them around message deletions
+(`docker_control.py:4966`, `:4976`); `event_manager.py:78` catches only `RuntimeError`, any other
+exception takes the remaining handlers down with it. This guarantee is therefore **not** fulfilled,
+but only enforced in one place — this is explicitly recorded so that it is not considered
+done.
 
-### Z9 — Der Bot-Token liegt nie im Klartext auf der Platte.
-Nicht in `config.json`, nicht in deren Sicherung, nicht in Logs.
+### Z9 — The bot token never lies on disk in plain text.
+Not in `config.json`, not in its backup, not in logs.
 
-*Gebrochen, wenn:* der entschlüsselte Token in einer Datei auftaucht.
-**Heute: hält** und ist bereits getestet (`tests/unit/audit_2026_09/test_pkg_c2_config.py`).
-*Ausnahme mit Ansage:* `GET /api/migration-help` gibt den Token bewusst über HTTP zurück — siehe B5.
+*Broken if:* the decrypted token appears in a file.
+**Today: holds** and is already tested (`tests/unit/audit_2026_09/test_pkg_c2_config.py`).
+*Announced exception:* `GET /api/migration-help` deliberately returns the token over HTTP — see B5.
 
-### Z10 — Kein Image wird ausgeliefert, dessen Tests nicht grün gelaufen sind.
-Ein veröffentlichtes Image hat einen vollständigen, bestandenen Testlauf hinter sich.
+### Z10 — No image is shipped whose tests have not run green.
+A published image has a complete, passed test run behind it.
 
-*Gebrochen, wenn:* ein Image veröffentlicht wird, ohne dass die Suite lief oder obwohl sie rot war.
-**Heute: behoben (2026-09-17)** — nach Entscheidung des Betreibers für das **volle Gatter in
-gruppenweiser Form**. Die Zusicherung war bei ihrer Formulierung gebrochen, und schwerer als in der
-Bestandsaufnahme notiert.
+*Broken if:* an image is published without the suite having run, or although it was red.
+**Today: fixed (2026-09-17)** — after the operator decided for the **full gate in
+group-by-group form**. The guarantee was broken when it was formulated, and more severely than
+noted in the inventory.
 
-*Was vorgefunden wurde* — vier Stellen, drei davon Testläufe, die **nicht rot werden konnten**:
+*What was found* — four places, three of them test runs that **could not turn red**:
 
-| Stelle | Art | heute |
+| Place | Kind | today |
 |---|---|---|
-| `tests.yml:67` „Run unit tests with coverage" | `\|\| true` | entfernt, läuft gruppenweise |
-| `tests.yml:122` „Run integration tests" | `\|\| true` **und** `continue-on-error: true` | beides entfernt |
-| `code-quality.yml:295` „Run tests with coverage" | `continue-on-error: true` | entfernt, läuft gruppenweise |
-| `docker-publish.yml` | führte überhaupt keine Tests aus | eigener `test`-Job, `build_and_push` hängt per `needs:` daran |
+| `tests.yml:67` "Run unit tests with coverage" | `\|\| true` | removed, runs group by group |
+| `tests.yml:122` "Run integration tests" | `\|\| true` **and** `continue-on-error: true` | both removed |
+| `code-quality.yml:295` "Run tests with coverage" | `continue-on-error: true` | removed, runs group by group |
+| `docker-publish.yml` | ran no tests at all | own `test` job, `build_and_push` depends on it via `needs:` |
 
-*Und der eigentliche Befund, der erst beim Beheben auftauchte:* Die Schutzschalter verbargen keine
-roten Tests — sie verbargen, dass **überhaupt nicht getestet wurde**. `pytest tests/unit/` bricht mit
-**79** Fehlern beim Einsammeln ab, `pytest tests/` mit **18**; in beiden Fällen läuft kein einziger
-Test. Ursache ist eine Paketverdeckung: `tests/unit/services`, `tests/unit/cogs` und
-`tests/unit/utils` haben kein `__init__.py`, heißen aber wie die echten Pakete. Das `✅ Unit tests
-completed` im Bericht war ein `echo` hinter einem längst gestorbenen pytest.
-Hätte man nur die Schutzschalter entfernt, wäre die CI **ab sofort dauerhaft rot** gewesen — und ein
-dauerhaft rotes Gatter ist so wertlos wie ein dauerhaft grünes. Alle drei Aufrufe laufen deshalb
-jetzt gruppenweise über `tests/GROUPS.txt`.
-*Verworfen, weil gemessen:* `--import-mode=importlib` ändert nichts; drei nachgerüstete `__init__.py`
-verschlechtern es von 18 auf **54** Fehler (zurückgenommen). Das Test-Layout umzubauen wäre zudem ein
-Umbau „damit es testbar wird", ohne wartenden Test.
+*And the actual finding, which only surfaced while fixing:* The safety switches did not hide red
+tests — they hid that **no testing happened at all**. `pytest tests/unit/` aborts with
+**79** collection errors, `pytest tests/` with **18**; in both cases not a single test runs. The
+cause is package shadowing: `tests/unit/services`, `tests/unit/cogs` and
+`tests/unit/utils` have no `__init__.py` but are named like the real packages. The `✅ Unit tests
+completed` in the report was an `echo` behind a pytest that had long since died.
+Had only the safety switches been removed, CI would have been **permanently red from then on** —
+and a permanently red gate is as worthless as a permanently green one. All three calls therefore
+now run group by group via `tests/GROUPS.txt`.
+*Rejected, because measured:* `--import-mode=importlib` changes nothing; three retrofitted `__init__.py`
+make it worse, from 18 to **54** errors (reverted). Restructuring the test layout would moreover be a
+rebuild "so that it becomes testable", with no test waiting for it.
 
-*Abgedeckt von* `tests/spec/test_z10_ci_test_gate.py` (6 Tests) und `tests/spec/test_z10_group_list.py`
-(3 Tests). Der zweite hält die handgepflegte Gruppenliste gegen Drift: **jede Testdatei liegt in genau
-einer Gruppe** — sonst liefe eine neue Datei lautlos nie mit, ohne dass irgendetwas rot wird.
+*Covered by* `tests/spec/test_z10_ci_test_gate.py` (6 tests) and `tests/spec/test_z10_group_list.py`
+(3 tests). The second keeps the hand-maintained group list from drifting: **every test file is in
+exactly one group** — otherwise a new file would silently never run, without anything turning red.
 
-*Gegenprobe, in drei Stufen:* Die erste Fassung des Tests fand nur den Integrationsschritt — im
-Unit-Test-Schritt steht `pytest` bei `:73` und das `|| true` erst bei `:80`, getrennt durch
-Zeilenfortsetzungen. Nach Zerlegung in `- name:`-Schritte und Erweiterung um `continue-on-error`
-vier Befunde statt einem, der vierte vorher unbekannt.
-Nach dem Bau des Gatters schlug der Test **erneut** an, vier Mal — und alle vier Male auf
-**Kommentare**, die gerade erst geschrieben worden waren („Kein `|| true` mehr …"). Der ausführbare
-Code war sauber. Statt die Begründungen zu löschen wurde der Melder geschärft: ganze Kommentarzeilen
-werden nicht ausgeführt und zählen deshalb nicht. Weil das wie eine Lockerung aussieht, trägt die
-Schärfung einen eigenen **Wirkungsnachweis** mit vier Fällen — darunter der entscheidende
-`pytest … || true  # sieht harmlos aus`, der weiterhin anschlagen muss. Danach `tests/spec`:
-**50 grün, 0 rot.**
+*Counter-check, in three stages:* The first version of the test found only the integration step — in
+the unit test step, `pytest` is at `:73` and the `|| true` only at `:80`, separated by
+line continuations. After splitting into `- name:` steps and extending to `continue-on-error`:
+four findings instead of one, the fourth previously unknown.
+After the gate was built, the test **triggered again**, four times — and all four times on
+**comments** that had only just been written ("No `|| true` any more …"). The executable
+code was clean. Instead of deleting the explanations, the detector was sharpened: whole comment
+lines are not executed and therefore do not count. Because this looks like a loosening, the
+sharpening carries its own **proof of effect** with four cases — among them the decisive
+`pytest … || true  # looks harmless`, which must still trigger. Afterwards `tests/spec`:
+**50 green, 0 red.**
 
-**Was damit ausdrücklich NICHT belegt ist:** Geprüft sind der Text und die YAML-Struktur der
-Workflow-Dateien, nicht ein echter GitHub-Lauf. Dass der `test`-Job dort anläuft und
-`build_and_push` tatsächlich blockiert, zeigt erst der erste Push. Diese Tests belegen, dass das
-Gatter **dasteht** — nicht, dass GitHub es so ausführt.
+**What is explicitly NOT proven by this:** What is checked is the text and the YAML structure of the
+workflow files, not a real GitHub run. That the `test` job starts there and actually blocks
+`build_and_push` will only be shown by the first push. These tests prove that the gate
+**is in place** — not that GitHub executes it that way.
 
 ---
 
-## Bewusste Entscheidungen
+## Deliberate decisions
 
-Dinge, die wie ein Fehler aussehen, aber gewollt sind. Ohne diesen Abschnitt kassiert sie der
-nächste Umbau stillschweigend.
+Things that look like a bug but are intended. Without this section, the next rebuild silently
+throws them out.
 
-**B1 — Autorisierung folgt dem Discord-Kanal, nicht dem Nutzer.**
-Wer in einem Control-Kanal schreiben darf, darf alles. Die Zugangskontrolle liegt bei Discord (wer
-den Kanal sehen darf), nicht bei DDC. *Vom Betreiber bestätigt am 2026-09-16.*
-**Nicht „reparieren"** durch Einbau von Nutzerprüfungen — das bräche das Modell.
+**B1 — Authorization follows the Discord channel, not the user.**
+Whoever may write in a control channel may do everything. Access control lies with Discord (who
+may see the channel), not with DDC. *Confirmed by the operator on 2026-09-16.*
+**Do not "fix"** this by adding user checks — that would break the model.
 
-**B2 — Die globale Admin-Liste existiert für die Status-Kanäle.**
-`/addadmin` schreibt in `admins.json`; dieses Recht überdauert die Kanalmitgliedschaft. Zweck ist,
-dass Admins auch dort etwas dürfen, wo die Kanalmitgliedschaft allein nichts erlaubt.
-*Vom Betreiber bestätigt am 2026-09-16.*
+**B2 — The global admin list exists for the status channels.**
+`/addadmin` writes to `admins.json`; this permission outlives channel membership. The purpose is
+that admins may also do things where channel membership alone permits nothing.
+*Confirmed by the operator on 2026-09-16.*
 
-**B3 — `SESSION_COOKIE_SECURE` bleibt `False`.**
-Die meisten Installationen laufen als reines HTTP im LAN, wo ein `Secure`-Cookie nie gesendet würde
-(`app/web/config.py:36`). `SameSite=Lax` statt `Strict`, damit ein Link aus Discord die Sitzung im
-anderen Tab nicht zerschießt (`:39`).
+**B3 — `SESSION_COOKIE_SECURE` stays `False`.**
+Most installations run as plain HTTP on the LAN, where a `Secure` cookie would never be sent
+(`app/web/config.py:36`). `SameSite=Lax` instead of `Strict`, so that a link from Discord does not
+break the session in the other tab (`:39`).
 
-**B4 — Spenden werden nie hart gelöscht, sondern per Gegenbuchung.**
-`progress_service.py:1525` schreibt ein Kompensationsereignis; Löschen ist ein Umschalter und damit
-umkehrbar. Zusätzlich sperrt `donation_management_service.py:299` den veralteten Doppelklick.
+**B4 — Donations are never hard-deleted, but reversed by a counter-entry.**
+`progress_service.py:1525` writes a compensation event; deleting is a toggle and therefore
+reversible. In addition, `donation_management_service.py:299` blocks the stale double click.
 
-**B5 — `GET /api/migration-help` gibt den entschlüsselten Bot-Token zurück.**
-Beabsichtigt, hinter Anmeldung, Zweck ist der Umzug auf eine Umgebungsvariable
-(`services/web/security_service.py:175`). *Risiko mit Ansage:* der Token landet im DOM und damit in
-Verlauf und Entwicklerwerkzeugen des Browsers.
+**B5 — `GET /api/migration-help` returns the decrypted bot token.**
+Intended, behind login; the purpose is the move to an environment variable
+(`services/web/security_service.py:175`). *Announced risk:* the token ends up in the DOM and
+thereby in the browser's history and developer tools.
 
-*Nachtrag 2026-09-18:* Dieses Risiko bestand bis heute **faktisch nicht** — der Weg war
-unerreichbar. `migrate_to_environment_variable` las `self.config_manager`, ein Attribut, das
-`__init__` nie setzt; der `AttributeError` wurde gefangen, und der Betreiber sah im Token-Fenster
-den rohen Python-Text statt seines Tokens. Mit der Reparatur (Entscheidung des Betreibers) gilt B5
-erstmals so, wie es hier steht. Wer den Eintrag vorher las, hielt ein Risiko für real, das keines
-war — und hätte umgekehrt nie erfahren, dass die Funktion dahinter tot ist.
+*Addendum 2026-09-18:* Until today this risk **did not exist in practice** — the path was
+unreachable. `migrate_to_environment_variable` read `self.config_manager`, an attribute that
+`__init__` never sets; the `AttributeError` was caught, and the operator saw the raw Python text
+instead of their token in the token window. With the repair (the operator's decision) B5 holds for
+the first time as it is written here. Anyone who read the entry before took a risk for real that
+was none — and conversely would never have learned that the function behind it was dead.
 
-**B6 — Stop und Restart werden nach einem Timeout nie ein zweites Mal geschickt.**
-Der erste Versuch läuft möglicherweise noch (`services/scheduling/scheduler.py:1812`).
+**B6 — Stop and restart are never sent a second time after a timeout.**
+The first attempt may still be running (`services/scheduling/scheduler.py:1812`).
 
-**B7 — Ein einzelnes `NotFound` verbirgt einen Container nicht dauerhaft.**
-Während eines Unraid-Auto-Updates wird ein Container entfernt und neu erstellt
+**B7 — A single `NotFound` does not hide a container permanently.**
+During an Unraid auto-update, a container is removed and recreated
 (`container_status_service.py:504`).
 
-**B8 — Ein leeres Token-Feld heißt „behalten", nie „löschen".**
+**B8 — An empty token field means "keep", never "delete".**
 `services/config/config_form_parser_service.py:439`.
 
-**B9 — Der Anmelde-Cache speichert nur bereits verifizierte Zugangsdaten.**
-Er senkt die Iterationszahl nicht und hilft keinem Angreifer; der Schlüssel enthält den
-Passwort-Hash, sodass ein Passwortwechsel alle Einträge sofort unerreichbar macht
+**B9 — The login cache stores only credentials that have already been verified.**
+It does not lower the iteration count and helps no attacker; the key contains the
+password hash, so a password change makes all entries unreachable immediately
 (`app/auth.py:23-42`).
 
-**B10 — Es war ein Versehen. Wiederhergestellt am 2026-09-18.** Der Spam-Schutz am Toggle-Knopf war
-„intentionally removed", aber eine Begründung stand nirgends — weder im Kommentar noch in der
-Commit-Nachricht. Der entfernte Code (`0195074^`) war funktionsfähig. Jeder andere Knopf derselben
-Datei prüft; dieser war die einzige Ausnahme, obwohl jeder Druck ein `message.edit` gegen die
-Discord-API auslöst — der Knopf mit der niedrigsten Hemmschwelle war der einzige ohne Bremse.
+**B10 — It was an oversight. Restored on 2026-09-18.** The spam protection on the toggle button was
+"intentionally removed", but a reason was stated nowhere — neither in the comment nor in the
+commit message. The removed code (`0195074^`) was functional. Every other button in the same
+file checks; this one was the only exception, although every press triggers a `message.edit` against
+the Discord API — the button with the lowest threshold for use was the only one without a brake.
 
-*Nicht zurückgekippt, sondern dem Hausmuster angepasst:* Der alte Code hatte eine **unübersetzte**
-Meldung und fing `Exception`. Verwendet wird jetzt der vorhandene Katalogeintrag ohne
-`{action}`-Platzhalter (`locales/*.json:1453`, im Code bereits viermal benutzt) und der enge
-Fehlerfang `(RuntimeError, AttributeError, KeyError)`.
+*Not simply reverted, but adapted to the house pattern:* The old code had an **untranslated**
+message and caught `Exception`. What is used now is the existing catalog entry without an
+`{action}` placeholder (`locales/*.json:1453`, already used four times in the code) and the narrow
+exception catch `(RuntimeError, AttributeError, KeyError)`.
 
-**Entschieden am 2026-09-19: „refresh ins Panel".** `refresh` hat jetzt ein eigenes Panel-Feld
-(Vorgabe 5), `auto_refresh` ist aus den Vorgaben entfernt. Die ursprüngliche Frage lautete:
-Der Schlüssel `refresh` hat **kein Feld im
-Panel** — dort steht `live_refresh`, ein anderer Schlüssel. Die Abklingzeit liegt damit fest bei
-5 Sekunden und ist nicht einstellbar. Das ist genau das, was damals entfernt wurde, widerspricht
-aber dem Grundsatz „das Panel bestimmt". Soll `refresh` ein Panel-Feld bekommen? Dieselbe Frage
-stellt sich für `auto_refresh`: ebenfalls kein Feld im Panel — und anders als `refresh` hat er
-auch nach dieser Korrektur keinen einzigen Abnehmer im Code.
+**Decided on 2026-09-19: "refresh into the panel".** `refresh` now has its own panel field
+(default 5), `auto_refresh` is removed from the defaults. The original question was:
+The key `refresh` has **no field in the
+panel** — what is there is `live_refresh`, a different key. The cooldown is therefore fixed at
+5 seconds and not configurable. That is exactly what was removed back then, but it contradicts
+the principle "the panel decides". Should `refresh` get a panel field? The same question
+arises for `auto_refresh`: likewise no field in the panel — and unlike `refresh`, it has
+not a single consumer in the code even after this fix.
 
-**B11 — Ein Zeitauftrag behält sein Recht, auch wenn der Kanal es verliert.**
-`ScheduledTask.__slots__` (`services/scheduling/scheduler.py:167-172`) hat 21 Felder, **keines
-kanalbezogen** — nur `created_by` mit dem Nutzernamen. Eine erneute Kanalrechtsprüfung zur
-Ausführungszeit ist damit für **keinen** Zeitauftrag möglich, nicht nur für die Web-UI-Ausnahme.
-Entziehst du einem Kanal das Steuerrecht, feuern dort früher angelegte Aufträge weiter.
-*Vom Betreiber entschieden am 2026-09-18: festhalten, nicht umbauen.* Wer einen Auftrag anlegen
-durfte, behält ihn; Altaufträge bleiben unverändert gültig.
+**B11 — A scheduled task keeps its permission even if the channel loses it.**
+`ScheduledTask.__slots__` (`services/scheduling/scheduler.py:167-172`) has 21 fields, **none
+channel-related** — only `created_by` with the user name. A renewed channel permission check at
+execution time is therefore possible for **no** scheduled task, not only for the web UI exception.
+If you revoke a channel's control permission, tasks created there earlier keep firing.
+*Decided by the operator on 2026-09-18: record it, do not rebuild.* Whoever was allowed to create a
+task keeps it; legacy tasks remain valid unchanged.
 
-*Damit die Tragweite nicht falsch eingeschätzt wird:* Der Schrägstrich-Befehl-Mixin in
-`cogs/scheduler_commands.py` ist **toter Code** — die Erweiterungsliste (`app/bot/startup_steps/
-commands.py:26-30`) lädt nur `docker_control`, `auto_action_monitor` und `translation_monitor`, und
-nichts referenziert den Mixin. Der lebende Weg ist der Knopf bei
-`cogs/status_info_integration.py:2331` („TASK_CREATE_BUTTON"). Zeitaufträge entstehen aus Discord
-also weiterhin — nur über eine andere Tür als zunächst vermutet.
+*So that the scope is not misjudged:* The slash-command mixin in
+`cogs/scheduler_commands.py` is **dead code** — the extension list (`app/bot/startup_steps/
+commands.py:26-30`) loads only `docker_control`, `auto_action_monitor` and `translation_monitor`, and
+nothing references the mixin. The live path is the button at
+`cogs/status_info_integration.py:2331` ("TASK_CREATE_BUTTON"). Scheduled tasks are therefore still
+created from Discord — just through a different door than first assumed.
 
-**Nicht „reparieren"** durch nachträgliches Mitführen von `channel_id`, ohne das vorher zu
-entscheiden: Das Datenformat änderte sich, und für Altaufträge ohne Feld bräuchte es eine eigene
-Regel (weiterlaufen oder pausieren).
+**Do not "fix"** this by retroactively carrying `channel_id` along without deciding that
+beforehand: the data format would change, and legacy tasks without the field would need a rule of
+their own (keep running or pause).
 
 ---
 
-## Regeln des Qualitätsprogramms
+## Rules of the quality programme
 
-Keine Zusicherungen an den Nutzer, sondern Regeln für uns — hier festgehalten, damit sie nicht
-verloren gehen:
+Not guarantees to the user, but rules for us — recorded here so that they do not get
+lost:
 
-- **R1 — Ein Test ohne widerlegbare Prüfung gilt als Fehler.** Mechanisch prüfbar mit
+- **R1 — A test without a refutable check counts as a defect.** Mechanically checkable with
   `scripts/audit_tests.py`.
-- **R2 — Zu jeder Zusicherung existiert mindestens ein Test**, erkennbar an `# @covers Zn`, und ein
-  weiterer Test prüft, dass keine Zusicherung ohne Markierung bleibt.
-- **R3 — Ein Befund, ein Commit, ein vollständiger Testlauf.**
-- **R4 — Jede Korrektur trägt ihren Grund im Code:** nicht was er tut, sondern was vorher falsch war.
-- **R5 — Abdeckung ist keine Zielgröße.**
+- **R2 — For every guarantee at least one test exists**, recognisable by `# @covers Zn`, and a
+  further test checks that no guarantee remains without a marker.
+- **R3 — One finding, one commit, one full test run.**
+- **R4 — Every fix carries its reason in the code:** not what it does, but what was wrong before.
+- **R5 — Coverage is not a target metric.**
 
 ---
 
-## Zu entscheiden
+## To be decided
 
-1. Welche der zehn Zusicherungen gelten? Streichen, ergänzen, umformulieren — das ist deine Entscheidung.
-2. ~~**B10:** Gab es einen Grund für das Entfernen des Spam-Schutzes am Toggle-Knopf?~~ **Beantwortet
-   am 2026-09-18: ein Versehen, wiederhergestellt.** ~~Offen bleibt nur die Wertfrage — soll `refresh`
-   ein Panel-Feld bekommen?~~ **Entschieden am 2026-09-19: ja; `auto_refresh` entfernt.**
-3. Reihenfolge für Stufe 2: Ich schlage vor, mit **Z2** zu beginnen (ein Testlauf, der echte Daten
-   zerstören kann, ist die gefährlichste offene Stelle), dann **Z1**, dann **Z4**.
+1. Which of the ten guarantees apply? Delete, add, rephrase — that is your decision.
+2. ~~**B10:** Was there a reason for removing the spam protection on the toggle button?~~ **Answered
+   on 2026-09-18: an oversight, restored.** ~~What remains open is only the value question — should
+   `refresh` get a panel field?~~ **Decided on 2026-09-19: yes; `auto_refresh` removed.**
+3. Order for stage 2: I propose starting with **Z2** (a test run that can destroy real data is the
+   most dangerous open spot), then **Z1**, then **Z4**.

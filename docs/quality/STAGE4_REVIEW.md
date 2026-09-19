@@ -1,271 +1,271 @@
-# Stufe 4 — Durchsicht mit nachweisbarer Abdeckung
+# Stage 4 — Review with verifiable coverage
 
-**Stand:** 2026-09-17 · **Durchsicht durchgeführt. Der Prüfplan bleibt ein Gerüst ohne einen Haken.**
+**Status:** 2026-09-17 · **Review carried out. The check plan remains a scaffold without a single tick.**
 
-Diese Stufe verlangt fünf Dinge: einen Zuschnitt in Abschnitte von höchstens 2000 Zeilen, einen
-Vertragstest über die Abdeckung, einen Prüfplan je Abschnitt, eine Abdeckungsrechnung und eine
-Durchsicht mit einem anderen Modell. **Vier davon stehen, eines nicht:** Der Prüfplan ist ein Gerüst
-mit 1.513 Namen und keinem einzigen Haken. Ihn zu füllen, ohne die Namen gelesen zu haben, wäre der
-„Bericht, wie viel erreicht wurde", den der Programmtext ausdrücklich ablehnt.
-
----
-
-## 1. Zuschnitt — steht
-
-37 Abschnitte, 190 Stücke, **61.252 von 61.252 Zeilen** in 185 Dateien (`docs/quality/SECTIONS.txt`).
-Geschnitten wird an Klassen- und Funktionsgrenzen, nicht willkürlich bei Zeile 2000: Ein Abschnitt
-soll am Stück lesbar sein.
-
-Vier Dateien liegen über der Grenze und mussten geteilt werden — `docker_control.py` (5.255),
-`control_ui.py` (3.293), `status_info_integration.py` (2.590), `scheduler.py` (2.165).
-
-### Der strukturelle Befund dabei
-
-**`DockerControlCog` ist eine einzige Klasse mit 4.485 Zeilen** — 8,5 % des gesamten
-Anwendungscodes. Sie lässt sich nicht an Klassengrenzen teilen, weil sie selbst die Grenze ist; der
-Zuschnitt musste **innerhalb** der Klasse an Methodengrenzen schneiden.
-
-Das ist kein Formfehler, sondern die Erklärung für eine Lücke der Stufe 0: Die Bestandsaufnahme hat
-diese Datei nur gezielt durchsucht und **nie durchgelesen**. Ein Abschnitt, der aus Methodenrümpfen
-einer Klasse besteht, ist nicht dasselbe wie eine lesbare Einheit.
-
-*Nicht behoben.* Eine Klasse dieser Größe zu zerlegen ist ein Umbau am Produktivcode ohne wartenden
-Test — genau das, was der Programmtext ausschließt. Es ist eine Entscheidung des Betreibers.
+This stage requires five things: a split into sections of at most 2000 lines, a contract test on
+coverage, a check plan per section, a coverage calculation and a review by a different model.
+**Four of them are in place, one is not:** the check plan is a scaffold with 1,513 names and not a
+single tick. Filling it without having read the names would be the "report of how much was
+achieved" that the programme text explicitly rejects.
 
 ---
 
-## 2. Vertragstest — steht und beißt
+## 1. Split — in place
 
-`tests/spec/test_stage4_sections.py` prüft: jede Quelldatei liegt in **genau einem** Abschnitt,
-lückenlos und überschneidungsfrei, kein Abschnitt über 2000 Zeilen.
+37 sections, 190 pieces, **61,252 of 61,252 lines** in 185 files (`docs/quality/SECTIONS.txt`).
+The cuts are made at class and function boundaries, not arbitrarily at line 2000: a section is
+meant to be readable in one go.
 
-**Behauptung und Erwartung kommen aus verschiedenen Quellen** — die Behauptung aus `SECTIONS.txt`,
-die Erwartung aus dem Dateisystem. Zöge man beides aus der Abschnittsdatei, wäre es ein Spiegeltest;
-genau so einer ist beim Verdrahtungstest der Stufe 3 unterlaufen und blieb bei entferntem CSRF-Schutz
-grün.
+Four files are above the limit and had to be split — `docker_control.py` (5,255),
+`control_ui.py` (3,293), `status_info_integration.py` (2,590), `scheduler.py` (2,165).
 
-*Wirkungsnachweis*, bei einem von Anfang an grünen Test unverzichtbar — vier Mutationen, jede einzeln:
+### The structural finding along the way
 
-| Mutation | Ergebnis |
+**`DockerControlCog` is a single class of 4,485 lines** — 8.5 % of the entire application code. It
+cannot be split at class boundaries because it is the boundary itself; the split had to cut
+**inside** the class at method boundaries.
+
+This is not a formal defect but the explanation for a gap in stage 0: the inventory only searched
+this file in a targeted way and **never read it through**. A section made up of method bodies of
+one class is not the same as a readable unit.
+
+*Not fixed.* Breaking up a class of this size is a rebuild of production code without a waiting
+test — exactly what the programme text rules out. It is a decision for the operator.
+
+---
+
+## 2. Contract test — in place and it bites
+
+`tests/spec/test_stage4_sections.py` checks: every source file lies in **exactly one** section,
+without gaps and without overlaps, no section above 2000 lines.
+
+**Claim and expectation come from different sources** — the claim from `SECTIONS.txt`, the
+expectation from the file system. If both were taken from the section file, it would be a mirror
+test; exactly such a test slipped through in the wiring test of stage 3 and stayed green with the
+CSRF protection removed.
+
+*Proof of effect*, indispensable for a test that was green from the start — four mutations, each on
+its own:
+
+| Mutation | Result |
 |---|---|
-| Datei aus der Liste entfernt | 1 failed |
-| Lücke gerissen | 1 failed |
-| Abdeckung endet vor dem Dateiende | 1 failed |
-| Abschnitt künstlich über 2000 Zeilen | 2 failed |
+| File removed from the list | 1 failed |
+| Gap torn open | 1 failed |
+| Coverage ends before the end of the file | 1 failed |
+| Section artificially above 2000 lines | 2 failed |
 
-Wiederhergestellt: 3 grün, Datei bitgleich zur Sicherung.
-
----
-
-## 3. Prüfplan — Gerüst steht, kein einziger Haken
-
-`docs/quality/CHECK_PLAN.txt` listet je Abschnitt die öffentlichen Namen, die bei einer Durchsicht
-einzeln zu beurteilen wären.
-
-Es sind **1.513 Namen** auf 37 Abschnitte, im Schnitt 41 je Abschnitt.
-
-**Der Plan ist eine Aufgabenliste, kein Nachweis.** Kein Haken bedeutet: nicht beurteilt. Ihn mit
-1.513 Häkchen zu füllen, ohne die Namen tatsächlich gelesen zu haben, wäre genau der „Bericht, wie
-viel erreicht wurde", den der Programmtext ablehnt.
-
-> *Zahl berichtigt noch beim Schreiben:* Hier stand zunächst 840. Das war eine frühere Erhebung, die
-> nur Namen **oberster Ebene** zählte; der Prüfplan erfasst zusätzlich die Methoden öffentlicher
-> Klassen. Beide Zahlen sind für sich richtig — der Bericht behauptete aber die kleinere über einen
-> Plan, der die größere enthält. Achte Zahl dieses Programms aus einer überholten Quelle.
+Restored: 3 green, file bit-identical to the backup.
 
 ---
 
-## 4. Abdeckungsrechnung — und warum die freundliche Zahl die falsche ist
+## 3. Check plan — scaffold in place, not a single tick
 
-| | Abschnitte | Zeilen |
+`docs/quality/CHECK_PLAN.txt` lists, per section, the public names that would have to be judged
+individually in a review.
+
+There are **1,513 names** across 37 sections, on average 41 per section.
+
+**The plan is a task list, not a proof.** No tick means: not judged. Filling it with 1,513 ticks
+without actually having read the names would be exactly the "report of how much was achieved"
+that the programme text rejects.
+
+> *Figure corrected while still writing:* This first said 840. That was an earlier count that
+> only counted **top-level** names; the check plan additionally covers the methods of public
+> classes. Both figures are correct in themselves — but the report claimed the smaller one about a
+> plan that contains the larger one. The eighth figure in this programme taken from an outdated source.
+
+---
+
+## 4. Coverage calculation — and why the friendly figure is the wrong one
+
+| | Sections | Lines |
 |---|---|---|
-| enthalten eine Datei, in der etwas geändert wurde | 33 | 55.773 (91 %) |
-| gar nicht berührt | **4** | **5.479 (9 %)** |
+| contain a file in which something was changed | 33 | 55,773 (91 %) |
+| not touched at all | **4** | **5,479 (9 %)** |
 
-Die Rechnung offen, damit sie nachprüfbar ist statt geglaubt: Die vier unberührten Abschnitte
-summieren sich gemessen auf 5.479 Zeilen; 61.252 − 5.479 = 55.773.
+The calculation in the open, so that it can be checked instead of believed: the four untouched
+sections add up to 5,479 lines as measured; 61,252 − 5,479 = 55,773.
 
-**Diese Zahl ist inzwischen achtmal veraltet** — 12 Abschnitte mit 17.242 Zeilen, dann 11 mit
-15.479, dann 10 mit 14.636, dann 9 mit 14.344, dann 8 mit 12.510, dann 7 mit 10.618, dann 6 mit 8.683, jetzt 4 mit 5.479. Jede Korrektur verschiebt sie: **Abschnitt 13**
-fiel mit `config_service.py` heraus, **Abschnitt 20** mit `update_notifier.py`, **Abschnitt 37**
-mit `token_security.py`, **Abschnitt 28** mit `configuration_save_service.py`, **Abschnitt 33** mit `app/bot/token.py`, **Abschnitt 22** mit `mech_evolutions.py`, **Abschnitt 07** und **21** mit der Übersetzung ins Englische (`scheduler_commands.py`, `animation_cache_service.py`). Das ist kein Mangel der Rechnung, sondern ihre Natur — und der Grund, sie
-am Ende zu messen statt sie mitzuführen.
+**This figure is by now eight times out of date** — 12 sections with 17,242 lines, then 11 with
+15,479, then 10 with 14,636, then 9 with 14,344, then 8 with 12,510, then 7 with 10,618, then 6 with 8,683, now 4 with 5,479. Every correction shifts it: **section 13**
+dropped out with `config_service.py`, **section 20** with `update_notifier.py`, **section 37**
+with `token_security.py`, **section 28** with `configuration_save_service.py`, **section 33** with `app/bot/token.py`, **section 22** with `mech_evolutions.py`, **section 07** and **21** with the translation into English (`scheduler_commands.py`, `animation_cache_service.py`). This is not a flaw of the calculation but its nature — and the reason to
+measure it at the end instead of carrying it along.
 
-**Diese 91 % sind keine Abdeckung, und sie dürfen nicht als solche gelesen werden.** „Berührt" heißt:
-In diesem Abschnitt liegt eine Datei, in der eine einzelne Zeile geändert wurde. Das ist keine
-Durchsicht.
+**These 91 % are not coverage, and they must not be read as such.** "Touched" means: this
+section contains a file in which a single line was changed. That is not a review.
 
-**Ehrlich ist: Kein einziger der 37 Abschnitte wurde systematisch durchgelesen.** Was stattgefunden
-hat, waren gezielte Suchen nach benannten Mustern (nackte `except:`, Umgebungslesungen,
-zeichengleiche Zwillinge, Aufrufstellen) und punktuelle Korrekturen. Diese Suchen waren mechanisch
-und vollständig — aber sie prüfen je eine Frage, nicht den Abschnitt.
+**Honestly: not a single one of the 37 sections was read through systematically.** What did take
+place were targeted searches for named patterns (bare `except:`, environment reads, character-identical
+twins, call sites) and selective corrections. These searches were mechanical and complete — but
+each of them checks one question, not the section.
 
-### Die vier nie berührten Abschnitte
+### The four never-touched sections
 
-| Abschnitt | Zeilen | Inhalt |
+| Section | Lines | Content |
 |---|---|---|
-| 08 | 1.341 | `status_handlers.py` |
-| 14 | 1.435 | `channel_cleanup_service.py`, `embed_helper_service.py`, `status_overview_service.py`, … |
+| 08 | 1,341 | `status_handlers.py` |
+| 14 | 1,435 | `channel_cleanup_service.py`, `embed_helper_service.py`, `status_overview_service.py`, … |
 | 15 | 708 | `docker_client_pool.py` |
-| 26 | 1.995 | `scheduler.py` |
+| 26 | 1,995 | `scheduler.py` |
 
-Auffällig darunter: **Abschnitt 26** (`scheduler.py` — die dokumentierte Z5-Ausnahme sitzt dort).
-Er wurde von einem zweiten Modell gelesen (Punkt 5), aber weiterhin nicht von mir — was dort steht,
-stammt aus geprüften Meldungen, nicht aus eigener Lektüre.
+Notable among them: **section 26** (`scheduler.py` — the documented Z5 exception lives there).
+It was read by a second model (point 5), but still not by me — what is stated there comes from
+checked reports, not from my own reading.
 
-**Abschnitt 37** (`token_security.py` — Z9) stand hier bis zur Korrektur der Token-Anzeige
-ebenfalls; er ist seitdem berührt. Gelesen habe ich ihn deshalb trotzdem nicht am Stück — berührt
-heißt auch hier nur, dass in dieser Datei Zeilen geändert wurden.
+**Section 37** (`token_security.py` — Z9) was also listed here until the correction of the token
+display; it has been touched since. That still does not mean I read it in one go — here too,
+touched only means that lines in this file were changed.
 
-**Abschnitt 28** (`configuration_page_service.py`, …) ist seit Commit 16eca1e berührt. Dort habe
-ich ihn **nicht** ausgetragen: Die Datei änderte sich ohne Zeilendifferenz, keine Kopfzeile
-bewegte sich — und „berührt" hatte ich an den Kopfzeilen abgelesen statt an der Dateiliste des
-Diffs. Aufgefallen ist es erst im Folgecommit, als dieselbe Abschnittsnummer eine Kopfzeilenänderung
-zeigte. Berichtigt in dem Commit, der `configuration_save_service.py` umstellt.
+**Section 28** (`configuration_page_service.py`, …) has been touched since commit 16eca1e. I did
+**not** remove it from the list there: the file changed without a line difference, no header line
+moved — and I had read "touched" off the header lines instead of off the diff's file list. It
+only came to light in the following commit, when the same section number showed a header line
+change. Corrected in the commit that switches over `configuration_save_service.py`.
 
 ---
 
-## 5. Durchsicht mit einem anderen Modell — **durchgeführt**
+## 5. Review by a different model — **carried out**
 
-Drei Instanzen eines anderen Modells, je ein Abschnitt, ausgewählt nach „fällt es dem Nutzer auf"
-und nie berührt: **13** (Konfigurationsdienst — Z2, Z9, Migration), **26** (`scheduler.py` — die
-unbestätigte Z5-Ausnahme), **37** (`token_security.py` — Z9).
+Three instances of a different model, one section each, chosen by "would the user notice it" and
+never touched: **13** (configuration service — Z2, Z9, migration), **26** (`scheduler.py` — the
+unconfirmed Z5 exception), **37** (`token_security.py` — Z9).
 
-**Kein einziger Befund wurde ungeprüft übernommen.** Ein zweites Modell kann genauso danebenliegen
-wie das erste; die Durchsicht ist der Anfang der Arbeit, nicht ihr Ende. Das war keine Vorsicht um
-der Form willen: Von den gemeldeten Befunden hat **einer der Nachmessung nicht standgehalten**, und
-bei zweien stimmte die Sache, aber nicht die Begründung.
+**Not a single finding was adopted unchecked.** A second model can be just as wrong as the first;
+the review is the beginning of the work, not its end. That was not caution for form's sake: of the
+reported findings, **one did not survive re-measurement**, and for two the matter was right but
+not the reasoning.
 
-### Behoben — je ein Befund, ein Commit, ein voller Lauf
+### Fixed — one finding, one commit, one full run each
 
-| Commit | Befund |
+| Commit | Finding |
 |---|---|
-| `208ae81` | **Ein Lesefehler an der Konfiguration sah aus wie eine Neuinstallation.** `_load_json_file` liefert bei `PermissionError` die Vorgabe, die `web_ui_password_hash: None` trägt — und `app/auth.py:176` öffnet daraufhin `admin`/`setup` hinter 70 Routen. Der Schreibweg war gegen genau diesen Verlust bereits verteidigt (`config_service.py:385-386`), der Leseweg nicht. |
-| `9ea946c` | **Derselbe Container war für die einen Aufrufer da und für die anderen weg.** Zwei Leser derselben Dateien, entgegengesetzte Vorgabe bei fehlendem `active`. Der Schlüssel fehlt real: `config_migration_service.py:230` schreibt Alteinträge wortwörtlich, und das Wort `active` kommt dort nicht vor. |
-| `4aed2cb` | **Eine Spendenmeldung konnte halb geschrieben auf der Platte landen.** `open(…, "w")` + `json.dump` auf die Datei, die der Bot alle 30 Sekunden pollt — und der Leser **löscht** sie bei ungültigem JSON. Gemessen blieb kein leeres Nichts zurück, sondern ein gültig beginnender, mitten im Schlüssel abgebrochener Datensatz. |
+| `208ae81` | **A read error on the configuration looked like a fresh installation.** On `PermissionError`, `_load_json_file` returns the default, which carries `web_ui_password_hash: None` — and `app/auth.py:176` then opens `admin`/`setup` in front of 70 routes. The write path was already defended against exactly this loss (`config_service.py:385-386`), the read path was not. |
+| `9ea946c` | **The same container was there for some callers and gone for others.** Two readers of the same files, opposite defaults for a missing `active`. The key really is missing: `config_migration_service.py:230` writes old entries verbatim, and the word `active` does not occur there. |
+| `4aed2cb` | **A donation notice could land on disk half-written.** `open(…, "w")` + `json.dump` on the file that the bot polls every 30 seconds — and the reader **deletes** it on invalid JSON. As measured, what remained was not an empty nothing but a record that began validly and broke off in the middle of a key. |
 
-### Widerlegt — und das ist das wichtigste Ergebnis der Durchsicht
+### Refuted — and that is the most important result of the review
 
-**Die gemeldete Sommerzeit-Lücke im Scheduler existiert nicht.** Gemeldet war, dass fünf rohe
-`tz.localize(...)` gegen den hauseigenen `_localize`-Helfer stehen und ein Zeitauftrag deshalb in der
-Umstellungsnacht eine Stunde daneben feuert. Ich habe den Befund übernommen, präzisiert und von
-„zwei" auf fünf Stellen erweitert — und dann gemessen (pytz 2024.2, Europe/Berlin, Übergang
-2027-03-28):
+**The reported daylight-saving gap in the scheduler does not exist.** The report was that five raw
+`tz.localize(...)` calls stand against the in-house `_localize` helper and that a timed task
+therefore fires an hour off in the changeover night. I adopted the finding, made it more precise
+and extended it from "two" to five places — and then measured (pytz 2024.2, Europe/Berlin,
+transition 2027-03-28):
 
 ```
-naiv=02:30   roh=02:30+01:00   norm=03:30+02:00
-roh.utc=01:30+00:00            norm.utc=01:30+00:00
+naive=02:30   raw=02:30+01:00   norm=03:30+02:00
+raw.utc=01:30+00:00            norm.utc=01:30+00:00
 ```
 
-`normalize` ändert **nicht den Zeitpunkt**, nur seine Beschriftung. `scheduler.py:737` speichert den
-Zeitpunkt (`.timestamp()`). Die Aufgabe feuert also korrekt; der Unterschied ist allein in
-`strftime`-Ausgaben von Debug-Zeilen sichtbar. Der Helfer existiert laut eigenem Docstring gegen
-`replace(...) + timedelta`, nicht gegen `localize` allein — und an den Aufrufstellen wird die
-`timedelta` ohnehin auf ein **naives** Datum angewandt. Die Uneinheitlichkeit bleibt eine Stilfrage,
-kein Bruch. **Es gibt hier nichts zu korrigieren.**
+`normalize` does **not change the point in time**, only its label. `scheduler.py:737` stores the
+point in time (`.timestamp()`). The task therefore fires correctly; the difference is visible only
+in `strftime` output of debug lines. According to its own docstring, the helper exists against
+`replace(...) + timedelta`, not against `localize` alone — and at the call sites the
+`timedelta` is applied to a **naive** date anyway. The inconsistency remains a matter of style,
+not a break. **There is nothing to correct here.**
 
-Hätte ich stur „Test zuerst" gemacht, wäre das Rot ausgeblieben — aber erst nach der Arbeit.
+Had I stubbornly done "test first", the red would have failed to appear — but only after the work.
 
-### Ebenfalls weitgehend widerlegt: die Doppelausführung nach einem Neustart
+### Also largely refuted: the double execution after a restart
 
-Gemeldet war: Die Docker-Aktion (`scheduler.py:1829`) läuft vor `_persist_executed_task`
-(`:1877`); geht der Prozess dazwischen unter, steht der alte `next_run_ts` noch da, und nach dem
-Neustart führt `should_run()` den Auftrag ein zweites Mal aus. Ich hatte den Verdacht übernommen
-und als ungeprüft vermerkt.
+The report was: the Docker action (`scheduler.py:1829`) runs before `_persist_executed_task`
+(`:1877`); if the process dies in between, the old `next_run_ts` is still there, and after the
+restart `should_run()` executes the task a second time. I had adopted the suspicion and noted it
+as unchecked.
 
-**Der wahrscheinliche Fall ist bereits abgedeckt**, und zwar ausdrücklich:
-`scheduler_service.py:392-396` überspringt eine Ausführung, deren Termin schon gelaufen ist
-(*„Skip if this occurrence already ran (its reschedule could not be saved)"*), und `:453-454`
-vermerkt den Termin **vor** der Ausführung (*„Remember the executed occurrence before execute_task()
-moves next_run"*). Scheitert also nur das Speichern, während der Prozess weiterläuft, greift die
-Sperre. Gefunden habe ich sie erst spät: Ich hatte nach `running`, `in_progress`, `lock` und
-`idempot` gesucht — `_executed_runs` stand in keinem dieser Muster. Wieder nach erwarteten **Namen**
-gesucht statt den Weg gelesen.
+**The likely case is already covered**, and explicitly so:
+`scheduler_service.py:392-396` skips an execution whose occurrence has already run
+(*"Skip if this occurrence already ran (its reschedule could not be saved)"*), and `:453-454`
+records the occurrence **before** the execution (*"Remember the executed occurrence before execute_task()
+moves next_run"*). So if only the saving fails while the process keeps running, the lock takes
+effect. I found it only late: I had searched for `running`, `in_progress`, `lock` and
+`idempot` — `_executed_runs` matched none of these patterns. Once again I searched for expected
+**names** instead of reading the path.
 
-**Was übrig bleibt, ist vernachlässigbar.** `_executed_runs` ist ein Instanzfeld und nach einem
-echten Prozessneustart leer. Es bräuchte also einen Neustart, der *genau* in die Spanne zwischen
-Rückkehr der Docker-Aktion und dem Schreiben von `tasks.json` fällt — Millisekunden bis
-Zehntelsekunden — und binnen der Nachfrist abgeschlossen ist. Die Nachfrist ist inzwischen gemessen:
-`CHECK_INTERVAL = 60`, `MISSED_RUN_GRACE_SECONDS = max(180, 300)` = **300 Sekunden**
-(`scheduler_service.py:47,52`); `_service_loop:278-281` fährt beim Start sofort einen Zyklus, ohne
-vorher zu schlafen. Die Folge wäre ein zweiter Neustart desselben Containers — ärgerlich, kein
-Datenverlust.
+**What remains is negligible.** `_executed_runs` is an instance field and empty after a real
+process restart. It would therefore take a restart that falls *exactly* into the span between the
+Docker action returning and `tasks.json` being written — milliseconds to tenths of a second — and
+completes within the grace period. The grace period has since been measured:
+`CHECK_INTERVAL = 60`, `MISSED_RUN_GRACE_SECONDS = max(180, 300)` = **300 seconds**
+(`scheduler_service.py:47,52`); `_service_loop:278-281` runs a cycle immediately on start, without
+sleeping first. The consequence would be a second restart of the same container — annoying, no
+data loss.
 
-**Keine Zusicherung, kein Umbau.** Eine Absicherung verlangte, `_executed_runs` zu persistieren; das
-wäre eine neue Zusicherung über Absturzverhalten und damit die Entscheidung des Betreibers. Auf die
-Frage „warum soll der Prozess denn abstürzen?" ist die ehrliche Antwort: gar nicht — Neustarts sind
-zwar alltäglich (`rebuild.sh`, Unraid-Auto-Update, siehe B7), aber das Fenster ist zu schmal, als
-dass sich eine Absicherung lohnte.
+**No guarantee, no rebuild.** A safeguard would require persisting `_executed_runs`; that would
+be a new guarantee about crash behaviour and thus the operator's decision. To the question "why
+should the process crash at all?" the honest answer is: it shouldn't — restarts are
+commonplace (`rebuild.sh`, Unraid auto-update, see B7), but the window is too narrow for a
+safeguard to be worthwhile.
 
-### Betreiberfragen — nicht von mir zu entscheiden
+### Operator questions — not mine to decide
 
-1. **Die Sicherheitsanzeige setzte „sichere Quelle wird benutzt" mit „es existiert keine unsichere
-   Kopie" gleich — ENTSCHIEDEN UND BEHOBEN (2026-09-18).** War `DISCORD_BOT_TOKEN` gesetzt, kehrte
-   `verify_token_encryption_status` sofort zurück; `token_exists` blieb `False`. Folge:
-   `security_service.py:265` vergab 40/40 und „✅ Excellent", das Panel zeigte Grün, und
-   `auto_encrypt_token_on_startup` (verdrahtet in `app/bootstrap/runtime.py:194`) lief nie an —
-   **während ein Klartext-Token in `bot_config.json` liegen konnte.** Das berührte Z9.
-   **Entscheidung des Betreibers:** Warnung neben dem Grün, kein Punktabzug. Die Umgebungsvariable
-   ist richtig und behält ihre 40/40; zusätzlich meldet die Anzeige nun die Klartext-Kopie. Dass die
-   Warnung sichtbar wird, ist geprüft und nicht angenommen: `_token_security_modal.html:181-186`
-   rendert die `recommendations`-Liste unter eigener Überschrift.
-   **Was dabei NICHT eintrat:** Ich hatte zwei absichtlich geschriebene Tests als Opfer angekündigt
-   (`test_crypto_cache.py:272-274`, `test_utils_completion.py:530-534`). Gemessen blieben beide
-   grün — ihre Vorrichtungen legen ein leeres Konfigurationsverzeichnis an, dort ändert der
-   entfallene Rücksprung nichts. Die Ankündigung war falsch, die Berichtigung davor richtig.
-   **Ein Nebeneffekt, der nicht eingebaut wurde:** Ohne Schutz hätte der Code künftig „⚠️ No bot
-   token configured" auf einer sauberen Anlage gemeldet, die den Token ausschließlich über die
-   Umgebungsvariable bezieht. Diese Meldung erscheint jetzt nur noch, wenn wirklich kein Token da ist.
-   *Entlastend war schon vorher:* `/encrypt-token` hängt **nicht** an diesem Status.
-2. **`migrate_to_environment_variable` ist tot — und als tot festgeschrieben.** Die Methode liest
-   `self.config_manager`, gesetzt wird nur `self.config_service` (`:51-59`). Der `AttributeError`
-   wird bei `:247` gefangen, der Betreiber sieht den rohen Python-Text als Fehlermeldung.
-   `test_crypto_cache.py:332-340` prüft genau diesen Weg als erwartetes Verhalten;
-   `test_utils_completion.py:1133` setzt das fehlende Attribut von außen und prüft damit einen
-   Erfolgspfad, den es produktiv nicht gibt — ein Spiegeltest.
-3. **Welche `active`-Vorgabe gilt.** Korrigiert wurde auf „fehlt heißt aktiv", weil diese Regel an
-   zwei Stellen als Kommentar im Code steht und von zwei Tests festgenagelt ist, während die
-   Gegenseite keinen Test hat. Die Wahl selbst gehört dir.
-4. **27 Dateien leiten das Konfigurationsverzeichnis eigenständig her** (gemessen, ~44 Stellen).
-   `DDC_CONFIG_DIR` beachten davon **sechs** — `container_status_service.py:135` sogar mit
-   abweichender Vorgabe (`/app/config`). Drei Stellen fallen auf ein **relatives** `Path("config")`
-   zurück, das vom Arbeitsverzeichnis abhängt. Das ist Stufe 2 Punkt 3 in großem Maßstab, aber 27
-   Dateien zusammenzulegen ist ein Umbau ohne wartenden Test — deshalb nicht angefasst.
-5. **`ScheduledTask` trägt keinen Kanal** (`__slots__`, `scheduler.py:167-172`: 21 Felder, keines
-   kanalbezogen). Eine erneute Kanalrechtsprüfung zur Ausführungszeit ist damit für **keinen**
-   Zeitauftrag möglich — nicht nur für die dokumentierte Web-UI-Ausnahme. Selbst nachgesehen.
+1. **The security display equated "a secure source is being used" with "no insecure copy
+   exists" — DECIDED AND FIXED (2026-09-18).** If `DISCORD_BOT_TOKEN` was set,
+   `verify_token_encryption_status` returned immediately; `token_exists` stayed `False`. Consequence:
+   `security_service.py:265` awarded 40/40 and "✅ Excellent", the panel showed green, and
+   `auto_encrypt_token_on_startup` (wired in `app/bootstrap/runtime.py:194`) never ran —
+   **while a plaintext token could be sitting in `bot_config.json`.** This touched Z9.
+   **The operator's decision:** a warning next to the green, no point deduction. The environment
+   variable is right and keeps its 40/40; in addition the display now reports the plaintext copy. That the
+   warning becomes visible is checked, not assumed: `_token_security_modal.html:181-186`
+   renders the `recommendations` list under its own heading.
+   **What did NOT happen:** I had announced two deliberately written tests as casualties
+   (`test_crypto_cache.py:272-274`, `test_utils_completion.py:530-534`). As measured, both stayed
+   green — their fixtures create an empty configuration directory, and there the dropped early
+   return changes nothing. The announcement was wrong, the correction before it right.
+   **A side effect that was not built in:** without a guard, the code would in future have reported "⚠️ No bot
+   token configured" on a clean installation that obtains the token exclusively from the
+   environment variable. This message now appears only when there really is no token.
+   *Already exonerating before:* `/encrypt-token` does **not** depend on this status.
+2. **`migrate_to_environment_variable` is dead — and pinned down as dead.** The method reads
+   `self.config_manager`, but only `self.config_service` is set (`:51-59`). The `AttributeError`
+   is caught at `:247`, and the operator sees the raw Python text as the error message.
+   `test_crypto_cache.py:332-340` checks exactly this path as expected behaviour;
+   `test_utils_completion.py:1133` sets the missing attribute from outside and thereby checks a
+   success path that does not exist in production — a mirror test.
+3. **Which `active` default applies.** It was corrected to "missing means active", because this rule
+   is written as a comment in the code in two places and is nailed down by two tests, while the
+   other side has no test. The choice itself is yours.
+4. **27 files derive the configuration directory on their own** (measured, ~44 places).
+   Of these, **six** respect `DDC_CONFIG_DIR` — `container_status_service.py:135` even with a
+   different default (`/app/config`). Three places fall back to a **relative** `Path("config")`
+   that depends on the working directory. This is stage 2 point 3 on a large scale, but merging 27
+   files is a rebuild without a waiting test — therefore not touched.
+5. **`ScheduledTask` carries no channel** (`__slots__`, `scheduler.py:167-172`: 21 fields, none
+   channel-related). A renewed channel-permission check at execution time is therefore possible for **no**
+   timed task — not only for the documented Web UI exception. Checked myself.
 
-### Kleinbefunde, bewusst tief eingeordnet
+### Minor findings, deliberately ranked low
 
-- `update_notifier.py:63` schrieb nicht-atomar — **behoben**, siehe unten. `mech_reset_service.py:243`
-  hat dieselbe Bauart und bleibt **unkorrigiert**: Die Methode baut ihre Nutzlast selbst, es gibt
-  keinen Injektionspunkt von außen, und ein Fehlschlag ließe sich nur durch Attrappieren von
-  `json.dump` erzwingen — dann prüfte der Test die Attrappe. Anhalten, wo sich nicht messen lässt,
-  was man ändert. Ärgerlich ist der Fall trotzdem: Dieselbe Datei importiert `atomic_write_json` bei
-  `:25` und benutzt es zwölf Zeilen vorher bei `:202`, mit ausgeschriebener Begründung — eine
-  bewusste Umstellung, bei der eine Schwestermethode übrig blieb.
-- **Nebenbei gemessen:** `reset_evolution_mode` hat genau einen Aufrufer (`mech_reset_service.py:106`),
-  und dessen **Erfolgsflagge wird nicht ausgewertet** — bei `:107` wandert nur die Meldung in eine
-  Liste. Ein gescheiterter Rücksetzvorgang ginge als Teil eines erfolgreichen Gesamtrücksetzens durch.
-- `scheduler.py:438-448`: elf unerreichbare Zeilen hinter `return True` (`:436`), wortgleich aus
-  `_validate_monthly` kopiert. Harmlos — bis jemand sie „repariert".
+- `update_notifier.py:63` wrote non-atomically — **fixed**, see below. `mech_reset_service.py:243`
+  has the same construction and remains **uncorrected**: the method builds its payload itself, there is
+  no injection point from outside, and a failure could only be forced by stubbing
+  `json.dump` — then the test would check the stub. Stop where what one changes cannot be
+  measured. The case is annoying all the same: the same file imports `atomic_write_json` at
+  `:25` and uses it twelve lines earlier at `:202`, with a written-out justification — a
+  deliberate switch-over in which a sister method was left behind.
+- **Measured in passing:** `reset_evolution_mode` has exactly one caller (`mech_reset_service.py:106`),
+  and its **success flag is not evaluated** — at `:107` only the message goes into a
+  list. A failed reset would pass as part of a successful overall reset.
+- `scheduler.py:438-448`: eleven unreachable lines after `return True` (`:436`), copied word for word from
+  `_validate_monthly`. Harmless — until someone "repairs" them.
 
 ---
 
-## 6. Was NICHT geprüft wurde
+## 6. What was NOT checked
 
-- **Kein Abschnitt wurde systematisch durchgelesen.** Die 91 % „berührt" sagen darüber nichts.
-- **Keiner der 1.513 Namen im Prüfplan ist beurteilt.**
-- **Die vier nie berührten Abschnitte** (5.479 Zeilen, 9 % des Baums) sind in diesem Programm
-  ausschließlich von den mechanischen Suchen erfasst worden — nicht gelesen. Die Abschnitte 26 und
-  37 hat ein zweites Modell gelesen, ich nicht.
-- ~~Der Verdacht auf Doppelausführung nach einem Absturz~~ und ~~die unbekannte Poll-Frequenz~~
-  standen hier bis zum 2026-09-18. **Beides ist inzwischen gemessen** — Ergebnis unter Punkt 5,
-  „Widerlegt".
-- ~~Ob `_impl_schedule_*` in `cogs/scheduler_commands.py` erreichbar ist~~ — **geklärt am
-  2026-09-18: toter Code.** Die Erweiterungsliste (`app/bot/startup_steps/commands.py:26-30`) lädt
-  nur `docker_control`, `auto_action_monitor` und `translation_monitor`; nichts referenziert den
-  Mixin. Der lebende Weg für Zeitaufträge aus Discord ist der Knopf bei
-  `cogs/status_info_integration.py:2331`. Festgehalten in `SPEC.md` B11.
-- **Ob der Zuschnitt sinnvoll ist**, wurde nicht beurteilt. Er ist maschinell erzeugt und erfüllt die
-  Grenze; ob die Abschnitte thematisch zusammenhängen, hat niemand geprüft.
+- **No section was read through systematically.** The 91 % "touched" says nothing about that.
+- **None of the 1,513 names in the check plan has been judged.**
+- **The four never-touched sections** (5,479 lines, 9 % of the tree) were covered in this programme
+  exclusively by the mechanical searches — not read. Sections 26 and
+  37 were read by a second model, not by me.
+- ~~The suspicion of double execution after a crash~~ and ~~the unknown poll frequency~~
+  stood here until 2026-09-18. **Both have since been measured** — result under point 5,
+  "Refuted".
+- ~~Whether `_impl_schedule_*` in `cogs/scheduler_commands.py` is reachable~~ — **settled on
+  2026-09-18: dead code.** The extension list (`app/bot/startup_steps/commands.py:26-30`) loads
+  only `docker_control`, `auto_action_monitor` and `translation_monitor`; nothing references the
+  mixin. The live path for timed tasks from Discord is the button at
+  `cogs/status_info_integration.py:2331`. Recorded in `SPEC.md` B11.
+- **Whether the split makes sense** was not judged. It is machine-generated and meets the
+  limit; nobody has checked whether the sections belong together thematically.

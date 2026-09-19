@@ -1,45 +1,45 @@
-# Stufe 3 — Tests aussieben, die nicht fehlschlagen können
+# Stage 3 — Weeding out tests that cannot fail
 
-**Stand:** 2026-09-17. Von den vier Prüfungen der Stufe sind **drei vollständig durchgeführt**
-(„läuft er allein?", Spiegeltests, Funktion gegen Aufrufstelle), **eine nur stichprobenhaft**
-(Gegenprobe durch Zurückdrehen: genau ein Alttest von 3.962). Was nicht geprüft wurde, steht unten in
-Abschnitt 5 — und ist der wichtigere Teil dieses Berichts.
+**As of:** 2026-09-17. Of the four checks of this stage, **three have been carried out completely**
+("does it run alone?", mirror tests, function versus call site), **one only as a sample**
+(cross-check by reverting: exactly one legacy test out of 3,962). What was not checked is below in
+section 5 — and is the more important part of this report.
 
-*Der Kopf sagte bis 2026-09-17 „zwei stehen aus" und widersprach damit Abschnitt 3.
-Nachgezogen — dieselbe Sorte Selbstwiderspruch war heute schon dreimal zu bereinigen.*
+*Until 2026-09-17 the header said "two are outstanding" and thereby contradicted section 3.
+Brought up to date — the same kind of self-contradiction had to be cleaned up three times today already.*
 
-**Gelöscht wurde nichts.** Der Programmtext sagt: berichten, nichts ohne Einverständnis entfernen.
+**Nothing was deleted.** The programme text says: report, remove nothing without consent.
 
 ---
 
-## 1. „Läuft der Test auch allein?" — vollständig durchgeführt
+## 1. "Does the test also run alone?" — carried out completely
 
-**Jede** der 127 Testdateien wurde einzeln in einem eigenen Wegwerf-Container gestartet.
+**Every one** of the 127 test files was started individually in its own throwaway container.
 
 | | |
 |---|---|
-| Dateien geprüft | **127** |
-| halten auch allein | **125** |
-| scheitern allein | **1** (zwei Tests darin) |
-| Messaussetzer | 1 — **Fehler meines Werkzeugs**, siehe Abschnitt 4 |
+| files checked | **127** |
+| also pass alone | **125** |
+| fail alone | **1** (two tests in it) |
+| measurement dropout | 1 — **a bug in my tool**, see section 4 |
 
-### Der Befund ohne Befund gehört auch in den Bericht
+### The finding without a finding belongs in the report too
 
-Der AST-Zensus hatte **16 Stellen** gefunden, die `sys.modules` verändern — also die Modulwelt für
-alle nachfolgenden Tests umbauen. Ich hatte damit gerechnet, dass daraus reihenfolgeabhängige Tests
-werden. **Keine einzige davon erzeugt eine.** Meine Erwartung war düsterer als der Befund.
+The AST census had found **16 places** that modify `sys.modules` — i.e. rebuild the module world for
+all subsequent tests. I had expected this to produce order-dependent tests.
+**Not a single one of them produces one.** My expectation was bleaker than the finding.
 
-### Der eine Fund: `tests/unit/audit_2026_09/test_r2_g5_mech.py`
+### The one find: `tests/unit/audit_2026_09/test_r2_g5_mech.py`
 
-Zwei von 41 Tests darin scheitern allein:
+Two of the 41 tests in it fail alone:
 
 - `test_r1_7_startup_step_keeps_updates_made_while_it_runs`
 - `test_r1_7_startup_step_does_not_set_a_goal_at_max_level`
 
-In der Gruppe sind beide grün (`tests/unit/audit_2026_09`: 564 grün).
+In the group both are green (`tests/unit/audit_2026_09`: 564 green).
 
-**Sie scheitern nicht an ihrer eigenen Zusicherung, sondern schon am `import` in ihrer ersten
-Zeile.** Die Kette ist neun Ebenen lang:
+**They do not fail on their own assertion, but already on the `import` in their first
+line.** The chain is nine levels long:
 
 ```
 from app.bot.startup_steps import member_count
@@ -52,259 +52,259 @@ from app.bot.startup_steps import member_count
 AttributeError: 'types.SimpleNamespace' object has no attribute 'get_config'
 ```
 
-**Die Ursache liegt im Produktivcode, nicht im Test:** `docker_utils.py:76-80` ruft **fünfmal auf
-Modulebene** `_load_timeout_from_config(...)` auf, und jeder dieser Aufrufe ruft `load_config()`.
-Ein weiterer Fall steht in `progress_service.py:125` (`CFG = load_config()`), ein sechster in
-`docker_utils.py:676` (`_CACHE_TTL = _get_cache_ttl()`). **Ein `import` sollte nichts tun.** Hier
-liest er Konfiguration von der Platte — und kann dabei scheitern.
+**The cause lies in the production code, not in the test:** `docker_utils.py:76-80` calls
+`_load_timeout_from_config(...)` **five times at module level**, and each of these calls calls `load_config()`.
+Another case is in `progress_service.py:125` (`CFG = load_config()`), a sixth in
+`docker_utils.py:676` (`_CACHE_TTL = _get_cache_ttl()`). **An `import` should do nothing.** Here
+it reads configuration from disk — and can fail doing so.
 
-*Warum es in der Gruppe gutgeht — belegt, nicht vermutet:* `test_r2_g3_startup.py:42` importiert
-`app.bot` auf **Modulebene**, `test_pkg_f_startup.py:148` innerhalb eines Tests. Beide stehen in der
-alphabetischen Sammelreihenfolge **vor** `test_r2_g5_mech.py`, das als letzte Datei des Verzeichnisses
-kommt. Wenn es an die Reihe kommt, liegt die ganze Kette längst in `sys.modules` und der
-`load_config()`-Aufruf findet gar nicht mehr statt. Allein gestartet findet er statt — und trifft auf
-die Attrappe, die die `ps`-Fixture bei `:104` erst *nach* dem Import setzt.
+*Why it works in the group — verified, not assumed:* `test_r2_g3_startup.py:42` imports
+`app.bot` at **module level**, `test_pkg_f_startup.py:148` inside a test. Both come
+**before** `test_r2_g5_mech.py` in the alphabetical collection order, which comes as the last file of the directory.
+When its turn comes, the whole chain has long been in `sys.modules` and the
+`load_config()` call no longer happens at all. Started alone, it does happen — and hits
+the stub that the `ps` fixture only sets at `:104`, *after* the import.
 
-*Und das Sicherheitsnetz hat ein Loch:* `_load_timeout_from_config` fängt
-`(ConfigLoadError, KeyError, ValueError, TypeError)`. Der `AttributeError` ist **durchgeschlüpft**.
-Was `get_config()` sonst noch hinaufreichen kann, wurde **nicht** untersucht (Abschnitt 5).
+*And the safety net has a hole:* `_load_timeout_from_config` catches
+`(ConfigLoadError, KeyError, ValueError, TypeError)`. The `AttributeError` **slipped through**.
+What else `get_config()` can pass up was **not** investigated (section 5).
 
-**Einstufung nach „fällt es dem Nutzer auf":** Die beiden Tests sind nicht wertlos — sie prüfen
-etwas Echtes, aber nur, solange jemand anderes vorher importiert hat. Der schwerere Teil ist der
-Import mit Nebenwirkung. Im Betrieb ist die Konfiguration echt, der Fall also selten; scheitert er
-aber, kommt er als `ImportError` tief in einer neunstufigen Kette statt als verständliche Meldung.
+**Ranking by "does the user notice":** The two tests are not worthless — they check
+something real, but only as long as someone else has imported first. The more serious part is the
+import with a side effect. In operation the configuration is real, so the case is rare; but if it
+fails, it arrives as an `ImportError` deep in a nine-level chain instead of as an understandable message.
 
-> **Behoben am 2026-09-17** — für `docker_utils.py`, nicht für `progress_service.py:125`
-> (Begründung in Abschnitt 6). Die Werte laden jetzt beim ersten Zugriff statt beim Import.
-> Der wartende Test kam zuerst und war rot mit genau diesem Stapel;
-> `tests/spec/test_import_without_side_effects.py` hält das fest.
+> **Fixed on 2026-09-17** — for `docker_utils.py`, not for `progress_service.py:125`
+> (reasoning in section 6). The values now load on first access instead of on import.
+> The waiting test came first and was red with exactly this stack;
+> `tests/spec/test_import_without_side_effects.py` records this.
 >
-> **Der Wirkungsnachweis ist stärker als eine Mutation:** `test_r2_g5_mech.py` allein vorher
-> 2 von 41 rot, nachher **41 grün — ohne dass ein einziger Test angefasst wurde**. Die
-> Reihenfolgeabhängigkeit verschwand, weil ihre Ursache weg ist. Damit ist die Ursachenanalyse
-> dieses Abschnitts nicht mehr erschlossen, sondern belegt.
+> **The proof of effect is stronger than a mutation:** `test_r2_g5_mech.py` alone before:
+> 2 of 41 red, after: **41 green — without a single test being touched**. The
+> order dependence disappeared because its cause is gone. The cause analysis of this
+> section is therefore no longer inferred but verified.
 
 ---
 
-## 2. Gegenprobe durch Zurückdrehen — nur stichprobenhaft
+## 2. Cross-check by reverting — only as a sample
 
-Während der Stufen 1 und 2 wurde für **jede** neue Zusicherung die Gegenprobe gefahren: erst den
-Test rot sehen und den Grund prüfen, dann korrigieren. Zusätzlich wurde bei fünf Z7-Tests per
-**Mutation** belegt, dass sie greifen.
+During stages 1 and 2 the cross-check was run for **every** new assertion: first see the
+test red and check the reason, then fix. In addition, for five Z7 tests it was proven by
+**mutation** that they bite.
 
-Vom **Altbestand** wurde so genau **ein** Test von 3.962 geprüft — und **der war kaputt**:
-`tests/unit/extended/test_docker_infra_gaps.py` steuerte denselben Fehlerpfad an wie ein neuer Test
-und war seit jeher grün, weil sein `_bad_open` schon beim **Lesen** warf, lange vor dem Schreiben.
-Der erste Reparaturversuch war wirkungslos; belegt wurde das erst durch eine Mutation.
+Of the **legacy tests**, exactly **one** test out of 3,962 was checked this way — and **it was broken**:
+`tests/unit/extended/test_docker_infra_gaps.py` drove the same error path as a new test
+and had always been green, because its `_bad_open` already raised on **reading**, long before writing.
+The first repair attempt had no effect; that was only proven by a mutation.
 
-**Aus einer einzigen Probe folgt über die übrigen 3.961 exakt nichts** — auch nicht, dass es dort
-besser aussieht. Sie sagt nur: grün beweist nichts.
+**From a single sample, exactly nothing follows about the remaining 3,961** — not even that things look
+better there. It only says: green proves nothing.
 
-> **Korrektur, nachgetragen 2026-09-17.** Hier stand bis eben „drei von 3.962" und „Drei von 3.962
-> erlauben keine Hochrechnung". Die Zahl war nie ausgezählt, sie stammte aus meiner Erinnerung an
-> denselben Arbeitstag. Die Auszählung ergibt: Mutationsnachweise tragen drei `tests/spec`-Dateien —
-> die sind **neu**, nicht Altbestand. Der einzige mutationsgeprüfte Altbestandstest ist
-> `test_docker_infra_gaps.py`. Ein Treffer in `tests/unit/utils/test_crypto_cache.py:519`
-> („Mutation isolation") ist ein Fehltreffer der Textsuche und beschreibt einen Schlüssel-Cache.
+> **Correction, added 2026-09-17.** Until just now this said "three of 3,962" and "Three of 3,962
+> do not permit an extrapolation". The number was never counted; it came from my memory of
+> the same working day. The count shows: three `tests/spec` files carry mutation proofs —
+> those are **new**, not legacy tests. The only mutation-checked legacy test is
+> `test_docker_infra_gaps.py`. A hit in `tests/unit/utils/test_crypto_cache.py:519`
+> ("Mutation isolation") is a false hit of the text search and describes a key cache.
 >
-> *Beim Auszählen mitgefunden:* `tests/spec/test_z7_server_order_write.py` trägt **keinen**
-> Mutationsvermerk, obwohl die Mutation nachweislich gefahren wurde (belegt in SPEC.md Z10-Abschnitt
-> zu Z7). Vier Mutationen, drei vermerkt — dieselbe Lücke, nur in der Dokumentation.
+> *Found along the way while counting:* `tests/spec/test_z7_server_order_write.py` carries **no**
+> mutation note, although the mutation was demonstrably run (verified in the SPEC.md Z10 section
+> on Z7). Four mutations, three noted — the same gap, only in the documentation.
 >
-> Damit ist dies die sechste Zahl dieses Programms, die ich aus dem Gedächtnis statt aus einer
-> Messung übernommen hatte. Die fünf übrigen stehen in `STAGE0_INVENTORY.md`.
+> This makes it the sixth number of this programme that I had taken from memory instead of from a
+> measurement. The other five are in `STAGE0_INVENTORY.md`.
 
 ---
 
-## 3. Spiegeltests · Funktion gegen Aufrufstelle — durchgeführt (2026-09-17)
+## 3. Mirror tests · function versus call site — carried out (2026-09-17)
 
-### 3a. Funktion gegen Aufrufstelle — **ein Befund, behoben**
+### 3a. Function versus call site — **one finding, fixed**
 
-`app/web/app_factory.py:create_app` setzt die Flask-Anwendung aus elf Schritten zusammen. Jeder
-einzelne ist geprüft, die **Verdrahtung** war es nicht. Per Mutation belegt: Vier Schritte einzeln
-entfernt, `tests/test_web_factory.py` blieb **jedes Mal grün** — darunter `install_csrf_protection`.
-Der CSRF-Schutz konnte aus der Anwendung fallen, ohne dass die Suite es merkte.
+`app/web/app_factory.py:create_app` assembles the Flask application from eleven steps. Each
+individual one is tested; the **wiring** was not. Proven by mutation: four steps removed
+individually, `tests/test_web_factory.py` stayed **green every time** — among them `install_csrf_protection`.
+The CSRF protection could drop out of the application without the suite noticing.
 
-*Warum die vorhandenen Tests blind waren:* `test_web_factory.py` prüft Flask-Instanz, `/health` und
-`Content-Security-Policy` — damit ist `install_security_handlers` abgedeckt und sonst nichts.
-`test_bundle3_security.py` **ersetzt** `register_blueprints` und `register_routes` per `monkeypatch`,
-prüft also ausdrücklich nicht den echten Aufbau. `test_security_sast.py` importiert aus `app.web_ui`
-und überspringt bei `ImportError`.
+*Why the existing tests were blind:* `test_web_factory.py` checks the Flask instance, `/health` and
+`Content-Security-Policy` — that covers `install_security_handlers` and nothing else.
+`test_bundle3_security.py` **replaces** `register_blueprints` and `register_routes` via `monkeypatch`,
+so it explicitly does not check the real assembly. `test_security_sast.py` imports from `app.web_ui`
+and skips on `ImportError`.
 
-*Behoben* durch `tests/spec/test_app_factory_wiring.py`, per Mutation als wirksam belegt.
+*Fixed* by `tests/spec/test_app_factory_wiring.py`, proven effective by mutation.
 
-**Und der lehrreichste Fund der ganzen Stufe ist, dass meine erste Fassung dieses Tests selbst ein
-Spiegeltest war.** Sie zog die Erwartungsliste aus den *Aufrufen innerhalb* von `create_app`. Fällt
-ein Aufruf heraus, verschwindet er zugleich aus der Erwartung — der Test verglich die Datei mit sich
-selbst und konnte nicht fehlschlagen. Bei denselben Mutationen blieb er grün. Der Wächter
-`len(schritte) >= 8` fing es nicht: aus elf werden zehn, die Schwelle hält.
-Zweite Fassung: Erwartung aus den **Importen**, abgegrenzt über die **Signatur des Herkunftsmoduls**.
-Beides steht außerhalb des Prüflings.
+**And the most instructive find of the whole stage is that my first version of this test was itself a
+mirror test.** It took the expectation list from the *calls inside* `create_app`. If
+a call drops out, it disappears from the expectation at the same time — the test compared the file with
+itself and could not fail. Under the same mutations it stayed green. The guard
+`len(schritte) >= 8` (`schritte` = steps) did not catch it: eleven become ten, the threshold holds.
+Second version: expectation from the **imports**, delimited via the **signature of the module of origin**.
+Both lie outside the code under test.
 
-### 3b. Spiegeltests — **ein Befund, berichtet**
+### 3b. Mirror tests — **one finding, reported**
 
-*Wie gesucht wurde, und warum die erste Suche wertlos war:* Ein grobes Muster („Test liest Quelltext")
-fand **60** Dateien. Die allermeisten sind Fehlalarme: `read_text` steht in fast jedem Z7-Test, weil er
-eine **Datendatei in `tmp_path`** liest, um zu prüfen, ob sie nach einem Absturz noch vollständig ist —
-das Gegenteil eines Spiegeltests. Eingeengt auf Lesevorgänge aus dem **Produktivbaum** bleiben **6**.
+*How the search was done, and why the first search was worthless:* A coarse pattern ("test reads source code")
+found **60** files. The vast majority are false alarms: `read_text` appears in almost every Z7 test because it
+reads a **data file in `tmp_path`** to check whether it is still complete after a crash —
+the opposite of a mirror test. Narrowed down to reads from the **production tree**, **6** remain.
 
-Die Grenze, die zählt: *Legitim* ist, eine Produktivdatei gegen eine Regel zu prüfen, die außerhalb
-steht („kein nacktes `except:`", „keine zeichengleichen Zwillinge"). *Spiegel* ist, den Dateiinhalt
-selbst zur Erwartung zu machen — dann fällt bei einer Änderung beides weg.
+The boundary that matters: it is *legitimate* to check a production file against a rule that stands
+outside it ("no bare `except:`", "no character-identical twins"). It is a *mirror* to make the file content
+itself the expectation — then a change removes both sides.
 
-Fünf der sechs sind Vertragstests. Belegt statt behauptet: `test_settings_take_effect_everywhere.py`
-wurde per Mutation geprüft — eine einzige zurückgedrehte Stelle macht ihn rot
-(`docker_control.py:183`), wiederhergestellt wieder grün. Er **beißt**.
+Five of the six are contract tests. Verified rather than claimed: `test_settings_take_effect_everywhere.py`
+was checked by mutation — a single reverted spot turns it red
+(`docker_control.py:183`), restored it is green again. It **bites**.
 
-**Der eine Befund:** `tests/unit/audit_2026_09/test_pkg_d1_services.py:197-206` liest den Standardwert
-`60` per Regex aus `scheduler_service.py` und vergleicht die Panel-Vorbelegung damit — **beide Seiten
-aus derselben Quelle**. Gerettet wird er allein durch das angehängte `== "60"`, das die Erwartung von
-außen festnagelt. Ohne dieses Literal wäre er ein reiner Spiegeltest. *Nicht korrigiert:* Der Test ist
-im Ergebnis richtig, seine Bauart ist fragil. Das ist eine Entscheidung des Betreibers.
+**The one finding:** `tests/unit/audit_2026_09/test_pkg_d1_services.py:197-206` reads the default value
+`60` via regex from `scheduler_service.py` and compares the panel preset with it — **both sides
+from the same source**. It is saved solely by the appended `== "60"`, which pins the expectation down from
+outside. Without this literal it would be a pure mirror test. *Not corrected:* the test is
+correct in its result, its construction is fragile. That is a decision for the operator.
 
-*Alte Fassung dieses Abschnitts:* „Beide Prüfungen der Stufe 3 stehen aus." — erledigt.
+*Old version of this section:* "Both checks of stage 3 are outstanding." — done.
 
-Die Datengrundlage aus dem AST-Zensus:
+The data basis from the AST census:
 
-| Kategorie | Anzahl |
+| Category | Count |
 |---|---|
-| gar keine Prüfung | 85 |
-| nur triviale Prüfung (`is None`, `isinstance`, `len`) | 264 |
-| Mock-Tautologie | 3 |
-| `pytest.raises(Exception)` — fängt alles | 3 |
-| übersprungen | 6 |
-| **hohl insgesamt** | **361 von 4.017 (9,0 %)** |
+| no check at all | 85 |
+| only trivial check (`is None`, `isinstance`, `len`) | 264 |
+| mock tautology | 3 |
+| `pytest.raises(Exception)` — catches everything | 3 |
+| skipped | 6 |
+| **hollow in total** | **361 of 4,017 (9.0 %)** |
 
-Davon **134 allein in `tests/unit/extended/`** und **null in `tests/spec/`** — die 21 Dateien und 55
-Tests dieses Programms haben den hohlen Anteil nicht vergrößert. Das ist kein Verdienst, sondern die
-Mindestanforderung; es belegt aber, dass „erst Rot sehen, dann grün" Tests erzeugt, die der Zensus
-nicht beanstandet.
+Of these, **134 are in `tests/unit/extended/` alone** and **zero in `tests/spec/`** — the 21 files and 55
+tests of this programme have not increased the hollow share. That is no merit but the
+minimum requirement; it does show, however, that "see red first, then green" produces tests that the census
+does not object to.
 
-> **Zahlenstand berichtigt 2026-09-17.** Hier stand 362 von 3.962 bei 113 Dateien. Das war der
-> Zensus von gestern Nacht. Ich hatte ihn neu laufen lassen, danach aber die **alte** Ausgabedatei im
-> Scratchpad ausgewertet statt der frischen im Projektverzeichnis — `audit_tests.py` schreibt ohne
-> zweites Argument nach `./test_audit.json`. Aufgefallen ist es nur, weil eine Zahl sich nach 14
-> gelöschten und 55 neuen Tests **nicht gerührt** hatte. Siebte Zahl dieses Programms, die aus einer
-> überholten Quelle stammte.
+> **Figures corrected 2026-09-17.** This said 362 of 3,962 with 113 files. That was the
+> census from last night. I had re-run it, but then evaluated the **old** output file in the
+> scratchpad instead of the fresh one in the project directory — without a
+> second argument, `audit_tests.py` writes to `./test_audit.json`. It was only noticed because a number **had not moved**
+> after 14 deleted and 55 new tests. The seventh number of this programme that came from an
+> outdated source.
 
-### Entschieden: gelöscht wird nichts
+### Decided: nothing gets deleted
 
-Der Betreiber hat das Löschen wertloser Tests freigegeben. **Ich nutze die Freigabe nicht**, und das
-ist eine begründete Entscheidung, keine Bequemlichkeit.
+The operator has approved deleting worthless tests. **I am not using this approval**, and that
+is a reasoned decision, not convenience.
 
-Die 85 Tests „ohne Prüfung" wurden nach der Länge ihres Rumpfes aufgeschlüsselt: 13 einzeilig, der
-Rest 2 bis 12 Anweisungen. Die **dreizehn einzeiligen sind vollständig gelesen** — keiner ist leer.
-Zwölf sichern zu, dass ein Aufruf nicht wirft (`_debug_time_conversion` mit kaputter Eingabe,
-`_log_task_deletion` mit fehlenden Schlüsseln, `_perform_sync_cache_warmup` bei fehlendem Modul). Das
-ist eine schwache, aber echte Zusicherung auf Pfaden, die sonst niemand berührt. Sie zu löschen
-verbessert nichts und nimmt Abdeckung weg.
+The 85 tests "without a check" were broken down by the length of their body: 13 single-line, the
+rest 2 to 12 statements. The **thirteen single-line ones have been read in full** — none is empty.
+Twelve assert that a call does not raise (`_debug_time_conversion` with broken input,
+`_log_task_deletion` with missing keys, `_perform_sync_cache_warmup` with a missing module). That
+is a weak but real assertion on paths nobody else touches. Deleting them
+improves nothing and takes coverage away.
 
-**Und einer ist besser als seine Kategorie:**
-`test_animation_cache_service.py:728` setzt `side_effect=AssertionError("should not reach")` — der
-Test **fällt um**, wenn der Code den verbotenen Pfad nimmt. Die Zusicherung steht in der Attrappe,
-nicht in einem `assert`. Der Zensus sieht sie nicht.
+**And one is better than its category:**
+`test_animation_cache_service.py:728` sets `side_effect=AssertionError("should not reach")` — the
+test **falls over** if the code takes the forbidden path. The assertion sits in the stub,
+not in an `assert`. The census does not see it.
 
-**Das ist ein Befund über das Messwerkzeug selbst**, und er ist ausgezählt statt geschätzt:
-**Drei** der 85 tragen ihre Zusicherung in einem `side_effect` und werden vom Zensus trotzdem als
-„gar keine Prüfung" geführt — `test_animation_cache_service.py:701`, `:728` und `:1221`. Übrig
-bleiben **82** ohne erkennbare Zusicherung.
+**This is a finding about the measuring tool itself**, and it is counted rather than estimated:
+**Three** of the 85 carry their assertion in a `side_effect` and are nevertheless listed by the census as
+"no check at all" — `test_animation_cache_service.py:701`, `:728` and `:1221`. That leaves
+**82** without a recognisable assertion.
 
-`scripts/audit_tests.py` zählt `assert`, `pytest.raises`, `mock.assert_*`, `pytest.fail()` und
-Helfer, die `assert*`/`verify*`/`check_*` heißen. Ein `side_effect=AssertionError(...)` steht in
-keiner dieser Formen — die Zusicherung wandert in die Attrappe, und das Werkzeug sieht sie nicht.
-Der Zensus unterschätzt die Abdeckung damit, statt sie zu überschätzen; das ist die harmlosere
-Richtung, aber es ist eine Ungenauigkeit, und sie gehört benannt.
+`scripts/audit_tests.py` counts `assert`, `pytest.raises`, `mock.assert_*`, `pytest.fail()` and
+helpers named `assert*`/`verify*`/`check_*`. A `side_effect=AssertionError(...)` is in
+none of these forms — the assertion moves into the stub, and the tool does not see it.
+The census thereby underestimates the coverage instead of overestimating it; that is the more harmless
+direction, but it is an inaccuracy, and it deserves to be named.
 
-Die Kategorie „nur `mock.assert_*`" (65 Tests) zählt **nicht** als hohl — sie prüft die
-**Aufrufstelle** und ist damit ein Vorzug, kein Mangel.
+The category "only `mock.assert_*`" (65 tests) does **not** count as hollow — it checks the
+**call site** and is therefore a strength, not a flaw.
 
-### Eine eigene Gattung, drei davon gelesen
+### A genus of its own, three of them read
 
-Sieben der hohlen Tests in Risikonähe heißen `*_swallows_*`, `*_handles_bad_*` oder `*_is_caught`.
-Ihr gesamter Rumpf ist: Funktion aufrufen, sie soll nicht werfen. Sie *können* fehlschlagen, nageln
-aber nur fest, dass nichts fliegt — nie, ob das Wegräumen das **Richtige** tat.
+Seven of the hollow tests near risk are named `*_swallows_*`, `*_handles_bad_*` or `*_is_caught`.
+Their entire body is: call the function, it must not raise. They *can* fail, but
+pin down only that nothing blows up — never whether the clean-up did the **right** thing.
 
-Drei wurden vollständig gelesen, samt der Code-Stellen dahinter. **Ergebnis: keine der drei
-Code-Stellen rechtfertigt einen Eingriff.** Der Befund sind die Tests, nicht der Code. Details und
-die zwei Fehlreihungen, die mir dabei unterliefen, stehen in
-`STAGE0_INVENTORY.md`, Abschnitt zum Zensus.
-
----
-
-## 4. Das Messwerkzeug war selbst kaputt
-
-Dreimal meldete meine Auswertungsschleife „keine Messung" für eine Gruppe, die in Wahrheit
-durchgelaufen war. Einmal wurde daraus stillschweigend eine um 447 zu niedrige Gesamtzahl.
-
-**Ursache, vollständig bewiesen:** Die Schleife wertete mit `echo "$R" | grep` aus. Die Shell ist
-zsh, und dessen eingebautes `echo` deutet Rückwärtsschrägstrich-Folgen aus. Die Datei
-`tests/unit/services/mech/test_animation_cache_service.py` enthält einen parametrisierten Test, dessen
-Name die Zeichenkette `\x00` trägt (`test_xor_is_symmetric[\x00\x01\x02\x03]`). `echo` macht daraus
-ein **echtes NUL-Byte**; `grep` behandelt die Eingabe daraufhin als binär und gibt für Treffer
-**nichts** mehr aus — nicht `0`, sondern leer.
-
-Belegt an derselben Ausgabe: 0 NUL im Original → 1 NUL nach `echo` → `grep` ohne `-a` leer, mit `-a`
-findet es die Zeile. Mit `printf '%s\n'`: 0 NUL, Zeile gefunden. Das erklärt auch, warum ausgerechnet
-die drei Gruppen betroffen waren, die genau diese Datei enthalten.
-
-**Behoben** und im Maßstab nachgewiesen: Vor der Korrektur meldete der Gesamtlauf
-`FEHLENDE_MESSUNGEN=1`, danach `0` — bei 43 von 43 Gruppen mit je genau einem Zählwert.
-
-**Aufgefallen ist es nur, weil vor jedem Lauf eine Zahl angesagt war.** Beim ersten Mal wich das
-Ergebnis um 444 ab statt um 3. Ohne diese Vorhersage wäre es durchgegangen — der Wächter, der es
-schließlich fing, existierte da noch nicht.
+Three were read in full, together with the code locations behind them. **Result: none of the three
+code locations justifies an intervention.** The finding is the tests, not the code. Details and
+the two mis-rankings I made along the way are in
+`STAGE0_INVENTORY.md`, section on the census.
 
 ---
 
-## 5. Was NICHT geprüft wurde
+## 4. The measuring tool itself was broken
 
-- **Praktisch der gesamte Altbestand** wurde nie per Mutation oder Zurückdrehen geprüft. Genau
-  **ein** Test von damals 3.962 ist so geprüft worden (Abschnitt 2) — über die übrigen ist nichts
-  bekannt außer: sie sind grün. Der Baum zählt heute 4.017 Testfunktionen in 134 Dateien; die 55
-  hinzugekommenen sind sämtlich mit gesehenem Rot entstanden, was für den Altbestand nichts besagt.
-  (Hier stand zunächst 3.959, dann 3.961 — beide aus überholten Zensus-Ständen.)
-- **Was `get_config()` werfen kann.** Sein Rumpf enthält weder `raise` noch `except`; er reicht
-  weiter, was `_migrate_legacy_config_if_needed`, `_loader_service.load_modular_config`,
-  `_decrypt_token_if_needed` und der Cache-Dienst werfen. Diese vier wurden **nicht** gelesen.
-  Belegt ist allein, dass der `AttributeError` durch das Netz in `docker_utils.py:69` schlüpfte.
-- **Ob die sechs Importe mit Nebenwirkung im Betrieb je zuschlagen.** `progress/runtime.py:100-112`
-  ist gegen `FileNotFoundError` und `json.JSONDecodeError` abgesichert; gegen `OSError` beim
-  Schreiben nicht. Ob das im echten Betrieb erreichbar ist, wurde nicht ermittelt.
-- **Die übrigen hohlen Tests** wurden gezählt und einsortiert, aber nicht einzeln gelesen. Von den
-  361 sind 13 vollständig gelesen (die einzeiligen ohne Prüfung, Abschnitt 3) und 3 als vom Zensus
-  falsch eingestuft belegt. Über die restlichen 345 sagt dieser Bericht nichts.
-- **Ob weitere Zusicherungen in Attrappen stecken.** Gezählt wurde nur `side_effect=AssertionError`
-  und `pytest.raises`. Andere Formen — ein `Mock`, dessen Rückgabe später verglichen wird, oder ein
-  `autospec`, das eine falsche Signatur auffliegen ließe — sind nicht erfasst.
+Three times my evaluation loop reported "no measurement" for a group that had in fact
+run through. Once this silently became a total that was 447 too low.
+
+**Cause, fully proven:** The loop evaluated with `echo "$R" | grep`. The shell is
+zsh, and its built-in `echo` interprets backslash sequences. The file
+`tests/unit/services/mech/test_animation_cache_service.py` contains a parametrised test whose
+name carries the string `\x00` (`test_xor_is_symmetric[\x00\x01\x02\x03]`). `echo` turns this into
+a **real NUL byte**; `grep` then treats the input as binary and outputs
+**nothing** for matches — not `0`, but empty.
+
+Verified on the same output: 0 NUL in the original → 1 NUL after `echo` → `grep` without `-a` empty, with `-a`
+it finds the line. With `printf '%s\n'`: 0 NUL, line found. This also explains why precisely
+the three groups containing exactly this file were affected.
+
+**Fixed** and proven at scale: before the fix the full run reported
+`FEHLENDE_MESSUNGEN=1` (missing measurements), afterwards `0` — with 43 of 43 groups each having exactly one count value.
+
+**It was noticed only because a number had been announced before every run.** The first time, the
+result deviated by 444 instead of 3. Without this prediction it would have slipped through — the guard that
+finally caught it did not exist yet at that point.
 
 ---
 
-## 6. Vorschläge — zu entscheiden, nicht umgesetzt
+## 5. What was NOT checked
 
-1. ~~**Die sechs Importe mit Nebenwirkung entschärfen.**~~ **Erledigt am 2026-09-17** — für
-   `docker_utils.py` (fünf Zeitwerte plus `_CACHE_TTL`), **nicht** für `progress_service.py:125`.
-   Die Werte laden jetzt beim ersten Zugriff statt beim Import, über ein modulweites `__getattr__`
-   (PEP 562); für jeden Leser sieht alles unverändert aus. Der wartende Test, den dieser Vorschlag
-   noch vermisste, steht als `tests/spec/test_import_without_side_effects.py` und prüft in einem
-   **eigenen Prozess**, dass ein `import` keine Konfiguration liest.
-   *`progress_service.py:125` bleibt bewusst wie es ist:* Fünf Testdateien weisen
-   `progress_service.CFG` von außen zu, es ist damit faktisch eine Schnittstelle. Es träge zu machen
-   wäre kein Umbau ohne wartenden Test, sondern einer **gegen** fünf wartende Tests.
-2. ~~**Die beiden reihenfolgeabhängigen Tests** würden dadurch von selbst allein laufen.~~
-   **Bestätigt:** `test_r2_g5_mech.py` allein vorher 2 von 41 rot, nachher **41 grün — ohne dass ein
-   einziger Test angefasst wurde**. Das ist der Wirkungsnachweis der Korrektur und zugleich der
-   Beleg, dass die Ursachenanalyse dieses Berichts stimmte.
-3. **Das Sicherheitsnetz in `_load_timeout_from_config`** fängt vier Ausnahmetypen. Ob das die
-   richtigen sind, lässt sich erst sagen, wenn bekannt ist, was `get_config()` werfen kann.
-4. **Reihenfolgeabhängigkeit dauerhaft messen.** Der Einzeldurchlauf über alle 127 Dateien war eine
-   einmalige Aktion. Als wiederkehrende Prüfung würde er Rückfälle fangen — kostet aber 127
-   Container-Starts.
+- **Practically the entire legacy test base** was never checked by mutation or reverting. Exactly
+  **one** test of the then 3,962 has been checked this way (section 2) — nothing is known about the rest
+  except: they are green. Today the tree counts 4,017 test functions in 134 files; the 55
+  added ones all came into being with red seen first, which says nothing about the legacy tests.
+  (This first said 3,959, then 3,961 — both from outdated census states.)
+- **What `get_config()` can raise.** Its body contains neither `raise` nor `except`; it passes
+  on whatever `_migrate_legacy_config_if_needed`, `_loader_service.load_modular_config`,
+  `_decrypt_token_if_needed` and the cache service raise. These four were **not** read.
+  The only thing verified is that the `AttributeError` slipped through the net in `docker_utils.py:69`.
+- **Whether the six imports with side effects ever strike in operation.** `progress/runtime.py:100-112`
+  is guarded against `FileNotFoundError` and `json.JSONDecodeError`; not against `OSError` on
+  writing. Whether that is reachable in real operation was not determined.
+- **The remaining hollow tests** were counted and sorted, but not read individually. Of the
+  361, 13 have been read in full (the single-line ones without a check, section 3) and 3 proven to be
+  misclassified by the census. About the remaining 345 this report says nothing.
+- **Whether further assertions are hidden in stubs.** Only `side_effect=AssertionError`
+  and `pytest.raises` were counted. Other forms — a `Mock` whose return value is compared later, or an
+  `autospec` that would expose a wrong signature — are not covered.
 
-**Stand 2026-09-17:** Punkt 1 und 2 sind umgesetzt und gemessen (siehe oben). Punkt 3 und 4 sind es
-**nicht** — beide berühren Produktivcode oder Laufzeit und bleiben Entscheidungen des Betreibers.
+---
 
-*Punkt 1 wurde nicht in der Form umgesetzt, in der er hier ursprünglich stand.* Der Vorschlag nannte
-sechs Stellen in einem Atemzug. Beim Nachzählen der Aufrufstellen zeigte sich, dass
-`progress_service.CFG` von fünf Testdateien von außen zugewiesen wird und damit eine Schnittstelle
-ist — der Vorschlag war dort schlecht, und er war es, weil ich ihn geschrieben hatte, ohne die
-Aufrufstellen zu zählen. Umgesetzt wurde deshalb nur `docker_utils.py`.
+## 6. Proposals — to be decided, not implemented
+
+1. ~~**Defuse the six imports with side effects.**~~ **Done on 2026-09-17** — for
+   `docker_utils.py` (five timeout values plus `_CACHE_TTL`), **not** for `progress_service.py:125`.
+   The values now load on first access instead of on import, via a module-level `__getattr__`
+   (PEP 562); to every reader everything looks unchanged. The waiting test that this proposal
+   still lacked exists as `tests/spec/test_import_without_side_effects.py` and checks in a
+   **separate process** that an `import` reads no configuration.
+   *`progress_service.py:125` deliberately stays as it is:* five test files assign
+   `progress_service.CFG` from outside, so it is effectively an interface. Making it lazy
+   would not be a refactoring without a waiting test, but one **against** five waiting tests.
+2. ~~**The two order-dependent tests** would then run alone by themselves.~~
+   **Confirmed:** `test_r2_g5_mech.py` alone before: 2 of 41 red, after: **41 green — without a
+   single test being touched**. That is the proof of effect of the fix and at the same time the
+   evidence that the cause analysis of this report was right.
+3. **The safety net in `_load_timeout_from_config`** catches four exception types. Whether those are the
+   right ones can only be said once it is known what `get_config()` can raise.
+4. **Measure order dependence permanently.** The individual run over all 127 files was a
+   one-off action. As a recurring check it would catch regressions — but it costs 127
+   container starts.
+
+**As of 2026-09-17:** Points 1 and 2 are implemented and measured (see above). Points 3 and 4 are
+**not** — both touch production code or runtime and remain decisions for the operator.
+
+*Point 1 was not implemented in the form in which it originally stood here.* The proposal named
+six places in one breath. When recounting the call sites it turned out that
+`progress_service.CFG` is assigned from outside by five test files and is thus an interface
+— the proposal was bad there, and it was bad because I had written it without counting the
+call sites. Therefore only `docker_utils.py` was implemented.
