@@ -18,8 +18,8 @@ cogs/control_helpers.py:1-188
 ## Abschnitt 02  (1899 Zeilen, 1 Stuecke)
 cogs/control_ui.py:1-1899
 
-## Abschnitt 03  (1496 Zeilen, 1 Stuecke)
-cogs/control_ui.py:1900-3395
+## Abschnitt 03  (1548 Zeilen, 1 Stuecke)
+cogs/control_ui.py:1900-3447
 
 ## Abschnitt 04  (1935 Zeilen, 1 Stuecke)
 cogs/docker_control.py:1-1935

@@ -2519,6 +2519,36 @@ class MechCollapseButton(Button):
         # Create the collapsed embed (only mech animation, no details)
         return await self.cog._create_overview_embed_collapsed(ordered_servers, config)
 
+async def _mechknopf_gebremst(interaction: discord.Interaction, name: str) -> bool:
+    """Spam-Bremse fuer Mech-Knoepfe, die noch nicht geantwortet haben.
+
+    True heisst: abgewiesen, der Rueckruf kehrt zurueck. Diese Knoepfe fragten
+    den Dienst frueher gar nicht - ihre Regler im Panel (mech_donate,
+    mech_display, mech_story, mech_music) bewegten nichts, und die
+    Minutengrenze erreichte sie nicht. Der Name muss mit "mech_<regler>_"
+    beginnen: Nur daraus leitet get_button_cooldown den Regler ab.
+    Wie an den uebrigen Knoepfen gilt: Ein Fehler im Dienst sperrt nicht.
+    """
+    from services.infrastructure.spam_protection_service import get_spam_protection_service
+    spam_service = get_spam_protection_service()
+    if not spam_service.is_enabled():
+        return False
+    try:
+        if spam_service.is_on_cooldown(interaction.user.id, name):
+            remaining = spam_service.get_remaining_cooldown(interaction.user.id, name)
+            await interaction.response.send_message(
+                _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                    remaining=remaining
+                ),
+                ephemeral=True
+            )
+            return True
+        spam_service.add_user_cooldown(interaction.user.id, name)
+    except (RuntimeError, AttributeError, KeyError) as e:
+        logger.error(f"Spam protection error for button '{name}': {e}", exc_info=True)
+    return False
+
+
 class MechDonateButton(Button):
     """Button to trigger donation functionality from expanded mech view."""
 
@@ -2536,6 +2566,11 @@ class MechDonateButton(Button):
     async def callback(self, interaction: discord.Interaction) -> None:
         """Trigger the donate functionality."""
         try:
+            # self.custom_id = mech_donate_<kanal>. Der private Spendenknopf
+            # leitet hierher weiter und teilt sich damit diesen Eimer.
+            if await _mechknopf_gebremst(interaction, self.custom_id):
+                return
+
             # Call the existing donate interaction handler
             await self.cog._handle_donate_interaction(interaction)
 
@@ -3002,6 +3037,10 @@ class MechDisplayButton(Button):
                 await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
                 return
 
+            # self.custom_id = mech_display_<stufe> -> Regler mech_display.
+            if await _mechknopf_gebremst(interaction, self.custom_id):
+                return
+
             # Defer response to prevent Discord interaction timeout
             await interaction.response.defer(ephemeral=True)
 
@@ -3108,6 +3147,11 @@ class EpilogueButton(Button):
                 await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
                 return
 
+            # Nicht self.custom_id ("epilogue_button"): Ohne "mech_story_"
+            # vorn erreichte der Name den Story-Regler nie.
+            if await _mechknopf_gebremst(interaction, "mech_story_epilogue"):
+                return
+
             epilogue_text = """**Epilogue: W#!sp*r of th3 [ERROR_CODE_11]**
 
 C3n†ur!3§ l4†3r, th3 m3chs 4r3… [D4T4 C0RRUPT].
@@ -3185,6 +3229,10 @@ class ReadStoryButton(Button):
             # Check if donations are disabled
             if is_donations_disabled():
                 await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                return
+
+            # Nicht self.custom_id (read_story_<stufe>) - siehe EpilogueButton.
+            if await _mechknopf_gebremst(interaction, f"mech_story_{self.level}"):
                 return
 
             # Defer response to prevent timeout during story loading
@@ -3265,6 +3313,10 @@ class PlaySongButton(Button):
             # Check if donations are disabled
             if is_donations_disabled():
                 await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                return
+
+            # Nicht self.custom_id (play_song_<stufe>) - siehe EpilogueButton.
+            if await _mechknopf_gebremst(interaction, f"mech_music_{self.level}"):
                 return
 
             # Defer response to prevent timeout during music service calls
