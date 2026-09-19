@@ -2921,7 +2921,10 @@ class MechHistoryButton(Button):
         from services.mech.mech_story_service import get_mech_story_service
 
         story_service = get_mech_story_service()
-        return story_service.get_all_chapters()
+        # The bot's language - get_all_chapters() defaults to 'de', so every server
+        # got the German story. Languages without a story file fall back to English.
+        from .translation_manager import translation_manager
+        return story_service.get_all_chapters(translation_manager.get_current_language())
 
     def _get_chapter_key_for_level(self, level: int) -> str:
         """Map mech level to story chapter key using MechStoryService."""

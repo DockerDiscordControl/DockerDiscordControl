@@ -18,8 +18,8 @@ cogs/control_helpers.py:1-188
 ## Abschnitt 02  (1902 Zeilen, 1 Stuecke)
 cogs/control_ui.py:1-1902
 
-## Abschnitt 03  (1553 Zeilen, 1 Stuecke)
-cogs/control_ui.py:1903-3455
+## Abschnitt 03  (1556 Zeilen, 1 Stuecke)
+cogs/control_ui.py:1903-3458
 
 ## Abschnitt 04  (1942 Zeilen, 1 Stuecke)
 cogs/docker_control.py:1-1942
@@ -135,13 +135,13 @@ services/mech/mech_display_cache_service.py:1-387
 services/mech/mech_evolutions.py:1-417
 services/mech/mech_high_res_service.py:1-248
 
-## Abschnitt 23  (1922 Zeilen, 10 Stuecke)
+## Abschnitt 23  (1932 Zeilen, 10 Stuecke)
 services/mech/mech_reset_service.py:1-376
 services/mech/mech_service.py:1-32
 services/mech/mech_service_adapter.py:1-300
 services/mech/mech_state_manager.py:1-152
 services/mech/mech_status_cache_service.py:1-439
-services/mech/mech_story_service.py:1-184
+services/mech/mech_story_service.py:1-194
 services/mech/monthly_member_cache.py:1-81
 services/mech/progress/__init__.py:1-17
 services/mech/progress/runtime.py:1-153

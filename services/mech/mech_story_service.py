@@ -24,6 +24,9 @@ class MechStoryService:
     """Service for managing mech evolution story content across multiple languages."""
 
     def __init__(self, story_dir: str = None):
+        # Only the default directory falls back to the shipped stories
+        # (services/mech/defaults/stories); an explicitly passed one is used as is.
+        self._fallback_to_shipped = not story_dir
         if story_dir:
             self.story_dir = Path(story_dir)
         else:
@@ -81,7 +84,14 @@ class MechStoryService:
         if language in self._story_cache:
             return self._story_cache[language]
 
-        story_file = self.story_dir / self.language_files.get(language, 'en.txt')
+        dateiname = self.language_files.get(language, 'en.txt')
+        story_file = self.story_dir / dateiname
+        if self._fallback_to_shipped and not story_file.exists():
+            # The stories used to exist only on the maintainer's server - a fresh
+            # installation had none. The shipped copy is the fallback; an
+            # operator's own file above still wins.
+            from services.mech.mech_defaults import DEFAULTS_DIR
+            story_file = DEFAULTS_DIR / "stories" / dateiname
         content = {}
 
         try:
