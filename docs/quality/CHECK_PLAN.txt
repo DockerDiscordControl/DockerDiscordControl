@@ -416,7 +416,7 @@
 [ ] services/config/server_config_service.py:189 ServerConfigService.get_base_directory
 [ ] services/config/server_config_service.py:204 get_server_config_service
 
-## Section 14  (1435 lines, 43 public names)
+## Section 14  (1445 lines, 43 public names)
 [ ] services/discord/channel_cleanup_service.py:33 ChannelCleanupRequest
 [ ] services/discord/channel_cleanup_service.py:59 ChannelCleanupResult
 [ ] services/discord/channel_cleanup_service.py:78 ChannelCleanupService
@@ -424,8 +424,8 @@
 [ ] services/discord/channel_cleanup_service.py:121 ChannelCleanupService.delete_bot_messages_preserve_live_logs
 [ ] services/discord/channel_cleanup_service.py:143 ChannelCleanupService.delete_bot_messages_preserve_live_logs.is_bot_but_not_preserved
 [ ] services/discord/channel_cleanup_service.py:189 ChannelCleanupService.cleanup_channel
-[ ] services/discord/channel_cleanup_service.py:420 get_channel_cleanup_service
-[ ] services/discord/channel_cleanup_service.py:440 reset_channel_cleanup_service
+[ ] services/discord/channel_cleanup_service.py:430 get_channel_cleanup_service
+[ ] services/discord/channel_cleanup_service.py:450 reset_channel_cleanup_service
 [ ] services/discord/conditional_update_cache_service.py:21 ConditionalUpdateCacheService
 [ ] services/discord/conditional_update_cache_service.py:42 ConditionalUpdateCacheService.has_content_changed
 [ ] services/discord/conditional_update_cache_service.py:74 ConditionalUpdateCacheService.update_content

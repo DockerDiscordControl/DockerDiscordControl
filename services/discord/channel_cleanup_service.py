@@ -223,7 +223,17 @@ class ChannelCleanupService:
 
             # Step 3: Calculate results
             result.messages_deleted = result.bulk_deleted + result.individually_deleted + result.purge_deleted
-            result.success = True
+            # Success only if nothing was refused. This said True unconditionally, so a
+            # cleanup in a channel without "Manage Messages" reported "✅ CLEANUP
+            # SUCCESS ... 0/N" while every message was still there (SPEC.md Z3,
+            # review A11).
+            result.success = result.permission_errors == 0
+            if result.permission_errors:
+                result.error = (f"{result.permission_errors} message(s) could not be deleted - "
+                                f"the bot is missing the permission in this channel")
+                logger.warning(f"🧹 CLEANUP INCOMPLETE: Channel {request.channel.id} - "
+                               f"{result.messages_deleted}/{result.messages_found} deleted, "
+                               f"{result.permission_errors} refused (missing permission)")
 
             # Choose appropriate logging based on method used
             if result.purge_deleted > 0:
