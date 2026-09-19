@@ -12,7 +12,7 @@ mit 1.513 Namen und keinem einzigen Haken. Ihn zu füllen, ohne die Namen gelese
 
 ## 1. Zuschnitt — steht
 
-37 Abschnitte, 189 Stücke, **61.235 von 61.235 Zeilen** in 184 Dateien (`docs/quality/ABSCHNITTE.txt`).
+37 Abschnitte, 190 Stücke, **61.271 von 61.271 Zeilen** in 185 Dateien (`docs/quality/ABSCHNITTE.txt`).
 Geschnitten wird an Klassen- und Funktionsgrenzen, nicht willkürlich bei Zeile 2000: Ein Abschnitt
 soll am Stück lesbar sein.
 
@@ -79,11 +79,11 @@ viel erreicht wurde", den der Programmtext ablehnt.
 
 | | Abschnitte | Zeilen |
 |---|---|---|
-| enthalten eine Datei, in der etwas geändert wurde | 31 | 52.552 (86 %) |
+| enthalten eine Datei, in der etwas geändert wurde | 31 | 52.588 (86 %) |
 | gar nicht berührt | **6** | **8.683 (14 %)** |
 
 Die Rechnung offen, damit sie nachprüfbar ist statt geglaubt: Die sechs unberührten Abschnitte
-summieren sich gemessen auf 8.683 Zeilen; 61.235 − 8.683 = 52.552.
+summieren sich gemessen auf 8.683 Zeilen; 61.271 − 8.683 = 52.588.
 
 **Diese Zahl ist inzwischen siebenmal veraltet** — 12 Abschnitte mit 17.242 Zeilen, dann 11 mit
 15.479, dann 10 mit 14.636, dann 9 mit 14.344, dann 8 mit 12.510, dann 7 mit 10.618, jetzt 6 mit 8.683. Jede Korrektur verschiebt sie: **Abschnitt 13**

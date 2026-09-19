@@ -317,9 +317,9 @@ def get_evolution_level_info(level: int) -> Optional[EvolutionLevelInfo]:
     # This ensures consistency with progress_service logic
     decay_val = level_data.get("decay_per_day", 1.0)
     try:
-        # Via utils/config_paths.py (DDC_CONFIG_DIR), see EvolutionConfigService.
-        from utils.config_paths import get_config_dir
-        decay_path = get_config_dir() / "mech" / "decay.json"
+        # Operator's copy, else the shipped default - see services/mech/mech_defaults.py.
+        from services.mech.mech_defaults import resolve_mech_file
+        decay_path = resolve_mech_file("decay.json")
         if decay_path.exists():
             with open(decay_path, "r") as f:
                 d_cfg = json.load(f)

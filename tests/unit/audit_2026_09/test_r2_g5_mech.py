@@ -97,7 +97,13 @@ def ps(tmp_path, monkeypatch):
     module.runtime.paths.config_file.write_text(json.dumps(config), encoding="utf-8")
     module.CFG = module.runtime.load_config(refresh=True)
     module.TZ = module.runtime.timezone(refresh=True)
-    module._decay_config_cache["data"] = None  # no decay.json -> default 100 cents/day
+    # Uniform 100 cents/day, stated explicitly: these tests are about migration, not
+    # decay rates. They used to rely on decay.json being ABSENT - since the mech data
+    # ships as defaults (services/mech/defaults/decay.json: 150 cents at level 7),
+    # "absent" no longer means 100.
+    (tmp_path / "ddc_config" / "mech").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "ddc_config" / "mech" / "decay.json").write_text(json.dumps({"default": 100}), encoding="utf-8")
+    module._decay_config_cache["data"] = None
     module._decay_config_cache["last_load"] = 0
 
     config_module = importlib.import_module("services.config.config_service")

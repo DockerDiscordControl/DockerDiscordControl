@@ -561,10 +561,12 @@ def get_decay_config_data() -> dict:
         return _decay_config_cache["data"]
         
     try:
-        # Honor DDC_CONFIG_DIR via utils/config_paths.py (was a copy of the rule).
-        from utils.config_paths import get_config_dir
-        base_dir = get_config_dir()
-        config_path = base_dir / "mech" / "decay.json"
+        # The operator's <config dir>/mech/decay.json, else the shipped default
+        # (services/mech/mech_defaults.py). Without the shipped file, a fresh
+        # installation decayed EVERY level at 100 cents - the immortal level 11
+        # included.
+        from services.mech.mech_defaults import resolve_mech_file
+        config_path = resolve_mech_file("decay.json")
         if config_path.exists():
             with open(config_path, "r") as f:
                 data = json.load(f)

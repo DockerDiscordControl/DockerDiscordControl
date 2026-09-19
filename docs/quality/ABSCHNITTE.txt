@@ -128,8 +128,9 @@ services/mech/__init__.py:1-30
 ## Abschnitt 21  (1813 Zeilen, 1 Stuecke)
 services/mech/animation_cache_service.py:1-1813
 
-## Abschnitt 22  (1938 Zeilen, 4 Stuecke)
+## Abschnitt 22  (1972 Zeilen, 5 Stuecke)
 services/mech/mech_data_store.py:1-886
+services/mech/mech_defaults.py:1-34
 services/mech/mech_display_cache_service.py:1-387
 services/mech/mech_evolutions.py:1-417
 services/mech/mech_high_res_service.py:1-248
@@ -146,8 +147,8 @@ services/mech/progress/__init__.py:1-17
 services/mech/progress/runtime.py:1-153
 services/mech/progress_paths.py:1-188
 
-## Abschnitt 24  (1976 Zeilen, 3 Stuecke)
-services/mech/progress_service.py:1-1547
+## Abschnitt 24  (1978 Zeilen, 3 Stuecke)
+services/mech/progress_service.py:1-1549
 services/mech/speed_levels.py:1-412
 services/member_count/__init__.py:1-17
 

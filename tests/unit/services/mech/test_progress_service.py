@@ -94,9 +94,13 @@ def progress_env(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 def test_get_decay_config_data_returns_default_when_file_missing(progress_env, tmp_path):
-    """No decay.json under DDC_CONFIG_DIR -> returns {"default": 100}."""
+    """No decay.json under DDC_CONFIG_DIR -> the SHIPPED default
+    (services/mech/defaults/decay.json). This used to assert {"default": 100} -
+    the fallback under which every level decayed at 100 cents, the immortal
+    level 11 included."""
+    from services.mech.mech_defaults import DEFAULTS_DIR
     data = progress_env.get_decay_config_data()
-    assert data == {"default": 100}
+    assert data == json.loads((DEFAULTS_DIR / "decay.json").read_text(encoding="utf-8"))
 
 
 def test_get_decay_config_data_loads_from_ddc_config_dir(progress_env, monkeypatch, tmp_path):
@@ -165,8 +169,17 @@ def test_decay_per_day_uses_level_specific_value(progress_env, tmp_path):
     assert progress_env.decay_per_day(2) == 100
 
 
-def test_decay_per_day_returns_default_when_no_levels(progress_env):
-    """No level mapping -> default value used for any level."""
+def test_decay_per_day_returns_default_when_no_levels(progress_env, tmp_path):
+    """No level mapping -> default value used for any level.
+
+    With an explicit decay.json that has no "levels". This used to rely on the
+    file being ABSENT, which no longer means "no mapping": the shipped default has one.
+    """
+    mech_dir = tmp_path / "ddc_config" / "mech"
+    mech_dir.mkdir(parents=True, exist_ok=True)
+    (mech_dir / "decay.json").write_text(json.dumps({"default": 100}), encoding="utf-8")
+    progress_env._decay_config_cache["data"] = None
+    progress_env._decay_config_cache["last_load"] = 0
     for level in (1, 5, 11):
         assert progress_env.decay_per_day(level) == 100
 
