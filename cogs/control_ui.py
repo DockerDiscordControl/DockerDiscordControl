@@ -442,16 +442,19 @@ class ActionButton(Button):
 
                     # Show immediate "Processing..." message
                     try:
+                        # Plain lines, no box: this used to draw a ┌── │ └── frame inside
+                        # a code block. A code block does not reflow, so on a phone the
+                        # frame broke apart - worst with the longer translations
+                        # (operator's screenshot, 2026-09-19). The footer was a
+                        # hard-coded English "Container action in progress" under the
+                        # translated text; the title already says it.
                         processing_embed = discord.Embed(
-                            description=_("""```
-┌── Processing ───────────────
-│ ⏳ Updating container status...
-│ 🔄 Please wait ~15 seconds
-└─────────────────────────────
-```"""),
+                            title=f"⏳ {_('Processing...')}",
+                            description=f"{_('Updating container status...')}\n"
+                                        f"🔄 {_('Please wait ~15 seconds')}",
                             color=0xffa500  # Orange
                         )
-                        processing_embed.set_footer(text="Container action in progress • https://ddc.bot")
+                        processing_embed.set_footer(text="https://ddc.bot")
                         await interaction.edit_original_response(embed=processing_embed, view=None)
                         logger.info(f"[ACTION_BTN] Showing processing message for {self.display_name}")
                     except (discord.NotFound, discord.HTTPException) as e:
