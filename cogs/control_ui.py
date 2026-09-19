@@ -365,6 +365,26 @@ class ActionButton(Button):
                     success = await docker_action_service_first(self.docker_name, self.action)
                     logger.info(f"[ACTION_BTN] Docker {self.action} for '{self.display_name}' completed: success={success}")
 
+                    if not success:
+                        # The result used to be logged and nothing else: a failed action
+                        # went on like a successful one - "processing", then the
+                        # unchanged status - and the user was never told (SPEC.md Z3,
+                        # review A5). The service turns Docker errors into False.
+                        if self.cog.pending_actions.get(self.docker_name) is pending_entry:
+                            del self.cog.pending_actions[self.docker_name]
+                        failed_embed = discord.Embed(
+                            title=_("❌ Server Action Failed"),
+                            description=_("Server **{server_name}** could not be processed {action_process_text}.").format(
+                                server_name=self.display_name,
+                                action_process_text=f"({_(self.action.capitalize())})"),
+                            color=discord.Color.red())
+                        failed_embed.set_footer(text="https://ddc.bot")
+                        try:
+                            await interaction.edit_original_response(embed=failed_embed, view=None)
+                        except (discord.NotFound, discord.HTTPException) as e:
+                            logger.warning(f"[ACTION_BTN] Could not show the failure for {self.display_name}: {e}")
+                        return
+
                     # Remove from pending_actions - use docker_name as key!
                     if self.docker_name in self.cog.pending_actions:
                         del self.cog.pending_actions[self.docker_name]
