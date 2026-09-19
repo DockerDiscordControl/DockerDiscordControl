@@ -102,8 +102,8 @@ services/donation/unified/models.py:1-97
 services/donation/unified/processors.py:1-61
 services/donation/unified/reset.py:1-174
 
-## Section 18  (1593 lines, 8 pieces)
-services/donation/unified/service.py:1-448
+## Section 18  (1613 lines, 8 pieces)
+services/donation/unified/service.py:1-468
 services/donation/unified/validation.py:1-37
 services/donation/unified_donation_service.py:1-31
 services/exceptions.py:1-299

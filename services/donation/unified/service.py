@@ -86,9 +86,19 @@ class UnifiedDonationService:
                 new_state = execute_sync_donation(self.mech_service, request)
 
                 clear_mech_cache()
-                event_id = events.emit_donation_event(
-                    self.event_manager, request, old_state=old_state, new_state=new_state
-                )
+                # The booking is done. Announcing it is not part of it: this used to
+                # share the try below, so a failure HERE answered success=False /
+                # DATA_ERROR for money already in the ledger, and a donor told "failed"
+                # pays again (SPEC.md Z3, review A7). The listener half was fixed in
+                # bb11ede; this is the emitter itself.
+                try:
+                    event_id = events.emit_donation_event(
+                        self.event_manager, request, old_state=old_state, new_state=new_state
+                    )
+                except Exception as emit_error:
+                    logger.error(f"Donation booked, but the event could not be emitted: "
+                                 f"{emit_error}", exc_info=True)
+                    event_id = None
 
                 # Calculate processing duration
                 duration_ms = (time.time() - start_time) * 1000
@@ -120,7 +130,7 @@ class UnifiedDonationService:
                     success=True,
                     old_state=old_state,
                     new_state=new_state,
-                    event_emitted=True,
+                    event_emitted=event_id is not None,
                     event_id=event_id,
                 )
             except MechServiceError as exc:
@@ -256,9 +266,19 @@ class UnifiedDonationService:
                 )
 
                 clear_mech_cache()
-                event_id = events.emit_donation_event(
-                    self.event_manager, request, old_state=old_state, new_state=new_state
-                )
+                # The booking is done. Announcing it is not part of it: this used to
+                # share the try below, so a failure HERE answered success=False /
+                # DATA_ERROR for money already in the ledger, and a donor told "failed"
+                # pays again (SPEC.md Z3, review A7). The listener half was fixed in
+                # bb11ede; this is the emitter itself.
+                try:
+                    event_id = events.emit_donation_event(
+                        self.event_manager, request, old_state=old_state, new_state=new_state
+                    )
+                except Exception as emit_error:
+                    logger.error(f"Donation booked, but the event could not be emitted: "
+                                 f"{emit_error}", exc_info=True)
+                    event_id = None
 
                 # Calculate processing duration
                 duration_ms = (time.time() - start_time) * 1000
@@ -293,7 +313,7 @@ class UnifiedDonationService:
                     success=True,
                     old_state=old_state,
                     new_state=new_state,
-                    event_emitted=True,
+                    event_emitted=event_id is not None,
                     event_id=event_id,
                 )
             except MechServiceError as exc:

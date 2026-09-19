@@ -577,16 +577,16 @@
 [ ] services/donation/unified/processors.py:44 execute_async_donation
 [ ] services/donation/unified/reset.py:26 reset_donations
 
-## Section 18  (1593 lines, 88 public names)
+## Section 18  (1613 lines, 88 public names)
 [ ] services/donation/unified/service.py:39 UnifiedDonationService
 [ ] services/donation/unified/service.py:49 UnifiedDonationService.process_donation
-[ ] services/donation/unified/service.py:208 UnifiedDonationService.process_donation_async
-[ ] services/donation/unified/service.py:381 UnifiedDonationService.reset_all_donations
-[ ] services/donation/unified/service.py:390 get_unified_donation_service
-[ ] services/donation/unified/service.py:397 process_web_ui_donation
-[ ] services/donation/unified/service.py:409 process_discord_donation
-[ ] services/donation/unified/service.py:433 process_test_donation
-[ ] services/donation/unified/service.py:445 reset_all_donations
+[ ] services/donation/unified/service.py:218 UnifiedDonationService.process_donation_async
+[ ] services/donation/unified/service.py:401 UnifiedDonationService.reset_all_donations
+[ ] services/donation/unified/service.py:410 get_unified_donation_service
+[ ] services/donation/unified/service.py:417 process_web_ui_donation
+[ ] services/donation/unified/service.py:429 process_discord_donation
+[ ] services/donation/unified/service.py:453 process_test_donation
+[ ] services/donation/unified/service.py:465 reset_all_donations
 [ ] services/donation/unified/validation.py:15 DonationValidationError
 [ ] services/donation/unified/validation.py:19 validate_request
 [ ] services/exceptions.py:12 DDCBaseException
