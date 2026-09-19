@@ -123,13 +123,23 @@ class AutomationService:
                     # during the action delay) would otherwise leave them locked for the rule
                     # cooldown - 24 h by default, and persisted on the next trigger. Release
                     # what this rule holds so the next trigger can run (V2 review B1).
+                    # A failed release used to be logged at DEBUG while the line
+                    # below said "released" regardless - the log claimed the
+                    # opposite of what happened, and the container stayed locked
+                    # for up to the rule cooldown unnoticed (SPEC.md Z8).
+                    still_locked = []
                     for container in rule.action.containers:
                         try:
                             self.state_service.release_execution_lock(rule.id, container, success=False)
                         except Exception:  # never mask the original error
-                            logger.debug(f"AAS: could not release lock for {container}", exc_info=True)
+                            still_locked.append(container)
+                            logger.error(f"AAS: could not release the cooldown of '{container}' - it stays "
+                                         f"locked for rule '{rule.name}' until the cooldown runs out",
+                                         exc_info=True)
+                    outcome = ("released its container cooldowns" if not still_locked
+                               else f"could NOT release the cooldowns of {', '.join(still_locked)}")
                     logger.error(f"AAS: Rule '{rule.name}' failed with {type(e).__name__}: {e}; "
-                                 f"released its container cooldowns", exc_info=True)
+                                 f"{outcome}", exc_info=True)
                     
         return executed_rules
 

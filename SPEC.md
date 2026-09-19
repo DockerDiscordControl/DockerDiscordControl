@@ -328,7 +328,11 @@ was logged only at DEBUG, and any other exception type stopped the loop for good
 skipped the remaining listeners and flew back into the emitter. For `donation_completed` that is
 the donation service *after* the booking, which then reported `success=False`/`DATA_ERROR` for
 money that was in the ledger (Z3 in reverse; a donor told "failed" may pay twice). *Covered by*
-`tests/spec/test_z8_one_failing_listener_breaks_nothing_else.py`. **Not read one by one:** the DEBUG-only handlers were sorted
+`tests/spec/test_z8_one_failing_listener_breaks_nothing_else.py`. **And:** when a failed auto-action
+rule could not release its container locks, that was logged at DEBUG while the ERROR line after it
+said "released its container cooldowns" — the container stayed out of reach of every rule for up to
+the cooldown (24 h by default), and the log said the opposite. *Covered by*
+`tests/spec/test_z8_automation_lock_release_is_honest.py`. **Not read one by one:** the DEBUG-only handlers were sorted
 by the calls in their `try` body, not each read in full. This guarantee is therefore **not**
 fulfilled everywhere — recorded so that it is not considered done.
 

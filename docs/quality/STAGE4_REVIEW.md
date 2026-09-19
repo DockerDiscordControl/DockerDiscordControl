@@ -12,7 +12,7 @@ achieved" that the programme text explicitly rejects.
 
 ## 1. Split — in place
 
-37 sections, 190 pieces, **61,313 of 61,313 lines** in 185 files (`docs/quality/SECTIONS.txt`).
+37 sections, 190 pieces, **61,323 of 61,323 lines** in 185 files (`docs/quality/SECTIONS.txt`).
 The cuts are made at class and function boundaries, not arbitrarily at line 2000: a section is
 meant to be readable in one go.
 
@@ -80,11 +80,11 @@ that the programme text rejects.
 
 | | Sections | Lines |
 |---|---|---|
-| contain a file in which something was changed | 34 | 57,175 (93 %) |
+| contain a file in which something was changed | 34 | 57,185 (93 %) |
 | not touched at all | **3** | **4,138 (7 %)** |
 
 The calculation in the open, so that it can be checked instead of believed: the three untouched
-sections add up to 4,138 lines as measured; 61,313 − 4,138 = 57,175.
+sections add up to 4,138 lines as measured; 61,323 − 4,138 = 57,185.
 
 **This figure is by now nine times out of date** — 12 sections with 17,242 lines, then 11 with
 15,479, then 10 with 14,636, then 9 with 14,344, then 8 with 12,510, then 7 with 10,618, then 6 with 8,683, then 4 with 5,479, now 3 with 4,138. Every correction shifts it: **section 13**
