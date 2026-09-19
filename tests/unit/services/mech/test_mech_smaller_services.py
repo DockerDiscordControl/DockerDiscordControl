@@ -931,8 +931,7 @@ class TestEvolutionConfigService:
         assert info["multiplier"] == pytest.approx(2.5)
 
     def test_get_evolution_level_info_with_decay_json(self, tmp_path, monkeypatch):
-        # Place the production module at a tmp project root so the
-        # ``Path(__file__).parents[2]`` lookup hits our decay.json.
+        # A decay.json in a tmp config directory, selected via DDC_CONFIG_DIR.
         proj = tmp_path / "proj"
         cfg_dir = proj / "config" / "mech"
         cfg_dir.mkdir(parents=True)
@@ -942,11 +941,9 @@ class TestEvolutionConfigService:
         )
         from services.mech import mech_evolutions as ev_mod
 
-        # Build a fake __file__ path so that Path(__file__).parents[2] == proj.
-        fake_file = proj / "services" / "mech" / "mech_evolutions.py"
-        fake_file.parent.mkdir(parents=True)
-        fake_file.write_text("# placeholder\n", encoding="utf-8")
-        monkeypatch.setattr(ev_mod, "__file__", str(fake_file))
+        # decay.json is found via utils.config_paths.get_config_dir()
+        # (DDC_CONFIG_DIR); this used to fake the module's __file__.
+        monkeypatch.setenv("DDC_CONFIG_DIR", str(proj / "config"))
 
         info = ev_mod.get_evolution_level_info(3)
         assert info is not None

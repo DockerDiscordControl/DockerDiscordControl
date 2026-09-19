@@ -12,7 +12,7 @@ mit 1.513 Namen und keinem einzigen Haken. Ihn zu füllen, ohne die Namen gelese
 
 ## 1. Zuschnitt — steht
 
-37 Abschnitte, 189 Stücke, **61.220 von 61.220 Zeilen** in 184 Dateien (`docs/quality/ABSCHNITTE.txt`).
+37 Abschnitte, 189 Stücke, **61.236 von 61.236 Zeilen** in 184 Dateien (`docs/quality/ABSCHNITTE.txt`).
 Geschnitten wird an Klassen- und Funktionsgrenzen, nicht willkürlich bei Zeile 2000: Ein Abschnitt
 soll am Stück lesbar sein.
 
@@ -79,19 +79,19 @@ viel erreicht wurde", den der Programmtext ablehnt.
 
 | | Abschnitte | Zeilen |
 |---|---|---|
-| enthalten eine Datei, in der etwas geändert wurde | 30 | 50.602 (83 %) |
-| gar nicht berührt | **7** | **10.618 (17 %)** |
+| enthalten eine Datei, in der etwas geändert wurde | 31 | 52.553 (86 %) |
+| gar nicht berührt | **6** | **8.683 (14 %)** |
 
-Die Rechnung offen, damit sie nachprüfbar ist statt geglaubt: Die sieben unberührten Abschnitte
-summieren sich gemessen auf 10.618 Zeilen; 61.220 − 10.618 = 50.602.
+Die Rechnung offen, damit sie nachprüfbar ist statt geglaubt: Die sechs unberührten Abschnitte
+summieren sich gemessen auf 8.683 Zeilen; 61.236 − 8.683 = 52.553.
 
-**Diese Zahl ist inzwischen sechsmal veraltet** — 12 Abschnitte mit 17.242 Zeilen, dann 11 mit
-15.479, dann 10 mit 14.636, dann 9 mit 14.344, dann 8 mit 12.510, jetzt 7 mit 10.618. Jede Korrektur verschiebt sie: **Abschnitt 13**
+**Diese Zahl ist inzwischen siebenmal veraltet** — 12 Abschnitte mit 17.242 Zeilen, dann 11 mit
+15.479, dann 10 mit 14.636, dann 9 mit 14.344, dann 8 mit 12.510, dann 7 mit 10.618, jetzt 6 mit 8.683. Jede Korrektur verschiebt sie: **Abschnitt 13**
 fiel mit `config_service.py` heraus, **Abschnitt 20** mit `update_notifier.py`, **Abschnitt 37**
-mit `token_security.py`, **Abschnitt 28** mit `configuration_save_service.py`, **Abschnitt 33** mit `app/bot/token.py`. Das ist kein Mangel der Rechnung, sondern ihre Natur — und der Grund, sie
+mit `token_security.py`, **Abschnitt 28** mit `configuration_save_service.py`, **Abschnitt 33** mit `app/bot/token.py`, **Abschnitt 22** mit `mech_evolutions.py`. Das ist kein Mangel der Rechnung, sondern ihre Natur — und der Grund, sie
 am Ende zu messen statt sie mitzuführen.
 
-**Diese 83 % sind keine Abdeckung, und sie dürfen nicht als solche gelesen werden.** „Berührt" heißt:
+**Diese 86 % sind keine Abdeckung, und sie dürfen nicht als solche gelesen werden.** „Berührt" heißt:
 In diesem Abschnitt liegt eine Datei, in der eine einzelne Zeile geändert wurde. Das ist keine
 Durchsicht.
 
@@ -100,7 +100,7 @@ hat, waren gezielte Suchen nach benannten Mustern (nackte `except:`, Umgebungsle
 zeichengleiche Zwillinge, Aufrufstellen) und punktuelle Korrekturen. Diese Suchen waren mechanisch
 und vollständig — aber sie prüfen je eine Frage, nicht den Abschnitt.
 
-### Die sieben nie berührten Abschnitte
+### Die sechs nie berührten Abschnitte
 
 | Abschnitt | Zeilen | Inhalt |
 |---|---|---|
@@ -109,7 +109,6 @@ und vollständig — aber sie prüfen je eine Frage, nicht den Abschnitt.
 | 14 | 1.435 | `channel_cleanup_service.py`, `embed_helper_service.py`, `status_overview_service.py`, … |
 | 15 | 708 | `docker_client_pool.py` |
 | 21 | 1.813 | `animation_cache_service.py` |
-| 22 | 1.935 | `mech_data_store.py`, `mech_evolutions.py`, … |
 | 26 | 1.995 | `scheduler.py` |
 
 Auffällig darunter: **Abschnitt 26** (`scheduler.py` — die dokumentierte Z5-Ausnahme sitzt dort).
@@ -257,9 +256,9 @@ dass sich eine Absicherung lohnte.
 
 ## 6. Was NICHT geprüft wurde
 
-- **Kein Abschnitt wurde systematisch durchgelesen.** Die 83 % „berührt" sagen darüber nichts.
+- **Kein Abschnitt wurde systematisch durchgelesen.** Die 86 % „berührt" sagen darüber nichts.
 - **Keiner der 1.513 Namen im Prüfplan ist beurteilt.**
-- **Die sieben nie berührten Abschnitte** (10.618 Zeilen, 17 % des Baums) sind in diesem Programm
+- **Die sechs nie berührten Abschnitte** (8.683 Zeilen, 14 % des Baums) sind in diesem Programm
   ausschließlich von den mechanischen Suchen erfasst worden — nicht gelesen. Die Abschnitte 26 und
   37 hat ein zweites Modell gelesen, ich nicht.
 - ~~Der Verdacht auf Doppelausführung nach einem Absturz~~ und ~~die unbekannte Poll-Frequenz~~

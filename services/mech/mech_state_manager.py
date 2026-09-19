@@ -19,7 +19,13 @@ logger = logging.getLogger(__name__)
 class MechStateManager:
     """Minimal state manager for Discord bot persistence"""
 
-    def __init__(self, state_file: str = "config/mech_state.json"):
+    def __init__(self, state_file: str = None):
+        # Default via utils/config_paths.py (DDC_CONFIG_DIR). Was the RELATIVE
+        # "config/mech_state.json": dependent on the working directory, blind to
+        # the variable - and the file is created right here (_ensure_state_file).
+        if state_file is None:
+            from utils.config_paths import get_config_dir
+            state_file = str(get_config_dir() / "mech_state.json")
         self.state_file = state_file
         self.state_cache: Dict[str, Any] = {}
         self._cleanup_tmp_files()

@@ -18,8 +18,10 @@ from pathlib import Path
 
 # Load speed translations from JSON
 try:
-    # Robust absolute path relative to project root
-    translations_path = Path(__file__).parents[2] / "config" / "mech" / "speed_translations.json"
+    # Via utils/config_paths.py (DDC_CONFIG_DIR), read once at import - derived
+    # from __file__ before, blind to the variable.
+    from utils.config_paths import get_config_dir
+    translations_path = get_config_dir() / "mech" / "speed_translations.json"
     if translations_path.exists():
         with open(translations_path, "r", encoding="utf-8") as f:
             SPEED_TRANSLATIONS = json.load(f)

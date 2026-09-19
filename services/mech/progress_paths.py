@@ -132,7 +132,10 @@ def _resolve_base_dir() -> Path:
         logger.debug("Using progress data directory from configuration: %s", config_dir)
         return config_dir
 
-    default_dir = Path("config/progress")
+    # Last fallback via utils/config_paths.py (DDC_CONFIG_DIR) - the value
+    # docs/CONFIGURATION.md documents. Was the RELATIVE Path("config/progress").
+    from utils.config_paths import get_config_dir
+    default_dir = get_config_dir() / "progress"
     logger.debug("Falling back to default progress data directory: %s", default_dir)
     return default_dir
 

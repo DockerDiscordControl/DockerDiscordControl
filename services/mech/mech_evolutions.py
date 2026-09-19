@@ -39,8 +39,10 @@ class EvolutionConfigService:
         if config_path:
             self.config_path = Path(config_path)
         else:
-            # Robust default path relative to project root
-            self.config_path = Path(__file__).parents[2] / "config" / "mech" / "evolution.json"
+            # Via utils/config_paths.py (DDC_CONFIG_DIR) - derived from
+            # __file__ before, blind to the variable.
+            from utils.config_paths import get_config_dir
+            self.config_path = get_config_dir() / "mech" / "evolution.json"
             
         # Use central ConfigService for robust JSON handling
         from services.config.config_service import get_config_service
@@ -315,8 +317,9 @@ def get_evolution_level_info(level: int) -> Optional[EvolutionLevelInfo]:
     # This ensures consistency with progress_service logic
     decay_val = level_data.get("decay_per_day", 1.0)
     try:
-        # Robust absolute path relative to project root
-        decay_path = Path(__file__).parents[2] / "config" / "mech" / "decay.json"
+        # Via utils/config_paths.py (DDC_CONFIG_DIR), see EvolutionConfigService.
+        from utils.config_paths import get_config_dir
+        decay_path = get_config_dir() / "mech" / "decay.json"
         if decay_path.exists():
             with open(decay_path, "r") as f:
                 d_cfg = json.load(f)

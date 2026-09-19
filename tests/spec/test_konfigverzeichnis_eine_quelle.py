@@ -54,13 +54,8 @@ NOCH_OFFEN = {
     "services/infrastructure/container_status_service.py": 1,
     "services/infrastructure/game_query_support_service.py": 2,
     "services/infrastructure/spam_protection_service.py": 2,
-    "services/mech/mech_evolutions.py": 2,
     "services/mech/mech_reset_service.py": 2,
-    "services/mech/mech_state_manager.py": 1,
-    "services/mech/mech_story_service.py": 1,
-    "services/mech/progress_paths.py": 1,
     "services/mech/progress_service.py": 2,
-    "services/mech/speed_levels.py": 1,
 }
 
 

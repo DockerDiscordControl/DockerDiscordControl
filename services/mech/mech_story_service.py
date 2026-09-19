@@ -27,8 +27,10 @@ class MechStoryService:
         if story_dir:
             self.story_dir = Path(story_dir)
         else:
-            # Robust absolute path relative to project root
-            self.story_dir = Path(__file__).parents[2] / "config" / "mech" / "stories"
+            # Via utils/config_paths.py (DDC_CONFIG_DIR) - derived from
+            # __file__ before, blind to the variable.
+            from utils.config_paths import get_config_dir
+            self.story_dir = get_config_dir() / "mech" / "stories"
             
         self.language_files = {
             'en': 'en.txt',
