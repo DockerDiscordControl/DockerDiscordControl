@@ -394,10 +394,6 @@ def current_bin(user_count: int) -> int:
     return min(idx, 21)
 
 
-def requirement_for_bin(b: int) -> int:
-    """DEPRECATED: Use requirement_for_level_and_bin instead"""
-    return int(CFG.get("bin_to_requirement", {}).get(str(b), 0))
-
 
 def requirement_for_level_and_bin(level: int, b: int, member_count: int = None) -> int:
     """
