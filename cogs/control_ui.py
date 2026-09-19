@@ -769,11 +769,18 @@ class ToggleButton(Button):
                 # Show loading status if no cache available
                 logger.info(f"[TOGGLE_BTN] No cache entry for '{self.display_name}' - Background loop will update")
 
+                # Plain lines, no box, translated: this was an untranslated
+                # English string drawing a ┌── │ └── frame in a code block,
+                # which does not reflow and broke apart on a phone - and it
+                # was English in every language, footer included. It uses the
+                # texts of the same loading message in status_handlers.py.
                 temp_embed = discord.Embed(
-                    description="```\n┌── Loading Status ───────────\n│ 🔄 Refreshing container data...\n│ ⏱️ Please wait a moment\n└─────────────────────────────\n```",
+                    title=f"🔄 {_('Loading Status')}",
+                    description=f"{_('Fetching container data...')}\n"
+                                f"⏱️ {_('Please wait for fresh data')}",
                     color=0x3498db
                 )
-                temp_embed.set_footer(text="Background update in progress • https://ddc.bot")
+                temp_embed.set_footer(text="https://ddc.bot")
 
                 temp_view = discord.ui.View(timeout=None)
                 await message.edit(embed=temp_embed, view=temp_view)

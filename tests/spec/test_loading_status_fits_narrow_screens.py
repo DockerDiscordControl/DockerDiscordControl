@@ -15,7 +15,7 @@ replaced by a marker, and the test looks at what would be shown.
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -90,3 +90,47 @@ def test_the_catalogs_carry_the_status_loading_texts():
     de = json.loads((LOCALES / "de.json").read_text(encoding="utf-8"))
     assert de["Loading Status"] == "Status wird geladen"  # language data
     assert de["Fetching container data..."] == "Lade Container-Daten..."  # language data
+
+
+# --- the toggle button when the cache has no entry for the container ---------
+
+@pytest.fixture
+def toggle_loading_embed():
+    import asyncio
+    import cogs.control_ui as cui
+    from cogs.control_ui import ToggleButton
+
+    cog = MagicMock()
+    cog.expanded_states = {}
+    cog.pending_actions = {}
+    cog.status_cache_service.get.return_value = None        # no cache entry
+    button = ToggleButton(cog, {"docker_name": "nginx", "name": "nginx"}, is_running=True, row=0)
+    interaction = MagicMock()
+    interaction.user.id = 4711
+    interaction.channel.id = 99
+    interaction.response.defer = AsyncMock()
+    interaction.response.send_message = AsyncMock()
+    interaction.message = MagicMock()
+    interaction.message.edit = AsyncMock()
+    spam = MagicMock()
+    spam.is_enabled.return_value = False
+    with patch("services.infrastructure.spam_protection_service.get_spam_protection_service",
+               return_value=spam), \
+            patch.object(cui, "load_config", return_value={"language": "en"}), \
+            patch.object(cui, "_", _mark):
+        asyncio.run(button.callback(interaction))
+    interaction.message.edit.assert_awaited_once()
+    return interaction.message.edit.await_args.kwargs["embed"]
+
+
+def test_toggle_driver_reaches_the_loading_message(toggle_loading_embed):
+    """Guard: the no-cache branch of the toggle button (blue loading embed)."""
+    assert toggle_loading_embed.color.value == 0x3498db
+
+
+def test_toggle_loading_has_no_fixed_width_box(toggle_loading_embed):
+    _no_box(toggle_loading_embed)
+
+
+def test_toggle_loading_is_translated(toggle_loading_embed):
+    assert not _untranslated(toggle_loading_embed), _untranslated(toggle_loading_embed)
