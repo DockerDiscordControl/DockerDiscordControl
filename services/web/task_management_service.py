@@ -682,6 +682,10 @@ class TaskManagementService:
         # Calculate frontend status and handle expired tasks
         frontend_status, needs_update = self._calculate_frontend_status(task, current_time)
         task_dict["frontend_status"] = frontend_status
+        # AFTER the status calculation: it switches an expired task off, and the copy
+        # taken above still said "active" - the row showed the switch as on for a task
+        # that had just been switched off (review A13).
+        task_dict["is_active"] = task.is_active
         task_dict["is_in_past"] = task.next_run_ts and task.next_run_ts < current_time
 
         if needs_update:

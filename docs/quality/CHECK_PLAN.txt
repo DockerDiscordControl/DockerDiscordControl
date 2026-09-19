@@ -1239,7 +1239,7 @@
 [ ] services/web/security_service.py:194 SecurityService.get_security_audit
 [ ] services/web/security_service.py:334 get_security_service
 
-## Section 31  (1913 lines, 51 public names)
+## Section 31  (1917 lines, 51 public names)
 [ ] services/web/task_management_service.py:25 AddTaskRequest
 [ ] services/web/task_management_service.py:37 AddTaskResult
 [ ] services/web/task_management_service.py:46 ListTasksRequest
@@ -1259,7 +1259,7 @@
 [ ] services/web/task_management_service.py:305 TaskManagementService.delete_task
 [ ] services/web/task_management_service.py:363 TaskManagementService.edit_task
 [ ] services/web/task_management_service.py:411 TaskManagementService.get_task_form_data
-[ ] services/web/task_management_service.py:1051 get_task_management_service
+[ ] services/web/task_management_service.py:1055 get_task_management_service
 [ ] app/__init__.py:11 create_app
 [ ] app/auth.py:85 clear_credential_cache
 [ ] app/auth.py:92 SimpleRateLimiter
