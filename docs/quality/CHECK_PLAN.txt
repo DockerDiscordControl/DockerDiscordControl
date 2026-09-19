@@ -514,7 +514,7 @@
 [ ] services/docker_status/fetch_service.py:231 DockerStatusFetchService.clear_query_history
 [ ] services/docker_status/fetch_service.py:241 get_fetch_service
 
-## Section 17  (1726 lines, 61 public names)
+## Section 17  (1742 lines, 61 public names)
 [ ] services/docker_status/models.py:22 PerformanceProfile
 [ ] services/docker_status/models.py:39 PerformanceProfile.to_dict
 [ ] services/docker_status/models.py:55 PerformanceProfile.from_dict
@@ -548,8 +548,8 @@
 [ ] services/docker_status/performance_service.py:211 PerformanceProfileService.get_config
 [ ] services/docker_status/performance_service.py:215 PerformanceProfileService.get_all_profiles
 [ ] services/docker_status/performance_service.py:224 get_performance_service
-[ ] services/donation/donation_config.py:12 get_donation_disable_key
-[ ] services/donation/donation_config.py:23 set_donation_disable_key
+[ ] services/donation/donation_config.py:16 get_donation_disable_key
+[ ] services/donation/donation_config.py:28 set_donation_disable_key
 [ ] services/donation/donation_management_service.py:40 ServiceResult
 [ ] services/donation/donation_management_service.py:47 DonationStats
 [ ] services/donation/donation_management_service.py:54 DonationStats.from_data
@@ -559,8 +559,8 @@
 [ ] services/donation/donation_management_service.py:248 DonationManagementService.delete_donation
 [ ] services/donation/donation_management_service.py:351 DonationManagementService.get_donation_stats
 [ ] services/donation/donation_management_service.py:431 get_donation_management_service
-[ ] services/donation/donation_utils.py:13 is_donations_disabled
-[ ] services/donation/donation_utils.py:38 validate_donation_key
+[ ] services/donation/donation_utils.py:17 is_donations_disabled
+[ ] services/donation/donation_utils.py:44 validate_donation_key
 [ ] services/donation/notification_service.py:20 DonationNotificationService
 [ ] services/donation/notification_service.py:32 DonationNotificationService.check_and_retrieve_notification
 [ ] services/donation/notification_service.py:75 get_donation_notification_service
