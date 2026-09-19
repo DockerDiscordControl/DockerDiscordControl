@@ -1,0 +1,227 @@
+{
+  "section": "32",
+  "verdicts": [
+    {
+      "name": "app/blueprints/main_routes.py:40 _get_cached_mech_state.CachedStateCompat",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:62 _get_cached_mech_state.ServiceStateCompat",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:91 config_page",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:133 set_ui_language",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:149 save_config_api",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:235 discord_bot_setup",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:241 refresh_containers",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:285 enable_temp_debug",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:330 disable_temp_debug",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:365 temp_debug_status",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:401 performance_stats",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:436 get_spam_protection",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:450 save_spam_protection",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:485 get_donation_status",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:514 record_donation_click",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:559 submit_donation",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:642 game_query_retest",
+      "verdict": "finding",
+      "finding": "F1"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:672 game_query_support_status",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:686 mech_animation",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:723 test_mech_animation",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:771 simulate_donation_broadcast",
+      "verdict": "finding",
+      "finding": "F2"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:786 get_mech_speed_config",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:819 port_diagnostics",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:852 get_mech_difficulty",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:878 set_mech_difficulty",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:923 reset_mech_difficulty",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:949 donations_api",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:998 delete_donation",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:1057 logout",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:1081 setup_page",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:1093 setup_save",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:1193 get_mech_music_url",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:1238 get_mech_music_info",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:1271 get_mech_display_image",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:1331 get_mech_display_info",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/main_routes.py:1400 get_mech_status",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/security_routes.py:24 get_token_security_status",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/security_routes.py:77 encrypt_token",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/security_routes.py:117 get_migration_help",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/security_routes.py:157 get_security_audit",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/tasks_bp.py:17 add_task",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/tasks_bp.py:71 list_tasks",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/tasks_bp.py:101 show_task_form",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/tasks_bp.py:143 update_task_status",
+      "verdict": "finding",
+      "finding": "F3"
+    },
+    {
+      "name": "app/blueprints/tasks_bp.py:195 delete_task_route",
+      "verdict": "finding",
+      "finding": "F3"
+    },
+    {
+      "name": "app/blueprints/tasks_bp.py:233 edit_task_route",
+      "verdict": "finding",
+      "finding": "F3"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "app/blueprints/main_routes.py",
+      "line": 636,
+      "trigger": "A retest for a container finishes without success (either all 3 probes over ~2 minutes fail, or _attempts() raises and is caught at :629) and the subsequent cleanup call `support.set_testing(container_name, False)` at :635 itself raises (e.g. the support-verdicts file cannot be written). The bare `except Exception: pass` at :636-637 swallows that error. The 'testing' flag for that container is then never cleared, so `game_query_support_status` (polled by the UI) reports `testing: true` forever even though the test has already ended - the spinner never resolves until an unrelated later retest happens to succeed in clearing it.",
+      "suggestion": "Log the exception from the cleanup `support.set_testing(...)` call (at least at ERROR/WARNING) instead of a bare pass, so a stuck spinner is at least visible in the logs, matching the Z8 pattern already fixed elsewhere for similar cleanup-after-failure code.",
+      "severity": "high",
+      "certainty": "sure",
+      "unsure_why": ""
+    },
+    {
+      "id": "F2",
+      "file": "app/blueprints/main_routes.py",
+      "line": 776,
+      "trigger": "POST /api/simulate-donation-broadcast is called (e.g. by an admin testing the donation broadcast feature). The handler does nothing except log a line and immediately returns `{'success': True, 'message': 'Donation broadcast simulation not yet implemented'}` - no broadcast, no simulation, nothing was actually done, yet `success` is `True`.",
+      "suggestion": "Return `success: False` (or a distinct status such as 'not_implemented') for a stub endpoint, so a caller that only checks the `success` flag cannot mistake 'nothing happened' for 'the simulated broadcast worked' - this is the exact pattern Z3 was written against.",
+      "severity": "medium",
+      "certainty": "sure",
+      "unsure_why": ""
+    },
+    {
+      "id": "F3",
+      "file": "app/blueprints/tasks_bp.py",
+      "line": 181,
+      "trigger": "In `update_task_status` (:181), `delete_task_route` (:219) and both branches of `edit_task_route` (:262 GET, :290 PUT), the failure path does `status_code = 404 if \"not found\" in result.error.lower() else ...` directly on `result.error`. If the underlying TaskManagementService ever returns `success=False` with `error=None` (no message set), `.lower()` raises `AttributeError`, which is caught by each function's own `except (ImportError, AttributeError, RuntimeError)` clause and turned into a generic 'Service error ...' 500 response instead of the correct 400/404 with the service's real error text.",
+      "suggestion": "Guard with `(result.error or '')` before `.lower()` in all four call sites so a missing error message degrades to the intended 400/404 branch instead of a misleading 500.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "The service layer (services/web/task_management_service.py) that produces `result` is not in this section, so it cannot be confirmed whether it guarantees a non-None string in `error` whenever `success` is False. If it always sets `error`, this code path never triggers. Even when it does trigger, the failure is still visible to the caller (a 500 with an error body), not silent."
+    }
+  ],
+  "notes": "app/blueprints/main_routes.py:27-85 (_get_cached_mech_state) is not called anywhere in this file; its two nested compat classes (the two PLAN entries at :40 and :62) are currently field-for-field identical in shape and show no divergence today, so no finding - noted only because the task highlighted 'two places that do the same thing and may drift apart', and because a helper with no visible caller inside this section could be genuinely dead code reachable only from files outside this section (e.g. a template or another blueprint), which cannot be verified from here. app/blueprints/main_routes.py:289 (enable_temp_debug) reads `duration_minutes = request.form.get('duration', 10)`, which yields a string when the form field is present and an int only when it is absent; this inconsistency is passed straight into DebugModeRequest without casting. Whether this matters depends entirely on services/web/diagnostics_service.py (out of scope for this section); if it mishandles a string, the existing (ValueError, TypeError, KeyError) handler already turns it into a visible 400, so it was not raised as a formal finding. All three files in this section are thin Flask-blueprint wrappers around service objects that live outside this section (services/web/*, services/donation/*, services/infrastructure/*, services/mech/*); most of the actual business logic, and therefore most of the guarantees in SPEC.md (Z1, Z2, Z4, Z6, Z7, Z9, Z10), cannot be judged from this section alone - only Z3/Z8-style 'reported success without doing the work' and 'silent failure' patterns are visible at this layer, which is where F1-F3 come from."
+}

@@ -1,0 +1,191 @@
+{
+  "section": "02",
+  "verdicts": [
+    {
+      "name": "cogs/control_ui.py:246 ActionButton",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:263 ActionButton.callback",
+      "verdict": "finding",
+      "finding": "F1"
+    },
+    {
+      "name": "cogs/control_ui.py:366 ActionButton.callback.run_docker_action",
+      "verdict": "finding",
+      "finding": "F2"
+    },
+    {
+      "name": "cogs/control_ui.py:471 ActionButton.callback.run_docker_action.update_all_views",
+      "verdict": "finding",
+      "finding": "F7"
+    },
+    {
+      "name": "cogs/control_ui.py:644 ToggleButton",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:672 ToggleButton.callback",
+      "verdict": "finding",
+      "finding": "F4"
+    },
+    {
+      "name": "cogs/control_ui.py:923 ControlView",
+      "verdict": "finding",
+      "finding": "F3"
+    },
+    {
+      "name": "cogs/control_ui.py:1009 InfoButton",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:1026 InfoButton.callback",
+      "verdict": "finding",
+      "finding": "F6"
+    },
+    {
+      "name": "cogs/control_ui.py:1254 TaskDeleteButton",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:1269 TaskDeleteButton.callback",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:1338 TaskDeletePanelView",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:1374 MechControlsLabelButton",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:1389 MechControlsLabelButton.callback",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:1393 MechView",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:1419 InfoDropdownButton",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:1434 InfoDropdownButton.callback",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:1533 ContainerInfoSelectView",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:1543 ContainerInfoDropdown",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:1567 ContainerInfoDropdown.callback",
+      "verdict": "finding",
+      "finding": "F5"
+    },
+    {
+      "name": "cogs/control_ui.py:1725 PasswordProtectedView",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:1737 PasswordButton",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:1752 PasswordButton.callback",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:1782 AdminButton",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:1797 AdminButton.callback",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:1878 AdminButton.callback.get_sort_key",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_ui.py:1915 AdminContainerSelectView",
+      "verdict": "checked"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/control_ui.py",
+      "line": 319,
+      "trigger": "The 'current channel permission' decision that Z5 relies on (`_get_cached_channel_permission`, line 206-218) caches its result under a key that includes `current_config.get('_cache_timestamp', 0)` (line 207). If a config dict is ever loaded without a `_cache_timestamp` field (the code defensively defaults to 0, i.e. it clearly expects this to be possible), every call for that channel+permission pair collides on the same cache key for the rest of the process (or until the 50-entry LRU evicts it by chance) - so a permission revoked after the first cached lookup keeps reading as granted at this exact line, which SPEC.md calls out as 'the one load-bearing place' for Z5. The same risk applies to ToggleButton's control-permission check via `_get_cached_channel_permission_for_toggle` (line 667-671), which delegates to the same function.",
+      "suggestion": "Verify that every config dict reaching this permission check always carries a `_cache_timestamp` that is bumped on every permission-relevant write; if that is not guaranteed everywhere `load_config()` is used, either fail closed instead of defaulting to 0, or key the cache directly off the channel_permissions sub-object instead of a timestamp that could be missing or stale.",
+      "severity": "critical",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see load_config()/config_service.py, so I cannot confirm whether `_cache_timestamp` is always present and always updated exactly when channel_permissions change. If it is reliably maintained this is a non-issue; if not, it silently reopens the Z5 gap the operator explicitly closed at this line."
+    },
+    {
+      "id": "F2",
+      "file": "cogs/control_ui.py",
+      "line": 623,
+      "trigger": "Inside run_docker_action, `success = await docker_action_service_first(...)` (line 370) is logged but never checked, and the surrounding try (line 367) is closed by `except (RuntimeError, OSError, asyncio.TimeoutError)` (line 623) only. Anything raised by the Docker call itself or by the ~250 lines of status-polling/view-rebuild logic that follow it (e.g. a docker-py APIError/NotFound, a plain Exception, a discord.errors.DiscordException) is not caught here; it only reaches the task's done-callback, which logs it and clears `pending_actions`. The message the user is looking at was already switched to the 'pending' embed with `view=None` before this task started (lines 349-357) and is never touched again on that path, so it stays showing 'action pending' indefinitely even though the action already failed and pending_actions no longer blocks a retry.",
+      "suggestion": "After `success = await docker_action_service_first(...)`, branch on `success` and edit the message to an explicit failure state when it is False; and/or wrap the whole background body in a broader `except Exception` that still updates interaction.edit_original_response to a failure embed before re-raising/logging, instead of leaving the last-shown embed to be whatever was set before the task started.",
+      "severity": "high",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see docker_action_service_first's implementation, so I don't know which exception types it can actually raise past this except clause; the general shape of the bug (stuck 'pending' message on any uncaught error, and no user-facing branch on success=False) is visible directly in this file though."
+    },
+    {
+      "id": "F3",
+      "file": "cogs/control_ui.py",
+      "line": 941,
+      "trigger": "ControlView.__init__ computes `docker_name = server_config.get('docker_name')` (line 936) but then checks `is_pending = display_name in self.cog.pending_actions` (line 941) using `display_name` instead. Every other place in this file that reads or writes `pending_actions` (lines 345, 354, 374-376, 626-627, 637-638, 737) explicitly keys it by `docker_name`, with comments repeating 'use docker_name as key!'. Whenever a container's user-facing display name differs from its docker_name (the normal case), this lookup can never match, so `is_pending` is always False here: while a Start/Stop/Restart action is genuinely in flight for that container (an entry exists under its docker_name), any rebuild of ControlView (status refresh, admin-panel rebuild, toggle-triggered rebuild via ToggleButton._create_ultra_optimized_control_view) will still add live Start/Stop/Restart/Toggle buttons for it, letting a second conflicting Docker action be triggered on the same container while the first one is still running.",
+      "suggestion": "Use `docker_name` (already computed on the line above) as the key: `is_pending = docker_name in self.cog.pending_actions`.",
+      "severity": "high",
+      "certainty": "sure"
+    },
+    {
+      "id": "F4",
+      "file": "cogs/control_ui.py",
+      "line": 733,
+      "trigger": "ToggleButton.callback unconditionally calls `await interaction.response.defer()` at line 712. If `load_config()` then returns falsy, the code tries `await interaction.response.send_message(...)` at line 733 to tell the user the config could not be loaded - but the interaction has already been responded to (deferred), so py-cord raises `discord.InteractionResponded`. That exception is a `discord.errors.DiscordException` subclass, so it is swallowed by the generic `except (discord.errors.DiscordException, RuntimeError, OSError)` at line 799, which only logs it. The result: on a config-load failure the toggle button does nothing visible at all and the user gets no error message, whereas every other button in this file (InfoButton, TaskDeleteButton, AdminButton, InfoDropdownButton, ContainerInfoDropdown's exception handler, PasswordButton's exception handler) either sends its error before deferring or correctly uses `interaction.followup.send(...)` / checks `interaction.response.is_done()` first.",
+      "suggestion": "Replace `interaction.response.send_message(...)` at line 733 with `interaction.followup.send(...)`, matching the pattern used everywhere else in this file after `response.defer()`.",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F5",
+      "file": "cogs/control_ui.py",
+      "line": 1620,
+      "trigger": "ContainerInfoDropdown.callback decides whether to show unprotected 'protected_content' (protected_enabled without a password) by computing `is_control_channel = channel_config.get('allow_start', False) or channel_config.get('allow_stop', False)` directly from the raw `channel_permissions` config (lines 1618-1620), instead of calling `_channel_has_permission(channel_id, 'control', config)` as every control-permission check elsewhere in this file does (e.g. line 670, 319, 1090, 1309). It also never checks `_is_registered_admin`, unlike those same call sites (SPEC.md B2 / the Z5 addendum, which explicitly restores this bypass for InfoButton and TaskDeleteButton). A registered admin using the /ss info dropdown in a status channel is told 'Protected information ... can only be accessed in control channels' (line ~1701) even though B2 says admins should be able to act where channel permission alone permits nothing.",
+      "suggestion": "Replace the ad-hoc allow_start/allow_stop check with `_channel_has_permission(channel_id, 'control', config) or _is_registered_admin(interaction.user.id)`, matching the rest of the file, so this doesn't drift from the canonical definition of 'control' and so registered admins get the same B2 bypass here as everywhere else.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see _channel_has_permission's implementation, so I cannot confirm whether 'control' is defined as exactly allow_start-or-allow_stop (in which case this is only the missing admin bypass) or something broader (in which case the two checks could also disagree in the other direction)."
+    },
+    {
+      "id": "F6",
+      "file": "cogs/control_ui.py",
+      "line": 1057,
+      "trigger": "InfoButton.callback grants channel-independent access via `admin_service.is_user_admin(user_id)` (line 1057-1058, from services.admin.admin_service), while the control/task-delete permission checks in this same file (lines 319-321, 1090-1091, 1139-1140, 1309-1310) use a different helper, `_is_registered_admin` (from .control_helpers). AdminButton.callback (line 1817-1818) also uses admin_service.is_user_admin, so the file effectively has two parallel 'is this user an admin' code paths.",
+      "suggestion": "Confirm _is_registered_admin and admin_service.is_user_admin read the same underlying admin list/cache; if there is any chance of divergence (different cache TTLs, different storage), unify on one helper so a user's admin status can't differ between the info button and the action/task-delete buttons in the same panel.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see either admin_service.is_user_admin or _is_registered_admin's implementation, so I don't know whether they are simply two names for the same underlying check (in which case this is not a real finding) or genuinely separate mechanisms."
+    },
+    {
+      "id": "F7",
+      "file": "cogs/control_ui.py",
+      "line": 506,
+      "trigger": "update_all_views mutates the (possibly shared) `self.server_config` dict in place: `self.server_config['_is_admin_control'] = True` (line 506) is set, then `await self.cog._generate_status_embed_and_view(...)` runs (an await point), and only afterwards is the flag removed with `self.server_config.pop('_is_admin_control', None)` (line 550). If this same server_config dict object is referenced by another concurrently-running render of the same container (plausible given how aggressively this module caches per-container data elsewhere), that other coroutine could observe `_is_admin_control=True` during the window between line 506 and line 550 and render the wrong (Admin-Control-styled) embed/title for an unrelated request.",
+      "suggestion": "Pass an `is_admin_control` argument into `_generate_status_embed_and_view` instead of stashing it as a temporary key on the shared server_config dict, so no cross-coroutine mutation window exists.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see whether server_config dicts are ever shared/reused across concurrent renders of the same container (that logic lives outside this file), so I can't confirm this race is actually reachable rather than always operating on a private copy."
+    }
+  ],
+  "notes": "Findings F1, F2 and F5-F7 depend on code outside this section (config_service.load_config, docker_action_service_first, _channel_has_permission, admin_service, and the cog's own _generate_status_embed_and_view/get_status) that I was not given and did not guess at; they are reported with 'unsure' certainty and the specific unknown named in each. F3 and F4 are fully verifiable from this file alone and I'm confident in them. I did not find any place in this section where the three-action allowlist (Z6), the atomic-write guarantee (Z7), the bot-token guarantee (Z9), or the donation/idempotency guarantees (Z1/Z4) are implicated - this section is UI glue around actions, info display and task deletion, not the services that own those guarantees. All permission checks I could fully verify (ActionButton, TaskDeleteButton, InfoButton's has_control-for-editing branch) correctly combine the current channel permission with _is_registered_admin per the Z5/B2 fix described in SPEC.md."
+}

@@ -1,0 +1,225 @@
+{
+  "section": "14",
+  "verdicts": [
+    {
+      "name": "services/discord/channel_cleanup_service.py:33 ChannelCleanupRequest",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/channel_cleanup_service.py:59 ChannelCleanupResult",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/channel_cleanup_service.py:78 ChannelCleanupService",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/channel_cleanup_service.py:94 ChannelCleanupService.clean_sweep_bot_messages",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/channel_cleanup_service.py:121 ChannelCleanupService.delete_bot_messages_preserve_live_logs",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/channel_cleanup_service.py:143 ChannelCleanupService.delete_bot_messages_preserve_live_logs.is_bot_but_not_preserved",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/channel_cleanup_service.py:189 ChannelCleanupService.cleanup_channel",
+      "verdict": "finding",
+      "finding": "F1"
+    },
+    {
+      "name": "services/discord/channel_cleanup_service.py:420 get_channel_cleanup_service",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/channel_cleanup_service.py:440 reset_channel_cleanup_service",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/conditional_update_cache_service.py:21 ConditionalUpdateCacheService",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/conditional_update_cache_service.py:42 ConditionalUpdateCacheService.has_content_changed",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/conditional_update_cache_service.py:74 ConditionalUpdateCacheService.update_content",
+      "verdict": "finding",
+      "finding": "F2"
+    },
+    {
+      "name": "services/discord/conditional_update_cache_service.py:105 ConditionalUpdateCacheService.get_statistics",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/conditional_update_cache_service.py:124 ConditionalUpdateCacheService.reset_statistics",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/conditional_update_cache_service.py:133 ConditionalUpdateCacheService.clear_cache",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/conditional_update_cache_service.py:138 ConditionalUpdateCacheService.get_cache_size",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/conditional_update_cache_service.py:142 ConditionalUpdateCacheService.get_cached_content",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/conditional_update_cache_service.py:159 get_conditional_cache_service",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/embed_helper_service.py:21 format_player_inline",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/embed_helper_service.py:34 format_player_line",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/embed_helper_service.py:48 EmbedHelperService",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/embed_helper_service.py:64 EmbedHelperService.get_translations",
+      "verdict": "finding",
+      "finding": "F3"
+    },
+    {
+      "name": "services/discord/embed_helper_service.py:91 EmbedHelperService.get_box_elements",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/embed_helper_service.py:119 EmbedHelperService.clear_translation_cache",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/embed_helper_service.py:124 EmbedHelperService.clear_box_cache",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/embed_helper_service.py:129 EmbedHelperService.clear_all_caches",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/embed_helper_service.py:135 EmbedHelperService.get_cache_stats",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/embed_helper_service.py:153 get_embed_helper_service",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/status_overview_service.py:29 StatusOverviewUpdateConfig",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/status_overview_service.py:37 UpdateDecision",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/status_overview_service.py:45 StatusOverviewService",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/status_overview_service.py:63 StatusOverviewService.make_update_decision",
+      "verdict": "finding",
+      "finding": "F4"
+    },
+    {
+      "name": "services/discord/status_overview_service.py:257 StatusOverviewService.get_channel_config_summary",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/status_overview_service.py:285 get_status_overview_service",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/discord/status_overview_service.py:296 should_update_channel_overview",
+      "verdict": "finding",
+      "finding": "F4"
+    },
+    {
+      "name": "services/discord/status_overview_service.py:324 log_channel_update_decision",
+      "verdict": "finding",
+      "finding": "F4"
+    },
+    {
+      "name": "services/docker_service/docker_action_service.py:29 DockerActionRequest",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_service/docker_action_service.py:38 DockerActionResult",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_service/docker_action_service.py:52 get_stop_timeout_kwargs",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_service/docker_action_service.py:74 DockerActionService",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_service/docker_action_service.py:98 DockerActionService.execute_docker_action",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_service/docker_action_service.py:244 get_docker_action_service",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_service/docker_action_service.py:256 docker_action_service_first",
+      "verdict": "checked"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "services/discord/channel_cleanup_service.py",
+      "line": 226,
+      "trigger": "Bot lacks 'Manage Messages' in the target channel. cleanup_channel() finds N bot messages, _bulk_delete_messages() gets discord.Forbidden, falls back to _individual_delete_messages(), which also gets discord.Forbidden for every message (each caught individually, only permission_errors incremented). No exception escapes the outer try, so cleanup_channel unconditionally sets result.success = True at line 226 with messages_deleted == 0 and permission_errors == N.",
+      "suggestion": "Only set success = True when messages_found == 0 or messages_deleted (or messages_deleted + permission_errors accounted for) actually reflects completion; at minimum, set success = False (or add a distinct 'partial' state) when permission_errors > 0 and nothing was deleted, so a caller that reports 'cleanup successful' to a channel/log does not do so when nothing was removed.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "The callers of cleanup_channel/clean_sweep_bot_messages/delete_bot_messages_preserve_live_logs are not in this section, so I cannot see whether any of them surface result.success to a user as a 'done' message or only use it internally/for logging; if it is user-facing this fits Z3's spirit (success reported without matching effect)."
+    },
+    {
+      "id": "F2",
+      "file": "services/discord/conditional_update_cache_service.py",
+      "line": 101,
+      "trigger": "Cache grows past 50 keys through normal use; every 100 total operations _cleanup_cache() runs and keeps `list(self._last_sent_content.items())[-keep_entries:]`. Python dicts preserve insertion order, and assigning to an EXISTING key (as update_content does on every repeat call for the same cache_key) does not move it to the end. So a channel whose entry was inserted early but is still updated every cycle is exactly the kind of entry that gets evicted once 25+ newer keys exist, while stale-but-recently-inserted keys are kept.",
+      "suggestion": "Move an updated key to the end on write (e.g. pop-then-reinsert, or an OrderedDict.move_to_end) before trimming, so the kept 'keep_entries' really are the most recently touched ones, matching the docstring/comment ('Keep only the most recent entries').",
+      "severity": "low",
+      "certainty": "sure"
+    },
+    {
+      "id": "F3",
+      "file": "services/discord/embed_helper_service.py",
+      "line": 78,
+      "trigger": "get_translations(lang) builds cache_key = f\"translations_{lang}\" but calls `_(\"...\")` with no lang/locale argument, so the strings actually cached are whatever cogs.translation_manager._() currently resolves to (presumably some ambient/global locale state), not necessarily `lang`. If get_translations('de') is ever called while the ambient locale is still 'en' (e.g. race between per-guild locale switch and this call), English text is cached permanently under the 'de' key until clear_translation_cache() runs, and every later German request silently gets English text.",
+      "suggestion": "Either pass `lang` explicitly into the translation lookup (if cogs.translation_manager._() supports a locale argument) or set/verify the ambient locale to `lang` before calling _() inside this method, so the cache key and the cached content are guaranteed to correspond.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "cogs/translation_manager.py (the implementation of _()) is not in this section, so I cannot confirm whether it is locale-parameterless by design (single global locale, in which case caching per-`lang` key would be the actual bug/mismatch) or whether some caller-side mechanism guarantees the ambient locale already equals `lang` whenever this runs."
+    },
+    {
+      "id": "F4",
+      "file": "services/discord/status_overview_service.py",
+      "line": 198,
+      "trigger": "_should_recreate_message() (called from make_update_decision at line 124) imports services.mech.mech_state_manager and calls state_manager.should_force_recreate() inside a try that only catches (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) — despite the comment 'Safe fallback: don't recreate on error' promising coverage for errors in general. Any other exception type from that import or call (e.g. ImportError/ModuleNotFoundError on a partial deploy, or AttributeError/TypeError from the mech manager) is not caught here, propagates through make_update_decision's own narrower `except (RuntimeError)` at line 146, and is equally uncaught by should_update_channel_overview's `except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound)` (line 318) and by log_channel_update_decision's `except (RuntimeError)` (line 356) — so none of the three public entry points deliver the 'safe fallback' / 'error_fallback' behaviour their own code and comments describe for that failure class.",
+      "suggestion": "Either widen the except clauses in _should_recreate_message, make_update_decision, should_update_channel_overview and log_channel_update_decision to match what their comments promise ('on error', 'safe fallback'), or narrow the comments to state precisely which exception types are handled.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "services/mech/mech_state_manager.py is not in this section, so I cannot confirm it can actually raise something other than RuntimeError/discord exceptions; what is certain from this file alone is the mismatch between the 'on error' comments and the narrower except tuples actually used."
+    }
+  ],
+  "notes": "services/docker_service/__init__.py was included as source context but has no entries in PLAN.txt, so it received no verdict. DockerActionService.execute_docker_action and get_stop_timeout_kwargs correctly limit Docker actions to start/stop/restart (Z6) and only report success=True after the action call itself completed without exception (Z3-consistent); no permission/Z5 check is present in this file, but that is expected to live in the (unseen) caller, not here, so it is not reported as a gap."
+}

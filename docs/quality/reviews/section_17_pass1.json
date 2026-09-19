@@ -1,0 +1,355 @@
+{
+  "section": "17",
+  "verdicts": [
+    {
+      "name": "services/docker_status/models.py:22 PerformanceProfile",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:39 PerformanceProfile.to_dict",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:55 PerformanceProfile.from_dict",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:63 PerformanceConfig",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:79 StatusFetchRequest",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:93 StatusFetchResult",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:111 StatusFetchResult.is_running",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:118 StatusFetchResult.status",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:130 CachedStatus",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:142 CachedStatus.is_expired",
+      "verdict": "finding",
+      "finding": "F9"
+    },
+    {
+      "name": "services/docker_status/models.py:149 CachedStatus.age_seconds",
+      "verdict": "finding",
+      "finding": "F9"
+    },
+    {
+      "name": "services/docker_status/models.py:160 ContainerStatusResult",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:213 ContainerStatusResult.is_online",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:218 ContainerStatusResult.is_offline",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:222 ContainerStatusResult.as_tuple",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:239 ContainerStatusResult.success_result",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:262 ContainerStatusResult.error_result",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:275 ContainerStatusResult.offline_result",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:287 ContainerStatusResult.not_found_result",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:311 StatusEmbedRequest",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:329 StatusEmbedResult",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:346 BulkFetchRequest",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:355 BulkFetchResult",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:368 ContainerClassification",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/models.py:375 ContainerClassification.total_containers",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/performance_service.py:27 PerformanceProfileService",
+      "verdict": "finding",
+      "finding": "F1"
+    },
+    {
+      "name": "services/docker_status/performance_service.py:73 PerformanceProfileService.get_profile",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/performance_service.py:100 PerformanceProfileService.update_performance",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/performance_service.py:135 PerformanceProfileService.get_adaptive_timeout",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/performance_service.py:175 PerformanceProfileService.classify_containers",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/performance_service.py:211 PerformanceProfileService.get_config",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/performance_service.py:215 PerformanceProfileService.get_all_profiles",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/docker_status/performance_service.py:224 get_performance_service",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/donation_config.py:12 get_donation_disable_key",
+      "verdict": "finding",
+      "finding": "F3"
+    },
+    {
+      "name": "services/donation/donation_config.py:23 set_donation_disable_key",
+      "verdict": "finding",
+      "finding": "F3"
+    },
+    {
+      "name": "services/donation/donation_management_service.py:40 ServiceResult",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/donation_management_service.py:47 DonationStats",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/donation_management_service.py:54 DonationStats.from_data",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/donation_management_service.py:65 DonationManagementService",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/donation_management_service.py:72 DonationManagementService.get_donation_history",
+      "verdict": "finding",
+      "finding": "F4"
+    },
+    {
+      "name": "services/donation/donation_management_service.py:96 DonationManagementService.get_donation_history.MechStateCompat",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/donation_management_service.py:248 DonationManagementService.delete_donation",
+      "verdict": "finding",
+      "finding": "F4"
+    },
+    {
+      "name": "services/donation/donation_management_service.py:351 DonationManagementService.get_donation_stats",
+      "verdict": "finding",
+      "finding": "F4"
+    },
+    {
+      "name": "services/donation/donation_management_service.py:431 get_donation_management_service",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/donation_utils.py:13 is_donations_disabled",
+      "verdict": "finding",
+      "finding": "F3"
+    },
+    {
+      "name": "services/donation/donation_utils.py:38 validate_donation_key",
+      "verdict": "finding",
+      "finding": "F2"
+    },
+    {
+      "name": "services/donation/notification_service.py:20 DonationNotificationService",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/notification_service.py:32 DonationNotificationService.check_and_retrieve_notification",
+      "verdict": "finding",
+      "finding": "F8"
+    },
+    {
+      "name": "services/donation/notification_service.py:75 get_donation_notification_service",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/unified/events.py:20 build_donation_event",
+      "verdict": "finding",
+      "finding": "F6"
+    },
+    {
+      "name": "services/donation/unified/events.py:51 emit_donation_event",
+      "verdict": "finding",
+      "finding": "F6"
+    },
+    {
+      "name": "services/donation/unified/events.py:67 emit_reset_event",
+      "verdict": "finding",
+      "finding": "F5"
+    },
+    {
+      "name": "services/donation/unified/member_count.py:17 resolve_member_context",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/unified/member_count.py:33 compute_unique_member_count",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/unified/models.py:20 DonationRequest",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/unified/models.py:43 DonationResult",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/unified/models.py:59 DonationResult.from_states",
+      "verdict": "finding",
+      "finding": "F6"
+    },
+    {
+      "name": "services/donation/unified/processors.py:19 clear_mech_cache",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/unified/processors.py:33 execute_sync_donation",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/unified/processors.py:44 execute_async_donation",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/unified/reset.py:26 reset_donations",
+      "verdict": "finding",
+      "finding": "F7"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "services/docker_status/performance_service.py",
+      "line": 49,
+      "trigger": "Operator sets DDC_FAST_STATS_TIMEOUT or DDC_FAST_INFO_TIMEOUT to something other than 45s. _create_default_config() still hardcodes stats_timeout_ms/info_timeout_ms to 45.0*1000 and logs 'Performance config aligned with Docker timeouts', so the adaptive-timeout ceiling (max_timeout/default_timeout) silently stays pinned to the 45s default and never reflects the configured value.",
+      "suggestion": "Read the actual configured DDC_FAST_STATS_TIMEOUT / DDC_FAST_INFO_TIMEOUT values instead of the two hardcoded 45.0*1000 constants, or change the comment/log message to say the values are fixed defaults rather than derived from config.",
+      "severity": "low",
+      "certainty": "sure"
+    },
+    {
+      "id": "F2",
+      "file": "services/donation/donation_utils.py",
+      "line": 51,
+      "trigger": "config_service.validate_donation_key_service(...) raises ValueError/TypeError/AttributeError/RuntimeError (e.g. a transient config-service error) while an admin checks a genuinely correct premium key. validate_donation_key() swallows the exception, logs nothing, and returns False - the admin is told the key is invalid, indistinguishable from actually entering a wrong key.",
+      "suggestion": "Log the exception (at least warning/error) before returning False, and consider a distinct 'could not validate right now' outcome instead of collapsing every error into 'invalid key'.",
+      "severity": "high",
+      "certainty": "sure"
+    },
+    {
+      "id": "F3",
+      "file": "services/donation/donation_config.py",
+      "line": 32,
+      "trigger": "config_service.save_config(config) raises OSError/IOError (disk full, permission problem, etc.) while an admin sets the donation-disable key from the panel. set_donation_disable_key() catches it and returns False with zero log output - not even at DEBUG. The identical no-logging pattern also exists in get_donation_disable_key() (line 19-21) and in donation_utils.is_donations_disabled() (line 34-36), unlike the equivalent error handling in donation_management_service.py, which logs every exception it catches.",
+      "suggestion": "Add a logger.error/warning call in each except block before returning the compatibility default, matching the pattern already used in donation_management_service.py.",
+      "severity": "low",
+      "certainty": "sure"
+    },
+    {
+      "id": "F4",
+      "file": "services/donation/donation_management_service.py",
+      "line": 178,
+      "trigger": "get_donation_history (line 178), delete_donation (line 282) and get_donation_stats (line 391) all extract 'deleted_seq' from a DonationDeleted event's payload and test it with a truthiness check ('if deleted_seq:') instead of 'is not None'. If a donation's seq (or a deletion's deleted_seq) is ever 0, that entry is silently treated as having no deleted_seq at all: the deletion drops out of deletions_map/deletion_counts, so delete_donation's toggle logic would see the target as 'not currently deleted' even though a DonationDeleted event for it exists, letting a further delete add a second compensation event on top instead of being refused. Separately, get_donation_history keys donations_map by the raw 'seq' value without checking it is not None, so two damaged log lines that both lack a 'seq' key would collide under the key None and one donation would silently disappear from both the history list and the total_power sum.",
+      "suggestion": "Use 'if deleted_seq is not None:' (and similarly guard 'seq is not None' before using it as a dict key) in all three places instead of a truthiness check.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "progress_service.py's sequence-counter logic (next_seq()) is outside this section, so it is unknown whether a real event's seq can ever be 0, or whether a log line missing 'seq' entirely ever occurs in practice."
+    },
+    {
+      "id": "F5",
+      "file": "services/donation/unified/events.py",
+      "line": 82,
+      "trigger": "reset_donations() (services/donation/unified/reset.py:59) calls emit_reset_event(), which emits event_type='donation_completed' - the same event type emit_donation_event uses for a real donation (this file, line 58) - differing only in the payload's 'action': 'reset' field, and with new_power lower than old_power instead of higher. A listener on 'donation_completed' that reacts purely by event_type (e.g. to announce a donation or trigger a celebratory update) would fire on a reset the same way it fires on a real donation, or would compute a nonsensical negative 'amount donated' from old_power/new_power.",
+      "suggestion": "Give resets their own event_type (e.g. 'donation_reset') instead of reusing 'donation_completed', so a listener cannot mistake one for the other without inspecting the payload.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "The listeners registered for 'donation_completed' live in event_manager.py and its handlers, which are outside this section; it is unclear whether any of them ignore the 'action' field."
+    },
+    {
+      "id": "F6",
+      "file": "services/donation/unified/models.py",
+      "line": 92,
+      "trigger": "For the same (old_state, new_state) pair, events.build_donation_event (services/donation/unified/events.py:39, used by emit_donation_event) computes level_changed as a bare 'old_level != new_level', which is True whenever old_state is None (e.g. a donor's very first booking, no prior mech state) and new_state has a level. DonationResult.from_states (this file, line 92) computes the same concept but returns False whenever either level is None - False for that exact same first-booking case. The event emitted for a donation and the DonationResult returned for the same donation can therefore disagree on whether a level change happened.",
+      "suggestion": "Make both computations use the same rule (either both None-safe or both raw), ideally via one shared helper used by both events.py and models.py.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "The real donation entry points that build old_state/new_state and call these two functions (services/donation/unified/service.py) are outside this section, so it is unclear whether old_state or a level attribute is ever actually None in production, or whether any caller's user-visible behavior (e.g. a level-up announcement) actually depends on which of the two level_changed values it reads."
+    },
+    {
+      "id": "F7",
+      "file": "services/donation/unified/reset.py",
+      "line": 53,
+      "trigger": "Inside reset_donations(), _backup_before_reset() succeeds and _clear_event_log() (line 53) truncates the event log to empty. If the next step, _reset_sequence_counter() or _write_fresh_snapshot() (lines 54-55), then raises IOError/OSError/JSONDecodeError (disk full, permission denied, etc.), the outer except block returns success=False with an honest error message (Z3 is respected). But the event log has already been emptied on disk at that point while the sequence counter and/or snapshot were not reset to match, and nothing automatically restores the log from the backup made seconds earlier - the instance is left half-reset until an operator notices the error and manually restores from the backup directory.",
+      "suggestion": "On failure after _clear_event_log has run, either restore the just-made backup automatically, or reorder the writes so the event log is the LAST file touched (so an earlier failure aborts before anything is truncated).",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "mech_service.get_state() and progress_service.next_seq() are outside this section, so it is unknown whether a subsequent read would rebuild cleanly from the now-empty log (self-healing) or keep serving stale state indefinitely."
+    },
+    {
+      "id": "F8",
+      "file": "services/donation/notification_service.py",
+      "line": 68,
+      "trigger": "If the writer of the notification file (services/web/donation_service.py, outside this section) does not write it atomically, a poll of check_and_retrieve_notification() that lands mid-write sees invalid/partial JSON, hits the 'except (json.JSONDecodeError, OSError, ValueError)' branch, and immediately unlink()s the file as 'corrupted' (line 68) - permanently discarding that donation's web-panel announcement instead of retrying once the write completes.",
+      "suggestion": "Only delete the file as corrupted after it has been stable for a short grace period (re-check after a brief delay), or make sure the writer uses an atomic temp-file+rename so a reader never observes a partial file.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "The writer (services/web/donation_service.py) is outside this section, so it is unknown whether it already writes the notification file atomically; if it does, this path is unreachable."
+    },
+    {
+      "id": "F9",
+      "file": "services/docker_status/models.py",
+      "line": 146,
+      "trigger": "CachedStatus.is_expired (line 146) and age_seconds (line 152, same pattern) compute 'datetime.now(timezone.utc) - self.cached_at'. If any caller ever constructs a CachedStatus with a naive cached_at (e.g. plain datetime.now() without a timezone), both properties raise TypeError: can't subtract offset-naive and offset-aware datetimes.",
+      "suggestion": "Normalize cached_at to a UTC-aware value in a __post_init__, or explicitly document/assert that callers must always pass a timezone-aware datetime.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "The code that constructs CachedStatus (the cache-writing side, e.g. StatusCacheService) is outside this section, so it is unknown whether cached_at is always constructed timezone-aware in practice; this codebase has had at least one prior naive-datetime bug in a related area (see SPEC.md Z7's mech-snapshot fix), which is why it seemed worth flagging despite the uncertainty."
+    }
+  ],
+  "notes": "services/donation/__init__.py and services/donation/unified/__init__.py were also read for context (they only re-export names, no plan entries live there) - no issues found beyond confirming that services/donation/unified/service.py, which actually calls build_donation_event/emit_donation_event/DonationResult.from_states/emit_reset_event for real (non-reset) donations, is outside this section; several 'unsure' findings above (F5, F6, F7, F8, F9) hinge on code in that file or in progress_service.py / mech_service.py / event_manager.py / services/web/donation_service.py, none of which were provided. No code was run and no files outside the given directory were opened, per the task rules."
+}

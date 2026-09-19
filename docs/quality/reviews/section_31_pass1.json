@@ -1,0 +1,264 @@
+{
+  "section": "31",
+  "verdicts": [
+    {
+      "name": "services/web/task_management_service.py:25 AddTaskRequest",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/web/task_management_service.py:37 AddTaskResult",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/web/task_management_service.py:46 ListTasksRequest",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/web/task_management_service.py:52 ListTasksResult",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/web/task_management_service.py:60 UpdateTaskStatusRequest",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/web/task_management_service.py:67 UpdateTaskStatusResult",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/web/task_management_service.py:76 DeleteTaskRequest",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/web/task_management_service.py:82 DeleteTaskResult",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/web/task_management_service.py:90 EditTaskRequest",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/web/task_management_service.py:99 EditTaskResult",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/web/task_management_service.py:108 TaskFormRequest",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/web/task_management_service.py:114 TaskFormResult",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/web/task_management_service.py:121 TaskManagementService",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/web/task_management_service.py:127 TaskManagementService.add_task",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/web/task_management_service.py:192 TaskManagementService.list_tasks",
+      "verdict": "finding",
+      "finding": "F2"
+    },
+    {
+      "name": "services/web/task_management_service.py:245 TaskManagementService.update_task_status",
+      "verdict": "finding",
+      "finding": "F1"
+    },
+    {
+      "name": "services/web/task_management_service.py:305 TaskManagementService.delete_task",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/web/task_management_service.py:363 TaskManagementService.edit_task",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/web/task_management_service.py:411 TaskManagementService.get_task_form_data",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/web/task_management_service.py:1051 get_task_management_service",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/__init__.py:11 create_app",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/auth.py:85 clear_credential_cache",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/auth.py:92 SimpleRateLimiter",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/auth.py:99 SimpleRateLimiter.is_rate_limited",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/auth.py:121 SimpleRateLimiter.cleanup_old_entries",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/auth.py:140 init_limiter",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/auth.py:143 init_limiter.check_auth_rate_limit",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/auth.py:170 verify_password",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/auth.py:222 auth_error",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/action_log_routes.py:24 rate_limit",
+      "verdict": "finding",
+      "finding": "F4"
+    },
+    {
+      "name": "app/blueprints/action_log_routes.py:26 rate_limit.decorated_function",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/action_log_routes.py:59 get_action_log",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/action_log_routes.py:79 download_action_log",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/automation_routes.py:30 get_rules",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/automation_routes.py:38 create_rule",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/automation_routes.py:50 update_rule",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/automation_routes.py:62 delete_rule",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/automation_routes.py:74 toggle_rule",
+      "verdict": "finding",
+      "finding": "F5"
+    },
+    {
+      "name": "app/blueprints/automation_routes.py:95 get_settings",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/automation_routes.py:102 update_settings",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/automation_routes.py:116 get_history",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/automation_routes.py:135 test_rule",
+      "verdict": "finding",
+      "finding": "F3"
+    },
+    {
+      "name": "app/blueprints/automation_routes.py:172 test_rule.check_all_rules",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/automation_routes.py:223 get_channels",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/log_routes.py:15 get_container_logs",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/log_routes.py:48 get_bot_logs",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/log_routes.py:81 get_discord_logs",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/log_routes.py:114 get_webui_logs",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/log_routes.py:147 get_application_logs",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/log_routes.py:180 get_action_logs",
+      "verdict": "checked"
+    },
+    {
+      "name": "app/blueprints/log_routes.py:213 get_action_logs_json",
+      "verdict": "checked"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "services/web/task_management_service.py",
+      "line": 267,
+      "trigger": "A one-time ('once') task whose scheduled time has already passed, but whose status is not literally the string 'completed' (e.g. it was deactivated only via the list view's expiry logic, which sets is_active=False but never touches status - see F2/_calculate_frontend_status at line 706-718 - or it simply never ran), is re-enabled with PUT/POST is_active=true. _prepare_task_activation (line 788-789) only recalculates next_run_ts for non-once tasks, so a once-task's stale, past next_run_ts is left untouched. _is_task_expired (line 797) then only rejects when next_run_ts is None or (cycle==once and status=='completed') - it never checks whether next_run_ts is actually in the past. The request therefore succeeds, the task is saved active again with a next_run_ts already in the past, and the scheduler will treat it as overdue and fire the container action (start/stop/restart) as soon as it is next checked, instead of the 'This task's execution time is in the past' rejection the error message on line 271 promises.",
+      "suggestion": "Make _is_task_expired (or _prepare_task_activation for once-cycle tasks) check next_run_ts < time.time() for CYCLE_ONCE the same way _validate_and_calculate_next_run does at task-creation time (line 559-561) and _calculate_frontend_status does for display (line 713-714), so the three places agree on what 'expired' means for a once task.",
+      "severity": "high",
+      "certainty": "sure"
+    },
+    {
+      "id": "F2",
+      "file": "services/web/task_management_service.py",
+      "line": 672,
+      "trigger": "In list_tasks, _process_task_for_frontend copies task_dict['is_active'] = task.is_active at line 672, then calls _calculate_frontend_status (line 683) which, for an expired once-task, sets task.is_active = False as a side effect (line 702-704/709-711/716-718) and returns frontend_status='expired'. The dict returned to the browser therefore reports is_active: true together with frontend_status: 'expired' for the same task, in the very response that also persists is_active=False to disk via _save_updated_tasks. The next list_tasks call (e.g. auto-refresh) then correctly shows is_active: false, so the wrong value only shows for one render.",
+      "suggestion": "Read task.is_active into task_dict after _calculate_frontend_status has run (or re-read it from the task object at the end of _process_task_for_frontend), so the returned is_active always matches frontend_status and what gets persisted.",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F3",
+      "file": "app/blueprints/automation_routes.py",
+      "line": 205,
+      "trigger": "In test_rule, when an event loop is already running, `with concurrent.futures.ThreadPoolExecutor() as executor: future = executor.submit(asyncio.run, check_all_rules()); results = future.result(timeout=30)` is meant to bound the request to 30 seconds ('30s timeout for safety'). If a rule's matching (e.g. a pathological regex or a slow keyword check) takes far longer than 30s, future.result(timeout=30) does raise concurrent.futures.TimeoutError, but that exception can only propagate once the `with` block's __exit__ runs - and ThreadPoolExecutor.__exit__ calls shutdown(wait=True), which blocks until the background thread actually finishes. So the request thread keeps blocking for however long the hung rule check actually takes, not 30 seconds; a stuck rule check can tie up a web-worker thread indefinitely, which with few waitress worker threads can make the whole panel unresponsive for other users.",
+      "suggestion": "Don't wait on executor shutdown for a timed-out future: create the executor without a `with` block (or call executor.shutdown(wait=False, cancel_futures=True) on timeout) so the request thread can actually return an error after 30 seconds regardless of what the background thread is doing.",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F4",
+      "file": "app/blueprints/action_log_routes.py",
+      "line": 16,
+      "trigger": "`from app.blueprints.log_routes import rate_limit` (line 16) is meant to reuse a shared rate-limit decorator from log_routes.py, falling back to a local implementation 'if import fails'. The log_routes.py source in this section (its full given range, 1-242, ending cleanly after get_action_logs_json) defines no top-level `rate_limit` name at all, so this import always raises ImportError and the 'fallback' at line 24 is in fact the only implementation that has ever run for /action-log. The fallback works, so there is no user-visible defect today, but the comment ('Import ... from log_routes.py', 'Fallback ... if import fails') claims a shared, tested implementation is normally used, which is not the case.",
+      "suggestion": "Either add the shared rate_limit decorator to log_routes.py so the import succeeds, or drop the always-failing import/comment and keep only the local implementation, so the code matches what it says.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "I only have log_routes.py lines 1-242; if a `rate_limit` name exists elsewhere in that file (outside this excerpt) the import would succeed and this finding would not apply. The excerpt looks complete (it ends cleanly at the last route), but I cannot be certain."
+    },
+    {
+      "id": "F5",
+      "file": "app/blueprints/automation_routes.py",
+      "line": 84,
+      "trigger": "toggle_rule reads the current rule (`rule = config_service.get_rule(rule_id)`), flips `rule_data['enabled']` in memory (line 84) and writes it back with `update_rule`. Two toggle requests for the same rule arriving close together (double-click, or a click racing an auto-refreshed page) both read the same 'before' value and both write its inverse; the loser's write can leave the rule in the same enabled state it started in, silently swallowing one of the two toggle actions.",
+      "suggestion": "Have config_service.update_rule perform the toggle atomically under its own lock (flip based on the stored value at write time) instead of round-tripping the value through the request handler, or otherwise document/verify that the config service already serializes concurrent writes.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "Whether get_auto_action_config_service()'s add_rule/update_rule already lock around read-modify-write (as several other DDC config services do) is not visible in this section's source, so I cannot tell whether this race is actually reachable."
+    }
+  ],
+  "notes": "app/__init__.py:11 create_app builds a bare Flask(__name__) and returns it immediately - config_name is accepted but never used, and no blueprints/config are registered here. I cannot tell from this section whether this is a real factory used in production (with wiring done elsewhere, not in this section) or a vestigial/test-only helper; flagging only because it looks incomplete, not because I can show it causes wrong behaviour. - app/auth.py:222 auth_error catches only (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) around load_config(); per the comment at auth.py:178-180, load_config() is documented to always return a dict with defaults rather than raise, which would make this except clause defensive-but-unreachable. Not reported as a finding since I cannot see config_service.load_config() in this section to confirm either way. - app/blueprints/action_log_routes.py:79 download_action_log only catches FileNotFoundError around send_file(); a different OSError (e.g. PermissionError on the log file) would fall through to Flask's default error page instead of the friendly flash+redirect the FileNotFoundError branch gives. This is a visible (not silent) failure and a narrow edge case, so I left it out of the findings list rather than adding a sixth low-confidence item."
+}

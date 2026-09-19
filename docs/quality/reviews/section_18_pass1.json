@@ -1,0 +1,436 @@
+{
+  "section": "18",
+  "verdicts": [
+    {
+      "name": "services/donation/unified/service.py:39 UnifiedDonationService",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/unified/service.py:49 UnifiedDonationService.process_donation",
+      "verdict": "finding",
+      "finding": "F1"
+    },
+    {
+      "name": "services/donation/unified/service.py:208 UnifiedDonationService.process_donation_async",
+      "verdict": "finding",
+      "finding": "F1"
+    },
+    {
+      "name": "services/donation/unified/service.py:381 UnifiedDonationService.reset_all_donations",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/unified/service.py:390 get_unified_donation_service",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/unified/service.py:397 process_web_ui_donation",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/unified/service.py:409 process_discord_donation",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/unified/service.py:433 process_test_donation",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/unified/service.py:445 reset_all_donations",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/unified/validation.py:15 DonationValidationError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/donation/unified/validation.py:19 validate_request",
+      "verdict": "finding",
+      "finding": "F2"
+    },
+    {
+      "name": "services/exceptions.py:12 DDCBaseException",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:25 DDCBaseException.to_dict",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:39 ConfigServiceError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:42 ConfigLoadError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:45 ConfigSaveError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:48 ConfigValidationError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:51 ConfigMigrationError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:54 ConfigCacheError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:57 TokenEncryptionError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:60 InvalidConfigFormatError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:63 MissingConfigError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:71 DockerServiceError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:74 DockerConnectionError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:77 DockerClientPoolExhausted",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:80 DockerCommandTimeoutError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:83 ContainerNotFoundError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:86 ContainerActionError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:89 ContainerLogError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:92 DockerImageError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:100 DonationServiceError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:103 DonationKeyValidationError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:106 DonationAPIError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:109 DonationDataError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:112 DonationThresholdError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:120 MechServiceError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:123 MechStateError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:126 MechEvolutionError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:129 MechAnimationError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:132 MechPowerDecayError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:135 MechLevelError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:143 WebServiceError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:146 AuthenticationError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:149 AuthorizationError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:152 SessionError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:155 FormValidationError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:158 TemplateRenderError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:166 BotServiceError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:169 BotConnectionError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:172 CommandExecutionError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:175 InteractionError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:178 ChannelPermissionError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:181 MessageUpdateError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:189 SchedulerError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:192 TaskSchedulingError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:195 TaskExecutionError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:198 CronParseError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:206 StorageError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:209 FileStorageError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:212 DataIntegrityError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:215 LockAcquisitionError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:223 TranslationError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:226 MissingTranslationError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:229 LanguageNotSupportedError",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:237 get_exception_info",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:258 is_recoverable_error",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/exceptions.py:280 should_alert_admin",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/infrastructure/action_log_service.py:27 ActionLogEntry",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/infrastructure/action_log_service.py:41 ActionLogEntry.from_dict",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/infrastructure/action_log_service.py:56 ActionLogEntry.to_dict",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/infrastructure/action_log_service.py:72 ServiceResult",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/infrastructure/action_log_service.py:86 ActionLogService",
+      "verdict": "finding",
+      "finding": "F7"
+    },
+    {
+      "name": "services/infrastructure/action_log_service.py:111 ActionLogService.log_action",
+      "verdict": "finding",
+      "finding": "F3"
+    },
+    {
+      "name": "services/infrastructure/action_log_service.py:167 ActionLogService.get_logs",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/infrastructure/action_log_service.py:364 get_action_log_service",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/infrastructure/action_logger.py:32 log_user_action",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/infrastructure/action_logger.py:51 get_action_logs_json",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/infrastructure/action_logger.py:71 get_action_logs_text",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/infrastructure/container_info_service.py:39 ContainerInfo",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/infrastructure/container_info_service.py:52 ContainerInfo.from_dict",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/infrastructure/container_info_service.py:65 ContainerInfo.to_dict",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/infrastructure/container_info_service.py:79 ServiceResult",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/infrastructure/container_info_service.py:85 ContainerInfoService",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/infrastructure/container_info_service.py:100 ContainerInfoService.get_container_info",
+      "verdict": "finding",
+      "finding": "F5"
+    },
+    {
+      "name": "services/infrastructure/container_info_service.py:155 ContainerInfoService.save_container_info",
+      "verdict": "finding",
+      "finding": "F5"
+    },
+    {
+      "name": "services/infrastructure/container_info_service.py:209 ContainerInfoService.delete_container_info",
+      "verdict": "finding",
+      "finding": "F5"
+    },
+    {
+      "name": "services/infrastructure/container_info_service.py:270 ContainerInfoService.list_all_containers",
+      "verdict": "finding",
+      "finding": "F6"
+    },
+    {
+      "name": "services/infrastructure/container_info_service.py:307 get_container_info_service",
+      "verdict": "checked"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "services/donation/unified/service.py",
+      "line": 89,
+      "trigger": "In process_donation (and identically in process_donation_async, line 259), execute_sync_donation()/execute_async_donation() already books the donation and returns new_state (mech state changed) before events.emit_donation_event() runs. If emit_donation_event raises anything in (ValueError, TypeError, AttributeError, KeyError, RuntimeError, OSError) - e.g. a bug while building the event payload, not necessarily a listener error - the single try/except around both steps reports the whole call as success=False (error_code DATA_ERROR or PROCESSING_FAILED), even though the state/ledger was already updated. A donor told 'failed' after this may donate again, crediting them twice.",
+      "suggestion": "Only classify errors from the booking step (before new_state is obtained) as a failed donation. Once execute_*_donation has returned a new_state, treat a subsequent exception from emit_donation_event as 'booked, notification failed' (partial success) rather than success=False.",
+      "severity": "critical",
+      "certainty": "unsure",
+      "unsure_why": "events.emit_donation_event() and event_manager.py are not in this section. SPEC.md documents that event_manager.py was already fixed so a failing listener no longer breaks the emitter and mis-reports the booking as failed (the Z8 'one failing listener' fix). It is unclear from the files given here whether emit_donation_event itself can still raise for reasons other than a listener (e.g. building the event object) after that fix, which is the only way this code path is still reachable."
+    },
+    {
+      "id": "F2",
+      "file": "services/donation/unified/validation.py",
+      "line": 30,
+      "trigger": "validate_request only rejects amount<=0 and amount>1_000_000. float('nan') satisfies isinstance(amount,(int,float)), and both 'nan <= 0' and 'nan > 1_000_000' evaluate to False, so a NaN amount passes validation untouched and is booked as a donation.",
+      "suggestion": "Add an explicit finiteness check, e.g. 'if not math.isfinite(amount): raise DonationValidationError(...)', before the range checks.",
+      "severity": "high",
+      "certainty": "unsure",
+      "unsure_why": "This section does not show how 'amount' is produced from the web form or Discord command before reaching DonationRequest/validate_request; if the caller already restricts it to a well-formed decimal, this specific path may not be reachable in practice today."
+    },
+    {
+      "id": "F3",
+      "file": "services/infrastructure/action_log_service.py",
+      "line": 156,
+      "trigger": "log_action() writes both the JSON log (the source get_action_logs_json()/_get_logs_text() actually read) and a plain-text mirror, then returns success=True 'if json_result.success or text_result.success'. If the JSON write fails once (e.g. a transient PermissionError/OSError while the text append still works), log_action returns success=True and only logs a warning; log_user_action() in action_logger.py only prints an error when result.success is False, so nothing surfaces. Because _get_logs_text() also prefers the JSON result whenever it succeeds and is non-empty, the entry that did make it into the text file never resurfaces through either read path - it is permanently invisible although the action was reported as logged.",
+      "suggestion": "Only report overall success when the format actually used for display (JSON) succeeded, or make the text-only fallback explicitly reachable again (e.g. mark the JSON store as stale) instead of silently dropping the entry.",
+      "severity": "high",
+      "certainty": "sure"
+    },
+    {
+      "id": "F4",
+      "file": "services/infrastructure/action_logger.py",
+      "line": 27,
+      "trigger": "_ACTION_LOG_FILE / ACTION_LOG_FILE is built as '<repo>/logs/action_log.json', but ActionLogService (services/infrastructure/action_log_service.py) writes the real JSON log to '<repo>/logs/user_actions.json'. Anything that reads ACTION_LOG_FILE to find the action log data (this module's own comment calls it 'Both names for compatibility') is pointed at a file that is never written.",
+      "suggestion": "Point ACTION_LOG_FILE at the file ActionLogService actually writes (self.json_log_file), or remove the constant if it has no real consumer left.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "Nothing in this section reads ACTION_LOG_FILE, so we cannot see whether any live code still depends on it or whether it is truly dead."
+    },
+    {
+      "id": "F5",
+      "file": "services/infrastructure/container_info_service.py",
+      "line": 118,
+      "trigger": "get_container_info, save_container_info and delete_container_info each fall back to scanning containers_dir.glob('*.json') and calling json.load() on every file to find one whose container_name/docker_name/name matches, when no '<name>.json' file exists. That json.load() is not wrapped in its own try/except, so a single unrelated corrupted or half-written container JSON file in the directory raises json.JSONDecodeError, which propagates to the method's outer except and returns success=False for the requested container - even though that container's own file is fine and simply not named exactly '<container_name>.json'.",
+      "suggestion": "Wrap the per-file read inside the fallback loop in its own try/except that logs and skips an unreadable file instead of aborting the whole lookup.",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F6",
+      "file": "services/infrastructure/container_info_service.py",
+      "line": 279,
+      "trigger": "list_all_containers() first returns an empty list if self.config_file (docker_config.json, kept only 'for backward compatibility' per the comment on line 98) does not exist, then - only if it does exist - loads it into 'docker_config', a variable that is never used again. The actual container names are computed afterward purely from get_server_config_service().get_all_servers(), a separate/modular data source. On any setup where docker_config.json is absent (fresh install, or fully migrated to the per-container files this same class uses for get/save/delete) but servers are configured through the modular service, this method silently returns [] with success=True instead of the real container list.",
+      "suggestion": "Drop the docker_config.json existence gate and the dead read; build the result solely from get_server_config_service().get_all_servers(), the source already used to populate container_names.",
+      "severity": "high",
+      "certainty": "sure"
+    },
+    {
+      "id": "F7",
+      "file": "services/infrastructure/action_log_service.py",
+      "line": 99,
+      "trigger": "ActionLogService's default logs_dir is 'Path(__file__).parents[2] / \"logs\"' - a fixed path relative to the source file, with no environment-based override comparable to the DDC_CONFIG_DIR handling that ContainerInfoService uses via utils/config_paths.py for config data (SPEC.md Z2). Any code path (including tests) that constructs ActionLogService()/get_action_log_service() without explicitly passing logs_dir writes into the real repository 'logs/' directory regardless of any test isolation mechanism used elsewhere.",
+      "suggestion": "Resolve logs_dir the same env-aware way config paths are resolved (e.g. an equivalent of DDC_CONFIG_DIR for logs), so a test run cannot end up appending to the real user_actions.json/user_actions.log.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "utils/config_paths.py, and whatever test fixtures/conftest.py exist for this service, are not part of this section, so it's possible callers always pass an explicit logs_dir override in practice, or that a similar guard exists elsewhere that we cannot see."
+    }
+  ],
+  "notes": "Several files in this section hand off to code outside it that materially affects whether the findings above actually fire: services/donation/unified/service.py depends on services/donation/unified/{events,processors,models,member_count}.py, services/infrastructure/event_manager.py and services/mech/mech_service.py, none of which are in this section; services/infrastructure/container_info_service.py depends on services/config/server_config_service.py and utils/config_paths.py. F4 (the stale ACTION_LOG_FILE constant) does not map onto any single name in PLAN.txt - it sits at module level in services/infrastructure/action_logger.py next to, but unused by, the three listed functions - so it is not attached to a verdict above but is reported here as a real, directly-observable mismatch. services/exceptions.py (56 of the 88 names) is a pure declarative exception hierarchy plus three small classifier helpers; nothing in it interacts with state, I/O or another guarantee, so all 56 are 'checked' with no findings."
+}
