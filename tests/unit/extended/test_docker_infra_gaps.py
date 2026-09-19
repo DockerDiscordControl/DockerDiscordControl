@@ -1557,8 +1557,8 @@ class TestSpamProtectionRemainingForCommand:
     """get_remaining_cooldown, command branch (action_type is one of the
     listed commands).
 
-    Bewusst OHNE Zeilennummern: Sie veralten mit jeder Aenderung der Datei
-    still, und ein Kommentar, der ins Leere zeigt, ist schlechter als keiner."""
+    Deliberately WITHOUT line numbers: they silently go stale with every change
+    to the file, and a comment pointing nowhere is worse than none."""
 
     def test_get_remaining_cooldown_for_command_action(
         self, tmp_path, monkeypatch
@@ -1568,9 +1568,9 @@ class TestSpamProtectionRemainingForCommand:
         import time as _t
 
         monkeypatch.setattr(_t, "time", lambda: 2000.0)
-        # art="befehl": Befehl oder Knopf entscheidet seit der Korrektur der
-        # Aufrufer, nicht mehr eine Namensliste. Dieser Test prueft ausdruecklich
-        # den Befehlszweig und muss es deshalb sagen.
+        # kind="command": since the fix the caller decides command or button,
+        # not a list of names any more. This test checks the command branch on
+        # purpose and must therefore say so.
         svc.add_user_cooldown(11, "ping", kind="command")
         # ping has command cooldown of 3 (default config)
         remaining = svc.get_remaining_cooldown(11, "ping", kind="command")

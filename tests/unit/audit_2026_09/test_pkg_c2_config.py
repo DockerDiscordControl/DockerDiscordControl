@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # @deckt Z9
-# Diese Datei pruefte C2-1 ('decrypted bot token must never be written to
-# config.json / .bak') schon vor dem Qualitaetsprogramm. Die Abdeckung fuer Z9
-# existierte also - sie war nur nirgends verzeichnet. Ein zweiter, gleichartiger
-# Test waere Doppelung statt Abdeckung gewesen. Siehe SPEC.md Z9 und R2.
+# This file checked C2-1 ('decrypted bot token must never be written to
+# config.json / .bak') before the quality programme. So the coverage for Z9
+# existed - it just was not recorded anywhere. A second test of the same kind
+# would have been duplication, not coverage. See SPEC.md Z9 and R2.
 # ============================================================================ #
 # DockerDiscordControl (DDC)                                                  #
 # https://ddc.bot                                                              #

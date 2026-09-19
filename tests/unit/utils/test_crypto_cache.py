@@ -302,14 +302,14 @@ class TestTokenSecurityManager:
 
     def test_migrate_to_environment_variable_without_config_service(self) -> None:
         mgr = TokenSecurityManager(config_service=MagicMock())
-        # Ohne Konfigurationsdienst muss die Methode ein Fehler-Woerterbuch
-        # liefern statt zu werfen.
+        # Without a config service the method must return an error dictionary
+        # instead of raising.
         #
-        # Bis 2026-09-18 las die Methode self.config_manager - ein Attribut, das
-        # __init__ nie setzt. Damit lief JEDER Aufruf in diesen Zweig, und der
-        # Weg war faktisch tot; dieser Test hielt das als erwartetes Verhalten
-        # fest, statt es zu melden. Jetzt wird der Zweig ausdruecklich
-        # hergestellt, statt sich auf einen Defekt zu verlassen.
+        # Until 2026-09-18 the method read self.config_manager - an attribute
+        # __init__ never sets. So EVERY call ended up in this branch, and the path
+        # was dead in practice; this test pinned that as expected behaviour
+        # instead of reporting it. Now the branch is set up explicitly instead of
+        # relying on a defect.
         mgr.config_service = None
         result = mgr.migrate_to_environment_variable()
         assert isinstance(result, dict)

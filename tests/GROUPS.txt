@@ -1,19 +1,19 @@
-# Die Testgruppen dieses Projekts - eine Gruppe je pytest-Aufruf.
+# The test groups of this project - one group per pytest invocation.
 #
-# WARUM EINZELN: tests/unit/services, tests/unit/cogs und tests/unit/utils haben
-# kein __init__.py, heissen aber wie die echten Pakete services/, cogs/, utils/.
-# In EINEM gemeinsamen pytest-Lauf verdecken sie diese, und die Sammlung bricht ab:
-#   pytest tests/unit/  -> 79 Fehler beim Einsammeln, kein einziger Test laeuft
-#   pytest tests/       -> 18 Fehler beim Einsammeln, kein einziger Test laeuft
-# Beides am 2026-09-17 gemessen. --import-mode=importlib behebt es nicht, und drei
-# nachgeruestete __init__.py verschlechtern es auf 54 Fehler (zurueckgenommen).
+# WHY ONE BY ONE: tests/unit/services, tests/unit/cogs and tests/unit/utils have
+# no __init__.py but are named like the real packages services/, cogs/, utils/.
+# In ONE shared pytest run they shadow those, and collection aborts:
+#   pytest tests/unit/  -> 79 collection errors, not a single test runs
+#   pytest tests/       -> 18 collection errors, not a single test runs
+# Both measured on 2026-09-17. --import-mode=importlib does not fix it, and three
+# retrofitted __init__.py make it worse, 54 errors (reverted).
 #
-# Diese Datei ist die EINZIGE Quelle der Gruppenliste. Die CI-Workflows lesen sie,
-# damit keine Kopien auseinanderlaufen. tests/spec/test_z10_gruppenliste.py stellt
-# sicher, dass jede Testdatei in genau einer Gruppe liegt - sonst liefe eine neue
-# Datei lautlos nie mit.
+# This file is the ONLY source of the group list. The CI workflows read it, so
+# no copies drift apart. tests/spec/test_z10_gruppenliste.py makes sure every
+# test file lies in exactly one group - otherwise a new file would silently
+# never run.
 #
-# Siehe SPEC.md Z10.
+# See SPEC.md Z10.
 
 tests/spec
 tests/unit/services/mech

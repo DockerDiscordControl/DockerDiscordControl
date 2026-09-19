@@ -75,7 +75,6 @@ STILL_GERMAN = {
     "docs/quality/STUFE0_BESTANDSAUFNAHME.md": 396,
     "docs/quality/STUFE3_TESTS_DIE_NICHT_FEHLSCHLAGEN.md": 195,
     "docs/quality/STUFE4_DURCHSICHT.md": 164,
-    "tests/GROUPS.txt": 11,
     "tests/spec/__init__.py": 3,
     "tests/spec/test_angeforderte_abklingschluessel_existieren.py": 60,
     "tests/spec/test_app_factory_verdrahtung.py": 60,
@@ -137,11 +136,6 @@ STILL_GERMAN = {
     "tests/spec/test_z7_member_count_write.py": 57,
     "tests/spec/test_z7_server_order_write.py": 61,
     "tests/spec/test_zustandsdateien_ueberleben_schreibfehler.py": 66,
-    "tests/unit/audit_2026_09/test_pkg_c2_config.py": 4,
-    "tests/unit/cogs/test_autocomplete_handlers.py": 1,
-    "tests/unit/extended/test_docker_infra_gaps.py": 5,
-    "tests/unit/utils/test_crypto_cache.py": 6,
-    "tests/unit/utils/test_utils_completion.py": 4,
 }
 
 

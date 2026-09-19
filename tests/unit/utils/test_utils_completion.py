@@ -1125,10 +1125,10 @@ def test_format_datetime_with_timezone_zoneinfo_and_pytz_fail_berlin(monkeypatch
 def test_migrate_to_environment_variable_success_with_decrypted_token():
     """Success branch: config has bot_token_decrypted_for_usage."""
     mgr = ts.TokenSecurityManager(config_service=MagicMock())
-    # config_service ist das Attribut, das __init__ setzt und die Methode liest.
-    # Bis 2026-09-18 stand hier config_manager - ein Attribut, das es produktiv
-    # nie gab; der Test pruefte damit einen Erfolgspfad, den der echte Code nie
-    # erreichte, und konnte fuer ihn nicht fehlschlagen.
+    # config_service is the attribute __init__ sets and the method reads.
+    # Until 2026-09-18 this said config_manager - an attribute that never existed
+    # in production; the test checked a success path the real code never
+    # reached, and could not fail for it.
     fake_manager = MagicMock()
     fake_manager.get_config.return_value = {
         "bot_token_decrypted_for_usage": "PLAIN-TOKEN-123"

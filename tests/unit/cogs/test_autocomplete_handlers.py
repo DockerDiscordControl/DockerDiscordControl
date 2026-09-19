@@ -198,7 +198,7 @@ def german_translations(monkeypatch):
         "Monday": "Montag", "Tuesday": "Dienstag", "Wednesday": "Mittwoch",
         "Thursday": "Donnerstag", "Friday": "Freitag", "Saturday": "Samstag",
         "Sunday": "Sonntag",
-        "today": "heute", "tomorrow": "morgen", "all": "alle",
+        "today": "heute", "tomorrow": "morgen", "all": "alle",  # language data
         "next_week": "nächste_woche", "next_month": "nächster_monat",
     }
     monkeypatch.setattr(translation_manager, "_", lambda text: table.get(text, text))
