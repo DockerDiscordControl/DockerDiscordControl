@@ -1421,17 +1421,27 @@ class InfoDropdownButton(Button):
             # Apply spam protection
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
+            # Ueber den Dienst statt als Attribut am Knopf. Vorher lag der
+            # Zeitstempel in _last_click_<nutzer> AUF DEM OBJEKT - eine Sperre,
+            # die beim naechsten Neuaufbau der Ansicht verschwindet. Vom Dienst
+            # kam nur die DAUER, weshalb die Minutengrenze aus dem Panel hier
+            # nicht wirkte: Sie zaehlt in add_user_cooldown, und dort kam dieser
+            # Weg nie an. Die Meldung war ausserdem unuebersetzt; benutzt wird
+            # jetzt der vorhandene Katalogeintrag.
             if spam_service.is_enabled():
-                cooldown = spam_service.get_button_cooldown("info")
-                # Use simple rate limiting for buttons
-                import time
-                current_time = time.time()
-                user_id = str(interaction.user.id)
-                last_click = getattr(self, f'_last_click_{user_id}', 0)
-                if current_time - last_click < cooldown:
-                    await interaction.followup.send(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
-                    return
-                setattr(self, f'_last_click_{user_id}', current_time)
+                try:
+                    if spam_service.is_on_cooldown(interaction.user.id, "info"):
+                        remaining = spam_service.get_remaining_cooldown(interaction.user.id, "info")
+                        await interaction.followup.send(
+                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                                remaining=remaining
+                            ),
+                            ephemeral=True
+                        )
+                        return
+                    spam_service.add_user_cooldown(interaction.user.id, "info")
+                except (RuntimeError, AttributeError, KeyError) as e:
+                    logger.error(f"Spam protection error for info dropdown button: {e}", exc_info=True)
 
             # SERVICE FIRST: Use ServerConfigService instead of direct file access
             server_config_service = get_server_config_service()
@@ -1473,7 +1483,6 @@ class InfoDropdownButton(Button):
             containers_with_info.sort(key=lambda x: int(x.get('order', 999)))
 
             # Create view with dropdown
-            from .translation_manager import _
             view = ContainerInfoSelectView(self.cog, containers_with_info)
 
             embed = discord.Embed(
@@ -1536,7 +1545,6 @@ class ContainerInfoDropdown(discord.ui.Select):
 
             # Get container info and full container data
             from services.config.config_service import load_config
-            from .translation_manager import _
 
             # SERVICE FIRST: Use ServerConfigService to get container configuration
             server_config_service = get_server_config_service()
@@ -1787,16 +1795,23 @@ class AdminButton(Button):
             # Apply spam protection
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
+            # Ueber den Dienst statt als Attribut am Knopf - Begruendung wie bei
+            # InfoDropdownButton. Das user_id aus :1782 bleibt, es wird weiter
+            # oben fuer die Berechtigungspruefung gebraucht.
             if spam_service.is_enabled():
-                cooldown = spam_service.get_button_cooldown("admin")
-                # Use simple rate limiting for buttons
-                import time
-                current_time = time.time()
-                last_click = getattr(self, f'_last_click_{user_id}', 0)
-                if current_time - last_click < cooldown:
-                    await interaction.followup.send(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
-                    return
-                setattr(self, f'_last_click_{user_id}', current_time)
+                try:
+                    if spam_service.is_on_cooldown(interaction.user.id, "admin"):
+                        remaining = spam_service.get_remaining_cooldown(interaction.user.id, "admin")
+                        await interaction.followup.send(
+                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                                remaining=remaining
+                            ),
+                            ephemeral=True
+                        )
+                        return
+                    spam_service.add_user_cooldown(interaction.user.id, "admin")
+                except (RuntimeError, AttributeError, KeyError) as e:
+                    logger.error(f"Spam protection error for admin button: {e}", exc_info=True)
 
             # SERVICE FIRST: Use ServerConfigService to get active containers
             server_config_service = get_server_config_service()
@@ -1851,7 +1866,6 @@ class AdminButton(Button):
                 logger.info(f"  - {c['display']}: order={c.get('order', 999)}")
 
             # Create view with dropdown
-            from .translation_manager import _
             view = AdminContainerSelectView(self.cog, active_containers, interaction.channel.id)
 
             embed = discord.Embed(
@@ -1975,7 +1989,6 @@ class AdminContainerDropdown(discord.ui.Select):
                 return
 
             # Generate control message for this container
-            from .translation_manager import _
             from services.config.config_service import load_config
 
             # Load configuration
@@ -2098,20 +2111,24 @@ class HelpButton(Button):
             # Apply spam protection
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
+            # Ueber den Dienst statt als Attribut am Knopf - Begruendung wie bei
+            # InfoDropdownButton.
             if spam_service.is_enabled():
-                cooldown = spam_service.get_button_cooldown("help")
-                # Use simple rate limiting for buttons
-                import time
-                current_time = time.time()
-                user_id = str(interaction.user.id)
-                last_click = getattr(self, f'_last_click_{user_id}', 0)
-                if current_time - last_click < cooldown:
-                    await interaction.followup.send(f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.", ephemeral=True)
-                    return
-                setattr(self, f'_last_click_{user_id}', current_time)
+                try:
+                    if spam_service.is_on_cooldown(interaction.user.id, "help"):
+                        remaining = spam_service.get_remaining_cooldown(interaction.user.id, "help")
+                        await interaction.followup.send(
+                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                                remaining=remaining
+                            ),
+                            ephemeral=True
+                        )
+                        return
+                    spam_service.add_user_cooldown(interaction.user.id, "help")
+                except (RuntimeError, AttributeError, KeyError) as e:
+                    logger.error(f"Spam protection error for help button: {e}", exc_info=True)
 
             # Call the help command implementation directly
-            from .translation_manager import _
 
             embed = discord.Embed(title=_("DDC Help & Information"), color=discord.Color.blue())
 

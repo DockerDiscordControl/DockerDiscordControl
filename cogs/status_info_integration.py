@@ -1178,19 +1178,24 @@ class TaskManagementButton(discord.ui.Button):
             # Check spam protection after deferring
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
+            # Ueber den Dienst statt als Attribut am Knopf - Begruendung wie bei
+            # InfoDropdownButton in control_ui.py. Die Sperre lag bisher auf dem
+            # Objekt und verschwand mit ihm; die Minutengrenze aus dem Panel
+            # wirkte hier nicht, und die Meldung war unuebersetzt.
             if spam_service.is_enabled():
-                cooldown = spam_service.get_button_cooldown("tasks")
-                import time
-                current_time = time.time()
-                user_id = str(interaction.user.id)
-                last_click = getattr(self, f'_last_click_{user_id}', 0)
-                if current_time - last_click < cooldown:
-                    await interaction.followup.send(
-                        f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.",
-                        ephemeral=True
-                    )
-                    return
-                setattr(self, f'_last_click_{user_id}', current_time)
+                try:
+                    if spam_service.is_on_cooldown(interaction.user.id, "tasks"):
+                        remaining = spam_service.get_remaining_cooldown(interaction.user.id, "tasks")
+                        await interaction.followup.send(
+                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                                remaining=remaining
+                            ),
+                            ephemeral=True
+                        )
+                        return
+                    spam_service.add_user_cooldown(interaction.user.id, "tasks")
+                except (RuntimeError, AttributeError, KeyError) as e:
+                    logger.error(f"Spam protection error for task management button: {e}", exc_info=True)
 
             # Show task list directly
             await self._show_task_list(interaction)
