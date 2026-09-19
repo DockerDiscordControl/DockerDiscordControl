@@ -1257,8 +1257,12 @@ class TaskDeleteButton(Button):
             try:
                 if spam_service.is_on_cooldown(interaction.user.id, "task_delete"):
                     remaining_time = spam_service.get_remaining_cooldown(interaction.user.id, "task_delete")
+                    # Vorhandener, uebersetzter Katalogeintrag statt eines
+                    # englischen f-Strings - Hausmuster wie SPEC.md B10.
                     await interaction.response.send_message(
-                        f"⏰ Please wait {remaining_time:.1f} seconds before deleting another task.",
+                        _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                            remaining=remaining_time
+                        ),
                         ephemeral=True
                     )
                     return

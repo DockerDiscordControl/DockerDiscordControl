@@ -15,11 +15,11 @@ cogs/auto_action_monitor.py:1-74
 cogs/autocomplete_handlers.py:1-408
 cogs/control_helpers.py:1-188
 
-## Abschnitt 02  (1899 Zeilen, 1 Stuecke)
-cogs/control_ui.py:1-1899
+## Abschnitt 02  (1903 Zeilen, 1 Stuecke)
+cogs/control_ui.py:1-1903
 
 ## Abschnitt 03  (1553 Zeilen, 1 Stuecke)
-cogs/control_ui.py:1900-3452
+cogs/control_ui.py:1904-3456
 
 ## Abschnitt 04  (1935 Zeilen, 1 Stuecke)
 cogs/docker_control.py:1-1935
