@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Tests, die den Zusicherungen aus SPEC.md zugeordnet sind.
+"""Tests mapped to the guarantees in SPEC.md.
 
-Jede Datei traegt am Kopf eine Markierung ``# @deckt Zn`` und prueft genau das,
-was die Zusicherung verspricht - nicht die Implementierung, die es heute erfuellt.
+Each file carries a marker ``# @covers Zn`` at its top and checks exactly what
+the guarantee promises - not the implementation that fulfils it today.
 """

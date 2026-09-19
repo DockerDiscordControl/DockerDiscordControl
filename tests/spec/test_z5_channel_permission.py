@@ -1,55 +1,56 @@
 # -*- coding: utf-8 -*-
-# @deckt Z5
-"""Z5 - Kein Eingriff an einem Container ohne Kanalrecht und erlaubte Aktion.
+# @covers Z5
+"""Z5 - No action on a container without channel permission and an allowed action.
 
-Start, Stopp und Neustart geschehen nur, wenn der Kanal die Berechtigung traegt.
-Diese Zusicherung verlangt KEINE Nutzerpruefung - Autorisierung ueber den Kanal
-ist gewollt (SPEC.md B1). Sie verlangt, dass die Kanalpruefung lueckenlos ist.
+Start, stop and restart only happen if the channel carries the permission.
+This guarantee requires NO user check - authorization via the channel is
+intended (SPEC.md B1). It requires the channel check to be without gaps.
 
-Der Befund: ``control_ui.py:304`` liest
+The finding: ``control_ui.py:304`` reads
 
     channel_has_control = is_admin_control or _get_cached_channel_permission(...)
 
-wobei ``is_admin_control`` nur bedeutet, dass der Titel der Einbettung die
-Zeichenkette "Admin Control" enthaelt (:297-301). Eine Berechtigung steckt damit
-in einer **Nachricht**, nicht in der Konfiguration. Solange das Panel in einem
-Control-Kanal haengt, ist das redundant - ``/control`` prueft das Recht bereits
-(``docker_control.py:1947``). Zur Luecke wird es, wenn die Nachricht das Recht
-ueberdauert: Panel gepostet, danach Control-Recht entzogen, Panel weiter bedienbar.
+where ``is_admin_control`` only means that the embed title contains the string
+"Admin Control" (:297-301). A permission is thus stored in a **message**, not
+in the configuration. As long as the panel sits in a control channel this is
+redundant - ``/control`` already checks the permission
+(``docker_control.py:1947``). It becomes a gap when the message outlives the
+permission: panel posted, control permission revoked afterwards, panel still
+usable.
 
-Vom Betreiber entschieden (2026-09-16): Alte Panels werden **sofort wirkungslos**.
-Eine Berechtigung darf nicht in einer Nachricht stecken, die Monate alt sein kann.
+Decided by the operator (2026-09-16): old panels become **ineffective
+immediately**. A permission must not be stored in a message that can be months
+old.
 
-Nicht betroffen sind die drei rein darstellenden Verwendungen derselben
-Heuristik (:429, :1019-1025, :1072-1079) - sie erteilen kein Recht, sondern
-steuern Anzeige. Das wurde vor dieser Korrektur eigens nachgeprueft.
+Not affected are the three purely presentational uses of the same heuristic
+(:429, :1019-1025, :1072-1079) - they grant no permission but control the
+display. This was specifically re-checked before this fix.
 
-Warum ``pending_actions`` geprueft wird und nicht der Docker-Aufruf: Letzterer
-laeuft in einer Hintergrundaufgabe (``create_task``), auf die zu pruefen bruechig
-waere. Der Eintrag in ``pending_actions`` wird dagegen bei :329 synchron gesetzt,
-bevor irgendetwas im Hintergrund startet - wird abgelehnt, bleibt er aus.
+Why ``pending_actions`` is checked and not the Docker call: the latter runs in
+a background task (``create_task``), and checking for it would be brittle. The
+entry in ``pending_actions``, by contrast, is set synchronously at :329, before
+anything starts in the background - if the action is refused, it stays absent.
 
-GEGENPROBE (durchgefuehrt 2026-09-16):
+COUNTER-CHECK (performed 2026-09-16):
 
-Vor der Korrektur schlug ``test_admin_titel_ersetzt_das_entzogene_kanalrecht_nicht``
-fehl - und zwar **staerker als vorhergesagt**. Erwartet hatte ich einen
-Fehlschlag an ``pending_actions == {}``; tatsaechlich riss schon der
-Stolperdraht bei :332::
+Before the fix, ``test_admin_title_does_not_replace_the_revoked_channel_permission``
+failed - and **more strongly than predicted**. I had expected a failure at
+``pending_actions == {}``; in fact the tripwire at :332 already fired::
 
     cogs/control_ui.py:332: pending_embed = _get_pending_embed(...)
-    E   _TorPassiert
+    E   _GatePassed
 
-Das Protokoll zeigte dazu ``[ACTION_BTN] STOP action for 'nginx' triggered by
-Irgendwer``: ohne Kanalrecht, allein wegen des Titels, war der Eingriff nicht
-bloss vorgemerkt, sondern bereits in vollem Gange.
+The log also showed ``[ACTION_BTN] STOP action for 'nginx' triggered by
+Somebody``: without channel permission, purely because of the title, the
+action was not merely queued but already in full swing.
 
-Nach der Korrektur 21 gruen, ``tests/unit/cogs`` unveraendert 267 gruen.
+After the fix 21 green, ``tests/unit/cogs`` unchanged 267 green.
 
-Wichtig dabei: Ein Test, der vorher ueber den Stolperdraht fiel, koennte danach
-gruen sein, *weil der Draht nicht mehr reisst* - und nicht, weil die Zusicherung
-haelt. Deshalb nagelt ``_ablehnung_geprueft`` den Ablehnungstext fest. Ohne das
-waere ``followup.send.assert_awaited()`` auch vom Pfad bei :294 (kein Kanal)
-erfuellt worden.
+Important here: a test that tripped over the tripwire before could be green
+afterwards *because the wire no longer fires* - and not because the guarantee
+holds. That is why ``_refusal_checked`` pins down the refusal text. Without it,
+``followup.send.assert_awaited()`` would also have been satisfied by the path
+at :294 (no channel).
 """
 
 from types import SimpleNamespace
@@ -61,38 +62,38 @@ import cogs.control_ui as cui
 from cogs.control_ui import ActionButton
 
 
-class _TorPassiert(Exception):
-    """Stolperdraht: wird geworfen, sobald die Kanalpruefung passiert ist."""
+class _GatePassed(Exception):
+    """Tripwire: raised as soon as the channel check has been passed."""
 
 
-def _interaction(*, titel: str | None):
-    """Interaktion, deren Nachricht optional einen 'Admin Control'-Titel traegt."""
+def _interaction(*, embed_title: str | None):
+    """Interaction whose message optionally carries an 'Admin Control' title."""
     inter = MagicMock()
     inter.response.send_message = AsyncMock()
     inter.response.defer = AsyncMock()
     inter.followup.send = AsyncMock()
     inter.edit_original_response = AsyncMock()
     inter.user.id = 4711
-    inter.user.name = "Irgendwer"
+    inter.user.name = "Somebody"
     inter.channel.id = 300
 
-    if titel is None:
+    if embed_title is None:
         inter.message = None
     else:
-        einbettung = SimpleNamespace(title=titel)
-        inter.message = SimpleNamespace(embeds=[einbettung])
+        embed = SimpleNamespace(title=embed_title)
+        inter.message = SimpleNamespace(embeds=[embed])
     return inter
 
 
-def _knopf(aktion: str = "stop"):
-    """ActionButton ohne py-cord-Konstruktor.
+def _button(action_name: str = "stop"):
+    """ActionButton without the py-cord constructor.
 
-    Der echte ``__init__`` zieht ``discord.ui.Button`` und den statischen
-    Datencache nach. Geprueft werden soll ``callback``, nicht das Geruest.
+    The real ``__init__`` pulls in ``discord.ui.Button`` and the static data
+    cache. What should be checked is ``callback``, not the scaffolding.
     """
     b = ActionButton.__new__(ActionButton)
     b.cog = SimpleNamespace(pending_actions={})
-    b.action = aktion
+    b.action = action_name
     b.server_config = {"docker_name": "nginx", "display_name": "nginx",
                        "allowed_actions": ["start", "stop", "restart"]}
     b.docker_name = "nginx"
@@ -101,8 +102,8 @@ def _knopf(aktion: str = "stop"):
 
 
 @pytest.fixture
-def umgebung(monkeypatch):
-    """Spam-Schutz aus, Konfiguration vorhanden, Stolperdraht hinter dem Tor."""
+def environment(monkeypatch):
+    """Spam protection off, configuration present, tripwire behind the gate."""
     spam = MagicMock()
     spam.is_enabled.return_value = False
     monkeypatch.setattr(
@@ -111,80 +112,80 @@ def umgebung(monkeypatch):
     )
     monkeypatch.setattr(cui, "load_config", lambda: {"servers": []})
 
-    def _stolperdraht(*_a, **_k):
-        raise _TorPassiert()
+    def _tripwire(*_a, **_k):
+        raise _GatePassed()
 
-    monkeypatch.setattr(cui, "_get_pending_embed", _stolperdraht)
+    monkeypatch.setattr(cui, "_get_pending_embed", _tripwire)
     return spam
 
 
-def _ablehnung_geprueft(inter):
-    """Belege, dass wirklich der Ablehnungspfad lief - nicht irgendein followup.
+def _refusal_checked(inter):
+    """Prove that the refusal path really ran - not just any followup.
 
-    ``followup.send`` wird auch bei :294 benutzt (kein Kanal ermittelbar). Ein
-    blosses ``assert_awaited()`` unterscheidet die beiden nicht und waere gruen,
-    ohne dass die Kanalpruefung je gegriffen haette.
+    ``followup.send`` is also used at :294 (no channel determinable). A mere
+    ``assert_awaited()`` does not distinguish the two and would be green
+    without the channel check ever having kicked in.
     """
     inter.followup.send.assert_awaited()
-    texte = " ".join(str(a) for ruf in inter.followup.send.await_args_list
-                     for a in ruf.args)
-    assert "not allowed in this channel" in texte, (
-        f"Es wurde etwas gesendet, aber nicht die Ablehnung: {texte!r}"
+    texts = " ".join(str(a) for call in inter.followup.send.await_args_list
+                     for a in call.args)
+    assert "not allowed in this channel" in texts, (
+        f"Something was sent, but not the refusal: {texts!r}"
     )
 
 
-def _kanalrecht(monkeypatch, *, erlaubt: bool):
+def _channel_permission(monkeypatch, *, allowed: bool):
     monkeypatch.setattr(
         cui, "_get_cached_channel_permission",
-        lambda channel_id, key, config=None: erlaubt,
+        lambda channel_id, key, config=None: allowed,
     )
 
 
-async def test_admin_titel_ersetzt_das_entzogene_kanalrecht_nicht(umgebung, monkeypatch):
-    """Kein Kanalrecht, aber 'Admin Control' im Titel: der Knopf muss ablehnen.
+async def test_admin_title_does_not_replace_the_revoked_channel_permission(environment, monkeypatch):
+    """No channel permission, but 'Admin Control' in the title: the button must refuse.
 
-    Das ist der Fall "Panel ueberdauert das Recht": Die Nachricht haengt noch im
-    Kanal, das Recht ist entzogen - und die Knoepfe duerfen nicht mehr wirken.
+    This is the case "panel outlives the permission": the message still sits in
+    the channel, the permission is revoked - and the buttons must no longer work.
     """
-    _kanalrecht(monkeypatch, erlaubt=False)
-    knopf = _knopf()
-    inter = _interaction(titel="🛠️ Admin Control: nginx")
+    _channel_permission(monkeypatch, allowed=False)
+    button = _button()
+    inter = _interaction(embed_title="🛠️ Admin Control: nginx")
 
-    await knopf.callback(inter)
+    await button.callback(inter)
 
-    assert knopf.cog.pending_actions == {}, (
-        "Der Container-Eingriff wurde vorgemerkt, obwohl der Kanal kein "
-        "control-Recht mehr hat - der Titel einer alten Nachricht hat die "
-        "Berechtigung ersetzt"
+    assert button.cog.pending_actions == {}, (
+        "The container action was queued although the channel no longer has "
+        "the control permission - the title of an old message replaced the "
+        "permission"
     )
-    _ablehnung_geprueft(inter)
+    _refusal_checked(inter)
 
 
-async def test_ohne_kanalrecht_und_ohne_admin_titel_wird_abgelehnt(umgebung, monkeypatch):
-    """Der Grundfall - haelt heute schon und wird hier festgenagelt."""
-    _kanalrecht(monkeypatch, erlaubt=False)
-    knopf = _knopf()
-    inter = _interaction(titel=None)
+async def test_without_channel_permission_and_without_admin_title_it_is_refused(environment, monkeypatch):
+    """The base case - already holds today and is pinned down here."""
+    _channel_permission(monkeypatch, allowed=False)
+    button = _button()
+    inter = _interaction(embed_title=None)
 
-    await knopf.callback(inter)
+    await button.callback(inter)
 
-    assert knopf.cog.pending_actions == {}
-    _ablehnung_geprueft(inter)
+    assert button.cog.pending_actions == {}
+    _refusal_checked(inter)
 
 
-async def test_mit_kanalrecht_geht_es_weiter(umgebung, monkeypatch):
-    """Die erlaubte Seite: mit Kanalrecht passiert der Knopf das Tor.
+async def test_with_channel_permission_it_proceeds(environment, monkeypatch):
+    """The allowed side: with channel permission the button passes the gate.
 
-    Ohne diesen Fall koennte man die Pruefung auf "immer ablehnen" verschaerfen
-    und die beiden Tests oben blieben gruen.
+    Without this case one could tighten the check to "always refuse" and the
+    two tests above would stay green.
     """
-    _kanalrecht(monkeypatch, erlaubt=True)
-    knopf = _knopf()
-    inter = _interaction(titel=None)
+    _channel_permission(monkeypatch, allowed=True)
+    button = _button()
+    inter = _interaction(embed_title=None)
 
-    with pytest.raises(_TorPassiert):
-        await knopf.callback(inter)
+    with pytest.raises(_GatePassed):
+        await button.callback(inter)
 
-    assert knopf.cog.pending_actions.get("nginx"), (
-        "Mit Kanalrecht haette der Eingriff vorgemerkt werden muessen"
+    assert button.cog.pending_actions.get("nginx"), (
+        "With channel permission the action should have been queued"
     )

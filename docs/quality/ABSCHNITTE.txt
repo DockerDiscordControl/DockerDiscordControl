@@ -5,7 +5,7 @@
 # 2000 Zeilen. Geschnitten wird an Klassen- und Funktionsgrenzen, bei zu
 # grossen Klassen an Methodengrenzen - ein Abschnitt soll am Stueck lesbar sein.
 #
-# tests/spec/test_stufe4_zuschnitt.py prueft: jede Quelldatei liegt in genau
+# tests/spec/test_stage4_sections.py prueft: jede Quelldatei liegt in genau
 # einem Abschnitt, lueckenlos und ueberschneidungsfrei.
 
 ## Abschnitt 01  (1472 Zeilen, 5 Stuecke)

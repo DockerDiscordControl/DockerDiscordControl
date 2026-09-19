@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Every literal bot string ``_("...")`` must be a key of ``locales/en.json``.
 
-No ``@deckt`` marker: that would be a new guarantee, and those are the
+No ``@covers`` marker: that would be a new guarantee, and those are the
 operator's decision.
 
 WHY: the bot looks the source string up as the catalog KEY. A literal that is

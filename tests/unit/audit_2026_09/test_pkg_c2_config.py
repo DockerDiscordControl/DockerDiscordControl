@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# @deckt Z9
+# @covers Z9
 # This file checked C2-1 ('decrypted bot token must never be written to
 # config.json / .bak') before the quality programme. So the coverage for Z9
 # existed - it just was not recorded anywhere. A second test of the same kind

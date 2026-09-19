@@ -36,7 +36,7 @@ Test — genau das, was der Programmtext ausschließt. Es ist eine Entscheidung 
 
 ## 2. Vertragstest — steht und beißt
 
-`tests/spec/test_stufe4_zuschnitt.py` prüft: jede Quelldatei liegt in **genau einem** Abschnitt,
+`tests/spec/test_stage4_sections.py` prüft: jede Quelldatei liegt in **genau einem** Abschnitt,
 lückenlos und überschneidungsfrei, kein Abschnitt über 2000 Zeilen.
 
 **Behauptung und Erwartung kommen aus verschiedenen Quellen** — die Behauptung aus `ABSCHNITTE.txt`,

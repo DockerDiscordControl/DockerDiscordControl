@@ -9,7 +9,7 @@
 # retrofitted __init__.py make it worse, 54 errors (reverted).
 #
 # This file is the ONLY source of the group list. The CI workflows read it, so
-# no copies drift apart. tests/spec/test_z10_gruppenliste.py makes sure every
+# no copies drift apart. tests/spec/test_z10_group_list.py makes sure every
 # test file lies in exactly one group - otherwise a new file would silently
 # never run.
 #

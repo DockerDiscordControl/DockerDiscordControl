@@ -1,56 +1,56 @@
 # -*- coding: utf-8 -*-
-# @deckt Z7
-"""Z7, Stelle 3 von 5 - die Mitgliederzahl-Momentaufnahme.
+# @covers Z7
+"""Z7, place 3 of 5 - the member count snapshot.
 
 ``MemberCountService.persist_member_count_snapshot``
-(``services/member_count/service.py:153``) schreibt die Datei mit einem schlichten
-``Path.write_text`` (:174). Ein Abbruch mitten darin laesst sie abgeschnitten
-zurueck.
+(``services/member_count/service.py:153``) writes the file with a plain
+``Path.write_text`` (:174). An abort in the middle leaves it truncated.
 
-Warum das mehr ist als eine Zahl: Die Mitgliederzahl bestimmt die **Preise** im
-Spendensystem - ``requirement_for_level_and_bin(..., member_count=...)`` leitet
-daraus ab, was die naechste Stufe kostet. Eine halb geschriebene Datei ist
-entweder unlesbar (dann faellt die Berechnung auf einen Standardwert zurueck)
-oder enthaelt eine falsche Zahl. Beides verschiebt lautlos, wie viel Geld eine
-Stufe kostet - niemand sieht es, und die Anzeige wirkt normal.
+Why this is more than a number: the member count determines the **prices** in
+the donation system - ``requirement_for_level_and_bin(..., member_count=...)``
+derives from it what the next level costs. A half-written file is either
+unreadable (then the calculation falls back to a default value) or contains a
+wrong number. Both silently shift how much money a level costs - nobody sees
+it, and the display looks normal.
 
-Abgrenzung zum vorhandenen Test: ``tests/test_member_count_service.py:121``
-prueft, dass die vier Felder korrekt in der Datei landen. Das ist ein echter
-Vertrag und bleibt unangetastet - er sagt nur nichts ueber den Absturzfall.
-Hier wird ergaenzt, nicht gedoppelt.
+Boundary to the existing test: ``tests/test_member_count_service.py:121``
+checks that the four fields land correctly in the file. That is a real
+contract and stays untouched - it just says nothing about the crash case.
+This adds to it, it does not duplicate it.
 
-WICHTIG zum Abfangen: Diese Stelle schreibt ueber ``Path.write_text``, nicht
-ueber ``open(..., "w")``. Der in den beiden vorigen Z7-Durchgaengen bewaehrte
-Helfer faengt ``builtins.open`` und ``os.fdopen`` ab - beides greift hier NICHT.
-Haette ich ihn ungeprueft uebernommen, waere der Waechter angesprungen und der
-Test aus dem falschen Grund gescheitert. ``Path.write_text`` wird deshalb
-zusaetzlich abgefangen.
+IMPORTANT about the interception: this place writes via ``Path.write_text``,
+not via ``open(..., "w")``. The helper proven in the two previous Z7 passes
+intercepts ``builtins.open`` and ``os.fdopen`` - neither applies here. Had I
+adopted it unchecked, the guard would have fired and the test would have
+failed for the wrong reason. ``Path.write_text`` is therefore intercepted as
+well.
 
-GEGENPROBE (durchgefuehrt 2026-09-16) - dieser Test war ZWEIMAL wertlos, bevor
-er etwas bewies. Beide Male war er gruen:
+COUNTER-CHECK (performed 2026-09-16) - this test was worthless TWICE before it
+proved anything. Both times it was green:
 
-*Fassung 1:* ``_write_text`` warf sofort, ohne die Datei anzufassen. Dann wird
-nie gekuerzt, der alte Inhalt ueberlebt, und die Zusicherung unten ist erfuellt -
-durch die Attrappe, nicht durch den Code. Der Abfangpunkt lag VOR dem Schaden.
+*Version 1:* ``_write_text`` raised immediately, without touching the file.
+Then nothing is ever truncated, the old content survives, and the guarantee
+below is fulfilled - by the dummy, not by the code. The interception point
+was BEFORE the damage.
 
-*Fassung 2 (derselbe Lauf):* ``test_keine_temp_reste_nach_erfolg`` zaehlte
-"alles ausser der Zieldatei" als Rest und war deshalb aus dem falschen Grund rot -
-``ProgressPaths.from_base_dir`` legt in derselben Ablage auch ``events.jsonl``
-und ``last_seq.txt`` an. Die Annahme aus dem vorigen Z7-Durchgang (Zieldatei
-liegt allein) war ungeprueft uebernommen.
+*Version 2 (same run):* ``test_no_temp_leftovers_after_success`` counted
+"everything except the target file" as leftover and was therefore red for the
+wrong reason - ``ProgressPaths.from_base_dir`` also creates ``events.jsonl``
+and ``last_seq.txt`` in the same storage. The assumption from the previous Z7
+pass (target file lies alone) had been adopted unchecked.
 
-*Fassung 3:* Der Schaden wird nachgestellt statt verhindert - die Datei wird mit
-"w" geoeffnet (und damit gekuerzt), DANN kommt der Fehler. Erst jetzt rot::
+*Version 3:* the damage is reproduced instead of prevented - the file is
+opened with "w" (and thereby truncated), THEN the error comes. Only now red::
 
-    assert ''   # Die Momentaufnahme ist leer
+    assert ''   # The snapshot is empty
 
-Nach der Korrektur auf ``atomic_write_json``: 3 gruen. Der vorhandene
-``tests/test_member_count_service.py`` blieb unveraendert gruen (4),
-``tests/unit/extended`` ebenfalls (731).
+After the fix to ``atomic_write_json``: 3 green. The existing
+``tests/test_member_count_service.py`` stayed green unchanged (4),
+``tests/unit/extended`` as well (731).
 
-WIRKUNGSNACHWEIS per Mutation: mit einem ``atomic_write_text``, das alle Fehler
-verschluckt, wird dieser Test rot; wiederhergestellt wieder gruen. Ein gruener
-Test beweist nicht, dass er greift - nur die Mutation tut das.
+EVIDENCE OF EFFECT by mutation: with an ``atomic_write_text`` that swallows
+all errors, this test turns red; restored, green again. A green test does not
+prove that it bites - only the mutation does.
 """
 
 import json
@@ -59,138 +59,138 @@ from pathlib import Path
 
 import pytest
 
-import services.member_count.service as mc_modul
+import services.member_count.service as mc_module
 from services.member_count.service import MemberCountService
 from services.mech.progress_paths import ProgressPaths
 
-URSPRUNG = {
+ORIGINAL = {
     "count": 42,
     "last_updated": "2026-01-01T00:00:00+00:00",
     "source": "status_channels",
-    "description": "Bestand vor dem Absturz",
+    "description": "State before the crash",
 }
 
 
-class _SchreibfehlerBeimSchreiben:
-    """Laesst jeden Schreibvorgang scheitern - auf allen drei Wegen.
+class _WriteErrorOnWrite:
+    """Makes every write fail - on all three paths.
 
-    ``builtins.open`` und ``os.fdopen`` decken die bisherigen Stellen ab,
-    ``Path.write_text`` diese hier. Eine atomare Umsetzung wuerde ueber
-    ``os.fdopen`` schreiben; ohne den dritten Weg wuerde der Waechter unten
-    anschlagen, statt die Zusicherung zu pruefen.
+    ``builtins.open`` and ``os.fdopen`` cover the previous places,
+    ``Path.write_text`` this one. An atomic implementation would write via
+    ``os.fdopen``; without the third path the guard below would fire instead
+    of checking the guarantee.
     """
 
     def __init__(self, monkeypatch):
-        self.getroffen = False
-        echtes_open, echtes_fdopen = open, os.fdopen
-        echtes_write_text = Path.write_text
+        self.hit = False
+        real_open, real_fdopen = open, os.fdopen
+        real_write_text = Path.write_text
 
-        def _wirft(*_a, **_k):
-            raise OSError("kein Platz auf dem Geraet")
+        def _raises(*_a, **_k):
+            raise OSError("no space left on device")
 
-        def _praepariere(fh):
-            self.getroffen = True
-            fh.write = _wirft
+        def _prepare(fh):
+            self.hit = True
+            fh.write = _raises
             return fh
 
-        def _open(datei, modus="r", *a, **kw):
-            fh = echtes_open(datei, modus, *a, **kw)
-            return _praepariere(fh) if ("w" in modus or "a" in modus) else fh
+        def _open(file, mode="r", *a, **kw):
+            fh = real_open(file, mode, *a, **kw)
+            return _prepare(fh) if ("w" in mode or "a" in mode) else fh
 
-        def _fdopen(fd, modus="r", *a, **kw):
-            fh = echtes_fdopen(fd, modus, *a, **kw)
-            return _praepariere(fh) if ("w" in modus or "a" in modus) else fh
+        def _fdopen(fd, mode="r", *a, **kw):
+            fh = real_fdopen(fd, mode, *a, **kw)
+            return _prepare(fh) if ("w" in mode or "a" in mode) else fh
 
-        def _write_text(selbst, *a, **kw):
-            # Den Schaden NACHSTELLEN, nicht verhindern. Die erste Fassung warf
-            # sofort und fasste die Datei nie an - dann wird auch nie gekuerzt,
-            # der alte Inhalt ueberlebt, und die Zusicherung unten ist erfuellt:
-            # durch die Attrappe, nicht durch den Code. Der Test war gruen, ohne
-            # irgendetwas zu beweisen.
+        def _write_text(path, *a, **kw):
+            # REPRODUCE the damage, do not prevent it. The first version raised
+            # immediately and never touched the file - then nothing is ever
+            # truncated, the old content survives, and the guarantee below is
+            # fulfilled: by the dummy, not by the code. The test was green
+            # without proving anything.
             #
-            # Das echte ``Path.write_text`` oeffnet mit "w" und kuerzt damit beim
-            # Oeffnen. Genau das wird hier getan, bevor der Schreibfehler kommt.
-            self.getroffen = True
-            with echtes_open(selbst, "w", encoding="utf-8"):
+            # The real ``Path.write_text`` opens with "w" and thereby truncates
+            # on open. Exactly that is done here before the write error comes.
+            self.hit = True
+            with real_open(path, "w", encoding="utf-8"):
                 pass
-            raise OSError("kein Platz auf dem Geraet")
+            raise OSError("no space left on device")
 
         monkeypatch.setattr("builtins.open", _open)
         monkeypatch.setattr(os, "fdopen", _fdopen)
         monkeypatch.setattr(Path, "write_text", _write_text)
-        self._echtes_write_text = echtes_write_text
+        self._real_write_text = real_write_text
 
 
 @pytest.fixture
-def dienst(tmp_path, monkeypatch):
-    """Dienst mit einer bereits gefuellten Momentaufnahme."""
-    pfade = ProgressPaths.from_base_dir(tmp_path, create_missing=True)
-    monkeypatch.setattr(mc_modul, "get_progress_paths", lambda: pfade)
-    pfade.member_count_file.write_text(json.dumps(URSPRUNG, indent=2), encoding="utf-8")
-    return MemberCountService(), pfade.member_count_file
+def snapshot_service(tmp_path, monkeypatch):
+    """Service with an already populated snapshot."""
+    paths = ProgressPaths.from_base_dir(tmp_path, create_missing=True)
+    monkeypatch.setattr(mc_module, "get_progress_paths", lambda: paths)
+    paths.member_count_file.write_text(json.dumps(ORIGINAL, indent=2), encoding="utf-8")
+    return MemberCountService(), paths.member_count_file
 
 
-def test_abgebrochener_schreibvorgang_laesst_die_momentaufnahme_unversehrt(dienst, monkeypatch):
-    """Scheitert das Schreiben, steht der alte Stand noch vollstaendig da."""
-    service, datei = dienst
-    fehler = _SchreibfehlerBeimSchreiben(monkeypatch)
+def test_aborted_write_leaves_the_snapshot_intact(snapshot_service, monkeypatch):
+    """If writing fails, the old state is still fully there."""
+    service, file = snapshot_service
+    failure = _WriteErrorOnWrite(monkeypatch)
 
     with pytest.raises(OSError):
         service.persist_member_count_snapshot(
-            99, source="status_channels", description="Neuer Stand"
+            99, source="status_channels", description="New state"
         )
 
-    assert fehler.getroffen, (
-        "Der Schreibfehler wurde gar nicht ausgeloest - dieser Test prueft dann "
-        "nichts. Vermutlich schreibt die Umsetzung ueber einen vierten Weg."
+    assert failure.hit, (
+        "The write error was not triggered at all - then this test checks "
+        "nothing. Probably the implementation writes through a fourth path."
     )
-    inhalt = datei.read_text(encoding="utf-8")
-    assert inhalt.strip(), (
-        "Die Momentaufnahme ist leer - die Mitgliederzahl bestimmt die Preise "
-        "im Spendensystem, und eine unlesbare Datei verschiebt sie lautlos"
+    content = file.read_text(encoding="utf-8")
+    assert content.strip(), (
+        "The snapshot is empty - the member count determines the prices "
+        "in the donation system, and an unreadable file shifts them silently"
     )
-    assert json.loads(inhalt) == URSPRUNG, (
-        f"Die Momentaufnahme wurde beschaedigt: {inhalt!r}"
+    assert json.loads(content) == ORIGINAL, (
+        f"The snapshot was damaged: {content!r}"
     )
 
 
-def test_erfolgreiches_schreiben_ersetzt_den_stand(dienst):
-    """Die Gegenrichtung: ohne Fehler wird korrekt ersetzt.
+def test_successful_write_replaces_the_state(snapshot_service):
+    """The opposite direction: without an error the replacement is correct.
 
-    Ohne diesen Fall koennte man die Methode auf "schreibt nie" verschaerfen und
-    der Test oben bliebe gruen.
+    Without this case one could tighten the method to "never writes" and the
+    test above would stay green.
     """
-    service, datei = dienst
+    service, file = snapshot_service
 
     service.persist_member_count_snapshot(
-        99, source="status_channels", description="Neuer Stand", note="Probe"
+        99, source="status_channels", description="New state", note="Probe"
     )
 
-    danach = json.loads(datei.read_text(encoding="utf-8"))
-    assert danach["count"] == 99
-    assert danach["note"] == "Probe"
+    afterwards = json.loads(file.read_text(encoding="utf-8"))
+    assert afterwards["count"] == 99
+    assert afterwards["note"] == "Probe"
 
 
-def test_keine_temp_reste_nach_erfolg(dienst):
-    """Eine atomare Umsetzung raeumt ihre Temp-Datei auf.
+def test_no_temp_leftovers_after_success(snapshot_service):
+    """An atomic implementation cleans up its temp file.
 
-    Anders als in den beiden vorigen Z7-Durchgaengen liegt die Zieldatei hier
-    NICHT allein in ihrem Verzeichnis: ``ProgressPaths.from_base_dir`` legt in
-    derselben Ablage auch ``events.jsonl`` und ``last_seq.txt`` an. Die erste
-    Fassung dieses Tests zaehlte "alles ausser der Zieldatei" als Rest und war
-    deshalb aus dem falschen Grund rot - die Annahme aus dem vorigen Fall war
-    ungeprueft uebernommen.
+    Unlike in the two previous Z7 passes, the target file here does NOT lie
+    alone in its directory: ``ProgressPaths.from_base_dir`` also creates
+    ``events.jsonl`` and ``last_seq.txt`` in the same storage. The first
+    version of this test counted "everything except the target file" as
+    leftover and was therefore red for the wrong reason - the assumption from
+    the previous case had been adopted unchecked.
 
-    Geprueft wird jetzt der Bestand vorher gegen nachher: was neu dazukommt und
-    bleibt, ist ein Rest.
+    What is checked now is the inventory before versus after: whatever is
+    added and stays is a leftover.
     """
-    service, datei = dienst
-    vorher = {p.name for p in datei.parent.iterdir() if p.is_file()}
+    service, file = snapshot_service
+    before = {p.name for p in file.parent.iterdir() if p.is_file()}
 
     service.persist_member_count_snapshot(
-        99, source="status_channels", description="Neuer Stand"
+        99, source="status_channels", description="New state"
     )
 
-    nachher = {p.name for p in datei.parent.iterdir() if p.is_file()}
-    reste = sorted(nachher - vorher)
-    assert reste == [], f"Temp-Reste geblieben: {reste}"
+    after = {p.name for p in file.parent.iterdir() if p.is_file()}
+    leftovers = sorted(after - before)
+    assert leftovers == [], f"Temp leftovers remained: {leftovers}"

@@ -1,82 +1,82 @@
 # -*- coding: utf-8 -*-
-# @deckt Z3
-# @deckt Z8
-"""Z3/Z8 am Spenden-Broadcast: kein geratener Erfolg, kein stummer Fehlschlag.
+# @covers Z3
+# @covers Z8
+"""Z3/Z8 on the donation broadcast: no guessed success, no silent failure.
 
-Z3 - Kein Erfolg wird gemeldet, der nicht stattgefunden hat.
-Z8 - Kein stummer Fehlschlag bei etwas Unwiderruflichem.
+Z3 - No success is reported that did not happen.
+Z8 - No silent failure on something irreversible.
 
-Eine Dankesmeldung an einen Discord-Kanal ist unwiderruflich. Sie darf nur
-hinausgehen, wenn die Buchung bestaetigt ist - und nur an Kanaele, die
-Broadcasts nicht abbestellt haben.
+A thank-you message to a Discord channel is irreversible. It may only go out
+once the booking is confirmed - and only to channels that have not
+unsubscribed from broadcasts.
 
-Ausgangslage (Stufe 0): Auf diesem gesamten Pfad gab es **null** Tests. Zwei
-Wege senden dieselbe Meldung, und nur einer ist sorgfaeltig:
+Starting point (stage 0): there were **zero** tests on this entire path. Two
+paths send the same message, and only one of them is careful:
 
-* ``check_donation_notifications`` (docker_control.py:5165-5180) liest
-  ``donation_broadcasts`` und sendet nur an Kanaele, die es erlauben.
-* ``DonationBroadcastModal.callback`` (:4919-4946) laeuft ueber dieselbe
-  ``channel_permissions``-Liste und liest das Kennzeichen **nie**.
+* ``check_donation_notifications`` (docker_control.py:5165-5180) reads
+  ``donation_broadcasts`` and sends only to channels that allow it.
+* ``DonationBroadcastModal.callback`` (:4919-4946) walks the same
+  ``channel_permissions`` list and **never** reads the flag.
 
-Zwei Wege fuehren hier zu einer Dankesmeldung ohne Buchung:
+Two paths lead here to a thank-you message without a booking:
 
-1. Wirft ``process_discord_donation``, faengt :4885-4887 die Ausnahme, setzt
-   ``evolution_occurred = False`` - und die Ausfuehrung faellt in den
-   Broadcast-Block bei :4889. (Ein zurueckgemeldetes ``success=False`` fuehrt
-   dagegen bei :4831-4837 korrekt zu einem frueheren ``return``.)
-2. Ist ``donation_manager_available`` falsch, wird bei :4789 gar nicht erst
-   gebucht - der Broadcast laeuft trotzdem.
+1. If ``process_discord_donation`` raises, :4885-4887 catches the exception, sets
+   ``evolution_occurred = False`` - and execution falls into the broadcast
+   block at :4889. (A reported ``success=False``, by contrast, correctly leads
+   to an early ``return`` at :4831-4837.)
+2. If ``donation_manager_available`` is false, nothing is booked at :4789 in
+   the first place - the broadcast runs anyway.
 
-Zur Belastbarkeit, ehrlich: Das hier laeuft gegen nachgebildete Discord-Objekte.
-Es beweist, welche Aufrufe der Code ausloest, nicht dass Discord sie so
-ausfuehrt. Ein echter Beleg kaeme nur aus dem laufenden Bot.
+On robustness, honestly: this runs against imitated Discord objects.
+It proves which calls the code triggers, not that Discord executes them that
+way. Real proof would only come from the running bot.
 
-Das Modal wird bewusst nicht ueber ``__init__`` gebaut: der Konstruktor zieht
-py-cord-Maschinerie nach und ruft ueber ``_get_dynamic_amount_placeholder()``
-den echten Fortschrittsdienst. Geprueft werden soll ``callback``, nicht das
-Geruest.
+The modal is deliberately not built via ``__init__``: the constructor pulls in
+py-cord machinery and calls the real progress service via
+``_get_dynamic_amount_placeholder()``. What is to be checked is ``callback``,
+not the scaffolding.
 
-GEGENPROBE (durchgefuehrt 2026-09-16) - der Weg dorthin gehoert dazu:
+COUNTER-CHECK (carried out 2026-09-16) - the way there is part of it:
 
-*Zwei Fehlstarts, beide meine Schuld.* Die ersten zwei Laeufe waren rot mit
-``TypeError: 'MagicMock' object can't be awaited`` bei :4964 - die Attrappe
-stubbte ``edit_original_response`` nicht. Rot aus dem falschen Grund beweist
-nichts; korrigiert wurde die Attrappe, nicht der Code. Die Liste der zu
-stubbenden ``await``-Aufrufe stammt seither aus einer vollstaendigen Suche
-ueber :4731-4990 statt aus wiederholtem Probieren.
+*Two false starts, both my fault.* The first two runs were red with
+``TypeError: 'MagicMock' object can't be awaited`` at :4964 - the stub did
+not stub ``edit_original_response``. Red for the wrong reason proves
+nothing; the stub was corrected, not the code. The list of ``await`` calls
+to stub has since come from a complete search over :4731-4990 instead of
+from repeated trial and error.
 
-*Dann berechtigtes Rot*, alle drei an der eigenen Zusicherung:
+*Then justified red*, all three on their own assertion:
 
-* ``...buchung_wirft``        -> ``assert {100: 1, 200: 1} == {100: 0, 200: 0}``
-* ``...ohne_buchungsdienst``  -> dieselbe Form
-* ``...abbestellte_kanaele``  -> ``assert 1 == 0``
+* ``...booking_raises``             -> ``assert {100: 1, 200: 1} == {100: 0, 200: 0}``
+* ``...without_booking_service``    -> the same form
+* ``...unsubscribed_channels``      -> ``assert 1 == 0``
 
-*Die erste Korrektur war unvollstaendig, und der Test hat es gezeigt:* danach
-stand ``{100: 1, 200: 0}`` - das Opt-out griff, die Buchungssperre nicht. Sie
-hing an ``donation_amount_euros``, das erst INNERHALB des uebersprungenen
-Buchungsblocks (:4807) zugewiesen wird und daher ``None`` blieb. Umgestellt auf
-``amount`` (die gepruefte Nutzereingabe, gesetzt bei :4753-4773). Danach 14 gruen.
+*The first fix was incomplete, and the test showed it:* afterwards the result
+was ``{100: 1, 200: 0}`` - the opt-out took effect, the booking block did not.
+It depended on ``donation_amount_euros``, which is only assigned INSIDE the
+skipped booking block (:4807) and therefore stayed ``None``. Switched to
+``amount`` (the validated user input, set at :4753-4773). After that 14 green.
 
-Die erlaubte Seite der Sperre - ohne genannten Betrag soll die
-"X supports DDC"-Meldung weiterhin hinausgehen - deckt
-``test_ohne_betrag_geht_die_unterstuetzungsmeldung_hinaus`` ab. Ohne diesen Fall
-koennte man die Sperre auf "immer blockieren" verschaerfen und alles bliebe
-gruen.
+The permitted side of the block - without a stated amount the
+"X supports DDC" message should still go out - is covered by
+``test_without_amount_the_support_message_goes_out``. Without this case
+one could tighten the block to "always block" and everything would stay
+green.
 
-Dieser Test stiess zugleich auf einen eigenen Fehler und hat ihn aufgedeckt:
-``new_power = new_state.Power`` lief unbedingt, auch im ``else``-Zweig, in dem
-``new_state`` nie zugewiesen wird. Die Zeile war zudem redundant - beide Zweige
-setzen ``new_power`` bereits. Der entstehende ``UnboundLocalError`` (nicht
-NameError, wie hier zuerst stand) fiel durch beide ``except``-Bloecke, die
-Abschlussantwort wurde nie gesendet, und der Nutzer sah dauerhaft
-"Processing...". Zwei weitere unbedingte Zugriffe auf ``new_state.level``
-standen daneben; alle drei wurden auf ``new_evolution_level`` umgestellt, das
-in beiden Zweigen gesetzt ist.
+This test also ran into a bug of its own and uncovered it:
+``new_power = new_state.Power`` ran unconditionally, also in the ``else``
+branch, in which ``new_state`` is never assigned. The line was also redundant -
+both branches already set ``new_power``. The resulting ``UnboundLocalError``
+(not NameError, as it first said here) fell through both ``except`` blocks,
+the final response was never sent, and the user saw "Processing..."
+permanently. Two more unconditional accesses to ``new_state.level`` stood
+next to it; all three were switched to ``new_evolution_level``, which is set
+in both branches.
 
-Gegenprobe dazu: vorher
-``UnboundLocalError: cannot access local variable 'new_state'`` (1 rot, 14
-gruen), danach 15 gruen. Die vollstaendige Liste der ``new_state``-Zugriffe
-wurde vor der Korrektur erhoben, nicht durch wiederholte Laeufe entdeckt.
+Counter-check for that: before,
+``UnboundLocalError: cannot access local variable 'new_state'`` (1 red, 14
+green), afterwards 15 green. The complete list of ``new_state`` accesses
+was compiled before the fix, not discovered through repeated runs.
 """
 
 from types import SimpleNamespace
@@ -88,30 +88,30 @@ from cogs.docker_control import DonationBroadcastModal
 
 
 def _interaction():
-    """Nachgebildete Interaktion - Form wie in tests/unit/cogs/test_enhanced_info_modal.py:42.
+    """Imitated interaction - shaped as in tests/unit/cogs/test_enhanced_info_modal.py:42.
 
-    Jeder Stub deckt einen konkreten ``await`` im Callback ab; die Liste stammt
-    aus einer vollstaendigen Suche ueber :4731-4990, nicht aus wiederholtem
-    Probieren:
+    Every stub covers a concrete ``await`` in the callback; the list comes
+    from a complete search over :4731-4990, not from repeated trial and
+    error:
 
     * ``response.send_message``      -> :4738
     * ``followup.send``              -> :4776, :4814, :4836
     * ``edit_original_response``     -> :4964, :4984
-    * ``<followup-Ergebnis>.delete`` -> :4969, :4979
+    * ``<followup result>.delete``   -> :4969, :4979
 
-    Der letzte Punkt waere verzichtbar, weil :4970 ein nacktes ``except: pass``
-    ist - genau die Sorte Verschlucken, die Z8 verbietet. Sich im Test darauf zu
-    stuetzen hiesse, einen Fehler als Stuetze zu benutzen.
+    The last item would be dispensable, because :4970 is a bare ``except: pass`` -
+    exactly the kind of swallowing that Z8 forbids. Relying on it in the test
+    would mean using a bug as a support.
     """
     inter = MagicMock()
     inter.response.send_message = AsyncMock()
 
-    verarbeitungsmeldung = MagicMock()
-    verarbeitungsmeldung.delete = AsyncMock()
-    inter.followup.send = AsyncMock(return_value=verarbeitungsmeldung)
+    processing_message = MagicMock()
+    processing_message.delete = AsyncMock()
+    inter.followup.send = AsyncMock(return_value=processing_message)
 
     inter.edit_original_response = AsyncMock()
-    inter.user.name = "Spender"
+    inter.user.name = "Donor"
     inter.user.id = 4711
     inter.guild.id = 1
     inter.channel.id = 2
@@ -119,130 +119,130 @@ def _interaction():
     return inter
 
 
-def _modal(*, manager_available: bool = True, betrag: str = "5.00", teilen: str = "X"):
-    """Modal ohne py-cord-Konstruktor, mit den drei Feldern, die callback liest."""
+def _modal(*, manager_available: bool = True, amount: str = "5.00", share: str = "X"):
+    """Modal without the py-cord constructor, with the three fields callback reads."""
     m = DonationBroadcastModal.__new__(DonationBroadcastModal)
     m.donation_manager_available = manager_available
     m.bot = MagicMock()
-    m.name_input = SimpleNamespace(value="Spender")
-    m.amount_input = SimpleNamespace(value=betrag)
-    m.share_input = SimpleNamespace(value=teilen)
+    m.name_input = SimpleNamespace(value="Donor")
+    m.amount_input = SimpleNamespace(value=amount)
+    m.share_input = SimpleNamespace(value=share)
     return m
 
 
-def _kanaele(*konfigurationen):
-    """(config-dict, {id: kanal}) fuer die angegebenen Kanaele."""
+def _channels(*channel_configs):
+    """(config dict, {id: channel}) for the given channels."""
     config = {"channel_permissions": {}}
-    kanaele = {}
-    for kanal_id, broadcasts in konfigurationen:
-        config["channel_permissions"][str(kanal_id)] = {"donation_broadcasts": broadcasts}
-        kanal = MagicMock()
-        kanal.send = AsyncMock()
-        kanaele[kanal_id] = kanal
-    return config, kanaele
+    channels = {}
+    for channel_id, broadcasts in channel_configs:
+        config["channel_permissions"][str(channel_id)] = {"donation_broadcasts": broadcasts}
+        channel_mock = MagicMock()
+        channel_mock.send = AsyncMock()
+        channels[channel_id] = channel_mock
+    return config, channels
 
 
-def _mech_service_attrappe():
-    """Liefert Zustaende, damit der Callback bis zum Broadcast kommt."""
-    zustand = SimpleNamespace(success=True, level=1, power=10.0)
+def _mech_service_stub():
+    """Supplies states so that the callback gets as far as the broadcast."""
+    state = SimpleNamespace(success=True, level=1, power=10.0)
     service = MagicMock()
-    service.get_mech_state_service = MagicMock(return_value=zustand)
+    service.get_mech_state_service = MagicMock(return_value=state)
     return service
 
 
 @pytest.fixture
-def umgebung():
-    """Patcht genau die Abhaengigkeiten, die callback von aussen holt."""
-    config, kanaele = _kanaele((100, True), (200, False))
+def env():
+    """Patches exactly the dependencies that callback fetches from outside."""
+    config, channels = _channels((100, True), (200, False))
     with patch("cogs.docker_control.load_config", return_value=config), \
          patch("services.mech.mech_service.get_mech_service",
-               return_value=_mech_service_attrappe()):
-        yield kanaele
+               return_value=_mech_service_stub()):
+        yield channels
 
 
-def _gesendet(kanaele):
-    return {kid: k.send.await_count for kid, k in kanaele.items()}
+def _sent(channels):
+    return {kid: k.send.await_count for kid, k in channels.items()}
 
 
-async def test_keine_dankesmeldung_wenn_die_buchung_wirft(umgebung):
-    """Wirft der Buchungsdienst, darf nichts hinausgehen."""
+async def test_no_thank_you_message_if_the_booking_raises(env):
+    """If the booking service raises, nothing may go out."""
     inter = _interaction()
-    inter.client.get_channel = lambda kid: umgebung.get(int(kid))
+    inter.client.get_channel = lambda kid: env.get(int(kid))
 
     with patch("services.donation.unified_donation_service.process_discord_donation",
-               AsyncMock(side_effect=RuntimeError("Spendenbuch nicht schreibbar"))):
+               AsyncMock(side_effect=RuntimeError("donation ledger not writable"))):
         await _modal().callback(inter)
 
-    assert _gesendet(umgebung) == {100: 0, 200: 0}, (
-        "Die Buchung ist gescheitert, aber es ging eine Dankesmeldung hinaus - "
-        "der Kanal meldet Geld, das nie im Buch gelandet ist"
+    assert _sent(env) == {100: 0, 200: 0}, (
+        "The booking failed, but a thank-you message went out - "
+        "the channel reports money that never landed in the ledger"
     )
 
 
-async def test_keine_dankesmeldung_ohne_buchungsdienst(umgebung):
-    """Ist der Buchungsdienst nicht verfuegbar, wird nichts gebucht - und nichts gesendet."""
+async def test_no_thank_you_message_without_booking_service(env):
+    """If the booking service is unavailable, nothing is booked - and nothing is sent."""
     inter = _interaction()
-    inter.client.get_channel = lambda kid: umgebung.get(int(kid))
+    inter.client.get_channel = lambda kid: env.get(int(kid))
 
     await _modal(manager_available=False).callback(inter)
 
-    assert _gesendet(umgebung) == {100: 0, 200: 0}, (
-        "Ohne Buchungsdienst wurde nichts gebucht, aber trotzdem gedankt"
+    assert _sent(env) == {100: 0, 200: 0}, (
+        "Without a booking service nothing was booked, yet thanks were given anyway"
     )
 
 
-async def test_broadcast_respektiert_abbestellte_kanaele(umgebung):
-    """Ein Kanal mit donation_broadcasts=False bekommt nichts.
+async def test_broadcast_respects_unsubscribed_channels(env):
+    """A channel with donation_broadcasts=False gets nothing.
 
-    Der Parallelpfad in check_donation_notifications (:5168) beachtet das
-    Kennzeichen laengst; dieser Weg muss dieselbe Regel erfuellen, sonst ist es
-    dieselbe Regel an zwei Stellen mit zwei Ergebnissen.
+    The parallel path in check_donation_notifications (:5168) has long honoured
+    the flag; this path must follow the same rule, otherwise it is the same
+    rule in two places with two results.
     """
     inter = _interaction()
-    inter.client.get_channel = lambda kid: umgebung.get(int(kid))
+    inter.client.get_channel = lambda kid: env.get(int(kid))
 
-    erfolg = SimpleNamespace(
+    success_result = SimpleNamespace(
         success=True,
         new_state=SimpleNamespace(level=1, Power=15.0),
         error_message=None,
     )
     with patch("services.donation.unified_donation_service.process_discord_donation",
-               AsyncMock(return_value=erfolg)):
+               AsyncMock(return_value=success_result)):
         await _modal().callback(inter)
 
-    gesendet = _gesendet(umgebung)
-    assert gesendet[200] == 0, (
-        "Kanal 200 hat Spenden-Broadcasts abbestellt, bekam aber trotzdem eine "
-        "Meldung"
+    sent = _sent(env)
+    assert sent[200] == 0, (
+        "Channel 200 unsubscribed from donation broadcasts, but still got a "
+        "message"
     )
-    assert gesendet[100] == 1, (
-        "Kanal 100 erlaubt Broadcasts und haette die Meldung bekommen muessen"
+    assert sent[100] == 1, (
+        "Channel 100 allows broadcasts and should have received the message"
     )
 
 
-async def test_ohne_betrag_geht_die_unterstuetzungsmeldung_hinaus(umgebung):
-    """Ohne genannten Betrag gibt es nichts zu buchen - die Meldung darf trotzdem raus.
+async def test_without_amount_the_support_message_goes_out(env):
+    """Without a stated amount there is nothing to book - the message may still go out.
 
-    Das ist die ERLAUBTE Seite der Sperre aus den Tests oben. Ohne diesen Fall
-    koennte man die Sperre auf "immer blockieren" verschaerfen und alles bliebe
-    gruen - ein gewolltes Verhalten waere stillschweigend verschwunden.
+    This is the PERMITTED side of the block from the tests above. Without this
+    case one could tighten the block to "always block" and everything would
+    stay green - an intended behaviour would have silently disappeared.
 
-    Deckt zugleich :4870 ab: ohne Betrag laeuft der Code in den ``else``-Zweig
-    bei :4844, in dem ``new_state`` nie zugewiesen wird, und greift bei :4870
-    trotzdem darauf zu. Der ``NameError`` faellt durch beide ``except``-Bloecke;
-    der Nutzer bliebe auf "Processing..." sitzen, weil :4964 nie erreicht wird.
+    Also covers :4870: without an amount the code runs into the ``else`` branch
+    at :4844, in which ``new_state`` is never assigned, and still accesses it
+    at :4870. The ``NameError`` falls through both ``except`` blocks;
+    the user would be stuck on "Processing...", because :4964 is never reached.
     """
     inter = _interaction()
-    inter.client.get_channel = lambda kid: umgebung.get(int(kid))
+    inter.client.get_channel = lambda kid: env.get(int(kid))
 
-    await _modal(betrag="").callback(inter)
+    await _modal(amount="").callback(inter)
 
-    gesendet = _gesendet(umgebung)
-    assert gesendet[100] == 1, (
-        "Die Unterstuetzungsmeldung ohne Betrag ging nicht hinaus - die Sperre "
-        "hat einen gewollten Fall mitgenommen"
+    sent = _sent(env)
+    assert sent[100] == 1, (
+        "The support message without an amount did not go out - the block "
+        "took an intended case along with it"
     )
-    assert gesendet[200] == 0, "Abbestellter Kanal bekam trotzdem eine Meldung"
+    assert sent[200] == 0, "Unsubscribed channel still got a message"
     assert inter.edit_original_response.await_count == 1, (
-        "Der Nutzer bekam keine abschliessende Antwort und saehe weiter 'Processing...'"
+        "The user got no final response and would keep seeing 'Processing...'"
     )

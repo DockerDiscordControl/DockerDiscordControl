@@ -1,80 +1,80 @@
 # -*- coding: utf-8 -*-
-# @deckt Z10
-"""Z10 - Kein Image wird ausgeliefert, dessen Tests nicht gruen gelaufen sind.
+# @covers Z10
+"""Z10 - No image is shipped whose tests have not run green.
 
-Ein veroeffentlichtes Image hat einen vollstaendigen, bestandenen Testlauf hinter
-sich.
+A published image has a complete, passed test run behind it.
 
-Warum das eine Zusicherung an den NUTZER ist und nicht bloss Hausordnung: Wer
-DDC aus Unraid Community Apps installiert, bekommt genau dieses Image. Laeuft die
-Suite nicht, oder laeuft sie rot durch, merkt das niemand - bis es auf dem Server
-des Nutzers auffaellt. Das ist der Lehrsatz "unbemerkt schlaegt selten" in seiner
-teuersten Form.
+Why this is a guarantee to the USER and not mere house rules: whoever
+installs DDC from Unraid Community Apps gets exactly this image. If the suite
+does not run, or runs through red, nobody notices - until it shows up on the
+user's server. That is the maxim "unnoticed rarely strikes" in its most
+expensive form.
 
-Befund aus der Bestandsaufnahme: ``docker-publish.yml`` fuehrt ueberhaupt keine
-Tests aus (Checkout, QEMU, Buildx, Login, Metadata, Build-and-push - fertig), und
-in ``tests.yml`` enden die Testschritte auf ``|| true``, sodass der Schritt nicht
-fehlschlagen KANN. Ein rot laufender Test hat damit keine Wirkung auf nichts.
+Finding from the inventory: ``docker-publish.yml`` runs no tests at all
+(checkout, QEMU, Buildx, login, metadata, build-and-push - done), and
+in ``tests.yml`` the test steps end in ``|| true``, so that the step CANNOT
+fail. A test running red thus has no effect on anything.
 
-Dieser Test ist bei seiner Entstehung ROT. Die Korrektur beruehrt den
-Auslieferungsweg des Projekts und ist deshalb eine Entscheidung des Betreibers,
-keine technische - sie wird bewusst NICHT mit diesem Test zusammen vorgenommen.
+This test is RED when it is created. The fix touches the project's delivery
+path and is therefore a decision of the operator, not a technical one - it is
+deliberately NOT made together with this test.
 
-Geprueft wird der Quelltext der Workflow-Dateien. Das ist ein statischer Test,
-kein ausgefuehrtes CI: Er belegt, was in der Datei steht, nicht was GitHub daraus
-macht. Dasselbe Mittel benutzt das Projekt bereits in ``test_pkg_f_scripts.py``
-fuer Dockerfile und Healthcheck.
+What is checked is the source text of the workflow files. This is a static
+test, not an executed CI: it proves what is in the file, not what GitHub makes
+of it. The project already uses the same means in ``test_pkg_f_scripts.py``
+for the Dockerfile and healthcheck.
 
-GEGENPROBE (durchgefuehrt 2026-09-16) - mit einer Schaerfung dazwischen:
+COUNTER-CHECK (carried out 2026-09-16) - with a sharpening in between:
 
-Erster Lauf: beide Tests rot. Der zweite meldete aber nur ``tests.yml:127``
-(Integrationstests) - und das doppelt, weil Zeilensuche und Blocksuche denselben
-Treffer lieferten. Den **wichtigeren** Fall verfehlte er: Im Unit-Test-Schritt
-steht ``python -m pytest`` bei :73 und das zugehoerige ``|| true`` erst bei :80,
-getrennt durch Zeilenfortsetzungen. Eine zeilenweise Suche findet das nie.
+First run: both tests red. But the second only reported ``tests.yml:127``
+(integration tests) - and twice, because the line search and the block search
+returned the same hit. It missed the **more important** case: in the unit test
+step, ``python -m pytest`` is at :73 and the associated ``|| true`` only at :80,
+separated by line continuations. A line-by-line search never finds that.
 
-Geschaerft durch Zerlegung in ``- name:``-Schritte, und um ``continue-on-error:
-true`` erweitert - ein zweiter Weg, einen Testschritt folgenlos zu machen, den
-die erste Fassung ueberhaupt nicht kannte.
+Sharpened by splitting into ``- name:`` steps, and extended by ``continue-on-error:
+true`` - a second way of making a test step inconsequential, which the first
+version did not know about at all.
 
-Danach vier Befunde statt einem, und der vierte war vorher unbekannt::
+After that, four findings instead of one, and the fourth was previously unknown::
 
     code-quality.yml:295 'Run tests with coverage': continue-on-error: true
     tests.yml:67 'Run unit tests with coverage':    '|| true'
     tests.yml:122 'Run integration tests':          '|| true'
     tests.yml:122 'Run integration tests':          continue-on-error: true
 
-Also **drei** Testlaeufe in der CI, von denen keiner rot werden kann. Die
-Berichtswerkzeuge in code-quality.yml (radon, pylint, flake8, mypy) hat der Test
-korrekt in Ruhe gelassen - keine Fehlalarme.
+So **three** test runs in the CI, none of which can turn red. The test
+correctly left the reporting tools in code-quality.yml (radon, pylint, flake8,
+mypy) alone - no false alarms.
 
-KORREKTUR DURCHGEFUEHRT (2026-09-17), nach Entscheidung des Betreibers fuer das
-volle Gatter in gruppenweiser Form:
+FIX CARRIED OUT (2026-09-17), after the operator decided on the
+full gate in per-group form:
 
-``docker-publish.yml`` bekam einen eigenen ``test``-Job, an dem ``build_and_push``
-per ``needs:`` haengt. Die vier Schutzschalter sind weg.
+``docker-publish.yml`` got its own ``test`` job, on which ``build_and_push``
+depends via ``needs:``. The four safety switches are gone.
 
-Dabei kam heraus, dass "Schutzschalter entfernen" nicht genuegte: Die drei
-Testaufrufe der CI (``pytest tests/unit/``, ``pytest tests/``) brechen beim
-EINSAMMELN ab - 79 bzw. 18 Fehler, kein einziger Test lief je. Die Schalter
-verbargen also nicht rote Tests, sondern dass gar nicht getestet wurde. Ohne
-Umstellung waere das Gatter ab sofort dauerhaft rot gewesen und damit so wertlos
-wie vorher dauerhaft gruen. Alle drei Aufrufe laufen jetzt gruppenweise ueber
-``tests/GROUPS.txt``; ``--import-mode=importlib`` half nicht, drei nachgeruestete
-``__init__.py`` verschlechterten es von 18 auf 54 Fehler (zurueckgenommen).
+It turned out that "remove the safety switches" was not enough: the three
+test invocations of the CI (``pytest tests/unit/``, ``pytest tests/``) abort
+during COLLECTION - 79 and 18 errors respectively, not a single test ever ran.
+So the switches did not hide red tests, but the fact that nothing was tested
+at all. Without a conversion the gate would from now on have been permanently
+red and thus as worthless as the previously permanent green. All three
+invocations now run per group via ``tests/GROUPS.txt``;
+``--import-mode=importlib`` did not help, three retrofitted ``__init__.py``
+made it worse, from 18 to 54 errors (reverted).
 
-GEGENPROBE: Vor der Korrektur waren beide Tests oben rot. Danach schlug
-``test_kein_testschritt_kann_nicht_fehlschlagen`` erneut an - vier Mal, und alle
-vier Male auf **Kommentare**, die gerade erst geschrieben worden waren ("Kein
-'|| true' mehr ..."). Der ausfuehrbare Code war sauber. Statt die Begruendungen
-zu loeschen wurde der Melder geschaerft (``_nur_ausfuehrbares``) und mit einem
-eigenen Wirkungsnachweis versehen. Danach ``tests/spec``: 50 gruen, 0 rot.
+COUNTER-CHECK: before the fix both tests above were red. Afterwards
+``test_no_test_step_cannot_fail`` fired again - four times, and all
+four times on **comments** that had only just been written ("No
+'|| true' any more ..."). The executable code was clean. Instead of deleting
+the explanations, the reporter was sharpened (``_executable_only``) and given
+its own proof of effect. After that ``tests/spec``: 50 green, 0 red.
 
-WAS DAMIT NICHT BELEGT IST: Geprueft sind der Text und die YAML-Struktur der
-Workflow-Dateien, nicht ein echter GitHub-Lauf. Dass der ``test``-Job dort
-tatsaechlich anlaeuft und ``build_and_push`` blockiert, zeigt erst der erste
-Push. Diese Tests koennen belegen, dass das Gatter *dasteht* - nicht, dass
-GitHub es so ausfuehrt.
+WHAT THIS DOES NOT PROVE: what is checked is the text and the YAML structure
+of the workflow files, not a real GitHub run. That the ``test`` job actually
+starts there and blocks ``build_and_push`` is only shown by the first push.
+These tests can prove that the gate *is in place* - not that GitHub executes
+it that way.
 """
 
 import re
@@ -87,230 +87,229 @@ PUBLISH = WORKFLOWS / "docker-publish.yml"
 TESTS = WORKFLOWS / "tests.yml"
 
 
-def test_workflow_dateien_sind_vorhanden():
-    """Sicherung gegen ein stumpfes Werkzeug.
+def test_workflow_files_exist():
+    """Safeguard against a blunt tool.
 
-    Werden die Dateien umbenannt, liefen die Tests unten ins Leere und waeren
-    gruen, ohne irgendetwas zu belegen.
+    If the files are renamed, the tests below would run into nothing and be
+    green without proving anything.
     """
-    assert PUBLISH.is_file(), f"{PUBLISH} fehlt - der Test unten prueft dann nichts"
-    assert TESTS.is_file(), f"{TESTS} fehlt - der Test unten prueft dann nichts"
+    assert PUBLISH.is_file(), f"{PUBLISH} is missing - then the test below checks nothing"
+    assert TESTS.is_file(), f"{TESTS} is missing - then the test below checks nothing"
 
 
-def test_veroeffentlichung_haengt_an_einem_testlauf():
-    """Der Workflow, der das Image veroeffentlicht, darf Tests nicht uebergehen.
+def test_publishing_depends_on_a_test_run():
+    """The workflow that publishes the image must not skip tests.
 
-    Akzeptiert werden beide ueblichen Formen: ein eigener Testschritt im selben
-    Workflow, oder ein ``needs:`` auf einen Job, der Tests ausfuehrt.
+    Both usual forms are accepted: a separate test step in the same
+    workflow, or a ``needs:`` on a job that runs tests.
     """
-    inhalt = PUBLISH.read_text(encoding="utf-8")
+    content = PUBLISH.read_text(encoding="utf-8")
 
-    hat_eigenen_testlauf = bool(re.search(r"pytest|python -m pytest", inhalt))
-    haengt_an_job = bool(re.search(r"^\s*needs:", inhalt, re.MULTILINE))
+    has_own_test_run = bool(re.search(r"pytest|python -m pytest", content))
+    depends_on_job = bool(re.search(r"^\s*needs:", content, re.MULTILINE))
 
-    assert hat_eigenen_testlauf or haengt_an_job, (
-        "docker-publish.yml fuehrt weder Tests aus noch haengt es an einem Job, "
-        "der welche ausfuehrt - Images gehen ungeprueft an die Nutzer"
+    assert has_own_test_run or depends_on_job, (
+        "docker-publish.yml neither runs tests nor depends on a job "
+        "that does - images go out to users unchecked"
     )
 
 
-def test_die_workflow_dateien_sind_gueltiges_yaml():
-    """Sicherung gegen ein stumpfes Werkzeug - und gegen mich selbst.
+def test_the_workflow_files_are_valid_yaml():
+    """Safeguard against a blunt tool - and against myself.
 
-    Die Tests hier lesen den **Text** der Workflow-Dateien. Eine Datei kann
-    dabei jede Zusicherung erfuellen und trotzdem kaputt sein: Faellt beim
-    Bearbeiten die Einrueckung durcheinander, laedt GitHub sie gar nicht erst,
-    der Job laeuft nie, und das Gatter gattert nichts - waehrend die Tests
-    unten weiter gruen melden.
+    The tests here read the **text** of the workflow files. A file can
+    fulfil every assertion and still be broken: if the indentation gets mixed
+    up while editing, GitHub does not even load it, the job never runs, and
+    the gate gates nothing - while the tests below keep reporting green.
 
-    Aufgefallen beim Bau des Gatters selbst: Ich hatte drei Workflow-Dateien von
-    Hand geaendert und wollte sie lokal pruefen, aber auf dem Entwicklungsrechner
-    fehlt PyYAML. Eine nicht durchgefuehrte Pruefung ist keine bestandene - also
-    gehoert sie hierher, wo sie bei jedem Lauf mitlaeuft.
+    Noticed while building the gate itself: I had changed three workflow files
+    by hand and wanted to check them locally, but PyYAML is missing on the
+    development machine. A check that was not carried out is not a passed one -
+    so it belongs here, where it runs along with every run.
     """
     yaml = pytest.importorskip(
-        "yaml", reason="ohne PyYAML kann diese Pruefung nichts belegen"
+        "yaml", reason="without PyYAML this check cannot prove anything"
     )
-    for datei in sorted(WORKFLOWS.glob("*.yml")):
+    for file in sorted(WORKFLOWS.glob("*.yml")):
         try:
-            geladen = yaml.safe_load(datei.read_text(encoding="utf-8"))
-        except yaml.YAMLError as fehler:
-            pytest.fail(f"{datei.name} ist kein gueltiges YAML: {fehler}")
-        assert isinstance(geladen, dict) and geladen.get("jobs"), (
-            f"{datei.name} enthaelt keinen jobs-Block - GitHub fuehrt daraus nichts aus"
+            loaded = yaml.safe_load(file.read_text(encoding="utf-8"))
+        except yaml.YAMLError as error:
+            pytest.fail(f"{file.name} is not valid YAML: {error}")
+        assert isinstance(loaded, dict) and loaded.get("jobs"), (
+            f"{file.name} contains no jobs block - GitHub runs nothing from it"
         )
 
 
-def test_das_gatter_haengt_wirklich_am_testjob():
-    """``needs:`` muss auf einen Job zeigen, der es auch gibt.
+def test_the_gate_really_depends_on_the_test_job():
+    """``needs:`` must point to a job that actually exists.
 
-    Der Test weiter oben akzeptiert jedes ``needs:``. Ein Verweis auf einen Job,
-    den es nicht gibt, waere aber genau die Sorte Gatter, die niemand bemerkt -
-    GitHub lehnt den Lauf ab, und im Zweifel merkt man es erst, wenn eine
-    Veroeffentlichung ausbleibt oder durchrutscht.
+    The test further up accepts any ``needs:``. A reference to a job that does
+    not exist, however, would be exactly the kind of gate nobody notices -
+    GitHub rejects the run, and in doubt one only notices when a
+    publication fails to appear or slips through.
     """
     yaml = pytest.importorskip(
-        "yaml", reason="ohne PyYAML kann diese Pruefung nichts belegen"
+        "yaml", reason="without PyYAML this check cannot prove anything"
     )
-    inhalt = yaml.safe_load(PUBLISH.read_text(encoding="utf-8"))
-    jobs = inhalt["jobs"]
-    bauen = jobs.get("build_and_push")
-    assert bauen is not None, "docker-publish.yml hat keinen build_and_push-Job mehr"
+    content = yaml.safe_load(PUBLISH.read_text(encoding="utf-8"))
+    jobs = content["jobs"]
+    build = jobs.get("build_and_push")
+    assert build is not None, "docker-publish.yml no longer has a build_and_push job"
 
-    haengt_an = bauen.get("needs")
-    assert haengt_an, "build_and_push haengt an keinem Job - Images gehen ungeprueft hinaus"
-    haengt_an = [haengt_an] if isinstance(haengt_an, str) else list(haengt_an)
+    needed_jobs = build.get("needs")
+    assert needed_jobs, "build_and_push depends on no job - images go out unchecked"
+    needed_jobs = [needed_jobs] if isinstance(needed_jobs, str) else list(needed_jobs)
 
-    for name in haengt_an:
-        assert name in jobs, f"build_and_push braucht Job '{name}', den es nicht gibt"
+    for name in needed_jobs:
+        assert name in jobs, f"build_and_push needs job '{name}', which does not exist"
 
-    laeuft_pytest = any(
-        "pytest" in str(schritt.get("run", ""))
-        for name in haengt_an
-        for schritt in jobs[name].get("steps", [])
+    runs_pytest = any(
+        "pytest" in str(step.get("run", ""))
+        for name in needed_jobs
+        for step in jobs[name].get("steps", [])
     )
-    assert laeuft_pytest, (
-        "Die Jobs, an denen build_and_push haengt, fuehren selbst kein pytest aus - "
-        f"geprueft: {haengt_an}"
+    assert runs_pytest, (
+        "The jobs build_and_push depends on do not run pytest themselves - "
+        f"checked: {needed_jobs}"
     )
 
 
-def _schritte(inhalt: str):
-    """Zerlege einen Workflow in seine ``- name:``-Schritte.
+def _steps(content: str):
+    """Split a workflow into its ``- name:`` steps.
 
-    Noetig, weil ein Testaufruf ueber viele Zeilen gehen kann: in tests.yml steht
-    ``python -m pytest`` bei :73 und das zugehoerige ``|| true`` erst bei :80,
-    getrennt durch Zeilenfortsetzungen. Eine zeilenweise Suche findet das nicht -
-    die erste Fassung dieses Tests uebersah deshalb ausgerechnet den
-    Unit-Test-Schritt und meldete nur den Integrationstest.
+    Necessary because a test invocation can span many lines: in tests.yml
+    ``python -m pytest`` is at :73 and the associated ``|| true`` only at :80,
+    separated by line continuations. A line-by-line search does not find that -
+    the first version of this test therefore overlooked the unit test step of
+    all things and only reported the integration test.
     """
-    schritte, aktuell, start = [], [], 1
-    for nr, zeile in enumerate(inhalt.splitlines(), 1):
-        if re.match(r"\s*- name:", zeile):
-            if aktuell:
-                schritte.append((start, "\n".join(aktuell)))
-            aktuell, start = [zeile], nr
+    steps, current, start = [], [], 1
+    for lineno, line in enumerate(content.splitlines(), 1):
+        if re.match(r"\s*- name:", line):
+            if current:
+                steps.append((start, "\n".join(current)))
+            current, start = [line], lineno
         else:
-            aktuell.append(zeile)
-    if aktuell:
-        schritte.append((start, "\n".join(aktuell)))
-    return schritte
+            current.append(line)
+    if current:
+        steps.append((start, "\n".join(current)))
+    return steps
 
 
-def _nur_ausfuehrbares(block: str) -> str:
-    """Wirft GANZE Kommentarzeilen weg - und sonst nichts.
+def _executable_only(block: str) -> str:
+    """Drops WHOLE comment lines - and nothing else.
 
-    Warum es das gibt (2026-09-17): Beim Bau des Gatters schlug der Test unten
-    vier Mal an, und alle vier Male auf **Kommentare**, die ich selbst gerade
-    geschrieben hatte - Saetze wie "Kein '|| true' und kein continue-on-error
-    mehr: dieser Schritt IST das Gatter". Der ausfuehrbare Code war sauber.
+    Why this exists (2026-09-17): while building the gate the test below fired
+    four times, and all four times on **comments** I had just written
+    myself - sentences like "No '|| true' and no continue-on-error
+    any more: this step IS the gate". The executable code was clean.
 
-    Die naheliegende Abhilfe waere gewesen, diese Kommentare zu loeschen. Das
-    haette ausgerechnet die Begruendung entfernt, warum die Schutzschalter weg
-    sind - ein schlechter Tausch. Der Melder sucht stattdessen jetzt nach
-    Bedeutung statt nach Text: Eine Zeile, die mit ``#`` beginnt, wird von der
-    Shell nie ausgefuehrt und kann folglich nichts unterdruecken.
+    The obvious remedy would have been to delete these comments. That would
+    have removed precisely the explanation of why the safety switches are gone -
+    a bad trade. Instead, the reporter now searches for meaning instead of
+    text: a line starting with ``#`` is never executed by the shell and
+    consequently cannot suppress anything.
 
-    Bewusst NUR ganze Kommentarzeilen: Wuerde ab dem ersten ``#`` abgeschnitten,
-    liesse sich ein echter Schalter dahinter verstecken
-    (``pytest x || true  # harmlos``). Genau dieser Fall ist unten festgenagelt.
+    Deliberately ONLY whole comment lines: if everything from the first ``#`` on
+    were cut off, a real switch could hide behind it
+    (``pytest x || true  # harmless``). Exactly this case is pinned down below.
     """
     return "\n".join(z for z in block.splitlines() if not z.lstrip().startswith("#"))
 
 
-def _schutzschalter(block: str) -> list:
-    """Welche Schalter ein Schritt traegt. Leere Liste heisst: kann rot werden."""
-    ausfuehrbar = _nur_ausfuehrbares(block)
-    gefunden = []
-    if "|| true" in ausfuehrbar:
-        gefunden.append("'|| true'")
-    if re.search(r"continue-on-error:\s*true", ausfuehrbar):
-        gefunden.append("continue-on-error: true")
-    return gefunden
+def _safety_switches(block: str) -> list:
+    """Which switches a step carries. An empty list means: can turn red."""
+    executable = _executable_only(block)
+    found = []
+    if "|| true" in executable:
+        found.append("'|| true'")
+    if re.search(r"continue-on-error:\s*true", executable):
+        found.append("continue-on-error: true")
+    return found
 
 
-def test_kein_testschritt_kann_nicht_fehlschlagen():
-    """Ein Testschritt, der nicht rot werden kann, ist kein Gatter.
+def test_no_test_step_cannot_fail():
+    """A test step that cannot turn red is not a gate.
 
-    Zwei Wege fuehren dorthin, und beide zaehlen: ``|| true`` am Aufruf und
-    ``continue-on-error: true`` am Schritt. Der zweite fehlte in der ersten
-    Fassung dieses Tests vollstaendig.
+    Two ways lead there, and both count: ``|| true`` on the invocation and
+    ``continue-on-error: true`` on the step. The second was completely missing
+    from the first version of this test.
 
-    Bewusst NICHT angeschlagen wird bei ``|| true`` an Berichtswerkzeugen
-    (radon, pylint, flake8, mypy in code-quality.yml). Dort ist es legitim: die
-    Werkzeuge liefern einen Bericht, kein Urteil. Ein Test, der auch die meldet,
-    erzeugt Fehlalarme und wird deshalb ignoriert - und ein ignorierter Test ist
-    so wertlos wie ein gruener. Aus demselben Grund zaehlen seit 2026-09-17
-    reine Kommentarzeilen nicht mehr mit; siehe ``_nur_ausfuehrbares``.
+    Deliberately NOT flagged: ``|| true`` on reporting tools
+    (radon, pylint, flake8, mypy in code-quality.yml). It is legitimate there:
+    the tools deliver a report, not a verdict. A test that reports those too
+    produces false alarms and is therefore ignored - and an ignored test is
+    as worthless as a green one. For the same reason, pure comment lines no
+    longer count since 2026-09-17; see ``_executable_only``.
     """
-    befunde = []
-    for datei in sorted(WORKFLOWS.glob("*.yml")):
-        for startzeile, block in _schritte(datei.read_text(encoding="utf-8")):
-            if "pytest" not in _nur_ausfuehrbares(block):
+    findings = []
+    for file in sorted(WORKFLOWS.glob("*.yml")):
+        for start_line, block in _steps(file.read_text(encoding="utf-8")):
+            if "pytest" not in _executable_only(block):
                 continue
-            kopf = block.splitlines()[0].strip().removeprefix("- name:").strip()
-            for schalter in _schutzschalter(block):
-                befunde.append(f"{datei.name}:{startzeile} '{kopf}': pytest mit {schalter}")
+            head = block.splitlines()[0].strip().removeprefix("- name:").strip()
+            for switch in _safety_switches(block):
+                findings.append(f"{file.name}:{start_line} '{head}': pytest with {switch}")
 
-    assert not befunde, (
-        "Testschritte, die nicht fehlschlagen koennen:\n" + "\n".join(befunde)
+    assert not findings, (
+        "Test steps that cannot fail:\n" + "\n".join(findings)
     )
 
 
-def test_der_melder_beisst_nach_der_schaerfung_noch():
-    """Wirkungsnachweis fuer ``_nur_ausfuehrbares`` - Pflicht, weil hier ein
-    Waechter gelockert aussieht.
+def test_the_reporter_still_bites_after_the_sharpening():
+    """Proof of effect for ``_executable_only`` - mandatory, because a
+    guard looks loosened here.
 
-    Wer einen Melder entschaerft, damit der eigene Code durchkommt, muss
-    belegen, dass er den echten Fall weiterhin faengt. Vier Faelle, und der
-    letzte ist der wichtigste: Er verhindert, dass sich die Schaerfung
-    missbrauchen laesst.
+    Whoever defuses a reporter so that their own code gets through must
+    prove that it still catches the real case. Four cases, and the last one
+    is the most important: it prevents the sharpening from being
+    abused.
     """
-    echt_true = (
+    real_true = (
         "      - name: Run tests\n"
         "        run: |\n"
         "          python -m pytest tests/ -q || true\n"
     )
-    assert _schutzschalter(echt_true) == ["'|| true'"], "echtes '|| true' nicht erkannt"
+    assert _safety_switches(real_true) == ["'|| true'"], "real '|| true' not detected"
 
-    echt_coe = (
+    real_coe = (
         "      - name: Run tests\n"
         "        run: python -m pytest tests/ -q\n"
         "        continue-on-error: true\n"
     )
-    assert _schutzschalter(echt_coe) == ["continue-on-error: true"], (
-        "echtes continue-on-error nicht erkannt"
+    assert _safety_switches(real_coe) == ["continue-on-error: true"], (
+        "real continue-on-error not detected"
     )
 
-    nur_prosa = (
+    prose_only = (
         "      - name: Run tests\n"
         "        run: |\n"
-        '          # Kein "|| true" mehr und kein continue-on-error: true hier.\n'
+        '          # No "|| true" any more and no continue-on-error: true here.\n'
         "          python -m pytest tests/ -q\n"
     )
-    assert _schutzschalter(nur_prosa) == [], (
-        "Kommentar faelschlich als Schutzschalter gemeldet - genau der Fehlalarm, "
-        "wegen dem die Schaerfung noetig war"
+    assert _safety_switches(prose_only) == [], (
+        "Comment wrongly reported as a safety switch - exactly the false alarm "
+        "that made the sharpening necessary"
     )
 
-    getarnt = (
+    disguised = (
         "      - name: Run tests\n"
         "        run: |\n"
-        "          python -m pytest tests/ -q || true  # sieht harmlos aus\n"
+        "          python -m pytest tests/ -q || true  # looks harmless\n"
     )
-    assert _schutzschalter(getarnt) == ["'|| true'"], (
-        "Ein Schalter mit Kommentar dahinter wurde uebersehen - die Schaerfung "
-        "waere damit ein Schlupfloch statt einer Praezisierung"
+    assert _safety_switches(disguised) == ["'|| true'"], (
+        "A switch with a comment behind it was overlooked - the sharpening "
+        "would then be a loophole instead of a refinement"
     )
 
 
-def test_die_schritt_zerlegung_findet_mehrzeilige_aufrufe():
-    """Sicherung gegen ein stumpfes Werkzeug.
+def test_the_step_splitting_finds_multiline_invocations():
+    """Safeguard against a blunt tool.
 
-    Belegt, dass ein ueber Zeilenfortsetzungen verteilter Aufruf als EIN Schritt
-    erkannt wird - genau der Fall, den die erste Fassung verfehlt hat.
+    Proves that an invocation spread over line continuations is recognised as
+    ONE step - exactly the case the first version missed.
     """
-    beispiel = (
+    example = (
         "      - name: Run unit tests\n"
         "        run: |\n"
         "          python -m pytest tests/unit/ \\\n"
@@ -319,10 +318,10 @@ def test_die_schritt_zerlegung_findet_mehrzeilige_aufrufe():
         "      - name: Upload\n"
         "        run: echo hi\n"
     )
-    schritte = _schritte(beispiel)
-    assert len(schritte) == 2, f"Zerlegung ergab {len(schritte)} Schritte statt 2"
-    erster = schritte[0][1]
-    assert "pytest" in erster and "|| true" in erster, (
-        "Aufruf und '|| true' landeten nicht im selben Schritt - die Zerlegung "
-        "wuerde den Unit-Test-Schritt wieder uebersehen"
+    steps = _steps(example)
+    assert len(steps) == 2, f"Splitting yielded {len(steps)} steps instead of 2"
+    first = steps[0][1]
+    assert "pytest" in first and "|| true" in first, (
+        "Invocation and '|| true' did not land in the same step - the splitting "
+        "would overlook the unit test step again"
     )

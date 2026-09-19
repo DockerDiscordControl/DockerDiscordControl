@@ -1,50 +1,51 @@
 # -*- coding: utf-8 -*-
-# @deckt Z4
-"""Z4 - Geld wird nie doppelt oder unbelegt gutgeschrieben.
+# @covers Z4
+"""Z4 - money is never credited twice or without proof.
 
-Jede Spende traegt einen Idempotenzschluessel, der nicht von der Uhrzeit
-abhaengt. Zweimal dieselbe Absendung ergibt einen Eintrag, nicht zwei - eine
-echte zweite Spende desselben Spenders aber sehr wohl zwei.
+Every donation carries an idempotency key that does not depend on the time of
+day. Submitting the same thing twice yields one entry, not two - but a real
+second donation from the same donor does yield two.
 
-Vom Betreiber entschieden (2026-09-16): Der Browser erzeugt beim Oeffnen des
-Spenden-Dialogs ein einmaliges Token und sendet es mit; der Discord-Weg benutzt
-``interaction.id``. Bewusst NICHT gewaehlt wurde ein Zeitfenster ueber
-(Spender, Betrag): das haette eine echte schnelle Zweitspende verschluckt und
-damit echtes Geld verloren.
+Decided by the operator (2026-09-16): the browser generates a one-time token
+when the donation dialog opens and sends it along; the Discord path uses
+``interaction.id``. Deliberately NOT chosen was a time window over
+(donor, amount): that would have swallowed a real quick second donation and
+thereby lost real money.
 
-Der Befund ist ein Durchreichungsfehler, kein fehlendes Verfahren:
-``ProgressService.add_donation`` kann Idempotenz bereits und ist dafuer getestet
-(``tests/unit/services/mech/test_progress_service.py:322``). Der Schluessel geht
-aber zwischen Eintrittsstelle und Dienst verloren - ``DonationRequest`` hat kein
-Feld dafuer, und ``processors.py:36/52`` reicht keinen weiter. Ohne Schluessel
-bildet ``progress_service.py:1024`` einen aus
-``mech_id|donor|amount|utcnow().isoformat()``; zwei identische Absendungen
-Mikrosekunden auseinander gelten damit als verschieden.
+The finding is a pass-through bug, not a missing mechanism:
+``ProgressService.add_donation`` already supports idempotency and is tested for
+it (``tests/unit/services/mech/test_progress_service.py:322``). But the key gets
+lost between the entry point and the service - ``DonationRequest`` has no field
+for it, and ``processors.py:36/52`` passes none on. Without a key,
+``progress_service.py:1024`` builds one from
+``mech_id|donor|amount|utcnow().isoformat()``; two identical submissions
+microseconds apart therefore count as different.
 
-Geprueft wird das beobachtbare Verhalten am Eintrittspunkt, nicht die Verkabelung
-dazwischen - sonst pruefte der Test die Umsetzung statt der Zusicherung.
+What is checked is the observable behaviour at the entry point, not the wiring
+in between - otherwise the test would check the implementation instead of the
+guarantee.
 
-GEGENPROBE (durchgefuehrt 2026-09-16), in zwei ungleichen Haelften:
+COUNTER-CHECK (done 2026-09-16), in two unequal halves:
 
-*Die drei Dienst-Tests* schlugen vor der Korrektur mit
-``TypeError: ... unexpected keyword argument 'idempotency_key'`` fehl. Das ist
-ein ehrliches, aber **schwaches** Rot: es beweist, dass das Verfahren an der
-Eintrittsstelle fehlte, nicht dass die Zusicherung verletzt wurde. Seit der
-Korrektur pruefen sie Buchungszahlen statt Signaturen und koennen daher auch
-kuenftig fehlschlagen, wenn die Durchreichung zurueckfaellt.
+*The three service tests* failed before the fix with
+``TypeError: ... unexpected keyword argument 'idempotency_key'``. That is an
+honest but **weak** red: it proves that the mechanism was missing at the entry
+point, not that the guarantee was violated. Since the fix they check booking
+counts instead of signatures and can therefore also fail in future if the
+pass-through regresses.
 
-*Die beiden Vertragstests zur Oberflaeche* waren zuerst aus dem FALSCHEN Grund
-rot - der Fehler lag in ihnen selbst, nicht im Code: der Ausschnitt endete an der
-verschachtelten ``resetSubmitButton()``, und die Liste erlaubter Schreibweisen
-erkannte die tatsaechliche Absicherung ``(window.crypto && crypto.randomUUID)``
-nicht. Beinahe waere funktionierender Code umgebaut worden, bis ein kaputter Test
-gruen wird. Nach der Korrektur des Tests wurde die Gegenprobe echt nachgeholt:
-``idempotency_key`` im Frontend umbenannt und die Absicherung entschaerft ->
-genau diese zwei Tests rot (9 gruen); Datei wiederhergestellt -> 11 gruen.
+*The two contract tests for the UI* were at first red for the WRONG reason -
+the bug was in them, not in the code: the excerpt ended at the nested
+``resetSubmitButton()``, and the list of allowed spellings did not recognise
+the actual guard ``(window.crypto && crypto.randomUUID)``. Working code was
+almost rebuilt until a broken test turned green. After fixing the test, the
+counter-check was genuinely redone: ``idempotency_key`` renamed in the frontend
+and the guard defused -> exactly these two tests red (9 green); file
+restored -> 11 green.
 
-Dabei gefunden und mitbehoben: ``FakeMechService.add_donation`` in
-``tests/test_unified_donation_service.py`` nagelte die alte Signatur fest und
-verschluckte den Schluessel im async-Pfad.
+Found and fixed along the way: ``FakeMechService.add_donation`` in
+``tests/test_unified_donation_service.py`` pinned the old signature and
+swallowed the key in the async path.
 """
 
 import uuid
@@ -59,95 +60,94 @@ from services.donation.unified_donation_service import (
 from services.mech.progress_service import read_events
 
 
-def _spenden_zaehlen(marke: str) -> int:
-    """Zaehle gebuchte Spenden, deren Spendername ``marke`` enthaelt.
+def _count_donations(marker: str) -> int:
+    """Count booked donations whose donor name contains ``marker``.
 
-    Absolut zu zaehlen waere unsicher: das Ereignislog ist innerhalb eines
-    Testlaufs geteilt. Die Marke ist pro Test einmalig.
+    Counting absolutely would be unreliable: the event log is shared within a
+    test run. The marker is unique per test.
     """
     return sum(
         1
         for e in read_events()
-        if e.type == "DonationAdded" and marke in str(e.payload.get("donor") or "")
+        if e.type == "DonationAdded" and marker in str(e.payload.get("donor") or "")
     )
 
 
 @pytest.fixture
-def marke() -> str:
-    """Einmaliger Spendername, damit Tests einander nicht zaehlen."""
+def marker() -> str:
+    """Unique donor name so that tests do not count each other."""
     return f"z4-{uuid.uuid4().hex[:12]}"
 
 
-async def test_discord_zweimal_derselbe_schluessel_bucht_einmal(marke):
-    """Dieselbe Absendung zweimal verarbeitet: eine Buchung.
+async def test_discord_same_key_twice_books_once(marker):
+    """The same submission processed twice: one booking.
 
-    Entspricht dem Fall, den es in der Wirklichkeit gibt: derselbe
-    ``interaction.id`` erreicht den Dienst zweimal (Wiederholung, doppelte
-    Zustellung).
+    Corresponds to the case that exists in reality: the same
+    ``interaction.id`` reaches the service twice (retry, duplicate delivery).
     """
-    schluessel = f"interaction-{uuid.uuid4().hex}"
+    key = f"interaction-{uuid.uuid4().hex}"
 
     for _ in range(2):
-        ergebnis = await process_discord_donation(
-            discord_username=marke,
+        result = await process_discord_donation(
+            discord_username=marker,
             amount=1.0,
             user_id="42",
             bot_instance=None,
-            idempotency_key=schluessel,
+            idempotency_key=key,
         )
-        assert ergebnis.success is True
+        assert result.success is True
 
-    assert _spenden_zaehlen(marke) == 1, (
-        "Dieselbe Absendung wurde mehrfach gebucht - das Spendenbuch zeigt "
-        "mehr Geld an, als eingegangen ist"
+    assert _count_donations(marker) == 1, (
+        "The same submission was booked more than once - the donation ledger "
+        "shows more money than was received"
     )
 
 
-async def test_discord_verschiedene_schluessel_buchen_zweimal(marke):
-    """Zwei echte Spenden gleicher Hoehe muessen beide durchgehen.
+async def test_discord_different_keys_book_twice(marker):
+    """Two real donations of the same amount must both go through.
 
-    Die Gegenrichtung zur Zusicherung, und der Grund gegen ein Zeitfenster ueber
-    (Spender, Betrag): eine echte Zweitspende darf nie verschluckt werden.
+    The opposite direction of the guarantee, and the reason against a time
+    window over (donor, amount): a real second donation must never be
+    swallowed.
     """
     for _ in range(2):
-        ergebnis = await process_discord_donation(
-            discord_username=marke,
+        result = await process_discord_donation(
+            discord_username=marker,
             amount=1.0,
             user_id="42",
             bot_instance=None,
             idempotency_key=f"interaction-{uuid.uuid4().hex}",
         )
-        assert ergebnis.success is True
+        assert result.success is True
 
-    assert _spenden_zaehlen(marke) == 2, (
-        "Eine echte zweite Spende wurde als Dublette verworfen - es ist Geld "
-        "eingegangen, das nicht im Buch steht"
+    assert _count_donations(marker) == 2, (
+        "A real second donation was discarded as a duplicate - money was "
+        "received that is not in the ledger"
     )
 
 
-def test_web_zweimal_dasselbe_token_bucht_einmal(marke):
-    """Das Token aus dem Browser wird bis ins Spendenbuch durchgereicht."""
+def test_web_same_token_twice_books_once(marker):
+    """The token from the browser is passed all the way to the donation ledger."""
     token = f"web-{uuid.uuid4().hex}"
 
     for _ in range(2):
-        ergebnis = process_web_ui_donation(marke, 1.0, idempotency_key=token)
-        assert ergebnis.success is True
+        result = process_web_ui_donation(marker, 1.0, idempotency_key=token)
+        assert result.success is True
 
-    assert _spenden_zaehlen(marke) == 1, (
-        "Erneutes Absenden desselben Formulars hat ein zweites Mal gebucht"
+    assert _count_donations(marker) == 1, (
+        "Resubmitting the same form booked a second time"
     )
 
 
 # ---------------------------------------------------------------------------
-# Vertrag zur Aufrufstelle
+# Contract with the call site
 #
-# Die Tests oben pruefen die Dienst-Eintrittspunkte. Sie wuerden auch dann gruen,
-# wenn nur das Backend den Schluessel durchreicht und der Browser nie einen
-# sendet - dann waere Z4 im Alltag weiterhin gebrochen. Genau dieser Fall ("die
-# Funktion ist geprueft, die Aufrufstelle nicht") war ein Befund aus Stufe 0,
-# deshalb wird hier der Quelltext der Oberflaeche gelesen. Dasselbe Mittel
-# benutzt das Projekt bereits in test_pkg_a_web.py und
-# test_pkg_d2_mech_difficulty_contract.py.
+# The tests above check the service entry points. They would also be green if
+# only the backend passed the key on and the browser never sent one - then Z4
+# would still be broken in everyday use. Exactly this case ("the function is
+# tested, the call site is not") was a finding from stage 0, which is why the
+# UI source code is read here. The project already uses the same means in
+# test_pkg_a_web.py and test_pkg_d2_mech_difficulty_contract.py.
 # ---------------------------------------------------------------------------
 
 CONFIG_HTML = (
@@ -155,63 +155,63 @@ CONFIG_HTML = (
 )
 
 
-def _funktionsrumpf(quelltext: str, name: str) -> str:
-    """Schneide den Rumpf einer Funktion oberster Ebene aus ``config.html``.
+def _function_body(source: str, name: str) -> str:
+    """Cut out the body of a top-level function from ``config.html``.
 
-    Funktionen oberster Ebene sind dort mit 8 Leerzeichen eingerueckt,
-    verschachtelte mit 12. Ein naiver Schnitt am naechsten ``function `` endet
-    deshalb an der verschachtelten ``resetSubmitButton()`` - die erste Fassung
-    dieses Tests tat genau das und blieb rot, obwohl der Code stimmte.
+    Top-level functions there are indented by 8 spaces, nested ones by 12. A
+    naive cut at the next ``function `` therefore ends at the nested
+    ``resetSubmitButton()`` - the first version of this test did exactly that
+    and stayed red although the code was correct.
     """
-    start = quelltext.index(f"function {name}()")
-    rest = quelltext[start:]
-    naechste = rest.find("\n        function ")
-    return rest if naechste == -1 else rest[:naechste]
+    start = source.index(f"function {name}()")
+    rest = source[start:]
+    next_pos = rest.find("\n        function ")
+    return rest if next_pos == -1 else rest[:next_pos]
 
 
-def _token_zuweisung(rumpf: str) -> str:
-    """Die eine Anweisung, die das Token erzeugt (bis zum Semikolon)."""
-    ab = rumpf[rumpf.index("window.__ddcDonationToken ="):]
-    return ab[: ab.index(";") + 1]
+def _token_assignment(body: str) -> str:
+    """The one statement that creates the token (up to the semicolon)."""
+    tail = body[body.index("window.__ddcDonationToken ="):]
+    return tail[: tail.index(";") + 1]
 
 
-def test_oberflaeche_sendet_ein_token_mit():
-    """``submitDonation()`` legt ein Token an und schickt es im Rumpf mit.
+def test_ui_sends_a_token_along():
+    """``submitDonation()`` creates a token and sends it in the body.
 
-    Hinweis zur Belastbarkeit: Das ist ein Test ueber Quelltext, kein
-    ausgefuehrtes JavaScript. Er faellt, wenn niemand mehr ein Token sendet -
-    aber auch, wenn jemand die Funktion umbenennt. Das Projekt benutzt dasselbe
-    Mittel in ``test_pkg_a_web.py`` und ``test_pkg_d2_mech_difficulty_contract.py``.
+    Note on robustness: this is a test over source text, not executed
+    JavaScript. It fails if nobody sends a token any more - but also if someone
+    renames the function. The project uses the same means in
+    ``test_pkg_a_web.py`` and ``test_pkg_d2_mech_difficulty_contract.py``.
     """
-    rumpf = _funktionsrumpf(CONFIG_HTML.read_text(encoding="utf-8"), "submitDonation")
+    body = _function_body(CONFIG_HTML.read_text(encoding="utf-8"), "submitDonation")
 
-    assert "idempotency_key" in rumpf, (
-        "Der Spenden-Dialog sendet kein Token - ein Wiederholungsversuch nach "
-        "dem Zeitlimit wuerde ein zweites Mal buchen"
+    assert "idempotency_key" in body, (
+        "The donation dialog sends no token - a retry after the timeout would "
+        "book a second time"
     )
-    assert "__ddcDonationToken" in rumpf, "kein Token angelegt"
+    assert "__ddcDonationToken" in body, "no token created"
 
 
-def test_token_hat_einen_rueckfallweg_ohne_https():
-    """``crypto.randomUUID`` fehlt ohne sicheren Kontext.
+def test_token_has_a_fallback_without_https():
+    """``crypto.randomUUID`` is missing without a secure context.
 
-    DDC laeuft bewusst als reines HTTP im LAN (SPEC.md B3). Dort ist
-    ``crypto.randomUUID`` nicht verfuegbar; ohne Rueckfall entstuende gar kein
-    Token und die Absendung liefe unbemerkt ohne Schutz.
+    DDC deliberately runs as plain HTTP on the LAN (SPEC.md B3). There
+    ``crypto.randomUUID`` is not available; without a fallback no token would
+    be created at all and the submission would go out unprotected, unnoticed.
 
-    Geprueft wird die Zuweisung selbst - Absicherung UND Ersatzweg - statt
-    bestimmter Schreibweisen: das Aufzaehlen erlaubter Schreibweisen war der
-    Fehler der ersten Fassung dieses Tests.
+    What is checked is the assignment itself - guard AND fallback - instead of
+    particular spellings: enumerating allowed spellings was the bug in the
+    first version of this test.
     """
-    rumpf = _funktionsrumpf(CONFIG_HTML.read_text(encoding="utf-8"), "submitDonation")
-    zuweisung = _token_zuweisung(rumpf)
+    body = _function_body(CONFIG_HTML.read_text(encoding="utf-8"), "submitDonation")
+    assignment = _token_assignment(body)
 
-    assert "randomUUID" in zuweisung, "kein Token-Erzeuger in der Zuweisung"
-    assert ("window.crypto" in zuweisung or "typeof crypto" in zuweisung), (
-        "randomUUID wird ohne Verfuegbarkeitspruefung benutzt - ueber HTTP ist "
-        "die Funktion undefiniert"
+    assert "randomUUID" in assignment, "no token generator in the assignment"
+    assert ("window.crypto" in assignment or "typeof crypto" in assignment), (
+        "randomUUID is used without an availability check - over HTTP the "
+        "function is undefined"
     )
-    assert ("?" in zuweisung and ":" in zuweisung) or "||" in zuweisung, (
-        "kein Ersatzweg, wenn randomUUID fehlt - dann entstuende gar kein Token "
-        "und die Spende ginge ungeschuetzt raus"
+    assert ("?" in assignment and ":" in assignment) or "||" in assignment, (
+        "no fallback when randomUUID is missing - then no token would be "
+        "created at all and the donation would go out unprotected"
     )

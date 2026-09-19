@@ -1,38 +1,38 @@
 # -*- coding: utf-8 -*-
-# @deckt Z1
-"""Z1 - Das Spendenbuch geht nie ohne Sicherung verloren.
+# @covers Z1
+"""Z1 - The donation ledger is never lost without a backup.
 
-Kein Vorgang leert oder ueberschreibt das Ereignislog, ohne vorher eine
-wiederherstellbare Kopie anzulegen - auch dann nicht, wenn der Betreiber den
-Vorgang selbst ausloest.
+No operation empties or overwrites the event log without first creating a
+restorable copy - not even when the operator triggers the operation
+themselves.
 
-Warum das zaehlt: Das Ereignislog ist laut Betreiber die einzige Wahrheit der
-lokalen Instanz ueber die echten Spenden. ``reset_donations`` schreibt heute
-``""`` hinein (``services/donation/unified/reset.py:96``) - ohne Sicherung, ohne
-Rueckfrage.
+Why this matters: according to the operator, the event log is the local
+instance's only truth about the real donations. ``reset_donations`` currently
+writes ``""`` into it (``services/donation/unified/reset.py:96``) - without a
+backup, without asking.
 
-Die Konvention existiert im Projekt bereits: ``scripts/reset_donations.sh:32-44``
-legt vor demselben Loeschvorgang ein ``backup_<Zeitstempel>/`` mit ``events.jsonl``
-und ``snapshots/`` an und fragt zusaetzlich nach. Zwei Wege, dieselbe Aufgabe -
-nur einer davon ist sorgfaeltig. Diese Tests verlangen die Sorgfalt auch vom
-Dienstweg.
+The convention already exists in the project: ``scripts/reset_donations.sh:32-44``
+creates a ``backup_<timestamp>/`` with ``events.jsonl`` and ``snapshots/``
+before the same deletion and additionally asks for confirmation. Two paths, the
+same task - only one of them is careful. These tests demand that care from the
+service path too.
 
-Die Tests fassen keine echten Daten an: ``reset_donations`` nimmt ``paths``
-entgegen, sodass alles in einem Temp-Verzeichnis landet.
+The tests touch no real data: ``reset_donations`` accepts ``paths``, so that
+everything ends up in a temp directory.
 
-GEGENPROBE (durchgefuehrt 2026-09-16): Vor der Korrektur in
-``services/donation/unified/reset.py`` schlugen alle drei Tests fehl, und zwar
-jeder an seiner eigenen Zusicherung - nicht an einer Attrappe oder einem Import:
+COUNTER-CHECK (carried out 2026-09-16): before the fix in
+``services/donation/unified/reset.py`` all three tests failed, each on its own
+assertion - not on a stub or an import:
 
-* ``test_reset_hinterlaesst_eine_wiederherstellbare_kopie`` -> ``assert []``
-  (keine Kopie vorhanden)
-* ``test_reset_bricht_ab_wenn_die_sicherung_scheitert`` ->
-  ``assert '{"seq": 1, ...}' in ''`` (Log geleert, obwohl die Sicherung scheiterte)
-* ``test_zweiter_reset_ueberschreibt_die_erste_sicherung_nicht`` -> ``assert set()``
-  (schon die erste Sicherung fehlte)
+* ``test_reset_leaves_a_restorable_copy`` -> ``assert []``
+  (no copy present)
+* ``test_reset_aborts_if_the_backup_fails`` ->
+  ``assert '{"seq": 1, ...}' in ''`` (log emptied although the backup failed)
+* ``test_second_reset_does_not_overwrite_the_first_backup`` -> ``assert set()``
+  (even the first backup was missing)
 
-Nach der Korrektur alle drei gruen; die Gruppen donation/integration/mech/web
-blieben unveraendert gruen (52 / 5 / 447 / 358).
+After the fix all three green; the groups donation/integration/mech/web stayed
+green unchanged (52 / 5 / 447 / 358).
 """
 
 import shutil
@@ -44,7 +44,7 @@ import pytest
 from services.donation.unified.reset import reset_donations
 from services.mech.progress_paths import ProgressPaths
 
-EREIGNISSE = [
+EVENTS = [
     '{"seq": 1, "type": "DonationAdded", "donor": "Anna", "cents": 500}',
     '{"seq": 2, "type": "DonationAdded", "donor": "Bea", "cents": 250}',
     '{"seq": 3, "type": "LevelUp", "level": 2}',
@@ -53,19 +53,19 @@ EREIGNISSE = [
 
 @pytest.fixture
 def paths(tmp_path):
-    """Isolierte Ablage mit einem gefuellten Ereignislog."""
+    """Isolated storage with a filled event log."""
     p = ProgressPaths.from_base_dir(tmp_path / "progress")
-    p.event_log.write_text("\n".join(EREIGNISSE) + "\n", encoding="utf-8")
+    p.event_log.write_text("\n".join(EVENTS) + "\n", encoding="utf-8")
     return p
 
 
 @pytest.fixture
-def dienste():
-    """Attrappen fuer mech_service und event_manager.
+def services():
+    """Stubs for mech_service and event_manager.
 
-    ``DonationResult.from_states`` liest nur ``level`` und ``Power`` per
-    ``getattr``; ``emit_reset_event`` ruft nur ``emit_event``. Mehr braucht es
-    nicht - und mehr soll der Test auch nicht anfassen.
+    ``DonationResult.from_states`` only reads ``level`` and ``Power`` via
+    ``getattr``; ``emit_reset_event`` only calls ``emit_event``. Nothing more is
+    needed - and the test should not touch anything more either.
     """
     mech_service = SimpleNamespace(
         get_state=lambda: SimpleNamespace(level=2, Power=7.5)
@@ -73,90 +73,90 @@ def dienste():
     return mech_service, MagicMock()
 
 
-def _wiederherstellbare_kopien(p: ProgressPaths):
-    """Alle Dateien unter der Ablage, die den Inhalt des Logs bewahren.
+def _restorable_copies(p: ProgressPaths):
+    """All files under the storage that preserve the content of the log.
 
-    Bewusst breit gesucht: die Zusicherung verlangt eine wiederherstellbare
-    Kopie, nicht einen bestimmten Dateinamen. Der Test schreibt der Umsetzung
-    also nicht vor, wie sie zu sichern hat.
+    Deliberately searched broadly: the guarantee demands a restorable copy,
+    not a particular file name. So the test does not dictate to the
+    implementation how it has to back up.
     """
-    treffer = []
-    for datei in p.data_dir.rglob("*"):
-        if not datei.is_file() or datei == p.event_log:
+    hits = []
+    for file in p.data_dir.rglob("*"):
+        if not file.is_file() or file == p.event_log:
             continue
         try:
-            inhalt = datei.read_text(encoding="utf-8")
+            content = file.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
-        if all(zeile in inhalt for zeile in EREIGNISSE):
-            treffer.append(datei)
-    return treffer
+        if all(line in content for line in EVENTS):
+            hits.append(file)
+    return hits
 
 
-def test_reset_hinterlaesst_eine_wiederherstellbare_kopie(paths, dienste):
-    """Nach dem Reset ist das Log leer - der Inhalt aber noch irgendwo lesbar."""
-    mech_service, event_manager = dienste
+def test_reset_leaves_a_restorable_copy(paths, services):
+    """After the reset the log is empty - but the content is still readable somewhere."""
+    mech_service, event_manager = services
 
-    ergebnis = reset_donations(
+    result = reset_donations(
         mech_service, event_manager, source="test", paths=paths
     )
 
-    assert ergebnis.success is True
+    assert result.success is True
     assert paths.event_log.read_text(encoding="utf-8").strip() == "", \
-        "Der Reset soll das Log tatsaechlich leeren"
-    kopien = _wiederherstellbare_kopien(paths)
-    assert kopien, (
-        "Kein wiederherstellbarer Stand des Spendenbuchs gefunden - der Reset "
-        "hat die einzige Aufzeichnung der echten Spenden vernichtet"
+        "The reset should actually empty the log"
+    copies = _restorable_copies(paths)
+    assert copies, (
+        "No restorable state of the donation ledger found - the reset "
+        "destroyed the only record of the real donations"
     )
 
 
-def test_reset_bricht_ab_wenn_die_sicherung_scheitert(paths, dienste, monkeypatch):
-    """Scheitert die Sicherung, bleibt das Log unangetastet.
+def test_reset_aborts_if_the_backup_fails(paths, services, monkeypatch):
+    """If the backup fails, the log stays untouched.
 
-    Eine Sicherung, die im Fehlerfall nur warnt und trotzdem loescht, erfuellt
-    Z1 nicht: genau dann waeren die Daten weg.
+    A backup that only warns on failure and deletes anyway does not fulfil
+    Z1: that is exactly when the data would be gone.
     """
-    mech_service, event_manager = dienste
+    mech_service, event_manager = services
 
-    def _scheitert(*_a, **_kw):
-        raise OSError("kein Platz auf dem Geraet")
+    def _fail(*_a, **_kw):
+        raise OSError("no space left on device")
 
-    monkeypatch.setattr(shutil, "copy2", _scheitert)
-    monkeypatch.setattr(shutil, "copytree", _scheitert)
+    monkeypatch.setattr(shutil, "copy2", _fail)
+    monkeypatch.setattr(shutil, "copytree", _fail)
 
-    ergebnis = reset_donations(
+    result = reset_donations(
         mech_service, event_manager, source="test", paths=paths
     )
 
-    inhalt = paths.event_log.read_text(encoding="utf-8")
-    for zeile in EREIGNISSE:
-        assert zeile in inhalt, (
-            "Die Sicherung scheiterte, trotzdem wurde das Spendenbuch geleert"
+    content = paths.event_log.read_text(encoding="utf-8")
+    for line in EVENTS:
+        assert line in content, (
+            "The backup failed, yet the donation ledger was emptied"
         )
-    assert ergebnis.success is False
+    assert result.success is False
 
 
-def test_zweiter_reset_ueberschreibt_die_erste_sicherung_nicht(paths, dienste):
-    """Zwei Resets ergeben zwei wiederherstellbare Staende, nicht einen.
+def test_second_reset_does_not_overwrite_the_first_backup(paths, services):
+    """Two resets yield two restorable states, not one.
 
-    Eine rollierende Sicherung (eine einzige ``.bak``) genuegt hier nicht: der
-    zweite Reset wuerde die Sicherung des ersten ueberschreiben, und ein
-    versehentlicher Doppelklick vernichtete alles.
+    A rolling backup (a single ``.bak``) is not enough here: the second reset
+    would overwrite the backup of the first, and an accidental double click
+    would destroy everything.
     """
-    mech_service, event_manager = dienste
+    mech_service, event_manager = services
 
     reset_donations(mech_service, event_manager, source="test", paths=paths)
-    erste = set(_wiederherstellbare_kopien(paths))
-    assert erste, "erste Sicherung fehlt bereits"
+    first = set(_restorable_copies(paths))
+    assert first, "first backup is already missing"
 
-    # Neuer Inhalt, damit sich der zweite Stand vom ersten unterscheidet.
+    # New content, so that the second state differs from the first.
     paths.event_log.write_text(
-        "\n".join(EREIGNISSE) + '\n{"seq": 4, "type": "DonationAdded"}\n',
+        "\n".join(EVENTS) + '\n{"seq": 4, "type": "DonationAdded"}\n',
         encoding="utf-8",
     )
     reset_donations(mech_service, event_manager, source="test", paths=paths)
-    zweite = set(_wiederherstellbare_kopien(paths))
+    second = set(_restorable_copies(paths))
 
-    assert erste <= zweite, "Die erste Sicherung wurde ueberschrieben"
-    assert len(zweite) > len(erste), "Der zweite Reset hat nichts gesichert"
+    assert first <= second, "The first backup was overwritten"
+    assert len(second) > len(first), "The second reset backed up nothing"

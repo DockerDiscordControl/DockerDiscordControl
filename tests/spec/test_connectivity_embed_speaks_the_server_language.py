@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """The Docker-connectivity error embed must use the server's language.
 
-No ``@deckt`` marker: that would be a new guarantee, and those are the
+No ``@covers`` marker: that would be a new guarantee, and those are the
 operator's decision.
 
 THE FINDING. ``DockerConnectivityService.create_error_embed_data`` chose

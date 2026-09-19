@@ -1502,7 +1502,7 @@ class TestContainerStatusCompatibilityFallbacks:
 # TestSpamProtectionPathException was removed on 2026-09-19: it forced
 # ``Path(__file__).parents`` to raise so __init__ fell back to Path("config").
 # That branch no longer exists - the directory comes from
-# utils.config_paths.get_config_dir() (tests/spec/test_konfigverzeichnis_spamschutz.py).
+# utils.config_paths.get_config_dir() (tests/spec/test_config_dir_spam_protection.py).
 
 
 class TestSpamProtectionSaveConfigFailure:

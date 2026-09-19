@@ -38,7 +38,7 @@ def get_config_dir(environ: Optional[Mapping[str, str]] = None) -> Path:
     ``environ`` defaults to ``os.environ``; app/web/config.build_config passes the
     mapping it was given, so it keeps reading from that and not from the process.
     """
-    # One expression, not a helper variable: tests/spec/test_einstellungen_wirken_ueberall.py
+    # One expression, not a helper variable: tests/spec/test_settings_take_effect_everywhere.py
     # finds direct environment reads by the shape of the call, and this is now
     # THE direct read of DDC_CONFIG_DIR.
     override = ((os.environ if environ is None else environ).get("DDC_CONFIG_DIR") or "").strip()

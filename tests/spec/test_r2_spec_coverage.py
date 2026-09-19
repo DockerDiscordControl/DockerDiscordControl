@@ -1,26 +1,25 @@
 # -*- coding: utf-8 -*-
-"""R2 - Zu jeder Zusicherung existiert mindestens ein Test.
+"""R2 - Every guarantee has at least one test.
 
-Dieser Test deckt keine einzelne Zusicherung ab, sondern die Programmregel R2 aus
-SPEC.md: keine Zusicherung darf ohne Markierung bleiben. Der Prompt nennt ihn
-ausdruecklich - "ein weiterer Test kann pruefen, dass zu jeder Zusicherung
-mindestens eine solche Markierung existiert".
+This test does not cover a single guarantee but programme rule R2 from
+SPEC.md: no guarantee may remain without a marker. The prompt names it
+explicitly - "another test can check that at least one such marker exists for
+every guarantee".
 
-Warum das noetig ist, und zwar belegt: Der Zustand "drei Zusicherungen haben
-keinen Test" ist heute nur aufgefallen, weil beim Nachzaehlen zufaellig ein Grep
-lief. Genau dieses Muster - etwas steht in keiner Liste, also sieht es niemand an -
-ist die zentrale Warnung aus Stufe 4 des Programms, und es ist in dieser Sitzung
-dreimal eingetreten (18 vergessene Testdateien, eine abgeschnittene Suchliste,
-und eben diese Luecke).
+Why this is necessary, with evidence: the state "three guarantees have no
+test" was only noticed today because a grep happened to run during a recount.
+Exactly this pattern - something is on no list, so nobody looks at it - is the
+central warning from stage 4 of the programme, and it occurred three times in
+this session (18 forgotten test files, a truncated search list, and this very
+gap).
 
-Die Markierung muss eine eigenstaendige Kommentarzeile sein, also
-``# at-deckt Z<Nummer>`` am Zeilenanfang. Fliesstext in einem Docstring zaehlt
-NICHT mit - sonst haette dieser Test sich selbst als Abdeckung gezaehlt, und
-genau das ist dem urspruenglichen Grep passiert.
+The marker must be a standalone comment line, i.e. ``# @covers Z<number>`` at
+the start of the line. Running text in a docstring does NOT count - otherwise
+this test would have counted itself as coverage, and that is exactly what
+happened to the original grep.
 
-Dieser Test ist bei seiner Entstehung ROT, und das ist sein Zweck: er benennt die
-Luecke, statt sie zu verschweigen. Gruen wird er erst, wenn Z6, Z9 und Z10 Tests
-haben.
+This test is RED when it is created, and that is its purpose: it names the
+gap instead of hiding it. It only turns green once Z6, Z9 and Z10 have tests.
 """
 
 import re
@@ -28,68 +27,68 @@ from pathlib import Path
 
 import pytest
 
-PROJEKT = Path(__file__).resolve().parents[2]
-SPEC = PROJEKT / "SPEC.md"
-TESTS = PROJEKT / "tests"
+PROJECT = Path(__file__).resolve().parents[2]
+SPEC = PROJECT / "SPEC.md"
+TESTS = PROJECT / "tests"
 
-# Eigenstaendige Kommentarzeile, Nummer zwingend. Ohne \d+ wuerde der Fliesstext
-# dieses Docstrings als Treffer zaehlen.
-MARKIERUNG = re.compile(r"^#\s*@deckt\s+Z(\d+)\s*$", re.MULTILINE)
-UEBERSCHRIFT = re.compile(r"^###\s+Z(\d+)\s+—", re.MULTILINE)
-
-
-def _zusicherungen() -> set[str]:
-    """Alle Z-Nummern aus SPEC.md."""
-    return {f"Z{n}" for n in UEBERSCHRIFT.findall(SPEC.read_text(encoding="utf-8"))}
+# Standalone comment line, number mandatory. Without \d+ the running text of
+# this docstring would count as a match.
+MARKER = re.compile(r"^#\s*@covers\s+Z(\d+)\s*$", re.MULTILINE)
+HEADING = re.compile(r"^###\s+Z(\d+)\s+—", re.MULTILINE)
 
 
-def _markierungen() -> dict[str, list[str]]:
-    """Z-Nummer -> Dateien, die sie markieren."""
-    gefunden: dict[str, list[str]] = {}
-    for datei in sorted(TESTS.rglob("test_*.py")):
-        for nummer in MARKIERUNG.findall(datei.read_text(encoding="utf-8", errors="replace")):
-            gefunden.setdefault(f"Z{nummer}", []).append(str(datei.relative_to(PROJEKT)))
-    return gefunden
+def _guarantees() -> set[str]:
+    """All Z numbers from SPEC.md."""
+    return {f"Z{n}" for n in HEADING.findall(SPEC.read_text(encoding="utf-8"))}
 
 
-def test_spec_enthaelt_ueberhaupt_zusicherungen():
-    """Sicherung gegen ein stumpfes Werkzeug.
+def _markers() -> dict[str, list[str]]:
+    """Z number -> files that mark it."""
+    found: dict[str, list[str]] = {}
+    for file in sorted(TESTS.rglob("test_*.py")):
+        for number in MARKER.findall(file.read_text(encoding="utf-8", errors="replace")):
+            found.setdefault(f"Z{number}", []).append(str(file.relative_to(PROJECT)))
+    return found
 
-    Findet das Muster keine Ueberschriften mehr - etwa weil jemand die
-    Formatierung der SPEC aendert -, wuerden die beiden Tests unten leer
-    durchlaufen und nichts mehr pruefen.
+
+def test_spec_contains_any_guarantees_at_all():
+    """Safeguard against a blunt tool.
+
+    If the pattern no longer finds any headings - say because someone changes
+    the formatting of the SPEC -, the two tests below would run empty and check
+    nothing any more.
     """
-    zusicherungen = _zusicherungen()
-    assert len(zusicherungen) >= 8, (
-        f"Nur {len(zusicherungen)} Zusicherungen in SPEC.md gefunden - vermutlich "
-        f"passt das Suchmuster nicht mehr auf die Ueberschriften: {sorted(zusicherungen)}"
+    guarantees = _guarantees()
+    assert len(guarantees) >= 8, (
+        f"Only {len(guarantees)} guarantees found in SPEC.md - the search pattern "
+        f"probably no longer matches the headings: {sorted(guarantees)}"
     )
 
 
-def test_jede_zusicherung_hat_mindestens_einen_test():
-    """Keine Zusicherung ohne Markierung."""
-    zusicherungen = _zusicherungen()
-    markiert = _markierungen()
-    ohne = sorted(zusicherungen - markiert.keys(), key=lambda z: int(z[1:]))
+def test_every_guarantee_has_at_least_one_test():
+    """No guarantee without a marker."""
+    guarantees = _guarantees()
+    marked = _markers()
+    without = sorted(guarantees - marked.keys(), key=lambda z: int(z[1:]))
 
-    assert not ohne, (
-        f"Ohne Test: {', '.join(ohne)}. Eine Zusicherung ohne Test ist eine "
-        f"Absichtserklaerung - sie kann nicht gebrochen werden, weil niemand "
-        f"nachsieht. Abgedeckt sind: "
-        f"{', '.join(sorted(markiert, key=lambda z: int(z[1:])))}"
+    assert not without, (
+        f"Without a test: {', '.join(without)}. A guarantee without a test is a "
+        f"declaration of intent - it cannot be broken, because nobody "
+        f"checks. Covered are: "
+        f"{', '.join(sorted(marked, key=lambda z: int(z[1:])))}"
     )
 
 
-def test_keine_markierung_zeigt_ins_leere():
-    """Jede Markierung verweist auf eine Zusicherung, die es gibt.
+def test_no_marker_points_nowhere():
+    """Every marker refers to a guarantee that exists.
 
-    Faengt Tippfehler ab: ``@deckt Z11`` sieht nach Abdeckung aus, deckt aber
-    nichts, wenn es keine Z11 gibt.
+    Catches typos: ``@covers Z11`` looks like coverage but covers nothing if
+    there is no Z11.
     """
-    zusicherungen = _zusicherungen()
-    markiert = _markierungen()
-    verwaist = {z: dateien for z, dateien in markiert.items() if z not in zusicherungen}
+    guarantees = _guarantees()
+    marked = _markers()
+    orphaned = {z: files for z, files in marked.items() if z not in guarantees}
 
-    assert not verwaist, (
-        f"Markierungen ohne passende Zusicherung in SPEC.md: {verwaist}"
+    assert not orphaned, (
+        f"Markers without a matching guarantee in SPEC.md: {orphaned}"
     )

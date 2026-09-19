@@ -1,56 +1,53 @@
 # -*- coding: utf-8 -*-
-# @deckt Z7
-"""Z7, Stelle 4 von 5 - der Mech-Zustand.
+# @covers Z7
+"""Z7, site 4 of 5 - the mech state.
 
 ``MechResetService.reset_mech_state`` (``services/mech/mech_reset_service.py:168``)
-liest ``mech_state.json``, setzt Werte zurueck und schreibt sie mit einem
-schlichten ``open(..., 'w')`` (:194) wieder hinaus. Ein Abbruch dazwischen laesst
-die Datei leer zurueck.
+reads ``mech_state.json``, resets values and writes them back out with a
+plain ``open(..., 'w')`` (:194). An abort in between leaves the file empty.
 
-Was dabei verloren geht, ist mehr als ein Zaehlerstand: Die Methode BEHAELT die
-vorhandene Struktur und setzt nur Werte (:181-192). In der Datei stehen
-``last_glvl_per_channel`` und ``mech_expanded_states`` - also welcher Discord-Kanal
-welchen Mech-Stand hatte und welche Ansicht dort ausgeklappt war. Ein Absturz
-vernichtet diese Zuordnung; danach weiss niemand mehr, welcher Kanal wohin gehoert.
-Geprueft wird deshalb nicht bloss "Datei nicht leer", sondern dass die Zuordnung
-erhalten bleibt.
+What gets lost is more than a counter: the method KEEPS the existing
+structure and only sets values (:181-192). The file holds
+``last_glvl_per_channel`` and ``mech_expanded_states`` - i.e. which Discord channel
+had which mech level and which view was expanded there. A crash destroys this
+mapping; afterwards nobody knows which channel belongs where.
+So what is checked is not merely "file not empty", but that the mapping
+is preserved.
 
-ABFANGPUNKT: Die Methode liest die Datei ZUERST (:175-177). Ein Abfang, der bei
-jedem ``open`` wirft, scheitert daher schon am Lesen, die Methode meldet ``False``,
-und der Schreibpfad wird nie erreicht - der Test waere gruen, ohne etwas zu
-beweisen. Genau das ist ``tests/unit/extended/test_docker_infra_gaps.py`` passiert
-und kostete dort zwei Reparaturversuche. Hier scheitern deshalb nur
-Schreibzugriffe.
+INTERCEPTION POINT: the method reads the file FIRST (:175-177). An interceptor
+that raises on every ``open`` therefore already fails on the read, the method
+reports ``False``, and the write path is never reached - the test would be
+green without proving anything. Exactly that happened to
+``tests/unit/extended/test_docker_infra_gaps.py`` and cost two repair attempts
+there. Here, therefore, only write accesses fail.
 
-Vorhandene Tests (25 Beruehrungspunkte, vollstaendig geprueft): Alle arbeiten mit
-echten Dateien in ``tmp_path`` und fangen nichts ab. Keiner wird durch die
-Umstellung auf ``atomic_write_json`` stumpf - anders als bei
-``_deactivate_container``, wo einer mitgezogen werden musste. Es gibt hier nichts
-nachzuziehen.
+Existing tests (25 touch points, fully checked): all work with real files
+in ``tmp_path`` and intercept nothing. None is made blunt by the switch to
+``atomic_write_json`` - unlike ``_deactivate_container``, where one had to be
+adjusted along with it. There is nothing to adjust here.
 
-GEGENPROBE (durchgefuehrt 2026-09-16) - beim ERSTEN Anlauf getroffen::
+COUNTER-CHECK (performed 2026-09-16) - hit on the FIRST attempt::
 
-    assert ''   # Der Mech-Zustand ist leer
+    assert ''   # The mech state is empty
 
-Der Waechter ``getroffen`` schlug nicht an (der Abfang griff also), und
-``ergebnis.success is False`` hielt (die Ausnahme wird wie erwartet behandelt).
-Beide Fehlermoeglichkeiten, die vorher benannt worden waren, sind nicht
-eingetreten.
+The guard ``hit`` did not fire (so the interception took effect), and
+``result.success is False`` held (the exception is handled as expected).
+Neither of the two failure possibilities named beforehand occurred.
 
-Dass es diesmal auf Anhieb klappte, ist kein Glueck: Die zwei Fallen, die in den
-vorigen Z7-Durchgaengen je zwei Anlaeufe kosteten, waren vorher benannt - der
-Abfangpunkt muss HINTER der Kuerzung liegen, und er darf NUR Schreibzugriffe
-treffen, weil die Methode vorher liest.
+That it worked right away this time is not luck: the two traps that cost two
+attempts each in the previous Z7 passes had been named beforehand - the
+interception point must lie BEHIND the truncation, and it may hit ONLY write
+accesses, because the method reads first.
 
-Nach der Korrektur auf ``atomic_write_json``: 3 gruen,
-``tests/unit/services/mech`` unveraendert 447 gruen.
+After the fix to ``atomic_write_json``: 3 green,
+``tests/unit/services/mech`` unchanged 447 green.
 
-WIRKUNGSNACHWEIS per Mutation: mit einem ``atomic_write_text``, das alle Fehler
-verschluckt, wird dieser Test rot; wiederhergestellt wieder gruen.
+PROOF OF EFFECT by mutation: with an ``atomic_write_text`` that swallows all
+errors, this test turns red; restored, green again.
 
-Geprueft und fuer unbedenklich befunden: ``mech_reset_service.py:302`` greift
-ebenfalls auf ``mech_state_file`` zu, aber nur lesend (``'r'``) in
-``get_current_status``. Kein Z7-Fall.
+Checked and found harmless: ``mech_reset_service.py:302`` also accesses
+``mech_state_file``, but only for reading (``'r'``) in
+``get_current_status``. Not a Z7 case.
 """
 
 import json
@@ -60,44 +57,44 @@ import pytest
 
 from services.mech.mech_reset_service import MechResetService
 
-URSPRUNG = {
+ORIGINAL = {
     "last_glvl_per_channel": {"111": 7, "222": 3},
     "mech_expanded_states": {"111": True},
     "last_update": "2026-01-01T00:00:00",
 }
 
 
-class _NurSchreibenScheitert:
-    """Laesst Lesen zu, laesst jeden Schreibvorgang scheitern.
+class _OnlyWritingFails:
+    """Allows reading, makes every write fail.
 
-    Faengt ``builtins.open`` und ``os.fdopen`` ab, aber nur fuer Schreibmodi -
-    die heutige Fassung schreibt ueber ``open(..., 'w')``, eine atomare ueber
-    ``mkstemp`` + ``os.fdopen``. Der Schaden wird dabei NACHGESTELLT und nicht
-    verhindert: Die Datei wird geoeffnet (und damit gekuerzt), bevor der Fehler
-    kommt. Wirft man vorher, ueberlebt der alte Inhalt und der Test beweist
-    nichts - dieser Fehler ist beim Mitgliederzahl-Test zweimal passiert.
+    Intercepts ``builtins.open`` and ``os.fdopen``, but only for write modes -
+    the current version writes via ``open(..., 'w')``, an atomic one via
+    ``mkstemp`` + ``os.fdopen``. The damage is thereby REPRODUCED and not
+    prevented: the file is opened (and thus truncated) before the error
+    comes. If you raise earlier, the old content survives and the test proves
+    nothing - this mistake happened twice in the member count test.
     """
 
     def __init__(self, monkeypatch):
-        self.getroffen = False
-        echtes_open, echtes_fdopen = open, os.fdopen
+        self.hit = False
+        real_open, real_fdopen = open, os.fdopen
 
-        def _wirft(*_a, **_k):
-            raise OSError("kein Platz auf dem Geraet")
+        def _raises(*_a, **_k):
+            raise OSError("no space left on device")
 
-        def _open(datei, modus="r", *a, **kw):
-            if "w" in modus or "a" in modus:
-                self.getroffen = True
-                fh = echtes_open(datei, modus, *a, **kw)  # kuerzt
-                fh.write = _wirft
+        def _open(file, mode="r", *a, **kw):
+            if "w" in mode or "a" in mode:
+                self.hit = True
+                fh = real_open(file, mode, *a, **kw)  # truncates
+                fh.write = _raises
                 return fh
-            return echtes_open(datei, modus, *a, **kw)
+            return real_open(file, mode, *a, **kw)
 
-        def _fdopen(fd, modus="r", *a, **kw):
-            fh = echtes_fdopen(fd, modus, *a, **kw)
-            if "w" in modus or "a" in modus:
-                self.getroffen = True
-                fh.write = _wirft
+        def _fdopen(fd, mode="r", *a, **kw):
+            fh = real_fdopen(fd, mode, *a, **kw)
+            if "w" in mode or "a" in mode:
+                self.hit = True
+                fh.write = _raises
             return fh
 
         monkeypatch.setattr("builtins.open", _open)
@@ -105,64 +102,64 @@ class _NurSchreibenScheitert:
 
 
 @pytest.fixture
-def dienst(tmp_path):
-    """Reset-Dienst mit einem gefuellten Mech-Zustand in eigener Ablage."""
-    datei = tmp_path / "mech_state.json"
-    datei.write_text(json.dumps(URSPRUNG, indent=2), encoding="utf-8")
-    return MechResetService(config_dir=str(tmp_path)), datei
+def service_and_file(tmp_path):
+    """Reset service with a populated mech state in its own storage."""
+    file = tmp_path / "mech_state.json"
+    file.write_text(json.dumps(ORIGINAL, indent=2), encoding="utf-8")
+    return MechResetService(config_dir=str(tmp_path)), file
 
 
-def test_abgebrochener_schreibvorgang_laesst_den_zustand_unversehrt(dienst, monkeypatch):
-    """Scheitert das Schreiben, steht die Kanalzuordnung noch vollstaendig da."""
-    service, datei = dienst
-    fehler = _NurSchreibenScheitert(monkeypatch)
+def test_aborted_write_leaves_the_state_intact(service_and_file, monkeypatch):
+    """If the write fails, the channel mapping is still fully there."""
+    service, file = service_and_file
+    failure = _OnlyWritingFails(monkeypatch)
 
-    ergebnis = service.reset_mech_state()
+    result = service.reset_mech_state()
 
-    assert fehler.getroffen, (
-        "Der Schreibfehler wurde gar nicht ausgeloest - dieser Test prueft dann "
-        "nichts. Vermutlich wird ueber einen dritten Weg geschrieben."
+    assert failure.hit, (
+        "The write error was not triggered at all - then this test checks "
+        "nothing. Presumably something writes via a third path."
     )
-    assert ergebnis.success is False, "Ein gescheiterter Schreibvorgang darf nicht als Erfolg gelten"
+    assert result.success is False, "A failed write must not count as success"
 
-    inhalt = datei.read_text(encoding="utf-8")
-    assert inhalt.strip(), (
-        "Der Mech-Zustand ist leer - mit ihm ist die Zuordnung verloren, welcher "
-        "Discord-Kanal welchen Stand hatte"
+    content = file.read_text(encoding="utf-8")
+    assert content.strip(), (
+        "The mech state is empty - with it the mapping of which Discord "
+        "channel had which level is lost"
     )
-    danach = json.loads(inhalt)
-    assert danach["last_glvl_per_channel"] == URSPRUNG["last_glvl_per_channel"], (
-        f"Die Kanalzuordnung wurde beschaedigt: {danach!r}"
+    state_after = json.loads(content)
+    assert state_after["last_glvl_per_channel"] == ORIGINAL["last_glvl_per_channel"], (
+        f"The channel mapping was damaged: {state_after!r}"
     )
 
 
-def test_erfolgreicher_reset_setzt_zurueck_und_behaelt_die_kanaele(dienst):
-    """Die Gegenrichtung: ohne Fehler wird korrekt zurueckgesetzt.
+def test_successful_reset_resets_and_keeps_the_channels(service_and_file):
+    """The opposite direction: without errors the reset is done correctly.
 
-    Ohne diesen Fall koennte man die Methode auf "schreibt nie" verschaerfen und
-    der Test oben bliebe gruen.
+    Without this case one could harden the method to "never writes" and
+    the test above would stay green.
     """
-    service, datei = dienst
+    service, file = service_and_file
 
-    ergebnis = service.reset_mech_state()
+    result = service.reset_mech_state()
 
-    assert ergebnis.success is True
-    danach = json.loads(datei.read_text(encoding="utf-8"))
-    assert danach["last_glvl_per_channel"] == {"111": 1, "222": 1}, "Stufen nicht zurueckgesetzt"
-    assert danach["mech_expanded_states"] == {"111": False}, "Ansicht nicht eingeklappt"
+    assert result.success is True
+    state_after = json.loads(file.read_text(encoding="utf-8"))
+    assert state_after["last_glvl_per_channel"] == {"111": 1, "222": 1}, "Levels not reset"
+    assert state_after["mech_expanded_states"] == {"111": False}, "View not collapsed"
 
 
-def test_keine_temp_reste_nach_erfolg(dienst):
-    """Eine atomare Umsetzung raeumt ihre Temp-Datei auf.
+def test_no_temp_leftovers_after_success(service_and_file):
+    """An atomic implementation cleans up its temp file.
 
-    Bestand vorher gegen nachher - nicht "alles ausser der Zieldatei". Die
-    naive Fassung dieser Pruefung war beim Mitgliederzahl-Test aus dem falschen
-    Grund rot, weil in jener Ablage weitere regulaere Dateien liegen.
+    Inventory before versus after - not "everything except the target file". The
+    naive version of this check was red for the wrong reason in the member
+    count test, because further regular files live in that storage.
     """
-    service, datei = dienst
-    vorher = {p.name for p in datei.parent.iterdir() if p.is_file()}
+    service, file = service_and_file
+    before = {p.name for p in file.parent.iterdir() if p.is_file()}
 
     service.reset_mech_state()
 
-    nachher = {p.name for p in datei.parent.iterdir() if p.is_file()}
-    assert sorted(nachher - vorher) == [], f"Temp-Reste geblieben: {sorted(nachher - vorher)}"
+    after = {p.name for p in file.parent.iterdir() if p.is_file()}
+    assert sorted(after - before) == [], f"Temp leftovers remained: {sorted(after - before)}"

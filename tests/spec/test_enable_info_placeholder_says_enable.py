@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """The placeholder of the "Enable Info Button" field must say enable, not share.
 
-No ``@deckt`` marker: that would be a new guarantee, and those are the
+No ``@covers`` marker: that would be a new guarantee, and those are the
 operator's decision.
 
 THE FINDING. The field "☑️ Enable Info Button" (enhanced_info_modal_simple.py)

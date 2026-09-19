@@ -154,7 +154,7 @@ zweiten Weg trotzdem löschen.
 *Behoben:* Beide Stellen entscheiden nur noch nach dem **aktuellen** Kanalrecht (wie `:304` seit
 gestern), die dort tot gewordenen Zeilen sind entfernt, und `ContainerTaskDeleteButton` prüft
 `schedule` wie sein Zwilling.
-*Abgedeckt von* `tests/spec/test_z5_aufgaben_loeschweg.py` (3 Tests).
+*Abgedeckt von* `tests/spec/test_z5_task_delete_path.py` (3 Tests).
 *Gegenprobe:* 2 rot wie vorhergesagt, beide aus dem richtigen Grund — der Stapel zeigte, dass die
 Ansicht bei `control: False` allein wegen des Titels gebaut wurde. Nach der Korrektur 3 grün,
 `test_z5_channel_permission.py` unverändert 3, `tests/unit/cogs` unverändert 267.
@@ -344,7 +344,7 @@ jetzt gruppenweise über `tests/GROUPS.txt`.
 verschlechtern es von 18 auf **54** Fehler (zurückgenommen). Das Test-Layout umzubauen wäre zudem ein
 Umbau „damit es testbar wird", ohne wartenden Test.
 
-*Abgedeckt von* `tests/spec/test_z10_ci_test_gate.py` (6 Tests) und `tests/spec/test_z10_gruppenliste.py`
+*Abgedeckt von* `tests/spec/test_z10_ci_test_gate.py` (6 Tests) und `tests/spec/test_z10_group_list.py`
 (3 Tests). Der zweite hält die handgepflegte Gruppenliste gegen Drift: **jede Testdatei liegt in genau
 einer Gruppe** — sonst liefe eine neue Datei lautlos nie mit, ohne dass irgendetwas rot wird.
 
@@ -466,7 +466,7 @@ verloren gehen:
 
 - **R1 — Ein Test ohne widerlegbare Prüfung gilt als Fehler.** Mechanisch prüfbar mit
   `scripts/audit_tests.py`.
-- **R2 — Zu jeder Zusicherung existiert mindestens ein Test**, erkennbar an `# @deckt Zn`, und ein
+- **R2 — Zu jeder Zusicherung existiert mindestens ein Test**, erkennbar an `# @covers Zn`, und ein
   weiterer Test prüft, dass keine Zusicherung ohne Markierung bleibt.
 - **R3 — Ein Befund, ein Commit, ein vollständiger Testlauf.**
 - **R4 — Jede Korrektur trägt ihren Grund im Code:** nicht was er tut, sondern was vorher falsch war.

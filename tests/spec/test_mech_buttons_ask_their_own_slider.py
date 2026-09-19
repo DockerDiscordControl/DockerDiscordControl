@@ -1,0 +1,109 @@
+# -*- coding: utf-8 -*-
+"""The mech sliders from the panel must differ and the buttons must carry them.
+
+NO ``@covers`` marker: that would be a new guarantee, and guarantees are the
+operator's decision.
+
+THE ORIGINAL FINDING (fixed in commit 2970119). The panel offers seven
+sliders for mech buttons (``mech_expand`` 3, ``mech_collapse`` 2,
+``mech_donate`` 10, ``mech_history`` 5, ``mech_display`` 3, ``mech_story`` 5,
+``mech_music`` 8). Only three mech buttons apply a cooldown at all - and all
+three queried the slider of the INFO button::
+
+    MechExpandButton    custom_id mech_expand_…    -> get_button_cooldown("info")
+    MechCollapseButton  custom_id mech_collapse_…  -> get_button_cooldown("info")
+    MechHistoryButton   custom_id mech_history_…   -> get_button_cooldown("info")
+
+Two consequences for the operator: the ``mech_*`` sliders moved nothing, and
+all mech buttons shared one bucket WITH the info button - whoever expanded the
+mech display locked themselves out of the info display.
+
+Corrected to ``self.custom_id``: ``get_button_cooldown`` has a prefix logic
+that derives the slider ``mech_expand`` from ``mech_expand_12345``. It existed
+AND was tested (``test_infrastructure_services.py`` checks
+``mech_donate_123456`` -> 10), but nobody used it: a tested, dead path.
+
+WHAT USED TO BE HERE AND WHY IT IS GONE. This file contained three more tests
+(``test_expand/collapse/history_asks_its_own_slider``). They pinned down the
+MECHANISM - the call to ``get_button_cooldown`` - and for that their fixture
+set ``_last_click_<user>`` directly on the button.
+
+Neither exists any more: the later switch to the spam service replaces
+``get_button_cooldown`` with ``is_on_cooldown``/``add_user_cooldown`` and the
+storage on the object with that of the service. So the three tests could not
+be re-hooked - setup, recorder and assertion all encoded the old design.
+
+They were NOT removed to get green, but because the same property - every mech
+button is governed by its OWN slider - is checked more completely in
+``test_mech_buttons_brake_through_the_service.py``: argument value, effective
+slider value, recording of the press, rejection path per button,
+``ephemeral`` and the removal of the volatile storage. Each of these
+assertions is proven there by mutation to have teeth. What disappears is a
+weaker duplicate, not coverage.
+
+WHAT REMAINS HERE are the two guards - and they are worth it: the first pins
+the IDs from which the prefix logic derives the sliders; the second, that the
+three sliders are set DIFFERENTLY at all. Without the second a value check
+elsewhere would be blunt; without the first the derivation would come to
+nothing.
+
+NO MORE LINE NUMBERS in this header: the earlier references (:2301, :2399,
+:2531) had silently become wrong after two changes. Class names do not go
+stale.
+
+NOT PART OF THIS FINDING, recorded here so nobody investigates it twice:
+
+* TEN more mech classes apply NO cooldown AT ALL (``MechDonateButton``,
+  ``MechDisplayButton``, ``MechDetailsButton``, ``MechPrivateDonateButton``,
+  ``MechPrivateHistoryButton`` and the views). A separate finding with its own
+  behaviour change - already approved by the operator, not yet implemented.
+* There is no class at all for ``mech_music``.
+* The private buttons are called ``mech_private_donate_…``; the prefix logic
+  derives ``mech_private`` from that - a key that does not exist. Whoever uses
+  ``self.custom_id`` there lands on the 5-second fallback rule.
+"""
+
+from unittest.mock import MagicMock
+
+from cogs.control_ui import MechCollapseButton, MechExpandButton, MechHistoryButton
+from services.infrastructure.spam_protection_service import SpamProtectionService
+
+CHANNEL = 77
+
+
+def test_the_three_buttons_can_be_built():
+    """The IDs are the basis of the prefix derivation.
+
+    The EXACT value is checked: a corrupted ID would lead the derivation to a
+    different slider, and a mere existence check could not notice that.
+    """
+    cog = MagicMock()
+
+    assert MechExpandButton(cog, CHANNEL).custom_id == f"mech_expand_{CHANNEL}"
+    assert MechCollapseButton(cog, CHANNEL).custom_id == f"mech_collapse_{CHANNEL}"
+    assert MechHistoryButton(cog, CHANNEL).custom_id == f"mech_history_{CHANNEL}"
+
+
+def test_the_sliders_differ_at_all(tmp_path):
+    """Safeguard against a blunt tool - and it works beyond this file.
+
+    Value checks are only worth something if the sliders are set DIFFERENTLY.
+    If they were all the same, they would be green even with the wrong key.
+
+    It is particularly tight for ``mech_expand``: default 3, and ``info`` is
+    also 3 - by value alone one cannot tell there whether the right slider
+    applies. That is why
+    ``test_mech_buttons_brake_through_the_service.py`` checks the ARGUMENT for
+    Expand and additionally the value only for Collapse and History. Whoever
+    later aligns values here takes the teeth out of those tests - and sees it
+    in this one.
+    """
+    service = SpamProtectionService(config_dir=str(tmp_path))
+
+    assert service.get_button_cooldown("info") == 3
+    assert service.get_button_cooldown(f"mech_expand_{CHANNEL}") == 3, (
+        "mech_expand and info are NO longer both set to 3 - then the "
+        "Expand test in the neighbouring file can additionally check the value."
+    )
+    assert service.get_button_cooldown(f"mech_collapse_{CHANNEL}") == 2
+    assert service.get_button_cooldown(f"mech_history_{CHANNEL}") == 5

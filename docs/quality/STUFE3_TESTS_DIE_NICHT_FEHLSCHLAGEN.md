@@ -77,7 +77,7 @@ aber, kommt er als `ImportError` tief in einer neunstufigen Kette statt als vers
 > **Behoben am 2026-09-17** — für `docker_utils.py`, nicht für `progress_service.py:125`
 > (Begründung in Abschnitt 6). Die Werte laden jetzt beim ersten Zugriff statt beim Import.
 > Der wartende Test kam zuerst und war rot mit genau diesem Stapel;
-> `tests/spec/test_import_ohne_nebenwirkung.py` hält das fest.
+> `tests/spec/test_import_without_side_effects.py` hält das fest.
 >
 > **Der Wirkungsnachweis ist stärker als eine Mutation:** `test_r2_g5_mech.py` allein vorher
 > 2 von 41 rot, nachher **41 grün — ohne dass ein einziger Test angefasst wurde**. Die
@@ -131,7 +131,7 @@ Der CSRF-Schutz konnte aus der Anwendung fallen, ohne dass die Suite es merkte.
 prüft also ausdrücklich nicht den echten Aufbau. `test_security_sast.py` importiert aus `app.web_ui`
 und überspringt bei `ImportError`.
 
-*Behoben* durch `tests/spec/test_app_factory_verdrahtung.py`, per Mutation als wirksam belegt.
+*Behoben* durch `tests/spec/test_app_factory_wiring.py`, per Mutation als wirksam belegt.
 
 **Und der lehrreichste Fund der ganzen Stufe ist, dass meine erste Fassung dieses Tests selbst ein
 Spiegeltest war.** Sie zog die Erwartungsliste aus den *Aufrufen innerhalb* von `create_app`. Fällt
@@ -152,7 +152,7 @@ Die Grenze, die zählt: *Legitim* ist, eine Produktivdatei gegen eine Regel zu p
 steht („kein nacktes `except:`", „keine zeichengleichen Zwillinge"). *Spiegel* ist, den Dateiinhalt
 selbst zur Erwartung zu machen — dann fällt bei einer Änderung beides weg.
 
-Fünf der sechs sind Vertragstests. Belegt statt behauptet: `test_einstellungen_wirken_ueberall.py`
+Fünf der sechs sind Vertragstests. Belegt statt behauptet: `test_settings_take_effect_everywhere.py`
 wurde per Mutation geprüft — eine einzige zurückgedrehte Stelle macht ihn rot
 (`docker_control.py:183`), wiederhergestellt wieder grün. Er **beißt**.
 
@@ -285,7 +285,7 @@ schließlich fing, existierte da noch nicht.
    `docker_utils.py` (fünf Zeitwerte plus `_CACHE_TTL`), **nicht** für `progress_service.py:125`.
    Die Werte laden jetzt beim ersten Zugriff statt beim Import, über ein modulweites `__getattr__`
    (PEP 562); für jeden Leser sieht alles unverändert aus. Der wartende Test, den dieser Vorschlag
-   noch vermisste, steht als `tests/spec/test_import_ohne_nebenwirkung.py` und prüft in einem
+   noch vermisste, steht als `tests/spec/test_import_without_side_effects.py` und prüft in einem
    **eigenen Prozess**, dass ein `import` keine Konfiguration liest.
    *`progress_service.py:125` bleibt bewusst wie es ist:* Fünf Testdateien weisen
    `progress_service.CFG` von außen zu, es ist damit faktisch eine Schnittstelle. Es träge zu machen

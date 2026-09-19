@@ -1,64 +1,62 @@
 # -*- coding: utf-8 -*-
-# @deckt Z7
-"""Z7, Stelle 5 von 5 - die Serverreihenfolge.
+# @covers Z7
+"""Z7, place 5 of 5 - the server order.
 
-``save_server_order`` (``services/docker_service/server_order.py:30``) schreibt
-die Datei mit einem schlichten ``open(ORDER_FILE, 'w')`` (:45). Ein Abbruch
-mitten darin laesst sie leer zurueck.
+``save_server_order`` (``services/docker_service/server_order.py:30``) writes
+the file with a plain ``open(ORDER_FILE, 'w')`` (:45). An abort in the middle
+leaves it empty.
 
-Warum das trotz "kosmetisch" hierher gehoert: Der Verlust ist **unsichtbar**.
-``load_server_order`` (:54) faengt ``json.JSONDecodeError`` ab und gibt bei einer
-kaputten Datei stillschweigend ``[]`` zurueck (:72-74). Es gibt keine Fehlermeldung
-und keinen Hinweis - die Reihenfolge, die der Nutzer im Panel per Hand gelegt hat,
-ist danach einfach die Standardreihenfolge. "Unbemerkt schlaegt selten": Der
-Schaden ist klein, aber er meldet sich nie.
+Why this belongs here despite being "cosmetic": the loss is **invisible**.
+``load_server_order`` (:54) catches ``json.JSONDecodeError`` and silently
+returns ``[]`` for a broken file (:72-74). There is no error message and no
+hint - the order the user arranged by hand in the panel is afterwards simply
+the default order. "Unnoticed rarely strikes": the damage is small, but it
+never announces itself.
 
-Geprueft wird deshalb nicht "die Datei hat Bytes", sondern die nutzerseitige
-Aussage: ``load_server_order()`` liefert nach dem gescheiterten Schreibvorgang
-noch die alte Reihenfolge.
+So what is checked is not "the file has bytes", but the user-facing
+statement: after the failed write, ``load_server_order()`` still returns the
+old order.
 
-Ausgeloest wird der Schreibvorgang an zwei Stellen, beide ohne Zutun des Nutzers
-im Moment des Schreibens: ``cogs/docker_control.py:242`` (beim Aufbau der
-Serverliste) und ``services/web/configuration_save_service.py:246`` (beim
-Speichern der Konfiguration).
+The write is triggered in two places, both without any user action at the
+moment of writing: ``cogs/docker_control.py:242`` (when building the server
+list) and ``services/web/configuration_save_service.py:246`` (when saving the
+configuration).
 
-ABFANGPUNKT: Anders als bei ``_deactivate_container`` und ``reset_mech_state``
-liest diese Funktion vorher NICHT. Ein Abfang auf jedem ``open`` waere hier also
-nicht aus dem falschen Grund gruen. Er bleibt trotzdem auf Schreibzugriffe
-beschraenkt - erstens, weil die Fassung nach der Korrektur ueber ``os.fdopen``
-schreibt, zweitens, weil der zweite Test in dieser Datei liest.
+INTERCEPTION POINT: unlike ``_deactivate_container`` and ``reset_mech_state``,
+this function does NOT read beforehand. So intercepting every ``open`` would
+not be green for the wrong reason here. It is still limited to write
+accesses - first, because the version after the fix writes via ``os.fdopen``,
+second, because the second test in this file reads.
 
-Vorhandene Tests (vollstaendig geprueft, ``tests/unit/extended/test_coverage_push_v3.py:138-225``,
-7 Stueck): Alle leiten ``ORDER_FILE`` per ``monkeypatch`` in ``tmp_path`` um und
-arbeiten mit echten Dateien. Einer patcht ``os.makedirs`` (:182), das vor dem
-Schreiben steht und von der Umstellung unberuehrt bleibt. Keiner faengt den
-Schreibvorgang selbst ab, keiner wird durch ``atomic_write_json`` stumpf. Es gibt
-nichts nachzuziehen - anders als bei ``_deactivate_container``, wo ein Test
-mitgezogen werden musste.
+Existing tests (fully checked, ``tests/unit/extended/test_coverage_push_v3.py:138-225``,
+7 of them): all redirect ``ORDER_FILE`` into ``tmp_path`` via ``monkeypatch``
+and work with real files. One patches ``os.makedirs`` (:182), which comes
+before the write and is untouched by the conversion. None intercepts the write
+itself, none is blunted by ``atomic_write_json``. There is nothing to adjust -
+unlike ``_deactivate_container``, where one test had to be updated too.
 
-GEGENPROBE (durchgefuehrt 2026-09-16): Vor der Korrektur rot an genau der
-nutzerseitigen Zusicherung - ``load_server_order()`` lieferte ``[]`` statt der
-gelegten Reihenfolge. Beide Waechter hielten: ``getroffen`` schlug an (der
-Abfang griff also), und ``ergebnis is False`` galt. Das Protokoll zeigte die
-ganze Kette: erst ``Error saving server order``, dann ``Error loading server
-order: Expecting value: line 1 column 1`` - und danach nichts mehr.
+COUNTER-CHECK (performed 2026-09-16): before the fix red at exactly the
+user-facing guarantee - ``load_server_order()`` returned ``[]`` instead of the
+arranged order. Both guards held: ``hit`` fired (so the interception worked),
+and ``result is False`` held. The log showed the whole chain: first
+``Error saving server order``, then ``Error loading server order: Expecting
+value: line 1 column 1`` - and after that nothing more.
 
-WIRKUNGSNACHWEIS per Mutation: Mit einem ``atomic_write_text``, dessen
-``except BaseException`` den Fehler verschluckt statt ihn weiterzureichen, wird
-dieser Test rot - und zwar an der richtigen Stelle::
+EVIDENCE OF EFFECT by mutation: with an ``atomic_write_text`` whose
+``except BaseException`` swallows the error instead of passing it on, this
+test turns red - and at the right place::
 
     assert True is False
-    # Ein gescheiterter Schreibvorgang darf nicht als Erfolg gelten
+    # A failed write must not count as success
 
-Wiederhergestellt wieder 3 gruen, ohne Mutationsrest. Das ist die schaerfere
-Probe als das blosse Zurueckdrehen: Sie belegt, dass der Test auch eine
-SUBTILERE Brechung faengt - einen Schreibfehler, der verschluckt und als Erfolg
-gemeldet wird.
+Restored, 3 green again, with no mutation residue. That is the sharper probe
+than a mere revert: it proves that the test also catches a SUBTLER breakage -
+a write error that is swallowed and reported as success.
 
-Nachgetragen 2026-09-17: Dieser Absatz fehlte, obwohl die Mutation am 2026-09-16
-gefahren wurde (belegt in SPEC.md, Z7-Abschnitt). Die vier uebrigen Z7-Tests
-tragen ihren Nachweis bei sich, dieser nicht - wer ihn spaeter liest, haette ihn
-fuer ungeprueft gehalten. Gefunden beim Auszaehlen fuer den Stufe-3-Bericht.
+Added 2026-09-17: this paragraph was missing, although the mutation was run on
+2026-09-16 (documented in SPEC.md, Z7 section). The four other Z7 tests carry
+their evidence with them, this one did not - whoever read it later would have
+considered it unchecked. Found while counting for the stage 3 report.
 """
 
 import json
@@ -68,40 +66,40 @@ import pytest
 
 from services.docker_service import server_order as so
 
-URSPRUNG = ["nginx", "plex", "redis", "sonarr"]
+ORIGINAL = ["nginx", "plex", "redis", "sonarr"]
 
 
-class _NurSchreibenScheitert:
-    """Laesst Lesen zu, laesst jeden Schreibvorgang scheitern.
+class _OnlyWritingFails:
+    """Allows reading, makes every write fail.
 
-    Faengt ``builtins.open`` und ``os.fdopen`` ab, aber nur fuer Schreibmodi -
-    die heutige Fassung schreibt ueber ``open(..., 'w')``, eine atomare ueber
-    ``mkstemp`` + ``os.fdopen``. Der Schaden wird dabei NACHGESTELLT und nicht
-    verhindert: Die Datei wird geoeffnet (und damit gekuerzt), bevor der Fehler
-    kommt. Wirft man vorher, ueberlebt der alte Inhalt und der Test beweist
-    nichts - dieser Fehler ist beim Mitgliederzahl-Test zweimal passiert.
+    Intercepts ``builtins.open`` and ``os.fdopen``, but only for write modes -
+    today's version writes via ``open(..., 'w')``, an atomic one via
+    ``mkstemp`` + ``os.fdopen``. The damage is REPRODUCED, not prevented: the
+    file is opened (and thereby truncated) before the error comes. If you raise
+    earlier, the old content survives and the test proves nothing - this
+    mistake happened twice in the member count test.
     """
 
     def __init__(self, monkeypatch):
-        self.getroffen = False
-        echtes_open, echtes_fdopen = open, os.fdopen
+        self.hit = False
+        real_open, real_fdopen = open, os.fdopen
 
-        def _wirft(*_a, **_k):
-            raise OSError("kein Platz auf dem Geraet")
+        def _raises(*_a, **_k):
+            raise OSError("no space left on device")
 
-        def _open(datei, modus="r", *a, **kw):
-            if "w" in modus or "a" in modus:
-                self.getroffen = True
-                fh = echtes_open(datei, modus, *a, **kw)  # kuerzt beim Oeffnen
-                fh.write = _wirft
+        def _open(file, mode="r", *a, **kw):
+            if "w" in mode or "a" in mode:
+                self.hit = True
+                fh = real_open(file, mode, *a, **kw)  # truncates on open
+                fh.write = _raises
                 return fh
-            return echtes_open(datei, modus, *a, **kw)
+            return real_open(file, mode, *a, **kw)
 
-        def _fdopen(fd, modus="r", *a, **kw):
-            fh = echtes_fdopen(fd, modus, *a, **kw)
-            if "w" in modus or "a" in modus:
-                self.getroffen = True
-                fh.write = _wirft
+        def _fdopen(fd, mode="r", *a, **kw):
+            fh = real_fdopen(fd, mode, *a, **kw)
+            if "w" in mode or "a" in mode:
+                self.hit = True
+                fh.write = _raises
             return fh
 
         monkeypatch.setattr("builtins.open", _open)
@@ -109,61 +107,61 @@ class _NurSchreibenScheitert:
 
 
 @pytest.fixture
-def ablage(tmp_path, monkeypatch):
-    """Serverreihenfolge-Datei mit gelegter Reihenfolge in eigener Ablage.
+def storage(tmp_path, monkeypatch):
+    """Server order file with an arranged order in its own storage.
 
-    ``ORDER_FILE`` ist ein Modulwert; dieselbe Umleitung nutzen die sieben
-    vorhandenen Tests in ``test_coverage_push_v3.py``.
+    ``ORDER_FILE`` is a module value; the seven existing tests in
+    ``test_coverage_push_v3.py`` use the same redirection.
     """
-    datei = tmp_path / "server_order.json"
-    datei.write_text(json.dumps({"server_order": URSPRUNG}, indent=2), encoding="utf-8")
-    monkeypatch.setattr(so, "ORDER_FILE", datei)
-    return datei
+    file = tmp_path / "server_order.json"
+    file.write_text(json.dumps({"server_order": ORIGINAL}, indent=2), encoding="utf-8")
+    monkeypatch.setattr(so, "ORDER_FILE", file)
+    return file
 
 
-def test_abgebrochener_schreibvorgang_laesst_die_reihenfolge_stehen(ablage, monkeypatch):
-    """Scheitert das Schreiben, liefert das Laden noch die alte Reihenfolge."""
-    fehler = _NurSchreibenScheitert(monkeypatch)
+def test_aborted_write_leaves_the_order_in_place(storage, monkeypatch):
+    """If writing fails, loading still returns the old order."""
+    failure = _OnlyWritingFails(monkeypatch)
 
-    ergebnis = so.save_server_order(["ganz", "andere", "reihenfolge"])
+    result = so.save_server_order(["completely", "different", "order"])
 
-    assert fehler.getroffen, (
-        "Der Schreibfehler wurde gar nicht ausgeloest - dieser Test prueft dann "
-        "nichts. Vermutlich wird ueber einen dritten Weg geschrieben."
+    assert failure.hit, (
+        "The write error was not triggered at all - then this test checks "
+        "nothing. Probably the write goes through a third path."
     )
-    assert ergebnis is False, "Ein gescheiterter Schreibvorgang darf nicht als Erfolg gelten"
+    assert result is False, "A failed write must not count as success"
 
-    assert so.load_server_order() == URSPRUNG, (
-        "Die vom Nutzer gelegte Serverreihenfolge ist weg. Sie meldet sich nicht: "
-        "load_server_order faengt den JSON-Fehler ab und gibt stillschweigend [] "
-        "zurueck, die Anzeige faellt kommentarlos auf die Standardreihenfolge"
+    assert so.load_server_order() == ORIGINAL, (
+        "The server order arranged by the user is gone. It does not announce itself: "
+        "load_server_order catches the JSON error and silently returns [], "
+        "the display falls back to the default order without comment"
     )
 
 
-def test_erfolgreiches_speichern_ersetzt_die_reihenfolge(ablage):
-    """Die Gegenrichtung: ohne Fehler wird korrekt geschrieben.
+def test_successful_save_replaces_the_order(storage):
+    """The opposite direction: without an error the write is correct.
 
-    Ohne diesen Fall koennte man ``save_server_order`` auf "schreibt nie"
-    verschaerfen und der Test oben bliebe gruen.
+    Without this case one could tighten ``save_server_order`` to "never
+    writes" and the test above would stay green.
     """
-    neu = ["redis", "nginx"]
+    new = ["redis", "nginx"]
 
-    assert so.save_server_order(neu) is True
+    assert so.save_server_order(new) is True
 
-    assert json.loads(ablage.read_text(encoding="utf-8")) == {"server_order": neu}
-    assert so.load_server_order() == neu
+    assert json.loads(storage.read_text(encoding="utf-8")) == {"server_order": new}
+    assert so.load_server_order() == new
 
 
-def test_keine_temp_reste_nach_erfolg(ablage):
-    """Eine atomare Umsetzung raeumt ihre Temp-Datei auf.
+def test_no_temp_leftovers_after_success(storage):
+    """An atomic implementation cleans up its temp file.
 
-    Bestand vorher gegen nachher - nicht "alles ausser der Zieldatei". Die
-    naive Fassung dieser Pruefung war beim Mitgliederzahl-Test aus dem falschen
-    Grund rot, weil in jener Ablage weitere regulaere Dateien liegen.
+    Inventory before versus after - not "everything except the target file".
+    The naive version of this check was red for the wrong reason in the member
+    count test, because further regular files live in that storage.
     """
-    vorher = {p.name for p in ablage.parent.iterdir() if p.is_file()}
+    before = {p.name for p in storage.parent.iterdir() if p.is_file()}
 
     so.save_server_order(["redis", "nginx"])
 
-    nachher = {p.name for p in ablage.parent.iterdir() if p.is_file()}
-    assert sorted(nachher - vorher) == [], f"Temp-Reste geblieben: {sorted(nachher - vorher)}"
+    after = {p.name for p in storage.parent.iterdir() if p.is_file()}
+    assert sorted(after - before) == [], f"Temp leftovers remained: {sorted(after - before)}"

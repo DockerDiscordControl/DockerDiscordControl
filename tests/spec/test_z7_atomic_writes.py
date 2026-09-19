@@ -1,54 +1,51 @@
 # -*- coding: utf-8 -*-
-# @deckt Z7
-"""Z7 - Eine Konfiguration ueberlebt jeden Schreibvorgang.
+# @covers Z7
+"""Z7 - A configuration survives every write.
 
-Jeder Schreibvorgang auf Konfigurations- oder Zustandsdateien ist atomar
-(Temp-Datei + Umbenennen). Ein Absturz mitten im Schreiben laesst die alte Datei
-unversehrt.
+Every write to configuration or state files is atomic (temp file + rename).
+A crash in the middle of writing leaves the old file intact.
 
-Diese Datei beginnt mit ``next_seq()`` (``services/mech/progress_service.py:256``).
-Von den vier nicht-atomaren Stellen der Bestandsaufnahme ist das die
-schwerwiegendste: sie liest, erhoeht und schreibt denselben Zaehler - und dieser
-Zaehler nummeriert das Spendenbuch, dessen Unversehrtheit Z1 zusichert. Ein
-Abbruch hinterlaesst dort nicht bloss eine kaputte Datei, sondern kann eine
-Sequenznummer doppelt vergeben.
+This file starts with ``next_seq()`` (``services/mech/progress_service.py:256``).
+Of the four non-atomic spots in the inventory, this is the most serious: it
+reads, increments and writes the same counter - and this counter numbers the
+donation ledger, whose integrity Z1 guarantees. An abort there does not merely
+leave a broken file behind, it can hand out a sequence number twice.
 
-Die uebrigen drei Stellen (``_deactivate_container``,
-``persist_member_count_snapshot``, ``save_server_order``) folgen als eigene
-Durchgaenge - absteigend nach Schaden, nicht nach Bequemlichkeit.
+The remaining three spots (``_deactivate_container``,
+``persist_member_count_snapshot``, ``save_server_order``) follow as separate
+passes - in descending order of damage, not of convenience.
 
-Zur Sperre, zur Abgrenzung: ``next_seq()`` laeuft nachweislich unter ``LOCK``
-(``progress_service.py:1027`` umschliesst :1044, :1066, :1071). Die Sperre
-schuetzt gegen Verschraenkung, NICHT gegen Absturz - auch unter Sperre
-hinterlaesst ein Abbruch mitten im Schreiben eine abgeschnittene Datei. Dieser
-Test deckt den Absturz ab, nicht die Nebenlaeufigkeit.
+On the lock, to draw the boundary: ``next_seq()`` demonstrably runs under ``LOCK``
+(``progress_service.py:1027`` encloses :1044, :1066, :1071). The lock protects
+against interleaving, NOT against crashes - even under the lock an abort in the
+middle of writing leaves a truncated file. This test covers the crash, not the
+concurrency.
 
-GEGENPROBE (durchgefuehrt 2026-09-16):
+COUNTER-CHECK (carried out 2026-09-16):
 
-Vor der Korrektur schlug ``test_abgebrochener_schreibvorgang...`` an seiner
-eigenen Zusicherung fehl - und das Ergebnis war schlimmer als erwartet::
+Before the fix, ``test_interrupted_write...`` failed on its own assertion - and
+the result was worse than expected::
 
     assert '' == '5'
 
-Die Datei war nicht halb geschrieben, sondern **leer**: ``open(..., "w")`` kuerzt
-sie bereits beim Oeffnen, bevor ein einziges Byte geschrieben wird. ``next_seq()``
-haette danach ``int("" or 0)`` gelesen und wieder bei 1 begonnen - mitten in einem
-Ereignislog, in dem die Nummern 1 bis 5 bereits vergeben sind.
+The file was not half written but **empty**: ``open(..., "w")`` truncates it
+already on opening, before a single byte is written. ``next_seq()`` would then
+have read ``int("" or 0)`` and started again at 1 - in the middle of an event
+log in which the numbers 1 to 5 are already taken.
 
-Der Waechter ``fehler.getroffen`` schlug NICHT an und ``pytest.raises(OSError)``
-hielt: der Fehler kam also wirklich an und wurde nicht verschluckt. Das war der
-Zweck dieser beiden Absicherungen - sie trennen "Zusicherung gebrochen" von
-"Test hat gar nicht gegriffen".
+The guard ``failure.hit`` did NOT fire and ``pytest.raises(OSError)`` held: so
+the error really arrived and was not swallowed. That was the purpose of these
+two safeguards - they separate "assertion broken" from "test did not take hold
+at all".
 
-Nach der Korrektur 18 gruen; die Gruppen mech/donation/integration/extended
-blieben unveraendert gruen (447 / 52 / 5 / 731).
+After the fix 18 green; the groups mech/donation/integration/extended stayed
+green unchanged (447 / 52 / 5 / 731).
 
-Ehrlich zur Aussagekraft der drei Tests: ``test_keine_temp_reste_nach_erfolg``
-war vorher trivial gruen, weil die alte Fassung ueberhaupt keine Temp-Datei
-anlegte. Er prueft erst seit der Korrektur etwas und faellt, wenn das Aufraeumen
-fehlt. ``test_erfolgreicher_schreibvorgang_erhoeht_weiterhin`` war vorher wie
-nachher gruen - er existiert nur, damit man die Sperre nicht auf "schreibt nie"
-verschaerfen kann.
+Honestly, on the significance of the three tests: ``test_no_temp_leftovers_after_success``
+was trivially green before, because the old version did not create a temp file
+at all. It only checks something since the fix, and fails if the cleanup is
+missing. ``test_successful_write_still_increments`` was green before and after -
+it only exists so that the lock cannot be tightened to "never writes".
 """
 
 import os
@@ -58,95 +55,95 @@ import pytest
 import services.mech.progress_service as ps
 
 
-class _SchreibfehlerBeimSchreiben:
-    """Laesst Dateien oeffnen, aber jeden Schreibvorgang scheitern.
+class _WriteFailsOnWrite:
+    """Lets files be opened, but makes every write fail.
 
-    Faengt ``builtins.open`` UND ``os.fdopen`` ab. Beides ist noetig, und zwar
-    absichtlich implementierungsunabhaengig: die heutige Fassung schreibt ueber
-    ``open(...)``, eine atomare Fassung ueber ``mkstemp`` + ``os.fdopen``. Wer
-    nur ``builtins.open`` abfaengt, baut einen Test, der nach der Korrektur
-    stillschweigend nichts mehr prueft - genau das ist
-    ``tests/unit/extended/test_docker_infra_gaps.py:1112`` passiert.
+    Intercepts ``builtins.open`` AND ``os.fdopen``. Both are necessary, and
+    deliberately implementation-independent: today's version writes via
+    ``open(...)``, an atomic version via ``mkstemp`` + ``os.fdopen``. Whoever
+    intercepts only ``builtins.open`` builds a test that silently checks nothing
+    after the fix - exactly that happened to
+    ``tests/unit/extended/test_docker_infra_gaps.py:1112``.
     """
 
     def __init__(self, monkeypatch):
-        self.getroffen = False
-        echtes_open = open
-        echtes_fdopen = os.fdopen
+        self.hit = False
+        real_open = open
+        real_fdopen = os.fdopen
 
-        def _praepariere(fh):
-            self.getroffen = True
+        def _prepare(fh):
+            self.hit = True
 
-            def _wirft(*_a, **_k):
-                raise OSError("kein Platz auf dem Geraet")
+            def _raise(*_a, **_k):
+                raise OSError("no space left on device")
 
-            fh.write = _wirft
+            fh.write = _raise
             return fh
 
-        def _open(datei, modus="r", *a, **kw):
-            fh = echtes_open(datei, modus, *a, **kw)
-            return _praepariere(fh) if ("w" in modus or "a" in modus) else fh
+        def _open(file, mode="r", *a, **kw):
+            fh = real_open(file, mode, *a, **kw)
+            return _prepare(fh) if ("w" in mode or "a" in mode) else fh
 
-        def _fdopen(fd, modus="r", *a, **kw):
-            fh = echtes_fdopen(fd, modus, *a, **kw)
-            return _praepariere(fh) if ("w" in modus or "a" in modus) else fh
+        def _fdopen(fd, mode="r", *a, **kw):
+            fh = real_fdopen(fd, mode, *a, **kw)
+            return _prepare(fh) if ("w" in mode or "a" in mode) else fh
 
         monkeypatch.setattr("builtins.open", _open)
         monkeypatch.setattr(os, "fdopen", _fdopen)
 
 
 @pytest.fixture
-def zaehler(tmp_path, monkeypatch):
-    """Sequenzzaehler mit bekanntem Stand in einer eigenen Ablage."""
-    datei = tmp_path / "last_seq.txt"
-    datei.write_text("5", encoding="utf-8")
-    monkeypatch.setattr(ps, "SEQ_FILE", datei)
-    return datei
+def counter(tmp_path, monkeypatch):
+    """Sequence counter with a known value in its own storage."""
+    file = tmp_path / "last_seq.txt"
+    file.write_text("5", encoding="utf-8")
+    monkeypatch.setattr(ps, "SEQ_FILE", file)
+    return file
 
 
-def test_abgebrochener_schreibvorgang_laesst_den_zaehler_unversehrt(zaehler, monkeypatch):
-    """Scheitert das Schreiben, steht der alte Stand noch in der Datei.
+def test_interrupted_write_leaves_the_counter_intact(counter, monkeypatch):
+    """If the write fails, the old value is still in the file.
 
-    Heute oeffnet ``next_seq()`` die Datei mit ``"w"`` - das kuerzt sie bereits
-    beim Oeffnen, noch bevor irgendetwas geschrieben wurde. Der Zaehler ist dann
-    weg, und mit ihm die Nummerierung des Spendenbuchs.
+    Today ``next_seq()`` opens the file with ``"w"`` - which truncates it already
+    on opening, before anything has been written. The counter is then gone, and
+    with it the numbering of the donation ledger.
     """
-    fehler = _SchreibfehlerBeimSchreiben(monkeypatch)
+    failure = _WriteFailsOnWrite(monkeypatch)
 
     with pytest.raises(OSError):
         ps.next_seq()
 
-    assert fehler.getroffen, (
-        "Der Schreibfehler wurde gar nicht ausgeloest - dieser Test prueft dann "
-        "nichts. Vermutlich schreibt die Umsetzung ueber einen dritten Weg, der "
-        "hier nicht abgefangen wird."
+    assert failure.hit, (
+        "The write error was never triggered - then this test checks "
+        "nothing. The implementation probably writes via a third path that "
+        "is not intercepted here."
     )
-    assert zaehler.read_text(encoding="utf-8").strip() == "5", (
-        "Der Schreibvorgang ist gescheitert und hat den Zaehler dabei zerstoert - "
-        "die naechste Sequenznummer beginnt wieder bei 1 und vergibt Nummern "
-        "doppelt, die im Spendenbuch bereits vorkommen"
+    assert counter.read_text(encoding="utf-8").strip() == "5", (
+        "The write failed and destroyed the counter in the process - "
+        "the next sequence number starts again at 1 and hands out numbers "
+        "twice that already appear in the donation ledger"
     )
 
 
-def test_erfolgreicher_schreibvorgang_erhoeht_weiterhin(zaehler):
-    """Die Gegenrichtung: ohne Fehler zaehlt es normal weiter.
+def test_successful_write_still_increments(counter):
+    """The opposite direction: without an error it keeps counting normally.
 
-    Ohne diesen Fall koennte man ``next_seq()`` auf "schreibt nie" verschaerfen
-    und der Test oben bliebe gruen.
+    Without this case one could tighten ``next_seq()`` to "never writes"
+    and the test above would stay green.
     """
     assert ps.next_seq() == 6
-    assert zaehler.read_text(encoding="utf-8").strip() == "6"
+    assert counter.read_text(encoding="utf-8").strip() == "6"
     assert ps.next_seq() == 7
 
 
-def test_keine_temp_reste_nach_erfolg(zaehler):
-    """Eine atomare Umsetzung raeumt ihre Temp-Datei auf.
+def test_no_temp_leftovers_after_success(counter):
+    """An atomic implementation cleans up its temp file.
 
-    Nicht kosmetisch: liegen Reste herum, sammeln sie sich in der Ablage des
-    Spendenbuchs an, und ein spaeterer Leser kann sie nicht von echten Dateien
-    unterscheiden.
+    Not cosmetic: if leftovers lie around, they pile up in the donation
+    ledger's storage, and a later reader cannot tell them apart from real
+    files.
     """
     ps.next_seq()
 
-    reste = [p.name for p in zaehler.parent.iterdir() if p.name != zaehler.name]
-    assert reste == [], f"Temp-Reste geblieben: {reste}"
+    leftovers = [p.name for p in counter.parent.iterdir() if p.name != counter.name]
+    assert leftovers == [], f"Temp leftovers remain: {leftovers}"
