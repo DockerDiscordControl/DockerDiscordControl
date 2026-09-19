@@ -46,11 +46,16 @@ class TestSASTSecurityScanning:
             '-f', 'json',
             '-q',  # Suppress info logs to stderr (still prints progress bar)
             '-ll',  # Low confidence, low severity threshold
-            '--exclude', str(self.project_root / 'tests'),
-            '--exclude', str(self.project_root / 'venv'),
-            '--exclude', str(self.project_root / '.git'),
-            '--exclude', str(self.project_root / 'cached_animations'),
-            '--exclude', str(self.project_root / 'cached_displays'),
+            # ONE --exclude with a comma-separated list: bandit keeps only the
+            # LAST --exclude it is given. This used to pass five, so only
+            # cached_displays was excluded and tests/, venv, .git and
+            # cached_animations were scanned after all - found on 2026-09-19
+            # when CI first ran this scan (the Unraid runtime has no bandit).
+            # Pinned by tests/spec/test_bandit_scan_excludes_its_directories.py.
+            '--exclude', ','.join(
+                str(self.project_root / d)
+                for d in ('tests', 'venv', '.git', 'cached_animations', 'cached_displays')
+            ),
         ]
 
         try:
