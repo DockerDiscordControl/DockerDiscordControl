@@ -14,7 +14,7 @@ import threading
 import time
 from collections import deque
 from pathlib import Path
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Dict, Any, Optional
 import discord
 from utils.logging_utils import get_module_logger
@@ -123,6 +123,21 @@ class SpamProtectionService:
             # Extract spam_protection section from channels_config.json
             spam_data = channels_data.get('spam_protection', {})
             config = SpamProtectionConfig.from_dict(spam_data)
+            # Fehlende Schluessel aus den Vorgaben ergaenzen; Gespeichertes
+            # gewinnt. Ohne das las der Dienst in jeder echten Installation
+            # (die Datei existiert immer) NUR die gespeicherten Schluessel:
+            # Alles Fehlende bremste stumm mit der 5-Sekunden-Ersatzregel,
+            # fehlte der Abschnitt, bremste alles mit 5 - und das Panel zeigte
+            # dazu seine HTML-Startwerte. Neu hinzugekommene Schluessel
+            # (edit_info, mech_details, ...) erreichten bestehende
+            # Installationen nie. Bewusst hier und nicht in from_dict: from_dict
+            # baut auch die Nutzlast der POST-Route, dort wird nichts ergaenzt.
+            vorgaben = self._get_default_config()
+            config = replace(
+                config,
+                command_cooldowns={**vorgaben.command_cooldowns, **config.command_cooldowns},
+                button_cooldowns={**vorgaben.button_cooldowns, **config.button_cooldowns},
+            )
             return ServiceResult(success=True, data=config)
 
         except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, discord.Forbidden, discord.HTTPException, discord.NotFound, json.JSONDecodeError) as e:
