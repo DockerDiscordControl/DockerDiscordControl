@@ -7,10 +7,14 @@
 # ============================================================================ #
 """Flask i18n integration - context processor for Jinja2 templates."""
 
+import logging
+
 from flask import Flask, g
 
 from services.config.config_service import load_config
 from services.web.i18n_service import get_i18n_service
+
+logger = logging.getLogger(__name__)
 
 
 def _request_scoped_config() -> dict:
@@ -25,7 +29,13 @@ def _request_scoped_config() -> dict:
         return cached
     try:
         config = load_config()
-    except Exception:
+    except Exception as e:  # noqa: BLE001 - a broken config must not take the panel down
+        # Broad on purpose, but no longer silent. This runs on every template
+        # render; without a line here the panel simply showed English and
+        # default settings, looking healthy, and nothing anywhere said why
+        # (review C20).
+        logger.warning("Could not load the configuration for this request "
+                       "(%s: %s) - rendering with defaults.", type(e).__name__, e)
         config = {}
     g._ddc_request_config = config
     return config
