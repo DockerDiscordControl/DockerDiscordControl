@@ -85,11 +85,33 @@ class ConfigurationSaveService:
             # Step 6: Save main configuration and container info
             save_result = self._save_configuration_files(processed_data, cleaned_form_data, request.config_split_enabled)
             if not save_result.success:
-                return save_result
+                # A ConfigurationSaveResult, not the SaveFilesResult this step
+                # produces: the caller reads `.error or .message` and
+                # `.critical_settings_changed`, neither of which that other
+                # dataclass has (review C48).
+                return ConfigurationSaveResult(
+                    success=False,
+                    error=save_result.error or "Failed to save configuration files",
+                    config_files=save_result.config_files
+                )
 
             # Step 7: Handle critical settings changes (cache invalidation, etc.)
+            #
+            # Everything above this line has already been WRITTEN TO DISK. A
+            # cache that could not be invalidated is worth saying, but it is not
+            # a failed save - and it used to be reported as one, because the
+            # ConfigCacheError raised here landed in the ConfigServiceError
+            # handler at the bottom (review C48).
+            cache_warning = None
             if critical_changes.changed:
-                self._handle_critical_changes(critical_changes)
+                try:
+                    self._handle_critical_changes(critical_changes)
+                except ConfigServiceError as cache_error:
+                    cache_warning = (f"saved, but a cache could not be invalidated "
+                                     f"({cache_error.message}) - a restart applies it")
+                    self.logger.error(
+                        f"Configuration was saved but the cache invalidation failed: "
+                        f"{cache_error}", exc_info=True)
 
             # Step 8: Update logging settings
             self._update_logging_settings()
@@ -107,7 +129,10 @@ class ConfigurationSaveService:
                 self.logger.warning(f"Could not emit channel_config_changed event: {e}")
 
             # Step 11: Build response
-            return self._build_save_response(message, save_result.config_files, critical_changes.changed, critical_changes.message)
+            response = self._build_save_response(message, save_result.config_files, critical_changes.changed, critical_changes.message)
+            if cache_warning:
+                response.message = f"{response.message} ({cache_warning})"
+            return response
 
         except ConfigServiceError as e:
             # Config persistence errors (disk full, permission denied) raised by save_config,
