@@ -105,7 +105,8 @@ class GameQueryService:
         self._cache_ttl = cache_ttl_seconds
         # container_name -> (timestamp, GameQueryResult)
         self._cache: Dict[str, Tuple[float, GameQueryResult]] = {}
-        self._in_flight: Dict[str, asyncio.Future] = {}
+        # container_name -> the query task the waiters share (see get_game_query)
+        self._in_flight: Dict[str, asyncio.Task] = {}
         # (container, host override, port override, protocol) -> (timestamp, host, ports).
         # Avoids re-inspecting every container over Docker on every status cycle (finding P1).
         self._target_cache: Dict[Tuple[str, str, int, str], Tuple[float, Optional[str], List[int]]] = {}
@@ -180,6 +181,33 @@ class GameQueryService:
         if cached is not None:
             return cached
 
+        # In-flight de-duplication, the guarantee the module docstring makes.
+        # `_in_flight` was declared for it in __init__ and never read or written
+        # by anything, so two calls for the same container with no fresh cache
+        # entry - a bulk status refresh and an on-demand check overlapping -
+        # each ran their own query. _fetch walks the candidate ports with a hard
+        # timeout on each, and this module's own notes record the measured case:
+        # a Valheim server whose first candidate port never answers costs a full
+        # 5 s timeout. Two overlapping cycles paid that twice for one answer
+        # (review C63).
+        name = request.container_name
+        running = self._in_flight.get(name)
+        if running is None or running.done():
+            running = asyncio.ensure_future(self._fetch_and_cache(request))
+            self._in_flight[name] = running
+            # Cleared when the query ends, not when the first caller stops
+            # waiting - otherwise a cancelled caller would leave the entry
+            # behind and the next one would start a second query anyway.
+            running.add_done_callback(
+                lambda task, key=name: self._in_flight.pop(key, None)
+                if self._in_flight.get(key) is task else None)
+
+        # shield: a caller that is cancelled must not cancel the query the
+        # others are waiting for.
+        return await asyncio.shield(running)
+
+    async def _fetch_and_cache(self, request: GameQueryRequest) -> GameQueryResult:
+        """The one query behind however many callers are waiting for it."""
         result = await self._fetch(request)
         if not result.success:
             # The cached target may be stale (container recreated on different ports), so
