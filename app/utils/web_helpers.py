@@ -278,9 +278,19 @@ def update_docker_cache(logger):
             if docker_cache['access_count'] % 50 == 0:
                 _cleanup_docker_cache(logger, time.time())
 
-            # Empty the list for a complete refresh
+            # Build the new list beside the old one and swap it in only once the
+            # loop has finished. Emptying it first meant that an exception in the
+            # middle - container.image.tags reads from the daemon and raises
+            # NotFound for an image removed under a running container, which
+            # Unraid does when it recreates one - left HALF a list behind, while
+            # global_timestamp (written after the loop) still named the last
+            # successful refresh. get_docker_containers_live then read a young
+            # cache age off that timestamp and served the truncated list as fresh
+            # for the rest of the cache duration (review C7).
             old_container_count = len(docker_cache['containers'])
-            docker_cache['containers'] = []
+            new_containers = []
+            new_timestamps = {}
+            new_hashes = {}
 
             # Apply both background refresh limit and max cache limit
             # Use the smaller of the two limits
@@ -305,13 +315,17 @@ def update_docker_cache(logger):
 
                 # Update timestamp and hash only if something has changed
                 if old_hash != container_hash:
-                    docker_cache['container_timestamps'][container.name] = current_time
-                    docker_cache['container_hashes'][container.name] = container_hash
+                    new_timestamps[container.name] = current_time
+                    new_hashes[container.name] = container_hash
 
-                docker_cache['containers'].append(container_data)
+                new_containers.append(container_data)
 
-            # Sort containers by name
-            docker_cache['containers'] = sorted(docker_cache['containers'], key=lambda x: x.get('name', '').lower())
+            # The swap: list, per-container bookkeeping and timestamp together.
+            # The hashes are the change detector for the NEXT refresh, so they
+            # must never describe data that was thrown away (review C7).
+            docker_cache['containers'] = sorted(new_containers, key=lambda x: x.get('name', '').lower())
+            docker_cache['container_timestamps'].update(new_timestamps)
+            docker_cache['container_hashes'].update(new_hashes)
 
             # Update global timestamp only for complete refresh
             docker_cache['global_timestamp'] = current_time
