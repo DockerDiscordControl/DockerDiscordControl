@@ -492,12 +492,13 @@ class TranslationService:
         if context.channel_id in target_ids:
             return []
 
+        # The key is needed for TRANSLATING, not for forwarding. Returning here
+        # also blocked the attachment-only passthrough below, which the code
+        # itself describes as having nothing to translate - so a pair set up to
+        # mirror screenshots did nothing until someone entered a DeepL key it
+        # would never use (review C50).
         api_key = self._resolve_api_key(settings)
-        if not api_key:
-            logger.warning("No translation API key configured — skipping translation")
-            return []
-
-        provider = self._get_provider(settings, api_key)
+        provider = self._get_provider(settings, api_key) if api_key else None
         session = await self._get_session()
         pairs = self.config_service.get_pairs()
         translated_pairs = []
@@ -519,6 +520,11 @@ class TranslationService:
                 continue
 
             if text.strip():
+                if provider is None:
+                    logger.warning("No translation API key configured — skipping "
+                                   "translation of a message with text")
+                    continue
+
                 # Unicode-safe truncation
                 text = _safe_truncate(text, settings.max_text_length)
 
