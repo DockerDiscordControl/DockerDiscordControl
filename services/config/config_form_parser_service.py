@@ -11,7 +11,7 @@ Part of ConfigService refactoring for Single Responsibility Principle
 """
 
 import logging
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Optional, Tuple
 
 from services.exceptions import ConfigServiceError
 
@@ -332,21 +332,40 @@ class ConfigFormParserService:
             return False
 
     @staticmethod
-    def _process_donation_key(form_data: Dict[str, Any], updated_config: Dict[str, Any]) -> None:
-        """Handle donation_disable_key field with validation."""
+    def _process_donation_key(form_data: Dict[str, Any],
+                              updated_config: Dict[str, Any]) -> Optional[str]:
+        """Handle donation_disable_key field with validation.
+
+        Returns a sentence for the operator when the key was NOT taken over,
+        and None when there is nothing to report. A key that the validator
+        refuses - or cannot even be asked about - used to be dropped here
+        without a word while the save went on to answer "Configuration
+        saved"; the operator typed a key, was told all was well and had
+        nothing stored (review C53).
+        """
         value = form_data.get('donation_disable_key')
         if not isinstance(value, str):
-            return
+            return None
         value = value.strip()
-        if value:
-            try:
-                from services.donation.donation_utils import validate_donation_key
-                if validate_donation_key(value):
-                    updated_config['donation_disable_key'] = value
-            except (ImportError, ModuleNotFoundError):
-                logger.error("Could not import donation_utils for key validation")
-        else:
+        if not value:
             updated_config.pop('donation_disable_key', None)
+            return None
+
+        try:
+            from services.donation.donation_utils import validate_donation_key
+        except (ImportError, ModuleNotFoundError) as e:
+            logger.error(f"Could not import donation_utils for key validation: {e}")
+            return ("The donation key could not be checked - the key check is "
+                    "unavailable in this installation. The key was not saved, the "
+                    "previous setting is unchanged.")
+
+        if validate_donation_key(value):
+            updated_config['donation_disable_key'] = value
+            return None
+
+        logger.warning("A donation key was entered that the validation refused")
+        return ("The donation key was not accepted and was not saved - the previous "
+                "setting is unchanged. See the log for the reason.")
 
     @staticmethod
     def process_config_form(form_data: Dict[str, Any], current_config: Dict[str, Any],
@@ -412,7 +431,8 @@ class ConfigFormParserService:
             updated_config.pop('heartbeat_channel_id', None)
 
             # Process donation key
-            ConfigFormParserService._process_donation_key(form_data, updated_config)
+            donation_warning = ConfigFormParserService._process_donation_key(
+                form_data, updated_config)
 
             # Advanced settings: the advanced modal's saveAdvancedSettings() JS copies its
             # env_* inputs (checkboxes as '1'/'0', so the off-state is submitted too) into the
@@ -462,6 +482,9 @@ class ConfigFormParserService:
                     "/serverstatus and /ss are not allowed. Use a separate channel for the "
                     "status overview."
                 )
+
+            if result.success and donation_warning:
+                message += " " + donation_warning
 
             if not channels_saved:
                 # Z3: the main configuration may well have been saved, but the channel

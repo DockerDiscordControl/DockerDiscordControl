@@ -55,8 +55,8 @@ services/config/__init__.py:1-16
 services/config/channel_config_service.py:1-549
 services/config/config_cache_service.py:1-142
 
-## Section 12  (1406 lines, 3 pieces)
-services/config/config_form_parser_service.py:1-483
+## Section 12  (1429 lines, 3 pieces)
+services/config/config_form_parser_service.py:1-506
 services/config/config_loader_service.py:1-468
 services/config/config_migration_service.py:1-455
 
