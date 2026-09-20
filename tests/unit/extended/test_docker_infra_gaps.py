@@ -1347,10 +1347,11 @@ class TestContainerStatusFetchSuccessBranch:
         req = ContainerStatusRequest(container_name="ngx")
         result = await svc._fetch_container_status(req)
         assert result.success is True
-        # Fallback values applied.
-        assert result.cpu_percent == 0.1
-        assert result.memory_usage_mb == 2.0
-        assert result.memory_limit_mb == 1024.0
+        # Until 2026-09-20 the failure was filled in with 0.1 / 2.0 / 1024.0 and
+        # looked like a healthy idle container. Not measured is None (review C1).
+        assert result.cpu_percent is None
+        assert result.memory_usage_mb is None
+        assert result.memory_limit_mb is None
 
     @pytest.mark.asyncio
     async def test_fetch_handles_docker_notfound_and_deactivates(
@@ -1449,7 +1450,8 @@ class TestContainerStatusCpuMemoryEdgeCases:
             },
         }
         cpu = svc._calculate_cpu_percent_from_stats(stats, "x")
-        assert cpu == 0.1
+        # Same samples twice is zero load, not "a little" (review C1).
+        assert cpu == 0.0
 
     def test_memory_from_stats_handles_exception(self):
         svc = ContainerStatusService()
@@ -1458,8 +1460,8 @@ class TestContainerStatusCpuMemoryEdgeCases:
             "not-a-dict",  # type: ignore[arg-type]
             "x",
         )
-        assert usage_mb == 2.0
-        assert limit_mb == 1024.0
+        assert usage_mb is None
+        assert limit_mb is None
 
 
 class TestContainerStatusCompatibilityFallbacks:

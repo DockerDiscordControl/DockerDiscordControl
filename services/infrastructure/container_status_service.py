@@ -54,10 +54,11 @@ class ContainerStatusResult:
     is_running: bool = False
     status: str = "unknown"
 
-    # Stats (if requested)
-    cpu_percent: float = 0.0
-    memory_usage_mb: float = 0.0
-    memory_limit_mb: float = 0.0
+    # Stats (if requested). None means "not measured" - the panel renders that as
+    # N/A instead of a plausible-looking number (review C1).
+    cpu_percent: Optional[float] = None
+    memory_usage_mb: Optional[float] = None
+    memory_limit_mb: Optional[float] = None
 
     # Detailed info (if requested)
     uptime_seconds: int = 0
@@ -322,8 +323,14 @@ class ContainerStatusService:
                 error_message=f"Data error: {str(e)}"
             )
 
-    def _calculate_cpu_percent_from_stats(self, stats: dict, container_name: str) -> float:
-        """Calculate CPU percentage from Docker stats with fallback methods."""
+    def _calculate_cpu_percent_from_stats(self, stats: dict, container_name: str) -> Optional[float]:
+        """CPU percentage from Docker stats, or None when it cannot be measured.
+
+        It used to answer 0.1 for every failure AND for a container that truly
+        used no CPU, so a broken measurement looked like a healthy, almost idle
+        one. None travels through get_docker_stats_service_first() to the panel,
+        which renders it as "N/A" (review C1, stage C finding 19 F1).
+        """
         try:
             cpu_stats = stats.get('cpu_stats', {})
             precpu_stats = stats.get('precpu_stats', {})
@@ -351,25 +358,29 @@ class ContainerStatusService:
                         online_cpus = os.cpu_count() or 1
 
                 cpu_percent = (cpu_delta / system_delta) * online_cpus * 100.0
-                cpu_percent = max(0.0, min(cpu_percent, 100.0 * online_cpus))
-                return cpu_percent if cpu_percent > 0.0 else 0.1
+                return max(0.0, min(cpu_percent, 100.0 * online_cpus))
 
-            # Method 2: Fallback for running containers
+            # The container ran and used measurable CPU time, but the two samples
+            # are identical: that is zero load, not "a little".
             if system_cpu_usage > 0 and cpu_usage > 0:
-                return 0.1
+                return 0.0
 
-            # Method 3: Minimal activity
-            return 0.1
+            # Nothing usable in the answer - say so instead of inventing a number.
+            return None
         except Exception as e:
             self.logger.warning(f"CPU calculation error for {container_name}: {e}")
-            return 0.1
+            return None
 
     def _calculate_memory_from_stats(self, stats: dict, container_name: str) -> tuple:
-        """Calculate memory usage and limit from Docker stats. Returns (usage_mb, limit_mb)."""
+        """Memory usage and limit in MB, or (None, None) when they cannot be read.
+
+        The placeholders 2.0 MB of 1024 MB used to stand in for every failure -
+        a plausible reading for a container nobody could measure (review C1).
+        """
         try:
             memory_stats = stats.get('memory_stats', {}) if stats else {}
             if not memory_stats:
-                return 2.0, 1024.0
+                return None, None
 
             # Try different methods to get memory usage
             memory_usage = memory_stats.get('usage', 0)
@@ -386,13 +397,13 @@ class ContainerStatusService:
             memory_limit = memory_stats.get('limit', 0)
 
             # Convert to MB with fallbacks
-            memory_usage_mb = memory_usage / (1024 * 1024) if memory_usage > 0 else 2.0
-            memory_limit_mb = memory_limit / (1024 * 1024) if memory_limit > 0 else 1024.0
+            memory_usage_mb = memory_usage / (1024 * 1024) if memory_usage > 0 else None
+            memory_limit_mb = memory_limit / (1024 * 1024) if memory_limit > 0 else None
 
             return memory_usage_mb, memory_limit_mb
         except Exception as e:
             self.logger.warning(f"Memory calculation error for {container_name}: {e}")
-            return 2.0, 1024.0
+            return None, None
 
     def _query_container_sync(self, client, request: ContainerStatusRequest, start_time: float) -> ContainerStatusResult:
         """
@@ -464,11 +475,14 @@ class ContainerStatusService:
                 cpu_percent = self._calculate_cpu_percent_from_stats(stats, request.container_name)
                 memory_usage_mb, memory_limit_mb = self._calculate_memory_from_stats(stats, request.container_name)
 
-            except (KeyError, AttributeError, ValueError, TypeError) as e:
+            except Exception as e:
+                # Broad on purpose: whatever the stats call throws, the container's
+                # STATE was read fine - so the result stays a success and only the
+                # numbers say "not measured" (review C1).
                 self.logger.warning(f"Could not get stats for {request.container_name}: {e}")
-                cpu_percent = 0.1
-                memory_usage_mb = 2.0
-                memory_limit_mb = 1024.0
+                cpu_percent = None
+                memory_usage_mb = None
+                memory_limit_mb = None
 
         duration_ms = (time.time() - start_time) * 1000
 

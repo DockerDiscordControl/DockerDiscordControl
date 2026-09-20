@@ -61,8 +61,10 @@ class TestContainerStatusDataclasses:
         assert result.container_name == "ngx"
         assert result.is_running is False
         assert result.status == "unknown"
-        assert result.cpu_percent == 0.0
-        assert result.memory_usage_mb == 0.0
+        # The default is "not measured", not "zero" - a result built without stats
+        # must not read like an idle container (review C1).
+        assert result.cpu_percent is None
+        assert result.memory_usage_mb is None
         assert result.cached is False
         assert result.error_message is None
 
@@ -245,17 +247,19 @@ class TestContainerStatusCpuMemory:
         # delta=100, system_delta=500 -> (100/500) * 2 * 100 = 40.0
         assert cpu == pytest.approx(40.0)
 
-    def test_cpu_percent_fallback_returns_min(self):
+    def test_cpu_percent_without_usable_numbers_is_unavailable(self):
+        # Was "returns_min" and expected 0.1 until 2026-09-20: a failed measurement
+        # is None now, which the panel renders as N/A (review C1).
         svc = ContainerStatusService()
         stats = {"cpu_stats": {}, "precpu_stats": {}}
         cpu = svc._calculate_cpu_percent_from_stats(stats, "x")
-        assert cpu == 0.1
+        assert cpu is None
 
     def test_cpu_percent_handles_exception(self):
         svc = ContainerStatusService()
         # Pass non-dict => triggers .get on int -> AttributeError caught
         cpu = svc._calculate_cpu_percent_from_stats(None, "x")  # type: ignore[arg-type]
-        assert cpu == 0.1
+        assert cpu is None
 
     def test_memory_from_stats_with_usage_and_limit(self):
         svc = ContainerStatusService()
@@ -264,11 +268,12 @@ class TestContainerStatusCpuMemory:
         assert usage_mb == pytest.approx(100.0)
         assert limit_mb == pytest.approx(500.0)
 
-    def test_memory_from_stats_empty_returns_defaults(self):
+    def test_memory_from_stats_empty_is_unavailable(self):
+        # Was "returns_defaults" (2.0 of 1024.0) until 2026-09-20 - see review C1.
         svc = ContainerStatusService()
         usage_mb, limit_mb = svc._calculate_memory_from_stats({}, "x")
-        assert usage_mb == 2.0
-        assert limit_mb == 1024.0
+        assert usage_mb is None
+        assert limit_mb is None
 
     def test_memory_from_stats_handles_rss_cache(self):
         svc = ContainerStatusService()
