@@ -164,9 +164,14 @@ class TestTimeoutConfig:
             == 21.0
         )
 
-    def test_load_timeout_from_config_overrides_small_fast_stats(
+    def test_load_timeout_from_config_keeps_a_small_fast_stats(
         self, monkeypatch
     ):
+        # These two tests used to assert 45.0 here - they wrote down the block
+        # marked "TEMPORARY FIX" that replaced every configured value below 30.
+        # The panel offers this field with min="1" max="60" and suggests 10, so
+        # that block made the suggested value and half the accepted range dead
+        # (review C59). What the operator sets is what is used.
         def _fake_load():
             return {"advanced_settings": {"DDC_FAST_STATS_TIMEOUT": "5"}}
 
@@ -177,10 +182,10 @@ class TestTimeoutConfig:
             docker_utils._load_timeout_from_config(
                 "DDC_FAST_STATS_TIMEOUT", "X", "1.0"
             )
-            == 45.0
+            == 5.0
         )
 
-    def test_load_timeout_from_config_overrides_small_fast_info(
+    def test_load_timeout_from_config_keeps_a_small_fast_info(
         self, monkeypatch
     ):
         def _fake_load():
@@ -193,7 +198,7 @@ class TestTimeoutConfig:
             docker_utils._load_timeout_from_config(
                 "DDC_FAST_INFO_TIMEOUT", "X", "1.0"
             )
-            == 45.0
+            == 5.0
         )
 
 

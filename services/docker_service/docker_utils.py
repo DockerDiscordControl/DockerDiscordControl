@@ -57,15 +57,16 @@ def _load_timeout_from_config(config_key: str, env_key: str, default: str) -> fl
         config = load_config()
         advanced_settings = config.get('advanced_settings', {})
         if config_key in advanced_settings:
-            config_value = float(advanced_settings[config_key])
-            # TEMPORARY FIX: Override config values that are too small for current Docker daemon performance
-            if config_key == 'DDC_FAST_STATS_TIMEOUT' and config_value < 30:
-                logger.info(f"Overriding {config_key} from {config_value}s to 45s due to Docker daemon performance")
-                return 45.0
-            if config_key == 'DDC_FAST_INFO_TIMEOUT' and config_value < 30:
-                logger.info(f"Overriding {config_key} from {config_value}s to 45s due to Docker daemon performance")
-                return 45.0
-            return config_value
+            # The configured value, as configured. A block marked "TEMPORARY
+            # FIX" used to replace any DDC_FAST_STATS_TIMEOUT or
+            # DDC_FAST_INFO_TIMEOUT below 30 with 45.0 and log the substitution
+            # at INFO. The panel offers both fields with min="1" max="60" and
+            # suggests 10 - so the value the panel itself proposes was dead,
+            # along with everything from 1 to 29. A form that accepts a number
+            # and then ignores it is worse than one that refuses it (review
+            # C59). If the daemon really is too slow for the chosen value, the
+            # operator sees the timeouts and can raise it.
+            return float(advanced_settings[config_key])
     except (ConfigLoadError, KeyError, ValueError, TypeError) as e:
         # Config loading/parsing errors - fall back to environment variable
         logger.debug(f"Config load failed for {config_key}, using env/default: {e}")
