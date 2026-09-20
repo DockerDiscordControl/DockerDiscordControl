@@ -175,6 +175,23 @@ def hash_container_data(container_data):
         # In case of errors, return a random hash, which leads to reevaluation
         return time.time()
 
+def _refresh_worker_is_running() -> bool:
+    """Whether the background refresh worker is actually alive.
+
+    The one place that answers this question - start_background_refresh() asked
+    it correctly and its caller did not, which is how a dead worker stayed dead
+    (review C41).
+    """
+    if docker_cache.get('bg_refresh_running'):
+        return True
+    thread = background_refresh_thread
+    if thread is None:
+        return False
+    if HAS_GEVENT:
+        return not getattr(thread, 'dead', True)
+    return bool(getattr(thread, 'is_alive', lambda: False)())
+
+
 def get_docker_containers_live(logger, force_refresh=False, container_name=None):
     """
     Enhanced function to retrieve Docker container information with advanced caching features.
@@ -187,8 +204,12 @@ def get_docker_containers_live(logger, force_refresh=False, container_name=None)
     Returns:
         Tuple (container_list, error_message)
     """
-    # Start background thread if not running and enabled
-    if ENABLE_BACKGROUND_REFRESH and not docker_cache['bg_refresh_running'] and not background_refresh_thread:
+    # Start background thread if not running and enabled.
+    # `not background_refresh_thread` was the old test, and a thread that has
+    # DIED is not None - it is simply finished. The restart therefore never
+    # happened, and the panel fell back to a blocking Docker query inside
+    # whichever request hit a stale cache (review C41).
+    if ENABLE_BACKGROUND_REFRESH and not _refresh_worker_is_running():
         start_background_refresh(logger)
 
     current_time = time.time()
@@ -672,6 +693,7 @@ def mech_decay_worker(logger):
     Both Discord Bot and Web UI can call get_state() - it's idempotent!
     """
     logger.info("Starting mech decay background worker")
+    died = False
 
     thread_name = threading.current_thread().name if hasattr(threading.current_thread(), 'name') else "Greenlet"
     logger.debug(f"Mech decay worker running in thread '{thread_name}'")
@@ -705,8 +727,11 @@ def mech_decay_worker(logger):
                         time.sleep(wait_time)
                     remaining_time -= wait_time
 
-            except (ImportError, AttributeError, RuntimeError) as e:
-                # Service dependency errors (mech service unavailable, get_state() failures)
+            except Exception as e:  # noqa: BLE001
+                # Broad, like its twin above. The narrow clause let a KeyError
+                # from the progress state - or any DDC exception - fall through
+                # to the `finally`, which logs the same calm "stopped" line a
+                # deliberate shutdown produces (review C41).
                 logger.error(f"Service error in mech decay worker: {str(e)}", exc_info=True)
                 # In case of errors, wait briefly and try again
                 for _ in range(5):  # 5x1 second instead of once 5 seconds
@@ -716,11 +741,15 @@ def mech_decay_worker(logger):
                         gevent.sleep(1)
                     else:
                         time.sleep(1)
-    except (AttributeError, RuntimeError) as e:
-        # Runtime errors (thread/event errors, gevent issues)
+    except Exception as e:  # noqa: BLE001 - see the clause above
         logger.error(f"Runtime error in mech decay worker thread: {e}", exc_info=True)
+        died = True
     finally:
-        logger.info("Mech decay background worker stopped")
+        if died:
+            logger.error("Mech decay background worker DIED - power decay is no "
+                         "longer pre-computed until the process restarts")
+        else:
+            logger.info("Mech decay background worker stopped")
 
 
 def start_mech_decay_background(logger):

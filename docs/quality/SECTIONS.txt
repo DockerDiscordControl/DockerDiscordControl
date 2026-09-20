@@ -230,10 +230,10 @@ app/constants.py:1-17
 app/utils/__init__.py:1-7
 app/utils/container_info_web_handler.py:1-265
 
-## Section 34  (1892 lines, 9 pieces)
+## Section 34  (1921 lines, 9 pieces)
 app/utils/port_diagnostics.py:1-600
 app/utils/shared_data.py:1-105
-app/utils/web_helpers.py:1-876
+app/utils/web_helpers.py:1-905
 app/web/__init__.py:1-12
 app/web/action_logger.py:1-20
 app/web/app_factory.py:1-61
