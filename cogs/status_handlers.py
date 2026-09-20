@@ -183,9 +183,22 @@ class StatusHandlersMixin:
         successful_fetches = 0
         failed_fetches = 0
 
-        for result in all_results:
+        # all_results holds the fast containers in order, then the slow ones, so a
+        # result that came back as an exception can still be named. It used to be
+        # logged and dropped, and the container was simply missing from the answer -
+        # against this function's own promise of complete data, and impossible for a
+        # caller to tell from "never asked" (review B25).
+        fetched_names = list(fast_containers) + list(slow_containers)
+
+        for fetched_name, result in zip(fetched_names, all_results):
             if isinstance(result, Exception):
-                logger.error(f"[INTELLIGENT_BULK_FETCH] Exception in fetch result: {result}")
+                logger.error(f"[INTELLIGENT_BULK_FETCH] Exception in fetch result for "
+                             f"{fetched_name}: {result}")
+                status_results[fetched_name] = ContainerStatusResult.error_result(
+                    docker_name=fetched_name,
+                    error=result,
+                    error_type='fetch'
+                )
                 failed_fetches += 1
                 continue
 
