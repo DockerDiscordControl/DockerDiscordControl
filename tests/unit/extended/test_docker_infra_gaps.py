@@ -429,19 +429,22 @@ class TestDockerUtilsListTimeout:
 
 
 class TestDockerUtilsContainersDataRunningBranch:
-    """Lines 761-765: get_containers_data running-state with valid State."""
+    """get_containers_data: a running container from the low-level listing."""
 
     @pytest.mark.asyncio
-    async def test_running_state_with_string_state_keeps_started_at(
+    async def test_a_running_container_comes_back_as_running(
         self, monkeypatch
     ):
-        # Production reads c_data['State'] as string for ``.lower()``;
-        # then if running, again as dict for ``.get('StartedAt')``.
-        # That double-typed lookup means a single dict can never go through
-        # both branches cleanly: with a string, ``.get`` raises AttributeError
-        # caught by the outer except handler.
-        # However, producing a "running" status DOES exercise the running
-        # branch up until the AttributeError, covering lines 760-765.
+        # This test used to assert the opposite - that the entry comes back as
+        # "error_processing" - and explained why in its own comment: the code
+        # read c_data['State'] as a string for .lower() and then again as a
+        # dict for .get('StartedAt'), so every running container fell into the
+        # AttributeError handler. That is the defect, not the promise; it was
+        # written down as the expected result and kept the bug in place for as
+        # long as the test existed. The start time is gone (the low-level
+        # listing does not carry one; only an inspect call does), and what
+        # remains is the question this function is asked: is the container
+        # running (review C56).
         client = MagicMock()
         client.api.containers.return_value = [
             {
@@ -461,11 +464,11 @@ class TestDockerUtilsContainersDataRunningBranch:
         docker_utils._containers_cache = None
         docker_utils._cache_timestamp = 0
         result = await docker_utils.get_containers_data()
-        # The running branch attempts state_detail.get(...) on a string,
-        # which raises AttributeError caught by inner except -> entry
-        # becomes ``error_processing``.
         assert len(result) == 1
-        assert result[0]["status"] == "error_processing"
+        assert result[0]["status"] == "running"
+        assert result[0]["running"] is True
+        assert result[0]["ports"] == [{"PrivatePort": 80}]
+        assert "error" not in result[0]
 
 
 class TestDockerUtilsCacheTtlLoader:

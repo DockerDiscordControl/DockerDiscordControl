@@ -814,7 +814,10 @@ async def get_containers_data() -> List[Dict[str, Any]]:
     try:
         # 🔧 PERFORMANCE: Use Advanced Settings timeout (DDC_FAST_LIST_TIMEOUT) for container data retrieval
         async with get_docker_client_async(operation='list') as client:
-            containers_api_list = await asyncio.to_thread(client.api.containers, all=True, Lstat=True) # Use low-level API for more resilience
+            # Only keywords docker-py actually declares: APIClient.containers has a
+            # fixed signature and no **kwargs, so the "Lstat=True" that used to sit
+            # here raised TypeError on every single listing (review C56).
+            containers_api_list = await asyncio.to_thread(client.api.containers, all=True)
             result = []
             for c_data in containers_api_list:
                 try:
@@ -834,13 +837,14 @@ async def get_containers_data() -> List[Dict[str, Any]]:
                         "created": datetime.fromtimestamp(c_data.get('Created', 0), timezone.utc).isoformat() if c_data.get('Created') else "N/A",
                     }
                     if is_running:
-                        ports_info = c_data.get("Ports", {})
-                        container_info["ports"] = ports_info
-                        state_detail = c_data.get("State", {})
-                        if state_detail:
-                            container_info["started_at"] = state_detail.get("StartedAt", "")
-                            # Health status is not directly in low-level API list, would need inspect
-                            # container_info["health"] = "unknown"
+                        container_info["ports"] = c_data.get("Ports", {})
+                        # No start time here. In the low-level listing "State" is a
+                        # plain string ("running") - the object with StartedAt only
+                        # comes from an inspect call. Calling .get() on that string
+                        # raised AttributeError, which the handler below turned into
+                        # status "error_processing", running False: every healthy
+                        # running container was reported as broken (review C56).
+                        # Nothing outside ever read the field.
                     result.append(container_info)
                 except (AttributeError, KeyError, ValueError, TypeError) as e_inner:
                     logger.warning(f"Error processing individual container data for {c_data.get('Id', 'unknown_id')}: {e_inner}")
