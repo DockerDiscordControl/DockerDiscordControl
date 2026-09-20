@@ -41,6 +41,7 @@ from zoneinfo import ZoneInfo
 
 import logging
 
+from services.exceptions import MechStateError
 from services.mech.progress import get_progress_runtime
 from utils.atomic_io import atomic_write_text
 
@@ -1051,10 +1052,36 @@ class ProgressService:
         persist the stale snapshot with a HIGHER last_event_seq, and the missing donation
         could no longer be seen - buried for good. Caller holds LOCK (an RLock).
         """
+        if not _snapshot_lags(load_snapshot(self.mech_id), events):
+            return
+
+        logger.error(f"Snapshot of {self.mech_id} lacks a power event from the log "
+                     f"(an earlier snapshot write failed) - rebuilding from the log")
+        self.rebuild_from_events()
+
+        # Did it actually heal? The return value used to be thrown away, and
+        # rebuild_from_events can REFUSE: its default is allow_damaged_log=False,
+        # the event log is shared by every mech, and a single unreadable line
+        # anywhere in it - any mech, any process - makes the rebuild keep the old
+        # snapshot and merely say so in the log. The caller then carried on,
+        # appended its own event and persisted last_event_seq PAST the buried
+        # one. _snapshot_lags only ever looks above that number, so the earlier
+        # donation became invisible for good: money gone, silently (review D1).
+        #
+        # Refusing the write is the lesser evil. The donation being booked now
+        # is not lost - it was never written, the caller is told, and the
+        # operator can repair or restore the log and book it again. A buried one
+        # cannot be recovered at all.
+        # `events` and a fresh read are the same set here - the caller read them
+        # under this same RLock and a rebuild appends nothing. The first version
+        # re-read the whole log, which the mutation probe showed no test could
+        # tell apart, so the extra read went.
         if _snapshot_lags(load_snapshot(self.mech_id), events):
-            logger.error(f"Snapshot of {self.mech_id} lacks a power event from the log "
-                         f"(an earlier snapshot write failed) - rebuilding from the log")
-            self.rebuild_from_events()
+            raise MechStateError(
+                f"The snapshot of {self.mech_id} lacks a power event from the log and could "
+                f"not be rebuilt - see the log above for the reason. Nothing was booked; "
+                f"repair or restore the event log first, or the earlier event would be lost.",
+                error_code="SNAPSHOT_HEALING_FAILED")
 
     def add_donation(self, amount_dollars: float, donor: Optional[str] = None,
                     channel_id: Optional[str] = None, idempotency_key: Optional[str] = None,
