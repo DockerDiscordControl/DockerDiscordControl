@@ -306,8 +306,14 @@ class ConfigFormParserService:
         return {'enabled': False, 'ping_url': '', 'interval': 5}
 
     @staticmethod
-    def _save_channel_permissions(channel_permissions: Dict[str, Any]) -> None:
-        """Save channel permissions via ChannelConfigService for consistency."""
+    def _save_channel_permissions(channel_permissions: Dict[str, Any]) -> bool:
+        """Save channel permissions via ChannelConfigService; True if they are on disk.
+
+        The result used to be dropped by the caller, so a failed write (service
+        returned False, or an exception in here) still answered the operator with
+        "Configuration saved": the panel showed the new rights, the bot kept the old
+        ones (SPEC.md Z3, review B5).
+        """
         try:
             from services.config.channel_config_service import get_channel_config_service
             channel_service = get_channel_config_service()
@@ -317,11 +323,13 @@ class ConfigFormParserService:
                 channel_permissions, allow_empty=not channel_permissions)
             if save_result:
                 logger.info(f"Saved {len(channel_permissions)} channels via ChannelConfigService")
-            else:
-                logger.error("ChannelConfigService.save_all_channels returned False")
+                return True
+            logger.error("ChannelConfigService.save_all_channels returned False")
+            return False
         except (AttributeError, IOError, ImportError, KeyError, ModuleNotFoundError,
                 OSError, PermissionError, RuntimeError, TypeError) as e:
             logger.error(f"Error saving channels via ChannelConfigService: {e}", exc_info=True)
+            return False
 
     @staticmethod
     def _process_donation_key(form_data: Dict[str, Any], updated_config: Dict[str, Any]) -> None:
@@ -394,9 +402,10 @@ class ConfigFormParserService:
             # Parse channels. An empty result only means "delete all channels" when the form
             # says it contained the channel tables; a form without them must not wipe channels.
             channel_permissions = ConfigFormParserService.parse_channel_permissions_from_form(form_data)
+            channels_saved = True
             if channel_permissions or ConfigFormParserService._parse_form_checkbox(form_data, 'channel_tables_submitted'):
                 updated_config['channel_permissions'] = channel_permissions
-                ConfigFormParserService._save_channel_permissions(channel_permissions)
+                channels_saved = ConfigFormParserService._save_channel_permissions(channel_permissions)
 
             # Parse heartbeat
             updated_config['heartbeat'] = ConfigFormParserService._parse_heartbeat(form_data)
@@ -453,6 +462,14 @@ class ConfigFormParserService:
                     "/serverstatus and /ss are not allowed. Use a separate channel for the "
                     "status overview."
                 )
+
+            if not channels_saved:
+                # Z3: the main configuration may well have been saved, but the channel
+                # permission files were not - the bot keeps the old rights. Do not call
+                # that a success (review B5).
+                return updated_config, False, (
+                    "The channel permissions could not be saved - the bot keeps the "
+                    "previous channel rights. See the log for the reason.")
 
             return updated_config, result.success, message
 

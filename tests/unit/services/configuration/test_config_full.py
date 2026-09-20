@@ -641,10 +641,12 @@ class TestConfigFormParserService:
                 return FakeResult(success=True, message="saved")
 
         # _save_channel_permissions calls into the channel service singleton.
-        # We patch it out so the test stays self-contained.
+        # We patch it out so the test stays self-contained. It returns True since
+        # 2026-09-20: the caller reads the result, and "no answer" now means the
+        # channel files were not written (review B5).
         monkeypatch.setattr(
             ConfigFormParserService, "_save_channel_permissions",
-            staticmethod(lambda perms: None),
+            staticmethod(lambda perms: True),
         )
 
         form = MultiDict([

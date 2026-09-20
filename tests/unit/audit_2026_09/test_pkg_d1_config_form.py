@@ -58,9 +58,14 @@ class FakeConfigService:
 def channel_saves(monkeypatch):
     """Keep channel files out of the tests; record what would be saved."""
     calls = []
+    # Returns True since 2026-09-20: the caller reads the result, and a falsy answer
+    # means "the channel files were not written" (review B5).
+    def _record(perms):
+        calls.append(perms)
+        return True
+
     monkeypatch.setattr(
-        ConfigFormParserService, "_save_channel_permissions",
-        staticmethod(lambda perms: calls.append(perms)),
+        ConfigFormParserService, "_save_channel_permissions", staticmethod(_record),
     )
     return calls
 
