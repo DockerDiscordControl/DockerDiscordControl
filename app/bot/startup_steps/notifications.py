@@ -31,5 +31,5 @@ async def send_update_notification_step(context: StartupContext) -> None:
             logger.info("Update notification sent successfully")
         else:
             logger.debug("No update notification needed")
-    except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+    except (RuntimeError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
         logger.error("Error sending update notification: %s", e, exc_info=True)

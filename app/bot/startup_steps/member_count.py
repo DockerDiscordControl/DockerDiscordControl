@@ -33,7 +33,7 @@ async def initialize_member_count_step(context: StartupContext) -> None:
 
         if await _refresh_member_count(context, state.level, member_count, member_count_service):
             await _recalculate_goal(progress_service.mech_id, logger)
-    except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, asyncio.CancelledError, asyncio.TimeoutError, json.JSONDecodeError) as e:
+    except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, asyncio.TimeoutError, json.JSONDecodeError) as e:
         logger.error("Error initializing Level 1 member count: %s", e, exc_info=True)
 
 

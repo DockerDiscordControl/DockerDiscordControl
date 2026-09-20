@@ -246,7 +246,7 @@ class AdminService:
             # json.dump raises TypeError/ValueError for unserializable data
             logger.error(f"JSON encoding error saving admin data: {e}", exc_info=True)
             return False
-        except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError) as e:
+        except (RuntimeError, asyncio.TimeoutError) as e:
             logger.error(f"Runtime error saving admin data: {e}", exc_info=True)
             return False
 

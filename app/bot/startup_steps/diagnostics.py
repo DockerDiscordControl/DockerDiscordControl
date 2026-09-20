@@ -22,5 +22,5 @@ async def run_port_diagnostics_step(context: StartupContext) -> None:
     try:
         logger.info("Running port diagnostics at Discord bot startup...")
         log_port_diagnostics()
-    except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError) as e:
+    except (RuntimeError, asyncio.TimeoutError) as e:
         logger.error("Error running port diagnostics at startup: %s", e, exc_info=True)

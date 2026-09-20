@@ -335,7 +335,7 @@ class ChannelCleanupService:
             # Fallback to individual deletion
             await self._individual_delete_messages(request, messages, result)
 
-        except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.HTTPException, discord.NotFound) as e:
+        except (RuntimeError, asyncio.TimeoutError, discord.HTTPException, discord.NotFound) as e:
             logger.warning(f"⚠️ CLEANUP: Bulk delete failed, trying individual deletion: {e}")
             # Fallback to individual deletion
             await self._individual_delete_messages(request, messages, result)

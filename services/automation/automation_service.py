@@ -117,7 +117,12 @@ class AutomationService:
                 try:
                     if await self._execute_rule(rule, context, settings, bot_instance):
                         executed_rules.append(rule.name)
-                except (Exception, asyncio.CancelledError) as e:
+                except BaseException as e:
+                    # BaseException on purpose: a cancellation must reach whoever
+                    # issued it, and the locks still have to go - so it is caught
+                    # here, the release runs, and the handler re-raises at the end
+                    # (review C60). It used to be named in the tuple and swallowed
+                    # like an ordinary error.
                     # _execute_rule locks every target container up front. An exception in the
                     # middle (e.g. DockerConnectionError when the socket blips, or cancellation
                     # during the action delay) would otherwise leave them locked for the rule
@@ -138,8 +143,15 @@ class AutomationService:
                                          exc_info=True)
                     outcome = ("released its container cooldowns" if not still_locked
                                else f"could NOT release the cooldowns of {', '.join(still_locked)}")
-                    logger.error(f"AAS: Rule '{rule.name}' failed with {type(e).__name__}: {e}; "
-                                 f"{outcome}", exc_info=True)
+                    if isinstance(e, Exception):
+                        logger.error(f"AAS: Rule '{rule.name}' failed with {type(e).__name__}: {e}; "
+                                     f"{outcome}", exc_info=True)
+                    else:
+                        # A cancellation or a shutdown signal is not a failure of
+                        # the rule, and it is not this loop's to swallow.
+                        logger.warning(f"AAS: Rule '{rule.name}' was stopped by "
+                                       f"{type(e).__name__}; {outcome}")
+                        raise
                     
         return executed_rules
 

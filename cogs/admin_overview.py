@@ -584,7 +584,7 @@ class ConfirmRestartAllButton(Button):
         try:
             await asyncio.sleep(5)
             await self._update_admin_overview()
-        except (asyncio.CancelledError, RuntimeError) as e:
+        except RuntimeError as e:
             logger.error(f"Error updating admin overview after restart: {e}", exc_info=True)
 
     async def _update_admin_overview(self):
@@ -761,7 +761,7 @@ class ConfirmStopAllButton(Button):
         try:
             await asyncio.sleep(5)
             await self._update_admin_overview()
-        except (asyncio.CancelledError, RuntimeError) as e:
+        except RuntimeError as e:
             logger.error(f"Error updating admin overview after stop: {e}", exc_info=True)
 
     async def _update_admin_overview(self):

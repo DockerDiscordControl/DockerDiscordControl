@@ -163,7 +163,7 @@ class DockerStatusFetchService:
             logger.error(f"Emergency fetch for {docker_name} timed out after {emergency_timeout:.0f}s")
             return docker_name, last_exception, None
 
-        except (RuntimeError, OSError, asyncio.CancelledError) as e:
+        except (RuntimeError, OSError) as e:
             # Even emergency fetch failed - update performance and return error
             perf_service.update_performance(docker_name, 0, False)
             logger.error(f"Emergency fetch failed for {docker_name}: {e}", exc_info=True)

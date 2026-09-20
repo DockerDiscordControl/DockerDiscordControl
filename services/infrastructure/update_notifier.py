@@ -186,7 +186,7 @@ class UpdateNotifier:
                         logger.info(f"Update notification sent to channel {channel_id}")
                     else:
                         logger.warning(f"Could not find channel {channel_id}")
-                except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+                except (RuntimeError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
                     logger.error(f"Error sending update notification to channel {channel_id}: {e}", exc_info=True)
 
             if sent_count > 0:

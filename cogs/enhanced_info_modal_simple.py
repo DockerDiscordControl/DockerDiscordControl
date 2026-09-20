@@ -499,7 +499,7 @@ class ProtectedInfoModal(discord.ui.Modal):
         # is a real case. Without them the exception left the callback and the user
         # saw Discord's own "The application did not respond" - no word on whether
         # the secret had been saved (review B19).
-        except (IOError, OSError, PermissionError, RuntimeError, asyncio.CancelledError,
+        except (IOError, OSError, PermissionError, RuntimeError,
                 asyncio.TimeoutError, discord.Forbidden, discord.HTTPException,
                 discord.NotFound, docker.errors.APIError, docker.errors.DockerException) as e:
             logger.error(f"Error in protected info modal submission: {e}", exc_info=True)
@@ -649,7 +649,7 @@ class PasswordValidationModal(discord.ui.Modal):
             await interaction.response.send_message(embed=embed, ephemeral=True)
             logger.info(f"Protected info accessed for {self.container_name} by {interaction.user}")
 
-        except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound, docker.errors.APIError, docker.errors.DockerException) as e:
+        except (RuntimeError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound, docker.errors.APIError, docker.errors.DockerException) as e:
             logger.error(f"Error in password validation modal: {e}", exc_info=True)
 
             if not interaction.response.is_done():
