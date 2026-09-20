@@ -493,7 +493,15 @@ class ProtectedInfoModal(discord.ui.Modal):
                     ephemeral=True
                 )
 
-        except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+        # IOError/OSError/PermissionError and the docker errors belong here just as
+        # much as in the sibling modal a hundred lines up, which catches them for the
+        # same call: config/ is deliberately locked down, so a save that cannot write
+        # is a real case. Without them the exception left the callback and the user
+        # saw Discord's own "The application did not respond" - no word on whether
+        # the secret had been saved (review B19).
+        except (IOError, OSError, PermissionError, RuntimeError, asyncio.CancelledError,
+                asyncio.TimeoutError, discord.Forbidden, discord.HTTPException,
+                discord.NotFound, docker.errors.APIError, docker.errors.DockerException) as e:
             logger.error(f"Error in protected info modal submission: {e}", exc_info=True)
 
             if not interaction.response.is_done():
