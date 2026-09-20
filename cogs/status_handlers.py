@@ -679,7 +679,6 @@ class StatusHandlersMixin:
             logger.error(f"[_GEN_EMBED] No docker_name found in server_conf for display_name '{display_name}'!")
             docker_name = display_name  # Fallback to display_name if no docker_name available
 
-        cached_entry = self.status_cache_service.get(docker_name)
         now = datetime.now(timezone.utc)
 
         # --- Check for pending action first --- (Moved before status_result processing)
@@ -736,6 +735,12 @@ class StatusHandlersMixin:
                     del self.pending_actions[docker_name]
 
         # --- Determine status_result (from cache or live) ---
+        # Read AFTER the pending handling above: it fetches the container's current
+        # status when a pending action passes its timeout and writes it into the
+        # cache. Reading the entry before that block meant the message showed the
+        # state from BEFORE the action - or "loading" when there was no entry at all
+        # (review B9).
+        cached_entry = self.status_cache_service.get(docker_name)
         if cached_entry:
             cache_age = (now - cached_entry['timestamp']).total_seconds()
             # PATIENT APPROACH: ALWAYS use cache if available - background collects fresh data
