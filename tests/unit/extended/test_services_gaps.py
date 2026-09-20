@@ -2405,8 +2405,13 @@ class TestMechDataStoreGaps:
                 evolution_data={},
                 progress_data={},
             )
-        # Falls back to safe defaults
-        assert bars.Power_max_for_level == 50
+        # Until 2026-09-20 this pinned "Power_max_for_level == 50" - a number
+        # nobody measured, sitting next to a progress bar that read 0 % from the
+        # same failure while the evolution half claimed 100 %. Not measured is
+        # None (review C24).
+        assert bars.Power_max_for_level is None
+        assert bars.mech_progress_current is None
+        assert bars.mech_progress_max is None
 
     def test_get_core_mech_data_failure_returns_error_dict(self):
         store = self._store()

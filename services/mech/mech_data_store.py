@@ -40,10 +40,11 @@ logger = logging.getLogger(__name__)
 @dataclass
 class BarsCompat:
     """Legacy compatibility object for bars data."""
+    # Optional: None means "not measured", never a stand-in number (review C24).
     Power_current: float = 0.0  # Support decimal power values (e.g. 0.99)
-    Power_max_for_level: int = 100
-    mech_progress_current: float = 0.0  # Changed to float for decimal values
-    mech_progress_max: float = 20.0  # Changed to float for decimal values
+    Power_max_for_level: Optional[int] = 100
+    mech_progress_current: Optional[float] = 0.0  # Changed to float for decimal values
+    mech_progress_max: Optional[float] = 20.0  # Changed to float for decimal values
 
 
 # ============================================================================ #
@@ -126,9 +127,10 @@ class MechDataResult:
     is_immortal: bool = False
 
     # Progression data
-    progress_current: int = 0
-    progress_max: int = 20
-    progress_percentage: float = 0.0
+    # Optional: None means "not measured" (review C24).
+    progress_current: Optional[int] = 0
+    progress_max: Optional[int] = 20
+    progress_percentage: Optional[float] = 0.0
 
     # Technical data
     evolution_mode: str = "dynamic"  # "dynamic" or "static"
@@ -160,9 +162,10 @@ class PowerDataResult:
     success: bool
     current_power: float = 0.0
     total_donated: float = 0.0
-    progress_current: int = 0
-    progress_max: int = 20
-    progress_percentage: float = 0.0
+    # Optional: None means "not measured" (review C24).
+    progress_current: Optional[int] = 0
+    progress_max: Optional[int] = 20
+    progress_percentage: Optional[float] = 0.0
     error: Optional[str] = None
 
 @dataclass(frozen=True)
@@ -589,8 +592,12 @@ class MechDataStore:
                 'level_name': f"Level {core_data['level']}",
                 'next_level': core_data['level'] + 1,
                 'next_level_name': 'Next Level',
-                'next_threshold': 0,
-                'amount_needed': 0
+                # None, not 0. Zero is a LEGITIMATE state here - "there is no
+                # next level" - and _calculate_progress_data reads it as exactly
+                # that, so a lookup that failed used to be displayed as a fully
+                # evolved mech at 100 % (review C24).
+                'next_threshold': None,
+                'amount_needed': None
             }
         except (ValueError, TypeError, KeyError) as e:
             # Data access/calculation errors
@@ -599,8 +606,12 @@ class MechDataStore:
                 'level_name': f"Level {core_data['level']}",
                 'next_level': core_data['level'] + 1,
                 'next_level_name': 'Next Level',
-                'next_threshold': 0,
-                'amount_needed': 0
+                # None, not 0. Zero is a LEGITIMATE state here - "there is no
+                # next level" - and _calculate_progress_data reads it as exactly
+                # that, so a lookup that failed used to be displayed as a fully
+                # evolved mech at 100 % (review C24).
+                'next_threshold': None,
+                'amount_needed': None
             }
 
     def _calculate_speed_data(self, core_data: Dict[str, Any], language: str,
@@ -686,6 +697,16 @@ class MechDataStore:
         try:
             current_threshold = 0
             next_threshold = evolution_data['next_threshold']
+
+            if next_threshold is None:
+                # The evolution lookup failed. Not measured is None - the same
+                # answer the container stats give since review C1 - so nothing
+                # downstream can mistake it for a number (review C24).
+                return {
+                    'progress_current': None,
+                    'progress_max': None,
+                    'progress_percentage': None
+                }
 
             # Calculate how much progress towards next level
             if next_threshold > 0:
@@ -861,21 +882,29 @@ class MechDataStore:
             # Service dependency errors (progress service unavailable)
             self.logger.error(f"Service dependency error in _calculate_power_bars: {e}", exc_info=True)
             # Return safe fallback values
+            # Not "safe fallback" - invented. 50 and 0/100 are numbers nobody
+            # measured, and the 0/100 read as 0 % right next to a progress_
+            # percentage that claimed 100 % from the very same failure
+            # (review C24).
             return BarsCompat(
                 Power_current=core_data.get('power', 0.0),
-                Power_max_for_level=50,  # Safe fallback
-                mech_progress_current=0,
-                mech_progress_max=100
+                Power_max_for_level=None,
+                mech_progress_current=None,
+                mech_progress_max=None
             )
         except (ValueError, TypeError, KeyError) as e:
             # Data access errors
             self.logger.error(f"Data error in _calculate_power_bars: {e}", exc_info=True)
             # Return safe fallback values
+            # Not "safe fallback" - invented. 50 and 0/100 are numbers nobody
+            # measured, and the 0/100 read as 0 % right next to a progress_
+            # percentage that claimed 100 % from the very same failure
+            # (review C24).
             return BarsCompat(
                 Power_current=core_data.get('power', 0.0),
-                Power_max_for_level=50,  # Safe fallback
-                mech_progress_current=0,
-                mech_progress_max=100
+                Power_max_for_level=None,
+                mech_progress_current=None,
+                mech_progress_max=None
             )
 
 
