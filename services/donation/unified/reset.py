@@ -21,6 +21,7 @@ from services.donation.unified.processors import clear_mech_cache
 from services.donation.unified import events
 from services.mech.progress_paths import ProgressPaths, get_progress_paths
 from services.exceptions import MechServiceError
+from utils.atomic_io import atomic_write_text
 
 
 def reset_donations(
@@ -131,12 +132,14 @@ def _backup_before_reset(paths: ProgressPaths) -> Path:
 def _clear_event_log(paths: ProgressPaths) -> None:
     event_log = paths.event_log
     if event_log.exists():
+        # Deliberate truncation to empty - this IS the reset, so there is
+        # nothing an atomic swap could protect (review C25).
         event_log.write_text("", encoding="utf-8")
 
 
 def _reset_sequence_counter(paths: ProgressPaths) -> None:
     seq_file = paths.seq_file
-    seq_file.write_text("0", encoding="utf-8")
+    atomic_write_text(seq_file, "0")
 
 
 def _write_fresh_snapshot(paths: ProgressPaths) -> None:

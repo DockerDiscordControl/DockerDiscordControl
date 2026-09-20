@@ -32,6 +32,7 @@ datetime, timedelta, timezone, time = get_datetime_imports()
 # Import time class from datetime module as datetime_time to avoid conflict
 from datetime import time as datetime_time
 import pytz
+from utils.atomic_io import atomic_write_text
 
 json, _using_ujson = import_ujson()
 uvloop, _using_uvloop = import_uvloop()
@@ -1136,7 +1137,7 @@ def load_tasks() -> List[ScheduledTask]:
         # Create empty tasks file
         try:
             _runtime.ensure_layout()
-            TASKS_FILE_PATH.write_text("[]", encoding="utf-8")
+            atomic_write_text(TASKS_FILE_PATH, "[]")
             _runtime.record_current_file_state()
             logger.info("Created empty tasks file at %s", TASKS_FILE_PATH)
         except (IOError, OSError, PermissionError) as e:
@@ -1593,7 +1594,7 @@ def pause_long_dead_tasks_once(now_ts: Optional[float] = None) -> int:
     }
     try:
         _runtime.ensure_layout()
-        state_path.write_text(json.dumps(state, indent=4), encoding='utf-8')
+        atomic_write_text(state_path, json.dumps(state, indent=4))
     except (OSError, TypeError, ValueError) as e:
         logger.warning(f"Could not write {state_path}: {e}; the check for long-dead tasks runs again at the next start")
 

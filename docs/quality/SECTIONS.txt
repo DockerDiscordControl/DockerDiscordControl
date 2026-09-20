@@ -85,7 +85,7 @@ services/docker_service/status_cache_runtime.py:1-101
 services/docker_status/__init__.py:1-34
 services/docker_status/fetch_service.py:1-251
 
-## Section 17  (1742 lines, 13 pieces)
+## Section 17  (1745 lines, 13 pieces)
 services/docker_status/models.py:1-376
 services/docker_status/performance_service.py:1-234
 services/donation/__init__.py:1-24
@@ -98,7 +98,7 @@ services/donation/unified/events.py:1-86
 services/donation/unified/member_count.py:1-38
 services/donation/unified/models.py:1-97
 services/donation/unified/processors.py:1-61
-services/donation/unified/reset.py:1-174
+services/donation/unified/reset.py:1-177
 
 ## Section 18  (1579 lines, 8 pieces)
 services/donation/unified/service.py:1-468
@@ -133,8 +133,8 @@ services/mech/mech_defaults.py:1-34
 services/mech/mech_evolutions.py:1-417
 services/mech/mech_high_res_service.py:1-248
 
-## Section 23  (1947 lines, 10 pieces)
-services/mech/mech_reset_service.py:1-376
+## Section 23  (1955 lines, 10 pieces)
+services/mech/mech_reset_service.py:1-378
 services/mech/mech_service.py:1-32
 services/mech/mech_service_adapter.py:1-300
 services/mech/mech_state_manager.py:1-161
@@ -142,8 +142,8 @@ services/mech/mech_status_cache_service.py:1-445
 services/mech/mech_story_service.py:1-194
 services/mech/monthly_member_cache.py:1-81
 services/mech/progress/__init__.py:1-17
-services/mech/progress/runtime.py:1-153
-services/mech/progress_paths.py:1-188
+services/mech/progress/runtime.py:1-158
+services/mech/progress_paths.py:1-189
 
 ## Section 24  (1585 lines, 1 pieces)
 services/mech/progress_service.py:1-1585
@@ -160,8 +160,8 @@ services/scheduling/schedule_helpers.py:1-71
 ## Section 26  (1995 lines, 1 pieces)
 services/scheduling/scheduler.py:1-1995
 
-## Section 27  (1579 lines, 6 pieces)
-services/scheduling/scheduler.py:1996-2165
+## Section 27  (1580 lines, 6 pieces)
+services/scheduling/scheduler.py:1996-2166
 services/scheduling/scheduler_service.py:1-552
 services/status/__init__.py:1-13
 services/status/status_cache_service.py:1-225

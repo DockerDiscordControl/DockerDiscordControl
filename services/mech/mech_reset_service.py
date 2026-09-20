@@ -238,8 +238,10 @@ class MechResetService:
                 "last_updated": datetime.now().isoformat()
             }
 
-            with open(self.evolution_mode_file, 'w', encoding='utf-8') as f:
-                json.dump(evolution_data, f, indent=2, ensure_ascii=False)
+            # A plain open(..., 'w') truncates the target the moment it opens;
+            # the sibling write in this same file already went through the
+            # atomic helper and this one did not (review C25).
+            atomic_write_json(self.evolution_mode_file, evolution_data)
 
             logger.info("Reset evolution mode to defaults")
             return ResetResult(success=True, message="Evolution mode reset to defaults")

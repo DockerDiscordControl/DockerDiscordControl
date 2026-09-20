@@ -25,6 +25,7 @@ from threading import Lock
 from typing import Optional
 
 from services.config.config_service import ConfigService, GetConfigRequest
+from utils.atomic_io import atomic_write_text
 
 logger = logging.getLogger("ddc.progress_paths")
 
@@ -67,7 +68,7 @@ class ProgressPaths:
 
         seq_file = base_dir / "last_seq.txt"
         if create_missing and not seq_file.exists():
-            seq_file.write_text("0", encoding="utf-8")
+            atomic_write_text(seq_file, "0")
 
         config_file = base_dir / "config.json"
         member_count_file = _resolve_member_count_path(base_dir)
