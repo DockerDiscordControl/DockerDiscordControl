@@ -611,8 +611,12 @@ class StatusHandlersMixin:
                 if details_allowed:
                     stats_dict = await get_docker_stats_service_first(docker_name)
                     if stats_dict and isinstance(stats_dict, dict):
-                        cpu_percent = stats_dict.get('cpu_percent', 0.0)
-                        memory_mb = stats_dict.get('memory_usage_mb', 0.0)
+                        # No default: a key that is not there was not measured, and the
+                        # line below turns that into 'N/A'. With 0.0 it used to read like
+                        # an idle container instead - a number nobody measured, and one the
+                        # bulk path shows as N/A for the same answer (review B20).
+                        cpu_percent = stats_dict.get('cpu_percent')
+                        memory_mb = stats_dict.get('memory_usage_mb')
                         cpu = f"{cpu_percent:.1f}%" if cpu_percent is not None else 'N/A'
                         ram = f"{memory_mb:.1f} MB" if memory_mb is not None else 'N/A'
                     else:
