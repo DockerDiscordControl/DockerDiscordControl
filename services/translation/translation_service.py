@@ -609,10 +609,12 @@ class TranslationService:
 
             # Set first image attachment as embed image, fall back to original embed images
             image_set = False
+            embedded_image_url = None
             for att in context.attachment_urls:
                 ct = att.get('content_type', '')
                 if ct.startswith('image/') and not image_set:
                     embed.set_image(url=att['url'])
+                    embedded_image_url = att['url']
                     image_set = True
                     break
 
@@ -663,7 +665,14 @@ class TranslationService:
             for att in context.attachment_urls:
                 ct = att.get('content_type', '')
                 filename = att.get('filename', 'file')
-                if ct.startswith('video/') or (ct.startswith('image/') and not image_set):
+                # Not "was any image embedded" but "is THIS the embedded one".
+                # image_set is a flag about the loop above and is already True
+                # here for every attachment, so the second and every further
+                # image fell through both branches: not embedded, not uploaded,
+                # not linked, not logged - simply gone from the forwarded post
+                # (review C12).
+                if ct.startswith('video/') or (ct.startswith('image/')
+                                               and att['url'] != embedded_image_url):
                     try:
                         async with session.get(att['url'], timeout=aiohttp.ClientTimeout(total=30)) as resp:
                             if resp.status == 200:

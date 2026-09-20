@@ -126,8 +126,8 @@ services/mech/__init__.py:1-30
 ## Section 21  (1813 lines, 1 pieces)
 services/mech/animation_cache_service.py:1-1813
 
-## Section 22  (1972 lines, 5 pieces)
-services/mech/mech_data_store.py:1-886
+## Section 22  (1979 lines, 5 pieces)
+services/mech/mech_data_store.py:1-893
 services/mech/mech_defaults.py:1-34
 services/mech/mech_display_cache_service.py:1-387
 services/mech/mech_evolutions.py:1-417
@@ -168,8 +168,8 @@ services/status/status_cache_service.py:1-225
 services/translation/__init__.py:1-12
 services/translation/translation_config_service.py:1-607
 
-## Section 28  (1838 lines, 4 pieces)
-services/translation/translation_service.py:1-741
+## Section 28  (1847 lines, 4 pieces)
+services/translation/translation_service.py:1-750
 services/web/__init__.py:1-12
 services/web/configuration_page_service.py:1-554
 services/web/configuration_save_service.py:1-531
