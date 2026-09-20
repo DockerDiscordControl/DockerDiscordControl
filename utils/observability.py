@@ -471,8 +471,13 @@ class TracingManager:
 
             try:
                 yield span
-            except (RuntimeError) as e:
-                # Record exception in span
+            except Exception as e:  # noqa: BLE001
+                # Broad on purpose: the point is to mark a span that FAILED, and
+                # an operation can fail with anything. `except (RuntimeError)`
+                # left every ValueError, KeyError and DDC exception unmarked, so
+                # the exported trace showed the span as successful while the
+                # operation had failed (review C37). CancelledError derives from
+                # BaseException and still passes through, as it must.
                 span.set_status(Status(StatusCode.ERROR))
                 span.record_exception(e)
                 raise
