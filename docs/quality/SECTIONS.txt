@@ -100,9 +100,9 @@ services/donation/unified/models.py:1-97
 services/donation/unified/processors.py:1-61
 services/donation/unified/reset.py:1-177
 
-## Section 18  (1579 lines, 8 pieces)
+## Section 18  (1586 lines, 8 pieces)
 services/donation/unified/service.py:1-468
-services/donation/unified/validation.py:1-37
+services/donation/unified/validation.py:1-44
 services/donation/unified_donation_service.py:1-31
 services/exceptions.py:1-299
 services/infrastructure/__init__.py:1-0
@@ -144,8 +144,8 @@ services/mech/progress/__init__.py:1-17
 services/mech/progress/runtime.py:1-158
 services/mech/progress_paths.py:1-189
 
-## Section 24  (1639 lines, 1 pieces)
-services/mech/progress_service.py:1-1639
+## Section 24  (1649 lines, 1 pieces)
+services/mech/progress_service.py:1-1649
 
 ## Section 25  (1263 lines, 7 pieces)
 services/mech/speed_levels.py:1-427

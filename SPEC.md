@@ -513,6 +513,17 @@ them on real data (`migrate_to_modular.sh`, `reset_mech.sh`).
 *Decided by the operator on 2026-09-19.* The two side findings on `reset_mech.sh` (dead code after
 `exit 1`, a reference to a non-existent `safe_reset_mech.py`) are not covered by this exemption.
 
+**B14 — A single donation may be at most $10,000.00, and more is refused, not trimmed.**
+`add_donation` had no upper bound of its own: only `units_cents <= 0` was rejected, while
+`add_system_donation` capped at $1,000 and `apply_donation_units` silently clamped power at
+MAX_POWER and the cumulative total at MAX_CUMULATIVE - inside the power maths, where nobody is
+told. A mistyped or malicious amount therefore entered the ledger and was quietly reshaped
+afterwards. *Decided by the operator on 2026-09-21 (review D2):* the limit is $10,000.00 per
+donation, and an amount above it is **refused**. Trimming would charge the donor for something
+the ledger did not record. The number lives in two places - `progress_service.MAX_DONATION` for
+the ledger and `unified/validation.MAX_DONATION_DOLLARS` so the panel can say it before the
+ledger is touched - and `tests/spec/test_a_donation_has_an_upper_limit.py` holds the two in step.
+
 ---
 
 ## Rules of the quality programme

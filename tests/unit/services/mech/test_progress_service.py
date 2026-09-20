@@ -354,9 +354,15 @@ def test_add_donation_triggers_level_up(progress_env):
 
 
 def test_add_donation_huge_amount_caps_at_level_11(progress_env):
-    """A massive donation cannot push level beyond 11."""
+    """The largest donation allowed cannot push level beyond 11.
+
+    This used to donate $100,000 in one go. Since review D2 a single donation
+    is capped at $10,000.00 (SPEC.md B14) and more is refused, so the amount
+    changed; the promise under test - level 11 is the ceiling, however much
+    arrives at once - did not.
+    """
     svc = progress_env.ProgressService("huge")
-    state = svc.add_donation(100000.0, donor="whale")
+    state = svc.add_donation(progress_env.MAX_DONATION / 100, donor="whale")
     assert state.level == 11
 
 

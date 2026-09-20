@@ -934,6 +934,13 @@ def apply_donation_units(snap: Snapshot, units_cents: int, *, events: Optional[L
     return snap, level_up_events, bonus_event
 
 
+# The most a single donation may be, decided by the operator on 2026-09-21
+# (review D2). add_donation had no upper bound of its own at all: a mistyped or
+# malicious amount went into the ledger and was only silently clamped
+# afterwards, inside the power maths, where nobody is told. Refused, never
+# trimmed - a trimmed amount would charge the donor for something the ledger
+# did not record.
+MAX_DONATION = 1000000  # $10,000.00 per donation
 MAX_POWER = 10000000  # $100,000 max power
 MAX_CUMULATIVE = 100000000  # $1,000,000 max cumulative
 
@@ -1097,6 +1104,9 @@ class ProgressService:
         units_cents = int(round(amount_dollars * 100))
         if units_cents <= 0:
             raise ValueError("Donation amount must be positive")
+        if units_cents > MAX_DONATION:
+            raise ValueError(f"Donation of ${amount_dollars:,.2f} exceeds the maximum of "
+                             f"${MAX_DONATION / 100:,.2f} per donation - nothing was booked")
 
         # Generate idempotency key if not provided
         if idempotency_key is None:
