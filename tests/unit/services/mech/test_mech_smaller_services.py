@@ -12,7 +12,6 @@ Covers:
     * services.mech.mech_display_cache_service
     * services.mech.mech_high_res_service
     * services.mech.mech_story_service
-    * services.mech.monthly_member_cache
     * services.mech.mech_evolutions  (filling coverage gaps around the
                                        lookup helpers)
 
@@ -558,124 +557,6 @@ class TestMechStoryLoading:
         svc = MechStoryService()
         assert svc.story_dir.name == "stories"
         assert svc.story_dir.parent.name == "mech"
-
-
-# ===========================================================================
-# monthly_member_cache
-# ===========================================================================
-
-from services.mech.monthly_member_cache import (  # noqa: E402
-    MonthlyMemberCache,
-    get_monthly_member_cache,
-)
-
-
-class TestMonthlyMemberCache:
-    def test_default_when_no_cache_file(self, tmp_path):
-        cache = MonthlyMemberCache()
-        cache.cache_file = tmp_path / "missing.json"
-        cache._cache_data = None
-        assert cache.get_member_count() == 50
-
-    def test_reads_cache_file(self, tmp_path):
-        path = tmp_path / "cache.json"
-        path.write_text(
-            json.dumps(
-                {
-                    "member_count": 123,
-                    "timestamp": "2025-09-12T13:56:30",
-                    "month_year": "2025-09",
-                }
-            ),
-            encoding="utf-8",
-        )
-        cache = MonthlyMemberCache()
-        cache.cache_file = path
-        cache._cache_data = None
-        assert cache.get_member_count() == 123
-        info = cache.get_cache_info()
-        assert info["total_members"] == 123
-        assert info["month_year"] == "2025-09"
-        assert info["last_updated"] == "2025-09-12T13:56:30"
-
-    def test_handles_corrupt_json(self, tmp_path):
-        path = tmp_path / "cache.json"
-        path.write_text("{not-json", encoding="utf-8")
-        cache = MonthlyMemberCache()
-        cache.cache_file = path
-        cache._cache_data = None
-        # Falls back to default member_count of 50
-        assert cache.get_member_count() == 50
-
-    def test_caches_across_calls(self, tmp_path):
-        path = tmp_path / "cache.json"
-        path.write_text(json.dumps({"member_count": 77}), encoding="utf-8")
-        cache = MonthlyMemberCache()
-        cache.cache_file = path
-        cache._cache_data = None
-        first = cache.get_member_count()
-        # Mutate file, but cached value should not change.
-        path.write_text(json.dumps({"member_count": 999}), encoding="utf-8")
-        second = cache.get_member_count()
-        assert first == 77
-        assert second == 77
-
-    def test_get_member_count_for_level_returns_same_count(self, tmp_path):
-        path = tmp_path / "cache.json"
-        path.write_text(json.dumps({"member_count": 42}), encoding="utf-8")
-        cache = MonthlyMemberCache()
-        cache.cache_file = path
-        cache._cache_data = None
-        assert cache.get_member_count_for_level(1) == 42
-        assert cache.get_member_count_for_level(11) == 42
-
-    def test_cache_info_uses_unknown_when_field_missing(self, tmp_path):
-        path = tmp_path / "cache.json"
-        path.write_text(json.dumps({}), encoding="utf-8")
-        cache = MonthlyMemberCache()
-        cache.cache_file = path
-        cache._cache_data = None
-        info = cache.get_cache_info()
-        assert info["last_updated"] == "Unknown"
-        assert info["total_members"] == 50
-
-    def test_singleton_helper(self):
-        a = get_monthly_member_cache()
-        b = get_monthly_member_cache()
-        assert a is b
-
-    def test_handles_io_error_on_open(self, tmp_path, monkeypatch):
-        path = tmp_path / "cache.json"
-        path.write_text(json.dumps({"member_count": 12}), encoding="utf-8")
-        cache = MonthlyMemberCache()
-        cache.cache_file = path
-        cache._cache_data = None
-
-        # Patch builtins.open used by _load_cache so it raises OSError.
-        import builtins
-        real_open = builtins.open
-
-        def fake_open(target, *args, **kwargs):
-            if str(target) == str(path):
-                raise OSError("permission denied")
-            return real_open(target, *args, **kwargs)
-
-        monkeypatch.setattr(builtins, "open", fake_open)
-        # Falls back to default member_count of 50.
-        assert cache.get_member_count() == 50
-
-    def test_handles_typeerror_on_load(self, tmp_path, monkeypatch):
-        path = tmp_path / "cache.json"
-        path.write_text(json.dumps({"member_count": 12}), encoding="utf-8")
-        cache = MonthlyMemberCache()
-        cache.cache_file = path
-        cache._cache_data = None
-
-        # Force json.load to raise a TypeError (data structure error path).
-        import services.mech.monthly_member_cache as mod
-
-        monkeypatch.setattr(mod.json, "load", lambda *a, **k: (_ for _ in ()).throw(TypeError("bad")))
-        assert cache.get_member_count() == 50
 
 
 # ===========================================================================
