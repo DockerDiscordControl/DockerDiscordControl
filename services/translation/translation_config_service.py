@@ -474,11 +474,15 @@ class TranslationConfigService:
 
     def add_pair(self, pair_data: Dict[str, Any]) -> ConfigResult:
         """Add a new channel pair with validation. Thread-safe."""
+        # Sanitise FIRST, then validate. The other way round, the validator
+        # enforced "Pair name is required" on a name that the sanitiser then
+        # emptied - "<<>>" passed the check and was saved as a pair with no
+        # name at all (review C52).
+        pair_data['name'] = sanitize_string(pair_data.get('name', ''), MAX_PAIR_NAME_LENGTH)
+
         is_valid, error_msg, warnings = validate_pair_data(pair_data)
         if not is_valid:
             return ConfigResult(success=False, error=f"Validation failed: {error_msg}")
-
-        pair_data['name'] = sanitize_string(pair_data.get('name', ''), MAX_PAIR_NAME_LENGTH)
         if 'id' not in pair_data or not pair_data['id']:
             pair_data['id'] = str(uuid.uuid4())
         pair_data['metadata'] = {
@@ -513,11 +517,12 @@ class TranslationConfigService:
 
     def update_pair(self, pair_id: str, pair_data: Dict[str, Any]) -> ConfigResult:
         """Update an existing channel pair. Thread-safe."""
+        # Same order as add_pair, for the same reason (review C52).
+        pair_data['name'] = sanitize_string(pair_data.get('name', ''), MAX_PAIR_NAME_LENGTH)
+
         is_valid, error_msg, warnings = validate_pair_data(pair_data)
         if not is_valid:
             return ConfigResult(success=False, error=f"Validation failed: {error_msg}")
-
-        pair_data['name'] = sanitize_string(pair_data.get('name', ''), MAX_PAIR_NAME_LENGTH)
 
         with self._file_lock:
             try:
