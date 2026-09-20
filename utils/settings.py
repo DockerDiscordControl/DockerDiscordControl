@@ -39,6 +39,10 @@ from typing import Any, Callable
 logger = logging.getLogger('ddc.settings')
 
 
+_TRUE_WORDS = ('true', '1', 'yes', 'on')
+_FALSE_WORDS = ('false', '0', 'no', 'off')
+
+
 def get_setting(key: str, default: Any, value_type: Callable[[Any], Any] = int) -> Any:
     """Read ``key`` from the Advanced Settings, falling back to the environment.
 
@@ -85,7 +89,18 @@ def _convert(key: str, raw_value: Any, value_type: Callable[[Any], Any], default
         if value_type is bool:
             if isinstance(raw_value, bool):
                 return raw_value
-            return str(raw_value).strip().lower() in ('true', '1', 'yes', 'on')
+            # Both sides are named. `in _TRUE_WORDS` alone never raises, so the
+            # warning below was unreachable for bool and every value the list
+            # did not know - a typo, an empty field, "enabled" - quietly became
+            # False. An Advanced Setting whose default is True was switched OFF
+            # by a typo with nothing in the log, which is the very thing this
+            # module was written to remove (review C10).
+            word = str(raw_value).strip().lower()
+            if word in _TRUE_WORDS:
+                return True
+            if word in _FALSE_WORDS:
+                return False
+            raise ValueError(f"not a yes/no value: {raw_value!r}")
         return value_type(raw_value)
     except (TypeError, ValueError):
         logger.warning(

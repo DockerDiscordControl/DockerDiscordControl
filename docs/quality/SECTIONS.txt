@@ -260,11 +260,11 @@ utils/config_paths.py:1-47
 utils/import_utils.py:1-160
 utils/key_crypto.py:1-79
 
-## Section 36  (1907 lines, 5 pieces)
-utils/logging_utils.py:1-467
+## Section 36  (1993 lines, 5 pieces)
+utils/logging_utils.py:1-538
 utils/observability.py:1-579
 utils/performance_metrics.py:1-389
-utils/settings.py:1-98
+utils/settings.py:1-113
 utils/time_utils.py:1-374
 
 ## Section 37  (318 lines, 1 pieces)
