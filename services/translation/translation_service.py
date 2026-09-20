@@ -572,7 +572,13 @@ class TranslationService:
             content_lower = context.content.lower() if context.content else ""
             for et in context.embed_texts:
                 et_lower = et.lower()
-                # Only filter if embed text covers >50% of content (real duplicate)
+                # Drop an embed text that is CONTAINED IN the message, in full,
+                # and long enough not to be an accident - nothing is lost by it,
+                # because every character is already in the message above. The
+                # comment here used to promise a ">50% coverage" ratio that the
+                # line never computed; the behaviour was right and the comment
+                # was not (review C49, section 28 F7, reported as a defect and
+                # refuted as one).
                 if content_lower and len(et_lower) > 20 and et_lower in content_lower:
                     continue
                 parts.append(et)
