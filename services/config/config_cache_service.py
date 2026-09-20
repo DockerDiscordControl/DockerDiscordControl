@@ -106,11 +106,17 @@ class ConfigCacheService:
         """
         cache_key = hashlib.sha256(f"{encrypted_token}{password_hash}".encode()).hexdigest()
 
-        if self._token_cache_hash == cache_key and self._token_cache:
-            logger.debug("Token cache hit")
-            return self._token_cache
+        # Under the lock, like every other method of this class - including
+        # invalidate_cache(), which clears these very two fields. Unguarded, a
+        # reader could catch set_cached_token() between its two writes and hand
+        # out the new token next to the old hash: a decrypted bot token for the
+        # wrong key (review B35).
+        with self._cache_lock:
+            if self._token_cache_hash == cache_key and self._token_cache:
+                logger.debug("Token cache hit")
+                return self._token_cache
 
-        return None
+            return None
 
     def set_cached_token(self, encrypted_token: str, password_hash: str, decrypted_token: str) -> None:
         """
@@ -122,12 +128,15 @@ class ConfigCacheService:
             decrypted_token: Decrypted token to cache
         """
         cache_key = hashlib.sha256(f"{encrypted_token}{password_hash}".encode()).hexdigest()
-        self._token_cache = decrypted_token
-        self._token_cache_hash = cache_key
+        # Token and hash belong together - see get_cached_token (review B35).
+        with self._cache_lock:
+            self._token_cache = decrypted_token
+            self._token_cache_hash = cache_key
         logger.debug("Token cached successfully")
 
     def clear_token_cache(self) -> None:
         """Clear token cache only."""
-        self._token_cache = None
-        self._token_cache_hash = None
+        with self._cache_lock:
+            self._token_cache = None
+            self._token_cache_hash = None
         logger.debug("Token cache cleared")
