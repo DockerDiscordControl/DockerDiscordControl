@@ -25,6 +25,19 @@ logger = get_module_logger('enhanced_info_modal_simple')
 
 # Pre-compiled regex for IP validation
 
+def _info_summary(info: dict) -> str:
+    """What a log line may say about a container's info: names, never values.
+
+    Both modals used to log the whole dict at INFO on every open, including
+    protected_password and protected_content in plain text - and the action log is
+    downloadable from the web panel (SPEC.md Z9 in spirit, review B7).
+    """
+    return (f"enabled={bool(info.get('enabled'))}, show_ip={bool(info.get('show_ip'))}, "
+            f"text={'yes' if info.get('custom_text') else 'no'}, "
+            f"protected={'yes' if info.get('protected_enabled') else 'no'}, "
+            f"password={'set' if info.get('protected_password') else 'unset'}")
+
+
 class SimplifiedContainerInfoModal(discord.ui.Modal):
     """Simplified modal with all options in one dialog."""
 
@@ -55,7 +68,7 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
         self.container_info = {}
         if container_data:
             self.container_info = container_data.get('info', {})
-            logger.info(f"Loaded info for {container_name}: {self.container_info}")
+            logger.info(f"Loaded info for {container_name}: {_info_summary(self.container_info)}")
         else:
             logger.warning(f"Container configuration not found for: {container_name}")
             self.container_info = {}
@@ -333,7 +346,7 @@ class ProtectedInfoModal(discord.ui.Modal):
         self.container_info = {}
         if container_data:
             self.container_info = container_data.get('info', {})
-            logger.info(f"Loaded protected info for {container_name}: {self.container_info}")
+            logger.info(f"Loaded protected info for {container_name}: {_info_summary(self.container_info)}")
         else:
             logger.warning(f"Container configuration not found for: {container_name}")
             self.container_info = {}
