@@ -123,8 +123,8 @@ services/infrastructure/spam_protection_service.py:1-504
 services/infrastructure/update_notifier.py:1-213
 services/mech/__init__.py:1-30
 
-## Section 21  (1819 lines, 1 pieces)
-services/mech/animation_cache_service.py:1-1819
+## Section 21  (1828 lines, 1 pieces)
+services/mech/animation_cache_service.py:1-1828
 
 ## Section 22  (1979 lines, 5 pieces)
 services/mech/mech_data_store.py:1-893
@@ -174,8 +174,8 @@ services/web/__init__.py:1-12
 services/web/configuration_page_service.py:1-554
 services/web/configuration_save_service.py:1-531
 
-## Section 29  (1833 lines, 7 pieces)
-services/web/container_log_service.py:1-457
+## Section 29  (1838 lines, 7 pieces)
+services/web/container_log_service.py:1-462
 services/web/container_refresh_service.py:1-201
 services/web/diagnostics_service.py:1-263
 services/web/donation_service.py:1-290

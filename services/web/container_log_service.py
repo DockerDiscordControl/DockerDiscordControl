@@ -190,8 +190,13 @@ class ContainerLogService:
             else:
                 return self._get_action_logs_text(request.limit)
 
-        except (AttributeError, TypeError, ValueError, RuntimeError) as e:
-            # Data/service errors (invalid format type, type errors, runtime errors)
+        except (ImportError, OSError, AttributeError, TypeError, ValueError, RuntimeError) as e:
+            # A superset of what the two helpers re-raise. They catch
+            # (ImportError, AttributeError, OSError, TypeError[, ValueError]),
+            # log, and raise on purpose - leaving the answer to this clause. But
+            # ImportError and OSError were missing here, so exactly the two
+            # failures they were written to hand upwards left the service
+            # uncaught instead of becoming the polite 500 below (review C23).
             self.logger.error(f"Service error retrieving action logs: {e}", exc_info=True)
             return LogResult(
                 success=False,
