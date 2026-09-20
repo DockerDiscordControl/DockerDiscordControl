@@ -35,11 +35,11 @@ cogs/enhanced_info_modal_simple.py:1-665
 ## Section 08  (1351 lines, 1 pieces)
 cogs/status_handlers.py:1-1351
 
-## Section 09  (1971 lines, 1 pieces)
-cogs/status_info_integration.py:1-1971
+## Section 09  (1979 lines, 1 pieces)
+cogs/status_info_integration.py:1-1979
 
-## Section 10  (1942 lines, 8 pieces)
-cogs/status_info_integration.py:1972-2610
+## Section 10  (1965 lines, 8 pieces)
+cogs/status_info_integration.py:1980-2641
 cogs/translation_manager.py:1-117
 cogs/translation_monitor.py:1-97
 services/__init__.py:1-51

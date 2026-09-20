@@ -1701,24 +1701,55 @@ class ActionDropdown(discord.ui.Select):
 
         await interaction.response.edit_message(embed=embed, view=self.view)
 
-class SimpleMonthdayDropdown(discord.ui.Select):
-    """Simple dropdown for selecting day of month (1-31 excluding some days)."""
+FIRST_PAGE_LAST_DAY = 24   # 24 days plus the option that turns the page = 25
+LATER_DAYS = "later_days"
+EARLIER_DAYS = "earlier_days"
 
-    def __init__(self):
-        # Days to include (excluding 5,6,11,17,18,26,29)
-        days = [1,2,3,4,7,8,9,10,12,13,14,15,16,19,20,21,22,23,24,25,27,28,30,31]
-        options = []
-        for day in days:
-            options.append(discord.SelectOption(
-                label=f"{day:02d}",
-                value=str(day)
-            ))
+
+class SimpleMonthdayDropdown(discord.ui.Select):
+    """Day of the month, 1-31, in two pages.
+
+    Discord shows at most 25 options in one select, and a month has 31 days.
+    The list used to hold 24 hand-picked days and simply left out the 5th, 6th,
+    11th, 17th, 18th, 26th and 29th - no hint, no reason, and for the 29th and
+    31st no way at all to schedule a task at the end of the month (review B21).
+    Now the first page carries the days 1-24 and a last option that turns to
+    25-31, which in turn offers the way back.
+    """
+
+    def __init__(self, page: int = 1):
+        self.page = page
+        if page == 1:
+            options = [discord.SelectOption(label=f"{day:02d}", value=str(day))
+                       for day in range(1, FIRST_PAGE_LAST_DAY + 1)]
+            # Numbers and an arrow, deliberately without _(): the label carries no
+            # words, so it needs no entry in the 41 catalogs and reads the same in
+            # every language.
+            options.append(discord.SelectOption(label="25 - 31  →", value=LATER_DAYS))
+        else:
+            options = [discord.SelectOption(label="←  1 - 24", value=EARLIER_DAYS)]
+            options += [discord.SelectOption(label=f"{day:02d}", value=str(day))
+                        for day in range(FIRST_PAGE_LAST_DAY + 1, 32)]
 
         # Dynamic row assignment to avoid conflicts
-        super().__init__(placeholder=_("Choose day..."), options=options[:25])
+        super().__init__(placeholder=_("Choose day..."), options=options)
+
+    async def _turn_page(self, interaction: discord.Interaction) -> None:
+        """Swap this dropdown for the other page, in the same row."""
+        row = getattr(self, 'row', None)
+        self.view.remove_item(self)
+        other_page = SimpleMonthdayDropdown(page=2 if self.values[0] == LATER_DAYS else 1)
+        if row is not None:
+            other_page.row = row
+        self.view.add_item(other_page)
+        await interaction.response.edit_message(view=self.view)
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle day selection."""
+        if self.values[0] in (LATER_DAYS, EARLIER_DAYS):
+            await self._turn_page(interaction)
+            return
+
         self.view.selected_day = self.values[0]
 
         # Clear any existing dropdowns after this one
