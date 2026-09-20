@@ -1064,31 +1064,6 @@ class TestDynamicCooldownManager:
         cd = mgr.get_cooldown_for_command("control")
         assert cd is None
 
-    @pytest.mark.asyncio
-    async def test_before_invoke_check_passes_when_disabled(self):
-        mgr = DynamicCooldownManager()
-        mgr.spam_manager = MagicMock()
-        mgr.spam_manager.is_enabled.return_value = False
-        check = mgr.before_invoke_check()
-        # Build a fake ctx
-        ctx = MagicMock()
-        ctx.command.name = "x"
-        ctx.author.id = 99
-        result = await check(ctx)
-        assert result is True
-
-    @pytest.mark.asyncio
-    async def test_before_invoke_check_passes_when_enabled(self):
-        mgr = DynamicCooldownManager()
-        mgr.spam_manager = MagicMock()
-        mgr.spam_manager.is_enabled.return_value = True
-        check = mgr.before_invoke_check()
-        ctx = MagicMock()
-        ctx.command.name = "x"
-        ctx.author.id = 99
-        result = await check(ctx)
-        assert result is True
-
     def test_apply_dynamic_cooldowns_no_compatible_iter(self):
         mgr = DynamicCooldownManager()
         mgr.spam_manager = MagicMock()

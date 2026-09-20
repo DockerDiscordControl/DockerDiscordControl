@@ -25,24 +25,15 @@ class DynamicCooldownManager:
         self.spam_manager = get_spam_protection_service()
         self._cooldown_mappings = {}
 
-    def before_invoke_check(self):
-        """Create a before_invoke hook that checks dynamic cooldowns."""
-        async def check_cooldown(ctx):
-            # Get command name
-            command_name = ctx.command.name
-
-            # Check if spam protection is enabled
-            if not self.spam_manager.is_enabled():
-                return True
-
-            # Get user-specific cooldown tracking
-            user_id = ctx.author.id
-            command_key = f"{command_name}:{user_id}"
-
-            # This is a simplified check - in production you'd implement proper cooldown tracking
-            return True
-
-        return check_cooldown
+    # before_invoke_check() stood here: a method shaped like a
+    # bot.before_invoke guard, which read the command name and the user id,
+    # built a command_key out of them and then returned True regardless. Its
+    # own comment said so ("in production you'd implement proper cooldown
+    # tracking"). Nothing registered it, so nothing was permitted that should
+    # not have been - but the next person to wire it up would have installed a
+    # check that allows everything. The real enforcement is
+    # apply_dynamic_cooldowns below, which puts a CooldownMapping into each
+    # command's _buckets and lets py-cord do the counting (review C61).
 
     def get_cooldown_for_command(self, command_name: str) -> Optional[commands.Cooldown]:
         """Get a Cooldown object for a specific command based on current settings."""
