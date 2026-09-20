@@ -663,6 +663,13 @@ class TestMechStatusCacheService:
         assert service._loop_running is False
 
     def test_stop_background_loop_cancels_task(self, service):
+        # This test plants the task in the field itself, which is why it stayed
+        # green all the while nothing ever put one there - the cancel branch was
+        # unreachable in the running application (review C70). It is kept as the
+        # unit-level check that stopping does cancel what it holds; that the
+        # field is filled at all is asked in
+        # tests/spec/test_stopping_the_loop_stops_the_loop.py, against a loop
+        # that is really running.
         fake_task = MagicMock()
         service._loop_task = fake_task
         service._loop_running = True

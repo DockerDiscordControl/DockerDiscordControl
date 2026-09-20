@@ -251,6 +251,13 @@ class MechStatusCacheService:
             return
 
         self._loop_running = True
+        # The loop body runs inside whatever task the caller created for it, and
+        # this is the only place that knows which one that is. The field used to
+        # be initialised to None and never written, so the cancel in
+        # stop_background_loop() never ran: stopping meant flipping a flag the
+        # loop reads only after its sleep returns - up to a full refresh
+        # interval, 30 s by default (review C70).
+        self._loop_task = asyncio.current_task()
         self.logger.info(f"Starting mech status cache loop (interval: {self._refresh_interval}s, TTL: {self._cache_ttl}s)")
 
         try:
@@ -272,6 +279,7 @@ class MechStatusCacheService:
             self.logger.error(f"Background loop error: {e}", exc_info=True)
         finally:
             self._loop_running = False
+            self._loop_task = None
             self.logger.info("Background loop stopped")
 
     async def _background_refresh(self):
