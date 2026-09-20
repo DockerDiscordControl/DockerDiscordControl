@@ -131,12 +131,20 @@ Three instances of a different model, one section each, chosen by "would the use
 never touched: **13** (configuration service — Z2, Z9, migration), **26** (`scheduler.py` — the
 unconfirmed Z5 exception), **37** (`token_security.py` — Z9).
 
-Since then the review has run in two further stages, each with its own report:
+Since then the review has run in three further stages, each with its own report:
 **stage A** — the eight sensitive sections, money, permissions, containers
 (`reviews/PASS1_STAGE_A.md`); **stage B** — the nine sections the user touches every
 day, sections 03-11 (`reviews/PASS1_STAGE_B.md`): 242 names judged, 40 findings,
 of which **36 fixed, 4 refuted, 0 still open** as of 2026-09-20, plus two things
-found while reading that the report did not have (B17, B22).
+found while reading that the report did not have (B17, B22); **stage C** — the
+remaining seventeen sections, the ones the user does not see
+(`reviews/PASS1_STAGE_C.md`): 86 findings, of which **82 fixed, 2 refuted, 2 made
+moot by an earlier removal, 0 still open** as of 2026-09-21, plus five things found
+while reading that the report did not have (C56, C57, C61, C71, and the
+cancellation class of C60).
+
+With that, every section of the code base has been read once. The test suite
+grew from 4,895 to 5,214 passing tests across the three stages.
 
 **Not a single finding was adopted unchecked.** A second model can be just as wrong as the first;
 the review is the beginning of the work, not its end. That was not caution for form's sake: of the
