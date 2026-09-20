@@ -443,6 +443,11 @@ class AutomationService:
         # Increment trigger count if at least one action succeeded
         if success_count > 0:
             self.config_service.increment_trigger_count(rule.id)
+        else:
+            # Nothing was executed: free the rule's own cooldown, once. The per-container
+            # outcomes no longer touch it - otherwise one failed container wiped the
+            # cooldown the successful one had just set (review B10).
+            self.state_service.release_rule_cooldown(rule.id)
 
         # only_if_running skips were only visible in the history: post ONE notice per rule
         # trigger, same channel and silent handling as the other feedback messages

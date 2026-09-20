@@ -261,6 +261,17 @@ class AutoActionStateService:
                 del self.container_cooldowns[container]
             # Don't reset global_last_triggered as other rules may have set it
 
+    def release_rule_cooldown(self, rule_id: str) -> None:
+        """Free the rule's own cooldown - only when the whole batch did nothing.
+
+        Per-container outcomes go through record_trigger, which never touches the
+        rule's cooldown any more (review B10).
+        """
+        with self._lock:
+            if rule_id in self.rule_cooldowns:
+                self.rule_cooldowns[rule_id] = 0
+                logger.debug(f"AAS: Released rule cooldown for '{rule_id}' - nothing was executed")
+
     def record_trigger(self, rule_id: str, rule_name: str, container: str, action: str, result: str, details: str = ""):
         """
         Record a trigger event and finalize cooldown state.
@@ -286,9 +297,12 @@ class AutoActionStateService:
                         # Reset to 0 to allow immediate retry
                         self.container_cooldowns[container] = 0
                         logger.debug(f"AAS: Released container cooldown for '{container}' after failed execution")
-                    if rule_id in self.rule_cooldowns:
-                        self.rule_cooldowns[rule_id] = 0
-                        logger.debug(f"AAS: Released rule cooldown for '{rule_id}' after failed execution")
+                    # The RULE cooldown is NOT touched here: one rule can target several
+                    # containers, and this used to wipe the rule's cooldown even when an
+                    # earlier container in the same batch had succeeded - the rule then
+                    # fired again on the next message, restarting that container over and
+                    # over (review B10). The caller releases it once, through
+                    # release_rule_cooldown(), when nothing in the batch succeeded.
 
             elif result == "SKIPPED":
                 # Rule was skipped (blocked at acquisition stage by cooldown or protected container)

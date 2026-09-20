@@ -601,8 +601,14 @@ class TestStateService:
         state_service.record_trigger(
             "r1", "Restart", "nginx", "RESTART", "FAILED", "boom"
         )
-        # Failed (without "cooldown" in details) -> reset to 0
+        # Failed (without "cooldown" in details) -> the CONTAINER may retry at once
         assert state_service.container_cooldowns["nginx"] == 0
+        # The rule's own cooldown is not touched by a single container's outcome since
+        # 2026-09-20: with several targets, one failure used to wipe the cooldown a
+        # successful sibling had just set (review B10). The caller releases it when
+        # nothing in the batch succeeded:
+        assert state_service.rule_cooldowns["r1"] > 0
+        state_service.release_rule_cooldown("r1")
         assert state_service.rule_cooldowns["r1"] == 0
 
     def test_record_trigger_skipped_no_state_change(

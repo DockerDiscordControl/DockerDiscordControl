@@ -50,9 +50,9 @@ services/admin/admin_service.py:1-292
 services/automation/__init__.py:1-14
 services/automation/auto_action_config_service.py:1-727
 
-## Section 11  (1525 lines, 5 pieces)
-services/automation/auto_action_state_service.py:1-345
-services/automation/automation_service.py:1-510
+## Section 11  (1544 lines, 5 pieces)
+services/automation/auto_action_state_service.py:1-359
+services/automation/automation_service.py:1-515
 services/config/__init__.py:1-16
 services/config/channel_config_service.py:1-521
 services/config/config_cache_service.py:1-133

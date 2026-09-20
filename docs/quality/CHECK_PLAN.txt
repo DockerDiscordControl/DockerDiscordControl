@@ -294,7 +294,7 @@
 [ ] services/automation/auto_action_config_service.py:694 AutoActionConfigService.increment_trigger_count
 [ ] services/automation/auto_action_config_service.py:722 get_auto_action_config_service
 
-## Section 11  (1525 lines, 33 public names)
+## Section 11  (1544 lines, 34 public names)
 [ ] services/automation/auto_action_state_service.py:24 TriggerEvent
 [ ] services/automation/auto_action_state_service.py:34 TriggerEvent.to_dict
 [ ] services/automation/auto_action_state_service.py:37 AutoActionStateService
@@ -302,15 +302,16 @@
 [ ] services/automation/auto_action_state_service.py:168 AutoActionStateService.acquire_execution_lock
 [ ] services/automation/auto_action_state_service.py:185 AutoActionStateService.acquire_execution_locks
 [ ] services/automation/auto_action_state_service.py:243 AutoActionStateService.release_execution_lock
-[ ] services/automation/auto_action_state_service.py:264 AutoActionStateService.record_trigger
-[ ] services/automation/auto_action_state_service.py:323 AutoActionStateService.get_history
-[ ] services/automation/auto_action_state_service.py:341 get_auto_action_state_service
+[ ] services/automation/auto_action_state_service.py:264 AutoActionStateService.release_rule_cooldown
+[ ] services/automation/auto_action_state_service.py:275 AutoActionStateService.record_trigger
+[ ] services/automation/auto_action_state_service.py:337 AutoActionStateService.get_history
+[ ] services/automation/auto_action_state_service.py:355 get_auto_action_state_service
 [ ] services/automation/automation_service.py:51 TriggerContext
 [ ] services/automation/automation_service.py:63 TriggerContext.full_text
 [ ] services/automation/automation_service.py:68 TriggerContext.message_link
 [ ] services/automation/automation_service.py:72 AutomationService
 [ ] services/automation/automation_service.py:80 AutomationService.process_message
-[ ] services/automation/automation_service.py:506 get_automation_service
+[ ] services/automation/automation_service.py:511 get_automation_service
 [ ] services/config/channel_config_service.py:29 ChannelConfigService
 [ ] services/config/channel_config_service.py:126 ChannelConfigService.get_all_channels
 [ ] services/config/channel_config_service.py:199 ChannelConfigService.get_channel
