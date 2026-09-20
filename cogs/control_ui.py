@@ -1964,6 +1964,27 @@ class AdminContainerDropdown(discord.ui.Select):
             # IMPORTANT: Defer immediately to avoid interaction timeout (3 second limit)
             await interaction.response.defer()
 
+            # Anyone who sees the admin overview can open this menu, so ask here who
+            # is pressing it - the CURRENT channel permission or the CURRENT admin
+            # list, the same rule and the same words as every other path (SPEC.md
+            # B1, B2). The buttons of the panel ask again when they are pressed, so
+            # nothing could actually be done without the right; what was missing was
+            # the refusal at the door, and a panel that looks usable but is not
+            # (review B27).
+            # Own alias: further down this callback imports load_config locally,
+            # which would make the module-level name local for the whole function.
+            from services.config.config_service import load_config as load_config_now
+            from .translation_manager import _ as translate
+            config_now = load_config_now()
+            if not (_get_cached_channel_permission(self.channel_id, 'control', config_now)
+                    or _is_registered_admin(interaction.user.id)):
+                # translate, not _: a few lines down this callback unpacks
+                # "embed, view, _ = ...", which makes the translation function local
+                # to the whole callback - calling _() here would raise.
+                await interaction.followup.send(
+                    translate("This action is not allowed in this channel."), ephemeral=True)
+                return
+
             selected_container = self.values[0]
 
             # Find the container configuration

@@ -17,8 +17,8 @@ cogs/control_helpers.py:1-205
 ## Section 02  (1900 lines, 1 pieces)
 cogs/control_ui.py:1-1900
 
-## Section 03  (1556 lines, 1 pieces)
-cogs/control_ui.py:1901-3456
+## Section 03  (1577 lines, 1 pieces)
+cogs/control_ui.py:1901-3477
 
 ## Section 04  (1942 lines, 1 pieces)
 cogs/docker_control.py:1-1942
