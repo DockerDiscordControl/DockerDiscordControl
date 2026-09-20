@@ -17,6 +17,7 @@ import shutil
 from pathlib import Path
 from typing import Dict, Any
 from datetime import datetime
+from utils.atomic_io import atomic_write_text
 
 logger = logging.getLogger('ddc.config_migration')
 
@@ -54,6 +55,10 @@ class ConfigMigrationService:
         self.web_config_file = config_dir / "web_config.json"
         self.channels_config_file = config_dir / "channels_config.json"
 
+        # Written only when a migration ran through to the end. "Was it started"
+        # is not "was it finished" (review C28).
+        self.migration_complete_marker = config_dir / ".modular_migration_complete"
+
         # Legacy v1.1.x config files
         self.legacy_config_file = config_dir / "config.json"
         self.legacy_alt_config = config_dir / "config_v1.json"
@@ -78,18 +83,48 @@ class ConfigMigrationService:
             logger.info("Falling back to virtual modular structure")
 
     def needs_real_modular_migration(self) -> bool:
-        """Check if real modular migration is needed."""
+        """Check if real modular migration is needed.
+
+        The old question was whether the modular structure EXISTS - any file in
+        channels_dir OR containers_dir was enough. A migration that wrote the
+        channels and then died on the containers therefore looked finished from
+        the second startup on, and was never retried: the container list stayed
+        empty for good, with nothing in the log (review C28).
+        """
         has_legacy = (self.channels_config_file.exists() or
                      self.docker_config_file.exists() or
                      self.bot_config_file.exists())
+        if not has_legacy:
+            return False
 
-        has_real_modular = (self.channels_dir.exists() and
-                           len(list(self.channels_dir.glob("*.json"))) > 0) or \
-                          (self.containers_dir.exists() and
-                           len(list(self.containers_dir.glob("*.json"))) > 0) or \
-                          self.main_config_file.exists()
+        if self.migration_complete_marker.exists():
+            return False
 
-        return has_legacy and not has_real_modular
+        return not self._modular_structure_is_complete()
+
+    def _modular_structure_is_complete(self) -> bool:
+        """Every legacy file that is still here has its target populated.
+
+        Asked per stage, because that is where the migration can stop. An
+        installation migrated before the marker existed answers True here and is
+        left alone; one that stopped halfway answers False and is picked up
+        again.
+        """
+        if self.channels_config_file.exists():
+            if not (self.channels_dir.exists() and
+                    any(self.channels_dir.glob("*.json"))):
+                return False
+
+        if self.docker_config_file.exists():
+            if not (self.containers_dir.exists() and
+                    any(self.containers_dir.glob("*.json"))):
+                return False
+
+        if self.bot_config_file.exists() or self.web_config_file.exists():
+            if not self.main_config_file.exists():
+                return False
+
+        return True
 
     def perform_real_modular_migration(self, load_json_func, save_json_func) -> None:
         """Perform the real modular migration automatically."""
@@ -117,6 +152,14 @@ class ConfigMigrationService:
 
             logger.info("✅ Automatic modular migration completed successfully!")
             logger.info("📁 New structure: channels/, containers/, and modular config files")
+
+            # The marker goes down before the cleanup, so that a cleanup which
+            # itself fails cannot make the finished migration look unfinished.
+            try:
+                atomic_write_text(self.migration_complete_marker,
+                                  datetime.now().isoformat() + "\n")
+            except OSError as e:
+                logger.warning(f"Could not write the migration marker: {e}")
 
             # Clean up old JSON files after successful migration
             self.cleanup_legacy_files_after_migration()

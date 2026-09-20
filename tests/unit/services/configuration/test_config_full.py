@@ -741,11 +741,19 @@ class TestConfigMigrationService:
         assert svc.needs_real_modular_migration() is True
 
     def test_needs_migration_false_when_modular_exists(self, tmp_path):
+        # Until 2026-09-20 this pinned the OR that caused the defect: a file in
+        # containers_dir counted as "migrated" even though the legacy CHANNEL
+        # config was still unconverted, which is exactly how a half-finished
+        # migration made itself look finished (review C28). The target for each
+        # legacy file that is present has to be populated.
         svc = self._make(tmp_path)
         self._save_json(svc.channels_config_file, {"channel_permissions": {}})
-        # Create a real modular container file - should now skip migration.
         svc.containers_dir.mkdir(parents=True, exist_ok=True)
         (svc.containers_dir / "x.json").write_text("{}")
+        assert svc.needs_real_modular_migration() is True
+
+        svc.channels_dir.mkdir(parents=True, exist_ok=True)
+        (svc.channels_dir / "default.json").write_text("{}")
         assert svc.needs_real_modular_migration() is False
 
     def test_create_modular_directories(self, tmp_path):
