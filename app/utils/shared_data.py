@@ -80,7 +80,15 @@ def load_active_containers_from_config():
                 else:
                     logger.warning(f"No container_name found in {config_file.name}")
 
-            except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+            # ValueError covers json.JSONDecodeError (a half-written file) and
+            # UnicodeDecodeError (a file in another encoding). Without it, one
+            # unreadable file did not cost that one container: the exception left
+            # this function, and this function runs at import time of the module
+            # and from register_background_services(), neither of which catches
+            # anything - so the whole application failed to start. Every other
+            # per-file problem here is already just a per-file problem (review C8).
+            except (IOError, OSError, PermissionError, RuntimeError, ValueError,
+                    docker.errors.APIError, docker.errors.DockerException) as e:
                 logger.error(f"Error loading container config {config_file.name}: {e}")
                 continue
 
