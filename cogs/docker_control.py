@@ -2220,64 +2220,12 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.error(f"Error in donate command: {e}", exc_info=True)
 
-    async def _handle_donate_interaction(self, interaction: discord.Interaction):
-        """Handle donation button interactions from mech UI."""
-        # This should never be called when donations are disabled
-        # (buttons shouldn't exist) but check anyway for safety
-        try:
-            from services.donation.donation_utils import is_donations_disabled
-            if is_donations_disabled():
-                # Silently ignore
-                return
-        except Exception:
-            pass
+    # _handle_donate_interaction lived here twice: this first version was dead,
+    # Python keeps the last definition (review B13). The live one is below. They
+    # were NOT the same: this one asked is_donations_disabled(), the live one
+    # treats any value in donation_disable_key as 'donations off' - noted for the
+    # operator, behaviour unchanged.
 
-        try:
-            # Immediately defer to prevent interaction expiry
-            await interaction.response.defer(ephemeral=True)
-
-            # Donations enabled - show normal donation UI
-
-            # Check MechService availability
-            mech_service_available = False
-            try:
-                from services.mech.mech_service import get_mech_service
-                mech_service = get_mech_service()
-                mech_service_available = True
-            except Exception:
-                pass
-
-            # Create donation embed
-            embed = discord.Embed(
-                title=_('Support DockerDiscordControl'),
-                description=_(
-                    'If DDC helps you, please consider supporting ongoing development. '
-                    'Donations help cover hosting, CI, maintenance, and feature work.'
-                ),
-                color=0x00ff41
-            )
-            embed.add_field(
-                name=_('Choose your preferred method:'),
-                value=_('Click one of the buttons below to support DDC development'),
-                inline=False
-            )
-            embed.set_footer(text="https://ddc.bot")
-
-            # Send with or without view
-            try:
-                view = DonationView(mech_service_available, bot=self.bot)
-                # Note: Ephemeral messages don't need auto-delete as they're private
-                await interaction.followup.send(embed=embed, view=view, ephemeral=True)
-            except Exception:
-                await interaction.followup.send(embed=embed, ephemeral=True)
-
-        except discord.NotFound:
-            # Interaction expired - silently ignore
-            pass
-        except (discord.errors.DiscordException, RuntimeError) as e:
-            # Only log unexpected errors, not Discord timing issues
-            if "Unknown interaction" not in str(e):
-                logger.error(f"Unexpected error in donate interaction: {e}", exc_info=True)
 
     @commands.slash_command(name="info", description=_("Show container information"), guild_ids=get_guild_id())
     async def info_command(self, ctx: discord.ApplicationContext,
