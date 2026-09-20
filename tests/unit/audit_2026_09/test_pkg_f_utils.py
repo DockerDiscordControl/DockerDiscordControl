@@ -261,7 +261,12 @@ class TestF12MetricsExport:
     def test_write_metric_unserializable_is_logged_not_raised(self, tmp_path):
         from utils.performance_metrics import PerformanceMetrics
 
-        fake_self = SimpleNamespace(metrics_file=tmp_path / "m.jsonl")
+        # _file_lock completes the double: _write_metric shares a lock with
+        # cleanup_old_metrics since review C36. The point of this test is
+        # unchanged - an unserializable entry is logged, not raised.
+        import threading
+        fake_self = SimpleNamespace(metrics_file=tmp_path / "m.jsonl",
+                                    _file_lock=threading.Lock())
         entry = SimpleNamespace(to_dict=lambda: {"bad": object()})
         PerformanceMetrics._write_metric(fake_self, entry)  # used to raise AttributeError
 

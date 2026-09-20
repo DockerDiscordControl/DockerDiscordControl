@@ -265,7 +265,7 @@ utils/observability.py:1-588
 utils/settings.py:1-113
 utils/time_utils.py:1-383
 
-## Section 37  (791 lines, 3 pieces)
-utils/performance_metrics.py:1-389
+## Section 37  (821 lines, 3 pieces)
+utils/performance_metrics.py:1-419
 utils/key_crypto.py:1-84
 utils/token_security.py:1-318

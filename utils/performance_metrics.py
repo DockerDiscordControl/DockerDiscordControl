@@ -29,6 +29,7 @@ Usage:
     stats = PerformanceMetrics.get_stats("config_load")
 """
 
+import threading
 import time
 import json
 import logging
@@ -96,16 +97,30 @@ class PerformanceMetrics:
     def __init__(self):
         """Initialize performance metrics."""
         if not hasattr(self, '_initialized'):
-            self.metrics_dir = Path("data/metrics")
+            # NOT Path("data/metrics"): that resolves against the process's
+            # current working directory, so the bot and the web part would
+            # measure into two different places - the same mistake the SPEC
+            # records for MechResetService and the config directory (review C36).
+            from utils.config_paths import get_config_dir
+            self.metrics_dir = get_config_dir() / "metrics"
             self.metrics_dir.mkdir(parents=True, exist_ok=True)
             self.metrics_file = self.metrics_dir / "performance_metrics.jsonl"
-            self.current_operations: Dict[str, float] = {}
+            # Keyed by (operation, thread) and guarded, because the key used
+            # to be the operation NAME alone: two threads starting the same
+            # operation overwrote each other's start time, and whichever ended
+            # first popped the shared value - the other was then reported as
+            # 0.0 seconds (review C36).
+            self.current_operations: Dict[tuple, list] = {}
+            self._operations_lock = threading.Lock()
+            self._file_lock = threading.Lock()
             self._initialized = True
             logger.debug("Performance metrics system initialized")
 
     def start(self, operation: str) -> None:
-        """Start tracking an operation."""
-        self.current_operations[operation] = time.time()
+        """Start tracking an operation (per thread; nesting is allowed)."""
+        key = (operation, threading.get_ident())
+        with self._operations_lock:
+            self.current_operations.setdefault(key, []).append(time.time())
 
     def end(self, operation: str, success: bool = True, metadata: Optional[Dict[str, Any]] = None) -> float:
         """
@@ -119,11 +134,15 @@ class PerformanceMetrics:
         Returns:
             Duration in seconds
         """
-        if operation not in self.current_operations:
-            logger.warning(f"Operation '{operation}' not started, cannot end tracking")
-            return 0.0
-
-        start_time = self.current_operations.pop(operation)
+        key = (operation, threading.get_ident())
+        with self._operations_lock:
+            started = self.current_operations.get(key)
+            if not started:
+                logger.warning(f"Operation '{operation}' not started, cannot end tracking")
+                return 0.0
+            start_time = started.pop()
+            if not started:
+                del self.current_operations[key]
         end_time = time.time()
         duration = end_time - start_time
 
@@ -144,9 +163,14 @@ class PerformanceMetrics:
         return duration
 
     def _write_metric(self, entry: MetricEntry) -> None:
-        """Write metric entry to JSONL file."""
+        """Write metric entry to JSONL file.
+
+        Under the same lock as cleanup_old_metrics(): a line appended between
+        that method's read reaching EOF and its replace() was discarded the
+        instant the swap happened, with no error and no log line (review C36).
+        """
         try:
-            with open(self.metrics_file, 'a') as f:
+            with self._file_lock, open(self.metrics_file, 'a') as f:
                 f.write(json.dumps(entry.to_dict()) + '\n')
         except (IOError, OSError, PermissionError, TypeError, ValueError) as e:
             logger.error(f"Failed to write metric: {e}", exc_info=True)
@@ -325,20 +349,26 @@ class PerformanceMetrics:
         kept_count = 0
 
         try:
-            with open(self.metrics_file, 'r') as f_in, open(temp_file, 'w') as f_out:
-                for line in f_in:
-                    try:
-                        data = json.loads(line.strip())
-                        if data['end_time'] >= cutoff_time:
-                            f_out.write(line)
-                            kept_count += 1
-                        else:
-                            removed_count += 1
-                    except (json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
-                        logger.warning(f"Failed to parse metric line during cleanup: {e}", exc_info=True)
+            # The whole read-and-swap under the same lock _write_metric takes:
+            # a line appended between the read reaching EOF and the replace()
+            # used to be discarded by the swap, with no error and no log line
+            # (review C36).
+            with self._file_lock:
+                with open(self.metrics_file, 'r') as f_in, open(temp_file, 'w') as f_out:
+                    for line in f_in:
+                        try:
+                            data = json.loads(line.strip())
+                            if data['end_time'] >= cutoff_time:
+                                f_out.write(line)
+                                kept_count += 1
+                            else:
+                                removed_count += 1
+                        except (json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+                            logger.warning(f"Failed to parse metric line during cleanup: {e}", exc_info=True)
 
-            # Replace original file
-            temp_file.replace(self.metrics_file)
+                # Replace original file
+                temp_file.replace(self.metrics_file)
+
             logger.info(f"Cleaned up {removed_count} old metrics, kept {kept_count}")
             return removed_count
 
