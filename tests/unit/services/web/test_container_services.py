@@ -239,6 +239,9 @@ class TestGetContainerLogs:
         assert result.content == "hello world"
 
 
+from services.exceptions import ContainerLogError  # noqa: E402
+
+
 class TestGetContainerLogsSync:
     """Cover ``_get_container_logs_sync`` and surrounding error handling."""
 
@@ -275,20 +278,27 @@ class TestGetContainerLogsSync:
         client.close.assert_called_once()
 
     def test_handles_api_error(self):
+        # Until 2026-09-20 this pinned "returns None", which the caller reads as
+        # "container not found" and answers with a 404. A Docker API error is a
+        # Docker problem, so it now gets its own error (review C18).
         service = ContainerLogService()
         fake_docker, client = self._make_mock_docker(
             raise_get=docker.errors.APIError("boom"))
         with patch.dict("sys.modules", {"docker": fake_docker}):
-            assert service._get_container_logs_sync("ddc", 50) is None
+            with pytest.raises(ContainerLogError):
+                service._get_container_logs_sync("ddc", 50)
         client.close.assert_called_once()
 
     def test_handles_outer_exception(self):
+        # Same change as above: an unreachable Docker is not a missing
+        # container (review C18).
         service = ContainerLogService()
         fake_docker = MagicMock()
         fake_docker.errors = docker.errors
         fake_docker.DockerClient.side_effect = RuntimeError("can't connect")
         with patch.dict("sys.modules", {"docker": fake_docker}):
-            assert service._get_container_logs_sync("ddc", 50) is None
+            with pytest.raises(ContainerLogError):
+                service._get_container_logs_sync("ddc", 50)
 
 
 class TestValidateContainerName:

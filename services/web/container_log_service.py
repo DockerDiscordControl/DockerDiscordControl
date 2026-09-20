@@ -20,6 +20,8 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
+from services.exceptions import ContainerLogError
+
 logger = logging.getLogger(__name__)
 
 
@@ -119,6 +121,15 @@ class ContainerLogService:
                 content=logs_content
             )
 
+        except ContainerLogError as e:
+            # A failure that is NOT "no such container" - it gets its own answer
+            # instead of borrowing the 404 (review C18).
+            self.logger.error(f"Could not read logs for {request.container_name}: {e}")
+            return LogResult(
+                success=False,
+                error=f"Could not read logs for '{request.container_name}': {e}",
+                status_code=500
+            )
         except (ImportError, AttributeError, TypeError, ValueError, RuntimeError) as e:
             # Service/async errors (missing services, invalid types, runtime/event loop errors)
             self.logger.error(f"Service error retrieving container logs for {request.container_name}: {e}", exc_info=True)
@@ -208,12 +219,19 @@ class ContainerLogService:
                 return None
             except _docker.errors.APIError as e:
                 self.logger.error(f"Docker API error when fetching logs for {container_name}: {e}")
-                return None
+                raise ContainerLogError(f"Docker API error: {e}") from e
             finally:
                 client.close()
+        except ContainerLogError:
+            raise
         except Exception as e:
+            # None means ONE thing: the container is genuinely not there. It used
+            # to mean everything - an unreachable socket, a permission denied, a
+            # timeout - and the caller turned all of it into
+            # "Container '<name>' not found", 404. The person troubleshooting the
+            # log viewer was told the opposite of what had happened (review C18).
             self.logger.error(f"Failed to get Docker logs synchronously: {e}", exc_info=True)
-            return None
+            raise ContainerLogError(f"Could not read logs: {e}") from e
 
     def _validate_container_name(self, container_name: str) -> bool:
         """Validate container name to prevent injection attacks."""
