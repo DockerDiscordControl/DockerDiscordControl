@@ -77,9 +77,20 @@ class ConfigMigrationService:
                 self.perform_real_modular_migration(load_json_func, save_json_func)
             else:
                 logger.debug("Modular structure already exists or no migration needed")
-        except (OSError, IOError, PermissionError, AttributeError) as e:
-            # File/directory errors (path operations, permissions, attribute errors)
-            logger.error(f"File/directory error ensuring modular structure: {e}")
+        except Exception as e:
+            # Everything, on purpose. This runs in ConfigService.__init__, so an
+            # exception that leaves here makes get_config_service() fail for the
+            # whole installation. The clause used to name
+            # (OSError, IOError, PermissionError, AttributeError), while
+            # perform_real_modular_migration re-raises json.JSONDecodeError,
+            # TypeError, ValueError and KeyError as well: one channel entry of
+            # the wrong shape in a file from the previous version took the start
+            # down, on the very startup that was meant to upgrade it (review
+            # C55). The promise of this method is that a failed migration costs
+            # the migration and nothing else - the legacy files are still there,
+            # the completion marker is not written, and the next start tries
+            # again.
+            logger.error(f"Error ensuring modular structure: {e}", exc_info=True)
             logger.info("Falling back to virtual modular structure")
 
     def needs_real_modular_migration(self) -> bool:
