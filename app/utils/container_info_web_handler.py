@@ -153,14 +153,23 @@ def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
                     'protected_password': ''
                 }
 
-            # Save through service
-            save_result = config_save_service.save_container_config(container_name, container_config)
-            results[container_name] = save_result
+            # Save through service. Guarded exactly like its twin in the active
+            # loop below: without this, one container that cannot be switched
+            # off took the whole submission with it - the rest of the inactive
+            # list AND the active loop, which is the one saving the settings the
+            # operator just edited, were never reached (review C31).
+            try:
+                save_result = config_save_service.save_container_config(container_name, container_config)
+                results[container_name] = save_result
 
-            if save_result:
-                logger.info(f"[SAVE_DEBUG] Marked {container_name} as inactive and preserved config")
-            else:
-                logger.error(f"Failed to save inactive state for {container_name}")
+                if save_result:
+                    logger.info(f"[SAVE_DEBUG] Marked {container_name} as inactive and preserved config")
+                else:
+                    logger.error(f"Failed to save inactive state for {container_name}")
+            except (AttributeError, KeyError, RuntimeError, TypeError,
+                    docker.errors.APIError, docker.errors.DockerException) as e:
+                logger.error(f"Error marking {container_name} as inactive: {e}", exc_info=True)
+                results[container_name] = False
 
     # Now process the active containers
     for server in servers_data:

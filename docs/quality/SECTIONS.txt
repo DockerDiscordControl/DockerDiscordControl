@@ -203,7 +203,7 @@ app/blueprints/main_routes.py:1-1468
 app/blueprints/security_routes.py:1-193
 app/blueprints/tasks_bp.py:1-300
 
-## Section 33  (1895 lines, 25 pieces)
+## Section 33  (1904 lines, 25 pieces)
 app/blueprints/translation_routes.py:1-350
 app/bootstrap/__init__.py:1-34
 app/bootstrap/performance.py:1-55
@@ -228,7 +228,7 @@ app/bot/startup_steps/sequence.py:1-25
 app/bot/token.py:1-101
 app/constants.py:1-17
 app/utils/__init__.py:1-7
-app/utils/container_info_web_handler.py:1-256
+app/utils/container_info_web_handler.py:1-265
 
 ## Section 34  (1892 lines, 9 pieces)
 app/utils/port_diagnostics.py:1-600
