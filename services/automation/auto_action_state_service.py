@@ -95,6 +95,7 @@ class AutoActionStateService:
         """Persist state to disk (async safe via lock)."""
         # Note: We don't need to save on every single event to avoid IO spam.
         # But for V1 reliability, we'll save on significant changes.
+        temp_path = None
         try:
             data = {
                 'global_last_triggered': self.global_last_triggered,
@@ -103,6 +104,10 @@ class AutoActionStateService:
                 'trigger_history': self.trigger_history
             }
             
+            # temp_path before the try: mkstemp itself can fail - an unwritable
+            # config directory, no inodes left - and the cleanup below asks for
+            # temp_path. Unbound, it raised UnboundLocalError from inside the
+            # handler and replaced the real error with a confusing one (review B29).
             temp_dir = str(self.state_file.parent)
             fd, temp_path = tempfile.mkstemp(dir=temp_dir, text=True, suffix='.json.tmp')
             
@@ -120,7 +125,7 @@ class AutoActionStateService:
                 
         except Exception as e:
             logger.error(f"Error saving AAS state: {e}")
-            if os.path.exists(temp_path):
+            if temp_path and os.path.exists(temp_path):
                 try:
                     os.unlink(temp_path)
                 except Exception:

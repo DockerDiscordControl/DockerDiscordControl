@@ -513,7 +513,12 @@ class AutoActionConfigService:
 
     def _save_config_file(self, data: Dict[str, Any]) -> bool:
         """Save JSON config to file atomically."""
+        temp_path = None
         try:
+            # temp_path before the try: mkstemp itself can fail - an unwritable
+            # config directory, no inodes left - and the cleanup below asks for
+            # temp_path. Unbound, it raised UnboundLocalError from inside the
+            # handler and replaced the real error with a confusing one (review B29).
             temp_dir = str(self.config_file.parent)
             fd, temp_path = tempfile.mkstemp(dir=temp_dir, text=True, suffix='.json.tmp')
             
@@ -532,7 +537,7 @@ class AutoActionConfigService:
             return True
         except Exception as e:
             logger.error(f"Error saving auto_actions.json: {e}", exc_info=True)
-            if os.path.exists(temp_path):
+            if temp_path and os.path.exists(temp_path):
                 try:
                     os.unlink(temp_path)
                 except Exception:
