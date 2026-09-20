@@ -248,7 +248,14 @@ class MechDataStore:
             MechDataResult with all mech data or error information
         """
         try:
-            cache_key = f"comprehensive_{request.include_decimals}_{request.language}"
+            # Every field of the request that changes the answer belongs in the
+            # key. include_projections and projection_hours used to be missing,
+            # so a plain get_level_info() (projections=None) answered the next
+            # get_projections() within the cache's ten seconds - which then
+            # reported "nothing to project" with success=True - and a 48-hour
+            # question answered a 1-hour one (review C11).
+            cache_key = (f"comprehensive_{request.include_decimals}_{request.language}"
+                         f"_{request.include_projections}_{request.projection_hours}")
 
             # Check cache first (unless force refresh)
             if not request.force_refresh:
