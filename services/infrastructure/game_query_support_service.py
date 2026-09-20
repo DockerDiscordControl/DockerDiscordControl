@@ -137,23 +137,35 @@ def _atomic_update(mutate, path: Optional[Path] = None) -> None:
         logger.error(f"[QUERY_SUPPORT] verdicts file could not be written: {e}", exc_info=True)
 
 
-def set_testing(name: str, testing: bool = True) -> None:
-    """Flag a container as currently being (manually) tested - drives the UI spinner."""
+def set_testing(name: str, testing: bool = True, path: Optional[Path] = None) -> None:
+    """Flag a container as currently being (manually) tested - drives the UI spinner.
+
+    ``path`` defaults to the shared location, which is what the web process
+    wants. It exists because ``GameQuerySupportService`` can be pointed at
+    another file, and these two helpers used to write to the default one
+    regardless - so a holder of such an instance wrote to a different file
+    than the one it reads back, with both writes reporting success
+    (review C66).
+    """
     def _m(state):
         entry = dict(state.get(name) or {})
         entry['testing'] = bool(testing)
         state[name] = entry
-    _atomic_update(_m)
+    _atomic_update(_m, path)
 
 
 def record_manual_success(name: str, protocol: Optional[str] = None,
-                          port: Optional[int] = None) -> None:
-    """A manual re-test answered -> mark FINAL supported (unlocks the checkbox, permanent)."""
+                          port: Optional[int] = None,
+                          path: Optional[Path] = None) -> None:
+    """A manual re-test answered -> mark FINAL supported (unlocks the checkbox, permanent).
+
+    ``path`` as in :func:`set_testing`.
+    """
     def _m(state):
         state[name] = {'supported': True, 'final': True, 'protocol': protocol,
                        'port': port, 'probing_since': None, 'testing': False,
                        'updated': time.time()}
-    _atomic_update(_m)
+    _atomic_update(_m, path)
 
 
 class GameQuerySupportService:
@@ -252,6 +264,20 @@ class GameQuerySupportService:
         logger.info("[GAME_QUERY] %s failed %d live queries in a row - resetting its verdict so "
                     "it gets probed again", name, count)
         return True
+
+    def set_testing(self, name: str, testing: bool = True) -> None:
+        """Flag a container as being tested, in THIS instance's file.
+
+        The module-level helper of the same name writes to the shared default
+        location; an instance that was pointed elsewhere needs this one, or it
+        writes to a file it never reads back (review C66).
+        """
+        set_testing(name, testing, self._path)
+
+    def record_manual_success(self, name: str, protocol: Optional[str] = None,
+                              port: Optional[int] = None) -> None:
+        """A manual re-test answered, recorded in THIS instance's file."""
+        record_manual_success(name, protocol, port, self._path)
 
     def note_offline(self, name: str) -> None:
         """Container observed offline: reset the probe window for a not-yet-final container
