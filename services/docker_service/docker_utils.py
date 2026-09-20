@@ -1020,9 +1020,17 @@ async def test_docker_performance(container_names: List[str] = None, iterations:
         results['summary']['total_time_ms'] = total_time_sum
         results['summary']['timeout_count'] = timeout_count
 
-        # Find fastest and slowest containers
-        fastest_container = min(results['container_results'].items(), key=lambda x: x[1]['average_ms'])
-        slowest_container = max(results['container_results'].items(), key=lambda x: x[1]['average_ms'])
+        # Find fastest and slowest containers, among those that were actually
+        # measured. A container whose calls failed on every iteration keeps
+        # times_ms empty and average_ms at its initial 0 - and min() over all of
+        # them then presented exactly that broken container to the operator as
+        # the fastest one, at 0 ms (review C58). Its errors list still says what
+        # happened to it. The list is not empty here: all_averages above is
+        # built from the same condition.
+        measured = [item for item in results['container_results'].items()
+                    if item[1]['times_ms']]
+        fastest_container = min(measured, key=lambda x: x[1]['average_ms'])
+        slowest_container = max(measured, key=lambda x: x[1]['average_ms'])
 
         results['summary']['fastest_container'] = {
             'name': fastest_container[0],
