@@ -1356,60 +1356,9 @@ class TaskDeleteButton(Button):
             logger.error(f"[TASK_DELETE_BTN] Error deleting task '{self.task_id}': {e}", exc_info=True)
             await interaction.followup.send(_("An error occurred while deleting the task."), ephemeral=True)
 
-class TaskDeletePanelView(View):
-    """View containing task delete buttons."""
-
-    def __init__(self, cog_instance: 'DockerControlCog', active_tasks: list):
-        super().__init__(timeout=600)  # 10 minute timeout for task panels
-        self.cog = cog_instance
-
-        # Add delete buttons for each task (max 25 due to Discord limits)
-        max_tasks = min(len(active_tasks), 25)
-        for i, task in enumerate(active_tasks[:max_tasks]):
-            task_id = task.task_id
-
-            # Create abbreviated description for button
-            container_name = task.container_name
-            action = task.action.upper()
-            cycle_abbrev = {
-                'once': 'O',
-                'daily': 'D',
-                'weekly': 'W',
-                'monthly': 'M',
-                'yearly': 'Y'
-            }.get(task.cycle, '?')
-
-            task_description = f"{cycle_abbrev}: {container_name} {action}"
-
-            # Limit description length for button
-            if len(task_description) > 40:
-                task_description = task_description[:37] + "..."
-
-            row = i // 5  # 5 buttons per row
-            self.add_item(TaskDeleteButton(cog_instance, task_id, task_description, row))
-
-# =============================================================================
-# MECH STATUS VIEW AND BUTTONS FOR /SS COMMAND
-# =============================================================================
-
-class MechControlsLabelButton(Button):
-    """Label button for Controls row in expanded mech view (mobile fix)."""
-
-    def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
-        self.cog = cog_instance
-        self.channel_id = channel_id
-
-        super().__init__(
-            style=discord.ButtonStyle.secondary,
-            label="Controls",
-            custom_id=f"mech_controls_label_{channel_id}",
-            row=0,  # Row 0 for label
-            disabled=True  # Disabled = label only, not clickable
-        )
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """This should never be called since button is disabled."""
-        pass
+# TaskDeletePanelView and MechControlsLabelButton stood here: a view and a
+# disabled label button that nothing ever built, and whose callback said of
+# itself "This should never be called since button is disabled" (review B22).
 
 class MechView(View):
     """View with simplified buttons for Mech status in /ss command."""

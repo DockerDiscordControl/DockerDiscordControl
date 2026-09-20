@@ -14,11 +14,11 @@ cogs/admin_overview.py:1-795
 cogs/auto_action_monitor.py:1-74
 cogs/control_helpers.py:1-205
 
-## Section 02  (1951 lines, 1 pieces)
-cogs/control_ui.py:1-1951
+## Section 02  (1900 lines, 1 pieces)
+cogs/control_ui.py:1-1900
 
 ## Section 03  (1556 lines, 1 pieces)
-cogs/control_ui.py:1952-3507
+cogs/control_ui.py:1901-3456
 
 ## Section 04  (1942 lines, 1 pieces)
 cogs/docker_control.py:1-1942
@@ -35,11 +35,11 @@ cogs/enhanced_info_modal_simple.py:1-665
 ## Section 08  (1351 lines, 1 pieces)
 cogs/status_handlers.py:1-1351
 
-## Section 09  (1979 lines, 1 pieces)
-cogs/status_info_integration.py:1-1979
+## Section 09  (1978 lines, 1 pieces)
+cogs/status_info_integration.py:1-1978
 
-## Section 10  (1965 lines, 8 pieces)
-cogs/status_info_integration.py:1980-2641
+## Section 10  (1689 lines, 8 pieces)
+cogs/status_info_integration.py:1979-2364
 cogs/translation_manager.py:1-117
 cogs/translation_monitor.py:1-97
 services/__init__.py:1-51
