@@ -101,6 +101,11 @@ def import_uvloop() -> Tuple[Any, bool]:
         except (RuntimeError) as e:
             logger.warning(f"Failed to install uvloop: {e}")
             success = False
+            # safe_import cached (module, True) a moment ago. Without this, the
+            # two ways of asking whether uvloop is usable gave two different
+            # answers - this call said no, a later safe_import('uvloop') read
+            # the cache and said yes (review C40).
+            _import_cache['uvloop'] = (uvloop, False)
     return uvloop, success
 
 def import_gevent() -> Tuple[Any, bool]:
