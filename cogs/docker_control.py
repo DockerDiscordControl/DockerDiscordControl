@@ -2975,9 +2975,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 # Add to container lines list
                 container_lines.append(container_line)
             else:
-                # No status data available - show loading status (same as Server Overview)
+                # No status data available - show loading status (same as Server Overview).
+                # NOT counted as offline: the line says "loading", and counting it as
+                # offline made the header read "Online: 0 • Offline: 5" right after a
+                # restart - a guessed result the admin reads as "everything is down"
+                # (SPEC.md Z3, review B8). Online + Offline is then smaller than the
+                # total, which is the honest picture: those containers are not known yet.
                 status_emoji = "🔄"
-                offline_count += 1
 
                 # Truncate name to max 12 characters
                 if len(display_name) > 12:
