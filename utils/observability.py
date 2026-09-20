@@ -140,11 +140,20 @@ class StructuredLogger(logging.LoggerAdapter):
         super().__init__(logger, extra or {})
 
     def process(self, msg: str, kwargs: Dict[str, Any]) -> tuple:
-        """Add context to log message."""
-        # Merge adapter context with call-specific extra
-        extra = kwargs.get('extra', {})
-        extra.update(self.extra)
-        kwargs['extra'] = extra
+        """Add context to log message.
+
+        The adapter's context is the GENERAL value - the same on every line -
+        and the call's own extra is the specific one, so the call wins. It used
+        to be the other way round: a logger built with context={'donor':
+        'unknown'} logged donor='unknown' even when the call said 'Jane'.
+
+        And the merge starts from a copy: `extra.update(...)` wrote into the
+        dictionary the CALLER passed in, so a caller that kept that dict around
+        found the adapter's context added to it (review C34).
+        """
+        merged = dict(self.extra)
+        merged.update(kwargs.get('extra') or {})
+        kwargs['extra'] = merged
         return msg, kwargs
 
 
