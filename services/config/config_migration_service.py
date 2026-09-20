@@ -390,8 +390,14 @@ class ConfigMigrationService:
             logger.info(f"   - Legacy config backed up to: {backup_file.name}")
             logger.info(f"   - Created modular config files: bot_config.json, docker_config.json, web_config.json, channels_config.json")
 
-            # Clean up old JSON files
-            self.cleanup_legacy_files_after_migration()
+            # NO cleanup here. cleanup_legacy_files_after_migration() removes exactly
+            # bot_config.json, docker_config.json, web_config.json and
+            # channels_config.json - which are the files this migration has just
+            # WRITTEN. For the other caller, perform_real_modular_migration(), those
+            # four are genuinely leftovers; here they are the result, and deleting
+            # them left an operator upgrading from v1.1.x with nothing but the
+            # backup: no containers, no channel permissions (review C3). The legacy
+            # file is already dealt with - it was renamed to the backup above.
 
             # Handle password migration
             if legacy_config.get('web_ui_password_hash'):
