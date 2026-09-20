@@ -453,7 +453,14 @@ class TestDonationTrackingService:
 # =========================================================================== #
 
 class TestDonationMessageService:
-    """Scheduled monthly donation appeal task."""
+    """Scheduled monthly donation appeal task.
+
+    The channel configurations below carry ``commands.serverstatus``. They used
+    to be empty dicts, which was enough while the task sent its appeal to every
+    entry in channel_permissions - including control-only and download-only
+    channels (review C74). "All channels" in these test names means all STATUS
+    channels, and the fixtures now say so.
+    """
 
     def _state(self, power=5.0, level=2, evolution=10):
         # Fields of services.mech.progress_service.ProgressState
@@ -484,7 +491,7 @@ class TestDonationMessageService:
             return_value=progress_service,
         ), patch(
             "services.config.config_service.load_config",
-            return_value={"channel_permissions": {"1001": {}, "1002": {}}},
+            return_value={"channel_permissions": {"1001": {"commands": {"serverstatus": True}}, "1002": {"commands": {"serverstatus": True}}}},
         ), patch(
             "cogs.translation_manager._",
             side_effect=lambda s: s,
@@ -513,7 +520,7 @@ class TestDonationMessageService:
             return_value=progress_service,
         ), patch(
             "services.config.config_service.load_config",
-            return_value={"channel_permissions": {"1001": {}}},
+            return_value={"channel_permissions": {"1001": {"commands": {"serverstatus": True}}}},
         ), patch(
             "cogs.translation_manager._",
             side_effect=lambda s: s,
@@ -540,7 +547,7 @@ class TestDonationMessageService:
             return_value=progress_service,
         ), patch(
             "services.config.config_service.load_config",
-            return_value={"channel_permissions": {"7777": {}}},
+            return_value={"channel_permissions": {"7777": {"commands": {"serverstatus": True}}}},
         ), patch(
             "cogs.translation_manager._",
             side_effect=lambda s: s,

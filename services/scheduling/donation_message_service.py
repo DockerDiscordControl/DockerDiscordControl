@@ -150,6 +150,25 @@ async def execute_donation_message_task(bot: Optional[Any] = None) -> bool:
 
             for channel_id_str, channel_info in channels_config.items():
                 try:
+                    # Status channels only. The loop used to send to every
+                    # entry in channel_permissions without looking at what the
+                    # channel is for, so a channel configured only for
+                    # 'control' - where the operator's start/stop buttons live
+                    # - or only for 'download' received the public donation
+                    # appeal all the same, against this block's own comment.
+                    # Same question as _collect_status_channels in
+                    # services/member_count/service.py asks for the identical
+                    # loop (review C74).
+                    if not isinstance(channel_info, dict):
+                        logger.warning(f"Invalid channel config for {channel_id_str}: "
+                                       f"{type(channel_info).__name__} - skipped")
+                        continue
+                    commands = channel_info.get('commands', {})
+                    if not isinstance(commands, dict) or not commands.get('serverstatus', False):
+                        logger.debug(f"Channel {channel_id_str} is not a status channel - "
+                                     f"no donation appeal sent")
+                        continue
+
                     channel_id = int(channel_id_str)
                     channel = bot.get_channel(channel_id)
 
