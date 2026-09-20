@@ -17,6 +17,7 @@ from utils.logging_utils import get_module_logger
 from utils.time_utils import get_datetime_imports, format_duration
 
 import requests
+import copy
 import socket
 
 # Central datetime imports
@@ -361,13 +362,16 @@ def deep_merge_dicts(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> Dict[str, 
     Returns:
         Merged dictionary
     """
-    result = dict1.copy()
+    # deepcopy, not .copy(): a shallow copy leaves every untouched branch of the
+    # result pointing at the CALLER's own object, so writing into the merged
+    # dictionary wrote into the defaults it was merged from (review C39).
+    result = copy.deepcopy(dict1)
 
     for key, value in dict2.items():
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
             result[key] = deep_merge_dicts(result[key], value)
         else:
-            result[key] = value
+            result[key] = copy.deepcopy(value)
 
     return result
 
