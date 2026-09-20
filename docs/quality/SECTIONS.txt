@@ -123,8 +123,8 @@ services/infrastructure/spam_protection_service.py:1-504
 services/infrastructure/update_notifier.py:1-213
 services/mech/__init__.py:1-30
 
-## Section 21  (1813 lines, 1 pieces)
-services/mech/animation_cache_service.py:1-1813
+## Section 21  (1819 lines, 1 pieces)
+services/mech/animation_cache_service.py:1-1819
 
 ## Section 22  (1979 lines, 5 pieces)
 services/mech/mech_data_store.py:1-893
@@ -241,7 +241,7 @@ app/web/background.py:1-85
 app/web/blueprints.py:1-31
 app/web/compat.py:1-102
 
-## Section 35  (1981 lines, 17 pieces)
+## Section 35  (1993 lines, 17 pieces)
 app/web/config.py:1-169
 app/web/csrf.py:1-125
 app/web/diagnostics.py:1-30
@@ -254,11 +254,11 @@ app/web_ui.py:1-36
 utils/__init__.py:1-7
 utils/app_commands_helper.py:1-150
 utils/atomic_io.py:1-70
-utils/common_helpers.py:1-475
+utils/common_helpers.py:1-482
 utils/config_cache.py:1-307
 utils/config_paths.py:1-47
 utils/import_utils.py:1-160
-utils/key_crypto.py:1-79
+utils/key_crypto.py:1-84
 
 ## Section 36  (1993 lines, 5 pieces)
 utils/logging_utils.py:1-538

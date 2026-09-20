@@ -159,6 +159,13 @@ def truncate_string(text: str, max_length: int = 100, suffix: str = "...") -> st
     if len(text) <= max_length:
         return text
 
+    # A limit smaller than the suffix made the slice index negative:
+    # truncate_string("hello world", 2) computed text[:-1], kept almost the
+    # whole string and then appended the suffix - twelve characters for a limit
+    # of two, longer than the text it was asked to shorten (review C15).
+    if max_length <= len(suffix):
+        return suffix[:max_length]
+
     return text[:max_length - len(suffix)] + suffix
 
 def validate_container_name(name: str) -> bool:
