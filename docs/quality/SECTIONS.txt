@@ -30,8 +30,8 @@ cogs/docker_control.py:1951-3854
 ## Section 06  (1432 lines, 1 pieces)
 cogs/docker_control.py:3855-5286
 
-## Section 07  (1410 lines, 2 pieces)
-cogs/enhanced_info_modal_simple.py:1-615
+## Section 07  (1452 lines, 2 pieces)
+cogs/enhanced_info_modal_simple.py:1-657
 cogs/scheduler_commands.py:1-795
 
 ## Section 08  (1347 lines, 1 pieces)

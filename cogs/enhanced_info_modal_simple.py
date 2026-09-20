@@ -10,6 +10,8 @@ Simplified Container Info Modal - Single modal with dropdown selects
 """
 
 import asyncio
+import time
+
 import discord
 import docker
 import re
@@ -506,6 +508,35 @@ class ProtectedInfoModal(discord.ui.Modal):
                 )
 
 
+# Guessing the protected password is limited: THREE tries per minute PER PERSON
+# (operator's decision, 2026-09-20). Everyone in a control channel may open the
+# modal (SPEC.md B1) and it compared the password with a plain "!=", with no limit
+# at all - every wrong try only went into the action log (review B12). The window
+# is rolling; a correct password clears the record so nobody is locked out by their
+# own typos. Per person, not per container: the limit follows the guesser.
+_PASSWORD_ATTEMPTS: dict = {}
+MAX_PASSWORD_ATTEMPTS = 3
+PASSWORD_ATTEMPT_WINDOW_SECONDS = 60
+
+
+def _password_attempt_allowed(user_id) -> tuple:
+    """(allowed, seconds to wait). Records this attempt when it is allowed."""
+    now = time.time()
+    recent = [t for t in _PASSWORD_ATTEMPTS.get(user_id, [])
+              if now - t < PASSWORD_ATTEMPT_WINDOW_SECONDS]
+    if len(recent) >= MAX_PASSWORD_ATTEMPTS:
+        _PASSWORD_ATTEMPTS[user_id] = recent
+        return False, PASSWORD_ATTEMPT_WINDOW_SECONDS - (now - recent[0])
+    recent.append(now)
+    _PASSWORD_ATTEMPTS[user_id] = recent
+    return True, 0.0
+
+
+def _clear_password_attempts(user_id) -> None:
+    """A correct password frees the person again."""
+    _PASSWORD_ATTEMPTS.pop(user_id, None)
+
+
 class PasswordValidationModal(discord.ui.Modal):
     """Modal for validating password to access protected information."""
 
@@ -536,6 +567,15 @@ class PasswordValidationModal(discord.ui.Modal):
         logger.info(f"Password validation attempt for {self.container_name} by {interaction.user}")
 
         try:
+            allowed, wait_seconds = _password_attempt_allowed(interaction.user.id)
+            if not allowed:
+                await interaction.response.send_message(
+                    _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                        remaining=wait_seconds),
+                    ephemeral=True
+                )
+                return
+
             entered_password = self.password_input.value.strip()
             stored_password = self.container_info.get('protected_password', '')
 
@@ -571,6 +611,8 @@ class PasswordValidationModal(discord.ui.Modal):
                     ephemeral=True
                 )
                 return
+
+            _clear_password_attempts(interaction.user.id)
 
             # Log successful access
             log_user_action(
