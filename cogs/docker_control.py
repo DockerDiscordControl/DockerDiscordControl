@@ -706,8 +706,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
         logger.info(f"Direct Cog Periodic Edit Loop: Checking {len(self.channel_server_message_ids)} channels with tracked messages.")
 
-        # ULTRA-PERFORMANCE: Collect all containers that might need updates for bulk fetching
-        all_container_names = set()
         tasks_to_run = []
         now_utc = datetime.now(timezone.utc)
 
@@ -823,14 +821,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                         del self.last_message_update_time[channel_id][display_name]
 
         if tasks_to_run:
-            # ULTRA-PERFORMANCE: Bulk update status cache before processing tasks
-            if all_container_names:
-                start_bulk_time = datetime.now(timezone.utc)
-                logger.info(f"Direct Cog Periodic Edit Loop: Pre-loading cache for {len(all_container_names)} containers before {len(tasks_to_run)} message edits")
-                await self.bulk_update_status_cache(list(all_container_names))
-                bulk_time = (datetime.now(timezone.utc) - start_bulk_time).total_seconds() * 1000
-                logger.info(f"Direct Cog Periodic Edit Loop: Bulk cache update completed in {bulk_time:.1f}ms")
-
+            # There used to be a per-container bulk pre-load here, guarded by a set of
+            # container names that has been empty on every cycle since individual server
+            # messages were dropped in favour of the overview - so it announced work in
+            # the log that it never did (review B15). _ensure_status_cache_fresh() below
+            # is what actually keeps the edits from rendering stale data.
             logger.info(f"Direct Cog Periodic Edit Loop: Attempting to run {len(tasks_to_run)} message edit tasks.")
 
             # Refresh the status cache at most once per cycle (only if stale) BEFORE the batches,
