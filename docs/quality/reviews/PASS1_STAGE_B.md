@@ -25,7 +25,7 @@ the section's names were judged, 40 findings reported.
 | 05 | F2 | medium / unsure | fixed — B13 (`d13c751`) | DockerControlCog._handle_donate_interaction is defined twice in the same class: once at line 2215-2273, again at line 3277-3348 |
 | 05 | F3 | low / unsure | open | Every other slash command defined in this section (control at 1947, help_command at 2091, ping_command at 2141, donate_command at 2172, info_command a |
 | 05 | F4 | low / unsure | fixed — B23 (`c6cdda1`) | In _create_overview_embed_expanded, routine and always-present values (the mech progress bar's current/max numbers and their types) are logged with lo |
-| 06 | F1 | high / sure | open | In DonationBroadcastModal.callback, an admin submits the broadcast modal with a valid amount (e.g |
+| 06 | F1 | high / sure | **refuted** | In DonationBroadcastModal.callback, an admin submits the broadcast modal with a valid amount (e.g |
 | 06 | F2 | medium / sure | fixed — B14 (`fc721cc`) | An admin submits the broadcast modal with a valid amount; process_discord_donation returns success=False (e.g |
 | 06 | F3 | medium / sure | open | The DockerControlCog extension is unloaded and reloaded (cog_unload() then setup() again, which is exactly the scenario cog_unload's docstring targets |
 | 06 | F4 | low / sure | open | An admin runs the /donate broadcast flow with 'Share publicly' checked while at least one configured channel has donation_broadcasts=False (an intenti |
@@ -55,13 +55,19 @@ the section's names were judged, 40 findings reported.
 | 11 | F5 | high / sure | fixed — B5 (`c8a3b55`) | process_config_form() calls ConfigFormParserService._save_channel_permissions(channel_permissions) and never looks at its result |
 | 11 | F6 | medium / unsure | open | In get_all_channels(), when a legacy file with a non-ID filename (e.g |
 | 11 | F7 | medium / sure | fixed — B24 (`a32e7da`) | save_channel() writes the per-channel file, then unconditionally calls self._update_main_config(channel_id, config) (line 247) and returns True regard |
-**24 fixed, 2 refuted, 14 still open.** Each fix is
+**24 fixed, 3 refuted, 13 still open.** Each fix is
 one commit with its own waiting test, an announced mutation probe and a full
 run of all 43 groups; the commit message carries the numbers that were
 announced beforehand and says where a prediction was wrong.
 
-Two of the refutations were measured in the running container rather than
-argued:
+Three findings did not survive re-measurement, and two of the refutations were
+measured in the running container rather than argued:
+
+- **06 F1** - `new_state.Power` does not raise: `new_state` is a `MechState`,
+  which carries `Power` as an alias of `power_level`, while the neighbouring
+  lowercase reads are on the service RESULT objects. The fragility is real all
+  the same - the donation is booked before those lines run - so the alias is
+  pinned by `tests/spec/test_the_donation_path_reads_fields_that_exist.py`.
 
 - **06 F5** - self.config is a property that reads the live config on every access - control_command never judges by a stale permission (measured, B18).
 - **06 F6** - channel.history().flatten() exists in py-cord 2.6.1 - measured in the running container, not argued (B18).
