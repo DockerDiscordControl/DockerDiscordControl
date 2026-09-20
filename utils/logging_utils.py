@@ -106,6 +106,14 @@ def is_debug_mode_enabled() -> bool:
                 delattr(is_debug_mode_enabled, '_loading')
 
 # A filter that only allows DEBUG logs when debug mode is enabled
+# The one fallback timezone. It used to be written out here AND in
+# utils/time_utils.py with two different values ('Europe/Berlin' here, 'UTC'
+# there), so the two modules disagreed about what time it was (review C35).
+# It lives in this module because time_utils imports logging_utils and not the
+# other way round.
+DEFAULT_TIMEZONE = "Europe/Berlin"
+
+
 class DebugModeFilter(logging.Filter):
     """
     Filter that only allows DEBUG messages when debug mode is enabled.
@@ -224,10 +232,10 @@ class TimezoneFormatter(logging.Formatter):
             if timezone_str is None or (now - self._tz_name_read_at) >= self._TZ_NAME_TTL:
                 try:
                     from services.config.config_service import load_config
-                    timezone_str = load_config().get('timezone', 'Europe/Berlin')
+                    timezone_str = load_config().get('timezone', DEFAULT_TIMEZONE)
                 except (ImportError, AttributeError, KeyError, RuntimeError, TypeError):
                     # During initialization, use safe default
-                    timezone_str = 'Europe/Berlin'
+                    timezone_str = DEFAULT_TIMEZONE
                 type(self)._tz_name = timezone_str
                 type(self)._tz_name_read_at = now
 

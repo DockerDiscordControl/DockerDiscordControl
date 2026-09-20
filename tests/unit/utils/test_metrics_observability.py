@@ -631,7 +631,10 @@ def test_get_log_timestamp_without_tz(monkeypatch):
 
 
 def test__get_timezone_safe_no_env_no_config(monkeypatch):
-    """Without TZ env and with config service raising, returns 'UTC' default."""
+    """Without TZ env and with config service raising, returns the ONE shared
+    default. Until 2026-09-20 this pinned 'UTC' while the log formatter fell
+    back to 'Europe/Berlin' - two modules disagreeing about what time it was
+    (review C35)."""
     monkeypatch.delenv("TZ", raising=False)
     tu.clear_timezone_cache()
     # Stub config_service to fail import / lookup so we hit the fallback path.
@@ -651,7 +654,7 @@ def test__get_timezone_safe_no_env_no_config(monkeypatch):
     monkeypatch.setitem(sys.modules, "services.config.config_service", fake_module)
 
     tz = tu._get_timezone_safe()
-    assert tz == "UTC"
+    assert tz == tu.DEFAULT_TIMEZONE
     tu.clear_timezone_cache()
 
 

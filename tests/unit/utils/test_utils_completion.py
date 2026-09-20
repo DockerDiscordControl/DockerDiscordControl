@@ -334,7 +334,9 @@ def test_parse_timestamp_with_just_date_and_hours_minutes():
 
 
 def test_get_configured_timezone_falls_back_when_config_service_raises(monkeypatch):
-    """When TZ unset and config service raises, returns 'UTC'."""
+    """When TZ unset and config service raises, returns the ONE shared default
+    (it pinned 'UTC' until review C35, while the log formatter used
+    'Europe/Berlin')."""
     monkeypatch.delenv("TZ", raising=False)
     tu.clear_timezone_cache()
     import services.config.config_service as svc_mod  # type: ignore
@@ -348,7 +350,7 @@ def test_get_configured_timezone_falls_back_when_config_service_raises(monkeypat
         lambda: (_ for _ in ()).throw(RuntimeError("fail")),
     )
     tz = tu._get_timezone_safe()
-    assert tz == "UTC"
+    assert tz == tu.DEFAULT_TIMEZONE
     tu.clear_timezone_cache()
 
 
