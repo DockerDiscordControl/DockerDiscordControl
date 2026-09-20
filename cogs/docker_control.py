@@ -5091,6 +5091,37 @@ class AddAdminModal(discord.ui.Modal):
 
 
 # Setup function required for extension loading
+def _remove_donation_commands(bot):
+    """Take /donate and /donatebroadcast off the bot when donations are switched off.
+
+    Called AFTER bot.add_cog(): only then are the cog's commands on the bot at
+    all, and then they are in pending_application_commands - application_commands
+    stays empty until Discord has registered them and handed back their ids.
+
+    This used to ask "if cmd_name in bot.application_commands" and delete by
+    name. In py-cord 2.6.1 that property builds a new LIST of command objects,
+    so a string is never in it: the removal never happened and the line that
+    reports it was never reached either. Donations off in the web panel, both
+    commands still in Discord (review B18).
+    """
+    try:
+        from services.donation.donation_utils import is_donations_disabled
+        if not is_donations_disabled():
+            return
+        for cmd_name in ('donate', 'donatebroadcast'):
+            found = [command for command in
+                     list(bot.pending_application_commands) + list(bot.application_commands)
+                     if getattr(command, 'name', None) == cmd_name]
+            if not found:
+                logger.warning(f"/{cmd_name} was not on the bot - nothing to remove")
+                continue
+            for command in found:
+                bot.remove_application_command(command)
+            logger.info(f"Removed /{cmd_name} command - donations disabled")
+    except (KeyError, AttributeError, RuntimeError) as e:
+        logger.error(f"Could not remove donation commands: {e}", exc_info=True)
+
+
 def setup(bot):
     """Setup function to add the cog to the bot when loaded as an extension.
 
@@ -5105,19 +5136,6 @@ def setup(bot):
     logger.debug("Config loaded, about to instantiate DockerControlCog...")
     cog = DockerControlCog(bot, config)
     logger.debug("DockerControlCog instantiated successfully!")
-
-    # Remove donation commands if donations are disabled
-    try:
-        from services.donation.donation_utils import is_donations_disabled
-        if is_donations_disabled():
-            # Remove the donate and donatebroadcast commands
-            commands_to_remove = ['donate', 'donatebroadcast']
-            for cmd_name in commands_to_remove:
-                if cmd_name in bot.application_commands:
-                    del bot.application_commands[cmd_name]
-                    logger.info(f"Removed /{cmd_name} command - donations disabled")
-    except (KeyError, AttributeError, RuntimeError) as e:
-        logger.debug(f"Could not remove donation commands: {e}")
 
     # Add simple donation notification task
     @tasks.loop(seconds=30)
@@ -5219,6 +5237,8 @@ def setup(bot):
 
     bot.add_cog(cog)
     logger.debug("DockerControlCog added to bot")
+
+    _remove_donation_commands(bot)
 
     # Start background loops NOW (in setup(), after cog is added)
     # NOTE: Cannot use on_ready() because bot is already ready when cog loads
