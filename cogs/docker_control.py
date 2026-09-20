@@ -4810,6 +4810,15 @@ class DonationBroadcastModal(discord.ui.Modal):
 
                         if not donation_result.success:
                             logger.error(f"Donation failed: {donation_result.error_message}")
+                            # The PUBLIC "Processing..." message must go: this early
+                            # return used to skip both places that delete it, so the
+                            # channel kept reading "Processing a $X donation" for a
+                            # donation that never happened (SPEC.md Z8, review B14).
+                            if processing_msg:
+                                try:
+                                    await processing_msg.delete()
+                                except (discord.NotFound, discord.HTTPException) as e:
+                                    logger.warning(f"Could not remove the processing message: {e}")
                             await interaction.followup.send(
                                 _("❌ Donation processing failed: {error}").format(error=donation_result.error_message),
                                 ephemeral=True

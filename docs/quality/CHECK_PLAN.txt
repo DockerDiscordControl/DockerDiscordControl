@@ -135,7 +135,7 @@
 [ ] cogs/docker_control.py:3699 DockerControlCog.initial_animation_cache_warmup
 [ ] cogs/docker_control.py:3796 DockerControlCog.before_initial_animation_cache_warmup
 
-## Section 06  (1432 lines, 24 public names)
+## Section 06  (1441 lines, 24 public names)
 [ ] cogs/docker_control.py:3803 DockerControlCog.inactivity_check_loop
 [ ] cogs/docker_control.py:3964 DockerControlCog.before_inactivity_check_loop
 [ ] cogs/docker_control.py:3970 DockerControlCog.performance_cache_clear_loop
@@ -156,10 +156,10 @@
 [ ] cogs/docker_control.py:4616 DonationView.broadcast_clicked
 [ ] cogs/docker_control.py:4625 DonationBroadcastModal
 [ ] cogs/docker_control.py:4701 DonationBroadcastModal.callback
-[ ] cogs/docker_control.py:4997 AddAdminModal
-[ ] cogs/docker_control.py:5015 AddAdminModal.callback
-[ ] cogs/docker_control.py:5093 setup
-[ ] cogs/docker_control.py:5123 setup.check_donation_notifications
+[ ] cogs/docker_control.py:5006 AddAdminModal
+[ ] cogs/docker_control.py:5024 AddAdminModal.callback
+[ ] cogs/docker_control.py:5102 setup
+[ ] cogs/docker_control.py:5132 setup.check_donation_notifications
 
 ## Section 07  (1452 lines, 7 public names)
 [ ] cogs/enhanced_info_modal_simple.py:43 SimplifiedContainerInfoModal

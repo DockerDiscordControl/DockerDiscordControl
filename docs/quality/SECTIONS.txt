@@ -27,8 +27,8 @@ cogs/docker_control.py:1-1950
 ## Section 05  (1852 lines, 1 pieces)
 cogs/docker_control.py:1951-3802
 
-## Section 06  (1432 lines, 1 pieces)
-cogs/docker_control.py:3803-5234
+## Section 06  (1441 lines, 1 pieces)
+cogs/docker_control.py:3803-5243
 
 ## Section 07  (1452 lines, 2 pieces)
 cogs/enhanced_info_modal_simple.py:1-657
