@@ -203,6 +203,7 @@ class MechStatusCacheService:
                 evolution_level=data_result.current_level,
                 power_max=getattr(getattr(data_result, 'bars', None), 'Power_max_for_level', None)
             )
+            speed_level = combined_status['speed']['level']
             speed_description = combined_status['speed']['description']
             speed_color = combined_status['speed']['color']
 
@@ -214,7 +215,12 @@ class MechStatusCacheService:
                 total_donated=data_result.total_donated,
                 name=data_result.level_name,
                 threshold=data_result.next_level_threshold or 0,
-                speed=50.0,  # Default speed
+                # The number now comes from the same answer as the words beside
+                # it. It used to be the constant 50.0 while speed_description and
+                # speed_color were derived from combined_status - so a mech at
+                # zero power and one at full both reported 50, next to the
+                # correct text and colour (review C19).
+                speed=speed_level,
                 glvl=data_result.current_level,
                 glvl_max=100,
                 bars=getattr(data_result, 'bars', None),

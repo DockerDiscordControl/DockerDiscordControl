@@ -122,7 +122,11 @@ def test_e5_status_cache_passes_real_level_and_power_max():
     data_store.get_comprehensive_data.return_value = data_result
     with patch("services.mech.mech_data_store.get_mech_data_store", return_value=data_store), \
          patch("services.mech.speed_levels.get_combined_mech_status",
-               return_value={"speed": {"description": "x", "color": "#fff"}}) as combined:
+               # "level" completes the double: the cache now takes the speed
+               # NUMBER from this same answer instead of a constant 50.0
+               # (review C19). This test is about the arguments going in.
+               return_value={"speed": {"level": 93, "description": "x",
+                                       "color": "#fff"}}) as combined:
         out = MechStatusCacheService()._fetch_fresh_status(True)
 
     assert out.success is True
