@@ -912,13 +912,24 @@ async def test_docker_performance(container_names: List[str] = None, iterations:
         for container_name in container_names:
             start_time = time.time()
 
+            # Read once, up front, and hand the value to the error handlers
+            # below. They used to call get_container_timeouts() again while
+            # handling an error - including an error that came from that very
+            # call, because it reads the configuration and can raise. The
+            # handler then raised the same error a second time, and it left
+            # test_docker_performance altogether: the tool died on the one
+            # container it was asked to diagnose and took the report on all the
+            # others with it (review C57). None means "we never got that far".
+            timeout_config = None
+
             try:
+                # Use container-specific timeout
+                timeout_config = get_container_timeouts(container_name)
+
                 # Test both info and stats calls
                 info_task = asyncio.create_task(get_docker_info(container_name))
                 stats_task = asyncio.create_task(get_docker_stats(container_name))
 
-                # Use container-specific timeout
-                timeout_config = get_container_timeouts(container_name)
                 total_timeout = timeout_config['info_timeout'] + timeout_config['stats_timeout']
 
                 info, stats = await asyncio.wait_for(
@@ -971,7 +982,7 @@ async def test_docker_performance(container_names: List[str] = None, iterations:
                         'average_ms': 0,
                         'min_ms': float('inf'),
                         'max_ms': 0,
-                        'timeout_config': get_container_timeouts(container_name),
+                        'timeout_config': timeout_config,
                         'errors': []
                     }
 
@@ -988,7 +999,7 @@ async def test_docker_performance(container_names: List[str] = None, iterations:
                         'average_ms': 0,
                         'min_ms': float('inf'),
                         'max_ms': 0,
-                        'timeout_config': get_container_timeouts(container_name),
+                        'timeout_config': timeout_config,
                         'errors': []
                     }
 
