@@ -488,9 +488,14 @@ class TestMechStoryChapterMapping:
         assert svc.get_chapter_key_for_level(level) == expected_key
         assert svc.get_chapter_key(level) == expected_key
 
-    def test_chapter_key_unknown_level_falls_back(self, tmp_path):
+    def test_chapter_key_unknown_level_has_no_chapter(self, tmp_path):
+        # This test used to assert "prologue1" here. That fallback made the
+        # guard in get_story_chapter unreachable and handed a level outside
+        # 1-11 somebody else's chapter, which reads exactly like its own
+        # (review C72). A level that has no chapter now has none.
         svc = MechStoryService(story_dir=str(tmp_path))
-        assert svc.get_chapter_key_for_level(999) == "prologue1"
+        assert svc.get_chapter_key_for_level(999) is None
+        assert svc.get_chapter_key(999) is None
 
 
 class TestMechStoryLoading:

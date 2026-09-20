@@ -55,10 +55,15 @@ class MechStoryService:
         Returns:
             Story text or None if not found
         """
+        # No guard between these two lines. There used to be one -
+        # "if not chapter_key: return None" - which could never run while the
+        # mapping fell back to the level-1 prologue. With the mapping answering
+        # None it can run, and it still changes nothing: the lookup below
+        # answers None for a key of None just the same. One rule instead of two
+        # that say the same thing - the mapping decides whether the level has a
+        # chapter, the content lookup whether that chapter has text
+        # (review C72).
         chapter_key = self._get_chapter_key_for_level(level)
-        if not chapter_key:
-            return None
-
         story_content = self._get_story_content(language)
         return story_content.get(chapter_key)
 
@@ -66,7 +71,7 @@ class MechStoryService:
         """Return all story chapters for the given language as a dict keyed by chapter key."""
         return self._get_story_content(language)
 
-    def get_chapter_key_for_level(self, level: int) -> str:
+    def get_chapter_key_for_level(self, level: int) -> Optional[str]:
         """Get the story chapter key for a specific mech level (alias)."""
         return self._get_chapter_key_for_level(level)
 
@@ -163,8 +168,8 @@ class MechStoryService:
 
         return chapters
 
-    def _get_chapter_key_for_level(self, level: int) -> str:
-        """Map mech level to story chapter key."""
+    def _get_chapter_key_for_level(self, level: int) -> Optional[str]:
+        """Map mech level to story chapter key, None for a level that has none."""
         level_mapping = {
             1: "prologue1",     # The Rustborn Husk
             2: "prologue2",     # The Battle-Scarred Survivor
@@ -179,7 +184,12 @@ class MechStoryService:
             11: "chapter9"      # OMEGA MECH (The Prayer)
         }
 
-        return level_mapping.get(level, "prologue1")
+        # None, not the level-1 prologue. The fallback made the guard in
+        # get_story_chapter ("if not chapter_key: return None") unreachable and
+        # handed a level outside 1-11 somebody else's chapter, which reads
+        # exactly like its own. Its docstring promised "None if not found"
+        # (review C72).
+        return level_mapping.get(level)
 
 
 # Singleton instance
