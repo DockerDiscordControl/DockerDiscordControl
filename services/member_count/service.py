@@ -20,6 +20,15 @@ try:
 except ImportError:
     discord = None  # Discord.py not available (used for type checking only)
 
+# Built once, at import. Naming the library's exception classes directly inside
+# an except clause meant Python had to read those attributes at the moment it
+# matched an exception - and when the library is missing the name is None, so
+# reading them raised AttributeError instead of catching anything. The handler
+# failed exactly when it was needed (review C17). An empty tuple matches
+# nothing, which is the right behaviour when the library is not there at all.
+_DISCORD_ERRORS = ((discord.Forbidden, discord.HTTPException, discord.NotFound)
+                   if discord is not None else ())
+
 from services.mech.progress_paths import get_progress_paths
 from utils.atomic_io import atomic_write_json
 from utils.logging_utils import get_module_logger
@@ -135,7 +144,7 @@ class MemberCountService:
 
             self._logger.info("Unique member count across status channels: %s", unique_count)
             return unique_count
-        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+        except (RuntimeError, *_DISCORD_ERRORS) as e:
             self._logger.error("Error updating member count: %s", e, exc_info=True)
             return fallback_count
 
@@ -204,7 +213,7 @@ class MemberCountService:
                 )
                 channel_perms = {}
             self._channel_perms = _ChannelPermissionsCache(channel_perms, True)
-        except (IOError, OSError, PermissionError, RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+        except (IOError, OSError, PermissionError, RuntimeError, *_DISCORD_ERRORS) as e:
             self._logger.error("Error loading channel permissions: %s", e, exc_info=True)
             self._channel_perms = _ChannelPermissionsCache({}, True)
 

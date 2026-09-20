@@ -21,6 +21,15 @@ try:
 except ImportError:
     discord = None  # Handle missing discord library gracefully
 
+# Built once, at import. Naming the library's exception classes directly inside
+# an except clause meant Python had to read those attributes at the moment it
+# matched an exception - and when the library is missing the name is None, so
+# reading them raised AttributeError instead of catching anything. The handler
+# failed exactly when it was needed (review C17). An empty tuple matches
+# nothing, which is the right behaviour when the library is not there at all.
+_DISCORD_ERRORS = ((discord.Forbidden, discord.HTTPException, discord.NotFound)
+                   if discord is not None else ())
+
 logger = logging.getLogger(__name__)
 
 
@@ -244,7 +253,7 @@ class MechStatusDetailsService:
 
             return f"{bar} {percentage:.1f}%"
 
-        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+        except (RuntimeError, *_DISCORD_ERRORS) as e:
             logger.debug(f"Error creating progress bar: {e}")
             return "░" * length + " 0.0%"
 
@@ -285,7 +294,7 @@ class MechStatusDetailsService:
             }
             return fallback_messages.get(language, fallback_messages['en'])
 
-        except (AttributeError, KeyError, RuntimeError, TypeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+        except (AttributeError, KeyError, RuntimeError, TypeError, *_DISCORD_ERRORS) as e:
             logger.debug(f"Error getting infinity message: {e}")
             # Fallback to German (current default)
             return "∞ Unendlichkeit erreicht, Danke! 🖤"
