@@ -164,8 +164,21 @@ class ConfigLoaderService:
         return settings
 
     def has_real_modular_structure(self) -> bool:
-        """Check if we have real modular file structure."""
-        return ((self.channels_dir.exists() and len(list(self.channels_dir.glob("*.json"))) > 0) or
+        """Check if we have real modular file structure.
+
+        The marker that records "the last channel was removed on purpose"
+        counts as evidence too. It is not a *.json file, so an installation
+        with no containers and no channels left used to read as "never
+        migrated": the loader took the virtual path, which reads the settings
+        from the v1 split files - exactly the files the real migration
+        deletes. It never opens auth.json / web_ui.json, where the settings
+        of a migrated installation actually live, so the bot token and the
+        Web-UI password hash disappeared from the loaded configuration
+        (review C54).
+        """
+        return ((self.channels_dir.exists() and
+                 (len(list(self.channels_dir.glob("*.json"))) > 0 or
+                  (self.channels_dir / ALL_CHANNELS_REMOVED_MARKER).exists())) or
                 (self.containers_dir.exists() and len(list(self.containers_dir.glob("*.json"))) > 0))
 
     def load_real_modular_config(self) -> Dict[str, Any]:
