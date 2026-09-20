@@ -244,18 +244,31 @@ def test_translation():
 
     # Resolve API key
     api_key = os.environ.get(settings.api_key_env, '').strip()
+    key_problem = None
     if not api_key and settings.api_key_encrypted:
         stored = settings.api_key_encrypted
         if stored.startswith('gAAAAA'):
             try:
                 fernet = config_service._get_encryption_key()
                 api_key = fernet.decrypt(stored.encode()).decode()
-            except Exception:
-                pass
+            except Exception as e:  # noqa: BLE001
+                # A key that cannot be DECRYPTED is not a key that was never
+                # CONFIGURED. `except Exception: pass` threw away the only
+                # explanation and the endpoint then answered "No API key
+                # configured" - while the operator was looking at the key they
+                # had entered. Since review C27 the message here says exactly
+                # what to do about it (review C42).
+                key_problem = f"{type(e).__name__}: {e}"
+                logger.error("Translation API key could not be decrypted: %s", key_problem)
         else:
             api_key = stored
 
     if not api_key:
+        if key_problem:
+            return jsonify({'success': False,
+                            'error': f'The stored API key could not be decrypted '
+                                     f'({key_problem}). Enter it again in the '
+                                     f'panel to re-encrypt it.'}), 400
         return jsonify({'success': False, 'error': 'No API key configured'}), 400
 
     try:
