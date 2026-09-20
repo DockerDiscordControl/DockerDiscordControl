@@ -4933,6 +4933,8 @@ class DonationBroadcastModal(discord.ui.Modal):
                 config = load_config()
                 channels_config = config.get('channel_permissions', {})
 
+                opted_out_count = 0
+
                 for channel_id_str, channel_info in channels_config.items():
                     try:
                         channel_id = int(channel_id_str)
@@ -4954,6 +4956,14 @@ class DonationBroadcastModal(discord.ui.Modal):
                             embed.set_footer(text="https://ddc.bot")
                             await channel.send(embed=embed)
                             sent_count += 1
+                        elif channel is not None:
+                            # Opted out in the web panel - counted on its own. It used
+                            # to raise failed_count like a channel that could not be
+                            # reached, and the admin was told deliveries had failed
+                            # when nothing had (review B36).
+                            opted_out_count += 1
+                            logger.info(f"Donation notice not sent to channel {channel_id_str}: "
+                                        f"the channel opted out of donation broadcasts")
                         else:
                             failed_count += 1
 
@@ -4966,6 +4976,10 @@ class DonationBroadcastModal(discord.ui.Modal):
                 response_text = _("⚠️ **Donation could not be recorded**") + "\n\n"
                 response_text += _("Nothing was sent to any channel. Please try again later.")
             elif should_share_publicly:
+                # Channels that opted out are neither a delivery nor a failure, so
+                # they appear in the log and not in this summary (review B36).
+                logger.info(f"Donation broadcast: {sent_count} sent, {failed_count} failed, "
+                            f"{opted_out_count} opted out")
                 response_text = _("✅ **Donation broadcast sent!**") + "\n\n"
                 response_text += _("📢 Sent to **{count}** channels").format(count=sent_count) + "\n"
                 if failed_count > 0:
