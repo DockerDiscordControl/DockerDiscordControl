@@ -2029,6 +2029,12 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # Import translation function locally to ensure it's accessible
             from .translation_manager import _ as translate
 
+            # The same brake every other command of this cog asks for. This one
+            # opens a modal that writes to the admin list, and it was the only
+            # command anybody could repeat as fast as Discord allows (review B38).
+            if not await self._check_spam_protection(ctx, "addadmin"):
+                return
+
             # Check channel permissions
             channel_has_control_perm = _channel_has_permission(ctx.channel.id, 'control', self.config)
             channel_has_status_perm = _channel_has_permission(ctx.channel.id, 'serverstatus', self.config)
