@@ -146,7 +146,14 @@ class DonationService:
         return DonationResult(success=True, message='Validation passed')
 
     def _process_mech_donation(self, request: DonationRequest) -> Dict[str, Any]:
-        """Process donation through MechService."""
+        """Process donation through MechService.
+
+        The line below `donation_result.success` is the one that matters: above
+        it nothing has been booked, below it the money has moved. Reading the
+        new state back used to sit on the wrong side of that line, so an
+        unreadable state turned a BOOKED donation into "Donation processing
+        failed", 500 - and the donor, reasonably, donated again (review C26).
+        """
         try:
             # UNIFIED DONATION SERVICE: Centralized processing with guaranteed events
             from services.donation.unified_donation_service import process_web_ui_donation
@@ -156,19 +163,6 @@ class DonationService:
                 amount=request.amount,  # already rounded to cents; int() dropped them ($10.75 -> $10)
                 idempotency_key=request.idempotency_key,
             )
-
-            if not donation_result.success:
-                raise RuntimeError(f"Donation failed: {donation_result.error_message}")
-
-            result_state = donation_result.new_state
-
-            self.logger.info(f"Manual donation processed: ${request.amount} from {request.donor_name}")
-
-            return {
-                'success': True,
-                'mech_state': result_state
-            }
-
         except (ImportError, AttributeError) as e:
             self.logger.error(f"Mech service import error: {e}", exc_info=True)
             return {
@@ -181,6 +175,29 @@ class DonationService:
                 'success': False,
                 'error': f'Failed to process donation: {str(e)}'
             }
+
+        if not donation_result.success:
+            self.logger.error(f"Donation refused: {donation_result.error_message}")
+            return {
+                'success': False,
+                'error': f'Failed to process donation: {donation_result.error_message}'
+            }
+
+        # ---- Booked. Nothing below may report this donation as a failure. ----
+        try:
+            result_state = donation_result.new_state
+        except Exception as e:  # noqa: BLE001 - see the docstring
+            self.logger.error(
+                f"Donation booked but the new mech state could not be read: {e}",
+                exc_info=True)
+            result_state = None
+
+        self.logger.info(f"Manual donation processed: ${request.amount} from {request.donor_name}")
+
+        return {
+            'success': True,
+            'mech_state': result_state
+        }
 
     def _handle_discord_notification(self, request: DonationRequest) -> bool:
         """Handle Discord notification publishing."""
@@ -251,11 +268,14 @@ class DonationService:
         """Build final donation response with all details."""
         mech_state = mech_result.get('mech_state')
 
-        # Extract mech state information
-        new_power = mech_state.Power if mech_state else 0
-        total_donations = mech_state.total_donated if mech_state else 0
-        mech_level = mech_state.level if mech_state else 1
-        mech_level_name = mech_state.level_name if mech_state else 'SCRAP MECH'
+        # None, not 0 / 1 / "SCRAP MECH". When the state could not be read, the
+        # donation still happened - but nobody measured these numbers, and
+        # filling the donor's screen with them would be the same invention that
+        # review C1 removed from the container stats (review C26).
+        new_power = mech_state.Power if mech_state else None
+        total_donations = mech_state.total_donated if mech_state else None
+        mech_level = mech_state.level if mech_state else None
+        mech_level_name = mech_state.level_name if mech_state else None
 
         # Log evolution detection
         if mech_state and hasattr(mech_state, 'level') and mech_state.level > 1:
@@ -271,9 +291,13 @@ class DonationService:
             'mech_level_name': mech_level_name
         }
 
+        message = f'Donation of ${request.amount} from {request.donor_name} processed successfully!'
+        if mech_state is None:
+            message += ' The new mech state could not be read - the donation itself went through.'
+
         return DonationResult(
             success=True,
-            message=f'Donation of ${request.amount} from {request.donor_name} processed successfully!',
+            message=message,
             donation_info=donation_info
         )
 
