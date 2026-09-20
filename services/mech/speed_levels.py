@@ -13,8 +13,11 @@ Now combined with evolution system for visual appearance
 """
 
 import json
+import logging
 import os
 from pathlib import Path
+
+logger = logging.getLogger('ddc.speed_levels')
 
 # Load speed translations from JSON
 try:
@@ -306,7 +309,18 @@ def get_speed_level_for_state(evolution_level: int, power_amount: float, power_m
     if evolution_level < 11 and power_max and power_max > 0:
         max_power = power_max
     else:
-        max_power = _get_level_power_range(evolution_level)
+        try:
+            max_power = _get_level_power_range(evolution_level)
+        except (ValueError, TypeError) as e:
+            # The same fallback get_combined_mech_status uses for this call.
+            # It used to live only there, so a caller reaching this function
+            # directly - services/web/donation_status_service does - got the
+            # exception instead of a speed, and "never take the caller down
+            # over a bad level" held for one entry point and not the other
+            # (review C75).
+            logger.warning(f"Speed for evolution level {evolution_level}: {e} - "
+                           f"falling back to the power amount")
+            return min(int(power_amount), 100) if power_amount > 0 else 0
     return _calculate_speed_level_from_power_ratio(evolution_level, power_amount, max_power)
 
 

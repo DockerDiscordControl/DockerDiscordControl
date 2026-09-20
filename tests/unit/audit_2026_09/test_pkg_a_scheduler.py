@@ -360,7 +360,8 @@ class TestA7DonationSystemTask:
 
         with patch("services.mech.progress_service.get_progress_service", return_value=progress), \
              patch("services.config.config_service.load_config",
-                   return_value={"channel_permissions": {"123": {}}}), \
+                   return_value={"channel_permissions":
+                                 {"123": {"commands": {"serverstatus": True}}}}), \
              patch("services.mech.mech_evolutions.get_evolution_level_info",
                    return_value=SimpleNamespace(name="Rusty Mech")):
             assert await dms.execute_donation_message_task(bot=bot) is True

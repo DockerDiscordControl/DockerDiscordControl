@@ -147,8 +147,8 @@ services/mech/progress_paths.py:1-189
 ## Section 24  (1612 lines, 1 pieces)
 services/mech/progress_service.py:1-1612
 
-## Section 25  (1249 lines, 7 pieces)
-services/mech/speed_levels.py:1-413
+## Section 25  (1263 lines, 7 pieces)
+services/mech/speed_levels.py:1-427
 services/member_count/__init__.py:1-17
 services/member_count/service.py:1-296
 services/scheduling/__init__.py:1-36
