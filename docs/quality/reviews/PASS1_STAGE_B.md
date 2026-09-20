@@ -15,7 +15,7 @@ the section's names were judged, 40 findings reported.
 
 | Section | Finding | Severity / certainty | Status | Reported as |
 |---|---|---|---|---|
-| 03 | F1 | high / unsure | open | AdminContainerDropdown.callback does no permission check of its own: it hardcodes channel_has_control_permission=True (line 2093, 'Admin always has co |
+| 03 | F1 | high / unsure | fixed — B27 (`db871d5`) | AdminContainerDropdown.callback does no permission check of its own: it hardcodes channel_has_control_permission=True (line 2093, 'Admin always has co |
 | 03 | F2 | high / sure | fixed — B4 (`c3c785f`) | In MechHistoryButton.callback, 'await interaction.response.defer(ephemeral=True)' (line 2685) sits inside 'if spam_service.is_enabled():' (line 2672)  |
 | 04 | F1 | high / unsure | fixed — B11 (`03df97f`) | If heartbeat.enabled=true in config and heartbeat.ping_url is stored as null/None (key present, value None - e.g |
 | 04 | F2 | low / sure | fixed — B15 (`c59dd42`) | In periodic_message_edit_loop, `all_container_names = set()` is initialized at line 703 but nothing between there and the check at line 819 (`if all_c |
@@ -46,16 +46,16 @@ the section's names were judged, 40 findings reported.
 | 10 | F1 | critical / sure | fixed — B1 (`3bb7040`) | auto_actions.json becomes unreadable for one call (JSONDecodeError or IOError - e.g |
 | 10 | F2 | medium / unsure | fixed — B22 (`de881fd`) | User creates a 'yearly' task via the container's quick-create button: picking a predefined date from YeardayDropdown sets self.view.selected_day to a  |
 | 10 | F3 | low / unsure | open | A locale file maps some key to a deliberately empty string, e.g |
-| 10 | F4 | low / sure | open | tempfile.mkstemp() itself fails (line 495 - e.g |
+| 10 | F4 | low / sure | fixed — B29 (`862a916`) | tempfile.mkstemp() itself fails (line 495 - e.g |
 | 10 | F5 | low / unsure | open | trigger.keywords contains a non-string element whose str() representation exceeds MAX_KEYWORD_LENGTH (100 chars, e.g |
 | 11 | F1 | high / sure | fixed — B10 (`39ac4c4`) | A rule with cooldown_scope='rule' targets two or more containers |
-| 11 | F2 | low / sure | open | _save_state() assigns 'fd, temp_path = tempfile.mkstemp(...)' inside the try block (line 106) |
+| 11 | F2 | low / sure | fixed — B29 (`862a916`) | _save_state() assigns 'fd, temp_path = tempfile.mkstemp(...)' inside the try block (line 106) |
 | 11 | F3 | medium / unsure | open | get_cached_token(), set_cached_token() and clear_token_cache() read/write self._token_cache and self._token_cache_hash without taking self._cache_lock |
 | 11 | F4 | critical / sure | fixed — B2 (`d922c3d`) | _parse_channel_type() (used by parse_channel_permissions_from_form) stops scanning for more channel rows as soon as it hits an empty '{prefix}_channel |
 | 11 | F5 | high / sure | fixed — B5 (`c8a3b55`) | process_config_form() calls ConfigFormParserService._save_channel_permissions(channel_permissions) and never looks at its result |
 | 11 | F6 | medium / unsure | open | In get_all_channels(), when a legacy file with a non-ID filename (e.g |
 | 11 | F7 | medium / sure | fixed — B24 (`a32e7da`) | save_channel() writes the per-channel file, then unconditionally calls self._update_main_config(channel_id, config) (line 247) and returns True regard |
-**24 fixed, 3 refuted, 13 still open.** Each fix is
+**27 fixed, 3 refuted, 10 still open.** Each fix is
 one commit with its own waiting test, an announced mutation probe and a full
 run of all 43 groups; the commit message carries the numbers that were
 announced beforehand and says where a prediction was wrong.

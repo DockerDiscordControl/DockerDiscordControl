@@ -133,7 +133,7 @@ Since then the review has run in two further stages, each with its own report:
 **stage A** — the eight sensitive sections, money, permissions, containers
 (`reviews/PASS1_STAGE_A.md`); **stage B** — the nine sections the user touches every
 day, sections 03-11 (`reviews/PASS1_STAGE_B.md`): 242 names judged, 40 findings,
-of which **24 fixed, 3 refuted, 13 still open** as of 2026-09-20, plus two things
+of which **27 fixed, 3 refuted, 10 still open** as of 2026-09-20, plus two things
 found while reading that the report did not have (B17, B22).
 
 **Not a single finding was adopted unchecked.** A second model can be just as wrong as the first;
