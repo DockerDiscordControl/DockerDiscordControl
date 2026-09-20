@@ -216,7 +216,12 @@ class StatusHandlersMixin:
             display_name = server_config.get('name', docker_name)
             details_allowed = server_config.get('allow_detailed_status', True)
 
-            if info is None and get_container_status_service().is_container_not_found(docker_name):
+            # "not info", like the single-container path a few hundred lines down:
+            # an answer that is empty but not None used to be read as offline here
+            # and as "not found" there, so one container had two verdicts depending
+            # on which loop last touched it (review B37). What decides either way is
+            # is_container_not_found(), which asks Docker itself.
+            if not info and get_container_status_service().is_container_not_found(docker_name):
                 # Docker answered "no such container" (deleted/renamed/being recreated): cached
                 # like offline, but shown as "not found" instead of 🔴 / an endless 🔄
                 status_results[docker_name] = ContainerStatusResult.not_found_result(
