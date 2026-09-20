@@ -123,9 +123,16 @@ class AnimationCacheService:
 
         # Disk-cache cap (LRU eviction of speed-adjusted .webp files).
         # Override via DDC_ANIM_DISK_LIMIT_MB; 0 disables.
+        configured_limit = os.environ.get("DDC_ANIM_DISK_LIMIT_MB", "200")
         try:
-            self._disk_cache_limit_mb = max(0, int(os.environ.get("DDC_ANIM_DISK_LIMIT_MB", "200")))
+            self._disk_cache_limit_mb = max(0, int(configured_limit))
         except (TypeError, ValueError):
+            # Say which value was dropped. Without this line a typo in the
+            # variable looked exactly like not having set it at all: the
+            # operator who meant to cap the cache at 50 MB got 200 MB and had
+            # no way to find out from the outside (review C67).
+            logger.warning("DDC_ANIM_DISK_LIMIT_MB is not a number (%r) - "
+                           "the default of 200 MB applies", configured_limit)
             self._disk_cache_limit_mb = 200
         if self._disk_cache_limit_mb:
             try:

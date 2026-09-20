@@ -124,8 +124,8 @@ services/infrastructure/update_notifier.py:1-235
 services/mech/__init__.py:1-30
 services/mech/mech_display_cache_service.py:1-387
 
-## Section 21  (1828 lines, 1 pieces)
-services/mech/animation_cache_service.py:1-1828
+## Section 21  (1835 lines, 1 pieces)
+services/mech/animation_cache_service.py:1-1835
 
 ## Section 22  (1621 lines, 4 pieces)
 services/mech/mech_data_store.py:1-922
