@@ -1205,7 +1205,13 @@ class AnimationCacheService:
                 power_level=request.power_level
             )
 
-            if animation_bytes is None:
+            # Falsiness, not identity: the producer returns b"" when the base
+            # cache file is missing and pre_generate_animation() cannot make one
+            # - the Cache-Only deployment, where assets_dir is None and
+            # pre-generation quietly does nothing. Empty bytes are not None, so
+            # an "animation" of zero bytes used to be handed out with
+            # success=True (review C13).
+            if not animation_bytes:
                 return MechAnimationResult(
                     success=False,
                     error_message="Failed to generate animation bytes"
