@@ -12,7 +12,7 @@ achieved" that the programme text explicitly rejects.
 
 ## 1. Split — in place
 
-37 sections, 188 pieces, **60,469 of 60,469 lines** in 183 files (`docs/quality/SECTIONS.txt`).
+37 sections, 188 pieces, **60,478 of 60,478 lines** in 183 files (`docs/quality/SECTIONS.txt`).
 The cuts are made at class and function boundaries, not arbitrarily at line 2000: a section is
 meant to be readable in one go.
 
@@ -80,14 +80,16 @@ that the programme text rejects.
 
 | | Sections | Lines |
 |---|---|---|
-| contain a file in which something was changed | 36 | 59,761 (99 %) |
-| not touched at all | **1** | **708 (1 %)** |
+| contain a file in which something was changed | **37** | **60,478 (100 %)** |
+| not touched at all | 0 | 0 |
 
-The calculation in the open, so that it can be checked instead of believed: the one untouched
-section (15, `docker_client_pool.py`) is 708 lines as measured; 60,469 − 708 = 59,761.
+The calculation in the open, so that it can be checked instead of believed: there is no untouched
+section left. The last one, 15 (`docker_client_pool.py`, 717 lines), dropped out with review C32 —
+the pool statistics that counted a failed request as a successful one.
 
-**This figure is by now eleven times out of date** — 12 sections with 17,242 lines, then 11 with
-15,479, then 10 with 14,636, then 9 with 14,344, then 8 with 12,510, then 7 with 10,618, then 6 with 8,683, then 4 with 5,479, then 3 with 4,138, then 2 with 2,703, now 1 with 708. Every correction shifts it: **section 13**
+**This figure went out of date twelve times before it reached zero** — 12 sections with 17,242
+lines, then 11 with
+15,479, then 10 with 14,636, then 9 with 14,344, then 8 with 12,510, then 7 with 10,618, then 6 with 8,683, then 4 with 5,479, then 3 with 4,138, then 2 with 2,703, then 1 with 708, now none. Every correction shifted it: **section 13**
 dropped out with `config_service.py`, **section 20** with `update_notifier.py`, **section 37**
 with `token_security.py`, **section 28** with `configuration_save_service.py`, **section 33** with `app/bot/token.py`, **section 22** with `mech_evolutions.py`, **section 07** and **21** with the translation into English (`scheduler_commands.py`, `animation_cache_service.py`), **section 08** with the loading-status message that broke apart on a phone (`status_handlers.py`), **section 14** with the cleanup that reported success without deleting anything (`channel_cleanup_service.py`), **section 26** with `scheduler.py` in the auto-action commit `643ede5` — which I did not notice at the time and am correcting here, and **section 07**, which lost `scheduler_commands.py` altogether (review B17). This is not a flaw of the calculation but its nature — and the reason to
 measure it at the end instead of carrying it along.

@@ -130,7 +130,12 @@ class DockerClientService:
             'queued_requests': 0,
             'max_queue_size': 0,
             'average_wait_time': 0.0,
-            'timeouts': 0
+            'timeouts': 0,
+            # Failures that are NOT timeouts. Without this counter
+            # successful_requests was computed as total - timeouts, so every
+            # service error was counted as a success and the health figure an
+            # operator reads looked better than the truth (review C32).
+            'failures': 0
         }
 
         # Event to signal when clients become available (to avoid busy waiting)
@@ -233,6 +238,7 @@ class DockerClientService:
 
         except (RuntimeError, ValueError, AttributeError, OSError) as e:
             # Queue/async operation errors, pool state errors
+            self._queue_stats['failures'] += 1
             total_time = (time.time() - start_time) * 1000
             error_msg = f"Docker client service error: {e}"
             logger.error(f"[SERVICE] Request {request_id}: ERROR - {error_msg}", exc_info=True)
@@ -285,8 +291,11 @@ class DockerClientService:
                 queue_size=stats['current_queue_size'],
                 max_connections=stats['max_connections'],
                 total_requests=stats['total_requests'],
-                successful_requests=stats['total_requests'] - stats['timeouts'],
-                failed_requests=stats['timeouts'],
+                # A timeout is one kind of failure, not the only one.
+                successful_requests=(stats['total_requests']
+                                     - stats['timeouts']
+                                     - stats.get('failures', 0)),
+                failed_requests=stats['timeouts'] + stats.get('failures', 0),
                 timeout_requests=stats['timeouts'],
                 average_wait_time_ms=stats['average_wait_time'] * 1000,  # Convert to ms
                 max_queue_size_reached=stats['max_queue_size']
