@@ -55,10 +55,32 @@ class UpdateNotifier:
 
         try:
             with open(self.status_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                stored = json.load(f)
         except (json.JSONDecodeError, IOError) as e:
             logger.error(f"Error loading update status: {e}")
             return default_status
+
+        # What this method promises is the shape above, not whatever happens to
+        # be in the file. A file that parses used to come back untouched, so the
+        # two keys were only guaranteed on the error paths - and
+        # mark_notification_shown indexes status["notifications_shown"]
+        # directly. A hand-edited file, or one from another schema, raised
+        # KeyError there, inside send_update_notification, whose clause names
+        # RuntimeError and three discord exceptions: it left that method
+        # uncaught (review C65).
+        if not isinstance(stored, dict):
+            logger.error(f"{self.status_file.name} does not hold an object "
+                         f"({type(stored).__name__}) - starting from the defaults")
+            return default_status
+
+        # Fill the gaps, keep everything else: save_update_status writes the
+        # whole record back, so a key this version does not know must survive.
+        status = {**default_status, **stored}
+        if not isinstance(status.get("notifications_shown"), list):
+            logger.error(f"notifications_shown in {self.status_file.name} is not a list "
+                         f"({status.get('notifications_shown')!r}) - starting it empty")
+            status["notifications_shown"] = []
+        return status
 
     def save_update_status(self, status: Dict[str, Any]) -> bool:
         """Save update notification status."""
