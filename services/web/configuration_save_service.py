@@ -315,7 +315,16 @@ class ConfigurationSaveService:
                     try:
                         with open(json_file, 'r') as f:
                             container_data = json.load(f)
-                            container_name = container_data.get('container_name') or json_file.stem
+                            # The DOCKER name, like the active list below. These
+                            # two were built by different rules, so a file whose
+                            # container_name differs from its docker_name - what
+                            # migrate_containers_to_files leaves behind - showed
+                            # up under one name here and another there, and an
+                            # ACTIVE container had its info fields wiped as if it
+                            # had been switched off (review C51).
+                            container_name = (container_data.get('docker_name')
+                                              or container_data.get('container_name')
+                                              or json_file.stem)
                             all_container_names.append(container_name)
                     except (json.JSONDecodeError, ValueError) as e:
                         # JSON/data errors (malformed JSON, invalid container data)
