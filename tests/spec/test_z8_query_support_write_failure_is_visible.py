@@ -27,7 +27,10 @@ def failing_write(tmp_path, monkeypatch):
     real_replace = support.Path.replace
 
     def explode(self, target):
-        if str(self).endswith(".tmp"):
+        # ".tmp" anywhere, not as a suffix: the temp file carries the process id
+        # since review C29, and a test that depends on the exact spelling of an
+        # internal file name pins the route instead of the promise.
+        if ".tmp" in self.name:
             raise OSError("no space left on device")
         return real_replace(self, target)
 

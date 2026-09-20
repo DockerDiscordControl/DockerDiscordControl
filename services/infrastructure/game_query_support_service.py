@@ -33,6 +33,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from utils.logging_utils import get_module_logger
+import fcntl
+from contextlib import contextmanager
 
 logger = get_module_logger('game_query_support_service')
 
@@ -81,20 +83,51 @@ def read_support_verdicts() -> Dict[str, Dict[str, Any]]:
     return _read_verdicts_at(_config_dir() / _SUPPORT_FILENAME)
 
 
+@contextmanager
+def _cross_process_lock(path: Path):
+    """Serialise the read-modify-write ACROSS PROCESSES.
+
+    The bot and the web process both write this file, and an atomic write alone
+    does not make a read-modify-write atomic: if both read before either writes,
+    the second write replaces the file with a state that never saw the first
+    one's key. A manual re-test could lose its verdict to the bot's next probe,
+    and the panel's checkbox stayed locked until the bot re-probed on its own
+    schedule (review C29).
+
+    flock blocks the OS thread, which under gevent means the hub - the critical
+    section is one small JSON read and write, which is the right trade here.
+    """
+    lock_path = path.with_name(path.name + '.lock')
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(str(lock_path), os.O_CREAT | os.O_RDWR, 0o600)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
+
+
 def _atomic_update(mutate, path: Optional[Path] = None) -> None:
     """Read-modify-write a SINGLE key of the verdicts file without clobbering the others.
 
     All writers (the bot's per-key _set/note_offline AND the web process's manual re-test)
-    go through this, so neither ever overwrites verdicts owned by the other.
+    go through this, so neither ever overwrites verdicts owned by the other. That
+    promise is kept by the lock below - without it, the sentence was simply untrue.
     """
     path = path or (_config_dir() / _SUPPORT_FILENAME)
-    state = _read_verdicts_at(path)
     try:
-        mutate(state)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = path.with_suffix('.tmp')
-        tmp.write_text(json.dumps(state), encoding='utf-8')
-        tmp.replace(path)
+        with _cross_process_lock(path):
+            state = _read_verdicts_at(path)
+            mutate(state)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            # Per process: a fixed ".tmp" name is shared by every writer, so two
+            # concurrent writes could tear even a single key update (review C29).
+            tmp = path.with_name(f"{path.name}.tmp.{os.getpid()}")
+            tmp.write_text(json.dumps(state), encoding='utf-8')
+            tmp.replace(path)
     except Exception as e:  # noqa: BLE001
         # ERROR, not DEBUG: this file carries the verdicts AND the 'testing' flag
         # behind the panel's re-test spinner. A swallowed write leaves the spinner
