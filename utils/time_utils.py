@@ -158,7 +158,11 @@ def get_timezone_offset(tz_name: str) -> str:
     try:
         tz = pytz.timezone(tz_name)
         now = datetime.now(tz)
-        return now.strftime('%z')
+        # strftime('%z') gives "+0100" - no colon - while the fallback below
+        # gave "+00:00" and the docstring promised "+01:00". One function, three
+        # shapes (review C38). ISO it is, which is what the docstring says.
+        raw = now.strftime('%z')
+        return f"{raw[:3]}:{raw[3:]}" if len(raw) == 5 else "+00:00"
     except (pytz.exceptions.UnknownTimeZoneError, AttributeError, TypeError, ValueError) as e:
         logger.warning(f"Could not get offset for timezone '{tz_name}': {e}", exc_info=True)
         return "+00:00"

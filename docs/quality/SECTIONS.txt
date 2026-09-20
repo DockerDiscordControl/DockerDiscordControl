@@ -259,11 +259,11 @@ utils/config_cache.py:1-307
 utils/config_paths.py:1-47
 utils/import_utils.py:1-160
 
-## Section 36  (1635 lines, 4 pieces)
+## Section 36  (1639 lines, 4 pieces)
 utils/logging_utils.py:1-546
 utils/observability.py:1-593
 utils/settings.py:1-113
-utils/time_utils.py:1-383
+utils/time_utils.py:1-387
 
 ## Section 37  (821 lines, 3 pieces)
 utils/performance_metrics.py:1-419
