@@ -450,12 +450,21 @@ class SchedulerService:
             """Execute a single task with proper error handling and tracking."""
             task_start_time = time.time()
             self.active_tasks.add(task.task_id)
-            # Remember the executed occurrence before execute_task() moves next_run
-            self._executed_runs[task.task_id] = task.next_run_ts
+            # Read the occurrence before execute_task() moves next_run - but record
+            # it as executed only once the execution has actually returned. Marking
+            # it beforehand wrote down a run that had not happened: execute_task
+            # advances next_run_ts itself on every path it handles, yet EVERY DDC
+            # exception escapes it (DDCBaseException derives from Exception, not
+            # from RuntimeError). next_run_ts then stays where it was, and the guard
+            # in _check_and_execute_tasks skipped the occurrence as "already
+            # executed" - a silently dropped run for a recurring task, and a
+            # one-time task written off as "scheduler not running" (review C6).
+            occurrence_ts = task.next_run_ts
 
             try:
                 logger.info(f"Executing task: {task.container_name} (ID: {task.task_id})")
                 await execute_task(task)
+                self._executed_runs[task.task_id] = occurrence_ts
 
                 # Save the task's next run time after execution. No collision check:
                 # a refused reschedule would keep the old next_run (double run).
@@ -471,8 +480,12 @@ class SchedulerService:
                 execution_time = time.time() - task_start_time
                 logger.info(f"Task {task.container_name} completed successfully in {execution_time:.2f}s")
 
-            except (ImportError, RuntimeError, OSError, AttributeError, TypeError, ValueError, KeyError) as e:
-                # Task execution errors (import failures, runtime issues, I/O errors, attribute/type/value/key errors)
+            except Exception as e:
+                # Broad on purpose. Whatever is not caught here leaves no trace at
+                # all: asyncio.gather(..., return_exceptions=True) below collects
+                # the exception and drops it. A DockerConnectionError used to end a
+                # task run in complete silence (review C6). CancelledError derives
+                # from BaseException and still passes through, as it must.
                 logger.error(f"Error executing task {task.container_name} (ID: {task.task_id}): {e}", exc_info=True)
                 logger.error(traceback.format_exc())
             finally:
