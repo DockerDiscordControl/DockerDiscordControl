@@ -80,6 +80,21 @@ def _status_entry_age_seconds(entry) -> float:
     return 0.0
 
 
+def _heartbeat_enabled(config: dict) -> bool:
+    """True if the heartbeat is switched on AND has a ping URL.
+
+    The URL is read with "or ''": a config that holds null instead of an empty
+    string (an older version, a hand edit) used to raise AttributeError on
+    .strip(), which the caller's except (OSError, KeyError, ValueError) does not
+    catch - the rest of the startup, including the first status message, was
+    skipped without a word (review B11).
+    """
+    heartbeat = config.get('heartbeat', {})
+    if not isinstance(heartbeat, dict) or not heartbeat.get('enabled', False):
+        return False
+    return bool((heartbeat.get('ping_url') or '').strip())
+
+
 class DockerControlCog(commands.Cog, StatusHandlersMixin):
     """Cog for DockerDiscordControl container management via Discord."""
 
@@ -639,15 +654,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # Member count updates moved to on-demand (during level-ups only)
 
             # Start Status Watchdog loop if enabled
-            heartbeat_enabled = False
             try:
-                latest_config = load_config() or {}
-                heartbeat_cfg = latest_config.get('heartbeat', {})
-                if isinstance(heartbeat_cfg, dict):
-                    heartbeat_enabled = bool(heartbeat_cfg.get('enabled', False))
-                    # Also check if ping_url is actually set
-                    if heartbeat_enabled and not heartbeat_cfg.get('ping_url', '').strip():
-                        heartbeat_enabled = False
+                heartbeat_enabled = _heartbeat_enabled(load_config() or {})
             except (OSError, KeyError, ValueError):
                 heartbeat_enabled = False
 
