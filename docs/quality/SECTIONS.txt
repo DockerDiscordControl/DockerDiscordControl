@@ -20,14 +20,14 @@ cogs/control_ui.py:1-1900
 ## Section 03  (1577 lines, 1 pieces)
 cogs/control_ui.py:1901-3477
 
-## Section 04  (1942 lines, 1 pieces)
-cogs/docker_control.py:1-1942
+## Section 04  (1946 lines, 1 pieces)
+cogs/docker_control.py:1-1946
 
 ## Section 05  (1859 lines, 1 pieces)
-cogs/docker_control.py:1943-3801
+cogs/docker_control.py:1947-3805
 
-## Section 06  (1483 lines, 1 pieces)
-cogs/docker_control.py:3802-5284
+## Section 06  (1489 lines, 1 pieces)
+cogs/docker_control.py:3806-5294
 
 ## Section 07  (665 lines, 1 pieces)
 cogs/enhanced_info_modal_simple.py:1-665

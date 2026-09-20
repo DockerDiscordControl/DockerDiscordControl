@@ -679,7 +679,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                 except (discord.errors.DiscordException, RuntimeError, OSError) as e:
                     logger.error(f"Error in initial status send: {e}", exc_info=True)
 
-            self.bot.loop.create_task(send_initial_after_delay())
+            # Tracked like its siblings: this one sleeps ten seconds and then posts
+            # the overview messages, and it used to be the only task the cog did not
+            # know about while it ran (review B39).
+            initial_task = self.bot.loop.create_task(send_initial_after_delay())
+            self.bot.loop.create_task(self._track_task(initial_task))
 
         except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"Error setting up background loops: {e}", exc_info=True)
@@ -4074,6 +4078,12 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         if hasattr(self, 'start_mech_cache_loop') and self.start_mech_cache_loop.is_running(): self.start_mech_cache_loop.cancel()
         if hasattr(self, 'initial_animation_cache_warmup') and self.initial_animation_cache_warmup.is_running(): self.initial_animation_cache_warmup.cancel()
         if hasattr(self, 'donation_notification_task') and self.donation_notification_task.is_running(): self.donation_notification_task.cancel()
+        # And the one-shot tasks the startup created. _active_tasks was written and
+        # never read, so nothing stopped them - _track_task removes each one when it
+        # ends, so what is left here is still running (review B39).
+        for task in list(getattr(self, '_active_tasks', ())):
+            if not task.done():
+                task.cancel()
         logger.info("All direct Cog loops cancellation attempted.")
 
         # PERFORMANCE OPTIMIZATION: Clear all caches on unload
