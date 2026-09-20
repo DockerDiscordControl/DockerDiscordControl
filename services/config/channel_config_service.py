@@ -168,6 +168,12 @@ class ChannelConfigService:
                                     # Target file exists - delete the incorrectly named one
                                     json_file.unlink()
                                     logger.info(f"Removed duplicate incorrectly-named file: {filename}.json")
+                                    # ... and do NOT use what it held. The correctly named
+                                    # file has its own turn in this loop; whichever came
+                                    # last used to decide, so an old leftover could grant
+                                    # or withhold a permission the real file does not
+                                    # (review B32).
+                                    continue
                             except (OSError, PermissionError) as rename_error:
                                 logger.warning(f"Could not auto-migrate file: {rename_error}")
                         else:
