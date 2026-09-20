@@ -27,7 +27,7 @@ the section's names were judged, 40 findings reported.
 | 05 | F4 | low / unsure | fixed — B23 (`c6cdda1`) | In _create_overview_embed_expanded, routine and always-present values (the mech progress bar's current/max numbers and their types) are logged with lo |
 | 06 | F1 | high / sure | **refuted** | In DonationBroadcastModal.callback, an admin submits the broadcast modal with a valid amount (e.g |
 | 06 | F2 | medium / sure | fixed — B14 (`fc721cc`) | An admin submits the broadcast modal with a valid amount; process_discord_donation returns success=False (e.g |
-| 06 | F3 | medium / sure | open | The DockerControlCog extension is unloaded and reloaded (cog_unload() then setup() again, which is exactly the scenario cog_unload's docstring targets |
+| 06 | F3 | medium / sure | fixed — B31 (`68586b0`) | The DockerControlCog extension is unloaded and reloaded (cog_unload() then setup() again, which is exactly the scenario cog_unload's docstring targets |
 | 06 | F4 | low / sure | open | An admin runs the /donate broadcast flow with 'Share publicly' checked while at least one configured channel has donation_broadcasts=False (an intenti |
 | 06 | F5 | medium / unsure | **refuted** | control_command checks _channel_has_permission(ctx.channel.id, 'control', self.config) against self.config, the snapshot captured once in setup() (:51 |
 | 06 | F6 | high / unsure | **refuted** | During inactivity_check_loop, for any tracked channel that has reached its inactivity timeout and has at least one message in its last 3 messages (the |
@@ -39,7 +39,7 @@ the section's names were judged, 40 findings reported.
 | 08 | F1 | high / sure | fixed — B9 (`5a46437`) | A pending start/stop/restart action (`self.pending_actions`) takes longer than PENDING_TIMEOUT_SECONDS (120s) |
 | 08 | F2 | medium / unsure | open | `bulk_fetch_container_status` only treats a container as 'not found' when `info is None` (line 206: `if info is None and get_container_status_service( |
 | 08 | F3 | medium / unsure | fixed — B20 (`5e8a568`) | In `get_status`, stats are read as `cpu_percent = stats_dict.get('cpu_percent', 0.0)` and `memory_mb = stats_dict.get('memory_usage_mb', 0.0)` (lines  |
-| 08 | F4 | medium / sure | open | `bulk_update_status_cache`'s outer try/except explicitly lists `asyncio.CancelledError` among the caught exceptions (`except (RuntimeError, asyncio.Ca |
+| 08 | F4 | medium / sure | fixed — B30 (`9c04192`) | `bulk_update_status_cache`'s outer try/except explicitly lists `asyncio.CancelledError` among the caught exceptions (`except (RuntimeError, asyncio.Ca |
 | 08 | F5 | medium / sure | fixed — B25 (`8013baf`) | The comment right above this loop (line 182: '# Process all results into status tuples - ALWAYS WITH COMPLETE DATA') and the function's own docstring  |
 | 09 | F1 | medium / sure | fixed — B21 (`8ba9cf1`) | A user picks cycle 'monthly', 'yearly' or 'once' in the task-creation flow (AddTaskButton -> TaskCreationView -> ActionDropdown -> SimpleMonthdayDropd |
 | 09 | F2 | critical / unsure | fixed — B3 (`0fa1989`) | A channel holds the 'control' permission when a user presses the info button, so StatusInfoButton.callback (line 858) builds a ContainerInfoAdminView  |
@@ -53,9 +53,9 @@ the section's names were judged, 40 findings reported.
 | 11 | F3 | medium / unsure | open | get_cached_token(), set_cached_token() and clear_token_cache() read/write self._token_cache and self._token_cache_hash without taking self._cache_lock |
 | 11 | F4 | critical / sure | fixed — B2 (`d922c3d`) | _parse_channel_type() (used by parse_channel_permissions_from_form) stops scanning for more channel rows as soon as it hits an empty '{prefix}_channel |
 | 11 | F5 | high / sure | fixed — B5 (`c8a3b55`) | process_config_form() calls ConfigFormParserService._save_channel_permissions(channel_permissions) and never looks at its result |
-| 11 | F6 | medium / unsure | open | In get_all_channels(), when a legacy file with a non-ID filename (e.g |
+| 11 | F6 | medium / unsure | fixed — B32 (`53c156b`) | In get_all_channels(), when a legacy file with a non-ID filename (e.g |
 | 11 | F7 | medium / sure | fixed — B24 (`a32e7da`) | save_channel() writes the per-channel file, then unconditionally calls self._update_main_config(channel_id, config) (line 247) and returns True regard |
-**27 fixed, 3 refuted, 10 still open.** Each fix is
+**30 fixed, 3 refuted, 7 still open.** Each fix is
 one commit with its own waiting test, an announced mutation probe and a full
 run of all 43 groups; the commit message carries the numbers that were
 announced beforehand and says where a prediction was wrong.
