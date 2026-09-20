@@ -82,6 +82,12 @@ def _info_modal(*, text="", ip="", port="", enabled="x", show_ip="", existing=No
     result.error = None if save_ok else "permission denied"
     modal.info_service = MagicMock()
     modal.info_service.save_container_info = MagicMock(return_value=result)
+    # Since 2026-09-20 the callback re-reads the CURRENT info to keep the protected
+    # section (review B6); the snapshot in modal.container_info is only the fallback.
+    current = MagicMock()
+    current.success = True
+    current.data.to_dict.return_value = dict(modal.container_info)
+    modal.info_service.get_container_info = MagicMock(return_value=current)
     return modal
 
 

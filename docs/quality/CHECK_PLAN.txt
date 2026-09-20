@@ -161,13 +161,13 @@
 [ ] cogs/docker_control.py:5133 setup
 [ ] cogs/docker_control.py:5163 setup.check_donation_notifications
 
-## Section 07  (1391 lines, 7 public names)
+## Section 07  (1397 lines, 7 public names)
 [ ] cogs/enhanced_info_modal_simple.py:28 SimplifiedContainerInfoModal
 [ ] cogs/enhanced_info_modal_simple.py:126 SimplifiedContainerInfoModal.callback
-[ ] cogs/enhanced_info_modal_simple.py:300 ProtectedInfoModal
-[ ] cogs/enhanced_info_modal_simple.py:375 ProtectedInfoModal.callback
-[ ] cogs/enhanced_info_modal_simple.py:490 PasswordValidationModal
-[ ] cogs/enhanced_info_modal_simple.py:515 PasswordValidationModal.callback
+[ ] cogs/enhanced_info_modal_simple.py:306 ProtectedInfoModal
+[ ] cogs/enhanced_info_modal_simple.py:381 ProtectedInfoModal.callback
+[ ] cogs/enhanced_info_modal_simple.py:496 PasswordValidationModal
+[ ] cogs/enhanced_info_modal_simple.py:521 PasswordValidationModal.callback
 [ ] cogs/scheduler_commands.py:59 ScheduleCommandsMixin
 
 ## Section 08  (1342 lines, 6 public names)

@@ -181,9 +181,15 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
             if custom_ip and not validate_ip_format(custom_ip):
                 ip_warning = _("\n⚠️ IP format might be invalid: `{ip}`").format(ip=custom_ip[:50])
 
-            # Create ContainerInfo object and save via service
-            # Preserve existing protected info if it exists
+            # Create ContainerInfo object and save via service.
+            # Preserve the CURRENT protected info, re-read here: self.container_info is
+            # the snapshot from when this modal was opened, and the modal lives 300 s.
+            # Writing the snapshot back reverted anything the protected-info modal had
+            # changed in between - silently, with a success message (review B6).
             existing_info = self.container_info
+            current = self.info_service.get_container_info(self.container_name)
+            if current.success and current.data is not None:
+                existing_info = current.data.to_dict()
             container_info = ContainerInfo(
                 enabled=enabled,
                 show_ip=show_ip,
