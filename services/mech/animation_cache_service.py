@@ -1077,9 +1077,18 @@ class AnimationCacheService:
 
 
     def clear_cache(self):
-        """Clear all cached animations to force regeneration with new PNG files"""
+        """Clear all cached animations to force regeneration with new PNG files.
+
+        All three places an animation can survive in: the RAM cache, the base
+        `*.cache` files and the derived speed files `mech_L*_S*.webp`. Clearing
+        only the base files - which is what this did - left the next request to
+        be served the OLD animation out of RAM or off a speed file, straight
+        past the cache that had just been emptied. The operator dropped in new
+        PNGs, called the function that promises regeneration, and kept seeing
+        the old mech (review C22).
+        """
         logger.info("Clearing animation cache to use new high-resolution PNG files...")
-        self.cleanup_old_animations(keep_hours=0)  # Remove all cached files
+        self.invalidate_animation_cache(reason="clear_cache()")
         logger.info("✅ Animation cache cleared - new walk animations will be generated")
 
     def cleanup_old_animations(self, keep_hours: int = 24):

@@ -283,14 +283,20 @@ class TestCleanupAndClear:
         assert not old.exists()
         assert new.exists()
 
-    def test_clear_cache_calls_cleanup_with_zero(self, svc, tmp_path):
+    def test_clear_cache_removes_every_cached_animation(self, svc, tmp_path):
+        # This used to pin the ROUTE - that clear_cache calls
+        # cleanup_old_animations(keep_hours=0) - which was exactly the defect:
+        # that route clears only the base files and leaves the RAM cache and the
+        # speed files behind. It now pins the promise (review C22).
         (tmp_path / "mech_1_100speed.cache").write_bytes(b"x")
-        with patch.object(
-            svc, "cleanup_old_animations", wraps=svc.cleanup_old_animations
-        ) as wrapped:
-            svc.clear_cache()
-        wrapped.assert_called_once_with(keep_hours=0)
+        (tmp_path / "mech_L1_S7.webp").write_bytes(b"y")
+        svc._focused_cache["L1_S7_walk_small"] = b"z"
+
+        svc.clear_cache()
+
         assert list(tmp_path.glob("*.cache")) == []
+        assert list(tmp_path.glob("mech_L*_S*.webp")) == []
+        assert len(svc._focused_cache) == 0
 
 
 # ===========================================================================
