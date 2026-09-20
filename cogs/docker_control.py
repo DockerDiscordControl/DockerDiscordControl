@@ -4060,6 +4060,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         if hasattr(self, 'periodic_message_edit_loop') and self.periodic_message_edit_loop.is_running(): self.periodic_message_edit_loop.cancel()
         if hasattr(self, 'inactivity_check_loop') and self.inactivity_check_loop.is_running(): self.inactivity_check_loop.cancel()
         if hasattr(self, 'performance_cache_clear_loop') and self.performance_cache_clear_loop.is_running(): self.performance_cache_clear_loop.cancel()
+        # These three are started in setup() and used to be missing here, although
+        # this method says of itself that it cancels ALL background tasks. After an
+        # unload they kept running against a cog nobody uses any more - the donation
+        # loop polls every 30 s and would announce a donation through a bot that has
+        # been taken apart (review B31).
+        if hasattr(self, 'start_mech_cache_loop') and self.start_mech_cache_loop.is_running(): self.start_mech_cache_loop.cancel()
+        if hasattr(self, 'initial_animation_cache_warmup') and self.initial_animation_cache_warmup.is_running(): self.initial_animation_cache_warmup.cancel()
+        if hasattr(self, 'donation_notification_task') and self.donation_notification_task.is_running(): self.donation_notification_task.cancel()
         logger.info("All direct Cog loops cancellation attempted.")
 
         # PERFORMANCE OPTIMIZATION: Clear all caches on unload
