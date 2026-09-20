@@ -30,6 +30,15 @@ class MechStateManager:
         self.state_cache: Dict[str, Any] = {}
         self._cleanup_tmp_files()
         self._ensure_state_file()
+        # Read before anyone writes. Every setter mutates state_cache and then
+        # hands the WHOLE cache to save_state, which REPLACES the file - so a
+        # manager that starts with an empty cache destroys the file with its
+        # first write: other channels' expanded states, every remembered Glvl,
+        # the overview message ids that exist precisely to survive a restart.
+        # docker_control.py happened to repair this from outside by calling
+        # load_state() right after building the singleton; that made the class
+        # safe only for that one caller (review C5).
+        self.load_state()
 
     def _cleanup_tmp_files(self):
         """Remove orphaned atomic-write temp files (e.g. from a crash between write and replace)."""

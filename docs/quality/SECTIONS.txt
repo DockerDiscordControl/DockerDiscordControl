@@ -133,11 +133,11 @@ services/mech/mech_display_cache_service.py:1-387
 services/mech/mech_evolutions.py:1-417
 services/mech/mech_high_res_service.py:1-248
 
-## Section 23  (1932 lines, 10 pieces)
+## Section 23  (1941 lines, 10 pieces)
 services/mech/mech_reset_service.py:1-376
 services/mech/mech_service.py:1-32
 services/mech/mech_service_adapter.py:1-300
-services/mech/mech_state_manager.py:1-152
+services/mech/mech_state_manager.py:1-161
 services/mech/mech_status_cache_service.py:1-439
 services/mech/mech_story_service.py:1-194
 services/mech/monthly_member_cache.py:1-81
