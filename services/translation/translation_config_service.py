@@ -232,6 +232,15 @@ class ConfigResult:
 
 # --- Service ---
 
+class TranslationKeyUnreadable(RuntimeError):
+    """The translation encryption key file exists but cannot be used.
+
+    Raised instead of quietly minting a replacement: the stored API key was
+    encrypted with the key in that file, so overwriting it destroys the secret
+    (review C27).
+    """
+
+
 class TranslationConfigService:
     """Service for managing channel_translations.json configuration."""
 
@@ -355,22 +364,34 @@ class TranslationConfigService:
         """
         key_file = self.config_file.parent / ".translation_key"
         # Fast path: key file already exists (no lock needed)
-        try:
-            if key_file.exists():
-                stored_key = key_file.read_bytes().strip()
-                return Fernet(stored_key)
-        except Exception as e:
-            logger.warning(f"Could not load translation encryption key, generating new one: {e}")
+        if key_file.exists():
+            try:
+                return Fernet(key_file.read_bytes().strip())
+            except Exception as e:
+                # NOT "generate a new one". The stored api_key_encrypted was
+                # encrypted with the key in this very file; writing a fresh one
+                # over it destroys the operator's DeepL or Google key for good,
+                # and this runs on the READ path, so a permission mismatch was
+                # enough to do it (review C27).
+                raise TranslationKeyUnreadable(
+                    f"{key_file} exists but cannot be used ({type(e).__name__}: {e}). "
+                    "It is NOT being replaced - the stored API key was encrypted "
+                    "with it. Fix the file's permissions or contents, or clear the "
+                    "API key in the web panel and enter it again."
+                ) from e
 
-        # Slow path: need to create key (locked to prevent race condition)
+        # Slow path: the file does not exist. Locked so two callers cannot each
+        # create one and the loser's key be lost.
         with self._key_lock:
             # Double-check after acquiring lock
-            try:
-                if key_file.exists():
-                    stored_key = key_file.read_bytes().strip()
-                    return Fernet(stored_key)
-            except Exception:
-                pass
+            if key_file.exists():
+                try:
+                    return Fernet(key_file.read_bytes().strip())
+                except Exception as e:
+                    raise TranslationKeyUnreadable(
+                        f"{key_file} exists but cannot be used "
+                        f"({type(e).__name__}: {e})"
+                    ) from e
 
             new_key = Fernet.generate_key()
             try:
@@ -407,6 +428,13 @@ class TranslationConfigService:
                         f = self._get_encryption_key()
                         encrypted = f.encrypt(api_key.encode()).decode()
                         settings['api_key_encrypted'] = encrypted
+                    except TranslationKeyUnreadable as e:
+                        # The one case where the plaintext fallback below would
+                        # be the wrong answer: the key file is there and broken,
+                        # so writing the secret unencrypted turns a transient
+                        # problem into a plaintext secret on disk (review C27).
+                        logger.error(f"Refusing to store the translation API key: {e}")
+                        return ConfigResult(success=False, error=str(e))
                     except Exception as e:
                         logger.error(f"Encryption failed for translation API key: {e}")
                         # Fallback: store plaintext (user is warned via log)
