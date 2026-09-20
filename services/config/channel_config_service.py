@@ -243,8 +243,11 @@ class ChannelConfigService:
             logger.info(f"Saved channel config for {channel_id}")
             self._clear_all_channels_removed_marker()
 
-            # Also update main config.json for consistency
-            self._update_main_config(channel_id, config)
+            # Also update main config.json for consistency - and only call the
+            # save a success when that worked: the bot reads the permissions
+            # from there, not from the per-channel file (review B24).
+            if not self._update_main_config(channel_id, config):
+                return False
 
             return True
 
@@ -272,8 +275,10 @@ class ChannelConfigService:
                 logger.info(f"Deleted channel config for {channel_id}")
                 self._mark_if_all_channels_removed()
 
-            # Also remove from main config.json
-            self._remove_from_main_config(channel_id)
+            # Also remove from main config.json - a channel whose permission
+            # still stands there is not deleted (review B24).
+            if not self._remove_from_main_config(channel_id):
+                return False
 
             return True
 
@@ -336,7 +341,8 @@ class ChannelConfigService:
                     success = False
 
         # Single bulk update to main config.json (instead of N+1 individual writes)
-        self._update_main_config_bulk(channels)
+        if not self._update_main_config_bulk(channels):
+            success = False
 
         logger.info(f"save_all_channels completed: {len(saved_channels)}/{len(channels)} saved, {len(to_remove)} removed")
         return success
@@ -390,8 +396,13 @@ class ChannelConfigService:
         except OSError as e:
             logger.warning(f"Could not remove {ALL_CHANNELS_REMOVED_MARKER}: {e}")
 
-    def _update_main_config(self, channel_id: str, channel_config: Dict[str, Any]) -> None:
+    def _update_main_config(self, channel_id: str, channel_config: Dict[str, Any]) -> bool:
         """Update the main config.json with channel configuration.
+
+        Returns True when the main config now holds this channel. It used to
+        return nothing and swallow its own errors, and the callers passed that
+        silence on as success - while the bot reads channel_permissions from
+        exactly this file (review B24).
 
         Args:
             channel_id: The Discord channel ID
@@ -414,13 +425,18 @@ class ChannelConfigService:
             self._atomic_write_json(self.config_file, main_config)
 
             logger.debug(f"Updated main config with channel {channel_id}")
+            return True
 
         except (IOError, OSError, PermissionError, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
             # File/JSON/data errors (I/O, permissions, JSON parsing/serialization, data errors)
             logger.error(f"File/JSON error updating main config for channel {channel_id}: {e}")
+            return False
 
-    def _remove_from_main_config(self, channel_id: str) -> None:
+    def _remove_from_main_config(self, channel_id: str) -> bool:
         """Remove a channel from the main config.json.
+
+        Returns True when the main config no longer grants this channel
+        anything - including the case where it never did (review B24).
 
         Args:
             channel_id: The Discord channel ID to remove
@@ -437,13 +453,17 @@ class ChannelConfigService:
                     self._atomic_write_json(self.config_file, main_config)
 
                     logger.debug(f"Removed channel {channel_id} from main config")
+            return True
 
         except (IOError, OSError, PermissionError, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
             # File/JSON/data errors (I/O, permissions, JSON parsing/serialization, data errors)
             logger.error(f"File/JSON error removing channel {channel_id} from main config: {e}")
+            return False
 
-    def _update_main_config_bulk(self, channels: Dict[str, Dict[str, Any]]) -> None:
+    def _update_main_config_bulk(self, channels: Dict[str, Dict[str, Any]]) -> bool:
         """Update the main config.json with all channel configurations at once.
+
+        Returns True when the main config now holds these channels (review B24).
 
         Args:
             channels: Dict with channel IDs as keys and configs as values
@@ -462,10 +482,12 @@ class ChannelConfigService:
             self._atomic_write_json(self.config_file, main_config)
 
             logger.info(f"Updated main config with {len(channels)} channels")
+            return True
 
         except (IOError, OSError, PermissionError, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
             # File/JSON/data errors (I/O, permissions, JSON parsing/serialization, data errors)
             logger.error(f"File/JSON error updating main config bulk: {e}")
+            return False
 
     def sync_from_main_config(self) -> bool:
         """Sync channel configs FROM main config.json to individual files.
