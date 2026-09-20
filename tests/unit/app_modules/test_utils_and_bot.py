@@ -518,7 +518,11 @@ class TestContainerInfoWebHandler:
         result = container_info_web_handler.save_container_configs_from_web([
             {"docker_name": "beta", "allowed_actions": []},
         ])
-        assert result["beta"] is True
+        # Truthy, but no longer a bare True: the submission was CHANGED on the
+        # way in, and the answer says so instead of reading like an unchanged
+        # save (review C43).
+        assert result["beta"]
+        assert "status" in str(result["beta"])
         cfg = _CONTAINER_CONFIG_SAVE_SERVICE_MOCK.save_container_config.call_args.args[1]
         assert cfg["allowed_actions"] == ["status"]
         assert cfg["active"] is True

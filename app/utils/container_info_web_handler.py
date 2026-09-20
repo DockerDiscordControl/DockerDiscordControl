@@ -215,8 +215,14 @@ def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
             # Set allowed_actions, ensuring it has at least 'status' if empty
             allowed_actions = server.get('allowed_actions', [])
             logger.info(f"[ALLOWED_ACTIONS_DEBUG] Container {container_name}: received allowed_actions from server data: {allowed_actions}")
+            adjustment = None
             if not allowed_actions:
                 allowed_actions = ['status']
+                # Defaulting is defensible - a container with no actions at all
+                # cannot even be shown. Doing it silently was not: the operator
+                # got a plain "saved" and found their choice changed the next
+                # time they looked (review C43).
+                adjustment = "saved; allowed_actions was empty, defaulted to ['status']"
                 logger.warning(f"[ALLOWED_ACTIONS_DEBUG] Container {container_name}: allowed_actions was empty, defaulting to ['status']")
             container_config['allowed_actions'] = allowed_actions
             logger.info(f"[ALLOWED_ACTIONS_DEBUG] Container {container_name}: SAVING allowed_actions: {container_config['allowed_actions']}")
@@ -251,7 +257,11 @@ def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
 
             # Save updated config through service
             save_result = config_save_service.save_container_config(container_name, container_config)
-            results[container_name] = save_result
+            # A note instead of a bare True when the submission was changed on
+            # the way in. Still truthy, so a caller asking "did it save" reads
+            # it the same way (review C43).
+            results[container_name] = (adjustment if (save_result and adjustment)
+                                       else save_result)
 
             if save_result:
                 logger.info(f"[SAVE_DEBUG] Saved container config for {container_name}: actions={container_config.get('allowed_actions')}, display={container_config.get('display_name')}")
