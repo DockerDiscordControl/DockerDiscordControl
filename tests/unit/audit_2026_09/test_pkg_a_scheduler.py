@@ -168,27 +168,15 @@ class TestA3WeekdayParsing:
         assert parse_weekday_string("0") is None
         assert parse_weekday_string("Tuesday") == 1
 
-    async def test_schedule_weekly_command_keeps_selected_day(self, monkeypatch):
-        import cogs.scheduler_commands as sc
-        captured = {}
-
-        def _fake_create(task, ctx):
-            captured["task"] = task
-            return True, "next"
-
-        monkeypatch.setattr(sc, "check_schedule_permissions", lambda ctx, c, a: (True, None, {}))
-        monkeypatch.setattr(sc, "validate_new_task_input", lambda *a, **k: (True, ""))
-        monkeypatch.setattr(sc, "create_and_save_task", _fake_create)
-        monkeypatch.setattr(sc, "load_config", lambda: {"timezone": "UTC"})
-        ctx = MagicMock()
-        ctx.respond = AsyncMock()
-
-        await sc.ScheduleCommandsMixin()._impl_schedule_weekly_command(ctx, "c1", "restart", "04:00", "Tuesday")
-
-        task = captured["task"]
-        assert task.day_val == "tuesday"
-        assert task.weekday_val == 1
-        assert _weekday_of(task.next_run_ts) == 1
+    # test_schedule_weekly_command_keeps_selected_day stood here. It drove
+    # ScheduleCommandsMixin._impl_schedule_weekly_command, the /schedule weekly
+    # slash command - a command the bot never registered: no cog inherited that
+    # mixin and the startup never loaded the module, so the test was the only
+    # thing keeping cogs/scheduler_commands.py alive (review B17). What it
+    # really guarded - a weekly task keeping the day that was picked - is
+    # checked above against the weekday parsing and below against the web
+    # panel's own add/edit path, which are the two ways a weekly task is
+    # created today.
 
 
 # --------------------------------------------------------------------------- #

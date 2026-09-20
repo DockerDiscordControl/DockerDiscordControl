@@ -12,7 +12,7 @@ achieved" that the programme text explicitly rejects.
 
 ## 1. Split — in place
 
-37 sections, 190 pieces, **61,501 of 61,501 lines** in 185 files (`docs/quality/SECTIONS.txt`).
+37 sections, 188 pieces, **60,298 of 60,298 lines** in 183 files (`docs/quality/SECTIONS.txt`).
 The cuts are made at class and function boundaries, not arbitrarily at line 2000: a section is
 meant to be readable in one go.
 
@@ -80,19 +80,19 @@ that the programme text rejects.
 
 | | Sections | Lines |
 |---|---|---|
-| contain a file in which something was changed | 35 | 58,798 (96 %) |
-| not touched at all | **2** | **2,703 (4 %)** |
+| contain a file in which something was changed | 36 | 59,590 (99 %) |
+| not touched at all | **1** | **708 (1 %)** |
 
-The calculation in the open, so that it can be checked instead of believed: the two untouched
-sections add up to 2,703 lines as measured; 61,501 − 2,703 = 58,798.
+The calculation in the open, so that it can be checked instead of believed: the one untouched
+section (15, `docker_client_pool.py`) is 708 lines as measured; 60,298 − 708 = 59,590.
 
-**This figure is by now ten times out of date** — 12 sections with 17,242 lines, then 11 with
-15,479, then 10 with 14,636, then 9 with 14,344, then 8 with 12,510, then 7 with 10,618, then 6 with 8,683, then 4 with 5,479, then 3 with 4,138, now 2 with 2,703. Every correction shifts it: **section 13**
+**This figure is by now eleven times out of date** — 12 sections with 17,242 lines, then 11 with
+15,479, then 10 with 14,636, then 9 with 14,344, then 8 with 12,510, then 7 with 10,618, then 6 with 8,683, then 4 with 5,479, then 3 with 4,138, then 2 with 2,703, now 1 with 708. Every correction shifts it: **section 13**
 dropped out with `config_service.py`, **section 20** with `update_notifier.py`, **section 37**
-with `token_security.py`, **section 28** with `configuration_save_service.py`, **section 33** with `app/bot/token.py`, **section 22** with `mech_evolutions.py`, **section 07** and **21** with the translation into English (`scheduler_commands.py`, `animation_cache_service.py`), **section 08** with the loading-status message that broke apart on a phone (`status_handlers.py`), **section 14** with the cleanup that reported success without deleting anything (`channel_cleanup_service.py`). This is not a flaw of the calculation but its nature — and the reason to
+with `token_security.py`, **section 28** with `configuration_save_service.py`, **section 33** with `app/bot/token.py`, **section 22** with `mech_evolutions.py`, **section 07** and **21** with the translation into English (`scheduler_commands.py`, `animation_cache_service.py`), **section 08** with the loading-status message that broke apart on a phone (`status_handlers.py`), **section 14** with the cleanup that reported success without deleting anything (`channel_cleanup_service.py`), **section 26** with `scheduler.py` in the auto-action commit `643ede5` — which I did not notice at the time and am correcting here, and **section 07**, which lost `scheduler_commands.py` altogether (review B17). This is not a flaw of the calculation but its nature — and the reason to
 measure it at the end instead of carrying it along.
 
-**These 96 % are not coverage, and they must not be read as such.** "Touched" means: this
+**These 99 % are not coverage, and they must not be read as such.** "Touched" means: this
 section contains a file in which a single line was changed. That is not a review.
 
 **Honestly: not a single one of the 37 sections was read through systematically.** What did take
@@ -252,9 +252,9 @@ safeguard to be worthwhile.
 
 ## 6. What was NOT checked
 
-- **No section was read through systematically.** The 96 % "touched" says nothing about that.
+- **No section was read through systematically.** The 99 % "touched" says nothing about that.
 - **None of the 1,513 names in the check plan has been judged.**
-- **The two never-touched sections** (2,703 lines, 4 % of the tree) were covered in this programme
+- **The one never-touched section** (15, 708 lines, 1 % of the tree) was covered in this programme
   exclusively by the mechanical searches — not read. Sections 26 and
   37 were read by a second model, not by me.
 - ~~The suspicion of double execution after a crash~~ and ~~the unknown poll frequency~~
