@@ -250,7 +250,10 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
         errors.append(f"Too many keywords (max {MAX_KEYWORDS})")
     for kw in keywords:
         if len(str(kw)) > MAX_KEYWORD_LENGTH:
-            errors.append(f"Keyword too long (max {MAX_KEYWORD_LENGTH} chars): {kw[:20]}...")
+            # str(kw), not kw: the length above is measured on str(kw) as well, so a
+            # keyword that is not text gets here - and slicing it raised TypeError out
+            # of the validator instead of reporting the keyword (review B33).
+            errors.append(f"Keyword too long (max {MAX_KEYWORD_LENGTH} chars): {str(kw)[:20]}...")
 
     # Regex pattern
     regex_pattern = trigger.get('regex_pattern')
