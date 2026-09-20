@@ -125,10 +125,13 @@ class TestDockerUtilsFallbackClient:
         with patch.object(
             docker_utils.docker, "from_env", return_value=fake_client
         ):
-            cm_factory = docker_utils.get_docker_client_async(
+            # The caller's real shape: "async with get_docker_client_async(...)".
+            # Until 2026-09-20 this test called the result itself, which is what
+            # the fallback handed back - a function, not a context manager. That
+            # was the defect, not the promise (review C4).
+            async with docker_utils.get_docker_client_async(
                 operation="info", container_name="anything"
-            )
-            async with cm_factory() as client:
+            ) as client:
                 assert client is fake_client
 
         # client.close was scheduled in the finally block.
@@ -146,8 +149,7 @@ class TestDockerUtilsFallbackClient:
         client = _mock_client()
         client.close.side_effect = OSError("close exploded")
         with patch.object(docker_utils.docker, "from_env", return_value=client):
-            cm_factory = docker_utils.get_docker_client_async()
-            async with cm_factory() as c:
+            async with docker_utils.get_docker_client_async() as c:  # see C4 above
                 assert c is client
         # Even though close raised, the cm exited cleanly (line 388 path).
         client.close.assert_called_once()

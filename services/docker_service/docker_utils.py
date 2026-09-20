@@ -458,7 +458,11 @@ def get_docker_client_async(timeout: float = None, operation: str = 'default', c
                     # Client close errors are non-critical - just log
                     logger.debug(f"Error closing Docker client: {e}")
 
-    return individual_client
+    # Called, not handed over: every caller writes "async with
+    # get_docker_client_async(...)", and the bare function has no __aenter__ - so
+    # the safety net raised TypeError exactly when the connection pool was gone
+    # and it was the only thing left (review C4).
+    return individual_client()
 
 def get_docker_client():
     """
