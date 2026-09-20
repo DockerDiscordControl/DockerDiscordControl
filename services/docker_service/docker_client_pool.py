@@ -317,14 +317,35 @@ class DockerClientService:
     def _start_queue_processor(self):
         """Start the background queue processor."""
         if self._queue_processor_task is None:
-            try:
-                loop = asyncio.get_running_loop()
-                self._client_available_event = asyncio.Event()
-                self._queue_processor_task = loop.create_task(self._process_queue())
-                logger.debug("Queue processor started")
-            except RuntimeError:
-                # No running loop, processor will be started when first async call is made
+            self._ensure_queue_processor(quiet=True)
+
+    def _ensure_queue_processor(self, quiet: bool = False) -> None:
+        """Start the queue processor unless one is actually running.
+
+        "Not None" was the old test, and a task that has DIED is not None - it
+        is finished. Nothing restarted it, so one Docker error disabled the
+        queue for the rest of the process's life (review C33).
+        """
+        task = self._queue_processor_task
+        if task is not None and not task.done():
+            return
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            # No running loop; the processor starts on the first async call.
+            if not quiet:
+                logger.error("Failed to start queue processor - no running event loop")
+            else:
                 logger.debug("No running loop found, queue processor will start on first async call")
+            return
+
+        if task is not None and task.done():
+            logger.warning("Queue processor had stopped - starting a new one")
+        if self._client_available_event is None:
+            self._client_available_event = asyncio.Event()
+        self._queue_processor_task = loop.create_task(self._process_queue())
+        logger.debug("Queue processor started")
 
     async def _process_queue(self):
         """Process queued requests in background."""
@@ -364,8 +385,15 @@ class DockerClientService:
                                 request.future.set_exception(asyncio.TimeoutError(f"Request timed out in queue after {queue_timeout}s"))
                                 self._queue.task_done()
                                 break
-                    except (RuntimeError, ValueError, AttributeError) as e:
-                        # Queue state errors, event errors
+                    except Exception as e:  # noqa: BLE001
+                        # Broad on purpose. _create_new_client_async raises
+                        # DockerConnectionError, which derives from
+                        # DDCBaseException -> Exception, not from RuntimeError:
+                        # it passed this clause AND the one around the loop, so
+                        # the processor died and every later queued request
+                        # waited out its timeout for the rest of the process's
+                        # life. The waiting request is told what happened
+                        # (review C33).
                         request.future.set_exception(e)
                         self._queue.task_done()
                         break
@@ -385,7 +413,7 @@ class DockerClientService:
             except asyncio.CancelledError:
                 logger.debug("Queue processor cancelled")
                 break
-            except (RuntimeError, ValueError, AttributeError, OSError) as e:
+            except Exception as e:  # noqa: BLE001 - see the clause above
                 logger.error(f"Error in queue processor: {e}", exc_info=True)
                 await asyncio.sleep(1)  # Brief pause before retrying
 
@@ -405,15 +433,7 @@ class DockerClientService:
         )
 
         # Ensure queue processor is running (late initialization if needed)
-        if self._queue_processor_task is None:
-            try:
-                loop = asyncio.get_running_loop()
-                if self._client_available_event is None:
-                    self._client_available_event = asyncio.Event()
-                self._queue_processor_task = loop.create_task(self._process_queue())
-                logger.debug("Queue processor started (late initialization)")
-            except RuntimeError:
-                logger.error("Failed to start queue processor - no running event loop")
+        self._ensure_queue_processor()
 
         # Try immediate acquisition first (fast path)
         fast_path_start = time.time()
