@@ -32,8 +32,8 @@ cogs/docker_control.py:3796-5256
 ## Section 07  (665 lines, 1 pieces)
 cogs/enhanced_info_modal_simple.py:1-665
 
-## Section 08  (1364 lines, 1 pieces)
-cogs/status_handlers.py:1-1364
+## Section 08  (1375 lines, 1 pieces)
+cogs/status_handlers.py:1-1375
 
 ## Section 09  (1978 lines, 1 pieces)
 cogs/status_info_integration.py:1-1978

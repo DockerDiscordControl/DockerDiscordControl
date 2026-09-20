@@ -542,7 +542,14 @@ class StatusHandlersMixin:
                         # CRITICAL: Cache error with docker_name as key (not display_name!)
                         self.status_cache_service.set_error(docker_name, result.error or Exception(result.error_message))
                         logger.warning(f"[BULK_UPDATE] Failed to update {display_name}: {result.error_message}")
-        except (RuntimeError, asyncio.CancelledError, KeyError, TypeError) as e:
+        # A cancellation is not an error - it is how asyncio says "stop". Caught
+        # and logged like a failure, the task reported itself finished although it
+        # had been told to stop: on shutdown the bot waited for work that was
+        # already ending, and a caller's wait_for no longer stopped what it timed
+        # out on (review B30).
+        except asyncio.CancelledError:
+            raise
+        except (RuntimeError, KeyError, TypeError) as e:
             logger.error(f"[BULK_UPDATE] Error during bulk update: {e}", exc_info=True)
 
     async def get_status(self, server_config: Dict[str, Any]) -> ContainerStatusResult:
@@ -1226,7 +1233,9 @@ class StatusHandlersMixin:
             else:
                 logger.warning(f"[SEND_STATUS] No embed generated for '{display_name}' (likely error in helper?), cannot send/edit.")
 
-        except (RuntimeError, asyncio.CancelledError, KeyError, TypeError) as e:
+        except asyncio.CancelledError:
+            raise  # see the note in bulk_update_status_cache (review B30)
+        except (RuntimeError, KeyError, TypeError) as e:
             logger.error(f"[SEND_STATUS] Outer error processing server '{display_name}' for channel {channel.id}: {e}", exc_info=True)
         return msg
 
@@ -1358,7 +1367,9 @@ class StatusHandlersMixin:
         except discord.Forbidden:
             logger.error(f"_edit_single_message: Missing permissions to fetch/edit message {message_id} in channel {channel_id}.")
             return discord.Forbidden(f"Permissions error for {message_id}")
-        except (discord.HTTPException, RuntimeError, asyncio.CancelledError, KeyError, TypeError, ValueError) as e:
+        except asyncio.CancelledError:
+            raise  # see the note in bulk_update_status_cache (review B30)
+        except (discord.HTTPException, RuntimeError, KeyError, TypeError, ValueError) as e:
             elapsed_time = (time.time() - start_time) * 1000
             logger.error(f"_edit_single_message: Failed to edit message {message_id} for '{display_name}' after {elapsed_time:.1f}ms: {e}", exc_info=True)
             return e
