@@ -821,7 +821,9 @@ def deterministic_gift_1_3(mech_id: str, campaign_id: str) -> int:
 
 def apply_donation_units(snap: Snapshot, units_cents: int, *, events: Optional[List[Event]] = None,
                          at: Optional[datetime] = None,
-                         goals: Optional[Dict[int, int]] = None) -> Tuple[Snapshot, List[Event], Optional[Event]]:
+                         goals: Optional[Dict[int, int]] = None,
+                         member_count_at_level_up: Optional[int] = None
+                         ) -> Tuple[Snapshot, List[Event], Optional[Event]]:
     """Apply donation units to evo & power; may trigger multiple LevelUpCommitted and ExactHitBonusGranted events.
 
     ``events``/``at`` select the member count that prices a new level (see
@@ -900,7 +902,19 @@ def apply_donation_units(snap: Snapshot, units_cents: int, *, events: Optional[L
         if snap.level < 11:
             # Get current STATUS CHANNEL member count for accurate dynamic cost calculation
             # IMPORTANT: We count ONLY members who can see status channels, NOT all server members
-            current_member_count = member_count_for_goal(snap, events=events, at=at)
+            # The count the caller supplied for exactly this moment, if it did.
+            # It used to be written as a separate MemberCountUpdated event
+            # BEFORE the donation, by a caller that had decided from a state
+            # snapshot whether a level-up was coming. Two donations arriving
+            # together both read the same pre-donation state, both concluded
+            # "no level-up", and the second one - booked after the first - was
+            # the one that crossed: it priced the next level from whatever
+            # count happened to be on record (review C73). Deciding it here
+            # means deciding it where the level-up is decided, under the same
+            # lock.
+            current_member_count = (member_count_at_level_up
+                                    if member_count_at_level_up is not None
+                                    else member_count_for_goal(snap, events=events, at=at))
 
             logger.info(f"Level-up: Using {current_member_count} status channel members for dynamic cost calculation")
             set_new_goal_for_next_level(snap, user_count=current_member_count)
@@ -967,7 +981,9 @@ def add_system_power(snap: Snapshot, units_cents: int) -> None:
 
 
 def apply_power_event(snap: Snapshot, evt: Event, *, events: Optional[List[Event]] = None,
-                      goals: Optional[Dict[int, int]] = None) -> Tuple[List[Event], Optional[Event]]:
+                      goals: Optional[Dict[int, int]] = None,
+                      member_count_at_level_up: Optional[int] = None
+                      ) -> Tuple[List[Event], Optional[Event]]:
     """Apply one power-changing event; used by the live path AND rebuild_from_events.
 
     Decay is settled up to the event time first (the event adds to the power shown at that
@@ -983,7 +999,9 @@ def apply_power_event(snap: Snapshot, evt: Event, *, events: Optional[List[Event
     bonus_evt: Optional[Event] = None
     if evt.type == "DonationAdded":
         units = int(payload.get("units", 0) or 0)
-        snap, lvl_events, bonus_evt = apply_donation_units(snap, units, events=events, at=at, goals=goals)
+        snap, lvl_events, bonus_evt = apply_donation_units(
+            snap, units, events=events, at=at, goals=goals,
+            member_count_at_level_up=member_count_at_level_up)
     elif evt.type == "SystemDonationAdded":
         add_system_power(snap, int(payload.get("power_units", 0) or 0))
     elif evt.type == "PowerGiftGranted":
@@ -1039,8 +1057,15 @@ class ProgressService:
             self.rebuild_from_events()
 
     def add_donation(self, amount_dollars: float, donor: Optional[str] = None,
-                    channel_id: Optional[str] = None, idempotency_key: Optional[str] = None) -> ProgressState:
-        """Add a donation and return updated state"""
+                    channel_id: Optional[str] = None, idempotency_key: Optional[str] = None,
+                    member_count_at_level_up: Optional[int] = None) -> ProgressState:
+        """Add a donation and return updated state.
+
+        ``member_count_at_level_up`` is the member count to price the next
+        level with, used only if THIS donation turns out to be the one that
+        levels up - decided inside the lock below, not by the caller
+        beforehand (review C73).
+        """
         # round(): int() truncated binary floats ($19.99 -> 1998 cents)
         units_cents = int(round(amount_dollars * 100))
         if units_cents <= 0:
@@ -1089,7 +1114,9 @@ class ProgressService:
             snap = load_snapshot(self.mech_id)
             apply_decay_on_demand(snap)
             # Settles decay first: the donation adds to the CURRENT (decayed, clamped) power
-            lvl_events, bonus_evt = apply_power_event(snap, evt, events=all_events)
+            lvl_events, bonus_evt = apply_power_event(
+                snap, evt, events=all_events,
+                member_count_at_level_up=member_count_at_level_up)
 
             # Append all level-up events (may be multiple for large donations)
             for lvl_evt in lvl_events:

@@ -260,31 +260,30 @@ class MechServiceAdapter:
         The member_count is FROZEN at level-up time and used for the NEXT level's goal.
         This ensures difficulty stays constant during a level progression.
         """
-        # Get current state to check if level-up will happen
-        current_state = self.progress_service.get_state()
+        # The count to price the next level with IF this donation turns out to
+        # be the one that levels up. Whether it is, is not decided here any
+        # more: this method used to read the state, work out from that snapshot
+        # whether the threshold would be crossed, and write a
+        # MemberCountUpdated event before booking. Two donations arriving close
+        # together both read the same pre-donation state and each concluded "no
+        # level-up" - yet the second one, booked after the first, is the one
+        # that crosses, and it priced the next level from whatever count was on
+        # record. The decision belongs where the level-up happens, inside the
+        # progress service's own lock (review C73).
+        if member_count is not None:
+            # Channel-specific count (bots excluded)
+            count_for_level_up = member_count
+        elif guild is not None:
+            # Fallback to guild member count if channel count not available
+            count_for_level_up = guild.member_count
+        else:
+            count_for_level_up = None
+            logger.warning("Donation without a member count - if it levels up, the "
+                           "last count on record prices the next level")
 
-        # Calculate if this donation will trigger level-up
-        amount_cents = int(round(amount * 100))
-        will_level_up = (current_state.level < 11 and
-                        (current_state.evo_current * 100 + amount_cents) >= current_state.evo_max * 100)
-
-        # OPTION B: Freeze member count ONLY at level-up time
-        if will_level_up:
-            if member_count is not None:
-                # Use the provided channel-specific member count
-                logger.info(f"🔒 FREEZING member count at level-up: {member_count} members (channel-specific, bots excluded)")
-                self.progress_service.update_member_count(member_count)
-            elif guild is not None:
-                # Fallback to guild member count if channel count not available
-                guild_member_count = guild.member_count
-                logger.info(f"🔒 FREEZING member count at level-up: {guild_member_count} members (guild-wide, bots included)")
-                self.progress_service.update_member_count(guild_member_count)
-            else:
-                logger.warning("Level-up without member count - difficulty may be incorrect")
-
-        # Now add the donation
         prog_state = self.progress_service.add_donation(
-            amount, donor, channel_id, idempotency_key=idempotency_key)
+            amount, donor, channel_id, idempotency_key=idempotency_key,
+            member_count_at_level_up=count_for_level_up)
         return self._convert_state(prog_state)
 
 

@@ -133,10 +133,10 @@ services/mech/mech_defaults.py:1-34
 services/mech/mech_evolutions.py:1-449
 services/mech/mech_high_res_service.py:1-248
 
-## Section 23  (1892 lines, 9 pieces)
+## Section 23  (1891 lines, 9 pieces)
 services/mech/mech_reset_service.py:1-378
 services/mech/mech_service.py:1-32
-services/mech/mech_service_adapter.py:1-300
+services/mech/mech_service_adapter.py:1-299
 services/mech/mech_state_manager.py:1-161
 services/mech/mech_status_cache_service.py:1-453
 services/mech/mech_story_service.py:1-204
@@ -144,8 +144,8 @@ services/mech/progress/__init__.py:1-17
 services/mech/progress/runtime.py:1-158
 services/mech/progress_paths.py:1-189
 
-## Section 24  (1585 lines, 1 pieces)
-services/mech/progress_service.py:1-1585
+## Section 24  (1612 lines, 1 pieces)
+services/mech/progress_service.py:1-1612
 
 ## Section 25  (1230 lines, 7 pieces)
 services/mech/speed_levels.py:1-413
