@@ -581,6 +581,11 @@ class MechDataStore:
                 'next_level': next_level,
                 'next_level_name': next_level_name,
                 'next_threshold': prog_state.evo_max,  # Dynamic threshold from progress service
+                # The progress INTO this level, from the same source as the
+                # threshold and as amount_needed below. _calculate_progress_data
+                # used to derive the bar from the lifetime total instead - see
+                # the reason there (review C68).
+                'current_progress': prog_state.evo_current,
                 'amount_needed': max(0, prog_state.evo_max - prog_state.evo_current),
                 'power_max': getattr(prog_state, 'power_max', None)  # Power bar maximum (speed scale)
             }
@@ -597,6 +602,7 @@ class MechDataStore:
                 # that, so a lookup that failed used to be displayed as a fully
                 # evolved mech at 100 % (review C24).
                 'next_threshold': None,
+                'current_progress': None,
                 'amount_needed': None
             }
         except (ValueError, TypeError, KeyError) as e:
@@ -611,6 +617,7 @@ class MechDataStore:
                 # that, so a lookup that failed used to be displayed as a fully
                 # evolved mech at 100 % (review C24).
                 'next_threshold': None,
+                'current_progress': None,
                 'amount_needed': None
             }
 
@@ -695,8 +702,18 @@ class MechDataStore:
     def _calculate_progress_data(self, core_data: Dict[str, Any], evolution_data: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate progression-related data."""
         try:
-            current_threshold = 0
             next_threshold = evolution_data['next_threshold']
+            # How far into THIS level the mech is. The bar used to be computed
+            # from core_data['total_donated'] against this threshold, with a
+            # hard-coded floor of 0 - but total_donated is the lifetime figure
+            # (cumulative_donations_cents) while the threshold is the goal of
+            # the current level, and the accumulator behind it is reset to the
+            # excess at every level-up. For any mech past level 1 the lifetime
+            # total swamped the per-level goal, so the bar sat at 100 % while
+            # amount_needed and the 'bars' field of the same result - both read
+            # from evo_current/evo_max - showed the true, much smaller progress
+            # (review C68).
+            current_progress = evolution_data.get('current_progress')
 
             if next_threshold is None:
                 # The evolution lookup failed. Not measured is None - the same
@@ -710,8 +727,8 @@ class MechDataStore:
 
             # Calculate how much progress towards next level
             if next_threshold > 0:
-                progress_max = int(next_threshold - current_threshold)
-                progress_current = min(int(core_data['total_donated'] - current_threshold), progress_max)
+                progress_max = int(next_threshold)
+                progress_current = min(int(current_progress or 0), progress_max)
                 progress_percentage = (progress_current / progress_max * 100.0) if progress_max > 0 else 0.0
             else:
                 # Max level reached

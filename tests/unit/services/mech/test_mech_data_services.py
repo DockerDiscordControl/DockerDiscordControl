@@ -205,10 +205,16 @@ class TestMechDataStoreCalculations:
     """Internal _calculate_* helpers (no full pipeline)."""
 
     def test_calculate_progress_data_uses_evolution_threshold(self):
+        # Both figures come from the progress service and are per level. These
+        # two tests used to pass `total_donated` - the LIFETIME total - against
+        # a per-level threshold, which is the defect of review C68: past level 1
+        # the lifetime figure swamps the goal and the bar sits at 100 %. The
+        # promises are unchanged (the threshold is the maximum, and the bar is
+        # clamped to it); the source of the current value is.
         store = MechDataStore()
         out = store._calculate_progress_data(
-            core_data={"total_donated": 5},
-            evolution_data={"next_threshold": 20},
+            core_data={"total_donated": 500},
+            evolution_data={"next_threshold": 20, "current_progress": 5},
         )
         assert out["progress_max"] == 20
         assert out["progress_current"] == 5
@@ -217,8 +223,8 @@ class TestMechDataStoreCalculations:
     def test_calculate_progress_data_clamps_overflow(self):
         store = MechDataStore()
         out = store._calculate_progress_data(
-            core_data={"total_donated": 999},
-            evolution_data={"next_threshold": 20},
+            core_data={"total_donated": 500},
+            evolution_data={"next_threshold": 20, "current_progress": 999},
         )
         assert out["progress_current"] == 20
         assert out["progress_max"] == 20
