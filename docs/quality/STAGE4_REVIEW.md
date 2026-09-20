@@ -12,7 +12,7 @@ achieved" that the programme text explicitly rejects.
 
 ## 1. Split — in place
 
-37 sections, 188 pieces, **60,233 of 60,233 lines** in 183 files (`docs/quality/SECTIONS.txt`).
+37 sections, 188 pieces, **60,262 of 60,262 lines** in 183 files (`docs/quality/SECTIONS.txt`).
 The cuts are made at class and function boundaries, not arbitrarily at line 2000: a section is
 meant to be readable in one go.
 
@@ -80,11 +80,11 @@ that the programme text rejects.
 
 | | Sections | Lines |
 |---|---|---|
-| contain a file in which something was changed | 36 | 59,525 (99 %) |
+| contain a file in which something was changed | 36 | 59,554 (99 %) |
 | not touched at all | **1** | **708 (1 %)** |
 
 The calculation in the open, so that it can be checked instead of believed: the one untouched
-section (15, `docker_client_pool.py`) is 708 lines as measured; 60,233 − 708 = 59,525.
+section (15, `docker_client_pool.py`) is 708 lines as measured; 60,262 − 708 = 59,554.
 
 **This figure is by now eleven times out of date** — 12 sections with 17,242 lines, then 11 with
 15,479, then 10 with 14,636, then 9 with 14,344, then 8 with 12,510, then 7 with 10,618, then 6 with 8,683, then 4 with 5,479, then 3 with 4,138, then 2 with 2,703, now 1 with 708. Every correction shifts it: **section 13**

@@ -38,9 +38,22 @@ def register_routes(app: Flask) -> None:
     def admin_users():
         admin_service = get_admin_service()
 
+        # The read had no guard at all, and the save caught only RuntimeError -
+        # while a full disk, a permission problem or a corrupt admins.json raise
+        # OSError or json.JSONDecodeError. The route then ended as an unhandled
+        # 500 instead of the {"success": false, ...} it was written to return.
+        # health_check() twenty lines below already catches the wider set; the
+        # two handlers in one file did not agree on what can go wrong (review C21).
+        _STORAGE_ERRORS = (IOError, OSError, PermissionError, RuntimeError,
+                           TypeError, ValueError, json.JSONDecodeError)
+
         if request.method == "GET":
-            admin_data = admin_service.get_admin_data()
-            return jsonify(admin_data)
+            try:
+                return jsonify(admin_service.get_admin_data())
+            except _STORAGE_ERRORS as e:
+                app.logger.error("Error reading admin data: %s", e, exc_info=True)
+                return jsonify({"success": False,
+                                "error": "An internal error occurred while reading admin data"})
 
         try:
             data = request.json or {}
@@ -55,7 +68,7 @@ def register_routes(app: Flask) -> None:
             if success:
                 return jsonify({"success": True})
             return jsonify({"success": False, "error": "Failed to save admin data"})
-        except (RuntimeError) as e:
+        except _STORAGE_ERRORS as e:
             # Security: Log detailed error server-side only, return generic message
             app.logger.error("Error saving admin data: %s", e, exc_info=True)
             return jsonify({"success": False, "error": "An internal error occurred while saving admin data"})

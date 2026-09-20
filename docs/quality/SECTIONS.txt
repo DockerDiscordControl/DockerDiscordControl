@@ -133,12 +133,12 @@ services/mech/mech_display_cache_service.py:1-387
 services/mech/mech_evolutions.py:1-417
 services/mech/mech_high_res_service.py:1-248
 
-## Section 23  (1941 lines, 10 pieces)
+## Section 23  (1947 lines, 10 pieces)
 services/mech/mech_reset_service.py:1-376
 services/mech/mech_service.py:1-32
 services/mech/mech_service_adapter.py:1-300
 services/mech/mech_state_manager.py:1-161
-services/mech/mech_status_cache_service.py:1-439
+services/mech/mech_status_cache_service.py:1-445
 services/mech/mech_story_service.py:1-194
 services/mech/monthly_member_cache.py:1-81
 services/mech/progress/__init__.py:1-17
@@ -241,14 +241,14 @@ app/web/background.py:1-85
 app/web/blueprints.py:1-31
 app/web/compat.py:1-102
 
-## Section 35  (1993 lines, 17 pieces)
+## Section 35  (1932 lines, 16 pieces)
 app/web/config.py:1-169
 app/web/csrf.py:1-125
 app/web/diagnostics.py:1-30
 app/web/extensions.py:1-26
-app/web/i18n.py:1-54
+app/web/i18n.py:1-64
 app/web/logging.py:1-60
-app/web/routes.py:1-100
+app/web/routes.py:1-113
 app/web/security.py:1-86
 app/web_ui.py:1-36
 utils/__init__.py:1-7
@@ -258,7 +258,6 @@ utils/common_helpers.py:1-482
 utils/config_cache.py:1-307
 utils/config_paths.py:1-47
 utils/import_utils.py:1-160
-utils/key_crypto.py:1-84
 
 ## Section 36  (1993 lines, 5 pieces)
 utils/logging_utils.py:1-538
@@ -267,5 +266,6 @@ utils/performance_metrics.py:1-389
 utils/settings.py:1-113
 utils/time_utils.py:1-374
 
-## Section 37  (318 lines, 1 pieces)
+## Section 37  (402 lines, 2 pieces)
+utils/key_crypto.py:1-84
 utils/token_security.py:1-318
