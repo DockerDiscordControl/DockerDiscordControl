@@ -34,7 +34,7 @@ that stage 3 weeds out. In the wiring test (test_app_factory_wiring.py) the
 first version really was one: it took expectation AND claim from the same file
 and stayed green with the CSRF protection removed.
 
-SECTION STATUS: 37 sections, 188 pieces, 60,445 of 60,445 lines in
+SECTION STATUS: 37 sections, 188 pieces, 60,460 of 60,460 lines in
 183 files. Four files exceed 2000 lines and had to be split;
 ``DockerControlCog`` is a SINGLE class of 4,485 lines and can only be cut
 at method boundaries - a structural finding of its own, recorded in the

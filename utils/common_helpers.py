@@ -248,11 +248,26 @@ def sanitize_log_message(message: str) -> str:
     # Remove potential sensitive patterns
     import re
 
-    # Remove tokens, passwords, keys
-    message = re.sub(r'(token|password|key|secret)[:=]\s*[^\s]+', r'\1=***', message, flags=re.IGNORECASE)
+    # A label and its value. The separator may be ':', '=' or plain whitespace -
+    # "failed with token NzI3..." used to go through untouched because only the
+    # first two were accepted. The value must be six characters or more, so
+    # "the key to a fast startup" stays readable (review C30).
+    message = re.sub(
+        r'\b(api[_-]?key|apikey|authorization|bearer|password|passwd|secret|token|key)\b'
+        r'\s*[:=]?\s*'
+        r'(\S{6,})',
+        r'\1=***', message, flags=re.IGNORECASE)
 
-    # Remove potential API keys
+    # One unbroken run of 32+ alphanumerics - the original catch-all, unchanged.
     message = re.sub(r'\b[A-Za-z0-9]{32,}\b', '***', message)
+
+    # The same length, but with '.', '-' or '_' in it: the shape of a Discord
+    # bot token and of most bearer and session tokens, which the run above
+    # cannot see because the separators break it up. At least one letter AND one
+    # digit are required, which is what keeps dotted module paths, file paths
+    # and plain words out of it (review C30).
+    message = re.sub(
+        r'\b(?=[\w.\-]*[A-Za-z])(?=[\w.\-]*\d)[\w.\-]{32,}\b', '***', message)
 
     return message
 
