@@ -122,7 +122,30 @@ class SpamProtectionService:
 
             # Extract spam_protection section from channels_config.json
             spam_data = channels_data.get('spam_protection', {})
-            config = SpamProtectionConfig.from_dict(spam_data)
+            try:
+                config = SpamProtectionConfig.from_dict(spam_data)
+            except (TypeError, ValueError) as e:
+                # A stored value that is not the shape from_dict expects - a
+                # limit that is not a number, say. from_dict stays strict,
+                # because it is also the validator behind the POST route, where
+                # a bad form value has to become a 400 rather than a silently
+                # saved default. The READ path degrades instead: the clause
+                # below named json.JSONDecodeError but not ValueError (naming
+                # the subclass does not catch the parent), so the exception
+                # left get_config and took every caller with it - is_enabled,
+                # get_command_cooldown, get_button_cooldown, is_on_cooldown,
+                # get_remaining_cooldown, add_user_cooldown, which is every
+                # command and every button press that asks about spam
+                # protection (review C64).
+                logger.error(f"The stored spam protection settings could not be read as "
+                             f"they are ({e}) - reading them without the unusable parts")
+                try:
+                    config = SpamProtectionConfig.from_dict(self._without_bad_numbers(spam_data))
+                except (TypeError, ValueError) as e2:
+                    logger.error(f"Nothing usable in the stored spam protection settings "
+                                 f"({e2}) - the defaults apply. The values shown in the "
+                                 f"panel are NOT in force.")
+                    config = self._get_default_config()
             # Fill in missing keys from the defaults; saved values win. Without
             # this, every real installation (the file always exists) read ONLY
             # the saved keys: anything missing was silently braked with the
@@ -403,6 +426,32 @@ class SpamProtectionService:
                    if current_time - timestamp > 300]
         for key in old_keys:
             del self._user_cooldowns[key]
+
+    # The two global settings from_dict runs int() on.
+    _NUMERIC_GLOBALS = ('max_commands_per_minute', 'max_buttons_per_minute')
+
+    def _without_bad_numbers(self, spam_data: Dict[str, Any]) -> Dict[str, Any]:
+        """The stored settings minus the global limits that are not numbers.
+
+        Only the unusable value is dropped, not everything around it. The
+        per-command cooldowns next to it are perfectly readable, and they are
+        what the bot actually enforces - falling back to the defaults wholesale
+        would throw away a working configuration over one bad number
+        (review C64).
+        """
+        global_settings = dict(spam_data.get('global_settings') or {})
+        for key in self._NUMERIC_GLOBALS:
+            if key not in global_settings:
+                continue
+            try:
+                int(global_settings[key])
+            except (TypeError, ValueError):
+                logger.error(f"spam_protection.global_settings.{key} is not a number "
+                             f"({global_settings[key]!r}) - the default applies for it")
+                global_settings.pop(key)
+        repaired = dict(spam_data)
+        repaired['global_settings'] = global_settings
+        return repaired
 
     def _get_default_config(self) -> SpamProtectionConfig:
         """Get default spam protection configuration."""

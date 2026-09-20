@@ -117,9 +117,9 @@ services/infrastructure/dynamic_cooldown_manager.py:1-193
 services/infrastructure/event_manager.py:1-118
 services/infrastructure/game_query_service.py:1-553
 
-## Section 20  (1449 lines, 5 pieces)
+## Section 20  (1498 lines, 5 pieces)
 services/infrastructure/game_query_support_service.py:1-315
-services/infrastructure/spam_protection_service.py:1-504
+services/infrastructure/spam_protection_service.py:1-553
 services/infrastructure/update_notifier.py:1-213
 services/mech/__init__.py:1-30
 services/mech/mech_display_cache_service.py:1-387
