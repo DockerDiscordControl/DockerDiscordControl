@@ -1129,16 +1129,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             logger.error(f"❌ CLEAN SWEEP FAILED for channel {channel.id}: {e}", exc_info=True)
             # Don't raise - clean sweep failure shouldn't stop recovery
 
-    async def send_initial_status_after_delay_and_ready(self, delay_seconds: int):
-        """Waits for bot readiness, then delays, then sends initial status."""
-        try:
-            await self.bot.wait_until_ready()
-            logger.info(f"Bot is ready. Waiting {delay_seconds}s before send_initial_status.")
-            await asyncio.sleep(delay_seconds)
-            logger.info(f"Executing send_initial_status from __init__ after delay.")
-            await self.send_initial_status()
-        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
-            logger.error(f"Error in send_initial_status_after_delay_and_ready: {e}", exc_info=True)
+    # send_initial_status_after_delay_and_ready() stood here: a second copy of the
+    # wait -> sleep -> send_initial_status() sequence, written for a caller in
+    # __init__ that no longer exists and called by nothing, tests included. The one
+    # that runs is the closure in _setup_background_loops(), which is reached only
+    # past _cancel_existing_loops() and the _background_loops_started guard; the copy
+    # was a way around both, and a second initial send posts overview messages whose
+    # ids the cog does not track (review B16).
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
