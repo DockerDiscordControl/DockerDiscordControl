@@ -68,20 +68,36 @@ class DynamicCooldownManager:
         # Get cooldown seconds from config
         cooldown_seconds = self.spam_manager.get_command_cooldown(config_key)
 
+        # Read the number first. A setting that is not a number at all raises
+        # ValueError here, and this used to happen inside a try that caught
+        # TypeError only - so it left the method, and the loop in
+        # apply_dynamic_cooldowns that calls it for every command ended on the
+        # spot: no command after the bad one kept a cooldown, with nothing in
+        # the log (review C62).
+        try:
+            seconds = float(cooldown_seconds)
+        except (TypeError, ValueError):
+            logger.error(f"The cooldown configured for {config_key} is not a number: "
+                         f"{cooldown_seconds!r} - this command keeps no cooldown")
+            return None
+
         # Create and return Cooldown object with compatibility for different Discord libraries
         try:
             # Try discord.py style first (rate, per, type)
-            cooldown_obj = commands.Cooldown(1, float(cooldown_seconds), commands.BucketType.user)
-            logger.debug(f"Created Cooldown using discord.py style for {config_key}: 1/{cooldown_seconds}s")
+            cooldown_obj = commands.Cooldown(1, seconds, commands.BucketType.user)
+            logger.debug(f"Created Cooldown using discord.py style for {config_key}: 1/{seconds}s")
             return cooldown_obj
         except TypeError as e:
             logger.debug(f"discord.py style failed for {config_key}: {e}, trying PyCord style")
             try:
                 # Try PyCord style (rate, per)
-                cooldown_obj = commands.Cooldown(1, float(cooldown_seconds))
-                logger.debug(f"Created Cooldown using PyCord style for {config_key}: 1/{cooldown_seconds}s")
+                cooldown_obj = commands.Cooldown(1, seconds)
+                logger.debug(f"Created Cooldown using PyCord style for {config_key}: 1/{seconds}s")
                 return cooldown_obj
-            except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e2:
+            except (TypeError, ValueError) as e2:
+                # What a constructor can raise. The clause used to name
+                # RuntimeError and three discord network exceptions, none of
+                # which a plain constructor ever raises (review C62).
                 logger.error(f"Could not create Cooldown object for {config_key} with either style: discord.py={e}, PyCord={e2}", exc_info=True)
                 return None
 
@@ -117,8 +133,15 @@ class DynamicCooldownManager:
         for command in commands_to_process:
             # Simple check: if it has a name and _buckets attribute, it's probably a command
             if hasattr(command, 'name') and hasattr(command, '_buckets'):
-                # Get cooldown for this command
-                cooldown = self.get_cooldown_for_command(command.name)
+                # Get cooldown for this command. One command's settings must
+                # not decide whether the rest of them get their cooldowns
+                # (review C62).
+                try:
+                    cooldown = self.get_cooldown_for_command(command.name)
+                except Exception as e:
+                    logger.error(f"Could not read the cooldown for {command.name}: {e} - "
+                                 f"this command keeps no cooldown", exc_info=True)
+                    cooldown = None
 
                 if cooldown:
                     # Apply the cooldown with compatibility for different Discord libraries

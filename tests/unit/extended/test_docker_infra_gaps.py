@@ -1640,10 +1640,16 @@ class TestDynamicCooldownGetForCommandFailures:
         call_count = {"n": 0}
 
         def _fake_cooldown(*_a, **_kw):
+            # The second style used to raise RuntimeError here, because that is
+            # what the fallback's except clause named. A plain constructor does
+            # not raise RuntimeError; what it can raise is TypeError or
+            # ValueError, and the clause names those now (review C62). The
+            # promise under test is unchanged: if neither style works, the
+            # method answers None instead of raising.
             call_count["n"] += 1
             if call_count["n"] == 1:
                 raise TypeError("3-arg form not supported")
-            raise RuntimeError("py-cord 2-arg also broken")
+            raise ValueError("py-cord 2-arg also broken")
 
         monkeypatch.setattr(dpy_commands, "Cooldown", _fake_cooldown)
         cd = mgr.get_cooldown_for_command("control")
