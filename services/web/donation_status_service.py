@@ -83,7 +83,8 @@ class DonationStatusService:
                 status_data=status_data
             )
 
-        except (RuntimeError) as e:
+        except (AttributeError, KeyError, TypeError, ValueError, RuntimeError) as e:
+            # A superset of what the steps above can raise (review C46).
             self.logger.error(f"Error getting donation status: {e}", exc_info=True)
             return DonationStatusResult(
                 success=False,
@@ -210,7 +211,12 @@ class DonationStatusService:
 
             return status_data
 
-        except (RuntimeError) as e:
+        except (AttributeError, KeyError, TypeError, ValueError, RuntimeError) as e:
+            # The fallback below exists for exactly this: a cache entry whose
+            # `bars` is missing or incomplete. `except (RuntimeError)` could
+            # never reach it, because that raises AttributeError - so the panel
+            # got a traceback instead of the degraded status this code was
+            # written to produce (review C46).
             self.logger.error(f"Error building status data from cache: {e}", exc_info=True)
             # Return minimal fallback status
             return {
