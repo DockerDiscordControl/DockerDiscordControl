@@ -189,7 +189,15 @@ class DockerClientService:
                 # Fast path failed (pool empty, lock issues, etc.) - fall back to queue
                 logger.debug(f"[SERVICE] Request {request_id}: Fast path failed: {e}. Using queue.")
 
-            # Queue the request (slow path)
+            # Queue the request (slow path). The processor has to exist BEFORE
+            # anything goes on the queue: this entry point used to queue without
+            # checking, so a service built without a running loop left the
+            # request sitting there until the ~90 s queue timeout, which was
+            # then reported as error_type="timeout" although no Docker call had
+            # been attempted (review C33b). get_client_async() has always done
+            # this; the two entry points had drifted apart.
+            self._ensure_queue_processor()
+
             future = asyncio.Future()
             queue_request = QueueRequest(
                 request_id=request_id,
