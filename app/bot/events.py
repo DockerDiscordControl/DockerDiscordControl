@@ -46,8 +46,14 @@ def register_event_handlers(bot: discord.Bot, runtime: BotRuntime) -> None:
 
     @bot.event
     async def on_command_error(ctx: commands.Context, error: Exception) -> None:
-        if hasattr(ctx, "command") and str(ctx.command) in ["donate", "donatebroadcast"]:
-            return
+        # The donation commands answer their own errors, so this handler must
+        # not answer a second time - but that only applies to the branches that
+        # RESPOND with an error. A cooldown is the one case where the command
+        # has not answered at all, and returning here left the user with no
+        # message and no log line: they pressed the button and pressed again
+        # (review C44). The exclusion moved below the cooldown branch.
+        is_donation_command = (hasattr(ctx, "command")
+                               and str(ctx.command) in ["donate", "donatebroadcast"])
 
         if isinstance(error, commands.CommandOnCooldown):
             seconds = error.retry_after
@@ -68,6 +74,9 @@ def register_event_handlers(bot: discord.Bot, runtime: BotRuntime) -> None:
                 await ctx.respond(message, ephemeral=True)
             except discord.HTTPException:
                 pass
+            return
+
+        if is_donation_command:
             return
 
         if isinstance(error, discord.ApplicationCommandError):

@@ -203,7 +203,7 @@ app/blueprints/main_routes.py:1-1468
 app/blueprints/security_routes.py:1-193
 app/blueprints/tasks_bp.py:1-300
 
-## Section 33  (1927 lines, 25 pieces)
+## Section 33  (1936 lines, 25 pieces)
 app/blueprints/translation_routes.py:1-363
 app/bootstrap/__init__.py:1-34
 app/bootstrap/performance.py:1-55
@@ -211,7 +211,7 @@ app/bootstrap/runtime.py:1-200
 app/bot/__init__.py:1-13
 app/bot/commands.py:1-45
 app/bot/dependencies.py:1-62
-app/bot/events.py:1-83
+app/bot/events.py:1-92
 app/bot/factory.py:1-44
 app/bot/runtime.py:1-62
 app/bot/startup.py:1-39
