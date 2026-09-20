@@ -170,7 +170,12 @@ class ContainerRefreshService:
                 tz = pytz.timezone(timezone_str)
                 dt = datetime.fromtimestamp(timestamp, tz=tz)
                 formatted_time = dt.strftime('%Y-%m-%d %H:%M:%S %Z')
-            except (RuntimeError) as e:
+            except (KeyError, ValueError, TypeError, AttributeError, RuntimeError) as e:
+                # pytz raises UnknownTimeZoneError, which subclasses KeyError -
+                # not RuntimeError. The fallback right below was therefore
+                # unreachable, and an invalid timezone in the config turned an
+                # already-successful container refresh into a failure
+                # (review C47).
                 self.logger.error(f"Error formatting timestamp with timezone: {e}", exc_info=True)
                 # Fallback to system timezone
                 formatted_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
@@ -180,7 +185,8 @@ class ContainerRefreshService:
                 'formatted_time': formatted_time
             }
 
-        except (RuntimeError) as e:
+        except (KeyError, ValueError, TypeError, AttributeError, RuntimeError) as e:
+            # A superset of what the block above can raise (review C47).
             self.logger.error(f"Error getting formatted timestamp: {e}", exc_info=True)
             # Return basic timestamp as fallback
             return {
