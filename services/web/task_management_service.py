@@ -796,9 +796,24 @@ class TaskManagementService:
             task.last_run_error = None
 
     def _is_task_expired(self, task) -> bool:
-        """Check if task is expired and cannot be activated."""
+        """Check if task is expired and cannot be activated.
+
+        The third condition is the one the refusal message has always claimed -
+        "this task's execution time is in the past" - and the one this method
+        did not test. `_calculate_frontend_status` marks exactly that case as
+        expired and switches the task off, so the operator could switch it back
+        on and watch the next refresh switch it off again (review D11).
+
+        Only for one-time tasks: for a recurring one a past next_run_ts is
+        ordinary, and `_prepare_task_activation` above has already given it a
+        fresh future run by the time this is asked.
+        """
         from services.scheduling.scheduler import CYCLE_ONCE
-        return task.next_run_ts is None or (task.cycle == CYCLE_ONCE and task.status == "completed")
+        if task.next_run_ts is None:
+            return True
+        if task.cycle != CYCLE_ONCE:
+            return False
+        return task.status == "completed" or task.next_run_ts < time.time()
 
     def _update_task_via_scheduler(self, task) -> bool:
         """Update task using scheduler service."""
