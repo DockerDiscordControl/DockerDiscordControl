@@ -125,6 +125,63 @@ def _is_registered_admin(user_id) -> bool:
         logger.error(f"Admin list could not be read for user {user_id}: {e}", exc_info=True)
         return False
 
+def _admin_may_control(user_id, docker_name: str) -> bool:
+    """B2, narrowed to the containers this admin was assigned (review F2).
+
+    The same rule as ``_is_registered_admin`` for an admin with no assignment -
+    they keep every container, which is the upgrade default and must stay that
+    way. An assigned admin passes only for their own containers.
+
+    This is the B2 branch ALONE. The channel branch (B1) is asked before it and
+    is not narrowed by anything: whoever may write in a control channel still
+    does everything there. Assignments only bite where the channel permits
+    nothing, which is the status channels they were asked for.
+
+    A lookup that fails counts as "not allowed", like its neighbour above.
+    """
+    try:
+        from services.admin.admin_service import get_admin_service
+        return bool(get_admin_service().may_control(user_id, docker_name))
+    except (ImportError, OSError, ValueError, RuntimeError) as e:
+        logger.error(f"Admin assignment could not be read for user {user_id}: {e}",
+                     exc_info=True)
+        return False
+
+
+def _admin_may_control_task(user_id, task_id: str) -> bool:
+    """The same rule for a scheduled task, via the container it acts on.
+
+    A task button knows its task, not its container, so the container has to be
+    looked up - but only for an admin who HAS an assignment. For everybody else
+    the answer cannot depend on it, and doing the lookup anyway would let a
+    missing task refuse an unscoped admin who is allowed today.
+
+    A task that cannot be found while the admin IS assigned counts as "not
+    allowed": there is no way to tell whether it is one of theirs.
+    """
+    try:
+        from services.admin.admin_service import get_admin_service
+        service = get_admin_service()
+        containers = service.get_admin_containers(user_id)
+        if containers is None:
+            return bool(service.is_user_admin(user_id))
+        if not containers:
+            return False
+
+        from services.scheduling.scheduler import find_task_by_id
+        task = find_task_by_id(task_id)
+        container_name = getattr(task, 'container_name', None)
+        if not container_name:
+            logger.warning(f"Task {task_id} has no container - refusing the assigned "
+                           f"admin {user_id}, there is no way to tell whose it is")
+            return False
+        return str(container_name) in containers
+    except (ImportError, OSError, ValueError, RuntimeError, AttributeError) as e:
+        logger.error(f"Admin assignment could not be read for user {user_id}: {e}",
+                     exc_info=True)
+        return False
+
+
 def _get_pending_embed(display_name: str) -> discord.Embed:
     """Generates a standardized embed for the pending status in the box design."""
     # --- Start: Adjusted box formatting for Pending --- #

@@ -164,7 +164,11 @@ class TestC26AdminService:
         assert AdminService().save_admin_data(["1", "2"], {"1": "owner"}) is True
 
         data = json.loads(admins_file.read_text())
-        assert data == {"discord_admin_users": ["1", "2"], "admin_notes": {"1": "owner"}}
+        # admin_containers joined the document with the per-admin container
+        # assignment; an empty mapping is "nobody is assigned", which is what
+        # this file always meant (review F1/F2).
+        assert data == {"discord_admin_users": ["1", "2"], "admin_notes": {"1": "owner"},
+                        "admin_containers": {}}
         assert stat.S_IMODE(admins_file.stat().st_mode) == 0o640
         assert _temp_leftovers(admins_file.parent) == []
 

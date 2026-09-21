@@ -2030,9 +2030,11 @@ class CreateTaskButton(discord.ui.Button):
             # at the click nor here, so the same thing needed a permission on one path
             # and none on the other, and a view still open after a revocation kept
             # creating tasks for up to ~890 s (SPEC.md Z5, review B3).
-            from .control_helpers import _channel_has_permission, _is_registered_admin
+            # An assigned admin may only make tasks for their own containers
+            # (review F2); the channel branch in front of it is untouched.
+            from .control_helpers import _channel_has_permission, _admin_may_control
             if not (_channel_has_permission(interaction.channel_id, 'schedule', load_config())
-                    or _is_registered_admin(interaction.user.id)):
+                    or _admin_may_control(interaction.user.id, self.container_name)):
                 await interaction.followup.send(
                     f"❌ {_('This action is not allowed in this channel.')}",
                     ephemeral=True
@@ -2287,7 +2289,7 @@ class ContainerTaskDeleteButton(discord.ui.Button):
 
             from services.scheduling.scheduler import delete_task, find_task_by_id
             from services.infrastructure.action_logger import log_user_action
-            from .control_helpers import _channel_has_permission, _is_registered_admin
+            from .control_helpers import _channel_has_permission, _admin_may_control_task
 
             # Deleting a scheduled task needs the 'schedule' permission of the
             # CURRENT channel. The twin button in control_ui.py:1276 checks it;
@@ -2298,8 +2300,10 @@ class ContainerTaskDeleteButton(discord.ui.Button):
             # button of the admin info view, which admins open in status
             # channels. Added 2026-09-19 after the operator was refused there.
             config = load_config()
+            # Via the task's container - same rule as its twin in control_ui
+            # (review F2).
             if not (_channel_has_permission(interaction.channel_id, 'schedule', config)
-                    or _is_registered_admin(interaction.user.id)):
+                    or _admin_may_control_task(interaction.user.id, self.task_id)):
                 await interaction.followup.send(
                     f"❌ {_('You do not have permission to delete tasks in this channel.')}",
                     ephemeral=True

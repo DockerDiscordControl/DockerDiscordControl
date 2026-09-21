@@ -41,6 +41,12 @@ def _press(monkeypatch, *, schedule, admin=False):
     monkeypatch.setattr("cogs.control_helpers.load_config", lambda: _config(schedule))
     admin_service = MagicMock()
     admin_service.is_user_admin.return_value = admin
+    # The service grew get_admin_containers/may_control with the per-admin
+    # container assignment (review F1/F2), and a bare MagicMock answers both
+    # with a truthy MagicMock - which would let a non-admin through. The stub
+    # follows the real rule instead: no assignment means every container.
+    admin_service.get_admin_containers.side_effect = lambda user_id, **kw: None if admin else []
+    admin_service.may_control.side_effect = lambda user_id, docker_name, **kw: bool(admin)
     monkeypatch.setattr("services.admin.admin_service.get_admin_service", lambda: admin_service)
     monkeypatch.setattr(sii, "_get_allowed_task_actions", lambda _name: ["start", "stop", "restart"])
 

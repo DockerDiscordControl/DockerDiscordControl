@@ -22,7 +22,9 @@ if TYPE_CHECKING:
     from .docker_control import DockerControlCog
 
 from utils.time_utils import format_datetime_with_timezone
-from .control_helpers import _channel_has_permission, _get_pending_embed, _is_registered_admin
+from .control_helpers import (_admin_may_control, _admin_may_control_task,
+                              _channel_has_permission, _get_pending_embed,
+                              _is_registered_admin)
 from utils.logging_utils import get_module_logger
 from services.infrastructure.action_logger import log_user_action
 from .translation_manager import _
@@ -354,8 +356,12 @@ class ActionButton(Button):
         # STATUS channel - which is what the admin list exists for (SPEC.md B2).
         # The operator was refused there. A registered admin passes again, read
         # from the CURRENT admin list, not from the message.
+        # The admin branch is narrowed to the containers this admin was assigned
+        # (review F2). No assignment means every container, so nothing changes
+        # for an admin who has none - which is every admin until somebody makes
+        # one. The channel branch in front of it is untouched: B1 stands.
         channel_has_control = (_get_cached_channel_permission(interaction.channel.id, 'control', config)
-                               or _is_registered_admin(user.id))
+                               or _admin_may_control(user.id, self.docker_name))
 
         if not channel_has_control:
             await interaction.followup.send(_("This action is not allowed in this channel."), ephemeral=True)
@@ -1451,8 +1457,10 @@ class TaskDeleteButton(Button):
             config = load_config()
             # A registered admin may delete as well (SPEC.md B2) - the same rule as
             # the twin in status_info_integration.py; same action, same right.
+            # Via the task's container: a task acts on one, so an assigned admin
+            # may only delete the tasks of their own (review F2).
             if not (_get_cached_channel_permission(interaction.channel.id, 'schedule', config)
-                    or _is_registered_admin(interaction.user.id)):
+                    or _admin_may_control_task(interaction.user.id, self.task_id)):
                 await interaction.followup.send(_("You do not have permission to delete tasks in this channel."), ephemeral=True)
                 return
 

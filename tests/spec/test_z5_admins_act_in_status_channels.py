@@ -77,6 +77,15 @@ def status_channel(monkeypatch):
     monkeypatch.setattr("cogs.status_info_integration.load_config", lambda: config)
     monkeypatch.setattr("cogs.control_helpers.load_config", lambda: config)
     admin = MagicMock()
+    # The service grew get_admin_containers/may_control with the per-admin
+    # container assignment (review F1/F2). A bare MagicMock answers both with a
+    # truthy MagicMock, which would let a NON-admin through this test - so the
+    # stub follows the real rule: no assignment means every container, and
+    # somebody who is not an admin controls nothing.
+    admin.get_admin_containers.side_effect = (
+        lambda user_id, **kw: None if admin.is_user_admin.return_value else [])
+    admin.may_control.side_effect = (
+        lambda user_id, docker_name, **kw: bool(admin.is_user_admin.return_value))
     monkeypatch.setattr("services.admin.admin_service.get_admin_service", lambda: admin)
     return admin
 
