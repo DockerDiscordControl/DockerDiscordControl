@@ -13,6 +13,7 @@ import asyncio
 import logging
 from dataclasses import dataclass
 from typing import Optional, Tuple, Dict, Any
+from services.exceptions import DockerServiceError
 from utils.logging_utils import get_module_logger
 
 logger = get_module_logger('docker_connectivity_service')
@@ -143,33 +144,26 @@ class DockerConnectivityService:
             )
 
         except (OSError, IOError) as e:
-            # Analyze the exception to determine error type
-            error_str = str(e).lower()
+            return self._classified_failure(e)
 
-            if "no such file or directory" in error_str:
-                error_type = "socket_error"
-                error_message = "Docker socket not accessible - container mount missing"
-                technical_details = "Docker socket (/var/run/docker.sock) not mounted or accessible"
-            elif "connection refused" in error_str or "connection aborted" in error_str:
-                error_type = "daemon_error"
-                error_message = "Docker daemon not running or unreachable"
-                technical_details = "Docker daemon service not running or network unreachable"
-            elif "permission denied" in error_str:
-                error_type = "permission_error"
-                error_message = "Docker socket permissions issue"
-                technical_details = "User lacks permissions to access Docker socket"
-            else:
-                error_type = "connection_error"
-                error_message = f"Docker connectivity error: {str(e)}"
-                technical_details = str(e)
-
-            self.logger.warning(f"[DOCKER_CONNECTIVITY] {error_message}", exc_info=True)
-            return DockerConnectivityResult(
-                is_connected=False,
-                error_message=error_message,
-                error_type=error_type,
-                technical_details=technical_details
-            )
+        except DockerServiceError as e:
+            # The one that was missing (review E15). get_docker_client_async
+            # raises DockerConnectionError when every way of building a client
+            # has failed - the socket unmounted, the daemon stopped. That is
+            # THE case this whole service exists to report, and it was the one
+            # case that walked past all of these handlers and raised at the
+            # caller instead.
+            #
+            # What that cost is not an abstraction: DDC has a finished answer
+            # for exactly this situation. create_error_embed_data builds the
+            # "Container Monitoring Unavailable" embed, translated into all 40
+            # languages, that tells the operator to check the socket mount. It
+            # is reached from is_connected being False - a flag that was never
+            # set, because the check raised before it could return one.
+            #
+            # The pool wraps the original text into its message, so the same
+            # classification works on it.
+            return self._classified_failure(e)
 
         except (ImportError, AttributeError, RuntimeError) as e:
             # Service or import errors
@@ -181,6 +175,42 @@ class DockerConnectivityService:
                 error_type="service_error",
                 technical_details=str(e)
             )
+
+    def _classified_failure(self, error: Exception) -> DockerConnectivityResult:
+        """Turn a connection failure into the answer, with the right kind named.
+
+        The kind matters: it is what create_error_embed_data picks its wording
+        from, and "your socket is not mounted" and "you lack permission on the
+        socket" are different pieces of advice. The classification reads the
+        message text because that is the only place the distinction survives -
+        docker's own exceptions do not carry it structurally.
+        """
+        error_str = str(error).lower()
+
+        if "no such file or directory" in error_str:
+            error_type = "socket_error"
+            error_message = "Docker socket not accessible - container mount missing"
+            technical_details = "Docker socket (/var/run/docker.sock) not mounted or accessible"
+        elif "connection refused" in error_str or "connection aborted" in error_str:
+            error_type = "daemon_error"
+            error_message = "Docker daemon not running or unreachable"
+            technical_details = "Docker daemon service not running or network unreachable"
+        elif "permission denied" in error_str:
+            error_type = "permission_error"
+            error_message = "Docker socket permissions issue"
+            technical_details = "User lacks permissions to access Docker socket"
+        else:
+            error_type = "connection_error"
+            error_message = f"Docker connectivity error: {error}"
+            technical_details = str(error)
+
+        self.logger.warning(f"[DOCKER_CONNECTIVITY] {error_message}", exc_info=True)
+        return DockerConnectivityResult(
+            is_connected=False,
+            error_message=error_message,
+            error_type=error_type,
+            technical_details=technical_details
+        )
 
     def create_error_embed_data(self, request: DockerErrorEmbedRequest) -> DockerErrorEmbedResult:
         """
