@@ -1113,10 +1113,17 @@ def _save_raw_tasks_to_file(tasks_data: List[Dict[str, Any]]) -> bool:
 # same failing rewrite is not attempted on every scheduler cycle (B5).
 _failed_cleanup_ids: frozenset = frozenset()
 
+# True while the last attempt to read tasks.json failed. Every writer builds its
+# list from load_tasks(), and a failed read gives back an EMPTY one - so saving
+# after it would write the schedule away. Cleared by the next read that works,
+# so a passing glitch heals itself (review E4).
+_last_load_failed: bool = False
+
 
 @_with_tasks_lock
 def load_tasks() -> List[ScheduledTask]:
     """Load all scheduled tasks from storage"""
+    global _last_load_failed
     # Maintain task persistence across restarts
     tasks = []
 
@@ -1152,12 +1159,19 @@ def load_tasks() -> List[ScheduledTask]:
         # Display successful loading information only on debug level to reduce log spam
         logger.debug(f"Loaded {len(tasks)} scheduled tasks")
 
+        # The read worked: whatever went wrong before is over (review E4).
+        _last_load_failed = False
+
     except (json.JSONDecodeError, ValueError, TypeError) as e:
         # JSON/data errors (malformed JSON, unexpected data types)
         logger.error(f"JSON/data error loading tasks from {TASKS_FILE_PATH}: {e}", exc_info=True)
+        # Remembered, because this function answers with an EMPTY list and the
+        # writers cannot tell that from "there are no tasks" (review E4).
+        _last_load_failed = True
     except (IOError, OSError, UnicodeDecodeError) as e:
         # File I/O errors (cannot read file, encoding issues)
         logger.error(f"File I/O error loading tasks from {TASKS_FILE_PATH}: {e}", exc_info=True)
+        _last_load_failed = True
 
     # Cleanup any invalid or expired tasks. The rewrite only happens when it can actually
     # stick: if saving fails (read-only config mount, wrong permissions), the same cleanup
@@ -1205,6 +1219,20 @@ def _get_task_grouping_key(task):
 @_with_tasks_lock
 def save_tasks(tasks: List[ScheduledTask]) -> bool:
     """Save all ScheduledTask objects to tasks.json."""
+
+    # A read that failed must not become a write. Every caller builds its list
+    # from load_tasks(), which answers with an EMPTY list when tasks.json could
+    # not be read or parsed - so adding one task after a bad read wrote a file
+    # with only that task in it, and there is no backup. The file on disk is
+    # the only copy of the schedule there is (review E4).
+    #
+    # Refusing, not guessing: no stale list is written back and no repair is
+    # attempted. The next read that works clears this by itself.
+    if _last_load_failed:
+        logger.error("Refusing to save tasks: the last read of %s failed, so the list to "
+                     "be written may be missing everything. Fix or remove the file; the "
+                     "next successful read lifts this by itself.", TASKS_FILE_PATH)
+        return False
 
     # Filter out system tasks - they should never be saved to file
     user_tasks = [task for task in tasks if not task.is_system_task()]
