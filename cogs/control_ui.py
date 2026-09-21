@@ -679,10 +679,29 @@ class ToggleButton(Button):
         super().__init__(style=discord.ButtonStyle.primary, label=None, custom_id=custom_id, row=row, emoji=emoji, disabled=not is_running)
 
     def _get_cached_channel_permission_for_toggle(self, channel_id: int, current_config: dict) -> bool:
-        """Cached channel permission specifically for this toggle button."""
+        """Cached CHANNEL permission specifically for this toggle button.
+
+        Channel-only on purpose: this cache is keyed by channel, while being a
+        registered admin is a property of the USER. The admin part of the rule
+        belongs in _control_allowed_for below, outside the cache - putting it
+        in here would hand the first presser's admin status to everybody else
+        in the same channel (review D3).
+        """
         if channel_id not in self._channel_permissions_cache:
             self._channel_permissions_cache[channel_id] = _get_cached_channel_permission(channel_id, 'control', current_config)
         return self._channel_permissions_cache[channel_id]
+
+    def _control_allowed_for(self, channel_id: int, user_id: int, current_config: dict) -> bool:
+        """The channel's control permission OR a registered admin.
+
+        The same rule as the six other places in this file (:315, :1111, :1160,
+        :1330, :1595, :1980) and as SPEC.md Z5 with its B2 clarification. This
+        button was the one that asked the channel alone, so a registered admin
+        in a status channel pressed Expand and watched the Stop/Restart buttons
+        disappear from the redrawn view (review D3).
+        """
+        return (self._get_cached_channel_permission_for_toggle(channel_id, current_config)
+                or _is_registered_admin(user_id))
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """ULTRA-OPTIMIZED toggle function with all 6 performance optimizations."""
@@ -774,6 +793,7 @@ class ToggleButton(Button):
                 # This function call now receives the fresh config
                 embed, view = await self._generate_ultra_fast_toggle_embed_and_view(
                     interaction.channel.id,
+                    interaction.user.id,
                     status_result,
                     current_config,
                     cached_entry
@@ -820,7 +840,7 @@ class ToggleButton(Button):
         if interaction.channel:
             self.cog.last_channel_activity[interaction.channel.id] = datetime.now(timezone.utc)
 
-    async def _generate_ultra_fast_toggle_embed_and_view(self, channel_id: int, status_result, current_config: dict, cached_entry: dict) -> tuple[Optional[discord.Embed], Optional[discord.ui.View]]:
+    async def _generate_ultra_fast_toggle_embed_and_view(self, channel_id: int, user_id: int, status_result, current_config: dict, cached_entry: dict) -> tuple[Optional[discord.Embed], Optional[discord.ui.View]]:
         """Ultra-fast embed/view generation with all 6 optimizations."""
         try:
             # Handle both ContainerStatusResult (modern) and tuple (legacy) formats
@@ -912,7 +932,7 @@ class ToggleButton(Button):
             embed = _get_recycled_embed(final_description, status_color)
 
             # OPTIMIZATION 6: Ultra-fast cached channel permission (90% schneller)
-            channel_has_control = self._get_cached_channel_permission_for_toggle(channel_id, current_config)
+            channel_has_control = self._control_allowed_for(channel_id, user_id, current_config)
 
             # Create optimized view
             view = self._create_ultra_optimized_control_view(running, channel_has_control)
