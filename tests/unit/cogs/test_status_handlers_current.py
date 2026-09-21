@@ -386,6 +386,12 @@ class TestStatusHandlersMixin:
         translations_de_2 = embed_helper_service.get_translations('de')
         assert translations_de is translations_de_2
 
+        # This test asked for both languages and never compared them, so it
+        # stayed green while every answer came back in the ambient language
+        # whatever was asked for (review D15). The cache is keyed by language;
+        # the answers have to differ by language too.
+        assert translations_de != translations_en
+
 
     def test_get_cached_box_elements(self, embed_helper_service):
         """Test box elements caching for status display"""

@@ -67,10 +67,10 @@ services/config/container_config_save_service.py:1-150
 services/config/server_config_service.py:1-213
 services/discord/__init__.py:1-20
 
-## Section 14  (1468 lines, 6 pieces)
+## Section 14  (1478 lines, 6 pieces)
 services/discord/channel_cleanup_service.py:1-476
 services/discord/conditional_update_cache_service.py:1-169
-services/discord/embed_helper_service.py:1-163
+services/discord/embed_helper_service.py:1-173
 services/discord/status_overview_service.py:1-356
 services/docker_service/__init__.py:1-28
 services/docker_service/docker_action_service.py:1-276
