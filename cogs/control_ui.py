@@ -241,6 +241,39 @@ def _make_action_done_callback(cog, docker_name: str, pending_entry: dict, label
     return _on_done
 
 
+# Discord shows at most this many options in one select. It is a hard limit of
+# the platform, not a choice DDC gets to make.
+DISCORD_SELECT_LIMIT = 25
+
+
+def _fit_to_select(containers, name_key, placeholder):
+    """Cut a container list to Discord's limit, and SAY SO instead of just cutting.
+
+    Both container dropdowns used to do ``containers[:25]`` and stop there. An
+    operator running thirty containers saw twenty-five and could not control
+    the other five from Discord at all - with no message, no marker, nothing in
+    the log. It looked exactly like a configuration with twenty-five containers
+    in it (review E37).
+
+    The real answer is paging, which this project has already built once for
+    the 31 days of a month (SimpleMonthdayDropdown). That is a feature and is
+    written up as a question for the operator rather than added here.
+
+    The marker is numbers, deliberately: "(25/30)" needs no translation and
+    means the same in every one of the forty languages.
+    """
+    if len(containers) <= DISCORD_SELECT_LIMIT:
+        return containers, placeholder
+
+    shown = containers[:DISCORD_SELECT_LIMIT]
+    left_out = [str(c.get(name_key, "?")) for c in containers[DISCORD_SELECT_LIMIT:]]
+    logger.warning(
+        "Discord shows at most %d options, so %d of %d containers are NOT in "
+        "this dropdown and cannot be reached from it: %s",
+        DISCORD_SELECT_LIMIT, len(left_out), len(containers), ", ".join(left_out))
+    return shown, f"{placeholder} ({len(shown)}/{len(containers)})"
+
+
 class ActionButton(Button):
     """Ultra-optimized button for Start, Stop, Restart actions."""
     cog: 'DockerControlCog'
@@ -1652,8 +1685,10 @@ class ContainerInfoDropdown(discord.ui.Select):
         self.containers = containers
 
         # Create options from containers
+        placeholder = _("Select a container...")
+        fitting, placeholder = _fit_to_select(containers, 'name', placeholder)
         options = []
-        for container in containers[:25]:  # Discord limit is 25 options
+        for container in fitting:
             option = discord.SelectOption(
                 label=container['display'],
                 value=container['name']
@@ -1661,7 +1696,7 @@ class ContainerInfoDropdown(discord.ui.Select):
             options.append(option)
 
         super().__init__(
-            placeholder=_("Select a container..."),
+            placeholder=placeholder,
             options=options,
             min_values=1,
             max_values=1,
@@ -2070,11 +2105,14 @@ class AdminContainerDropdown(discord.ui.Select):
         # CRITICAL: Re-sort containers here to ensure correct order
         # Sort by 'order' field from Web UI configuration
 
-        # Debug: Show what we received
-        logger.info(f"AdminDropdown received {len(containers)} containers:")
+        # DEBUG level, not INFO: this writes one line PER CONTAINER, twice (once
+        # here and once after sorting), every time the panel is opened. On a
+        # seven-container install that is fourteen INFO lines for one click,
+        # and the header calls itself "Debug" (review E37).
+        logger.debug(f"AdminDropdown received {len(containers)} containers:")
         for c in containers:
             order_val = c.get('order', 999)
-            logger.info(f"  - {c['display']}: order={order_val} (type={type(order_val).__name__})")
+            logger.debug(f"  - {c['display']}: order={order_val} (type={type(order_val).__name__})")
 
         # Sort containers by order field (handles both int and string from Web UI)
         def get_order_key(container):
@@ -2090,14 +2128,16 @@ class AdminContainerDropdown(discord.ui.Select):
         sorted_containers = sorted(containers, key=get_order_key)
         self.containers = sorted_containers
 
-        # Debug log the sorted order
-        logger.info("AdminDropdown after sorting:")
+        # Debug log the sorted order - see above.
+        logger.debug("AdminDropdown after sorting:")
         for c in sorted_containers:
-            logger.info(f"  - {c['display']}: order={c.get('order', 999)}")
+            logger.debug(f"  - {c['display']}: order={c.get('order', 999)}")
 
         # Create options from sorted containers
+        placeholder = _("Select a container to control...")
+        fitting, placeholder = _fit_to_select(sorted_containers, 'docker_name', placeholder)
         options = []
-        for i, container in enumerate(sorted_containers[:25]):  # Discord limit is 25 options
+        for i, container in enumerate(fitting):
             # Remove " Server" suffix for cleaner dropdown display
             display_label = container['display']
             if display_label.endswith(' Server'):
@@ -2113,7 +2153,7 @@ class AdminContainerDropdown(discord.ui.Select):
             options.append(option)
 
         super().__init__(
-            placeholder=_("Select a container to control..."),
+            placeholder=placeholder,
             options=options,
             min_values=1,
             max_values=1,
