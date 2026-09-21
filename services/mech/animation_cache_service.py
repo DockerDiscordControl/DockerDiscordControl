@@ -1289,6 +1289,10 @@ class AnimationCacheService:
 
             # Register listener for donation completion events
             event_manager.register_listener('donation_completed', self._handle_donation_event)
+            # A reset moves power and level too, so this cache has to go for it
+            # as well - it just is not a donation, and does not travel as one
+            # any more (review D35).
+            event_manager.register_listener('donation_reset', self._handle_donation_event)
 
             # Register listener for mech state changes
             event_manager.register_listener('mech_state_changed', self._handle_state_change_event)
@@ -1304,7 +1308,14 @@ class AnimationCacheService:
         try:
             # Extract relevant data from event
             event_info = event_data.data
-            reason = f"Donation completed: ${event_info.get('amount', 'unknown')}"
+            # A reset arrives here too (it invalidates the same caches), and
+            # this line used to call it "Donation completed: $unknown" - in the
+            # log of a product whose whole subject is money, about an admin
+            # wiping the ledger (review D35).
+            if event_info.get('action') == 'reset':
+                reason = f"Donation ledger reset by {event_info.get('source', 'unknown')}"
+            else:
+                reason = f"Donation completed: ${event_info.get('amount', 'unknown')}"
 
             # Invalidate cache since power/level may have changed
             # For event-driven invalidation, only clear memory cache to allow fast re-caching

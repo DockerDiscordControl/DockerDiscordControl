@@ -93,7 +93,7 @@ services/docker_service/status_cache_runtime.py:1-101
 services/docker_status/__init__.py:1-34
 services/docker_status/fetch_service.py:1-251
 
-## Section 17  (1759 lines, 13 pieces)
+## Section 17  (1766 lines, 13 pieces)
 services/docker_status/models.py:1-376
 services/docker_status/performance_service.py:1-234
 services/donation/__init__.py:1-24
@@ -102,7 +102,7 @@ services/donation/donation_management_service.py:1-446
 services/donation/donation_utils.py:1-62
 services/donation/notification_service.py:1-79
 services/donation/unified/__init__.py:1-30
-services/donation/unified/events.py:1-86
+services/donation/unified/events.py:1-93
 services/donation/unified/member_count.py:1-38
 services/donation/unified/models.py:1-97
 services/donation/unified/processors.py:1-69
@@ -132,8 +132,8 @@ services/infrastructure/update_notifier.py:1-235
 services/mech/__init__.py:1-30
 services/mech/mech_display_cache_service.py:1-387
 
-## Section 21  (1835 lines, 1 piece)
-services/mech/animation_cache_service.py:1-1835
+## Section 21  (1846 lines, 1 piece)
+services/mech/animation_cache_service.py:1-1846
 
 ## Section 22  (1670 lines, 4 pieces)
 services/mech/mech_data_store.py:1-939
@@ -141,12 +141,12 @@ services/mech/mech_defaults.py:1-34
 services/mech/mech_evolutions.py:1-449
 services/mech/mech_high_res_service.py:1-248
 
-## Section 23  (1891 lines, 9 pieces)
+## Section 23  (1902 lines, 9 pieces)
 services/mech/mech_reset_service.py:1-378
 services/mech/mech_service.py:1-32
 services/mech/mech_service_adapter.py:1-299
 services/mech/mech_state_manager.py:1-161
-services/mech/mech_status_cache_service.py:1-453
+services/mech/mech_status_cache_service.py:1-464
 services/mech/mech_story_service.py:1-204
 services/mech/progress/__init__.py:1-17
 services/mech/progress/runtime.py:1-158

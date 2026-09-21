@@ -684,13 +684,14 @@ class TestMechStatusCacheService:
                    return_value=fake_event_manager):
             svc = MechStatusCacheService()
 
-        assert fake_event_manager.register_listener.call_count == 2
+        # The set, not the count - the count went red on its own when the
+        # reset event was given its own name, and nothing was wrong (D35).
         registered_events = {
             call.args[0]
             for call in fake_event_manager.register_listener.call_args_list
         }
         assert registered_events == {
-            "donation_completed", "mech_state_changed",
+            "donation_completed", "donation_reset", "mech_state_changed",
         }
         # Service is fully constructed.
         assert svc._cache == {}

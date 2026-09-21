@@ -1141,7 +1141,7 @@ class TestPreGenerateAnimationFlow:
 # 23. Event listener wiring (success + failure)
 # ===========================================================================
 class TestEventListenerSetup:
-    def test_setup_event_listeners_registers_two_handlers(self, tmp_path):
+    def test_setup_event_listeners_registers_every_event_it_needs(self, tmp_path):
         # Don't stub _setup_event_listeners here — exercise it directly.
         fake_em = MagicMock()
         with patch(
@@ -1153,8 +1153,13 @@ class TestEventListenerSetup:
             lambda self, *a, **kw: 0,
         ), patch.dict(os.environ, {"DDC_ANIM_DISK_LIMIT_MB": "0"}):
             svc = AnimationCacheService()
-        # Two register_listener calls expected.
-        assert fake_em.register_listener.call_count == 2
+        # Named, not counted. This used to assert "== 2" and the test was
+        # called ..._registers_two_handlers, so adding the reset event made it
+        # red without anything being wrong (review D35). What matters is WHICH
+        # events reach this cache: a donation and a reset both move power and
+        # level, and a state change does too.
+        registered = {call.args[0] for call in fake_em.register_listener.call_args_list}
+        assert registered == {"donation_completed", "donation_reset", "mech_state_changed"}
 
     def test_setup_event_listeners_swallows_import_error(self, tmp_path):
         with patch(
