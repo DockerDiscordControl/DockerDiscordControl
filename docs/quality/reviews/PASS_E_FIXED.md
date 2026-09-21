@@ -41,6 +41,8 @@ Pass E is the read of the files that no earlier pass ever covered
 
 | **E25** | **A container you stopped on purpose could be restarted by an Auto-Action** — the "only if running" switch was silently not honoured when the container's state could not be read, and nothing anywhere said so. | Three-state answer, two-state check: only a confirmed "not running" skipped. **Semantics unchanged, and since confirmed by the operator** ("commands take priority"); what was fixed is the silence. | `80657ac` |
 
+| **E29** | **A config file edited by hand could go on being ignored** — change a channel permission directly in `config/channels/` and DDC keeps serving the old configuration until a restart. | The cache checked only the mtime of `config/`, which does not move when a file in a subdirectory changes. No live defect (every save path invalidates explicitly, and bot and panel are one process) — a trap for hand edits and for the next save path. | `c490916` |
+
 ## Under the floor — no symptom yet, but a trap
 
 | # | What | Commit |
