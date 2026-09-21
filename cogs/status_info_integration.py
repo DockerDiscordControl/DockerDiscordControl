@@ -183,6 +183,20 @@ class ProtectedInfoEditButton(discord.ui.Button):
             except (RuntimeError, AttributeError, KeyError) as e:
                 logger.error(f"Spam protection error for protected info edit button: {e}", exc_info=True)
 
+        # This button carried NO check of its own - only the one that builds the
+        # view around it, and that one does not know about container
+        # assignments. The modal it opens is pre-filled with the protected
+        # content AND the password, both in clear text, so opening it is
+        # reading them. An assigned admin must not do that for somebody else's
+        # container (review F3).
+        from .control_helpers import _channel_has_permission, _admin_may_control
+        from services.config.config_service import load_config as _load_config
+        if not (_channel_has_permission(interaction.channel_id, 'control', _load_config())
+                or _admin_may_control(interaction.user.id, self.container_name)):
+            await interaction.response.send_message(
+                f"❌ {_('This action is not allowed in this channel.')}", ephemeral=True)
+            return
+
         try:
             # Import modal from enhanced_info_modal_simple
             from .enhanced_info_modal_simple import ProtectedInfoModal
@@ -932,8 +946,19 @@ class StatusInfoButton(discord.ui.Button):
             if ip_info:
                 description_parts.append(ip_info)
 
-        # Add protected information if in control channel and enabled
-        if include_protected and fresh_info_config.get('protected_enabled', False):
+        # Add protected information if in control channel and enabled.
+        #
+        # A SET PASSWORD WINS over control permission (operator's decision,
+        # review F3). This used to hand the content out on control permission
+        # alone, while the dropdown path two files over asks for the password
+        # in EVERY channel - measured with a password set: the secret went
+        # straight into the embed. A password that protects on one path and not
+        # on the other protects nothing. Without a password "protected" is
+        # protected by nothing anyway, and a control channel has always shown
+        # it; that half is unchanged.
+        has_password = bool(str(fresh_info_config.get('protected_password') or '').strip())
+        if include_protected and fresh_info_config.get('protected_enabled', False) \
+                and not has_password:
             protected_content = fresh_info_config.get('protected_content', '').strip()
             if protected_content:
                 description_parts.append("\n**🔐 Protected Information:**")

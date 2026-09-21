@@ -135,7 +135,8 @@ class AdminOverviewAdminButton(Button):
                 return
 
             # Create dropdown view with containers list
-            view = AdminContainerSelectView(self.cog, containers, self.channel_id)
+            view = AdminContainerSelectView(self.cog, containers, self.channel_id,
+                                            user_id=interaction.user.id)
             await interaction.followup.send(
                 _("Select a container to control:"),
                 view=view,

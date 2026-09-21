@@ -2000,7 +2000,8 @@ class AdminButton(Button):
                 logger.info(f"  - {c['display']}: order={c.get('order', 999)}")
 
             # Create view with dropdown
-            view = AdminContainerSelectView(self.cog, active_containers, interaction.channel.id)
+            view = AdminContainerSelectView(self.cog, active_containers, interaction.channel.id,
+                                            user_id=interaction.user.id)
 
             embed = discord.Embed(
                 title="🛠️ " + _("Admin Control Panel"),
@@ -2023,10 +2024,37 @@ class AdminButton(Button):
 class AdminContainerSelectView(View):
     """View with dropdown for selecting a container for admin control."""
 
-    def __init__(self, cog_instance: 'DockerControlCog', containers: list, channel_id: int):
+    def __init__(self, cog_instance: 'DockerControlCog', containers: list, channel_id: int,
+                 user_id: Optional[int] = None):
         super().__init__(timeout=180)  # 3 minutes timeout
         self.cog = cog_instance
         self.channel_id = channel_id
+
+        # Offer only what the presser may actually use (review F4). This panel
+        # is ephemeral - "only you can see this" - so it can differ per user,
+        # unlike the shared status message above it.
+        #
+        # Only where the CHANNEL grants nothing: in a control channel everyone
+        # who may write there may do everything (B1), so there is nothing to
+        # narrow. Without a user id the list is left alone and the gap is said
+        # out loud, rather than a caller silently losing their containers.
+        if user_id is None:
+            logger.warning("[ADMIN_DROPDOWN] No user id given - offering every container; "
+                           "the buttons behind it still check")
+        else:
+            try:
+                if not _channel_has_permission(channel_id, 'control', load_config()):
+                    before = len(containers)
+                    containers = [c for c in containers
+                                  if _admin_may_control(user_id, c.get('docker_name') or c.get('name'))]
+                    if len(containers) != before:
+                        logger.info(f"[ADMIN_DROPDOWN] {len(containers)} of {before} containers "
+                                    f"offered to user {user_id}")
+            except (AttributeError, KeyError, OSError, RuntimeError, ValueError) as e:
+                # A list that cannot be narrowed is not widened silently: the
+                # buttons behind every entry check again when they are pressed.
+                logger.error(f"[ADMIN_DROPDOWN] Could not narrow the list for {user_id}: {e}",
+                             exc_info=True)
 
         # Add dropdown
         self.add_item(AdminContainerDropdown(cog_instance, containers, channel_id))
