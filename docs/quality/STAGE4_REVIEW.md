@@ -154,6 +154,17 @@ cancellation class of C60).
 With that, every section of the code base has been read once. The test suite
 grew from 4,895 to 5,214 passing tests across the three stages.
 
+**Pass 2** then went over the eight sensitive sections a second time
+(`reviews/PASS2_STAGE_A.md`): 374 of 374 names judged, **38 findings**, of which
+34 repaired, 2 refuted-and-pinned and 2 refuted as stated with a different real
+defect found underneath — **0 still open** as of 2026-09-21. Overlap with pass 1,
+judged by hand: **11 of 38 (29 %)**, so the programme text's "pairwise
+intersection zero" does not hold exactly here, but 71 % was new. Two findings sat
+*inside* a repair pass 1 had just made (verified against the history), and twice
+pass 2 produced the same false positive pass 1 had already refuted — which is why
+SPEC.md B2 is now written at the call sites and pinned by a test. The suite stands
+at 5,421 passing.
+
 **Not a single finding was adopted unchecked.** A second model can be just as wrong as the first;
 the review is the beginning of the work, not its end. That was not caution for form's sake: of the
 reported findings, **one did not survive re-measurement**, and for two the matter was right but
