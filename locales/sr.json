@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "Novo: broj igrača uživo ↓",
   "web.server.info_needs_config": "⚠ Potrebna konfiguracija — otvorite da unesete token",
   "web.server.query_token_label_palworld": "Palworld admin lozinka",
-  "web.server.query_token_help_palworld": "Samo Palworld: broj igrača dolazi iz serverskog REST API-ja (korisničko ime \"admin\"). Omogućite RESTAPIEnabled i postavite AdminPassword u PalWorldSettings.ini; REST API port je podrazumevano 8212."
+  "web.server.query_token_help_palworld": "Samo Palworld: broj igrača dolazi iz serverskog REST API-ja (korisničko ime \"admin\"). Omogućite RESTAPIEnabled i postavite AdminPassword u PalWorldSettings.ini; REST API port je podrazumevano 8212.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

@@ -1623,5 +1623,6 @@
   "web.server.query_testing": "Prüfe…",
   "web.server.query_supported": "Antwortet — freigegeben",
   "web.server.query_unsupported": "Keine Antwort",
-  "Players": "Spieler"
+  "Players": "Spieler",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

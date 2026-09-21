@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "חדש: ספירת שחקנים חיה ↓",
   "web.server.info_needs_config": "⚠ נדרשת הגדרה — פתח להזנת הטוקן",
   "web.server.query_token_label_palworld": "סיסמת מנהל Palworld",
-  "web.server.query_token_help_palworld": "רק ב-Palworld: ספירת השחקנים מגיעה מה-REST API של השרת (שם משתמש \"admin\"). יש להפעיל את RESTAPIEnabled ולהגדיר AdminPassword ב-PalWorldSettings.ini; פורט ה-REST API כברירת מחדל הוא 8212."
+  "web.server.query_token_help_palworld": "רק ב-Palworld: ספירת השחקנים מגיעה מה-REST API של השרת (שם משתמש \"admin\"). יש להפעיל את RESTAPIEnabled ולהגדיר AdminPassword ב-PalWorldSettings.ini; פורט ה-REST API כברירת מחדל הוא 8212.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

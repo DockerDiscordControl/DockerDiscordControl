@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "Jauns: tiešraides spēlētāju skaits ↓",
   "web.server.info_needs_config": "⚠ Nepieciešama konfigurācija — atveriet, lai ievadītu tokenu",
   "web.server.query_token_label_palworld": "Palworld administratora parole",
-  "web.server.query_token_help_palworld": "Tikai Palworld: spēlētāju skaits tiek iegūts no servera REST API (lietotājvārds \"admin\"). Iespējojiet RESTAPIEnabled un iestatiet AdminPassword failā PalWorldSettings.ini; REST API ports pēc noklusējuma ir 8212."
+  "web.server.query_token_help_palworld": "Tikai Palworld: spēlētāju skaits tiek iegūts no servera REST API (lietotājvārds \"admin\"). Iespējojiet RESTAPIEnabled un iestatiet AdminPassword failā PalWorldSettings.ini; REST API ports pēc noklusējuma ir 8212.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

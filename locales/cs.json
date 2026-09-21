@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "Novinka: živý počet hráčů ↓",
   "web.server.info_needs_config": "⚠ Konfigurace nutná — otevřít a zadat token",
   "web.server.query_token_label_palworld": "Palworld heslo správce",
-  "web.server.query_token_help_palworld": "Pouze Palworld: počet hráčů pochází z REST API serveru (uživatel „admin“). Povolte RESTAPIEnabled a nastavte AdminPassword v PalWorldSettings.ini; port REST API má výchozí hodnotu 8212."
+  "web.server.query_token_help_palworld": "Pouze Palworld: počet hráčů pochází z REST API serveru (uživatel „admin“). Povolte RESTAPIEnabled a nastavte AdminPassword v PalWorldSettings.ini; port REST API má výchozí hodnotu 8212.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

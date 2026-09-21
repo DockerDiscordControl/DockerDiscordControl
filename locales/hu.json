@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "Új: élő játékosszám ↓",
   "web.server.info_needs_config": "⚠ Konfiguráció szükséges — nyissa meg a token megadásához",
   "web.server.query_token_label_palworld": "Palworld admin jelszó",
-  "web.server.query_token_help_palworld": "Csak Palworld esetén: a játékosszám a szerver REST API-jából érkezik (felhasználónév: \"admin\"). Engedélyezze a RESTAPIEnabled beállítást, és adjon meg egy AdminPassword értéket a PalWorldSettings.ini fájlban; a REST API portja alapértelmezés szerint 8212."
+  "web.server.query_token_help_palworld": "Csak Palworld esetén: a játékosszám a szerver REST API-jából érkezik (felhasználónév: \"admin\"). Engedélyezze a RESTAPIEnabled beállítást, és adjon meg egy AdminPassword értéket a PalWorldSettings.ini fájlban; a REST API portja alapértelmezés szerint 8212.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

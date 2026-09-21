@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "Nieuw: live spelersaantal ↓",
   "web.server.info_needs_config": "⚠ Configuratie vereist — open om het token in te voeren",
   "web.server.query_token_label_palworld": "Palworld-adminwachtwoord",
-  "web.server.query_token_help_palworld": "Alleen Palworld: het spelersaantal komt uit de REST API van de server (gebruikersnaam \"admin\"). Schakel RESTAPIEnabled in en stel een AdminPassword in in PalWorldSettings.ini; de REST API-poort is standaard 8212."
+  "web.server.query_token_help_palworld": "Alleen Palworld: het spelersaantal komt uit de REST API van de server (gebruikersnaam \"admin\"). Schakel RESTAPIEnabled in en stel een AdminPassword in in PalWorldSettings.ini; de REST API-poort is standaard 8212.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

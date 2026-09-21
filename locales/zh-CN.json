@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "新：实时在线人数 ↓",
   "web.server.info_needs_config": "⚠ 需要配置 — 打开以输入令牌",
   "web.server.query_token_label_palworld": "Palworld 管理员密码",
-  "web.server.query_token_help_palworld": "仅限 Palworld：玩家人数来自服务器的 REST API（用户名 \"admin\"）。在 PalWorldSettings.ini 中启用 RESTAPIEnabled 并设置 AdminPassword；REST API 端口默认为 8212。"
+  "web.server.query_token_help_palworld": "仅限 Palworld：玩家人数来自服务器的 REST API（用户名 \"admin\"）。在 PalWorldSettings.ini 中启用 RESTAPIEnabled 并设置 AdminPassword；REST API 端口默认为 8212。",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

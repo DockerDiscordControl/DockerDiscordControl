@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "Nauja: gyvas žaidėjų skaičius ↓",
   "web.server.info_needs_config": "⚠ Reikia konfigūracijos — atidarykite ir įveskite token",
   "web.server.query_token_label_palworld": "Palworld administratoriaus slaptažodis",
-  "web.server.query_token_help_palworld": "Tik Palworld: žaidėjų skaičius gaunamas iš serverio REST API (naudotojo vardas „admin\"). Įjunkite RESTAPIEnabled ir nustatykite AdminPassword faile PalWorldSettings.ini; REST API prievadas pagal nutylėjimą yra 8212."
+  "web.server.query_token_help_palworld": "Tik Palworld: žaidėjų skaičius gaunamas iš serverio REST API (naudotojo vardas „admin\"). Įjunkite RESTAPIEnabled ir nustatykite AdminPassword faile PalWorldSettings.ini; REST API prievadas pagal nutylėjimą yra 8212.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

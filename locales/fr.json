@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "Nouveau : joueurs en direct ↓",
   "web.server.info_needs_config": "⚠ Configuration requise — ouvrir pour saisir le token",
   "web.server.query_token_label_palworld": "Mot de passe admin Palworld",
-  "web.server.query_token_help_palworld": "Palworld uniquement : le nombre de joueurs provient de la REST API du serveur (utilisateur \"admin\"). Activez RESTAPIEnabled et définissez un AdminPassword dans PalWorldSettings.ini ; le port de la REST API est 8212 par défaut."
+  "web.server.query_token_help_palworld": "Palworld uniquement : le nombre de joueurs provient de la REST API du serveur (utilisateur \"admin\"). Activez RESTAPIEnabled et définissez un AdminPassword dans PalWorldSettings.ini ; le port de la REST API est 8212 par défaut.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

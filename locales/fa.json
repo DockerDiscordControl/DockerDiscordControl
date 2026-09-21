@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "جدید: تعداد بازیکنان زنده ↓",
   "web.server.info_needs_config": "⚠ پیکربندی لازم است — برای وارد کردن توکن باز کنید",
   "web.server.query_token_label_palworld": "رمز عبور ادمین Palworld",
-  "web.server.query_token_help_palworld": "فقط Palworld: تعداد بازیکنان از REST API سرور دریافت می‌شود (نام کاربری \"admin\"). RESTAPIEnabled را فعال کنید و یک AdminPassword در PalWorldSettings.ini تنظیم کنید؛ پورت پیش‌فرض REST API برابر 8212 است."
+  "web.server.query_token_help_palworld": "فقط Palworld: تعداد بازیکنان از REST API سرور دریافت می‌شود (نام کاربری \"admin\"). RESTAPIEnabled را فعال کنید و یک AdminPassword در PalWorldSettings.ini تنظیم کنید؛ پورت پیش‌فرض REST API برابر 8212 است.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

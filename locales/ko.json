@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "신규: 실시간 플레이어 수 ↓",
   "web.server.info_needs_config": "⚠ 설정 필요 — 토큰을 입력하려면 열기",
   "web.server.query_token_label_palworld": "Palworld 관리자 비밀번호",
-  "web.server.query_token_help_palworld": "Palworld 전용: 플레이어 수는 서버의 REST API에서 가져옵니다 (사용자명 \"admin\"). PalWorldSettings.ini에서 RESTAPIEnabled를 활성화하고 AdminPassword를 설정하세요. REST API 포트의 기본값은 8212입니다."
+  "web.server.query_token_help_palworld": "Palworld 전용: 플레이어 수는 서버의 REST API에서 가져옵니다 (사용자명 \"admin\"). PalWorldSettings.ini에서 RESTAPIEnabled를 활성화하고 AdminPassword를 설정하세요. REST API 포트의 기본값은 8212입니다.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

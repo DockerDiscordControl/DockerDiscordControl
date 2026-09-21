@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "新功能：即時玩家人數 ↓",
   "web.server.info_needs_config": "⚠ 需要設定 — 點擊開啟以輸入 Token",
   "web.server.query_token_label_palworld": "Palworld 管理員密碼",
-  "web.server.query_token_help_palworld": "僅 Palworld：玩家人數來自伺服器的 REST API（使用者名稱為 \"admin\"）。請在 PalWorldSettings.ini 中啟用 RESTAPIEnabled 並設定 AdminPassword；REST API 連接埠預設為 8212。"
+  "web.server.query_token_help_palworld": "僅 Palworld：玩家人數來自伺服器的 REST API（使用者名稱為 \"admin\"）。請在 PalWorldSettings.ini 中啟用 RESTAPIEnabled 並設定 AdminPassword；REST API 連接埠預設為 8212。",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

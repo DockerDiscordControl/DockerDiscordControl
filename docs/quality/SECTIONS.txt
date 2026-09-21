@@ -8,9 +8,9 @@
 # tests/spec/test_stage4_sections.py checks: every source file lies in exactly
 # one section, without gaps or overlaps.
 
-## Section 01  (1081 lines, 4 pieces)
+## Section 01  (1107 lines, 4 pieces)
 cogs/__init__.py:1-7
-cogs/admin_overview.py:1-795
+cogs/admin_overview.py:1-821
 cogs/auto_action_monitor.py:1-74
 cogs/control_helpers.py:1-205
 

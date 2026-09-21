@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "Nytt: live-spelarantal ↓",
   "web.server.info_needs_config": "⚠ Konfiguration krävs — öppna för att ange token",
   "web.server.query_token_label_palworld": "Palworld adminlösenord",
-  "web.server.query_token_help_palworld": "Endast Palworld: spelarantalet hämtas från serverns REST API (användarnamn \"admin\"). Aktivera RESTAPIEnabled och ange ett AdminPassword i PalWorldSettings.ini; REST API-porten är som standard 8212."
+  "web.server.query_token_help_palworld": "Endast Palworld: spelarantalet hämtas från serverns REST API (användarnamn \"admin\"). Aktivera RESTAPIEnabled och ange ett AdminPassword i PalWorldSettings.ini; REST API-porten är som standard 8212.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

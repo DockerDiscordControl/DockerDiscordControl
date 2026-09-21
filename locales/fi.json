@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "Uusi: live-pelaajamäärä ↓",
   "web.server.info_needs_config": "⚠ Konfigurointi vaaditaan — avaa syöttääksesi tokenin",
   "web.server.query_token_label_palworld": "Palworld admin-salasana",
-  "web.server.query_token_help_palworld": "Vain Palworld: pelaajamäärä haetaan palvelimen REST API:sta (käyttäjätunnus \"admin\"). Ota RESTAPIEnabled käyttöön ja aseta AdminPassword tiedostossa PalWorldSettings.ini; REST API -portti on oletuksena 8212."
+  "web.server.query_token_help_palworld": "Vain Palworld: pelaajamäärä haetaan palvelimen REST API:sta (käyttäjätunnus \"admin\"). Ota RESTAPIEnabled käyttöön ja aseta AdminPassword tiedostossa PalWorldSettings.ini; REST API -portti on oletuksena 8212.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

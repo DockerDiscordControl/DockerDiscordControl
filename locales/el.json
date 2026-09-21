@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "Νέο: ζωντανός αριθμός παικτών ↓",
   "web.server.info_needs_config": "⚠ Απαιτείται ρύθμιση — ανοίξτε για εισαγωγή του token",
   "web.server.query_token_label_palworld": "Κωδικός διαχειριστή Palworld",
-  "web.server.query_token_help_palworld": "Μόνο για Palworld: ο αριθμός παικτών λαμβάνεται από το REST API του διακομιστή (χρήστης \"admin\"). Ενεργοποιήστε το RESTAPIEnabled και ορίστε ένα AdminPassword στο PalWorldSettings.ini· η θύρα REST API ορίζεται εξ ορισμού σε 8212."
+  "web.server.query_token_help_palworld": "Μόνο για Palworld: ο αριθμός παικτών λαμβάνεται από το REST API του διακομιστή (χρήστης \"admin\"). Ενεργοποιήστε το RESTAPIEnabled και ορίστε ένα AdminPassword στο PalWorldSettings.ini· η θύρα REST API ορίζεται εξ ορισμού σε 8212.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "Uus: reaalajas mängijate arv ↓",
   "web.server.info_needs_config": "⚠ Konfiguratsioon vajalik — avage tokeni sisestamiseks",
   "web.server.query_token_label_palworld": "Palworld admini parool",
-  "web.server.query_token_help_palworld": "Ainult Palworld: mängijate arv pärineb serveri REST API-st (kasutajanimi \"admin\"). Lubage RESTAPIEnabled ja määrake AdminPassword failis PalWorldSettings.ini; REST API port on vaikimisi 8212."
+  "web.server.query_token_help_palworld": "Ainult Palworld: mängijate arv pärineb serveri REST API-st (kasutajanimi \"admin\"). Lubage RESTAPIEnabled ja määrake AdminPassword failis PalWorldSettings.ini; REST API port on vaikimisi 8212.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

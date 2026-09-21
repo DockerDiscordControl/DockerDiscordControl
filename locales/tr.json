@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "Yeni: canlı oyuncu sayısı ↓",
   "web.server.info_needs_config": "⚠ Yapılandırma gerekli — token girmek için açın",
   "web.server.query_token_label_palworld": "Palworld yönetici parolası",
-  "web.server.query_token_help_palworld": "Yalnızca Palworld: oyuncu sayısı sunucunun REST API'sinden gelir (kullanıcı adı \"admin\"). RESTAPIEnabled'ı etkinleştirin ve PalWorldSettings.ini dosyasına bir AdminPassword girin; REST API portu varsayılan olarak 8212'dir."
+  "web.server.query_token_help_palworld": "Yalnızca Palworld: oyuncu sayısı sunucunun REST API'sinden gelir (kullanıcı adı \"admin\"). RESTAPIEnabled'ı etkinleştirin ve PalWorldSettings.ini dosyasına bir AdminPassword girin; REST API portu varsayılan olarak 8212'dir.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

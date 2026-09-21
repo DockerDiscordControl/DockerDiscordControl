@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "جديد: عدد اللاعبين المباشر ↓",
   "web.server.info_needs_config": "⚠ الإعداد مطلوب — افتح لإدخال الرمز",
   "web.server.query_token_label_palworld": "كلمة مرور مسؤول Palworld",
-  "web.server.query_token_help_palworld": "Palworld فقط: يأتي عدد اللاعبين من REST API للخادم (اسم المستخدم \"admin\"). فعّل RESTAPIEnabled واضبط AdminPassword في PalWorldSettings.ini؛ المنفذ الافتراضي لـ REST API هو 8212."
+  "web.server.query_token_help_palworld": "Palworld فقط: يأتي عدد اللاعبين من REST API للخادم (اسم المستخدم \"admin\"). فعّل RESTAPIEnabled واضبط AdminPassword في PalWorldSettings.ini؛ المنفذ الافتراضي لـ REST API هو 8212.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

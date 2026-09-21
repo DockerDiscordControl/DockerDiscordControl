@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "Nou: număr de jucători live ↓",
   "web.server.info_needs_config": "⚠ Configurare necesară — deschide pentru a introduce token-ul",
   "web.server.query_token_label_palworld": "Parolă de administrator Palworld",
-  "web.server.query_token_help_palworld": "Doar Palworld: numărul de jucători provine din REST API-ul serverului (utilizator „admin\"). Activați RESTAPIEnabled și setați un AdminPassword în PalWorldSettings.ini; portul REST API implicit este 8212."
+  "web.server.query_token_help_palworld": "Doar Palworld: numărul de jucători provine din REST API-ul serverului (utilizator „admin\"). Activați RESTAPIEnabled și setați un AdminPassword în PalWorldSettings.ini; portul REST API implicit este 8212.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

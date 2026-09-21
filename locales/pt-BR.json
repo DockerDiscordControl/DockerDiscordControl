@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "Novo: contagem de jogadores ao vivo ↓",
   "web.server.info_needs_config": "⚠ Configuração necessária — abra para inserir o token",
   "web.server.query_token_label_palworld": "Senha de admin do Palworld",
-  "web.server.query_token_help_palworld": "Apenas Palworld: a contagem de jogadores vem da REST API do servidor (usuário \"admin\"). Ative RESTAPIEnabled e defina um AdminPassword em PalWorldSettings.ini; a porta da REST API é 8212 por padrão."
+  "web.server.query_token_help_palworld": "Apenas Palworld: a contagem de jogadores vem da REST API do servidor (usuário \"admin\"). Ative RESTAPIEnabled e defina um AdminPassword em PalWorldSettings.ini; a porta da REST API é 8212 por padrão.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

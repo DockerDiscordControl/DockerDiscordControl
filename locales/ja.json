@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "新: ライブプレイヤー数 ↓",
   "web.server.info_needs_config": "⚠ 設定が必要 — 開いてトークンを入力してください",
   "web.server.query_token_label_palworld": "Palworld 管理者パスワード",
-  "web.server.query_token_help_palworld": "Palworld のみ: プレイヤー数はサーバーの REST API（ユーザー名 \"admin\"）から取得されます。RESTAPIEnabled を有効にし、PalWorldSettings.ini で AdminPassword を設定してください。REST API のポートのデフォルトは 8212 です。"
+  "web.server.query_token_help_palworld": "Palworld のみ: プレイヤー数はサーバーの REST API（ユーザー名 \"admin\"）から取得されます。RESTAPIEnabled を有効にし、PalWorldSettings.ini で AdminPassword を設定してください。REST API のポートのデフォルトは 8212 です。",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

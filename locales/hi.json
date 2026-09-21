@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "नया: लाइव खिलाड़ी संख्या ↓",
   "web.server.info_needs_config": "⚠ कॉन्फ़िगरेशन आवश्यक है — टोकन दर्ज करने के लिए खोलें",
   "web.server.query_token_label_palworld": "Palworld एडमिन पासवर्ड",
-  "web.server.query_token_help_palworld": "केवल Palworld: खिलाड़ी संख्या सर्वर के REST API से आती है (उपयोगकर्ता नाम \"admin\")। RESTAPIEnabled सक्षम करें और PalWorldSettings.ini में AdminPassword सेट करें; REST API पोर्ट डिफ़ॉल्ट रूप से 8212 है।"
+  "web.server.query_token_help_palworld": "केवल Palworld: खिलाड़ी संख्या सर्वर के REST API से आती है (उपयोगकर्ता नाम \"admin\")। RESTAPIEnabled सक्षम करें और PalWorldSettings.ini में AdminPassword सेट करें; REST API पोर्ट डिफ़ॉल्ट रूप से 8212 है।",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

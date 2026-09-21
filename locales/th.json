@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "ใหม่: จำนวนผู้เล่นสด ↓",
   "web.server.info_needs_config": "⚠ ต้องกำหนดค่า — เปิดเพื่อกรอก token",
   "web.server.query_token_label_palworld": "รหัสผ่านแอดมิน Palworld",
-  "web.server.query_token_help_palworld": "เฉพาะ Palworld: จำนวนผู้เล่นมาจาก REST API ของเซิร์ฟเวอร์ (ชื่อผู้ใช้ \"admin\") เปิดใช้งาน RESTAPIEnabled และตั้งค่า AdminPassword ใน PalWorldSettings.ini; พอร์ต REST API เริ่มต้นคือ 8212"
+  "web.server.query_token_help_palworld": "เฉพาะ Palworld: จำนวนผู้เล่นมาจาก REST API ของเซิร์ฟเวอร์ (ชื่อผู้ใช้ \"admin\") เปิดใช้งาน RESTAPIEnabled และตั้งค่า AdminPassword ใน PalWorldSettings.ini; พอร์ต REST API เริ่มต้นคือ 8212",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

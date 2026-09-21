@@ -1623,5 +1623,6 @@
   "web.server.new_query_hint": "Новинка: онлайн-счётчик игроков ↓",
   "web.server.info_needs_config": "⚠ Требуется настройка — откройте для ввода токена",
   "web.server.query_token_label_palworld": "Пароль администратора Palworld",
-  "web.server.query_token_help_palworld": "Только Palworld: количество игроков берётся из REST API сервера (имя пользователя \"admin\"). Включите RESTAPIEnabled и задайте AdminPassword в PalWorldSettings.ini; порт REST API по умолчанию — 8212."
+  "web.server.query_token_help_palworld": "Только Palworld: количество игроков берётся из REST API сервера (имя пользователя \"admin\"). Включите RESTAPIEnabled и задайте AdminPassword в PalWorldSettings.ini; порт REST API по умолчанию — 8212.",
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
 }

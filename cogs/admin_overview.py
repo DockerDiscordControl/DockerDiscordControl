@@ -475,6 +475,12 @@ class ConfirmRestartAllButton(Button):
             restarted_count = 0
             failed_count = 0
             skipped_count = 0
+            # Containers the status cache had nothing about. They used to land
+            # in skipped_count, and the operator read "Skipped (not running)"
+            # about a container that was never asked and never touched - a
+            # measurement that was not taken, reported as one that was
+            # (review D14).
+            unknown_count = 0
             not_allowed_count = 0
 
             # Import docker service with error handling
@@ -510,7 +516,8 @@ class ConfirmRestartAllButton(Button):
 
                 # Extract is_running from cache data (ContainerStatusResult object)
                 is_running = False
-                if cached_entry and cached_entry.get('data'):
+                status_known = bool(cached_entry and cached_entry.get('data'))
+                if status_known:
                     status_result = cached_entry['data']
                     # Modern format: ContainerStatusResult dataclass
                     from services.docker_status.models import ContainerStatusResult
@@ -544,8 +551,12 @@ class ConfirmRestartAllButton(Button):
                                 except (RuntimeError, OSError) as e:
                                     logger.error(f"Error restarting {docker_name}: {e}", exc_info=True)
                                     failed_count += 1
-                else:
+                elif status_known:
                     skipped_count += 1
+                else:
+                    logger.warning(f"No cached status for {docker_name} - not touched, "
+                                   f"and reported as unchecked rather than as idle")
+                    unknown_count += 1
 
             # Send result message
             description = _("Successfully restarted: **{count}** containers").format(count=restarted_count)
@@ -553,6 +564,8 @@ class ConfirmRestartAllButton(Button):
                 description += _("\nFailed: **{count}** containers").format(count=failed_count)
             if skipped_count > 0:
                 description += _("\nSkipped (not running): **{count}** containers").format(count=skipped_count)
+            if unknown_count > 0:
+                description += _("\nNot checked (no current status): **{count}** containers").format(count=unknown_count)
             if not_allowed_count > 0:
                 description += _("\nSkipped (action not allowed): **{count}** containers").format(count=not_allowed_count)
 
@@ -652,6 +665,12 @@ class ConfirmStopAllButton(Button):
             stopped_count = 0
             failed_count = 0
             skipped_count = 0
+            # Containers the status cache had nothing about. They used to land
+            # in skipped_count, and the operator read "Skipped (not running)"
+            # about a container that was never asked and never touched - a
+            # measurement that was not taken, reported as one that was
+            # (review D14).
+            unknown_count = 0
             not_allowed_count = 0
 
             # Import docker service with error handling
@@ -687,7 +706,8 @@ class ConfirmStopAllButton(Button):
 
                 # Extract is_running from cache data (ContainerStatusResult object)
                 is_running = False
-                if cached_entry and cached_entry.get('data'):
+                status_known = bool(cached_entry and cached_entry.get('data'))
+                if status_known:
                     status_result = cached_entry['data']
                     # Modern format: ContainerStatusResult dataclass
                     from services.docker_status.models import ContainerStatusResult
@@ -721,8 +741,12 @@ class ConfirmStopAllButton(Button):
                                 except (RuntimeError, OSError) as e:
                                     logger.error(f"Error stopping {docker_name}: {e}", exc_info=True)
                                     failed_count += 1
-                else:
+                elif status_known:
                     skipped_count += 1
+                else:
+                    logger.warning(f"No cached status for {docker_name} - not touched, "
+                                   f"and reported as unchecked rather than as idle")
+                    unknown_count += 1
 
             # Send result message
             description = _("Successfully stopped: **{count}** containers").format(count=stopped_count)
@@ -730,6 +754,8 @@ class ConfirmStopAllButton(Button):
                 description += _("\nFailed: **{count}** containers").format(count=failed_count)
             if skipped_count > 0:
                 description += _("\nSkipped (not running): **{count}** containers").format(count=skipped_count)
+            if unknown_count > 0:
+                description += _("\nNot checked (no current status): **{count}** containers").format(count=unknown_count)
             if not_allowed_count > 0:
                 description += _("\nSkipped (action not allowed): **{count}** containers").format(count=not_allowed_count)
 
