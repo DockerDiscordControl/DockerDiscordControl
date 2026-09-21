@@ -1649,5 +1649,7 @@
   "❌ Mech system is currently disabled.": "❌ מערכת ה-Mech מושבתת כעת.",
   "❌ You don't have permission to view container info in this channel.": "❌ אין לך הרשאה לצפות במידע על המכל בערוץ זה.",
   "📦 No active containers found.": "📦 לא נמצאו מכלים פעילים.",
-  "🛠️ You are not authorized to use admin controls.": "🛠️ אינך מורשה להשתמש בפקדי הניהול."
+  "🛠️ You are not authorized to use admin controls.": "🛠️ אינך מורשה להשתמש בפקדי הניהול.",
+  "🎬 Animation service temporarily unavailable": "🎬 שירות האנימציה אינו זמין זמנית",
+  "🎬 Animation unavailable": "🎬 האנימציה אינה זמינה"
 }

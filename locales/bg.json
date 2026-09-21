@@ -1649,5 +1649,7 @@
   "❌ Mech system is currently disabled.": "❌ Системата Mech в момента е изключена.",
   "❌ You don't have permission to view container info in this channel.": "❌ Нямате права да виждате информация за контейнера в този канал.",
   "📦 No active containers found.": "📦 Не са намерени активни контейнери.",
-  "🛠️ You are not authorized to use admin controls.": "🛠️ Нямате право да използвате административните контроли."
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Нямате право да използвате административните контроли.",
+  "🎬 Animation service temporarily unavailable": "🎬 Услугата за анимации временно не е налична",
+  "🎬 Animation unavailable": "🎬 Анимацията не е налична"
 }

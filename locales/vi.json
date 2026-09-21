@@ -1649,5 +1649,7 @@
   "❌ Mech system is currently disabled.": "❌ Hệ thống Mech hiện đang bị tắt.",
   "❌ You don't have permission to view container info in this channel.": "❌ Bạn không có quyền xem thông tin container trong kênh này.",
   "📦 No active containers found.": "📦 Không tìm thấy container đang hoạt động.",
-  "🛠️ You are not authorized to use admin controls.": "🛠️ Bạn không được phép sử dụng các điều khiển quản trị."
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Bạn không được phép sử dụng các điều khiển quản trị.",
+  "🎬 Animation service temporarily unavailable": "🎬 Dịch vụ hoạt ảnh tạm thời không khả dụng",
+  "🎬 Animation unavailable": "🎬 Hoạt ảnh không khả dụng"
 }

@@ -1649,5 +1649,7 @@
   "❌ Mech system is currently disabled.": "❌ Mech-systemet är för närvarande inaktiverat.",
   "❌ You don't have permission to view container info in this channel.": "❌ Du har inte behörighet att visa containerinformation i den här kanalen.",
   "📦 No active containers found.": "📦 Inga aktiva containrar hittades.",
-  "🛠️ You are not authorized to use admin controls.": "🛠️ Du har inte behörighet att använda administratörskontrollerna."
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Du har inte behörighet att använda administratörskontrollerna.",
+  "🎬 Animation service temporarily unavailable": "🎬 Animationstjänsten är tillfälligt otillgänglig",
+  "🎬 Animation unavailable": "🎬 Animation otillgänglig"
 }

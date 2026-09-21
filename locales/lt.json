@@ -1649,5 +1649,7 @@
   "❌ Mech system is currently disabled.": "❌ Mech sistema šiuo metu išjungta.",
   "❌ You don't have permission to view container info in this channel.": "❌ Neturite teisės peržiūrėti konteinerio informacijos šiame kanale.",
   "📦 No active containers found.": "📦 Aktyvių konteinerių nerasta.",
-  "🛠️ You are not authorized to use admin controls.": "🛠️ Neturite teisės naudoti administratoriaus valdiklių."
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Neturite teisės naudoti administratoriaus valdiklių.",
+  "🎬 Animation service temporarily unavailable": "🎬 Animacijos paslauga laikinai neprieinama",
+  "🎬 Animation unavailable": "🎬 Animacija neprieinama"
 }

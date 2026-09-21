@@ -1649,5 +1649,7 @@
   "❌ Mech system is currently disabled.": "❌ A Mech rendszer jelenleg ki van kapcsolva.",
   "❌ You don't have permission to view container info in this channel.": "❌ Nincs jogosultsága a konténer adatainak megtekintésére ebben a csatornában.",
   "📦 No active containers found.": "📦 Nem található aktív konténer.",
-  "🛠️ You are not authorized to use admin controls.": "🛠️ Nincs jogosultsága az adminisztrátori vezérlők használatára."
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Nincs jogosultsága az adminisztrátori vezérlők használatára.",
+  "🎬 Animation service temporarily unavailable": "🎬 Az animációs szolgáltatás átmenetileg nem érhető el",
+  "🎬 Animation unavailable": "🎬 Az animáció nem érhető el"
 }

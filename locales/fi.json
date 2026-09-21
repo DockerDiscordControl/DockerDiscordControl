@@ -1649,5 +1649,7 @@
   "❌ Mech system is currently disabled.": "❌ Mech-järjestelmä on tällä hetkellä poissa käytöstä.",
   "❌ You don't have permission to view container info in this channel.": "❌ Sinulla ei ole oikeutta tarkastella kontin tietoja tässä kanavassa.",
   "📦 No active containers found.": "📦 Aktiivisia kontteja ei löytynyt.",
-  "🛠️ You are not authorized to use admin controls.": "🛠️ Sinulla ei ole oikeutta käyttää järjestelmänvalvojan hallintaa."
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Sinulla ei ole oikeutta käyttää järjestelmänvalvojan hallintaa.",
+  "🎬 Animation service temporarily unavailable": "🎬 Animaatiopalvelu ei ole tilapäisesti käytettävissä",
+  "🎬 Animation unavailable": "🎬 Animaatio ei käytettävissä"
 }

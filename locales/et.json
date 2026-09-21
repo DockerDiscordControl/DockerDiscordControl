@@ -1649,5 +1649,7 @@
   "❌ Mech system is currently disabled.": "❌ Mechi süsteem on praegu välja lülitatud.",
   "❌ You don't have permission to view container info in this channel.": "❌ Sul pole õigust vaadata selle kanali konteineri teavet.",
   "📦 No active containers found.": "📦 Aktiivseid konteinereid ei leitud.",
-  "🛠️ You are not authorized to use admin controls.": "🛠️ Sul pole õigust kasutada administraatori juhtnuppe."
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Sul pole õigust kasutada administraatori juhtnuppe.",
+  "🎬 Animation service temporarily unavailable": "🎬 Animatsiooniteenus pole ajutiselt saadaval",
+  "🎬 Animation unavailable": "🎬 Animatsioon pole saadaval"
 }

@@ -1649,5 +1649,7 @@
   "❌ Mech system is currently disabled.": "❌ Mech सिस्टम फ़िलहाल बंद है।",
   "❌ You don't have permission to view container info in this channel.": "❌ आपको इस चैनल में कंटेनर जानकारी देखने की अनुमति नहीं है।",
   "📦 No active containers found.": "📦 कोई सक्रिय कंटेनर नहीं मिला।",
-  "🛠️ You are not authorized to use admin controls.": "🛠️ आपको व्यवस्थापक नियंत्रण उपयोग करने की अनुमति नहीं है।"
+  "🛠️ You are not authorized to use admin controls.": "🛠️ आपको व्यवस्थापक नियंत्रण उपयोग करने की अनुमति नहीं है।",
+  "🎬 Animation service temporarily unavailable": "🎬 एनिमेशन सेवा अस्थायी रूप से अनुपलब्ध",
+  "🎬 Animation unavailable": "🎬 एनिमेशन अनुपलब्ध"
 }

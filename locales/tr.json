@@ -1649,5 +1649,7 @@
   "❌ Mech system is currently disabled.": "❌ Mech sistemi şu anda devre dışı.",
   "❌ You don't have permission to view container info in this channel.": "❌ Bu kanalda konteyner bilgilerini görüntüleme izniniz yok.",
   "📦 No active containers found.": "📦 Etkin konteyner bulunamadı.",
-  "🛠️ You are not authorized to use admin controls.": "🛠️ Yönetici denetimlerini kullanma yetkiniz yok."
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Yönetici denetimlerini kullanma yetkiniz yok.",
+  "🎬 Animation service temporarily unavailable": "🎬 Animasyon hizmeti geçici olarak kullanılamıyor",
+  "🎬 Animation unavailable": "🎬 Animasyon kullanılamıyor"
 }

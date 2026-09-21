@@ -1649,5 +1649,7 @@
   "❌ Mech system is currently disabled.": "❌ Mech 系統目前已停用。",
   "❌ You don't have permission to view container info in this channel.": "❌ 你沒有權限在此頻道檢視容器資訊。",
   "📦 No active containers found.": "📦 找不到使用中的容器。",
-  "🛠️ You are not authorized to use admin controls.": "🛠️ 你無權使用管理員控制項。"
+  "🛠️ You are not authorized to use admin controls.": "🛠️ 你無權使用管理員控制項。",
+  "🎬 Animation service temporarily unavailable": "🎬 動畫服務暫時無法使用",
+  "🎬 Animation unavailable": "🎬 動畫無法使用"
 }

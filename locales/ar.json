@@ -1649,5 +1649,7 @@
   "❌ Mech system is currently disabled.": "❌ نظام الـ Mech معطّل حالياً.",
   "❌ You don't have permission to view container info in this channel.": "❌ ليس لديك إذن لعرض معلومات الحاوية في هذه القناة.",
   "📦 No active containers found.": "📦 لم يتم العثور على حاويات نشطة.",
-  "🛠️ You are not authorized to use admin controls.": "🛠️ غير مصرّح لك باستخدام أدوات تحكّم المشرف."
+  "🛠️ You are not authorized to use admin controls.": "🛠️ غير مصرّح لك باستخدام أدوات تحكّم المشرف.",
+  "🎬 Animation service temporarily unavailable": "🎬 خدمة الرسوم المتحركة غير متاحة مؤقتاً",
+  "🎬 Animation unavailable": "🎬 الرسوم المتحركة غير متاحة"
 }

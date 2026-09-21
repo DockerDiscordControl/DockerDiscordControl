@@ -1649,5 +1649,7 @@
   "❌ Mech system is currently disabled.": "❌ El sistema Mech está desactivado actualmente.",
   "❌ You don't have permission to view container info in this channel.": "❌ No tienes permiso para ver la información del contenedor en este canal.",
   "📦 No active containers found.": "📦 No se encontraron contenedores activos.",
-  "🛠️ You are not authorized to use admin controls.": "🛠️ No estás autorizado a usar los controles de administración."
+  "🛠️ You are not authorized to use admin controls.": "🛠️ No estás autorizado a usar los controles de administración.",
+  "🎬 Animation service temporarily unavailable": "🎬 Servicio de animación temporalmente no disponible",
+  "🎬 Animation unavailable": "🎬 Animación no disponible"
 }

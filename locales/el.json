@@ -1649,5 +1649,7 @@
   "❌ Mech system is currently disabled.": "❌ Το σύστημα Mech είναι προς το παρόν απενεργοποιημένο.",
   "❌ You don't have permission to view container info in this channel.": "❌ Δεν έχετε δικαίωμα προβολής πληροφοριών container σε αυτό το κανάλι.",
   "📦 No active containers found.": "📦 Δεν βρέθηκαν ενεργά containers.",
-  "🛠️ You are not authorized to use admin controls.": "🛠️ Δεν έχετε εξουσιοδότηση να χρησιμοποιήσετε τα στοιχεία ελέγχου διαχειριστή."
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Δεν έχετε εξουσιοδότηση να χρησιμοποιήσετε τα στοιχεία ελέγχου διαχειριστή.",
+  "🎬 Animation service temporarily unavailable": "🎬 Η υπηρεσία κινούμενων εικόνων δεν είναι προσωρινά διαθέσιμη",
+  "🎬 Animation unavailable": "🎬 Η κινούμενη εικόνα δεν είναι διαθέσιμη"
 }

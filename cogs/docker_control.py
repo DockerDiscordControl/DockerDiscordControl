@@ -2722,9 +2722,12 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     animation_file = None
                     # Add fallback visual indicator in embed
                     if not embed.footer or not embed.footer.text:
-                        embed.set_footer(text="🎬 Animation service temporarily unavailable")
+                        embed.set_footer(text=translate("🎬 Animation service temporarily unavailable"))
                     else:
-                        embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
+                        # The separator is structure, the words are language
+                        # (review E35).
+                        embed.set_footer(
+                            text=f"{embed.footer.text} | {translate('🎬 Animation unavailable')}")
 
                 # Use clean progress bar data from CACHE - NO MORE MANUAL CALCULATION! 🎯
                 # For Level 1, use decimal Power for accurate percentage
@@ -3271,9 +3274,12 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     animation_file = None
                     # Add fallback visual indicator in embed
                     if not embed.footer or not embed.footer.text:
-                        embed.set_footer(text="🎬 Animation service temporarily unavailable")
+                        embed.set_footer(text=translate("🎬 Animation service temporarily unavailable"))
                     else:
-                        embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
+                        # The separator is structure, the words are language
+                        # (review E35).
+                        embed.set_footer(
+                            text=f"{embed.footer.text} | {translate('🎬 Animation unavailable')}")
 
                 # For collapsed view, only add a simple field name (no detailed info)
                 embed.add_field(name=translate("Donation Engine"), value="*" + translate("Click + to view Mech details") + "*", inline=False)

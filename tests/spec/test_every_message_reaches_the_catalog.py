@@ -22,13 +22,26 @@ when it has FEWER, so the list can only shrink and never lies. Translating
 forty-two messages into forty languages is 1,680 entries; doing it in one
 commit would be a worse change than the defect.
 
+**THE FIRST VERSION OF THIS TEST WAS BLIND TO EMBEDS, and reported zero while
+33 untranslated texts sat in them** (review E35). Most of what DDC shows is an
+embed - the title, the description, the footer, the fields - so a guard that
+only watched ``send_message(...)`` gave exactly the false comfort this whole
+programme exists to remove. It was found by reading
+``cogs/control_ui.py`` by hand two hours after the guard was written.
+
 THE LIMIT OF THE DETECTOR, stated plainly: it looks for a bare string literal
 passed as the first argument (or as ``content=``) to ``send_message``,
-``send``, ``respond`` or ``edit_original_response``, and only counts text
-longer than fifteen characters containing a space - so ``"​"`` or ``"ok"`` do
-not register. An f-string that interpolates a translated part is not caught,
-and neither is a message built in a variable first. It finds the shape that
-actually occurs.
+``send``, ``respond``, ``edit_original_response`` or ``edit_message``, and for
+``title=``, ``description=``, ``text=``, ``name=`` and ``value=`` on
+``discord.Embed(...)``, ``set_footer(...)`` and ``add_field(...)``. It counts
+text longer than fifteen characters containing a space and at least one
+letter, so ``"​"`` or ``"ok"`` do not register. An f-string is examined for its
+literal PARTS, because that is how several of these are written - and a
+fragment is exactly what must not be translated on its own, which is why they
+are listed rather than wrapped.
+
+A message built in a variable first is still not caught. It finds the shapes
+that actually occur.
 """
 
 import ast
@@ -38,35 +51,78 @@ import pytest
 
 PROJECT = Path(__file__).resolve().parents[2]
 SENDERS = {"send_message", "send", "respond", "edit_original_response", "edit_message"}
+EMBED_BUILDERS = {"Embed", "set_footer", "add_field"}
+EMBED_TEXT_ARGS = {"title", "description", "text", "name", "value"}
+
+# Deliberately corrupted text, and therefore deliberately NOT language. The
+# mech story shows a damaged transmission at level 11; translating
+# "L3v#l 1*!$ x0r" would be translating the glitch. Listed rather than detected,
+# because a heuristic for "is this broken on purpose" would be worse than the
+# problem.
+DELIBERATE_GLITCH = {
+    "L3v#l 1*!$ x0r: ████████",
+    "*[DATA_CORRUPTED] - 000x34A##%&33DL*\n*[UNAUTHORIZED_ACCESS_DETECTED]*\n*[EVOLUTION_DATA_ENCRYPTED]*",
+    "💀 Epilogue: W#!sp*r of th3 [ERROR_CODE_11]",
+}
 
 # Plain literals still sent per file. ONLY EVER SHRINKS.
 #
-# It reached zero on 2026-09-21, in the same change that added the ratchet: of
-# the 42 messages, 14 that the user cannot act on differently became the
-# generic answer that was already translated (the same rule as reviews E14 and
-# E24, and four of them gained the log line they never had), and 14 distinct
-# messages got their own key in all forty catalogues.
+# The ``send_message(...)`` half reached zero on 2026-09-21 (review E34): of 42
+# messages, 14 that the user cannot act on differently became the generic
+# answer that was already translated - the rule reviews E14 and E24 set, and
+# four of them gained the log line they never had - and 14 distinct messages
+# got their own key in all forty catalogues.
 #
-# The dict stays, and so does the ratchet. Zero is a number that can grow.
-KNOWN: dict = {}
+# THESE 33 ARE THE EMBEDS, which the first version of this test could not see
+# (review E35). They are not one job: some are whole sentences, some are
+# f-string FRAGMENTS that must be turned into one key with a placeholder
+# rather than translated piece by piece, and three are deliberate glitch text
+# listed in DELIBERATE_GLITCH above. So they come down in batches, and the
+# number here comes down with them.
+KNOWN = {
+    "cogs/control_ui.py": 12,
+    "cogs/status_info_integration.py": 17,
+}
+
+
+def _literal_parts(node):
+    """The plain text this expression carries, including f-string parts."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return [node.value]
+    if isinstance(node, ast.JoinedStr):
+        return [v.value for v in node.values
+                if isinstance(v, ast.Constant) and isinstance(v.value, str)]
+    return []
+
+
+def _reads_as_a_message(text: str) -> bool:
+    stripped = text.strip()
+    return (len(stripped) > 15 and " " in stripped
+            and any(c.isalpha() for c in stripped)
+            and stripped not in DELIBERATE_GLITCH)
 
 
 def _plain_literals(path: Path):
-    """Messages this file sends to Discord without going through _()."""
+    """Text this file shows a user without going through _()."""
     found = []
     tree = ast.parse(path.read_text(encoding="utf-8"))
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
-        if getattr(node.func, "attr", None) not in SENDERS:
-            continue
-        candidates = list(node.args[:1])
-        candidates += [kw.value for kw in node.keywords if kw.arg == "content"]
+
+        candidates = []
+        if getattr(node.func, "attr", None) in SENDERS:
+            candidates += list(node.args[:1])
+            candidates += [kw.value for kw in node.keywords if kw.arg == "content"]
+        if (getattr(node.func, "attr", None) in EMBED_BUILDERS
+                or getattr(node.func, "id", None) == "Embed"):
+            candidates += [kw.value for kw in node.keywords
+                           if kw.arg in EMBED_TEXT_ARGS]
+
         for arg in candidates:
-            if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
-                text = arg.value.strip()
-                if len(text) > 15 and " " in text:
-                    found.append((node.lineno, text))
+            for text in _literal_parts(arg):
+                if _reads_as_a_message(text):
+                    found.append((node.lineno, text.strip()))
     return found
 
 
