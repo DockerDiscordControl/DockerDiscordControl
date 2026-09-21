@@ -722,8 +722,20 @@ class TaskManagementService:
                 self.logger.info(f"Task {task.task_id} is marked as expired (time in past) and deactivated")
 
         elif task.next_run_ts is None:
-            frontend_status = "deactivated" if not task.is_active else "expired"
+            # Switched off, like the one-time case above. This branch only
+            # logged and answered "expired" while leaving is_active True, so a
+            # weekly, monthly or cron task whose schedule could not be resolved
+            # stayed alive with nothing to run: it never fired, the panel called
+            # it expired on every refresh forever, and nothing was written back
+            # (review D22). Not a loss - re-enabling goes through
+            # _prepare_task_activation, which computes a fresh next run first.
+            frontend_status = "expired" if task.is_active else "deactivated"
             self.logger.warning(f"Task {task.task_id} ({task.cycle}) has no next_run_ts")
+            if task.is_active:
+                task.is_active = False
+                needs_update = True
+                self.logger.info(f"Task {task.task_id} ({task.cycle}) has no next run and "
+                                 f"was deactivated - re-enable it to have one computed")
 
         elif not task.is_active:
             frontend_status = "deactivated"
