@@ -36,6 +36,8 @@ Pass E is the read of the files that no earlier pass ever covered
 
 | **E34** | **42 messages appeared in English in your German interface** — DDC ships 40 languages and these never went through the translation function at all. The test that guards translations could not see them: it asks whether every translated string has a key, not whether every message is translated. | 14 that cannot change what you do became the generic answer that was already translated (four of them gained the log line they never had); 14 got their own key in all 40 languages. A ratchet test now stops it growing back. | `e1f8994` |
 
+| **E35** | **33 more English texts — this time inside the embeds**, which is most of what you actually read. The guard added for E34 could not see them and reported zero. | My own guard, two hours old, could not fail in the way that mattered. It covers embeds now; the 33 come down in batches and the ratchet comes down with them (4 done: 33 → 29). | `6488eff` |
+
 ## Web panel
 
 | # | What you would have seen | Cause | Commit |
