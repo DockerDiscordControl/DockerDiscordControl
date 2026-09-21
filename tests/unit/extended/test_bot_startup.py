@@ -411,16 +411,29 @@ class TestStartupSequence:
         _run(step_sequence.run_startup_sequence(ctx, [step_a, step_b]))
         assert order == ["a", "b"]
 
-    def test_run_startup_sequence_propagates_exception(self):
+    def test_run_startup_sequence_carries_on_past_a_failed_step(self):
+        """Changed on the operator's decision, 2026-09-21 (review E9).
+
+        This used to assert that a step's exception propagated and stopped the
+        rest. The sequence runs in handle_ready(), so the bot is already
+        connected by then and an abort protects nothing - it only means fewer
+        of the remaining steps run. A power gift that could not be granted took
+        the scheduler down with it.
+        """
+        ran = []
+
         async def good(ctx):
-            return None
+            ran.append("good")
 
         async def bad(ctx):
             raise RuntimeError("step failed")
 
+        async def after(ctx):
+            ran.append("after")
+
         ctx = _make_context()
-        with pytest.raises(RuntimeError, match="step failed"):
-            _run(step_sequence.run_startup_sequence(ctx, [good, bad]))
+        _run(step_sequence.run_startup_sequence(ctx, [good, bad, after]))
+        assert ran == ["good", "after"]
 
     def test_run_startup_sequence_no_steps_is_noop(self):
         ctx = _make_context()

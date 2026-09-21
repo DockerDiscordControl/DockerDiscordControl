@@ -209,7 +209,7 @@ app/blueprints/log_routes.py:1-242
 app/blueprints/main_routes.py:1-1514
 app/blueprints/tasks_bp.py:1-314
 
-## Section 33  (1981 lines, 25 pieces)
+## Section 33  (1956 lines, 24 pieces)
 app/blueprints/translation_routes.py:1-363
 app/bootstrap/__init__.py:1-34
 app/bootstrap/performance.py:1-55
@@ -230,13 +230,16 @@ app/bot/startup_steps/member_count.py:1-126
 app/bot/startup_steps/notifications.py:1-35
 app/bot/startup_steps/power.py:1-53
 app/bot/startup_steps/scheduler.py:1-27
-app/bot/startup_steps/sequence.py:1-25
 app/bot/token.py:1-123
 app/constants.py:1-17
 app/utils/__init__.py:1-7
 app/utils/container_info_web_handler.py:1-275
 
-## Section 34  (1921 lines, 9 pieces)
+## Section 34  (1986 lines, 10 pieces)
+# app/bot/startup_steps/sequence.py moved here from 33 on 2026-09-21: 33 had
+# grown to 2,021 of the 2,000 a section may hold, and this is the file that
+# grew (review E9). 34 had the room.
+app/bot/startup_steps/sequence.py:1-65
 app/utils/port_diagnostics.py:1-600
 app/utils/shared_data.py:1-105
 app/utils/web_helpers.py:1-905

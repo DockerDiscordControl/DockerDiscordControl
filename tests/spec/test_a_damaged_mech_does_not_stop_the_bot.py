@@ -107,13 +107,15 @@ async def test_the_member_count_step_has_the_same_gap_closed(monkeypatch):
     await initialize_member_count_step(_context())     # must not raise
 
 
-async def test_a_step_that_raises_still_stops_the_sequence():
-    """TODAY'S ANSWER, pinned so the decision is visible - not a verdict.
+async def test_a_step_that_fails_does_not_stop_the_ones_after_it():
+    """The operator's decision, 2026-09-21, taken step by step (review E9).
 
-    `run_startup_sequence` is a bare loop with no handler, so any exception
-    from any step stops every step after it. That may well be right for some
-    steps and is certainly wrong for others; nobody has decided. Written down
-    here so the next reader sees a choice rather than an accident.
+    This test used to pin the OPPOSITE - that any exception stopped the rest -
+    as an observation, so the choice would be visible rather than accidental.
+    The operator then made it, and the reasoning that settled it is that the
+    sequence runs in `handle_ready()`: the bot is already connected to Discord,
+    so an abort protects nothing and only deepens a bad start. Not one of the
+    nine steps is worth stopping the other eight for.
     """
     from app.bot.startup_steps.sequence import run_startup_sequence
 
@@ -126,7 +128,67 @@ async def test_a_step_that_raises_still_stops_the_sequence():
     async def second(context):
         ran.append("second")
 
-    with pytest.raises(ValueError):
-        await run_startup_sequence(_context(), [first, second])
+    await run_startup_sequence(_context(), [first, second])
 
-    assert ran == ["first"], "the sequence continued - today it does not"
+    assert ran == ["first", "second"], (
+        "a failing step took the ones after it down - today the power gift "
+        "could still stop the scheduler that way"
+    )
+
+
+async def test_the_end_says_which_steps_failed():
+    """One line at the end, because a single failure drowns in a startup log."""
+    from app.bot.startup_steps.sequence import run_startup_sequence
+
+    async def good(context):
+        return None
+
+    async def bad(context):
+        raise RuntimeError("no")
+
+    bad.step_name = "start_scheduler_step"
+    context = _context()
+
+    await run_startup_sequence(context, [good, bad])
+
+    said = " ".join(str(call) for call in context.logger.mock_calls)
+    assert "STARTUP INCOMPLETE" in said, said
+    assert "start_scheduler_step" in said, (
+        "the summary does not name the step that failed, so it says nothing useful"
+    )
+
+
+async def test_a_clean_start_says_so_and_nothing_else():
+    """The counter-case: the summary must not cry wolf."""
+    from app.bot.startup_steps.sequence import run_startup_sequence
+
+    async def good(context):
+        return None
+
+    context = _context()
+
+    await run_startup_sequence(context, [good, good])
+
+    said = " ".join(str(call) for call in context.logger.mock_calls)
+    assert "STARTUP INCOMPLETE" not in said, said
+    # The logger is a MagicMock, so it records the FORMAT STRING and the
+    # arguments separately - asserting on the formatted sentence looks for
+    # something nobody ever wrote down.
+    assert "All %d startup steps completed" in said, said
+    assert "2" in said, said
+
+
+async def test_a_shutdown_is_not_a_step_failure():
+    """CancelledError means DDC is going down; it must travel on."""
+    import asyncio
+
+    from app.bot.startup_steps.sequence import run_startup_sequence
+
+    async def cancelled(context):
+        raise asyncio.CancelledError()
+
+    async def never(context):
+        raise AssertionError("the sequence carried on through a shutdown")
+
+    with pytest.raises(asyncio.CancelledError):
+        await run_startup_sequence(_context(), [cancelled, never])
