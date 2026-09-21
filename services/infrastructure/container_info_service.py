@@ -18,6 +18,8 @@ import re
 import json
 from typing import Dict, Any, Optional, List
 from pathlib import Path
+
+from utils.atomic_io import atomic_write_json
 from dataclasses import dataclass
 from utils.logging_utils import get_module_logger
 from services.config.server_config_service import get_server_config_service
@@ -190,13 +192,18 @@ class ContainerInfoService:
             # Update info section
             container_data['info'] = container_info.to_dict()
 
-            # Atomic write using temporary file
-            temp_path = container_file.with_suffix('.tmp')
-            with open(temp_path, 'w', encoding='utf-8') as f:
-                json.dump(container_data, f, indent=2, ensure_ascii=False)
-
-            # Atomic rename
-            temp_path.rename(container_file)
+            # The shared helper, not a hand-rolled temp-then-rename. This used
+            # a FIXED temp name per container, `container_file.with_suffix('.tmp')`,
+            # and container info is written from BOTH processes - the web panel
+            # through container_info_web_handler and the bot through the Edit Info
+            # modal. Two savers for the same container aimed at the same path, one
+            # renamed it away while the other still held it, and that other one's
+            # rename hit a file that was no longer there. Measured: 3 of 30
+            # concurrent saves failed with "No such file or directory: web.tmp".
+            # Same shape as review C29 on the game query verdicts.
+            # atomic_write_json also fsyncs and keeps the target's permissions,
+            # neither of which the hand-rolled version did (review D7).
+            atomic_write_json(container_file, container_data)
 
             logger.info(f"Saved container info to {container_file.name}: {container_name}")
             return ServiceResult(success=True, data=container_info)
@@ -251,13 +258,8 @@ class ContainerInfoService:
                 'protected_password': ''
             }
 
-            # Atomic write using temporary file
-            temp_path = container_file.with_suffix('.tmp')
-            with open(temp_path, 'w', encoding='utf-8') as f:
-                json.dump(container_data, f, indent=2, ensure_ascii=False)
-
-            # Atomic rename
-            temp_path.rename(container_file)
+            # The shared helper - see the reason at save_container_info (review D7).
+            atomic_write_json(container_file, container_data)
 
             logger.info(f"Reset container info to defaults: {container_name}")
             return ServiceResult(success=True)
