@@ -1330,18 +1330,39 @@ class ProgressService:
         """Update member count for difficulty calculation"""
         with LOCK:
             self._heal_if_lagging(read_events())
+
+            snap = load_snapshot(self.mech_id)
+            wanted = max(0, member_count)
+            if snap.last_user_count_sample == wanted:
+                # Nothing to record. This is published on EVERY donation
+                # (resolve_member_context), so without this check the ledger
+                # grew by one identical line per booking - and read_events()
+                # walks that ledger from end to end before every booking. The
+                # startup path already compares before it publishes
+                # (member_count.py:63); this is the same rule one level down,
+                # and the same rule get_state() was given earlier (review D26).
+                #
+                # Dropping the event is safe because of how the count is read
+                # back: member_count_for_goal takes the NEWEST sample, the
+                # latest MemberCountUpdated event or member_count.json,
+                # whichever is later. A suppressed event makes the newest event
+                # older, so the file could start winning - but it cannot carry
+                # a different answer, because the one place that writes the
+                # file writes an event of the same value beside it.
+                logger.debug(f"Member count unchanged at {wanted} - nothing written")
+                return
+
             # Create MemberCountUpdated event for replay capability
             evt = Event(
                 seq=next_seq(),
                 ts=now_utc_iso(),
                 type="MemberCountUpdated",
                 mech_id=self.mech_id,
-                payload={"member_count": max(0, member_count)}
+                payload={"member_count": wanted}
             )
             append_event(evt)
 
-            snap = load_snapshot(self.mech_id)
-            snap.last_user_count_sample = max(0, member_count)
+            snap.last_user_count_sample = wanted
             snap.last_event_seq = evt.seq
             persist_snapshot(snap)
             logger.info(f"Updated member count to {member_count}")
@@ -1359,12 +1380,22 @@ class ProgressService:
         with LOCK:
             self._heal_if_lagging(read_events())
             snap = load_snapshot(self.mech_id)
+            # Both refusals below write only if apply_decay_on_demand() actually
+            # changed something - it is a documented no-op apart from backfilling
+            # last_decay_day once. A refused gift changed nothing else, and
+            # rewriting the snapshot for it is the pattern get_state() was
+            # already taken off (review D26).
+            decay_day_before = snap.last_decay_day
             apply_decay_on_demand(snap)
+
+            def _persist_if_decay_day_changed() -> None:
+                if snap.last_decay_day != decay_day_before:
+                    persist_snapshot(snap)
 
             # Use the CURRENT (decayed) power: raw power_acc stays > 0 while decay runs
             if current_power_cents(snap) > 0:
                 logger.info(f"Power gift skipped: power > 0")
-                persist_snapshot(snap)
+                _persist_if_decay_day_changed()
                 return compute_ui_state(snap), None
 
             # CHECK FOR DUPLICATE: Search event log for this campaign_id
@@ -1374,7 +1405,7 @@ class ProgressService:
                     existing_campaign = evt.payload.get("campaign_id")
                     if existing_campaign == campaign_id:
                         logger.info(f"Power gift skipped: campaign_id '{campaign_id}' already used")
-                        persist_snapshot(snap)
+                        _persist_if_decay_day_changed()
                         return compute_ui_state(snap), None
 
             gift_cents = deterministic_gift_1_3(self.mech_id, campaign_id)
