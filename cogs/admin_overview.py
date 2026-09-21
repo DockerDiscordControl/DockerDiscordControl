@@ -186,7 +186,15 @@ class AdminOverviewRestartAllButton(Button):
             admin_service = get_admin_service()
             user_id = str(interaction.user.id)
 
-            # Check if user is admin using service
+            # Check if user is admin using service.
+            #
+            # The admin list and NOT the channel's permission - SPEC.md B2:
+            # the list exists so that admins may act where channel membership
+            # alone permits nothing. Both review passes read the missing
+            # channel check here as a critical hole (pass 1 section 01 F1,
+            # pass 2 F1/F2) and both were wrong. Adding one would refuse the
+            # operator in a status channel. Pinned by
+            # tests/spec/test_the_bulk_buttons_answer_to_the_admin_list.py.
             is_admin = await admin_service.is_user_admin_async(user_id)
             if not is_admin:
                 await interaction.followup.send(
@@ -260,7 +268,15 @@ class AdminOverviewStopAllButton(Button):
             admin_service = get_admin_service()
             user_id = str(interaction.user.id)
 
-            # Check if user is admin using service
+            # Check if user is admin using service.
+            #
+            # The admin list and NOT the channel's permission - SPEC.md B2:
+            # the list exists so that admins may act where channel membership
+            # alone permits nothing. Both review passes read the missing
+            # channel check here as a critical hole (pass 1 section 01 F1,
+            # pass 2 F1/F2) and both were wrong. Adding one would refuse the
+            # operator in a status channel. Pinned by
+            # tests/spec/test_the_bulk_buttons_answer_to_the_admin_list.py.
             is_admin = await admin_service.is_user_admin_async(user_id)
             if not is_admin:
                 await interaction.followup.send(
@@ -440,6 +456,37 @@ class ConfirmRestartAllButton(Button):
             return
         except (discord.errors.HTTPException, discord.errors.DiscordException) as e:
             logger.error(f"Error deferring restart all confirmation: {e}", exc_info=True)
+            return
+
+        # The admin list again, at THIS press. The first button checked it up
+        # to 30 seconds ago; this is a separate interaction, and the Z5
+        # clarification says the list is read at the moment of the press and
+        # never from a message. Without it this callback authorised nothing at
+        # all - its only protection was that Discord does not deliver an
+        # ephemeral message's interaction to anybody else (review D36).
+        #
+        # NO channel check here, deliberately: SPEC.md B2 - the global admin
+        # list exists so that admins may act where channel membership alone
+        # permits nothing. Adding one would refuse the operator in a status
+        # channel, which is exactly the regression the Z5 fix of 2026-09-16/17
+        # caused and that had to be undone on 2026-09-19. Both review passes
+        # read this as a hole; it is a decision. See
+        # tests/spec/test_the_bulk_buttons_answer_to_the_admin_list.py.
+        try:
+            admin_service = get_admin_service()
+            if not await admin_service.is_user_admin_async(str(interaction.user.id)):
+                await interaction.followup.send(
+                    _("❌ You don't have permission for this action."),
+                    ephemeral=True
+                )
+                return
+        except (AttributeError, ImportError, RuntimeError) as e:
+            # A permission that cannot be read is not a permission granted.
+            logger.error(f"Could not check admin status for bulk action: {e}", exc_info=True)
+            await interaction.followup.send(
+                _("❌ Your permission could not be checked. Nothing was done."),
+                ephemeral=True
+            )
             return
 
         # Edge case: Prevent concurrent bulk operations
@@ -630,6 +677,37 @@ class ConfirmStopAllButton(Button):
             return
         except (discord.errors.HTTPException, discord.errors.DiscordException) as e:
             logger.error(f"Error deferring stop all confirmation: {e}", exc_info=True)
+            return
+
+        # The admin list again, at THIS press. The first button checked it up
+        # to 30 seconds ago; this is a separate interaction, and the Z5
+        # clarification says the list is read at the moment of the press and
+        # never from a message. Without it this callback authorised nothing at
+        # all - its only protection was that Discord does not deliver an
+        # ephemeral message's interaction to anybody else (review D36).
+        #
+        # NO channel check here, deliberately: SPEC.md B2 - the global admin
+        # list exists so that admins may act where channel membership alone
+        # permits nothing. Adding one would refuse the operator in a status
+        # channel, which is exactly the regression the Z5 fix of 2026-09-16/17
+        # caused and that had to be undone on 2026-09-19. Both review passes
+        # read this as a hole; it is a decision. See
+        # tests/spec/test_the_bulk_buttons_answer_to_the_admin_list.py.
+        try:
+            admin_service = get_admin_service()
+            if not await admin_service.is_user_admin_async(str(interaction.user.id)):
+                await interaction.followup.send(
+                    _("❌ You don't have permission for this action."),
+                    ephemeral=True
+                )
+                return
+        except (AttributeError, ImportError, RuntimeError) as e:
+            # A permission that cannot be read is not a permission granted.
+            logger.error(f"Could not check admin status for bulk action: {e}", exc_info=True)
+            await interaction.followup.send(
+                _("❌ Your permission could not be checked. Nothing was done."),
+                ephemeral=True
+            )
             return
 
         # Edge case: Prevent concurrent bulk operations

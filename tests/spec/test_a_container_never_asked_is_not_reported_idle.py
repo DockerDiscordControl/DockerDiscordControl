@@ -70,6 +70,15 @@ def world(monkeypatch):
 
     import services.docker_service.docker_action_service as action_module
     monkeypatch.setattr(action_module, "docker_action_service_first", _action)
+
+    # The presser is on the admin list. Since review D36 the confirmation
+    # button reads that list itself - the first press checked it up to 30
+    # seconds earlier, and a permission is read at the moment of the press.
+    async def _is_admin(user_id):
+        return True
+
+    monkeypatch.setattr(admin_overview, "get_admin_service",
+                        lambda: SimpleNamespace(is_user_admin_async=_is_admin))
     monkeypatch.setattr(admin_overview.asyncio, "sleep",
                         lambda seconds: _done())
     return _Interaction()

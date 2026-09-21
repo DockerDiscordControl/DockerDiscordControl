@@ -15,6 +15,8 @@
 """
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from types import SimpleNamespace
+
 import pytest
 
 from cogs import admin_overview
@@ -50,7 +52,13 @@ async def _run_bulk(button_cls, action):
     scs.get_all_servers.return_value = [dict(s) for s in SERVERS]
     action_mock = AsyncMock(return_value=True)
 
-    with patch.object(admin_overview, "get_server_config_service", return_value=scs), \
+    # The presser is on the admin list: since review D36 the confirmation
+    # button reads it itself, because a permission is read at the moment of
+    # the press and the first button's check was up to 30 seconds ago.
+    admin_service = SimpleNamespace(is_user_admin_async=AsyncMock(return_value=True))
+
+    with patch.object(admin_overview, "get_admin_service", return_value=admin_service), \
+         patch.object(admin_overview, "get_server_config_service", return_value=scs), \
          patch.object(admin_overview, "get_status_cache_service", return_value=_running_cache()), \
          patch("services.docker_service.docker_action_service.docker_action_service_first", action_mock), \
          patch.object(button_cls, "_delayed_overview_update", new=AsyncMock()), \
