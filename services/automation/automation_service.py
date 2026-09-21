@@ -388,9 +388,10 @@ class AutomationService:
                 continue
 
             # Safety: only_if_running - don't touch a container that was stopped on purpose.
-            # Only a confirmed "not running" skips; an unknown state falls through to the action.
+            # Only a confirmed "not running" skips; an unknown state falls through to the
+            # action - and now says so (review E25). See _honours_only_if_running.
             if rule.only_if_running and action_type in ONLY_IF_RUNNING_ACTIONS:
-                if await self._get_running_state(container) is False:
+                if await self._honours_only_if_running(rule, action_type, container):
                     skip_reason = "Container not running (only_if_running)"
                     logger.info(f"AAS: Skipped {action_type} on '{container}' for rule '{rule.name}' - {skip_reason}")
                     # Nothing was executed - release the cooldown acquired above
@@ -483,6 +484,34 @@ class AutomationService:
             # Broken placeholder in a translation - fall back to the English source text
             return "⏭️ Auto-Action '{rule}' skipped: {containers} not running (option 'only if running').".format(
                 rule=rule_name, containers=names)
+
+    async def _honours_only_if_running(self, rule, action_type: str, container: str) -> bool:
+        """Whether "only if running" says to SKIP this container.
+
+        Three answers come back from _get_running_state, and only a confirmed
+        ``False`` skips. That is the behaviour this code has always had, and it
+        is deliberate: failing closed would mean a transient Docker hiccup
+        silently stops automations from working at all.
+
+        The unknown case is the one worth a word, and it had none (review E25).
+        ``only_if_running`` exists so that a container the operator stopped ON
+        PURPOSE is not touched - it guards RESTART, RECREATE and STOP. When the
+        state cannot be determined, the action runs anyway, so that container
+        can come back up. Whether that is the right trade-off is the operator's
+        call and is written up in docs/quality/reviews/AUTOMATION_SERVICE.md.
+        Whether it happens in silence is not: if a container they stopped comes
+        back, there has to be a line that explains it.
+        """
+        state = await self._get_running_state(container)
+        if state is False:
+            return True
+        if state is None:
+            logger.warning(
+                "AAS: '%s' asked for 'only if running' and the state of '%s' "
+                "could not be determined - running %s anyway. If that container "
+                "was stopped on purpose, this is why it came back.",
+                getattr(rule, "name", "?"), container, action_type)
+        return False
 
     async def _get_running_state(self, container: str) -> Optional[bool]:
         """Return True/False for the container's running state, or None if it can't be determined."""

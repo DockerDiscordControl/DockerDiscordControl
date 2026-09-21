@@ -91,20 +91,20 @@ cogs/admin_overview.py	901	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines nev
 cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
 cogs/control_helpers.py	284	pass1:s01:plan pass2:s01:1-205  [79 of 284 lines never in a package]
 cogs/control_ui.py	3639	pass1:s02:plan pass2:s02:1-1900  [1738 of 3638 lines never in a package]
-cogs/ddc_ui.py	94	NONE
+cogs/ddc_ui.py	94	passE:written-2026-09-21
 cogs/docker_control.py	5441	passE:loops+embeds+donationmodal:767-1021,2471-3290,3675-3748,3876-4036,4802-5150
 cogs/enhanced_info_modal_simple.py	666	NONE
-cogs/status_handlers.py	1398	NONE
+cogs/status_handlers.py	1398	passE:E15,E16:80-200,560-700
 cogs/status_info_integration.py	2397	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203
 cogs/translation_manager.py	117	NONE
 cogs/translation_monitor.py	97	NONE
 services/__init__.py	51	NONE
 services/admin/__init__.py	5	NONE
-services/admin/admin_service.py	379	NONE
-services/automation/__init__.py	14	NONE
-services/automation/auto_action_config_service.py	735	NONE
-services/automation/auto_action_state_service.py	364	NONE
-services/automation/automation_service.py	527	NONE
+services/admin/admin_service.py	379	passE:F1-feature-read:87-160,262-330
+services/automation/__init__.py	14	passE:bothscans+E25
+services/automation/auto_action_config_service.py	735	passE:bothscans+E25
+services/automation/auto_action_state_service.py	364	passE:bothscans+E25
+services/automation/automation_service.py	556	passE:bothscans+E25
 services/config/__init__.py	16	NONE
 services/config/channel_config_service.py	549	NONE
 services/config/config_cache_service.py	142	NONE
@@ -217,4 +217,4 @@ utils/observability.py	593	pass1:s36:1-579  [14 of 593 lines never in a package]
 utils/performance_metrics.py	419	pass1:s36:1-389  [30 of 419 lines never in a package]
 utils/settings.py	113	pass1:s36:1-98  [15 of 113 lines never in a package]
 utils/time_utils.py	387	pass1:s36:1-374  [13 of 387 lines never in a package]
-utils/token_security.py	330	NONE
+utils/token_security.py	330	pass2:E11:the-answering-path
