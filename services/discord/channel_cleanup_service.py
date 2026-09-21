@@ -227,13 +227,28 @@ class ChannelCleanupService:
             # cleanup in a channel without "Manage Messages" reported "✅ CLEANUP
             # SUCCESS ... 0/N" while every message was still there (SPEC.md Z3,
             # review A11).
-            result.success = result.permission_errors == 0
+            result.success = result.permission_errors == 0 and result.timeout_errors == 0
             if result.permission_errors:
                 result.error = (f"{result.permission_errors} message(s) could not be deleted - "
                                 f"the bot is missing the permission in this channel")
                 logger.warning(f"🧹 CLEANUP INCOMPLETE: Channel {request.channel.id} - "
                                f"{result.messages_deleted}/{result.messages_found} deleted, "
                                f"{result.permission_errors} refused (missing permission)")
+            elif result.timeout_errors:
+                # timeout_errors was raised at the purge timeout and read
+                # nowhere, so a run that ran out of time reported success as
+                # long as nothing had been refused. The fallback after a
+                # timeout walks at most 50 messages, however many matched, so
+                # this is a half-done cleanup presented as a finished one -
+                # the shape Z3 exists to forbid (review D4). The line above
+                # carries review A11, which fixed the layer over this one.
+                result.error = (f"the cleanup ran out of time after "
+                                f"{request.purge_timeout:.0f}s - "
+                                f"{result.messages_deleted} of {result.messages_found} "
+                                f"message(s) were deleted, the rest are still there")
+                logger.warning(f"🧹 CLEANUP INCOMPLETE: Channel {request.channel.id} - "
+                               f"{result.messages_deleted}/{result.messages_found} deleted, "
+                               f"timed out")
 
             # Choose appropriate logging based on method used
             if result.purge_deleted > 0:
@@ -401,8 +416,16 @@ class ChannelCleanupService:
                         await message.delete()
                         deleted_count += 1
                         await asyncio.sleep(0.1)  # Rate limiting
-                    except (discord.NotFound, discord.Forbidden):
+                    except discord.NotFound:
+                        # Already gone - that is the wanted end state.
                         pass
+                    except discord.Forbidden:
+                        # Counted, not swallowed. Both were caught by one
+                        # `pass` here, so a fallback that was refused every
+                        # single message reported a pure timeout and the
+                        # operator never heard the one thing they could fix
+                        # (review D4).
+                        result.permission_errors += 1
                 elif not request.custom_filter:
                     result.messages_preserved += 1
 
