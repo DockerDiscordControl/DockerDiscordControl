@@ -153,9 +153,30 @@ with a different real repair found underneath.**
 
   **The structural lesson, which is worth more than the number:** coverage was
   tracked by section number while the sections themselves were being re-cut by
-  the same work that tracked them. Nothing in the bookkeeping is keyed by file,
-  so no one - reviewer, operator or me - can answer "has this file been read?"
-  without guessing. That is the gap to close, not the arithmetic.
+  the same work that tracked them. Nothing in the bookkeeping was keyed by file,
+  so no one - reviewer, operator or me - could answer "has this file been read?"
+  without guessing.
+
+  **Closed on 2026-09-21** by `docs/quality/COVERAGE_BY_FILE.txt`, rebuilt from
+  the reviewers' own packages: for each file, which pass and section was handed
+  which LINE RANGE of it. Paths do not move. It puts numbers on the question
+  for the first time - **160 of 182 files carry evidence, 22 carry none, and 72
+  of the evidenced ones are only partly covered: 5,556 lines were never in any
+  package.** Held against the tree by
+  `tests/spec/test_coverage_by_file_is_complete.py`.
+
+  It immediately corrected me a third time. `scheduler.py` reads
+  `pass1:s27:1996-2165` - 170 lines of validation helpers at the end of the
+  file, and nothing else. Reading the evidence mark without the range says
+  "reviewed"; reading the range says the 1,995 lines where all five findings of
+  `SECTION_26_SCHEDULER.md` sit were in no package. The ranges are the point.
+
+  Both caveats belong with the numbers: pass 1 stage B ran before packages were
+  kept, so its files show as NONE though they were reviewed - the counts are a
+  floor on what has been read, never a ceiling. And the ledger records what was
+  HANDED to a reviewer, which is not the same as what was read carefully:
+  `scheduler.py` produced no pass-1 finding from its 170 reviewed lines, and a
+  hand read of the rest produced five.
 - **The first version of this line said "29 of 38 sections have not been
   reviewed in either pass", and `STAGE4_REVIEW.md` said "every section of the
   code base has been read once". Both were wrong, in opposite directions**, and

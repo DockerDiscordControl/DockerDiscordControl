@@ -1,0 +1,215 @@
+# Which files have been put in front of a reviewer - keyed by FILE and LINE
+#
+# Written 2026-09-21, after three wrong answers to "how much has been
+# reviewed". All three counted SECTION NUMBERS, and the boundaries have been
+# re-cut repeatedly by the very work that was counting them - so today's number
+# 37 is not the 37 any pass-1 report meant. A path does not move; a line number
+# within a file does not move much.
+#
+# Format:  <path>  <lines today>  <evidence...>  [what is left over]
+#
+# Evidence is the reviewer's PACKAGE - the source extract that reviewer was
+# actually handed, recovered from the package directories. "pass1:s27:1996-2165"
+# means the pass-1 reviewer of section 27 was given lines 1996-2165 of that file
+# and nothing else of it. "plan" means the file is named in a stage-A check plan
+# kept in this repo, which names files but not ranges.
+#
+# THE LEFTOVER IS THE POINT. services/scheduling/scheduler.py carries
+# pass1:s27:1996-2165 - a hundred and seventy lines of validation helpers. The
+# 1,995 lines in front of them, where all five findings of
+# reviews/SECTION_26_SCHEDULER.md sit, were in no package at all. Reading only
+# the evidence marks and not the ranges is how I got this wrong twice.
+#
+# NONE means no package and no plan names this file. It does NOT mean "never
+# read": pass 1 stage B (sections 03-11 as they were then) ran before packages
+# were kept, so its files carry nothing here even though they were reviewed. It
+# means what it says - there is nothing to point at.
+#
+# The same caveat applies to every leftover count, and it cuts the other way for
+# one file in particular: cogs/control_ui.py shows 1,738 lines outside any
+# package, but stage B reviewed it and those packages are gone. The numbers here
+# are a floor on what has been read, never a ceiling.
+#
+# tests/spec/test_coverage_by_file_is_complete.py holds this against the tree.
+cogs/__init__.py	7	pass2:s01:1-7
+cogs/admin_overview.py	900	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
+cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
+cogs/control_helpers.py	284	pass1:s01:plan pass2:s01:1-205  [79 of 284 lines never in a package]
+cogs/control_ui.py	3638	pass1:s02:plan pass2:s02:1-1900  [1738 of 3638 lines never in a package]
+cogs/docker_control.py	5294	NONE
+cogs/enhanced_info_modal_simple.py	665	NONE
+cogs/status_handlers.py	1381	NONE
+cogs/status_info_integration.py	2396	NONE
+cogs/translation_manager.py	117	NONE
+cogs/translation_monitor.py	97	NONE
+services/__init__.py	51	NONE
+services/admin/__init__.py	5	NONE
+services/admin/admin_service.py	379	NONE
+services/automation/__init__.py	14	NONE
+services/automation/auto_action_config_service.py	735	NONE
+services/automation/auto_action_state_service.py	364	NONE
+services/automation/automation_service.py	527	NONE
+services/config/__init__.py	16	NONE
+services/config/channel_config_service.py	549	NONE
+services/config/config_cache_service.py	142	NONE
+services/config/config_form_parser_service.py	506	pass1:s12:1-483  [23 of 506 lines never in a package]
+services/config/config_loader_service.py	481	pass1:s12:1-468  [13 of 481 lines never in a package]
+services/config/config_migration_service.py	466	pass1:s12:1-406  [60 of 466 lines never in a package]
+services/config/config_service.py	1211	NONE
+services/config/config_validation_service.py	212	NONE
+services/config/container_config_save_service.py	150	NONE
+services/config/server_config_service.py	213	NONE
+services/discord/__init__.py	20	NONE
+services/discord/channel_cleanup_service.py	499	pass1:s14:plan pass2:s14:1-453  [46 of 499 lines never in a package]
+services/discord/conditional_update_cache_service.py	184	pass1:s14:plan pass2:s14:1-169  [15 of 184 lines never in a package]
+services/discord/embed_helper_service.py	173	pass1:s14:plan pass2:s14:1-163  [10 of 173 lines never in a package]
+services/discord/status_overview_service.py	363	pass1:s14:plan pass2:s14:1-356  [7 of 363 lines never in a package]
+services/docker_service/__init__.py	28	pass2:s14:1-28
+services/docker_service/docker_action_service.py	276	pass1:s14:plan pass2:s14:1-276
+services/docker_service/docker_client_pool.py	745	pass1:s15:1-708  [37 of 745 lines never in a package]
+services/docker_service/docker_utils.py	1432	pass1:s16:1-1404  [28 of 1432 lines never in a package]
+services/docker_service/server_order.py	111	pass1:s16:1-111
+services/docker_service/status_cache_runtime.py	101	pass1:s16:1-101
+services/docker_status/__init__.py	34	pass1:s16:1-34
+services/docker_status/fetch_service.py	251	pass1:s16:1-251
+services/docker_status/models.py	376	pass1:s17:plan pass2:s17:1-376
+services/docker_status/performance_service.py	234	pass1:s17:plan pass2:s17:1-234
+services/donation/__init__.py	24	pass2:s17:1-24
+services/donation/donation_config.py	41	pass1:s17:plan pass2:s17:1-41
+services/donation/donation_management_service.py	446	pass1:s17:plan pass2:s17:1-440  [6 of 446 lines never in a package]
+services/donation/donation_utils.py	62	pass1:s17:plan pass2:s17:1-62
+services/donation/notification_service.py	79	pass1:s17:plan pass2:s17:1-79
+services/donation/unified/__init__.py	30	pass2:s17:1-30
+services/donation/unified/events.py	93	pass1:s17:plan pass2:s17:1-86  [7 of 93 lines never in a package]
+services/donation/unified/member_count.py	38	pass1:s17:plan pass2:s17:1-38
+services/donation/unified/models.py	97	pass1:s17:plan pass2:s17:1-97
+services/donation/unified/processors.py	69	pass1:s17:plan pass2:s17:1-61  [8 of 69 lines never in a package]
+services/donation/unified/reset.py	177	pass1:s17:plan pass2:s17:1-177
+services/donation/unified/service.py	483	pass1:s18:plan pass2:s18:1-468  [15 of 483 lines never in a package]
+services/donation/unified/validation.py	44	pass1:s18:plan pass2:s18:1-37  [7 of 44 lines never in a package]
+services/donation/unified_donation_service.py	31	pass2:s18:1-31
+services/exceptions.py	299	pass1:s18:plan pass2:s18:1-299
+services/infrastructure/__init__.py	0	pass2:s18:1-0
+services/infrastructure/action_log_service.py	387	pass1:s18:plan pass2:s18:1-376  [11 of 387 lines never in a package]
+services/infrastructure/action_logger.py	103	pass1:s18:plan pass2:s18:1-86  [17 of 103 lines never in a package]
+services/infrastructure/container_info_service.py	326	pass1:s18:plan pass2:s18:1-282  [44 of 326 lines never in a package]
+services/infrastructure/container_status_service.py	830	pass1:s19:1-816  [14 of 830 lines never in a package]
+services/infrastructure/docker_connectivity_service.py	239	pass1:s19:1-239
+services/infrastructure/dynamic_cooldown_manager.py	193	pass1:s19:1-179  [14 of 193 lines never in a package]
+services/infrastructure/event_manager.py	118	pass1:s19:1-118
+services/infrastructure/game_query_service.py	553	pass1:s19:1-525  [28 of 553 lines never in a package]
+services/infrastructure/game_query_support_service.py	341	pass1:s20:1-282  [59 of 341 lines never in a package]
+services/infrastructure/spam_protection_service.py	553	pass1:s20:1-504  [49 of 553 lines never in a package]
+services/infrastructure/update_notifier.py	235	pass1:s20:1-213  [22 of 235 lines never in a package]
+services/mech/__init__.py	30	pass1:s20:1-30
+services/mech/animation_cache_service.py	1846	pass1:s21:1-1813  [33 of 1846 lines never in a package]
+services/mech/mech_data_store.py	939	pass1:s22:1-886  [53 of 939 lines never in a package]
+services/mech/mech_defaults.py	34	pass1:s22:1-34
+services/mech/mech_display_cache_service.py	387	pass1:s22:1-387
+services/mech/mech_evolutions.py	449	pass1:s22:1-417  [32 of 449 lines never in a package]
+services/mech/mech_high_res_service.py	248	pass1:s22:1-248
+services/mech/mech_reset_service.py	378	pass1:s23:1-376  [2 of 378 lines never in a package]
+services/mech/mech_service.py	32	pass1:s23:1-32
+services/mech/mech_service_adapter.py	299	pass1:s23:1-300
+services/mech/mech_state_manager.py	161	pass1:s23:1-152  [9 of 161 lines never in a package]
+services/mech/mech_status_cache_service.py	464	pass1:s23:1-439  [25 of 464 lines never in a package]
+services/mech/mech_story_service.py	204	pass1:s23:1-194  [10 of 204 lines never in a package]
+services/mech/progress/__init__.py	17	pass1:s23:1-17
+services/mech/progress/runtime.py	158	pass1:s23:1-153  [5 of 158 lines never in a package]
+services/mech/progress_paths.py	189	pass1:s23:1-188  [1 of 189 lines never in a package]
+services/mech/progress_service.py	1740	pass1:s24:plan pass2:s24:1-1612  [128 of 1740 lines never in a package]
+services/mech/speed_levels.py	427	pass1:s24:plan pass1:s25:1-413  [14 of 427 lines never in a package]
+services/member_count/__init__.py	17	pass1:s25:1-17
+services/member_count/service.py	296	pass1:s25:1-287  [9 of 296 lines never in a package]
+services/scheduling/__init__.py	36	pass1:s25:1-36
+services/scheduling/donation_message_service.py	215	pass1:s25:1-196  [19 of 215 lines never in a package]
+services/scheduling/runtime.py	201	pass1:s25:1-201
+services/scheduling/schedule_helpers.py	71	pass1:s25:1-248
+services/scheduling/scheduler.py	2260	pass1:s27:1996-2165  [2090 of 2260 lines never in a package]
+services/scheduling/scheduler_service.py	552	pass1:s27:1-539  [13 of 552 lines never in a package]
+services/status/__init__.py	13	pass1:s27:1-13
+services/status/status_cache_service.py	225	pass1:s27:1-225
+services/translation/__init__.py	12	pass1:s27:1-12
+services/translation/translation_config_service.py	640	pass1:s27:1-607  [33 of 640 lines never in a package]
+services/translation/translation_service.py	762	pass1:s28:1-741  [21 of 762 lines never in a package]
+services/web/__init__.py	12	pass1:s28:1-12
+services/web/configuration_page_service.py	554	pass1:s28:1-554
+services/web/configuration_save_service.py	565	pass1:s28:1-531  [34 of 565 lines never in a package]
+services/web/container_log_service.py	470	pass1:s29:1-439  [31 of 470 lines never in a package]
+services/web/container_refresh_service.py	207	pass1:s29:1-201  [6 of 207 lines never in a package]
+services/web/diagnostics_service.py	263	pass1:s29:1-263
+services/web/donation_service.py	314	pass1:s29:1-290  [24 of 314 lines never in a package]
+services/web/donation_status_service.py	251	pass1:s29:1-245  [6 of 251 lines never in a package]
+services/web/donation_tracking_service.py	163	pass1:s29:1-163
+services/web/i18n_service.py	214	pass1:s29:1-214
+services/web/mech_music_service.py	224	pass1:s30:1-224
+services/web/mech_status_details_service.py	410	pass1:s30:1-401  [9 of 410 lines never in a package]
+services/web/mech_web_service.py	676	pass1:s30:1-676
+services/web/performance_stats_service.py	181	pass1:s30:1-172  [9 of 181 lines never in a package]
+services/web/security_service.py	345	pass1:s30:1-339  [6 of 345 lines never in a package]
+services/web/task_management_service.py	1087	pass1:s31:plan pass2:s31:1-1060  [27 of 1087 lines never in a package]
+app/__init__.py	13	pass1:s31:plan pass2:s31:1-13
+app/auth.py	249	pass1:s31:plan pass2:s31:1-249
+app/blueprints/action_log_routes.py	91	pass1:s31:plan pass2:s31:1-86  [5 of 91 lines never in a package]
+app/blueprints/automation_routes.py	272	pass1:s31:plan pass2:s31:1-267  [5 of 272 lines never in a package]
+app/blueprints/log_routes.py	242	pass1:s31:plan pass2:s31:1-242
+app/blueprints/main_routes.py	1514	pass1:s32:plan pass2:s32:1-1468  [46 of 1514 lines never in a package]
+app/blueprints/security_routes.py	193	pass1:s32:plan pass2:s32:1-193
+app/blueprints/tasks_bp.py	314	pass1:s32:plan pass2:s32:1-300  [14 of 314 lines never in a package]
+app/blueprints/translation_routes.py	363	pass1:s33:1-350  [13 of 363 lines never in a package]
+app/bootstrap/__init__.py	34	pass1:s33:1-34
+app/bootstrap/performance.py	55	pass1:s33:1-55
+app/bootstrap/runtime.py	200	pass1:s33:1-200
+app/bot/__init__.py	13	pass1:s33:1-13
+app/bot/commands.py	45	pass1:s33:1-45
+app/bot/dependencies.py	62	pass1:s33:1-62
+app/bot/events.py	92	pass1:s33:1-83  [9 of 92 lines never in a package]
+app/bot/factory.py	44	pass1:s33:1-44
+app/bot/runtime.py	62	pass1:s33:1-62
+app/bot/startup.py	39	pass1:s33:1-39
+app/bot/startup_context.py	57	pass1:s33:1-57
+app/bot/startup_steps/__init__.py	52	pass1:s33:1-52
+app/bot/startup_steps/commands.py	120	pass1:s33:1-120
+app/bot/startup_steps/cooldowns.py	29	pass1:s33:1-29
+app/bot/startup_steps/diagnostics.py	26	pass1:s33:1-26
+app/bot/startup_steps/member_count.py	120	pass1:s33:1-120
+app/bot/startup_steps/notifications.py	35	pass1:s33:1-35
+app/bot/startup_steps/power.py	36	pass1:s33:1-36
+app/bot/startup_steps/scheduler.py	27	pass1:s33:1-27
+app/bot/startup_steps/sequence.py	25	pass1:s33:1-25
+app/bot/token.py	101	pass1:s33:1-101
+app/constants.py	17	pass1:s33:1-17
+app/utils/__init__.py	7	pass1:s33:1-7
+app/utils/container_info_web_handler.py	275	pass1:s33:1-256  [19 of 275 lines never in a package]
+app/utils/port_diagnostics.py	600	pass1:s34:1-595  [5 of 600 lines never in a package]
+app/utils/shared_data.py	105	pass1:s34:1-97  [8 of 105 lines never in a package]
+app/utils/web_helpers.py	905	pass1:s34:1-862  [43 of 905 lines never in a package]
+app/web/__init__.py	12	pass1:s34:1-12
+app/web/action_logger.py	20	pass1:s34:1-20
+app/web/app_factory.py	61	pass1:s34:1-61
+app/web/background.py	85	pass1:s34:1-85
+app/web/blueprints.py	31	pass1:s34:1-31
+app/web/compat.py	102	pass1:s34:1-102
+app/web/config.py	169	pass1:s35:1-169
+app/web/csrf.py	125	pass1:s35:1-125
+app/web/diagnostics.py	30	pass1:s35:1-30
+app/web/extensions.py	26	pass1:s35:1-26
+app/web/i18n.py	64	pass1:s35:1-54  [10 of 64 lines never in a package]
+app/web/logging.py	60	pass1:s35:1-60
+app/web/routes.py	181	pass1:s35:1-100  [81 of 181 lines never in a package]
+app/web/security.py	86	pass1:s35:1-86
+app/web_ui.py	36	pass1:s35:1-36
+utils/__init__.py	7	pass1:s35:1-7
+utils/app_commands_helper.py	150	pass1:s35:1-150
+utils/atomic_io.py	70	pass1:s35:1-70
+utils/common_helpers.py	501	pass1:s35:1-475  [26 of 501 lines never in a package]
+utils/config_cache.py	307	pass1:s35:1-307
+utils/config_paths.py	47	pass1:s35:1-47
+utils/import_utils.py	165	pass1:s35:1-160  [5 of 165 lines never in a package]
+utils/key_crypto.py	84	pass1:s35:1-79  [5 of 84 lines never in a package]
+utils/logging_utils.py	546	pass1:s36:1-467  [79 of 546 lines never in a package]
+utils/observability.py	593	pass1:s36:1-579  [14 of 593 lines never in a package]
+utils/performance_metrics.py	419	pass1:s36:1-389  [30 of 419 lines never in a package]
+utils/settings.py	113	pass1:s36:1-98  [15 of 113 lines never in a package]
+utils/time_utils.py	387	pass1:s36:1-374  [13 of 387 lines never in a package]
+utils/token_security.py	318	NONE

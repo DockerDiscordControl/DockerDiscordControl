@@ -1,14 +1,21 @@
-# Section 26 — `scheduler.py`, read for the first time (2026-09-21)
+# Section 26 — `scheduler.py`, the part nobody had been given (2026-09-21)
 
-Read because **no pass-1 report names `scheduler.py` anywhere**, and because it
-starts and stops containers on a timetable without anybody pressing anything.
+**What the evidence says, exactly** (`docs/quality/COVERAGE_BY_FILE.txt`):
 
-*Corrected 2026-09-21:* this first said it was one of "three sections neither
-pass ever looked at (13, 26, 37)". That claim rested on matching today's
-section numbers against the pass-1 reports', and the boundaries have moved too
-often for that to mean anything — `key_crypto.py`, in today's 37, was reviewed
-as section 35 F3. The five findings below stand on their own; the claim about
-coverage does not. See the end of `PASS2_STAGE_A.md`.
+    services/scheduling/scheduler.py    pass1:s27:1996-2165
+
+A pass-1 reviewer was handed lines **1996–2165** of this file — a hundred and
+seventy lines of validation helpers at the very end — and nothing else of it.
+The **1,995 lines in front of them**, where all five findings below sit, were
+in no package at all.
+
+*Corrected twice, and the second correction was the one that overshot.* This
+first claimed section 26 was one of "three sections neither pass ever looked
+at (13, 26, 37)" — wrong, because it counted section numbers and the
+boundaries have moved (`key_crypto.py`, in today's 37, was reviewed as section
+35 F3). Then it claimed coverage could not be stated at all — also wrong. It
+can, by file and by line, which is what the ledger now does and what this
+header shows. The middle answer was the true one.
 
 Not a reviewer package this time: read by hand, plus one mechanical scan.
 
