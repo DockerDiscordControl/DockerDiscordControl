@@ -9,9 +9,14 @@ around the two mechanical scans.
 |---|---|---|
 | E25 | The **"only if running" safety switch could be silently not honoured.** When a container's state cannot be determined, the action runs anyway - so a container the operator stopped on purpose gets RESTARTed, which is exactly what the switch exists to prevent - and nothing said so. | `80657ac` |
 
-## ⚠️ One question for the operator, deliberately left open
+## Put to the operator, and decided by them
 
 **Should an undeterminable container state skip the action, or run it?**
+
+**Decided 2026-09-21: run it.** The operator's words: *"lass das wie es ist,
+Befehle haben Vorrang."* An action that was asked for wins over a state that
+could not be read. That is what the code already did, so nothing changed -
+which is why the repair below is only about the silence.
 
 An Auto-Action rule can carry `only_if_running`. The code's own comment says
 what it is for: *"don't touch a container that was stopped on purpose."* It
@@ -27,15 +32,27 @@ skips, so **None runs the action**.
 | Container stopped on purpose, state unreadable | **it comes back up** | it stays stopped |
 
 This was chosen deliberately - the line saying so is in the source, and has
-been since before this review - and it is a real trade-off, not an oversight.
-It is also the opposite of what review E6 decided for the scheduler, where a
-container configuration that could not be read now **refuses** the action
-(SPEC.md B14). The two subsystems answer the same question differently, and
-nobody has decided that they should.
+been since before this review - and the operator has now confirmed it.
 
-**Not changed without the operator.** What was changed is that the moment is
-now visible: a WARNING naming the rule, the container and the action, ending
-with *"If that container was stopped on purpose, this is why it came back."*
+**A correction to what this file first claimed.** It said this is "the
+opposite of what review E6 decided for the scheduler", where an unreadable
+container configuration now **refuses** the action (SPEC.md B14). That reads
+well and it is too coarse. The two are not the same question:
+
+| | what could not be read | answer |
+|---|---|---|
+| B14, scheduler | whether the action is **allowed** on this container | refuse |
+| E25, Auto-Actions | whether the container is **running** | proceed |
+
+A permission that cannot be confirmed must not be assumed; a state that cannot
+be read is not a permission. So the two answers are consistent, and the
+"nobody decided that" sentence was wrong. Left in view rather than quietly
+deleted, because a review record that only keeps the claims that held up is
+not a record.
+
+What was changed is that the moment is now visible: a WARNING naming the rule,
+the container and the action, ending with *"If that container was stopped on
+purpose, this is why it came back."*
 
 ## Noted, not repaired
 
