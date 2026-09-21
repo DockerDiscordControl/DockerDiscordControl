@@ -159,13 +159,20 @@ sentence - a failure that looks like an empty result - which is what made a
 mechanical scan of every falsy-answering handler worth doing. Sections 13 and
 37 are still unread.
 
-**Corrected 2026-09-21:** this used to read "with that, every section of the
-code base has been read once". It is not true. Counting the three stages'
-coverage tables against `SECTIONS.txt` gives 34 of 37 sections; **13, 26 and 37
-were never reviewed** - the configuration services, `scheduler.py`, and the
-token encryption. Nobody checked the claim until a recommendation was built on
-it. The test suite grew from 4,895 to 5,214 passing tests across the three
-stages.
+**Corrected twice, 2026-09-21.** This used to read "with that, every section of
+the code base has been read once", which is not established. The correction
+that replaced it - "13, 26 and 37 were never reviewed" - is not established
+either: it matched today's section numbers against the pass-1 reports', and the
+boundaries have been re-cut many times since, so the numbers do not refer to the
+same code. `key_crypto.py` is in today's section 37 and WAS reviewed, as section
+35 F3 in pass 1.
+
+**Coverage is not answerable by section number, and nothing here is keyed by
+file.** That is the real gap; see the note at the end of
+`reviews/PASS2_STAGE_A.md`. What is known: no pass-1 report names
+`scheduler.py` or `config_service.py`, and a first careful read of the former
+produced five findings (`reviews/SECTION_26_SCHEDULER.md`). The test suite grew
+from 4,895 to 5,214 passing tests across the three stages.
 
 **Pass 2** then went over the eight sensitive sections a second time
 (`reviews/PASS2_STAGE_A.md`): 374 of 374 names judged, **38 findings**, of which

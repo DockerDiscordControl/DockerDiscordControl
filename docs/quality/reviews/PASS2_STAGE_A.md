@@ -131,16 +131,31 @@ with a different real repair found underneath.**
 
 ## What this pass does NOT say
 
-- **Three sections have never been reviewed by anyone: 13, 26 and 37.**
-  Counted on 2026-09-21 out of the coverage tables of the three pass-1
-  reports against `SECTIONS.txt`: stage A took 01 02 14 17 18 24 31 32, stage B
-  03-11, stage C 12 15 16 19-23 25 27-30 33-36. That is 34 of 37. Missing are
-  section 13 (`config_service.py` and the config services, 1,806 lines),
-  section 26 (`scheduler.py`, 1,995 lines - the path that starts and stops
-  containers on a timetable, without anybody pressing anything) and section 37
-  (`token_security.py`, `key_crypto.py`, `performance_metrics.py`).
-  Section 38 is not a gap: it was carved out of 32 on 2026-09-21 and its
-  content was reviewed as part of it.
+- **How much was reviewed cannot be stated by section number, and three
+  attempts to do so have all been wrong.** Section numbers are not stable
+  identifiers: the boundaries have been re-cut repeatedly, including six times
+  during pass 2 alone, so today's number 37 is not the 37 any pass-1 report
+  meant. Matching one against the other produces a confident and false answer.
+
+  The three attempts, all corrected: `STAGE4_REVIEW.md` said "every section of
+  the code base has been read once"; the first version of this line said "29 of
+  38 sections have not been reviewed in either pass"; the second said "13, 26
+  and 37 have never been reviewed by anyone". **The third is refuted by the
+  code itself:** `key_crypto.py` sits in today's section 37 and was reviewed in
+  pass 1 as **section 35 F3**, repaired as C14 (`2f7ac2d`) - the comment is
+  still in the file.
+
+  What can be said, and no more: no pass-1 report names `scheduler.py` or
+  `config_service.py` anywhere, and a first careful read of `scheduler.py`
+  produced five findings (`SECTION_26_SCHEDULER.md`). That is consistent with
+  it never having been read, and it is not proof - a report only names the
+  files that produced findings, so a file reviewed with none leaves no trace.
+
+  **The structural lesson, which is worth more than the number:** coverage was
+  tracked by section number while the sections themselves were being re-cut by
+  the same work that tracked them. Nothing in the bookkeeping is keyed by file,
+  so no one - reviewer, operator or me - can answer "has this file been read?"
+  without guessing. That is the gap to close, not the arithmetic.
 - **The first version of this line said "29 of 38 sections have not been
   reviewed in either pass", and `STAGE4_REVIEW.md` said "every section of the
   code base has been read once". Both were wrong, in opposite directions**, and

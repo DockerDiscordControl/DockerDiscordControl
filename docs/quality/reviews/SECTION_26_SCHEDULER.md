@@ -1,8 +1,14 @@
 # Section 26 — `scheduler.py`, read for the first time (2026-09-21)
 
-One of **three sections neither review pass ever looked at** (13, 26, 37 — see
-`PASS2_STAGE_A.md`). This one starts and stops containers on a timetable
-without anybody pressing anything, which is why it was read first.
+Read because **no pass-1 report names `scheduler.py` anywhere**, and because it
+starts and stops containers on a timetable without anybody pressing anything.
+
+*Corrected 2026-09-21:* this first said it was one of "three sections neither
+pass ever looked at (13, 26, 37)". That claim rested on matching today's
+section numbers against the pass-1 reports', and the boundaries have moved too
+often for that to mean anything — `key_crypto.py`, in today's 37, was reviewed
+as section 35 F3. The five findings below stand on their own; the claim about
+coverage does not. See the end of `PASS2_STAGE_A.md`.
 
 Not a reviewer package this time: read by hand, plus one mechanical scan.
 
@@ -55,13 +61,13 @@ of them. Most are harmless, because the caller REFUSES on a falsy answer and
 nothing is lost by refusing. E6 was the one where falsy meant "go ahead and
 touch the container".
 
-The technique is cheap and repeatable, and it belongs in the other two
-unreviewed sections.
+The technique is cheap and repeatable, and it belongs in the other files no
+pass-1 report names.
 
 ## What this section does NOT say
 
 - The time calculations were read, and only the DST question was pursued to a
   measurement. They are covered by existing tests for `daily`, `weekly` and
   cron; `monthly` and `yearly` are not tested across a daylight-saving change.
-- Sections 13 (`config_service.py` and the config services, 1,806 lines) and
-  37 (`token_security.py`, `key_crypto.py`) have still been read by nobody.
+- Whether `config_service.py` and the other config services have been read is
+  not known, for the reason given at the top. No pass-1 report names them.
