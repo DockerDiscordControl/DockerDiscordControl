@@ -62,6 +62,8 @@ Pass E is the read of the files that no earlier pass ever covered
 
 | **E32** | **Every message on the server cost two config file reads.** Anyone typing anything, in any channel, made DDC open and parse `channel_translations.json` twice — to work out the message had nothing to do with it. Measured: 0.20 ms and 2.0 reads per message. | The translation monitor listens to every message and the config had no cache. Now cached on the file's mtime, handing out a copy so a failed save cannot leave a phantom setting in memory. **Verified after deploying: 0.066 ms and 0 file opens per message.** | `574b913` |
 
+| **E41** | **A dict claiming to count loop runs and failures, that nothing ever wrote to or read.** Anyone reading it would conclude DDC tracks loop health — and E17 is what actually happened when a loop died. Three more dead attributes went with it. | No symptom; a misleading artifact removed. The probe is in the commit, including why an attribute scan alone would have deleted a live one. | `e8b583c` |
+
 ## Under the floor — no symptom yet, but a trap
 
 | # | What | Commit |
