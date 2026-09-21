@@ -20,6 +20,20 @@ the command has not answered at all.
 
 The counter-checks keep the exclusion doing its job for everything else, and
 keep the other commands unchanged.
+
+**What this test could not see (review E14, 2026-09-21).** Everything above is
+true of the handler, and the handler was wired to an event DDC never fires:
+``on_command_error`` is py-cord's PREFIX-command event, and every DDC command
+is a slash command, whose errors go to ``application_command_error``. So the
+symptom C44 describes - "the user presses the button, sees no reaction, and
+presses again" - was still there afterwards, for every command and not just
+the two donation ones.
+
+This test stayed green through all of it, because it reaches into the handler
+function and calls it. That is a fair way to test a handler's logic, and it is
+why the logic was right. It simply never asked the other question: *does
+anything call this?* The test for that is
+``test_a_slash_command_error_reaches_the_user.py``.
 """
 
 import discord

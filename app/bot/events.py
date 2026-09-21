@@ -44,8 +44,28 @@ def register_event_handlers(bot: discord.Bot, runtime: BotRuntime) -> None:
     async def on_error(event: str, *args: Any, **kwargs: Any) -> None:
         logger.error("Error in event %s: %s", event, traceback.format_exc())
 
-    @bot.event
-    async def on_command_error(ctx: commands.Context, error: Exception) -> None:
+    async def _handle_command_error(ctx: Any, error: Exception) -> None:
+        """Answer a failed command, whichever event carried it here.
+
+        Registered for BOTH events on purpose. ``on_command_error`` belongs to
+        py-cord's PREFIX commands, and DDC has none - ``factory.py`` sets a
+        command_prefix, but not one ``@commands.command`` exists in the repo.
+        Everything DDC offers is ``@commands.slash_command``, and py-cord sends
+        those errors to ``application_command_error`` instead
+        (``commands/core.py:483``), where the default handler prints to stderr
+        and answers the user not at all (``bot.py:1219``).
+
+        So this handler used to be wired to an event that never fired, and an
+        interaction that failed was left hanging: the user saw the command
+        thinking, and then nothing. Review C44 read that symptom correctly -
+        "they pressed the button and pressed again" - and installed the cure on
+        the wrong event (review E14). The cooldowns are real:
+        ``dynamic_cooldown_manager.py`` sets ``command._buckets`` on the slash
+        commands at startup, which is what py-cord checks before invoking.
+
+        ``on_command_error`` keeps its registration. It costs nothing, and a
+        prefix command may exist one day.
+        """
         # The donation commands answer their own errors, so this handler must
         # not answer a second time - but that only applies to the branches that
         # RESPOND with an error. A cooldown is the one case where the command
@@ -54,6 +74,16 @@ def register_event_handlers(bot: discord.Bot, runtime: BotRuntime) -> None:
         # (review C44). The exclusion moved below the cooldown branch.
         is_donation_command = (hasattr(ctx, "command")
                                and str(ctx.command) in ["donate", "donatebroadcast"])
+
+        async def answer(message: str) -> None:
+            try:
+                await ctx.respond(message, ephemeral=True)
+            except discord.HTTPException:
+                pass
+            except discord.ClientException:
+                # InteractionResponded: the command already said something.
+                # Nothing to add, and nothing wrong.
+                pass
 
         if isinstance(error, commands.CommandOnCooldown):
             seconds = error.retry_after
@@ -67,13 +97,9 @@ def register_event_handlers(bot: discord.Bot, runtime: BotRuntime) -> None:
             if seconds > 0 or not time_str:
                 time_str += f"{seconds:.2f}s"
 
-            message = _("This command is on cooldown. Please try again in {duration}.").format(
+            await answer(_("This command is on cooldown. Please try again in {duration}.").format(
                 duration=time_str.strip()
-            )
-            try:
-                await ctx.respond(message, ephemeral=True)
-            except discord.HTTPException:
-                pass
+            ))
             return
 
         if is_donation_command:
@@ -81,12 +107,22 @@ def register_event_handlers(bot: discord.Bot, runtime: BotRuntime) -> None:
 
         if isinstance(error, discord.ApplicationCommandError):
             logger.error("Command Error in '%s': %s", ctx.command, error)
-            try:
-                await ctx.respond(
-                    _("Error during execution: {error}").format(error=error), ephemeral=True
-                )
-            except discord.HTTPException:
-                pass
+            await answer(_("Error during execution: {error}").format(error=error))
         else:
-            logger.error("Unexpected Command Error in '%s': %s", ctx.command, error)
-            traceback.print_exc()
+            # This branch used to log and print a traceback and stop there,
+            # which was defensible while it could only be reached by a prefix
+            # command nobody has. On the slash path it is the branch a DDC
+            # exception arrives in - DockerConnectionError out of a status
+            # command, say - and leaving the interaction unanswered is the one
+            # thing the user always notices (review E14).
+            logger.error("Unexpected Command Error in '%s': %s", ctx.command, error,
+                         exc_info=True)
+            await answer(_("Error during execution: {error}").format(error=error))
+
+    @bot.event
+    async def on_command_error(ctx: commands.Context, error: Exception) -> None:
+        await _handle_command_error(ctx, error)
+
+    @bot.event
+    async def on_application_command_error(ctx: Any, error: Exception) -> None:
+        await _handle_command_error(ctx, error)
