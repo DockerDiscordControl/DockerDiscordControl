@@ -14,6 +14,8 @@ import asyncio
 import logging
 import time
 import docker
+
+from services.exceptions import DockerServiceError
 from dataclasses import dataclass
 from typing import Optional
 from utils.logging_utils import get_module_logger
@@ -204,7 +206,12 @@ class DockerActionService:
 
         # OSError covers requests' ReadTimeout/ConnectionError (e.g. a stop() that outlasts
         # the HTTP read timeout) so the caller gets a clean failure instead of an exception
-        except (RuntimeError, OSError, docker.errors.APIError, docker.errors.DockerException) as e:
+        # DockerServiceError first, because it is the one the comment above was
+        # already promising to turn into a clean failure and did not: the
+        # `async with get_docker_client_async(...)` above raises
+        # DockerConnectionError when the daemon cannot be reached at all
+        # (review E45).
+        except (DockerServiceError, RuntimeError, OSError, docker.errors.APIError, docker.errors.DockerException) as e:
             execution_time_ms = (time.time() - start_time) * 1000
 
             self.logger.error(
