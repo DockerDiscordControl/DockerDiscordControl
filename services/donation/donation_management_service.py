@@ -212,7 +212,13 @@ class DonationManagementService:
                 if not donation.get('is_deleted', False):
                     total_power += donation['amount']
 
-            total_count = len(donations_map)  # Only count actual donations, not deletions
+            # The same filter as total_power above, and as get_donation_stats uses
+            # for the same numbers. This was len(donations_map) - every donation
+            # ever recorded, deleted ones included - under a comment claiming the
+            # opposite, so after a deletion the panel showed an inflated count and
+            # an average diluted by exactly the entries that had been taken out
+            # (review D6).
+            total_count = sum(1 for d in donations_map.values() if not d.get('is_deleted', False))
 
             # Create stats with power calculated from ALL donation types
             stats = DonationStats(
