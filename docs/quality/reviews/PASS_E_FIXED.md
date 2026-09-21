@@ -71,7 +71,7 @@ Pass E is the read of the files that no earlier pass ever covered
 
 | **E46** | **The log tabs in the web panel answered with Flask's HTML error page** when the log files were missing and Docker was unreachable — markup in the log pane at the exact moment you opened it to find out what was wrong. Bot, Discord, Web UI and Application, all four. | Sixth place for the same sentence as E15/E16/E43/E44/E45. C18 had already fixed it for the *other* entry point and left this one, the one the panel actually uses. One handler, **six** scan hits closed (20 → 14). | `dd601a3` |
 
-| **E47** | **Three async log helpers that nothing calls** — and one of them answers every Docker failure with `None`, which is precisely the defect C18 removed from the live path twenty lines above. Its name says it is the modern one, so reconnecting it is the obvious move, and it would bring C18 back. | No symptom today; a trap removed, 52 lines. The guard is not "no dead code" but "every private helper is reachable from something the service offers" — it fails on the next orphan too. Scan 14 → 12. | `PENDING` |
+| **E47** | **Three async log helpers that nothing calls** — and one of them answers every Docker failure with `None`, which is precisely the defect C18 removed from the live path twenty lines above. Its name says it is the modern one, so reconnecting it is the obvious move, and it would bring C18 back. | No symptom today; a trap removed, 52 lines. The guard is not "no dead code" but "every private helper is reachable from something the service offers" — it fails on the next orphan too. Scan 14 → 12. | `6f99ad0` |
 
 ## Under the floor — no symptom yet, but a trap
 
