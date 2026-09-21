@@ -4,6 +4,9 @@ Kept up to date as the pass runs, not written from memory afterwards. One line
 per finding: **what the operator would have seen**, then the technical cause.
 Commits are one per finding.
 
+A hash in the last column is written in a follow-up commit, never in the one it
+names - amending to insert it changes the hash it just recorded.
+
 Pass E is the read of the files that no earlier pass ever covered
 (`docs/quality/COVERAGE_BY_FILE.txt`), plus two mechanical scans
 (`SCANS_2026-09-21.md`).
@@ -20,7 +23,7 @@ Pass E is the read of the files that no earlier pass ever covered
 | **E16** | **The refresh button on a container panel failed** instead of showing that container as unreachable. | Same gap as E15 on the single-container path, which has no connectivity pre-check above it to make up for it. | `da41789` |
 | **E12** | **The monthly donation appeal was not sent at all** in a month where the mech's power had run to zero and its state could not be repaired. | The handler around the $1.00 power gift said "continue anyway to send the message" but listed types that did not include `MechStateError`. | `fc3ca28` |
 | **E19** | **A donor who pressed Submit could be left at "⏳ Processing…" for ever**, with the public "Processing a $X donation" message never removed. Somebody who has just given money and is told nothing gives again. | Two bare `return`s, and a handler that did not list what the mech service raises. | `449b57c` |
-| **E20** | **A broken mech hid your whole container list.** The overview builds the container lines first, then adds the mech on top — and a mech failure took the finished list with it. You lose "is my server up?" because of an animated robot. | The handler around the mech section listed four types, none of them what the mech services raise. **The file already recorded this happening once**, via an `ImportError` that "crashed outright"; that was repaired by fixing the import, not the shape. | `9120631` |
+| **E20** | **A broken mech hid your whole container list.** The overview builds the container lines first, then adds the mech on top — and a mech failure took the finished list with it. You lose "is my server up?" because of an animated robot. | The handler around the mech section listed four types, none of them what the mech services raise. **The file already recorded this happening once**, via an `ImportError` that "crashed outright"; that was repaired by fixing the import, not the shape. | `523a1b4` |
 | **E18** | **Your refresh interval was ignored** when a helper service was unavailable: the overview was edited every minute instead of every 5 / 30 / 60 as configured. | Two branches taking the same decision had two different fallbacks; nobody decided they should differ. | `92fe615` |
 
 ## Under the floor — no symptom yet, but a trap
