@@ -2882,9 +2882,20 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         )
 
         # Build description header
+        # The counts are not known yet - the loop below does the counting - so
+        # this slot is filled once, afterwards, and nothing is formatted twice.
+        #
+        # It used to build the whole line here with online='{online}' and
+        # offline='{offline}' passed as LITERAL strings, so they survived the
+        # format and could be filled later. They never were: the line further
+        # down rebuilds the string from scratch, so that first build was a
+        # catalogue lookup and a format whose result was thrown away on every
+        # admin overview. And it looked deliberate, which is the worse half -
+        # if the rebuild ever stopped running, the operator's panel would read
+        # "Online: {online}" in words (review E42).
         header_lines = [
             translate("Last update") + f": {current_time}",
-            translate("Container: {total} • Online: {online} • Offline: {offline}").format(total=total_containers, online='{online}', offline='{offline}')
+            "",
         ]
 
         # Collect container lines separately (will add spacing between them later)
