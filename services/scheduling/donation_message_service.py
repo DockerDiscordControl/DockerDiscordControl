@@ -109,8 +109,21 @@ async def execute_donation_message_task(bot: Optional[Any] = None) -> bool:
                 power_boost_given = True
                 current_state = new_state  # Show the boosted state in the message
                 logger.info(f"System donation successful. New power: ${new_state.power_current:.2f}")
-            except (ValueError, TypeError, RuntimeError) as donation_error:
-                logger.error(f"Failed to add system donation: {donation_error}", exc_info=True)
+            except Exception as donation_error:  # noqa: BLE001
+                # Broad on purpose, and the comment below was always the intent:
+                # the appeal has nothing to do with whether the gift worked.
+                #
+                # This tuple used to be (ValueError, TypeError, RuntimeError).
+                # add_system_donation calls _heal_if_lagging under the lock, and
+                # review D1 gave that helper a raise - a snapshot that lags
+                # behind the event log and cannot be rebuilt now raises
+                # MechStateError instead of quietly burying a donation. That
+                # repair was right, and MechStateError is in none of the three
+                # tuples in this file, so it left the task entirely and the
+                # month's appeal was sent to nobody (review E12). Same sentence
+                # as the startup power gift, second location (review E8).
+                logger.error("Failed to add system donation: %s: %s",
+                             type(donation_error).__name__, donation_error, exc_info=True)
                 # Continue anyway to send the message
         else:
             logger.info(f"Mech has power (${current_power:.2f}) - no power boost needed")
