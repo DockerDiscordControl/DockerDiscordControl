@@ -13,7 +13,7 @@ the donation buttons, the evolution chronicle, the story and song buttons.
 | # | What | Commit |
 |---|---|---|
 | E34/E35 | 75 pieces of user-facing text appeared in English in a German interface, 39 of them in this file. Written up in `PASS_E_FIXED.md`. | several |
-| E37 | **The 26th container is not in the dropdown and nothing says so.** | `TBD` |
+| E37 | **The 26th container is not in the dropdown and nothing says so.** | `147afb1` |
 
 ### E37, and the shape of it
 
