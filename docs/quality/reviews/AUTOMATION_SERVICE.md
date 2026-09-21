@@ -13,10 +13,10 @@ around the two mechanical scans.
 
 **Should an undeterminable container state skip the action, or run it?**
 
-**Decided 2026-09-21: run it.** The operator's words: *"lass das wie es ist,
-Befehle haben Vorrang."* An action that was asked for wins over a state that
-could not be read. That is what the code already did, so nothing changed -
-which is why the repair below is only about the silence.
+**Decided 2026-09-21: run it.** The operator's answer, translated: *"leave it
+as it is, commands take priority."* An action that was asked for wins over a
+state that could not be read. That is what the code already did, so nothing
+changed - which is why the repair below is only about the silence.
 
 An Auto-Action rule can carry `only_if_running`. The code's own comment says
 what it is for: *"don't touch a container that was stopped on purpose."* It

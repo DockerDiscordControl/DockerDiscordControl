@@ -791,24 +791,61 @@ class ConfigService:
             raise
 
     def _decrypt_token_if_needed(self, token: str, password_hash: Optional[str]) -> Optional[str]:
-        """Decrypt token if it's encrypted, otherwise return as-is."""
+        """The usable bot token, or None. Never a token-shaped thing that is not one.
+
+        This used to end in a bare ``return token``, and that line was reached
+        in two ways that are not "it was already plaintext" (review E26):
+
+        1. no ``web_ui_password_hash``, so the branch below is skipped entirely
+           and the ENCRYPTED token comes back as if it were usable;
+        2. the decryption raised nothing but produced something that is not a
+           Discord token.
+
+        ``get_config`` then logged "Successfully decrypted token for usage" and
+        handed the ciphertext to the bot, so Discord answered "Improper token
+        has been passed" while DDC's log reported a success - and the operator
+        went looking for a wrong token instead of a missing password.
+
+        A config with an encrypted token and no password hash is not
+        hypothetical: ``_repair_bot_token`` exists for exactly that state and
+        handles it on save and in the legacy fold. The read path had nothing.
+
+        Telling the two apart is safe to do by shape, and it was measured
+        rather than assumed: a Discord bot token is three dot-separated parts,
+        and a Fernet ciphertext is dotless base64url. See
+        tests/spec/test_an_undecryptable_token_is_not_handed_on.py.
+        """
         if not token:
             return None
 
-        # Check if token is encrypted (starts with base64 pattern or looks like encrypted data)
-        # Discord tokens start with specific patterns, encrypted tokens don't
-        if password_hash and not self._validation_service.looks_like_discord_token(token):
-            try:
-                decrypted = self.decrypt_token(token, password_hash)
-                if decrypted and self._validation_service.looks_like_discord_token(decrypted):
-                    return decrypted
-            except TokenEncryptionError as e:
-                logger.error(f"Token decryption failed: {e.message}", exc_info=True)
-                # Return None on decryption failure
-                return None
+        looks_like_token = self._validation_service.looks_like_discord_token
+        if looks_like_token(token):
+            return token
 
-        # Return plaintext token as-is if it looks like a Discord token
-        return token
+        # Not a Discord token, so it is either encrypted or damaged. Either way
+        # it is only usable if it decrypts into one.
+        if not password_hash:
+            logger.error(
+                "The stored bot token is encrypted and there is no Web UI "
+                "password to decrypt it with. The bot cannot log in until a "
+                "password is set on the /setup page - the token itself is fine.")
+            return None
+
+        try:
+            decrypted = self.decrypt_token(token, password_hash)
+        except TokenEncryptionError as e:
+            logger.error(f"Token decryption failed: {e.message}", exc_info=True)
+            return None
+
+        if decrypted and looks_like_token(decrypted):
+            return decrypted
+
+        logger.error(
+            "The stored bot token was decrypted without error but the result is "
+            "not a Discord token - the Web UI password has most likely changed "
+            "since the token was saved. Re-enter the token on the configuration "
+            "page.")
+        return None
 
     def _keep_bot_token_encrypted(self, main_config: Dict[str, Any], existing: Dict[str, Any]) -> None:
         """Never let a save replace an encrypted bot_token with a plaintext one."""
