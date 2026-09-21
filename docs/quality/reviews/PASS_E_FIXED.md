@@ -27,6 +27,12 @@ Pass E is the read of the files that no earlier pass ever covered
 | **E20** | **A broken mech hid your whole container list.** The overview builds the container lines first, then adds the mech on top — and a mech failure took the finished list with it. You lose "is my server up?" because of an animated robot. | The handler around the mech section listed four types, none of them what the mech services raise. **The file already recorded this happening once**, via an `ImportError` that "crashed outright"; that was repaired by fixing the import, not the shape. | `523a1b4` |
 | **E18** | **Your refresh interval was ignored** when a helper service was unavailable: the overview was edited every minute instead of every 5 / 30 / 60 as configured. | Two branches taking the same decision had two different fallbacks; nobody decided they should differ. | `92fe615` |
 
+## Web panel
+
+| # | What you would have seen | Cause | Commit |
+|---|---|---|---|
+| **E22** | **Opening the Discord-admin dialog when the admin file could not be read showed "no users configured" — and pressing Save then deleted every admin and every container assignment.** A read error turning into a write that erases what it failed to read. | The route answered a read failure with HTTP **200** and an error body. `fetch()` does not reject on a 200, so the panel read the error as an empty admin list. | `8d9ab03` |
+
 ## Under the floor — no symptom yet, but a trap
 
 | # | What | Commit |
