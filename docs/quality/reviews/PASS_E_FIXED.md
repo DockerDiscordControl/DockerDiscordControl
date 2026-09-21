@@ -45,6 +45,8 @@ Pass E is the read of the files that no earlier pass ever covered
 
 | **E30** | **Every label DDC writes re-read the whole configuration.** `_()` — behind every embed label, button and message — deep-copied a 361-key, 19 KB config to look up one key. Measured: 18.1 µs per call, 16.5 of them load_config. Now **0.2 µs**, ninety times faster. | The language is cached for five seconds instead of re-read per string. Found because **E29 was a 4× regression on that same path** and only measuring showed it. | `` |
 
+| **E31** | **1.2 seconds off every start.** Importing any service imported five of them, because the package re-exported names that nothing in the codebase uses. Measured before: 1199 ms and 23 modules. After: **0 ms, 0 modules.** | It also meant an ImportError in the mech service made `services.config` unimportable — a mech problem becoming a config problem, one layer below E8. | `b269adf` |
+
 ## Under the floor — no symptom yet, but a trap
 
 | # | What | Commit |
