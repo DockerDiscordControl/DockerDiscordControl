@@ -438,8 +438,17 @@ def get_spam_protection():
     try:
         spam_service = get_spam_protection_service()
         result = spam_service.get_config()
-        settings = result.data.to_dict() if result.success else {}
-        return jsonify(settings)
+        if not result.success:
+            # Not an empty object with HTTP 200. The panel draws its
+            # spam-protection form from whatever this returns, so `{}` made it
+            # show its own HTML start values and the operator read them as the
+            # settings in force. The POST sibling below has always answered
+            # with a reason and a status; the two halves of one form disagreed
+            # about what a failure looks like (review D9).
+            current_app.logger.error(f"Spam protection settings could not be read: "
+                                     f"{result.error}")
+            return jsonify({'error': 'Unable to read the spam protection settings'}), 500
+        return jsonify(result.data.to_dict())
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (spam protection service unavailable)
         current_app.logger.error(f"Service dependency error getting spam protection settings: {e}", exc_info=True)
