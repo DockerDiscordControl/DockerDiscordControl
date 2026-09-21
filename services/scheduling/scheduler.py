@@ -1729,8 +1729,20 @@ def _get_disallowed_action_reason(container_name: str, action: str) -> Optional[
         from services.config.server_config_service import get_server_config_service
         servers = get_server_config_service().get_all_servers()
     except (ImportError, AttributeError, RuntimeError, OSError, ValueError) as e:
-        logger.warning(f"Could not check allowed actions for '{container_name}': {e}")
-        return None
+        # REFUSES, where this used to return None and let the action through.
+        # None means "may run" here, so an unreadable config was granting a
+        # permission it could not check - and SPEC.md Z5 says start, stop and
+        # restart happen only if the container allows the action, on every path
+        # including this one. It is also the answer this programme gave the same
+        # question elsewhere: D36 for the admin list, D32 for the container
+        # assignment, E5 for the validity check. A permission that cannot be
+        # read is not a permission granted (review E6).
+        #
+        # Since E3 a skipped run is written on the task, so this does not
+        # vanish into the log the way it would have before.
+        logger.error(f"Could not check allowed actions for '{container_name}': {e}", exc_info=True)
+        return (f"The container configuration could not be read, so it is not known whether "
+                f"'{action}' is still allowed for '{container_name}'")
 
     for server in servers:
         if isinstance(server, dict) and server.get('docker_name') == container_name:

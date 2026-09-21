@@ -526,6 +526,19 @@ check would have no channel to check.
 *Confirmed by the operator on 2026-09-19.* This is the documented exception to Z5, no longer an
 open question.
 
+**B14 — A scheduled action is skipped when the container configuration cannot be read.**
+`_get_disallowed_action_reason` answers "may run" with None, and its handler used to answer None
+when it could not tell either — so an unreadable configuration let the scheduler start, stop or
+restart a container without confirming the container still allows that action. Z5 says both checks
+hold on every path, and B12 (web-panel tasks) is a different exception. Since 2026-09-21 the
+unverifiable case is refused and written on the task, which is the same answer this project gives
+everywhere else: a permission that cannot be read is not a permission granted (D36, D32, E5).
+**The operational consequence, stated plainly:** while the container configuration is unreadable,
+scheduled container actions do not run. They are visible as skipped on each task rather than
+silently absent. A container that is simply NOT in the configuration still runs, with the warning
+that was already there — that is a different decision and unchanged.
+*Covered by* `tests/spec/test_a_schedule_does_not_act_on_an_unreadable_config.py`.
+
 **B13 — Z7 (atomic writes) applies to the application code, not to `scripts/`.**
 The scripts are started by the operator, who watches while they run: a broken write would be
 noticed, not go unnoticed. Counted on 2026-09-16: 33 non-atomic write sites in 16 scripts, two of

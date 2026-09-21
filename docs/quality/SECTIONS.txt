@@ -167,8 +167,8 @@ services/scheduling/schedule_helpers.py:1-71
 ## Section 26  (1745 lines, 1 piece)
 services/scheduling/scheduler.py:1-1745
 
-## Section 27  (1945 lines, 6 pieces)
-services/scheduling/scheduler.py:1746-2248
+## Section 27  (1957 lines, 6 pieces)
+services/scheduling/scheduler.py:1746-2260
 services/scheduling/scheduler_service.py:1-552
 services/status/__init__.py:1-13
 services/status/status_cache_service.py:1-225
