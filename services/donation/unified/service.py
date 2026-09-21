@@ -28,7 +28,8 @@ from utils.observability import metrics, tracing, get_structured_logger
 import time
 
 # Import specific exceptions for better error handling
-from services.exceptions import MechServiceError, DonationServiceError
+from services.exceptions import (DDCBaseException, DonationServiceError,
+                                 MechServiceError)
 
 
 logger = get_module_logger("unified_donation_service")
@@ -187,8 +188,15 @@ class UnifiedDonationService:
                     error_message=f"Data processing error: {exc}",
                     error_code="DATA_ERROR",
                 )
-            except (RuntimeError, OSError) as exc:  # pragma: no cover - defensive logging
-                # System/runtime errors (file I/O, event emission)
+            except (RuntimeError, OSError, DDCBaseException) as exc:
+                # System/runtime errors (file I/O, event emission), and every DDC
+                # exception that is not a MechServiceError. DDCBaseException
+                # inherits straight from Exception, so a ConfigLoadError while the
+                # level-up prices the next goal, a ConfigCacheError or a
+                # DonationServiceError walked past all three handlers and left
+                # this method - and the donor saw Discord's own "application did
+                # not respond" instead of the reason (review D20, the shape of
+                # reviews C6 and C33).
                 duration_ms = (time.time() - start_time) * 1000
                 metrics.increment("donations.system_error.total")
 
@@ -370,8 +378,15 @@ class UnifiedDonationService:
                     error_message=f"Data processing error: {exc}",
                     error_code="DATA_ERROR",
                 )
-            except (RuntimeError, OSError) as exc:  # pragma: no cover - defensive logging
-                # System/runtime errors (file I/O, event emission)
+            except (RuntimeError, OSError, DDCBaseException) as exc:
+                # System/runtime errors (file I/O, event emission), and every DDC
+                # exception that is not a MechServiceError. DDCBaseException
+                # inherits straight from Exception, so a ConfigLoadError while the
+                # level-up prices the next goal, a ConfigCacheError or a
+                # DonationServiceError walked past all three handlers and left
+                # this method - and the donor saw Discord's own "application did
+                # not respond" instead of the reason (review D20, the shape of
+                # reviews C6 and C33).
                 duration_ms = (time.time() - start_time) * 1000
                 metrics.increment("donations.async.system_error.total")
 
