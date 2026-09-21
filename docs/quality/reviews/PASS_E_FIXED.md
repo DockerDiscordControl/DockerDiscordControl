@@ -41,7 +41,9 @@ Pass E is the read of the files that no earlier pass ever covered
 
 | **E25** | **A container you stopped on purpose could be restarted by an Auto-Action** — the "only if running" switch was silently not honoured when the container's state could not be read, and nothing anywhere said so. | Three-state answer, two-state check: only a confirmed "not running" skipped. **Semantics unchanged, and since confirmed by the operator** ("commands take priority"); what was fixed is the silence. | `80657ac` |
 
-| **E29** | **A config file edited by hand could go on being ignored** — change a channel permission directly in `config/channels/` and DDC keeps serving the old configuration until a restart. | The cache checked only the mtime of `config/`, which does not move when a file in a subdirectory changes. No live defect (every save path invalidates explicitly, and bot and panel are one process) — a trap for hand edits and for the next save path. | `c490916` |
+| **E29** | **A config file edited by hand could go on being ignored** — change a channel permission directly in `config/channels/` and DDC keeps serving the old configuration until a restart. | The cache checked only the mtime of `config/`, which does not move when a file in a subdirectory changes. No live defect (every save path invalidates explicitly, and bot and panel are one process) — a trap for hand edits and for the next save path. Its cost was measured afterwards: +49 µs per `load_config`, which is one call per embed and 0.05% of the 96 ms an embed takes. See E30. | `c490916` |
+
+| **E30** | **Every label DDC writes re-read the whole configuration.** `_()` — behind every embed label, button and message — deep-copied a 361-key, 19 KB config to look up one key. Measured: 18.1 µs per call, 16.5 of them load_config. Now **0.2 µs**, ninety times faster. | The language is cached for five seconds instead of re-read per string. Found because **E29 was a 4× regression on that same path** and only measuring showed it. | `` |
 
 ## Under the floor — no symptom yet, but a trap
 
