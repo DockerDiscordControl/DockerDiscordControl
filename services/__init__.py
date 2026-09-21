@@ -26,26 +26,26 @@ parent_dir = os.path.dirname(current_dir)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-# Infrastructure Services
-# pylint: disable=wrong-import-position  # Imports must come after sys.path setup
-from .infrastructure.container_info_service import get_container_info_service
-from .infrastructure.action_log_service import get_action_log_service
-from .infrastructure.spam_protection_service import get_spam_protection_service
-
-# Config Services
-from .config.config_service import get_config_service
-
-# Mech Services
-from .mech.mech_service import get_mech_service
-# Removed deprecated mech_animation_service - use png_to_webp_service directly
-
-__all__ = [
-    # Infrastructure
-    'get_container_info_service',
-    'get_action_log_service',
-    'get_spam_protection_service',
-    # Config
-    'get_config_service',
-    # Mech
-    'get_mech_service'
-]
+# NOTHING IS IMPORTED HERE ON PURPOSE (review E31).
+#
+# This used to re-export five service factories - container info, action log,
+# spam protection, config and mech - which meant that importing ANYTHING under
+# `services` first imported all five.
+#
+# Measured in the running container: `import services` cost 1199 ms and pulled
+# in 23 modules. Measured in the source tree: nothing used the re-exports. Not
+# one `from services import ...`, not one `services.get_config_service(...)`,
+# not one bare `import services`. Every caller imports the module it wants.
+#
+# So it bought nothing and cost two things: 1.2 seconds of every start, and a
+# coupling where an ImportError anywhere in those five made
+# `services.config.config_service` unimportable too. A mech problem becoming a
+# configuration problem is the same sentence as reviews E8 and E12, one layer
+# down. It is also why tests/unit/app_modules/test_utils_and_bot.py has to
+# replace this whole package with stubs in order to test anything.
+#
+# Import the service you need directly:
+#
+#     from services.config.config_service import get_config_service
+#
+# The sys.path setup above stays. It is load-bearing and is a different thing.

@@ -98,14 +98,14 @@ cogs/status_handlers.py	1398	passE:E15,E16:80-200,560-700
 cogs/status_info_integration.py	2397	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203
 cogs/translation_manager.py	149	passE:E30:read-in-full
 cogs/translation_monitor.py	97	NONE
-services/__init__.py	51	NONE
-services/admin/__init__.py	5	NONE
+services/__init__.py	51	passE:E31:read-in-full
+services/admin/__init__.py	5	passE:read-in-full
 services/admin/admin_service.py	379	passE:F1-feature-read:87-160,262-330
 services/automation/__init__.py	14	passE:bothscans+E25
 services/automation/auto_action_config_service.py	735	passE:bothscans+E25
 services/automation/auto_action_state_service.py	364	passE:bothscans+E25
 services/automation/automation_service.py	556	passE:bothscans+E25
-services/config/__init__.py	16	NONE
+services/config/__init__.py	16	passE:read-in-full
 services/config/channel_config_service.py	576	passE:E28+bothscans:126-300
 services/config/config_cache_service.py	177	passE:E29:read-in-full
 services/config/config_form_parser_service.py	517	pass1:s12:1-483  [23 of 506 lines never in a package]
@@ -115,7 +115,7 @@ services/config/config_service.py	1248	passE:E26+bothscans:252-352,354-512,793-9
 services/config/config_validation_service.py	212	NONE
 services/config/container_config_save_service.py	150	NONE
 services/config/server_config_service.py	213	NONE
-services/discord/__init__.py	20	NONE
+services/discord/__init__.py	20	passE:read-in-full
 services/discord/channel_cleanup_service.py	499	pass1:s14:plan pass2:s14:1-453  [46 of 499 lines never in a package]
 services/discord/conditional_update_cache_service.py	184	pass1:s14:plan pass2:s14:1-169  [15 of 184 lines never in a package]
 services/discord/embed_helper_service.py	173	pass1:s14:plan pass2:s14:1-163  [10 of 173 lines never in a package]
