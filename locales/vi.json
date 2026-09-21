@@ -1624,5 +1624,7 @@
   "web.server.info_needs_config": "⚠ Cần cấu hình — mở để nhập token",
   "web.server.query_token_label_palworld": "Mật khẩu admin Palworld",
   "web.server.query_token_help_palworld": "Chỉ Palworld: số người chơi lấy từ REST API của máy chủ (tên người dùng \"admin\"). Bật RESTAPIEnabled và đặt AdminPassword trong PalWorldSettings.ini; cổng REST API mặc định là 8212.",
-  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers",
+  "⚠️ Status could not be refreshed": "⚠️ Status could not be refreshed",
+  "**{server_name}** was {action_process_text} - only this panel could not be updated. Use /control for a fresh one.": "**{server_name}** was {action_process_text} - only this panel could not be updated. Use /control for a fresh one."
 }

@@ -255,6 +255,49 @@ class ActionButton(Button):
 
         super().__init__(style=style, label=label, custom_id=custom_id, row=row, emoji=emoji)
 
+    def _failed_embed(self) -> discord.Embed:
+        """What a press that could not be completed says."""
+        embed = discord.Embed(
+            title=_("❌ Server Action Failed"),
+            description=_("Server **{server_name}** could not be processed {action_process_text}.").format(
+                server_name=self.display_name,
+                action_process_text=f"({_(self.action.capitalize())})"),
+            color=discord.Color.red())
+        embed.set_footer(text="https://ddc.bot")
+        return embed
+
+    async def _say_the_panel_is_stale(self, interaction, *, action_done: bool) -> None:
+        """Take the message off an intermediate state when the press fell over.
+
+        A press walks the message through the pending embed and then
+        "⏳ Processing..." with view=None - no buttons - and only the
+        background refresh ever edits it again. When that refresh died with a
+        type the handlers did not list, the message stayed on "please wait"
+        for good: visible, permanent, and wrong. The container was fine and
+        controllable from a freshly rendered panel; it was THIS message that
+        was dead, and it is the one the operator is looking at (review D31).
+
+        The two cases are not the same thing and must not share a sentence:
+        after the action ran, only the refresh failed, and saying "the action
+        failed" there would be a lie in the other direction.
+        """
+        if action_done:
+            embed = discord.Embed(
+                title=_("⚠️ Status could not be refreshed"),
+                description=_("**{server_name}** was {action_process_text} - only this "
+                              "panel could not be updated. Use /control for a fresh one.").format(
+                    server_name=self.display_name,
+                    action_process_text=f"({_(self.action.capitalize())})"),
+                color=0xffa500)
+            embed.set_footer(text="https://ddc.bot")
+        else:
+            embed = self._failed_embed()
+        try:
+            await interaction.edit_original_response(embed=embed, view=None)
+        except (discord.NotFound, discord.HTTPException) as e:
+            logger.warning(f"[ACTION_BTN] Could not replace the stale panel for "
+                           f"{self.display_name}: {e}")
+
     async def callback(self, interaction: discord.Interaction) -> None:
         """Callback for Start, Stop, Restart actions."""
         # Check button-specific spam protection
@@ -359,6 +402,10 @@ class ActionButton(Button):
             )
 
             async def run_docker_action():
+                # Whether Docker has actually carried the action out. It decides
+                # which of the two things a failure below is allowed to claim
+                # (review D31).
+                action_done = False
                 try:
                     # SERVICE FIRST: Use new Docker Action Service
                     from services.docker_service.docker_action_service import docker_action_service_first
@@ -372,18 +419,14 @@ class ActionButton(Button):
                         # review A5). The service turns Docker errors into False.
                         if self.cog.pending_actions.get(self.docker_name) is pending_entry:
                             del self.cog.pending_actions[self.docker_name]
-                        failed_embed = discord.Embed(
-                            title=_("❌ Server Action Failed"),
-                            description=_("Server **{server_name}** could not be processed {action_process_text}.").format(
-                                server_name=self.display_name,
-                                action_process_text=f"({_(self.action.capitalize())})"),
-                            color=discord.Color.red())
-                        failed_embed.set_footer(text="https://ddc.bot")
+                        failed_embed = self._failed_embed()
                         try:
                             await interaction.edit_original_response(embed=failed_embed, view=None)
                         except (discord.NotFound, discord.HTTPException) as e:
                             logger.warning(f"[ACTION_BTN] Could not show the failure for {self.display_name}: {e}")
                         return
+
+                    action_done = True
 
                     # Remove from pending_actions - use docker_name as key!
                     if self.docker_name in self.cog.pending_actions:
@@ -627,19 +670,36 @@ class ActionButton(Button):
                                         except Exception as e:
                                             logger.error(f"[ACTION_BTN] Failed to update admin_overview: {e}")
 
-                        except (discord.errors.DiscordException, RuntimeError) as e:
+                        except asyncio.CancelledError:
+                            # The bot is going down - the panel is the least of it.
+                            raise
+                        except BaseException as e:
+                            # Deliberately not a type list. At this point the
+                            # message stands on "⏳ Processing..." with no
+                            # buttons and only this task ever edits it again,
+                            # so whatever went wrong it must not be left there
+                            # (review D31).
                             logger.error(f"[ACTION_BTN] Error in update_all_views: {e}", exc_info=True)
+                            await self._say_the_panel_is_stale(interaction, action_done=True)
 
                     # Create background task for BOTH Admin Control + Server Overview updates
                     update_task = asyncio.create_task(update_all_views())
                     update_task.add_done_callback(
                         lambda t: _log_background_task_exception(t, f"update views for {self.docker_name}"))
 
-                except (RuntimeError, OSError, asyncio.TimeoutError) as e:
+                except asyncio.CancelledError:
+                    if self.docker_name in self.cog.pending_actions:
+                        del self.cog.pending_actions[self.docker_name]
+                    raise
+                except BaseException as e:
+                    # Same reason as in update_all_views: the message is sitting
+                    # on the pending or the processing embed and nothing else
+                    # will touch it (review D31).
                     logger.error(f"[ACTION_BTN] Error in background Docker {self.action}: {e}", exc_info=True)
                     # Remove from pending_actions - use docker_name as key!
                     if self.docker_name in self.cog.pending_actions:
                         del self.cog.pending_actions[self.docker_name]
+                    await self._say_the_panel_is_stale(interaction, action_done=action_done)
 
             # Create task; the done-callback logs exceptions and always clears pending_actions
             task = asyncio.create_task(run_docker_action())

@@ -1624,5 +1624,7 @@
   "web.server.info_needs_config": "⚠ Configuração necessária — abrir para introduzir o token",
   "web.server.query_token_label_palworld": "Palavra-passe de administrador do Palworld",
   "web.server.query_token_help_palworld": "Apenas Palworld: a contagem de jogadores é obtida através da REST API do servidor (utilizador \"admin\"). Ative RESTAPIEnabled e defina um AdminPassword em PalWorldSettings.ini; a porta da REST API é 8212 por omissão.",
-  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers"
+  "\nNot checked (no current status): **{count}** containers": "\nNot checked (no current status): **{count}** containers",
+  "⚠️ Status could not be refreshed": "⚠️ Status could not be refreshed",
+  "**{server_name}** was {action_process_text} - only this panel could not be updated. Use /control for a fresh one.": "**{server_name}** was {action_process_text} - only this panel could not be updated. Use /control for a fresh one."
 }
