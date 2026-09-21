@@ -2836,7 +2836,19 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     # For refreshes without animation file, reference existing with correct extension
                     embed.set_image(url="attachment://mech_animation.webp")  # Assume WebP for new system
 
-            except (discord.errors.DiscordException, RuntimeError, OSError, KeyError) as e:
+            except Exception as e:  # noqa: BLE001
+                # Broad on purpose (review E20). The container list is already in
+                # embed.description by the time this block runs; the mech is
+                # decoration on top of it. Anything that escapes here takes the
+                # finished list with it, and the operator loses the thing they
+                # need - is my server up? - because of the thing they do not.
+                #
+                # This file already records that happening: the comment above
+                # describes an ImportError that "escaped the handler below (it
+                # only catches DiscordException/RuntimeError/OSError/KeyError),
+                # so expanding the mech section in Discord crashed outright".
+                # That was repaired by fixing the import. The shape that let one
+                # bad import take the whole overview down was left alone.
                 logger.error(f"Could not load expanded mech status for /ss: {e}", exc_info=True)
         else:
             # Donations disabled - no mech components
@@ -3276,7 +3288,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     # For refreshes without animation file, reference existing with correct extension
                     embed.set_image(url="attachment://mech_animation.webp")  # Assume WebP for new system
 
-            except (discord.errors.DiscordException, RuntimeError, OSError, KeyError) as e:
+            except Exception as e:  # noqa: BLE001 - same as the expanded builder (E20)
                 logger.error(f"Could not load collapsed mech status for /ss: {e}", exc_info=True)
         else:
             # Donations disabled - no mech components
