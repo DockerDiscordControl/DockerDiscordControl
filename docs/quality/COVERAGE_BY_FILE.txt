@@ -112,8 +112,8 @@ services/config/config_form_parser_service.py	517	pass1:s12:1-483  [23 of 506 li
 services/config/config_loader_service.py	481	pass1:s12:1-468  [13 of 481 lines never in a package]
 services/config/config_migration_service.py	466	pass1:s12:1-406  [60 of 466 lines never in a package]
 services/config/config_service.py	1248	passE:E26+bothscans:252-352,354-512,793-910
-services/config/config_validation_service.py	212	NONE
-services/config/container_config_save_service.py	150	NONE
+services/config/config_validation_service.py	212	passE:read-in-full:no-findings
+services/config/container_config_save_service.py	150	passE:read-in-full:no-findings
 services/config/server_config_service.py	233	passE:E33:read-in-full
 services/discord/__init__.py	20	passE:read-in-full
 services/discord/channel_cleanup_service.py	499	pass1:s14:plan pass2:s14:1-453  [46 of 499 lines never in a package]

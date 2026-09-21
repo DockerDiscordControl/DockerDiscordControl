@@ -99,6 +99,17 @@ exactly how `dfa3662` broke the panel's JavaScript (review E2): the commit
 message said *"No mutation probe: nothing can turn red when dead code is
 deleted"*, and the reasoning was wrong.
 
+- **`default_perms = {}`, hard-coded, in `periodic_message_edit_loop`.** The
+  loop then reads `default_perms.get('update_interval_minutes', 5)` and
+  `default_perms.get('enable_auto_refresh', True)` - on a dictionary that is
+  always empty, so the configured `default_channel_permissions` are never
+  consulted there and the literals always win. Not broken: every channel the
+  panel configures carries its own explicit values, and
+  `control_helpers.py:108` does read the configured defaults for command
+  permissions. It is misleading rather than wrong - a reader sees the defaults
+  being consulted and they are not. Left alone because removing it is a change
+  to what the loop reads, and nothing today notices the difference.
+
 ## What this file still has not had
 
 The read went to the loops first, because a silent permanent stop is the
