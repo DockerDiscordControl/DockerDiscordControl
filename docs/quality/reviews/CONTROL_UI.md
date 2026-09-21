@@ -68,6 +68,38 @@ affects anyone who installs DDC and runs more than twenty-five.
   full buttons and let a DDC exception through; E24 catches it at the view.
 - Both mechanical scans over the whole file: nothing beyond the above.
 
+## A shape closed with no defect behind it (E40)
+
+Button labels and select placeholders were the fifth shape the translation
+guard did not watch, and a label is read exactly like any other text. Measured:
+**one** hit in the whole project, `label="Mech"` — and that is the robot's
+name, not a word to translate, in the same way "Docker" is not translated.
+
+So the guard covers labels now and `PROPER_NOUNS` holds DDC's own names with
+the reason written beside them. No defect was found and none is claimed; what
+changed is that an English label added tomorrow will be.
+
+Worth stating plainly because this review has widened that guard five times:
+**four of those widenings found real defects and the fifth found nothing.**
+A guard that only ever gets wider when something is already broken is a guard
+that arrives late every time.
+
+## Logic, read and found sound
+
+- **`MechDetailsButton`** builds a cache-busting filename from the level and
+  the power (`mech_level_3_power_12.50.webp`), which is right - Discord caches
+  attachments by name, and without the power in it an evolving mech would keep
+  showing yesterday's picture. `power_decimal` is a float with a `0.0` default
+  on the result dataclass, so the `:.2f` cannot meet a `None`.
+- **`MechExpandButton` / `MechCollapseButton`** take the interaction lock
+  through `_start_interaction`, release it in a `finally`, and return without
+  releasing only on the path where they never took it. Their spam-protection
+  keys carry three earlier corrections and the reasons are written next to
+  them.
+- The `_`-shadowing comment in `MechExpandButton` describes exactly the
+  mistake I then made twice myself today (reviews E34 and E38). It was already
+  written down; I did not read it before editing.
+
 ## What this file still has not had
 
 The story and song buttons (`ReadStoryButton`, `PlaySongButton`,

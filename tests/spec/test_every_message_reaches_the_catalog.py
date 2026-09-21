@@ -65,6 +65,15 @@ PROJECT = Path(__file__).resolve().parents[2]
 SENDERS = {"send_message", "send", "respond", "edit_original_response", "edit_message"}
 EMBED_BUILDERS = {"Embed", "set_footer", "add_field"}
 EMBED_TEXT_ARGS = {"title", "description", "text", "name", "value"}
+# A button's label and a select's placeholder are read by the user like any
+# other text, and a different floor applies to them: "Help" is a whole label
+# and four characters long (review E40).
+WIDGET_TEXT_ARGS = {"label", "placeholder"}
+
+# Words DDC uses as its own names. "Mech" is what the robot is called, in every
+# language the project ships - translating it would be translating a name, like
+# translating "Docker". Listed rather than guessed at.
+PROPER_NOUNS = {"Mech", "DDC", "Docker", "Discord"}
 
 # Deliberately corrupted text, and therefore deliberately NOT language. The
 # mech story shows a damaged transmission at level 11; translating
@@ -160,6 +169,17 @@ def _plain_literals(path: Path):
                 or getattr(node.func, "id", None) == "Embed"):
             candidates += [kw.value for kw in node.keywords
                            if kw.arg in EMBED_TEXT_ARGS]
+
+        # Labels and placeholders, judged by their own rule: any word that is
+        # not one of DDC's own names.
+        for kw in node.keywords:
+            if kw.arg not in WIDGET_TEXT_ARGS:
+                continue
+            for text in _literal_parts(kw.value):
+                stripped = _prose(text)
+                if (stripped and any(c.isalpha() for c in stripped)
+                        and stripped not in PROPER_NOUNS):
+                    found.append((node.lineno, stripped))
 
         for arg in candidates:
             for text in _literal_parts(arg):
@@ -268,6 +288,33 @@ def test_a_message_split_across_an_f_string_is_still_seen(tmp_path):
     assert _plain_literals(split), (
         "an f-string whose literal halves are each under fifteen characters "
         "was not seen, although the message a user reads is twenty-seven"
+    )
+
+
+def test_an_untranslated_button_label_is_seen(tmp_path):
+    """A label is text too, and "Help" is four characters (review E40)."""
+    widget = tmp_path / "widget.py"
+    widget.write_text(
+        "def build():\n"
+        "    return Button(label='Help', style=1)\n",
+        encoding="utf-8")
+
+    assert _plain_literals(widget), (
+        "an English button label was not seen; labels are read by the user "
+        "exactly like any other text"
+    )
+
+
+def test_the_projects_own_names_are_left_alone(tmp_path):
+    """Counter-check: "Mech" is a name, not a word to translate."""
+    widget = tmp_path / "noun.py"
+    widget.write_text(
+        "def build():\n"
+        "    return Button(label='Mech', style=1)\n",
+        encoding="utf-8")
+
+    assert not _plain_literals(widget), (
+        "DDC's own name for the robot was reported as untranslated text"
     )
 
 
