@@ -3416,6 +3416,20 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             updated_count = 0
             for channel_id, messages in self.channel_server_message_ids.items():
                 if 'overview' in messages:
+                    # Per channel, and it has to be (review E23). Everything below
+                    # decides EDIT or delete-and-repost for THIS channel, and it
+                    # used to decide it in `force_recreate` - the function's own
+                    # parameter - so the first channel that said "recreate" said it
+                    # for every channel after it, in dictionary order, without
+                    # their decisions ever being consulted. _edit_only_ss_messages
+                    # exists to say "edit, do not recreate"; expanding a mech panel
+                    # in one channel could delete and repost the overview in
+                    # another, moving it to the bottom with a new id.
+                    #
+                    # The rate limiter further down is the clearest proof that per
+                    # channel was the intent all along: should_force_recreate takes
+                    # a channel id, and its answer was written to a shared variable.
+                    recreate_this_channel = force_recreate
                     try:
                         channel = self.bot.get_channel(channel_id)
                         if not channel:
@@ -3454,7 +3468,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                                 last_update_time=last_update_time,
                                 reason=reason,
                                 force_refresh=False,  # This is auto-update, not manual
-                                force_recreate=force_recreate,
+                                force_recreate=recreate_this_channel,
                                 last_channel_activity=last_activity
                             )
 
@@ -3465,7 +3479,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                             # Use Service decision for recreate logic
                             if decision.should_recreate:
-                                force_recreate = True
+                                recreate_this_channel = True
                                 logger.debug(f"SERVICE_FIRST: Force recreate for channel {channel_id} - {decision.reason}")
 
                             logger.debug(f"SERVICE_FIRST: Updating channel {channel_id} - {decision.reason}")
@@ -3545,10 +3559,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                                 self.mech_state_manager.set_last_glvl(channel_id, current_glvl)
 
                         # Override force_recreate if significant Glvl change or power depletion detected
-                        if (glvl_changed or power_depleted) and not force_recreate:
+                        if (glvl_changed or power_depleted) and not recreate_this_channel:
                             # Check rate limit before allowing force_recreate
                             if self.mech_state_manager.should_force_recreate(channel_id):
-                                force_recreate = True
+                                recreate_this_channel = True
                                 self.mech_state_manager.mark_force_recreate(channel_id)
                                 from .translation_manager import _
                                 if power_depleted:
@@ -3558,11 +3572,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                                 logger.info(f"{upgrade_text}")
                             else:
                                 logger.debug(f"Rate limited force_recreate for channel {channel_id} (Glvl change or power depletion)")
-                                force_recreate = False
+                                recreate_this_channel = False
 
                         # Create updated embed based on expansion state
                         is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
-                        logger.info(f"AUTO-UPDATE: Channel {channel_id} is_expanded={is_mech_expanded}, force_recreate={force_recreate}")
+                        logger.info(f"AUTO-UPDATE: Channel {channel_id} is_expanded={is_mech_expanded}, force_recreate={recreate_this_channel}")
                         if is_mech_expanded:
                             logger.info(f"AUTO-UPDATE: Creating expanded embed for channel {channel_id}")
                             embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config)
@@ -3570,7 +3584,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                             logger.info(f"AUTO-UPDATE: Creating collapsed embed for channel {channel_id}")
                             embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
 
-                        if force_recreate:
+                        if recreate_this_channel:
                             # FIX B: serialize delete+recreate per channel and re-validate the
                             # tracked id first - another path (regenerate/recovery) may have already
                             # recreated this overview, in which case we must NOT post a second one.
