@@ -731,7 +731,7 @@ async def docker_action(docker_container_name: str, action: str) -> bool:
     except asyncio.TimeoutError:
         logger.error(f"Timeout during docker action '{action}' on '{docker_container_name}'")
         return False
-    except (docker.errors.DockerException, docker.errors.APIError, OSError, RuntimeError) as e:
+    except (DockerServiceError, docker.errors.DockerException, docker.errors.APIError, OSError, RuntimeError) as e:
         logger.error(f"Docker error during action '{action}' on '{docker_container_name}': {e}", exc_info=True)
         return False
 
@@ -777,7 +777,7 @@ async def list_docker_containers() -> List[Dict[str, Any]]:
     except asyncio.TimeoutError:
         logger.error("Timeout listing Docker containers")
         return []
-    except (docker.errors.DockerException, OSError, RuntimeError) as e:
+    except (DockerServiceError, docker.errors.DockerException, OSError, RuntimeError) as e:
         logger.error(f"Docker error listing containers: {e}", exc_info=True)
         return []
 
@@ -798,7 +798,7 @@ async def is_container_exists(docker_container_name: str) -> bool:
             return True
     except docker.errors.NotFound:
         return False
-    except (docker.errors.DockerException, OSError, RuntimeError) as e:
+    except (DockerServiceError, docker.errors.DockerException, OSError, RuntimeError) as e:
         logger.error(f"Docker error checking existence of '{docker_container_name}': {e}", exc_info=True)
         return False
 
@@ -864,7 +864,7 @@ async def get_containers_data() -> List[Dict[str, Any]]:
                 _cache_timestamp = current_time
 
             return sorted_result
-    except (docker.errors.DockerException, asyncio.TimeoutError, OSError, RuntimeError) as e:
+    except (DockerServiceError, docker.errors.DockerException, asyncio.TimeoutError, OSError, RuntimeError) as e:
         logger.error(f"Error in get_containers_data: {e}", exc_info=True)
         return []
 
@@ -1263,7 +1263,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                    f"Average {results['analysis'].get('avg_stats_time_ms', 0):.1f}ms, "
                    f"Category: {results['analysis'].get('performance_category', 'unknown')}")
 
-    except (docker.errors.DockerException, asyncio.TimeoutError, RuntimeError, KeyError) as e:
+    except (DockerServiceError, docker.errors.DockerException, asyncio.TimeoutError, RuntimeError, KeyError) as e:
         logger.error(f"Error in performance analysis for '{container_name}': {e}", exc_info=True)
         results['error'] = str(e)
 
@@ -1358,7 +1358,7 @@ async def compare_container_performance(container_names: List[str] = None) -> st
                         'pattern': matched_pattern
                     })
 
-        except (docker.errors.DockerException, asyncio.TimeoutError, RuntimeError, OSError) as e:
+        except (DockerServiceError, docker.errors.DockerException, asyncio.TimeoutError, RuntimeError, OSError) as e:
             logger.error(f"Error testing {container_name}: {e}", exc_info=True)
             results.append({
                 'name': container_name,

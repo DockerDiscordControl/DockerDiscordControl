@@ -275,21 +275,27 @@ def main() -> int:
             called = set()
             for stmt in node.body:
                 called |= _called_names(stmt)
+            # A `try` is covered when ANY of its handlers catches a DDC
+            # exception - the clauses are tried in order, so an early narrow
+            # one is not a hole if a later one says `except ConfigServiceError`.
+            # Judging each clause on its own reported three "narrow handlers"
+            # for main_routes.py's setup route, which ends in exactly that.
+            try_is_covered = any(_handler_catches_everything(h, ddc)
+                                 for h in node.handlers)
             for handler in node.handlers:
-                catches_all = _handler_catches_everything(handler, ddc)
                 if args.falsy:
                     answer = _returns_falsy(handler)
                     if answer is not None:
                         falsy_hits += 1
                         print(f"FALSY  {rel}:{handler.lineno}  answers {answer}")
-                if args.ddc and not catches_all:
+                if args.ddc and not try_is_covered:
                     risky = sorted(called & raisers.keys(),
                                    key=lambda n: (raisers[n], n))
-                    if risky:
+                    if risky and handler is node.handlers[0]:
                         ddc_hits += 1
                         shown = ", ".join(f"{n} (+{raisers[n]})" for n in risky)
-                        print(f"DDC    {rel}:{handler.lineno}  "
-                              f"narrow handler over: {shown}")
+                        print(f"DDC    {rel}:{node.lineno}  "
+                              f"no handler catches a DDC exception, over: {shown}")
 
     print(f"\n# {falsy_hits} falsy hits, {ddc_hits} DDC hits. "
           f"Every one is a question, not a finding - read the docstring.")
