@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 לא נמצאו מכלים פעילים.",
   "🛠️ You are not authorized to use admin controls.": "🛠️ אינך מורשה להשתמש בפקדי הניהול.",
   "🎬 Animation service temporarily unavailable": "🎬 שירות האנימציה אינו זמין זמנית",
-  "🎬 Animation unavailable": "🎬 האנימציה אינה זמינה"
+  "🎬 Animation unavailable": "🎬 האנימציה אינה זמינה",
+  "Day": "יום",
+  "Month": "חודש",
+  "Year": "שנה",
+  "Weekday": "יום בשבוע"
 }

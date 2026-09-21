@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 Активные контейнеры не найдены.",
   "🛠️ You are not authorized to use admin controls.": "🛠️ У вас нет прав использовать элементы управления администратора.",
   "🎬 Animation service temporarily unavailable": "🎬 Служба анимации временно недоступна",
-  "🎬 Animation unavailable": "🎬 Анимация недоступна"
+  "🎬 Animation unavailable": "🎬 Анимация недоступна",
+  "Day": "День",
+  "Month": "Месяц",
+  "Year": "Год",
+  "Weekday": "День недели"
 }

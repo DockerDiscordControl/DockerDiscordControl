@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 Nije pronađen nijedan aktivni spremnik.",
   "🛠️ You are not authorized to use admin controls.": "🛠️ Niste ovlašteni koristiti administratorske kontrole.",
   "🎬 Animation service temporarily unavailable": "🎬 Usluga animacije privremeno nije dostupna",
-  "🎬 Animation unavailable": "🎬 Animacija nije dostupna"
+  "🎬 Animation unavailable": "🎬 Animacija nije dostupna",
+  "Day": "Dan",
+  "Month": "Mjesec",
+  "Year": "Godina",
+  "Weekday": "Dan u tjednu"
 }

@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 Aktiivisia kontteja ei löytynyt.",
   "🛠️ You are not authorized to use admin controls.": "🛠️ Sinulla ei ole oikeutta käyttää järjestelmänvalvojan hallintaa.",
   "🎬 Animation service temporarily unavailable": "🎬 Animaatiopalvelu ei ole tilapäisesti käytettävissä",
-  "🎬 Animation unavailable": "🎬 Animaatio ei käytettävissä"
+  "🎬 Animation unavailable": "🎬 Animaatio ei käytettävissä",
+  "Day": "Päivä",
+  "Month": "Kuukausi",
+  "Year": "Vuosi",
+  "Weekday": "Viikonpäivä"
 }

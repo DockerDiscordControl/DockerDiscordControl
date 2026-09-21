@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 Nie znaleziono aktywnych kontenerów.",
   "🛠️ You are not authorized to use admin controls.": "🛠️ Nie masz uprawnień do korzystania z panelu administratora.",
   "🎬 Animation service temporarily unavailable": "🎬 Usługa animacji tymczasowo niedostępna",
-  "🎬 Animation unavailable": "🎬 Animacja niedostępna"
+  "🎬 Animation unavailable": "🎬 Animacja niedostępna",
+  "Day": "Dzień",
+  "Month": "Miesiąc",
+  "Year": "Rok",
+  "Weekday": "Dzień tygodnia"
 }

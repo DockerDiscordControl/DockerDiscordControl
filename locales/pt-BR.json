@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 Nenhum contêiner ativo encontrado.",
   "🛠️ You are not authorized to use admin controls.": "🛠️ Você não tem autorização para usar os controles de administração.",
   "🎬 Animation service temporarily unavailable": "🎬 Serviço de animação temporariamente indisponível",
-  "🎬 Animation unavailable": "🎬 Animação indisponível"
+  "🎬 Animation unavailable": "🎬 Animação indisponível",
+  "Day": "Dia",
+  "Month": "Mês",
+  "Year": "Ano",
+  "Weekday": "Dia da semana"
 }

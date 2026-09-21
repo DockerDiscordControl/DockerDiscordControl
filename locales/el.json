@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 Δεν βρέθηκαν ενεργά containers.",
   "🛠️ You are not authorized to use admin controls.": "🛠️ Δεν έχετε εξουσιοδότηση να χρησιμοποιήσετε τα στοιχεία ελέγχου διαχειριστή.",
   "🎬 Animation service temporarily unavailable": "🎬 Η υπηρεσία κινούμενων εικόνων δεν είναι προσωρινά διαθέσιμη",
-  "🎬 Animation unavailable": "🎬 Η κινούμενη εικόνα δεν είναι διαθέσιμη"
+  "🎬 Animation unavailable": "🎬 Η κινούμενη εικόνα δεν είναι διαθέσιμη",
+  "Day": "Ημέρα",
+  "Month": "Μήνας",
+  "Year": "Έτος",
+  "Weekday": "Ημέρα εβδομάδας"
 }

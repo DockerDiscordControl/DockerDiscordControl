@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 Inga aktiva containrar hittades.",
   "🛠️ You are not authorized to use admin controls.": "🛠️ Du har inte behörighet att använda administratörskontrollerna.",
   "🎬 Animation service temporarily unavailable": "🎬 Animationstjänsten är tillfälligt otillgänglig",
-  "🎬 Animation unavailable": "🎬 Animation otillgänglig"
+  "🎬 Animation unavailable": "🎬 Animation otillgänglig",
+  "Day": "Dag",
+  "Month": "Månad",
+  "Year": "År",
+  "Weekday": "Veckodag"
 }

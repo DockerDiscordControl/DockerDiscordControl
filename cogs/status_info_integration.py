@@ -1253,7 +1253,7 @@ class TaskManagementButton(discord.ui.Button):
             if not tasks:
                 embed = discord.Embed(
                     title=f"⏰ No Tasks for {self.container_name}",
-                    description="No scheduled tasks found for this container.",
+                    description=_("No scheduled tasks found for this container."),
                     color=discord.Color.orange()
                 )
                 view = TaskManagementView(self.cog, self.container_name)
@@ -1661,7 +1661,7 @@ class CycleDropdown(discord.ui.Select):
 
         embed = discord.Embed(
             title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ **Cycle:** {self.values[0].title()}\n\nNow choose the action...",
+            description=f"✅ **{_('Cycle')}:** {self.values[0].title()}\n\n{_('Now choose the action...')}",
             color=discord.Color.blue()
         )
 
@@ -1724,7 +1724,7 @@ class ActionDropdown(discord.ui.Select):
 
         embed = discord.Embed(
             title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.values[0].title()}\n\nContinue with the next selection...",
+            description=f"✅ **{_('Cycle')}:** {self.view.selected_cycle.title()}\n✅ **{_('Action')}:** {self.values[0].title()}\n\n{_('Continue with the next selection...')}",
             color=discord.Color.blue()
         )
 
@@ -1911,7 +1911,7 @@ class YearDropdown(discord.ui.Select):
 
         embed = discord.Embed(
             title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.view.selected_action.title()}\n✅ **Day:** {self.view.selected_day}\n✅ **Month:** {self.view.selected_month}\n✅ **Year:** {self.values[0]}\n\nNow choose the time...",
+            description=f"✅ **{_('Cycle')}:** {self.view.selected_cycle.title()}\n✅ **{_('Action')}:** {self.view.selected_action.title()}\n✅ **{_('Day')}:** {self.view.selected_day}\n✅ **{_('Month')}:** {self.view.selected_month}\n✅ **{_('Year')}:** {self.values[0]}\n\n{_('Now choose the time...')}",
             color=discord.Color.blue()
         )
 
@@ -1999,7 +1999,7 @@ class WeekdayDropdown(discord.ui.Select):
 
         embed = discord.Embed(
             title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.view.selected_action.title()}\n✅ **Weekday:** {self.values[0].title()}\n\nNow choose the time...",
+            description=f"✅ **{_('Cycle')}:** {self.view.selected_cycle.title()}\n✅ **{_('Action')}:** {self.view.selected_action.title()}\n✅ **{_('Weekday')}:** {self.values[0].title()}\n\n{_('Now choose the time...')}",
             color=discord.Color.blue()
         )
 

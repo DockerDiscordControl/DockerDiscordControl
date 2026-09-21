@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 هیچ کانتینر فعالی یافت نشد.",
   "🛠️ You are not authorized to use admin controls.": "🛠️ شما مجاز به استفاده از کنترل‌های مدیریتی نیستید.",
   "🎬 Animation service temporarily unavailable": "🎬 سرویس انیمیشن موقتاً در دسترس نیست",
-  "🎬 Animation unavailable": "🎬 انیمیشن در دسترس نیست"
+  "🎬 Animation unavailable": "🎬 انیمیشن در دسترس نیست",
+  "Day": "روز",
+  "Month": "ماه",
+  "Year": "سال",
+  "Weekday": "روز هفته"
 }

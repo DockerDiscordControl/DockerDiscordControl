@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 Etkin konteyner bulunamadı.",
   "🛠️ You are not authorized to use admin controls.": "🛠️ Yönetici denetimlerini kullanma yetkiniz yok.",
   "🎬 Animation service temporarily unavailable": "🎬 Animasyon hizmeti geçici olarak kullanılamıyor",
-  "🎬 Animation unavailable": "🎬 Animasyon kullanılamıyor"
+  "🎬 Animation unavailable": "🎬 Animasyon kullanılamıyor",
+  "Day": "Gün",
+  "Month": "Ay",
+  "Year": "Yıl",
+  "Weekday": "Haftanın günü"
 }

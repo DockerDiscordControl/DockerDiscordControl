@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 कोई सक्रिय कंटेनर नहीं मिला।",
   "🛠️ You are not authorized to use admin controls.": "🛠️ आपको व्यवस्थापक नियंत्रण उपयोग करने की अनुमति नहीं है।",
   "🎬 Animation service temporarily unavailable": "🎬 एनिमेशन सेवा अस्थायी रूप से अनुपलब्ध",
-  "🎬 Animation unavailable": "🎬 एनिमेशन अनुपलब्ध"
+  "🎬 Animation unavailable": "🎬 एनिमेशन अनुपलब्ध",
+  "Day": "दिन",
+  "Month": "महीना",
+  "Year": "वर्ष",
+  "Weekday": "सप्ताह का दिन"
 }

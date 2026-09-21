@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 Nenašli sa žiadne aktívne kontajnery.",
   "🛠️ You are not authorized to use admin controls.": "🛠️ Nemáte oprávnenie používať ovládacie prvky správcu.",
   "🎬 Animation service temporarily unavailable": "🎬 Služba animácií je dočasne nedostupná",
-  "🎬 Animation unavailable": "🎬 Animácia nedostupná"
+  "🎬 Animation unavailable": "🎬 Animácia nedostupná",
+  "Day": "Deň",
+  "Month": "Mesiac",
+  "Year": "Rok",
+  "Weekday": "Deň v týždni"
 }

@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 ไม่พบคอนเทนเนอร์ที่ใช้งานอยู่",
   "🛠️ You are not authorized to use admin controls.": "🛠️ คุณไม่ได้รับอนุญาตให้ใช้การควบคุมของผู้ดูแลระบบ",
   "🎬 Animation service temporarily unavailable": "🎬 บริการภาพเคลื่อนไหวไม่พร้อมใช้งานชั่วคราว",
-  "🎬 Animation unavailable": "🎬 ภาพเคลื่อนไหวไม่พร้อมใช้งาน"
+  "🎬 Animation unavailable": "🎬 ภาพเคลื่อนไหวไม่พร้อมใช้งาน",
+  "Day": "วัน",
+  "Month": "เดือน",
+  "Year": "ปี",
+  "Weekday": "วันในสัปดาห์"
 }

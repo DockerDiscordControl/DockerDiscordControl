@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 Tidak ada kontainer aktif yang ditemukan.",
   "🛠️ You are not authorized to use admin controls.": "🛠️ Anda tidak berwenang menggunakan kontrol admin.",
   "🎬 Animation service temporarily unavailable": "🎬 Layanan animasi tidak tersedia untuk sementara",
-  "🎬 Animation unavailable": "🎬 Animasi tidak tersedia"
+  "🎬 Animation unavailable": "🎬 Animasi tidak tersedia",
+  "Day": "Hari",
+  "Month": "Bulan",
+  "Year": "Tahun",
+  "Weekday": "Hari dalam seminggu"
 }

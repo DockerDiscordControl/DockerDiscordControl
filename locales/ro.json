@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 Nu au fost găsite containere active.",
   "🛠️ You are not authorized to use admin controls.": "🛠️ Nu sunteți autorizat să folosiți comenzile de administrare.",
   "🎬 Animation service temporarily unavailable": "🎬 Serviciul de animație este temporar indisponibil",
-  "🎬 Animation unavailable": "🎬 Animație indisponibilă"
+  "🎬 Animation unavailable": "🎬 Animație indisponibilă",
+  "Day": "Zi",
+  "Month": "Lună",
+  "Year": "An",
+  "Weekday": "Zi a săptămânii"
 }

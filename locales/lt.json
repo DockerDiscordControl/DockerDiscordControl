@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 Aktyvių konteinerių nerasta.",
   "🛠️ You are not authorized to use admin controls.": "🛠️ Neturite teisės naudoti administratoriaus valdiklių.",
   "🎬 Animation service temporarily unavailable": "🎬 Animacijos paslauga laikinai neprieinama",
-  "🎬 Animation unavailable": "🎬 Animacija neprieinama"
+  "🎬 Animation unavailable": "🎬 Animacija neprieinama",
+  "Day": "Diena",
+  "Month": "Mėnuo",
+  "Year": "Metai",
+  "Weekday": "Savaitės diena"
 }

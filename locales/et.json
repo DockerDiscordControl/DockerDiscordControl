@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 Aktiivseid konteinereid ei leitud.",
   "🛠️ You are not authorized to use admin controls.": "🛠️ Sul pole õigust kasutada administraatori juhtnuppe.",
   "🎬 Animation service temporarily unavailable": "🎬 Animatsiooniteenus pole ajutiselt saadaval",
-  "🎬 Animation unavailable": "🎬 Animatsioon pole saadaval"
+  "🎬 Animation unavailable": "🎬 Animatsioon pole saadaval",
+  "Day": "Päev",
+  "Month": "Kuu",
+  "Year": "Aasta",
+  "Weekday": "Nädalapäev"
 }

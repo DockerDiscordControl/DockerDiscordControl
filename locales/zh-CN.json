@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 未找到活动容器。",
   "🛠️ You are not authorized to use admin controls.": "🛠️ 你无权使用管理员控制。",
   "🎬 Animation service temporarily unavailable": "🎬 动画服务暂时不可用",
-  "🎬 Animation unavailable": "🎬 动画不可用"
+  "🎬 Animation unavailable": "🎬 动画不可用",
+  "Day": "日",
+  "Month": "月",
+  "Year": "年",
+  "Weekday": "星期"
 }

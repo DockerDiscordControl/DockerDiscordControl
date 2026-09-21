@@ -1651,5 +1651,9 @@
   "📦 No active containers found.": "📦 Không tìm thấy container đang hoạt động.",
   "🛠️ You are not authorized to use admin controls.": "🛠️ Bạn không được phép sử dụng các điều khiển quản trị.",
   "🎬 Animation service temporarily unavailable": "🎬 Dịch vụ hoạt ảnh tạm thời không khả dụng",
-  "🎬 Animation unavailable": "🎬 Hoạt ảnh không khả dụng"
+  "🎬 Animation unavailable": "🎬 Hoạt ảnh không khả dụng",
+  "Day": "Ngày",
+  "Month": "Tháng",
+  "Year": "Năm",
+  "Weekday": "Ngày trong tuần"
 }
