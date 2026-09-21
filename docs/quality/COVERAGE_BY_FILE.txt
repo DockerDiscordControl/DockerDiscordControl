@@ -97,7 +97,7 @@ cogs/enhanced_info_modal_simple.py	693	passE:E27+bothscans:519-700
 cogs/status_handlers.py	1398	passE:E15,E16:80-200,560-700
 cogs/status_info_integration.py	2397	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203
 cogs/translation_manager.py	149	passE:E30:read-in-full
-cogs/translation_monitor.py	97	NONE
+cogs/translation_monitor.py	97	passE:E32:read-in-full
 services/__init__.py	51	passE:E31:read-in-full
 services/admin/__init__.py	5	passE:read-in-full
 services/admin/admin_service.py	379	passE:F1-feature-read:87-160,262-330
@@ -186,7 +186,7 @@ services/scheduling/scheduler_service.py	552	pass1:s27:1-539  [13 of 552 lines n
 services/status/__init__.py	13	pass1:s27:1-13
 services/status/status_cache_service.py	225	pass1:s27:1-225
 services/translation/__init__.py	12	pass1:s27:1-12
-services/translation/translation_config_service.py	640	pass1:s27:1-607  [33 of 640 lines never in a package]
+services/translation/translation_config_service.py	687	pass1:s27:1-607  [33 of 640 lines never in a package]
 services/translation/translation_service.py	762	pass1:s28:1-741  [21 of 762 lines never in a package]
 services/web/__init__.py	12	pass1:s28:1-12
 services/web/configuration_page_service.py	554	pass1:s28:1-554
