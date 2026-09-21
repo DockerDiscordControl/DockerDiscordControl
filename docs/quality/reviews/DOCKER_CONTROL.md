@@ -39,6 +39,37 @@ decorator keeps a bad *cycle* from being fatal, and the error handler makes a
 loop that dies anyway say so through DDC's logger. The test reads the loops off
 the class, so a loop added tomorrow is checked today.
 
+## Put to the operator, and decided by them
+
+**`/addadmin` in a control channel asks nothing about the user.** Read on
+2026-09-21. The status-channel branch checks `is_user_admin`; the
+control-channel branch passes with the comment *"Control channels are already
+restricted to admins by design"*. The protection is therefore not in the code
+at all - it is entirely the Discord channel permissions.
+
+Why it was worth raising even though DDC's authorisation is **by channel** by
+design (`project_ddc_auth_model`): `/control` acts inside the channel it was
+used in, so a channel-scoped right is exactly the right shape for it.
+`/addadmin` is different - it grants a right that reaches **beyond** that
+channel, into the status channels, which is where the per-admin container
+assignment (F1-F5) applies. A channel-bound permission producing a
+channel-crossing one is a narrower point than the design note, not a
+contradiction of it.
+
+Measured on the operator's install: two channels configured, `Tech Channel`
+(status only - admins only, correct) and `Control Channel` (control + status -
+anyone who may post there).
+
+**The operator decided on 2026-09-21: leave it as it is.** Their control
+channel is restricted to a role, so the behaviour is intended and sufficient.
+Recorded here so the next reader finds a decision rather than an oversight -
+and so nobody "fixes" it again.
+
+The command itself was reviewed and no defect was found: it brakes through the
+spam protection (review B38), checks channel permissions, answers every failure
+path, and its modal validates the snowflake and answers in every branch. It
+also predates this work entirely - added 2025-11-28 in `5f5fdc8`.
+
 ## Noted, not repaired
 
 **An unreachable `except discord.NotFound`, disagreeing with the one that
