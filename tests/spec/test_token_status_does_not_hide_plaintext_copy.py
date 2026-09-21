@@ -103,7 +103,11 @@ import pytest
 
 from utils.token_security import TokenSecurityManager
 
-PLAINTEXT_TOKEN = "MTIzNDU2Nzg5MDEyMzQ1Njc4.GaBcDe.ThisLooksLikeARealToken1234"
+# Long enough and dotted, which is all looks_like_discord_token asks - but
+# deliberately not shaped like a real Discord token. The previous value was,
+# and GitHub's push protection blocks that pattern; it stopped a push of
+# mine on 2026-09-21 over a different file with the same habit.
+PLAINTEXT_TOKEN = "NOT-A-REAL-TOKEN.for-tests-only.padded-past-fifty-characters"
 ENCRYPTED = "gAAAAABmZ2VyeXRoaW5nSXNFbmNyeXB0ZWRIZXJlAAAA"
 
 

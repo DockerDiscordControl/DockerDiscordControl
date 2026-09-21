@@ -64,8 +64,28 @@ def get_decrypted_bot_token(runtime: BotRuntime) -> Optional[str]:
                 if decrypted:
                     logger.info("Successfully decrypted token using ConfigService")
                     return str(decrypted)
-        except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError) as e:
-            logger.warning("Error using ConfigManager: %s", e)
+        except Exception as e:  # noqa: BLE001
+            # Broad on purpose, and it is the CONTRACT of this function rather
+            # than laziness: it resolves a token through a chain of fallbacks
+            # and answers "a token or None", so a fallback that fails must lead
+            # to the next one, never out of here.
+            #
+            # What made this necessary: decrypt_token raises TokenEncryptionError
+            # when the stored token and the stored password hash do not belong
+            # together - a restored backup, a hand-edited config, a password
+            # change that did not finish. That descends from ConfigServiceError
+            # -> DDCBaseException, so the tuple that used to stand here
+            # (IOError, OSError, PermissionError, RuntimeError, JSONDecodeError)
+            # could never catch it. It escaped into bot.py's retry loop, which
+            # has no handler of its own - and that loop exists for exactly this
+            # case; its own message says "or could not be decrypted" (E7).
+            #
+            # Caught by class and not by import: tests/unit/app_modules replaces
+            # the whole services package with stubs, so importing
+            # services.exceptions here breaks that group outright.
+            logger.warning("Could not get the bot token from the ConfigService "
+                           "(%s: %s). Fix it in the Web UI - the bot keeps retrying.",
+                           type(e).__name__, e)
 
     try:
         if bot_config_file.exists():
@@ -94,8 +114,10 @@ def get_decrypted_bot_token(runtime: BotRuntime) -> Optional[str]:
                 if decrypted:
                     logger.info("Successfully performed direct token decryption")
                     return str(decrypted)
-    except (RuntimeError) as e:
-        logger.error("Manual token decryption failed: %s", e, exc_info=True)
+    except Exception as e:  # noqa: BLE001
+        # Same reason as above: this used to catch RuntimeError only, and
+        # decrypt_token raises TokenEncryptionError (review E7).
+        logger.error("Manual token decryption failed (%s: %s)", type(e).__name__, e)
 
     logger.error("All token decryption methods failed")
     return None
