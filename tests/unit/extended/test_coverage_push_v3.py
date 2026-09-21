@@ -1026,7 +1026,15 @@ class TestAutomationRoutesExtras:
     def test_channels_returns_error_on_exception(
         self, automation_app, monkeypatch
     ):
-        """Cover the exception branch of get_channels (line 260-264)."""
+        """A failed channel lookup answers with a failure (review D23).
+
+        This test used to assert 200 with an empty list and an error key, on
+        the grounds that it covered "line 260-264". That is what the route did,
+        not what it owed anybody: the two deliberate empty answers above (bot
+        not ready, no guilds yet) have exactly that shape, so a caller could
+        not tell a crash from a server with no readable channels. Since D23 the
+        failure carries its own status.
+        """
         def _boom():
             raise RuntimeError("bot factory crashed")
 
@@ -1038,7 +1046,7 @@ class TestAutomationRoutesExtras:
         resp = automation_app.test_client().get(
             "/api/automation/channels", headers=_AUTH_HEADER
         )
-        assert resp.status_code == 200  # returns empty + error key
+        assert resp.status_code == 500
         body = resp.get_json()
         assert body["channels"] == []
         assert "error" in body
