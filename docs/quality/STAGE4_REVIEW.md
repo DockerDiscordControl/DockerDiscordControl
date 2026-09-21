@@ -12,9 +12,16 @@ achieved" that the programme text explicitly rejects.
 
 ## 1. Split — in place
 
-37 sections, 187 pieces, **61,326 of 61,326 lines** in 182 files (`docs/quality/SECTIONS.txt`).
+38 sections, 187 pieces, **61,339 of 61,339 lines** in 182 files (`docs/quality/SECTIONS.txt`).
 The cuts are made at class and function boundaries, not arbitrarily at line 2000: a section is
 meant to be readable in one go.
+
+Section 38 was cut out of section 32 on 2026-09-21, during the pass-2 repairs. Section 32 had
+reached 1,994 of the 2,000 lines a section may hold, and the next repair in `main_routes.py`
+(review D25) did not fit. The cut is an instrument for reading the code, not a budget the code
+has to stay inside — letting it decide whether a fix may be written would be the wrong way round.
+`security_routes.py` is the piece that moved, because no finding of either pass points at it, so
+no finding label ends up naming a section that no longer holds its file.
 
 Four files are above the limit and had to be split — `docker_control.py` (5,255),
 `control_ui.py` (3,293), `status_info_integration.py` (2,590), `scheduler.py` (2,165).
@@ -63,7 +70,7 @@ Restored: 3 green, file bit-identical to the backup.
 `docs/quality/CHECK_PLAN.txt` lists, per section, the public names that would have to be judged
 individually in a review.
 
-There are **1,513 names** across 37 sections, on average 41 per section.
+There are **1,513 names** across the sections, on average about 40 per section.
 
 **The plan is a task list, not a proof.** No tick means: not judged. Filling it with 1,513 ticks
 without actually having read the names would be exactly the "report of how much was achieved"
@@ -80,7 +87,7 @@ that the programme text rejects.
 
 | | Sections | Lines |
 |---|---|---|
-| contain a file in which something was changed | **37** | **61,326 (100 %)** |
+| contain a file in which something was changed | **38** | **61,339 (100 %)** |
 | not touched at all | 0 | 0 |
 
 The calculation in the open, so that it can be checked instead of believed: there is no untouched
@@ -97,7 +104,8 @@ measure it at the end instead of carrying it along.
 **These 99 % are not coverage, and they must not be read as such.** "Touched" means: this
 section contains a file in which a single line was changed. That is not a review.
 
-**Honestly: not a single one of the 37 sections was read through systematically.** What did take
+**Honestly: at the end of stage 4, not a single one of the sections had been read through
+systematically.** What did take
 place were targeted searches for named patterns (bare `except:`, environment reads, character-identical
 twins, call sites) and selective corrections. These searches were mechanical and complete — but
 each of them checks one question, not the section.

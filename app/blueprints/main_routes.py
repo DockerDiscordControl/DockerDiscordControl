@@ -1197,6 +1197,19 @@ def setup_save():
             'success': False,
             'error': 'Setup failed: Unable to save configuration'
         })
+    except ConfigServiceError as e:
+        # What a failed config write ACTUALLY raises. ConfigService.save_config
+        # turns IOError/OSError/PermissionError into ConfigSaveError, which
+        # descends from DDCBaseException and is therefore not an OSError - so
+        # the handler above never saw it. save_config_api catches it by name
+        # for exactly this reason; this route did not, and a first-time setup
+        # on a read-only config mount answered with a 500 HTML page that
+        # setup.html then parsed as JSON, leaving the page blank (review D25).
+        current_app.logger.error(f"Config service error in setup: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': f'Setup failed: Unable to save configuration ({e.message})'
+        })
 
 # ========================================
 # MECH MUSIC API ROUTES (for Discord integration)
