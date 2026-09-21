@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automatsko osvježavanje završeno • Kliknite ▶️ za ponovno pokretanje",
   "🔄 Manually refreshed • Click again to update": "🔄 Ručno osvježeno • Kliknite ponovno za ažuriranje",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automatsko osvježavanje zaustavljeno • Kliknite Start za ponovno pokretanje",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Prikaz zapisa uživo je istekao • Upotrijebite /info za nove"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Prikaz zapisa uživo je istekao • Upotrijebite /info za nove",
+  "📋 {name} - Container Info": "📋 {name} – Informacije o spremniku",
+  "❌ Container configuration not found for '{name}'": "❌ Konfiguracija spremnika '{name}' nije pronađena",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "Kronika povezuje poglavlja priče s evolucijama Mecha • Sljedeći cilj kao pretpregled",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "Kronika povezuje poglavlja s evolucijama Mecha • Razina 10 posljednja je poznata evolucija...",
+  "*Animation could not be loaded*": "*Animaciju nije bilo moguće učitati*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Otkrivena sistemska anomalija – Podaci o evoluciji oštećeni",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ OTKRIVENO OŠTEĆENJE PODATAKA – PRIJENOS NESTABILAN",
+  "❌ No music available for Mech Level {level}": "❌ Nema glazbe za Mech razinu {level}",
+  "⏰ No tasks found for {name} to delete.": "⏰ Nisu pronađeni zadaci za brisanje za {name}."
 }

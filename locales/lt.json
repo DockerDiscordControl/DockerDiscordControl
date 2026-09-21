@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automatinis atnaujinimas baigtas • Spustelėkite ▶️, kad paleistumėte iš naujo",
   "🔄 Manually refreshed • Click again to update": "🔄 Atnaujinta rankiniu būdu • Spustelėkite dar kartą",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automatinis atnaujinimas sustabdytas • Spustelėkite Pradėti",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Tiesioginių žurnalų rodinys baigėsi • Naudokite /info naujiems"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Tiesioginių žurnalų rodinys baigėsi • Naudokite /info naujiems",
+  "📋 {name} - Container Info": "📋 {name} – Konteinerio informacija",
+  "❌ Container configuration not found for '{name}'": "❌ Nerasta konteinerio '{name}' konfigūracija",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "Kronika sieja istorijos skyrius su Mech evoliucijomis • Kitas tikslas kaip peržiūra",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "Kronika sieja skyrius su Mech evoliucijomis • 10 lygis yra paskutinė žinoma evoliucija...",
+  "*Animation could not be loaded*": "*Nepavyko įkelti animacijos*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Aptikta sistemos anomalija – Evoliucijos duomenys sugadinti",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ APTIKTAS DUOMENŲ SUGADINIMAS – PERDAVIMAS NESTABILUS",
+  "❌ No music available for Mech Level {level}": "❌ Mech lygiui {level} muzikos nėra",
+  "⏰ No tasks found for {name} to delete.": "⏰ Nerasta užduočių, kurias būtų galima ištrinti {name}."
 }

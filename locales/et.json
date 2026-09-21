@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automaatne värskendamine lõpetatud • Klõpsa ▶️ taaskäivitamiseks",
   "🔄 Manually refreshed • Click again to update": "🔄 Käsitsi värskendatud • Klõpsa uuesti värskendamiseks",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automaatne värskendamine peatatud • Klõpsa Start taaskäivitamiseks",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Reaalajas logide vaade aegus • Kasuta uue loomiseks /info"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Reaalajas logide vaade aegus • Kasuta uue loomiseks /info",
+  "📋 {name} - Container Info": "📋 {name} – Konteineri teave",
+  "❌ Container configuration not found for '{name}'": "❌ Konteineri '{name}' seadistust ei leitud",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "Kroonika seob loo peatükid Mechi arenguga • Järgmine eesmärk eelvaatena",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "Kroonika seob peatükid Mechi arenguga • Tase 10 on viimane teadaolev areng...",
+  "*Animation could not be loaded*": "*Animatsiooni ei õnnestunud laadida*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Tuvastati süsteemi anomaalia – Arenguandmed rikutud",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ TUVASTATI ANDMETE RIKE – EDASTUS EBASTABIILNE",
+  "❌ No music available for Mech Level {level}": "❌ Mechi taseme {level} jaoks pole muusikat",
+  "⏰ No tasks found for {name} to delete.": "⏰ {name} jaoks ei leitud kustutatavaid ülesandeid."
 }

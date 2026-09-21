@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ รีเฟรชอัตโนมัติเสร็จสิ้น • คลิก ▶️ เพื่อเริ่มใหม่",
   "🔄 Manually refreshed • Click again to update": "🔄 รีเฟรชด้วยตนเองแล้ว • คลิกอีกครั้งเพื่ออัปเดต",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ หยุดรีเฟรชอัตโนมัติแล้ว • คลิก Start เพื่อเริ่มใหม่",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ มุมมองบันทึกสดหมดเวลา • ใช้ /info เพื่อสร้างใหม่"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ มุมมองบันทึกสดหมดเวลา • ใช้ /info เพื่อสร้างใหม่",
+  "📋 {name} - Container Info": "📋 {name} – ข้อมูลคอนเทนเนอร์",
+  "❌ Container configuration not found for '{name}'": "❌ ไม่พบการตั้งค่าคอนเทนเนอร์สำหรับ '{name}'",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "ประวัติเชื่อมบทเรื่องราวเข้ากับวิวัฒนาการ Mech • เป้าหมายถัดไปเป็นตัวอย่าง",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "ประวัติเชื่อมบทเข้ากับวิวัฒนาการ Mech • ระดับ 10 คือวิวัฒนาการสุดท้ายที่ทราบ...",
+  "*Animation could not be loaded*": "*ไม่สามารถโหลดภาพเคลื่อนไหวได้*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ ตรวจพบความผิดปกติของระบบ – ข้อมูลวิวัฒนาการเสียหาย",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ ตรวจพบข้อมูลเสียหาย – การส่งไม่เสถียร",
+  "❌ No music available for Mech Level {level}": "❌ ไม่มีเพลงสำหรับ Mech ระดับ {level}",
+  "⏰ No tasks found for {name} to delete.": "⏰ ไม่พบงานที่จะลบสำหรับ {name}"
 }

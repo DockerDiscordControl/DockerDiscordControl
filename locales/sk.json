@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automatické obnovovanie dokončené • Kliknite na ▶️ pre reštart",
   "🔄 Manually refreshed • Click again to update": "🔄 Ručne obnovené • Kliknite znova pre aktualizáciu",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automatické obnovovanie zastavené • Kliknite na Štart pre reštart",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Zobrazenie živých protokolov vypršalo • Použite /info pre nové"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Zobrazenie živých protokolov vypršalo • Použite /info pre nové",
+  "📋 {name} - Container Info": "📋 {name} – Informácie o kontajneri",
+  "❌ Container configuration not found for '{name}'": "❌ Konfigurácia kontajnera '{name}' sa nenašla",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "Kronika spája kapitoly príbehu s evolúciami Mecha • Ďalší cieľ ako náhľad",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "Kronika spája kapitoly s evolúciami Mecha • Úroveň 10 je posledná známa evolúcia...",
+  "*Animation could not be loaded*": "*Animáciu sa nepodarilo načítať*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Zistená systémová anomália – Dáta evolúcie poškodené",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ ZISTENÉ POŠKODENIE DÁT – PRENOS NESTABILNÝ",
+  "❌ No music available for Mech Level {level}": "❌ Pre úroveň Mecha {level} nie je k dispozícii hudba",
+  "⏰ No tasks found for {name} to delete.": "⏰ Pre {name} sa nenašli žiadne úlohy na odstránenie."
 }

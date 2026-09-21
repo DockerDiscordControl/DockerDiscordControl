@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Đã hoàn tất tự động làm mới • Nhấn ▶️ để bắt đầu lại",
   "🔄 Manually refreshed • Click again to update": "🔄 Đã làm mới thủ công • Nhấn lại để cập nhật",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Đã dừng tự động làm mới • Nhấn Bắt đầu để khởi động lại",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Chế độ xem nhật ký trực tiếp đã hết hạn • Dùng /info để tạo mới"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Chế độ xem nhật ký trực tiếp đã hết hạn • Dùng /info để tạo mới",
+  "📋 {name} - Container Info": "📋 {name} – Thông tin container",
+  "❌ Container configuration not found for '{name}'": "❌ Không tìm thấy cấu hình container cho '{name}'",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "Lịch sử kết hợp các chương truyện với tiến hóa Mech • Mục tiêu kế tiếp dạng xem trước",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "Lịch sử kết hợp các chương với tiến hóa Mech • Cấp 10 là tiến hóa cuối cùng được biết...",
+  "*Animation could not be loaded*": "*Không thể tải hoạt ảnh*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Phát hiện bất thường hệ thống – Dữ liệu tiến hóa bị hỏng",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ PHÁT HIỆN HỎNG DỮ LIỆU – TRUYỀN TẢI KHÔNG ỔN ĐỊNH",
+  "❌ No music available for Mech Level {level}": "❌ Không có nhạc cho Mech cấp {level}",
+  "⏰ No tasks found for {name} to delete.": "⏰ Không tìm thấy tác vụ nào để xoá cho {name}."
 }

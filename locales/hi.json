@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ स्वतः ताज़ा पूर्ण • पुनः आरंभ के लिए ▶️ दबाएँ",
   "🔄 Manually refreshed • Click again to update": "🔄 मैन्युअल रूप से ताज़ा • अपडेट के लिए फिर दबाएँ",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ स्वतः ताज़ा रुका • पुनः आरंभ के लिए Start दबाएँ",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ लाइव लॉग दृश्य समाप्त • नए के लिए /info का उपयोग करें"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ लाइव लॉग दृश्य समाप्त • नए के लिए /info का उपयोग करें",
+  "📋 {name} - Container Info": "📋 {name} – कंटेनर जानकारी",
+  "❌ Container configuration not found for '{name}'": "❌ '{name}' के लिए कंटेनर कॉन्फ़िगरेशन नहीं मिला",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "इतिहास कहानी अध्यायों को Mech विकास से जोड़ता है • अगला लक्ष्य पूर्वावलोकन के रूप में",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "इतिहास अध्यायों को Mech विकास से जोड़ता है • स्तर 10 अंतिम ज्ञात विकास है...",
+  "*Animation could not be loaded*": "*एनिमेशन लोड नहीं हो सका*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ सिस्टम विसंगति मिली – विकास डेटा दूषित",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ डेटा भ्रष्टता पाई गई – प्रसारण अस्थिर",
+  "❌ No music available for Mech Level {level}": "❌ Mech स्तर {level} के लिए कोई संगीत उपलब्ध नहीं",
+  "⏰ No tasks found for {name} to delete.": "⏰ {name} के लिए हटाने हेतु कोई कार्य नहीं मिला।"
 }

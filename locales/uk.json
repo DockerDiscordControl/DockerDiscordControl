@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Автооновлення завершено • Натисніть ▶️ для перезапуску",
   "🔄 Manually refreshed • Click again to update": "🔄 Оновлено вручну • Натисніть ще раз для оновлення",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Автооновлення зупинено • Натисніть «Старт» для перезапуску",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Перегляд живих журналів завершився • Скористайтеся /info для нових"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Перегляд живих журналів завершився • Скористайтеся /info для нових",
+  "📋 {name} - Container Info": "📋 {name} – Інформація про контейнер",
+  "❌ Container configuration not found for '{name}'": "❌ Конфігурацію контейнера '{name}' не знайдено",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "Хроніка поєднує розділи історії з еволюціями Mech • Наступна ціль як попередній перегляд",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "Хроніка поєднує розділи з еволюціями Mech • Рівень 10 — остання відома еволюція...",
+  "*Animation could not be loaded*": "*Не вдалося завантажити анімацію*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Виявлено системну аномалію – Дані еволюції пошкоджено",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ ВИЯВЛЕНО ПОШКОДЖЕННЯ ДАНИХ – ПЕРЕДАЧА НЕСТАБІЛЬНА",
+  "❌ No music available for Mech Level {level}": "❌ Немає музики для рівня Mech {level}",
+  "⏰ No tasks found for {name} to delete.": "⏰ Для {name} не знайдено завдань для видалення."
 }

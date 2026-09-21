@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Otomatik yenileme tamamlandı • Yeniden başlatmak için ▶️ tıklayın",
   "🔄 Manually refreshed • Click again to update": "🔄 Elle yenilendi • Güncellemek için tekrar tıklayın",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Otomatik yenileme durduruldu • Yeniden başlatmak için Başlat'a tıklayın",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Canlı günlük görünümü zaman aşımına uğradı • Yeni için /info kullanın"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Canlı günlük görünümü zaman aşımına uğradı • Yeni için /info kullanın",
+  "📋 {name} - Container Info": "📋 {name} – Konteyner bilgileri",
+  "❌ Container configuration not found for '{name}'": "❌ '{name}' için konteyner yapılandırması bulunamadı",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "Tarihçe, hikâye bölümlerini Mech evrimleriyle birleştirir • Sonraki hedef önizleme olarak",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "Tarihçe bölümleri Mech evrimleriyle birleştirir • Seviye 10 bilinen son evrimdir...",
+  "*Animation could not be loaded*": "*Animasyon yüklenemedi*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Sistem anormalliği algılandı – Evrim verileri bozuk",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ VERİ BOZULMASI ALGILANDI – İLETİM KARARSIZ",
+  "❌ No music available for Mech Level {level}": "❌ Mech seviyesi {level} için müzik yok",
+  "⏰ No tasks found for {name} to delete.": "⏰ {name} için silinecek görev bulunamadı."
 }

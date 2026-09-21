@@ -1316,7 +1316,7 @@ class InfoButton(Button):
 
         # Create embed with container branding
         embed = discord.Embed(
-            title=f"📋 {self.display_name} - Container Info",
+            title=_("📋 {name} - Container Info").format(name=self.display_name),
             color=0x3498db
         )
 
@@ -2166,7 +2166,8 @@ class AdminContainerDropdown(discord.ui.Select):
 
             if not container_config:
                 await interaction.edit_original_response(
-                    content=f"❌ Container configuration not found for '{selected_container}'",
+                    content=_("❌ Container configuration not found for '{name}'").format(
+                        name=selected_container),
                     embed=None,
                     view=None
                 )
@@ -2918,9 +2919,9 @@ class MechHistoryButton(Button):
 
         # Add footer
         if next_level:
-            embed.set_footer(text="History integrates story chapters with mech evolutions • Next evolution goal as shadow preview")
+            embed.set_footer(text=_("History integrates story chapters with mech evolutions • Next evolution goal as shadow preview"))
         else:
-            embed.set_footer(text="History integrates story chapters with mech evolutions • Level 10 is the final known evolution...")
+            embed.set_footer(text=_("History integrates story chapters with mech evolutions • Level 10 is the final known evolution..."))
 
         # Respond immediately to avoid timeout
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -2985,7 +2986,7 @@ class MechHistoryButton(Button):
                             logger.error(f"Failed to load unlocked mech {level}: {image_result.error_message}")
                             embed = discord.Embed(
                                 title=f"❌ **Level {level}: {_(evolution_info.name)}**",
-                                description="*Animation could not be loaded*",
+                                description=_("*Animation could not be loaded*"),
                                 color=0xff0000
                             )
                             await channel.send(embed=embed, ephemeral=True)
@@ -3013,7 +3014,7 @@ class MechHistoryButton(Button):
                         logger.error(f"Error creating animation for level {level}: {e}", exc_info=True)
                         embed = discord.Embed(
                             title=f"❌ **Level {level}: {_(evolution_info.name)}**",
-                            description="*Animation could not be loaded*",
+                            description=_("*Animation could not be loaded*"),
                             color=0xff0000
                         )
                         await channel.send(embed=embed, ephemeral=True)
@@ -3076,7 +3077,7 @@ class MechHistoryButton(Button):
                     description="*[DATA_CORRUPTED] - 000x34A##%&33DL*\n*[UNAUTHORIZED_ACCESS_DETECTED]*\n*[EVOLUTION_DATA_ENCRYPTED]*",
                     color=0x330033  # Dark purple - mysterious/corrupted
                 )
-                corrupted_embed.set_footer(text="⚠️ System anomaly detected - Evolution data corrupted")
+                corrupted_embed.set_footer(text=_("⚠️ System anomaly detected - Evolution data corrupted"))
                 await channel.send(embed=corrupted_embed, ephemeral=True)
 
                 # Small delay for dramatic effect
@@ -3165,9 +3166,10 @@ class MechHistoryButton(Button):
         )
 
         if chapter_key == "epilogue":
-            embed.set_footer(text="⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE")
+            embed.set_footer(text=_("⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE"))
         else:
-            embed.set_footer(text="The Song of Steel and Stars - A Chronicle of the Mech Ascension")
+            embed.set_footer(
+                text=f"{_('The Song of Steel and Stars')} - {_('A Chronicle of the Mech Ascension')}")
 
         await channel.send(embed=embed, ephemeral=True)
 
@@ -3393,7 +3395,7 @@ And those who dare… sp34k its ████ do s0 only once.
                 description=epilogue_text,
                 color=0x330033
             )
-            embed.set_footer(text="⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE")
+            embed.set_footer(text=_("⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE"))
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -3488,7 +3490,8 @@ class ReadStoryButton(Button):
                     description=chapter_content,
                     color=color
                 )
-                embed.set_footer(text="The Song of Steel and Stars - A Chronicle of the Mech Ascension")
+                embed.set_footer(
+                text=f"{_('The Song of Steel and Stars')} - {_('A Chronicle of the Mech Ascension')}")
 
                 await interaction.followup.send(embed=embed, ephemeral=True)
             else:
@@ -3546,7 +3549,7 @@ class PlaySongButton(Button):
                 await interaction.followup.send(message_text, ephemeral=True)
             else:
                 await interaction.followup.send(
-                    f"❌ No music available for Mech Level {self.level}\n"
+                    _("❌ No music available for Mech Level {level}").format(level=self.level) + "\n"
                     f"Error: {result.error}",
                     ephemeral=True
                 )

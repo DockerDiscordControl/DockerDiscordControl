@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Actualización automática finalizada • Pulsa ▶️ para reiniciar",
   "🔄 Manually refreshed • Click again to update": "🔄 Actualizado manualmente • Pulsa otra vez para actualizar",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Actualización automática detenida • Pulsa Iniciar para reiniciar",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ La vista de registros en vivo expiró • Usa /info para crear nuevos"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ La vista de registros en vivo expiró • Usa /info para crear nuevos",
+  "📋 {name} - Container Info": "📋 {name} – Información del contenedor",
+  "❌ Container configuration not found for '{name}'": "❌ No se encontró la configuración del contenedor '{name}'",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "La crónica une los capítulos con las evoluciones del Mech • Próxima meta como vista previa",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "La crónica une los capítulos con las evoluciones del Mech • El nivel 10 es la última evolución conocida...",
+  "*Animation could not be loaded*": "*No se pudo cargar la animación*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Anomalía del sistema detectada – Datos de evolución dañados",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ CORRUPCIÓN DE DATOS DETECTADA – TRANSMISIÓN INESTABLE",
+  "❌ No music available for Mech Level {level}": "❌ No hay música disponible para el nivel Mech {level}",
+  "⏰ No tasks found for {name} to delete.": "⏰ No se encontraron tareas que eliminar para {name}."
 }

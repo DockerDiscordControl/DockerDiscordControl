@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automatisch verversen voltooid • Klik op ▶️ om opnieuw te starten",
   "🔄 Manually refreshed • Click again to update": "🔄 Handmatig ververst • Klik opnieuw om te verversen",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automatisch verversen gestopt • Klik op Start om opnieuw te starten",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Live-logweergave verlopen • Gebruik /info voor nieuwe live-logs"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Live-logweergave verlopen • Gebruik /info voor nieuwe live-logs",
+  "📋 {name} - Container Info": "📋 {name} – Containerinformatie",
+  "❌ Container configuration not found for '{name}'": "❌ Containerconfiguratie niet gevonden voor '{name}'",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "De kroniek verbindt verhaalhoofdstukken met Mech-evoluties • Volgend doel als voorbeeld",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "De kroniek verbindt verhaalhoofdstukken met Mech-evoluties • Niveau 10 is de laatste bekende evolutie...",
+  "*Animation could not be loaded*": "*De animatie kon niet worden geladen*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Systeemanomalie gedetecteerd – Evolutiegegevens beschadigd",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ DATACORRUPTIE GEDETECTEERD – TRANSMISSIE INSTABIEL",
+  "❌ No music available for Mech Level {level}": "❌ Geen muziek beschikbaar voor Mech-niveau {level}",
+  "⏰ No tasks found for {name} to delete.": "⏰ Geen te verwijderen taken gevonden voor {name}."
 }

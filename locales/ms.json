@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Penyegaran automatik selesai • Klik ▶️ untuk mula semula",
   "🔄 Manually refreshed • Click again to update": "🔄 Disegar secara manual • Klik lagi untuk kemas kini",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Penyegaran automatik dihentikan • Klik Mula untuk mula semula",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Paparan log langsung tamat tempoh • Guna /info untuk yang baharu"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Paparan log langsung tamat tempoh • Guna /info untuk yang baharu",
+  "📋 {name} - Container Info": "📋 {name} – Maklumat bekas",
+  "❌ Container configuration not found for '{name}'": "❌ Konfigurasi bekas untuk '{name}' tidak dijumpai",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "Sejarah menggabungkan bab cerita dengan evolusi Mech • Sasaran seterusnya sebagai pratonton",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "Sejarah menggabungkan bab dengan evolusi Mech • Tahap 10 ialah evolusi terakhir yang diketahui...",
+  "*Animation could not be loaded*": "*Animasi tidak dapat dimuatkan*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Anomali sistem dikesan – Data evolusi rosak",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ KEROSAKAN DATA DIKESAN – PENGHANTARAN TIDAK STABIL",
+  "❌ No music available for Mech Level {level}": "❌ Tiada muzik untuk Mech tahap {level}",
+  "⏰ No tasks found for {name} to delete.": "⏰ Tiada tugasan untuk dipadam bagi {name}."
 }

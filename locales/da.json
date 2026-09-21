@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automatisk opdatering fuldført • Klik ▶️ for at genstarte",
   "🔄 Manually refreshed • Click again to update": "🔄 Manuelt opdateret • Klik igen for at opdatere",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automatisk opdatering stoppet • Klik Start for at genstarte",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Live-logvisningen er udløbet • Brug /info for at oprette nye"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Live-logvisningen er udløbet • Brug /info for at oprette nye",
+  "📋 {name} - Container Info": "📋 {name} – Containeroplysninger",
+  "❌ Container configuration not found for '{name}'": "❌ Containerkonfiguration for '{name}' blev ikke fundet",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "Krøniken forbinder historiens kapitler med Mech-evolutioner • Næste mål som forhåndsvisning",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "Krøniken forbinder kapitlerne med Mech-evolutioner • Niveau 10 er den sidste kendte evolution...",
+  "*Animation could not be loaded*": "*Animationen kunne ikke indlæses*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Systemanomali registreret – Evolutionsdata beskadiget",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ DATAKORRUPTION REGISTRERET – TRANSMISSION USTABIL",
+  "❌ No music available for Mech Level {level}": "❌ Ingen musik tilgængelig til Mech-niveau {level}",
+  "⏰ No tasks found for {name} to delete.": "⏰ Der blev ikke fundet nogen opgaver at slette for {name}."
 }

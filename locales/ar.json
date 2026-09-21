@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ اكتمل التحديث التلقائي • اضغط ▶️ لإعادة التشغيل",
   "🔄 Manually refreshed • Click again to update": "🔄 تم التحديث يدوياً • اضغط مرة أخرى للتحديث",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ أُوقف التحديث التلقائي • اضغط «ابدأ» لإعادة التشغيل",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ انتهت مهلة عرض السجلات المباشرة • استخدم /info لإنشاء سجلات جديدة"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ انتهت مهلة عرض السجلات المباشرة • استخدم /info لإنشاء سجلات جديدة",
+  "📋 {name} - Container Info": "📋 {name} – معلومات الحاوية",
+  "❌ Container configuration not found for '{name}'": "❌ لم يتم العثور على إعدادات الحاوية '{name}'",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "السجل يربط فصول القصة بتطوّرات الـ Mech • الهدف التالي كمعاينة",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "السجل يربط الفصول بتطوّرات الـ Mech • المستوى 10 هو آخر تطوّر معروف...",
+  "*Animation could not be loaded*": "*تعذّر تحميل الرسوم المتحركة*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ تم رصد خلل في النظام – بيانات التطوّر تالفة",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ تم رصد تلف في البيانات – الإرسال غير مستقر",
+  "❌ No music available for Mech Level {level}": "❌ لا توجد موسيقى لمستوى الـ Mech {level}",
+  "⏰ No tasks found for {name} to delete.": "⏰ لم يتم العثور على مهام لحذفها لـ {name}."
 }

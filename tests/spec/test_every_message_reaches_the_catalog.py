@@ -80,8 +80,6 @@ DELIBERATE_GLITCH = {
 # listed in DELIBERATE_GLITCH above. So they come down in batches, and the
 # number here comes down with them.
 KNOWN = {
-    "cogs/control_ui.py": 12,
-    "cogs/status_info_integration.py": 2,
 }
 
 

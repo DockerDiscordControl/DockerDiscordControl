@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Η αυτόματη ανανέωση ολοκληρώθηκε • Πατήστε ▶️ για επανεκκίνηση",
   "🔄 Manually refreshed • Click again to update": "🔄 Μη αυτόματη ανανέωση • Πατήστε ξανά για ενημέρωση",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Η αυτόματη ανανέωση σταμάτησε • Πατήστε Έναρξη για επανεκκίνηση",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Η προβολή ζωντανών αρχείων έληξε • Χρησιμοποιήστε /info για νέα"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Η προβολή ζωντανών αρχείων έληξε • Χρησιμοποιήστε /info για νέα",
+  "📋 {name} - Container Info": "📋 {name} – Πληροφορίες container",
+  "❌ Container configuration not found for '{name}'": "❌ Δεν βρέθηκε ρύθμιση container για '{name}'",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "Το χρονικό συνδέει τα κεφάλαια με τις εξελίξεις του Mech • Επόμενος στόχος ως προεπισκόπηση",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "Το χρονικό συνδέει τα κεφάλαια με τις εξελίξεις του Mech • Το επίπεδο 10 είναι η τελευταία γνωστή εξέλιξη...",
+  "*Animation could not be loaded*": "*Δεν ήταν δυνατή η φόρτωση της κινούμενης εικόνας*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Εντοπίστηκε ανωμαλία συστήματος – Κατεστραμμένα δεδομένα εξέλιξης",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ ΕΝΤΟΠΙΣΤΗΚΕ ΑΛΛΟΙΩΣΗ ΔΕΔΟΜΕΝΩΝ – ΑΣΤΑΘΗΣ ΜΕΤΑΔΟΣΗ",
+  "❌ No music available for Mech Level {level}": "❌ Δεν υπάρχει μουσική για το επίπεδο Mech {level}",
+  "⏰ No tasks found for {name} to delete.": "⏰ Δεν βρέθηκαν εργασίες προς διαγραφή για {name}."
 }

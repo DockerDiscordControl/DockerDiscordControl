@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ 自动刷新已完成 • 点击 ▶️ 重新开始",
   "🔄 Manually refreshed • Click again to update": "🔄 已手动刷新 • 再次点击以更新",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ 自动刷新已停止 • 点击“开始”重新启动",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ 实时日志视图已超时 • 使用 /info 创建新的实时日志"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ 实时日志视图已超时 • 使用 /info 创建新的实时日志",
+  "📋 {name} - Container Info": "📋 {name} – 容器信息",
+  "❌ Container configuration not found for '{name}'": "❌ 未找到容器 '{name}' 的配置",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "历史将故事章节与 Mech 进化相结合 • 下一个目标以剪影预览",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "历史将故事章节与 Mech 进化相结合 • 第 10 级是已知的最终进化...",
+  "*Animation could not be loaded*": "*无法加载动画*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ 检测到系统异常 – 进化数据已损坏",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ 检测到数据损坏 – 传输不稳定",
+  "❌ No music available for Mech Level {level}": "❌ 没有适用于 Mech 等级 {level} 的音乐",
+  "⏰ No tasks found for {name} to delete.": "⏰ 未找到 {name} 可删除的任务。"
 }

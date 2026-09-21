@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automaattinen päivitys valmis • Napsauta ▶️ aloittaaksesi uudelleen",
   "🔄 Manually refreshed • Click again to update": "🔄 Päivitetty käsin • Napsauta uudelleen päivittääksesi",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automaattinen päivitys pysäytetty • Napsauta Käynnistä",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Live-lokinäkymä vanheni • Luo uusi komennolla /info"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Live-lokinäkymä vanheni • Luo uusi komennolla /info",
+  "📋 {name} - Container Info": "📋 {name} – Kontin tiedot",
+  "❌ Container configuration not found for '{name}'": "❌ Kontin '{name}' määrityksiä ei löytynyt",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "Kronikka yhdistää tarinan luvut Mechin kehitykseen • Seuraava tavoite esikatseluna",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "Kronikka yhdistää luvut Mechin kehitykseen • Taso 10 on viimeinen tunnettu kehitysaste...",
+  "*Animation could not be loaded*": "*Animaatiota ei voitu ladata*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Järjestelmäpoikkeama havaittu – Kehitystiedot vioittuneet",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ DATAVAURIO HAVAITTU – SIIRTO EPÄVAKAA",
+  "❌ No music available for Mech Level {level}": "❌ Mech-tasolle {level} ei ole musiikkia",
+  "⏰ No tasks found for {name} to delete.": "⏰ Kohteelle {name} ei löytynyt poistettavia tehtäviä."
 }

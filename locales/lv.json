@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automātiskā atsvaidzināšana pabeigta • Noklikšķiniet ▶️, lai sāktu no jauna",
   "🔄 Manually refreshed • Click again to update": "🔄 Manuāli atsvaidzināts • Noklikšķiniet vēlreiz, lai atjauninātu",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automātiskā atsvaidzināšana apturēta • Noklikšķiniet Sākt",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Tiešraides žurnālu skats beidzies • Izmantojiet /info jauniem"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Tiešraides žurnālu skats beidzies • Izmantojiet /info jauniem",
+  "📋 {name} - Container Info": "📋 {name} – Konteinera informācija",
+  "❌ Container configuration not found for '{name}'": "❌ Netika atrasta konteinera '{name}' konfigurācija",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "Hronika saista stāsta nodaļas ar Mech evolūcijām • Nākamais mērķis kā priekšskatījums",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "Hronika saista nodaļas ar Mech evolūcijām • 10. līmenis ir pēdējā zināmā evolūcija...",
+  "*Animation could not be loaded*": "*Animāciju neizdevās ielādēt*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Konstatēta sistēmas anomālija – Evolūcijas dati bojāti",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ KONSTATĒTA DATU BOJĀŠANA – PĀRRAIDE NESTABILA",
+  "❌ No music available for Mech Level {level}": "❌ Mech līmenim {level} nav pieejama mūzika",
+  "⏰ No tasks found for {name} to delete.": "⏰ Netika atrasti dzēšami uzdevumi priekš {name}."
 }

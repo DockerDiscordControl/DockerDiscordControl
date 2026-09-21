@@ -932,7 +932,7 @@ class StatusInfoButton(discord.ui.Button):
 
         # Create embed with container branding
         embed = discord.Embed(
-            title=f"📋 {display_name} - Container Info",
+            title=_("📋 {name} - Container Info").format(name=display_name),
             color=0x3498db
         )
 
@@ -1408,7 +1408,7 @@ class DeleteTasksButton(discord.ui.Button):
 
             if not tasks:
                 await interaction.followup.send(
-                    f"⏰ No tasks found for {self.container_name} to delete.",
+                    _("⏰ No tasks found for {name} to delete.").format(name=self.container_name),
                     ephemeral=True
                 )
                 return

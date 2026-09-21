@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Reîmprospătarea automată s-a încheiat • Apăsați ▶️ pentru a reporni",
   "🔄 Manually refreshed • Click again to update": "🔄 Reîmprospătat manual • Apăsați din nou pentru actualizare",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Reîmprospătarea automată oprită • Apăsați Start pentru a reporni",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Vizualizarea jurnalelor live a expirat • Folosiți /info pentru altele noi"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Vizualizarea jurnalelor live a expirat • Folosiți /info pentru altele noi",
+  "📋 {name} - Container Info": "📋 {name} – Informații container",
+  "❌ Container configuration not found for '{name}'": "❌ Configurația containerului '{name}' nu a fost găsită",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "Cronica îmbină capitolele poveștii cu evoluțiile Mech • Următorul obiectiv ca previzualizare",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "Cronica îmbină capitolele cu evoluțiile Mech • Nivelul 10 este ultima evoluție cunoscută...",
+  "*Animation could not be loaded*": "*Animația nu a putut fi încărcată*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Anomalie de sistem detectată – Date de evoluție corupte",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ CORUPERE DE DATE DETECTATĂ – TRANSMISIE INSTABILĂ",
+  "❌ No music available for Mech Level {level}": "❌ Nu există muzică pentru nivelul Mech {level}",
+  "⏰ No tasks found for {name} to delete.": "⏰ Nu au fost găsite sarcini de șters pentru {name}."
 }

@@ -1662,5 +1662,14 @@
   "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ הרענון האוטומטי הסתיים • לחץ על ▶️ להפעלה מחדש",
   "🔄 Manually refreshed • Click again to update": "🔄 רוענן ידנית • לחץ שוב לעדכון",
   "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ הרענון האוטומטי הופסק • לחץ על התחל להפעלה מחדש",
-  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ תצוגת היומנים החיים פגה • השתמש ב-/info ליצירת חדשים"
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ תצוגת היומנים החיים פגה • השתמש ב-/info ליצירת חדשים",
+  "📋 {name} - Container Info": "📋 {name} – מידע על המכל",
+  "❌ Container configuration not found for '{name}'": "❌ לא נמצאה תצורת מכל עבור '{name}'",
+  "History integrates story chapters with mech evolutions • Next evolution goal as shadow preview": "הכרוניקה משלבת פרקי סיפור עם התפתחויות ה-Mech • היעד הבא כתצוגה מקדימה",
+  "History integrates story chapters with mech evolutions • Level 10 is the final known evolution...": "הכרוניקה משלבת פרקים עם התפתחויות ה-Mech • רמה 10 היא ההתפתחות האחרונה הידועה...",
+  "*Animation could not be loaded*": "*לא ניתן היה לטעון את האנימציה*",
+  "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ זוהתה חריגה במערכת – נתוני ההתפתחות פגומים",
+  "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ זוהה נזק לנתונים – השידור אינו יציב",
+  "❌ No music available for Mech Level {level}": "❌ אין מוזיקה לרמת Mech {level}",
+  "⏰ No tasks found for {name} to delete.": "⏰ לא נמצאו משימות למחיקה עבור {name}."
 }
