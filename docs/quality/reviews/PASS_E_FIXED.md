@@ -42,6 +42,8 @@ Pass E is the read of the files that no earlier pass ever covered
 
 | **E37** | **Your 26th container would simply not be in the dropdown** — not shown, not reachable from Discord, and indistinguishable from a configuration that only has 25. (You run 7, so this is for everyone else.) | Discord's limit is 25 and is not negotiable. The dropdown now says "(25/30)" and the log names the ones left out. Paging is the real answer and is **a question for you** in `reviews/CONTROL_UI.md`. | `147afb1` |
 
+| **E38** | **Five more English texts**, behind a third blind spot in the same guard: `embed.description = "..."` rather than `Embed(description=...)`. One of them is the message shown when the configuration cannot be loaded — the one you are most likely to meet on a bad day. | The guard has now been widened **twice after reporting zero**, and its docstring says so. Both times a hand-read found what it could not see. | `97c3298` |
+
 ## Web panel
 
 | # | What you would have seen | Cause | Commit |
