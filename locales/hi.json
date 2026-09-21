@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "कमांड पूरी नहीं हो सकी। कारण DDC लॉग में दर्ज है।",
-  "the mech state could not be read": "Mech की स्थिति पढ़ी नहीं जा सकी"
+  "the mech state could not be read": "Mech की स्थिति पढ़ी नहीं जा सकी",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ इस कंटेनर के लिए कोई जानकारी कॉन्फ़िगर नहीं है।",
+  "ℹ️ No active containers have information configured.": "ℹ️ किसी भी सक्रिय कंटेनर के लिए जानकारी कॉन्फ़िगर नहीं है।",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ एक अन्य क्रिया चल रही है। कृपया पुनः प्रयास करें।",
+  "❌ Error loading mech history. Please try again later.": "❌ Mech इतिहास लोड करने में त्रुटि। कृपया बाद में पुनः प्रयास करें।",
+  "❌ Error processing donation request. Please try again later.": "❌ दान अनुरोध संसाधित करने में त्रुटि। कृपया बाद में पुनः प्रयास करें।",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ डिबग लॉग प्राप्त करने में त्रुटि। कृपया बाद में पुनः प्रयास करें।",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Mech विवरण प्राप्त करने में त्रुटि। कृपया बाद में पुनः प्रयास करें।",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Mech स्थिति विवरण प्राप्त करने में त्रुटि। कृपया बाद में पुनः प्रयास करें।",
+  "❌ Could not retrieve debug logs for this container.": "❌ इस कंटेनर के डिबग लॉग प्राप्त नहीं किए जा सके।",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ दान संसाधित करने में त्रुटि। सीधे `/donate` का उपयोग करें।",
+  "❌ Mech system is currently disabled.": "❌ Mech सिस्टम फ़िलहाल बंद है।",
+  "❌ You don't have permission to view container info in this channel.": "❌ आपको इस चैनल में कंटेनर जानकारी देखने की अनुमति नहीं है।",
+  "📦 No active containers found.": "📦 कोई सक्रिय कंटेनर नहीं मिला।",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ आपको व्यवस्थापक नियंत्रण उपयोग करने की अनुमति नहीं है।"
 }

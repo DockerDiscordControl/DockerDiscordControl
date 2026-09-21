@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "Không thể hoàn tất lệnh. Lý do nằm trong nhật ký DDC.",
-  "the mech state could not be read": "không thể đọc trạng thái của Mech"
+  "the mech state could not be read": "không thể đọc trạng thái của Mech",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ Chưa cấu hình thông tin cho container này.",
+  "ℹ️ No active containers have information configured.": "ℹ️ Không có container đang hoạt động nào được cấu hình thông tin.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ Một thao tác khác đang diễn ra. Vui lòng thử lại.",
+  "❌ Error loading mech history. Please try again later.": "❌ Lỗi khi tải lịch sử Mech. Vui lòng thử lại sau.",
+  "❌ Error processing donation request. Please try again later.": "❌ Lỗi khi xử lý yêu cầu quyên góp. Vui lòng thử lại sau.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ Lỗi khi lấy nhật ký gỡ lỗi. Vui lòng thử lại sau.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Lỗi khi lấy chi tiết Mech. Vui lòng thử lại sau.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Lỗi khi lấy chi tiết trạng thái Mech. Vui lòng thử lại sau.",
+  "❌ Could not retrieve debug logs for this container.": "❌ Không thể lấy nhật ký gỡ lỗi của container này.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ Lỗi xử lý quyên góp. Vui lòng dùng trực tiếp `/donate`.",
+  "❌ Mech system is currently disabled.": "❌ Hệ thống Mech hiện đang bị tắt.",
+  "❌ You don't have permission to view container info in this channel.": "❌ Bạn không có quyền xem thông tin container trong kênh này.",
+  "📦 No active containers found.": "📦 Không tìm thấy container đang hoạt động.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Bạn không được phép sử dụng các điều khiển quản trị."
 }

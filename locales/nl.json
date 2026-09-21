@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "De opdracht kon niet worden voltooid. De reden staat in het DDC-logboek.",
-  "the mech state could not be read": "de status van de Mech kon niet worden gelezen"
+  "the mech state could not be read": "de status van de Mech kon niet worden gelezen",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ Er is geen informatie ingesteld voor deze container.",
+  "ℹ️ No active containers have information configured.": "ℹ️ Geen enkele actieve container heeft informatie ingesteld.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ Er loopt al een andere interactie. Probeer het opnieuw.",
+  "❌ Error loading mech history. Please try again later.": "❌ Fout bij het laden van de Mech-geschiedenis. Probeer het later opnieuw.",
+  "❌ Error processing donation request. Please try again later.": "❌ Fout bij het verwerken van het donatieverzoek. Probeer het later opnieuw.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ Fout bij het ophalen van de debuglogboeken. Probeer het later opnieuw.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Fout bij het ophalen van de Mech-details. Probeer het later opnieuw.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Fout bij het ophalen van de Mech-statusdetails. Probeer het later opnieuw.",
+  "❌ Could not retrieve debug logs for this container.": "❌ Kan de debuglogboeken van deze container niet ophalen.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ Fout bij het verwerken van de donatie. Gebruik `/donate` rechtstreeks.",
+  "❌ Mech system is currently disabled.": "❌ Het Mech-systeem is momenteel uitgeschakeld.",
+  "❌ You don't have permission to view container info in this channel.": "❌ Je hebt geen toestemming om containerinformatie in dit kanaal te bekijken.",
+  "📦 No active containers found.": "📦 Geen actieve containers gevonden.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Je bent niet bevoegd om de beheerdersknoppen te gebruiken."
 }

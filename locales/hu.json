@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "A parancsot nem sikerült végrehajtani. Az okot a DDC naplója tartalmazza.",
-  "the mech state could not be read": "a Mech állapotát nem sikerült beolvasni"
+  "the mech state could not be read": "a Mech állapotát nem sikerült beolvasni",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ Ehhez a konténerhez nincs információ beállítva.",
+  "ℹ️ No active containers have information configured.": "ℹ️ Egyetlen aktív konténerhez sincs információ beállítva.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ Egy másik művelet folyamatban van. Próbálja újra.",
+  "❌ Error loading mech history. Please try again later.": "❌ Hiba a Mech előzményeinek betöltésekor. Kérjük, próbálja újra később.",
+  "❌ Error processing donation request. Please try again later.": "❌ Hiba az adománykérés feldolgozásakor. Kérjük, próbálja újra később.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ Hiba a hibakeresési naplók lekérésekor. Kérjük, próbálja újra később.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Hiba a Mech részleteinek lekérésekor. Kérjük, próbálja újra később.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Hiba a Mech állapotadatainak lekérésekor. Kérjük, próbálja újra később.",
+  "❌ Could not retrieve debug logs for this container.": "❌ A konténer hibakeresési naplói nem kérhetők le.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ Hiba az adomány feldolgozásakor. Használja közvetlenül a `/donate` parancsot.",
+  "❌ Mech system is currently disabled.": "❌ A Mech rendszer jelenleg ki van kapcsolva.",
+  "❌ You don't have permission to view container info in this channel.": "❌ Nincs jogosultsága a konténer adatainak megtekintésére ebben a csatornában.",
+  "📦 No active containers found.": "📦 Nem található aktív konténer.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Nincs jogosultsága az adminisztrátori vezérlők használatára."
 }

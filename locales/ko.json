@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "명령을 완료할 수 없습니다. 이유는 DDC 로그에 기록되어 있습니다.",
-  "the mech state could not be read": "Mech 상태를 읽을 수 없습니다"
+  "the mech state could not be read": "Mech 상태를 읽을 수 없습니다",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ 이 컨테이너에 설정된 정보가 없습니다.",
+  "ℹ️ No active containers have information configured.": "ℹ️ 정보가 설정된 활성 컨테이너가 없습니다.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ 다른 작업이 진행 중입니다. 다시 시도해 주세요.",
+  "❌ Error loading mech history. Please try again later.": "❌ Mech 기록을 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+  "❌ Error processing donation request. Please try again later.": "❌ 후원 요청을 처리하는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ 디버그 로그를 가져오는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Mech 세부 정보를 가져오는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Mech 상태 세부 정보를 가져오는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+  "❌ Could not retrieve debug logs for this container.": "❌ 이 컨테이너의 디버그 로그를 가져올 수 없습니다.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ 후원 처리 중 오류가 발생했습니다. `/donate` 를 직접 사용해 주세요.",
+  "❌ Mech system is currently disabled.": "❌ Mech 시스템이 현재 비활성화되어 있습니다.",
+  "❌ You don't have permission to view container info in this channel.": "❌ 이 채널에서 컨테이너 정보를 볼 권한이 없습니다.",
+  "📦 No active containers found.": "📦 활성 컨테이너를 찾을 수 없습니다.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ 관리자 제어를 사용할 권한이 없습니다."
 }

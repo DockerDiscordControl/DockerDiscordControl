@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "Il comando non è stato completato. Il motivo si trova nel log di DDC.",
-  "the mech state could not be read": "non è stato possibile leggere lo stato del Mech"
+  "the mech state could not be read": "non è stato possibile leggere lo stato del Mech",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ Nessuna informazione è configurata per questo container.",
+  "ℹ️ No active containers have information configured.": "ℹ️ Nessun container attivo ha informazioni configurate.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ Un'altra interazione è in corso. Riprova.",
+  "❌ Error loading mech history. Please try again later.": "❌ Errore durante il caricamento della cronologia del Mech. Riprova più tardi.",
+  "❌ Error processing donation request. Please try again later.": "❌ Errore durante l'elaborazione della richiesta di donazione. Riprova più tardi.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ Errore durante il recupero dei log di debug. Riprova più tardi.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Errore durante il recupero dei dettagli del Mech. Riprova più tardi.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Errore durante il recupero dei dettagli di stato del Mech. Riprova più tardi.",
+  "❌ Could not retrieve debug logs for this container.": "❌ Impossibile recuperare i log di debug di questo container.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ Errore nell'elaborazione della donazione. Usa direttamente `/donate`.",
+  "❌ Mech system is currently disabled.": "❌ Il sistema Mech è attualmente disattivato.",
+  "❌ You don't have permission to view container info in this channel.": "❌ Non hai il permesso di vedere le informazioni del container in questo canale.",
+  "📦 No active containers found.": "📦 Nessun container attivo trovato.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Non sei autorizzato a usare i controlli di amministrazione."
 }

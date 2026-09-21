@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "指令無法完成。原因記錄在 DDC 日誌中。",
-  "the mech state could not be read": "無法讀取 Mech 狀態"
+  "the mech state could not be read": "無法讀取 Mech 狀態",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ 此容器未設定任何資訊。",
+  "ℹ️ No active containers have information configured.": "ℹ️ 沒有已設定資訊的使用中容器。",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ 另一個操作正在進行中。請重試。",
+  "❌ Error loading mech history. Please try again later.": "❌ 載入 Mech 歷史時發生錯誤。 請稍後再試。",
+  "❌ Error processing donation request. Please try again later.": "❌ 處理捐款請求時發生錯誤。 請稍後再試。",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ 取得除錯記錄時發生錯誤。 請稍後再試。",
+  "❌ Error retrieving mech details. Please try again later.": "❌ 取得 Mech 詳細資料時發生錯誤。 請稍後再試。",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ 取得 Mech 狀態詳細資料時發生錯誤。 請稍後再試。",
+  "❌ Could not retrieve debug logs for this container.": "❌ 無法取得此容器的除錯記錄。",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ 處理捐款時發生錯誤。請直接使用 `/donate`。",
+  "❌ Mech system is currently disabled.": "❌ Mech 系統目前已停用。",
+  "❌ You don't have permission to view container info in this channel.": "❌ 你沒有權限在此頻道檢視容器資訊。",
+  "📦 No active containers found.": "📦 找不到使用中的容器。",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ 你無權使用管理員控制項。"
 }

@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "Не удалось выполнить команду. Причина указана в журнале DDC.",
-  "the mech state could not be read": "не удалось прочитать состояние Mech"
+  "the mech state could not be read": "не удалось прочитать состояние Mech",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ Для этого контейнера не настроена информация.",
+  "ℹ️ No active containers have information configured.": "ℹ️ Ни для одного активного контейнера не настроена информация.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ Выполняется другое действие. Попробуйте ещё раз.",
+  "❌ Error loading mech history. Please try again later.": "❌ Ошибка при загрузке истории Mech. Попробуйте позже.",
+  "❌ Error processing donation request. Please try again later.": "❌ Ошибка при обработке запроса на пожертвование. Попробуйте позже.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ Ошибка при получении журналов отладки. Попробуйте позже.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Ошибка при получении сведений о Mech. Попробуйте позже.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Ошибка при получении сведений о состоянии Mech. Попробуйте позже.",
+  "❌ Could not retrieve debug logs for this container.": "❌ Не удалось получить журналы отладки этого контейнера.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ Ошибка при обработке пожертвования. Используйте `/donate` напрямую.",
+  "❌ Mech system is currently disabled.": "❌ Система Mech сейчас отключена.",
+  "❌ You don't have permission to view container info in this channel.": "❌ У вас нет прав просматривать информацию о контейнере в этом канале.",
+  "📦 No active containers found.": "📦 Активные контейнеры не найдены.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ У вас нет прав использовать элементы управления администратора."
 }

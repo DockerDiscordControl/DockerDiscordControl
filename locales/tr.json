@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "Komut tamamlanamadı. Nedeni DDC günlüğünde yer alıyor.",
-  "the mech state could not be read": "Mech durumu okunamadı"
+  "the mech state could not be read": "Mech durumu okunamadı",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ Bu konteyner için bilgi yapılandırılmamış.",
+  "ℹ️ No active containers have information configured.": "ℹ️ Hiçbir etkin konteynerde bilgi yapılandırılmamış.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ Başka bir işlem devam ediyor. Lütfen tekrar deneyin.",
+  "❌ Error loading mech history. Please try again later.": "❌ Mech geçmişi yüklenirken hata oluştu. Lütfen daha sonra tekrar deneyin.",
+  "❌ Error processing donation request. Please try again later.": "❌ Bağış isteği işlenirken hata oluştu. Lütfen daha sonra tekrar deneyin.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ Hata ayıklama günlükleri alınırken hata oluştu. Lütfen daha sonra tekrar deneyin.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Mech ayrıntıları alınırken hata oluştu. Lütfen daha sonra tekrar deneyin.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Mech durum ayrıntıları alınırken hata oluştu. Lütfen daha sonra tekrar deneyin.",
+  "❌ Could not retrieve debug logs for this container.": "❌ Bu konteynerin hata ayıklama günlükleri alınamadı.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ Bağış işlenirken hata oluştu. Doğrudan `/donate` kullanın.",
+  "❌ Mech system is currently disabled.": "❌ Mech sistemi şu anda devre dışı.",
+  "❌ You don't have permission to view container info in this channel.": "❌ Bu kanalda konteyner bilgilerini görüntüleme izniniz yok.",
+  "📦 No active containers found.": "📦 Etkin konteyner bulunamadı.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Yönetici denetimlerini kullanma yetkiniz yok."
 }

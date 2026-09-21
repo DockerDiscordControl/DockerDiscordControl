@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "The command could not be completed. The reason is in the DDC log.",
-  "the mech state could not be read": "the mech state could not be read"
+  "the mech state could not be read": "the mech state could not be read",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ Container info is not configured for this container.",
+  "ℹ️ No active containers have information configured.": "ℹ️ No active containers have information configured.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ Another interaction is in progress. Please try again.",
+  "❌ Error loading mech history. Please try again later.": "❌ Error loading mech history. Please try again later.",
+  "❌ Error processing donation request. Please try again later.": "❌ Error processing donation request. Please try again later.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ Error retrieving debug logs. Please try again later.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Error retrieving mech details. Please try again later.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Error retrieving mech status details. Please try again later.",
+  "❌ Could not retrieve debug logs for this container.": "❌ Could not retrieve debug logs for this container.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ Error processing donation. Please try `/donate` directly.",
+  "❌ Mech system is currently disabled.": "❌ Mech system is currently disabled.",
+  "❌ You don't have permission to view container info in this channel.": "❌ You don't have permission to view container info in this channel.",
+  "📦 No active containers found.": "📦 No active containers found.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ You are not authorized to use admin controls."
 }

@@ -1209,7 +1209,7 @@ class InfoButton(Button):
             # Check if channel has info permission (skip check for admins)
             if not is_admin and not self._channel_has_info_permission(channel_id, config):
                 await interaction.followup.send(
-                    "❌ You don't have permission to view container info in this channel.",
+                    _("❌ You don't have permission to view container info in this channel."),
                     ephemeral=True
                 )
                 return
@@ -1271,7 +1271,7 @@ class InfoButton(Button):
                     return
                 else:
                     await interaction.followup.send(
-                        "ℹ️ Container info is not configured for this container.",
+                        _("ℹ️ Container info is not configured for this container."),
                         ephemeral=True
                     )
                     return
@@ -1307,7 +1307,7 @@ class InfoButton(Button):
         except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"[INFO_BTN] Error showing info for '{self.display_name}': {e}", exc_info=True)
             await interaction.followup.send(
-                "❌ An error occurred while loading container info.",
+                _("❌ An error occurred. Please try again."),
                 ephemeral=True
             )
 
@@ -1605,7 +1605,7 @@ class InfoDropdownButton(Button):
                     continue
 
             if not containers_with_info:
-                await interaction.followup.send("ℹ️ No active containers have information configured.", ephemeral=True)
+                await interaction.followup.send(_("ℹ️ No active containers have information configured."), ephemeral=True)
                 return
 
             # Sort containers by the 'order' field (same as Admin Overview)
@@ -1629,7 +1629,7 @@ class InfoDropdownButton(Button):
         except (discord.errors.DiscordException, RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing info selection: {e}", exc_info=True)
             try:
-                await interaction.followup.send("❌ Error showing container selection.", ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
             except (discord.errors.DiscordException, RuntimeError):
                 # Interaction may have expired
                 pass
@@ -1822,12 +1822,12 @@ class ContainerInfoDropdown(discord.ui.Select):
             try:
                 if not interaction.response.is_done():
                     await interaction.response.edit_message(
-                        content="❌ Error showing container information.",
+                        content=_("❌ An error occurred. Please try again."),
                         embed=None,
                         view=None
                     )
                 else:
-                    await interaction.followup.send("❌ Error showing container information.", ephemeral=True)
+                    await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
             except (discord.errors.DiscordException, RuntimeError):
                 pass
 
@@ -1882,9 +1882,9 @@ class PasswordButton(Button):
             logger.error(f"Error showing password modal: {e}", exc_info=True)
             try:
                 if not interaction.response.is_done():
-                    await interaction.response.send_message("❌ Error showing password modal.", ephemeral=True)
+                    await interaction.response.send_message(_("❌ An error occurred. Please try again."), ephemeral=True)
                 else:
-                    await interaction.followup.send("❌ Error showing password modal.", ephemeral=True)
+                    await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
             except (discord.errors.DiscordException, RuntimeError):
                 pass
 
@@ -1924,7 +1924,7 @@ class AdminButton(Button):
             # Check if user is admin
             user_id = str(interaction.user.id)
             if not admin_service.is_user_admin(user_id):
-                await interaction.followup.send("🛠️ You are not authorized to use admin controls.", ephemeral=True)
+                await interaction.followup.send(_("🛠️ You are not authorized to use admin controls."), ephemeral=True)
                 return
 
             # Apply spam protection
@@ -1973,7 +1973,7 @@ class AdminButton(Button):
                     continue
 
             if not active_containers:
-                await interaction.followup.send("📦 No active containers found.", ephemeral=True)
+                await interaction.followup.send(_("📦 No active containers found."), ephemeral=True)
                 return
 
             # Log containers BEFORE sorting (with types)
@@ -2018,7 +2018,7 @@ class AdminButton(Button):
         except (discord.errors.DiscordException, RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing admin panel: {e}", exc_info=True)
             try:
-                await interaction.followup.send("❌ Error showing admin panel.", ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
             except (discord.errors.DiscordException, RuntimeError):
                 pass
 
@@ -2178,8 +2178,10 @@ class AdminContainerDropdown(discord.ui.Select):
             # Load configuration
             config = load_config()
             if not config:
+                logger.error("[ADMIN_BTN] Configuration could not be loaded - "
+                             "the admin panel cannot be built")
                 await interaction.edit_original_response(
-                    content="❌ Failed to load configuration",
+                    content=_("❌ An error occurred. Please try again."),
                     embed=None,
                     view=None
                 )
@@ -2196,7 +2198,12 @@ class AdminContainerDropdown(discord.ui.Select):
 
             # Generate expanded control embed and view using the cog's method
             if hasattr(self.cog, '_generate_status_embed_and_view'):
-                embed, view, _ = await self.cog._generate_status_embed_and_view(
+                # NOT `_`: this function now calls the translation function, and
+                # binding `_` anywhere in it makes `_` local for the WHOLE scope -
+                # every _() before this line would raise UnboundLocalError and
+                # every one after it would call a tuple element (review E34,
+                # caught by test_the_translation_function_is_not_shadowed).
+                embed, view, _running = await self.cog._generate_status_embed_and_view(
                     self.channel_id,
                     selected_container,  # Use container name, not display name
                     container_config,
@@ -2243,8 +2250,10 @@ class AdminContainerDropdown(discord.ui.Select):
                 await interaction.edit_original_response(embed=embed, view=control_view)
             else:
                 # Fallback if method not available
+                logger.error("[ADMIN_BTN] The cog has no _generate_status_embed_and_view - "
+                             "the control panel cannot be built")
                 await interaction.edit_original_response(
-                    content="❌ Control generation method not available",
+                    content=_("❌ An error occurred. Please try again."),
                     embed=None,
                     view=None
                 )
@@ -2257,7 +2266,7 @@ class AdminContainerDropdown(discord.ui.Select):
             try:
                 # Since we deferred at the start, response is always done, so edit original
                 await interaction.edit_original_response(
-                    content="❌ Error showing container control panel.",
+                    content=_("❌ An error occurred. Please try again."),
                     embed=None,
                     view=None
                 )
@@ -2341,7 +2350,7 @@ class HelpButton(Button):
         except (discord.errors.DiscordException, RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing help: {e}", exc_info=True)
             try:
-                await interaction.followup.send("❌ Error showing help information.", ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
             except (discord.errors.DiscordException, RuntimeError):
                 # Interaction may have expired
                 pass
@@ -2380,7 +2389,7 @@ class MechDetailsButton(Button):
 
             if not result.success:
                 await interaction.followup.send(
-                    "❌ Error retrieving mech status details. Please try again later.",
+                    _("❌ Error retrieving mech status details. Please try again later."),
                     ephemeral=True
                 )
                 return
@@ -2465,12 +2474,12 @@ class MechDetailsButton(Button):
             try:
                 if interaction.response.is_done():
                     await interaction.followup.send(
-                        "❌ Error retrieving mech details. Please try again later.",
+                        _("❌ Error retrieving mech details. Please try again later."),
                         ephemeral=True
                     )
                 else:
                     await interaction.response.send_message(
-                        "❌ Error retrieving mech details. Please try again later.",
+                        _("❌ Error retrieving mech details. Please try again later."),
                         ephemeral=True
                     )
             except (discord.errors.DiscordException, RuntimeError):
@@ -2497,7 +2506,7 @@ class MechExpandButton(Button):
         try:
             # Check if donations are disabled
             if is_donations_disabled():
-                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True)
                 return
 
             # Apply spam protection
@@ -2538,7 +2547,7 @@ class MechExpandButton(Button):
 
             # Start interaction tracking to prevent auto-update conflicts
             if not await self.cog._start_interaction(self.channel_id):
-                await interaction.followup.send("⏰ Another interaction is in progress. Please try again.", ephemeral=True)
+                await interaction.followup.send(_("⏰ Another interaction is in progress. Please try again."), ephemeral=True)
                 return
 
             try:
@@ -2574,7 +2583,7 @@ class MechExpandButton(Button):
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error expanding mech status: {e}", exc_info=True)
             try:
-                await interaction.followup.send("❌ Error expanding mech status.", ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
             except (discord.errors.HTTPException, discord.errors.NotFound):
                 # Interaction may have already expired
                 pass
@@ -2619,7 +2628,7 @@ class MechCollapseButton(Button):
         try:
             # Check if donations are disabled
             if is_donations_disabled():
-                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True)
                 return
 
             # Apply spam protection
@@ -2649,7 +2658,7 @@ class MechCollapseButton(Button):
 
             # Start interaction tracking to prevent auto-update conflicts
             if not await self.cog._start_interaction(self.channel_id):
-                await interaction.followup.send("⏰ Another interaction is in progress. Please try again.", ephemeral=True)
+                await interaction.followup.send(_("⏰ Another interaction is in progress. Please try again."), ephemeral=True)
                 return
 
             try:
@@ -2681,7 +2690,7 @@ class MechCollapseButton(Button):
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error collapsing mech status: {e}", exc_info=True)
             try:
-                await interaction.followup.send("❌ Error collapsing mech status.", ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
             except (discord.errors.HTTPException, discord.errors.NotFound):
                 # Interaction may have already expired
                 pass
@@ -2766,9 +2775,9 @@ class MechDonateButton(Button):
             try:
                 # Smart error response - check if interaction was already handled by _handle_donate_interaction
                 if interaction.response.is_done():
-                    await interaction.followup.send("❌ Error processing donation. Please try `/donate` directly.", ephemeral=True)
+                    await interaction.followup.send(_("❌ Error processing donation. Please try `/donate` directly."), ephemeral=True)
                 else:
-                    await interaction.response.send_message("❌ Error processing donation. Please try `/donate` directly.", ephemeral=True)
+                    await interaction.response.send_message(_("❌ Error processing donation. Please try `/donate` directly."), ephemeral=True)
             except discord.errors.NotFound:
                 logger.warning("Cannot send error message - interaction expired")
             except (discord.errors.DiscordException, RuntimeError):
@@ -2842,7 +2851,7 @@ class MechHistoryButton(Button):
 
             # Check if donations are disabled (after defer, use followup)
             if is_donations_disabled():
-                await interaction.followup.send("❌ Mech system is currently disabled.", ephemeral=True)
+                await interaction.followup.send(_("❌ Mech system is currently disabled."), ephemeral=True)
                 return
 
             # Get current mech state using SERVICE FIRST
@@ -2851,7 +2860,10 @@ class MechHistoryButton(Button):
             mech_state_request = GetMechStateRequest(include_decimals=False)
             mech_state_result = mech_service.get_mech_state_service(mech_state_request)
             if not mech_state_result.success:
-                await interaction.followup.send("❌ Failed to get mech state", ephemeral=True)
+                logger.error("[MECH] The mech state could not be read - "
+                             "the selection cannot be shown")
+                await interaction.followup.send(
+                    _("❌ An error occurred. Please try again."), ephemeral=True)
                 return
             current_level = mech_state_result.level
 
@@ -2951,7 +2963,10 @@ class MechHistoryButton(Button):
                         mech_state_request = GetMechStateRequest(include_decimals=False)
                         mech_state_result = mech_service.get_mech_state_service(mech_state_request)
                         if not mech_state_result.success:
-                            await interaction.response.send_message("❌ Failed to get mech state", ephemeral=True)
+                            logger.error("[MECH] The mech state could not be read - "
+                                         "the display cannot be shown")
+                            await interaction.response.send_message(
+                                _("❌ An error occurred. Please try again."), ephemeral=True)
                             return
                         power = mech_state_result.power
 
@@ -3226,7 +3241,7 @@ class MechDisplayButton(Button):
         try:
             # Check if donations are disabled
             if is_donations_disabled():
-                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True)
                 return
 
             # self.custom_id = mech_display_<level> -> slider mech_display.
@@ -3336,7 +3351,7 @@ class EpilogueButton(Button):
         try:
             # Check if donations are disabled
             if is_donations_disabled():
-                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True)
                 return
 
             # Not self.custom_id ("epilogue_button"): without "mech_story_" in
@@ -3420,7 +3435,7 @@ class ReadStoryButton(Button):
         try:
             # Check if donations are disabled
             if is_donations_disabled():
-                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True)
                 return
 
             # Not self.custom_id (read_story_<level>) - see EpilogueButton.
@@ -3504,7 +3519,7 @@ class PlaySongButton(Button):
         try:
             # Check if donations are disabled
             if is_donations_disabled():
-                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True)
                 return
 
             # Not self.custom_id (play_song_<level>) - see EpilogueButton.
@@ -3584,12 +3599,12 @@ class MechPrivateDonateButton(Button):
                 # Smart error response - check if interaction was already deferred by child button
                 if interaction.response.is_done():
                     await interaction.followup.send(
-                        "❌ Error processing donation request. Please try again later.",
+                        _("❌ Error processing donation request. Please try again later."),
                         ephemeral=True
                     )
                 else:
                     await interaction.response.send_message(
-                        "❌ Error processing donation request. Please try again later.",
+                        _("❌ Error processing donation request. Please try again later."),
                         ephemeral=True
                     )
             except discord.errors.NotFound:
@@ -3623,12 +3638,12 @@ class MechPrivateHistoryButton(Button):
                 # Smart error response - check if interaction was already deferred by child button
                 if interaction.response.is_done():
                     await interaction.followup.send(
-                        "❌ Error loading mech history. Please try again later.",
+                        _("❌ Error loading mech history. Please try again later."),
                         ephemeral=True
                     )
                 else:
                     await interaction.response.send_message(
-                        "❌ Error loading mech history. Please try again later.",
+                        _("❌ Error loading mech history. Please try again later."),
                         ephemeral=True
                     )
             except discord.errors.NotFound:

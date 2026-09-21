@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "Komandos nepavyko įvykdyti. Priežastis nurodyta DDC žurnale.",
-  "the mech state could not be read": "nepavyko nuskaityti Mech būsenos"
+  "the mech state could not be read": "nepavyko nuskaityti Mech būsenos",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ Šiam konteineriui informacija nesukonfigūruota.",
+  "ℹ️ No active containers have information configured.": "ℹ️ Nė vienam aktyviam konteineriui nesukonfigūruota informacija.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ Vyksta kita operacija. Bandykite dar kartą.",
+  "❌ Error loading mech history. Please try again later.": "❌ Klaida įkeliant Mech istoriją. Bandykite vėliau dar kartą.",
+  "❌ Error processing donation request. Please try again later.": "❌ Klaida apdorojant aukos užklausą. Bandykite vėliau dar kartą.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ Klaida gaunant derinimo žurnalus. Bandykite vėliau dar kartą.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Klaida gaunant Mech duomenis. Bandykite vėliau dar kartą.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Klaida gaunant Mech būsenos duomenis. Bandykite vėliau dar kartą.",
+  "❌ Could not retrieve debug logs for this container.": "❌ Nepavyko gauti šio konteinerio derinimo žurnalų.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ Klaida apdorojant auką. Naudokite `/donate` tiesiogiai.",
+  "❌ Mech system is currently disabled.": "❌ Mech sistema šiuo metu išjungta.",
+  "❌ You don't have permission to view container info in this channel.": "❌ Neturite teisės peržiūrėti konteinerio informacijos šiame kanale.",
+  "📦 No active containers found.": "📦 Aktyvių konteinerių nerasta.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Neturite teisės naudoti administratoriaus valdiklių."
 }

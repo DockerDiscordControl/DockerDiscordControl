@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "La commande n'a pas pu être exécutée. La raison se trouve dans le journal DDC.",
-  "the mech state could not be read": "l'état du Mech n'a pas pu être lu"
+  "the mech state could not be read": "l'état du Mech n'a pas pu être lu",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ Aucune information n'est configurée pour ce conteneur.",
+  "ℹ️ No active containers have information configured.": "ℹ️ Aucun conteneur actif n'a d'informations configurées.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ Une autre interaction est en cours. Veuillez réessayer.",
+  "❌ Error loading mech history. Please try again later.": "❌ Erreur lors du chargement de l'historique du Mech. Veuillez réessayer plus tard.",
+  "❌ Error processing donation request. Please try again later.": "❌ Erreur lors du traitement de la demande de don. Veuillez réessayer plus tard.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ Erreur lors de la récupération des journaux de débogage. Veuillez réessayer plus tard.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Erreur lors de la récupération des détails du Mech. Veuillez réessayer plus tard.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Erreur lors de la récupération des détails de l'état du Mech. Veuillez réessayer plus tard.",
+  "❌ Could not retrieve debug logs for this container.": "❌ Impossible de récupérer les journaux de débogage de ce conteneur.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ Erreur lors du traitement du don. Utilisez directement `/donate`.",
+  "❌ Mech system is currently disabled.": "❌ Le système Mech est actuellement désactivé.",
+  "❌ You don't have permission to view container info in this channel.": "❌ Vous n'avez pas l'autorisation de voir les informations du conteneur dans ce salon.",
+  "📦 No active containers found.": "📦 Aucun conteneur actif trouvé.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Vous n'êtes pas autorisé à utiliser les commandes d'administration."
 }

@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "Perintah tidak dapat diselesaikan. Alasannya ada di log DDC.",
-  "the mech state could not be read": "status Mech tidak dapat dibaca"
+  "the mech state could not be read": "status Mech tidak dapat dibaca",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ Tidak ada informasi yang dikonfigurasi untuk kontainer ini.",
+  "ℹ️ No active containers have information configured.": "ℹ️ Tidak ada kontainer aktif yang memiliki informasi terkonfigurasi.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ Interaksi lain sedang berlangsung. Silakan coba lagi.",
+  "❌ Error loading mech history. Please try again later.": "❌ Kesalahan saat memuat riwayat Mech. Silakan coba lagi nanti.",
+  "❌ Error processing donation request. Please try again later.": "❌ Kesalahan saat memproses permintaan donasi. Silakan coba lagi nanti.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ Kesalahan saat mengambil log debug. Silakan coba lagi nanti.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Kesalahan saat mengambil detail Mech. Silakan coba lagi nanti.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Kesalahan saat mengambil detail status Mech. Silakan coba lagi nanti.",
+  "❌ Could not retrieve debug logs for this container.": "❌ Tidak dapat mengambil log debug untuk kontainer ini.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ Kesalahan memproses donasi. Gunakan `/donate` secara langsung.",
+  "❌ Mech system is currently disabled.": "❌ Sistem Mech saat ini dinonaktifkan.",
+  "❌ You don't have permission to view container info in this channel.": "❌ Anda tidak memiliki izin untuk melihat informasi kontainer di kanal ini.",
+  "📦 No active containers found.": "📦 Tidak ada kontainer aktif yang ditemukan.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Anda tidak berwenang menggunakan kontrol admin."
 }

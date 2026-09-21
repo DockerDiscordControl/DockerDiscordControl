@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "O comando não pôde ser concluído. O motivo está no log do DDC.",
-  "the mech state could not be read": "não foi possível ler o estado do Mech"
+  "the mech state could not be read": "não foi possível ler o estado do Mech",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ Não há informações configuradas para este contêiner.",
+  "ℹ️ No active containers have information configured.": "ℹ️ Nenhum contêiner ativo tem informações configuradas.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ Outra interação está em andamento. Tente novamente.",
+  "❌ Error loading mech history. Please try again later.": "❌ Erro ao carregar o histórico do Mech. Tente novamente mais tarde.",
+  "❌ Error processing donation request. Please try again later.": "❌ Erro ao processar o pedido de doação. Tente novamente mais tarde.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ Erro ao obter os logs de depuração. Tente novamente mais tarde.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Erro ao obter os detalhes do Mech. Tente novamente mais tarde.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Erro ao obter os detalhes do status do Mech. Tente novamente mais tarde.",
+  "❌ Could not retrieve debug logs for this container.": "❌ Não foi possível obter os logs de depuração deste contêiner.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ Erro ao processar a doação. Use `/donate` diretamente.",
+  "❌ Mech system is currently disabled.": "❌ O sistema Mech está desativado no momento.",
+  "❌ You don't have permission to view container info in this channel.": "❌ Você não tem permissão para ver as informações do contêiner neste canal.",
+  "📦 No active containers found.": "📦 Nenhum contêiner ativo encontrado.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Você não tem autorização para usar os controles de administração."
 }

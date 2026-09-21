@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "Kommandot kunde inte slutföras. Orsaken finns i DDC-loggen.",
-  "the mech state could not be read": "Mechens status kunde inte läsas"
+  "the mech state could not be read": "Mechens status kunde inte läsas",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ Ingen information är konfigurerad för den här containern.",
+  "ℹ️ No active containers have information configured.": "ℹ️ Ingen aktiv container har information konfigurerad.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ En annan interaktion pågår. Försök igen.",
+  "❌ Error loading mech history. Please try again later.": "❌ Fel vid inläsning av Mech-historiken. Försök igen senare.",
+  "❌ Error processing donation request. Please try again later.": "❌ Fel vid behandling av donationsbegäran. Försök igen senare.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ Fel vid hämtning av felsökningsloggarna. Försök igen senare.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Fel vid hämtning av Mech-detaljerna. Försök igen senare.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Fel vid hämtning av Mech-statusdetaljerna. Försök igen senare.",
+  "❌ Could not retrieve debug logs for this container.": "❌ Det gick inte att hämta felsökningsloggarna för den här containern.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ Fel vid behandling av donationen. Använd `/donate` direkt.",
+  "❌ Mech system is currently disabled.": "❌ Mech-systemet är för närvarande inaktiverat.",
+  "❌ You don't have permission to view container info in this channel.": "❌ Du har inte behörighet att visa containerinformation i den här kanalen.",
+  "📦 No active containers found.": "📦 Inga aktiva containrar hittades.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Du har inte behörighet att använda administratörskontrollerna."
 }

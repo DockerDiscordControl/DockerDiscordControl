@@ -778,7 +778,7 @@ class DebugLogsButton(discord.ui.Button):
                 logger.info(f"Debug logs displayed for {self.container_name} for user {interaction.user.id} (auto-start: {auto_start_enabled})")
             else:
                 await interaction.followup.send(
-                    "❌ Could not retrieve debug logs for this container.",
+                    _("❌ Could not retrieve debug logs for this container."),
                     ephemeral=True
                 )
 
@@ -787,12 +787,12 @@ class DebugLogsButton(discord.ui.Button):
             try:
                 if interaction.response.is_done():
                     await interaction.followup.send(
-                        "❌ Error retrieving debug logs. Please try again later.",
+                        _("❌ Error retrieving debug logs. Please try again later."),
                         ephemeral=True
                     )
                 else:
                     await interaction.response.send_message(
-                        "❌ Error retrieving debug logs. Please try again later.",
+                        _("❌ Error retrieving debug logs. Please try again later."),
                         ephemeral=True
                     )
             except Exception:
@@ -1236,7 +1236,7 @@ class TaskManagementButton(discord.ui.Button):
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in task management button: {e}", exc_info=True)
             try:
-                await interaction.followup.send("❌ Error opening task management.", ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
             except Exception:
                 pass
 
@@ -1303,7 +1303,7 @@ class TaskManagementButton(discord.ui.Button):
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing task list: {e}", exc_info=True)
             try:
-                await interaction.followup.send("❌ Error loading task list.", ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
             except Exception:
                 pass  # Interaction might have expired
 

@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "Příkaz se nepodařilo dokončit. Důvod najdete v protokolu DDC.",
-  "the mech state could not be read": "stav Mecha se nepodařilo načíst"
+  "the mech state could not be read": "stav Mecha se nepodařilo načíst",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ Pro tento kontejner nejsou nastaveny žádné informace.",
+  "ℹ️ No active containers have information configured.": "ℹ️ Žádný aktivní kontejner nemá nastavené informace.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ Probíhá jiná interakce. Zkuste to znovu.",
+  "❌ Error loading mech history. Please try again later.": "❌ Chyba při načítání historie Mecha. Zkuste to prosím později.",
+  "❌ Error processing donation request. Please try again later.": "❌ Chyba při zpracování žádosti o dar. Zkuste to prosím později.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ Chyba při načítání ladicích protokolů. Zkuste to prosím později.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Chyba při načítání podrobností o Mechovi. Zkuste to prosím později.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Chyba při načítání podrobností o stavu Mecha. Zkuste to prosím později.",
+  "❌ Could not retrieve debug logs for this container.": "❌ Ladicí protokoly tohoto kontejneru se nepodařilo načíst.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ Chyba při zpracování daru. Použijte přímo `/donate`.",
+  "❌ Mech system is currently disabled.": "❌ Systém Mech je momentálně vypnutý.",
+  "❌ You don't have permission to view container info in this channel.": "❌ Nemáte oprávnění zobrazit informace o kontejneru v tomto kanálu.",
+  "📦 No active containers found.": "📦 Nebyly nalezeny žádné aktivní kontejnery.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Nemáte oprávnění používat ovládací prvky správce."
 }

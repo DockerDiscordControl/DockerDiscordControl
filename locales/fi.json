@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "Komentoa ei voitu suorittaa loppuun. Syy löytyy DDC-lokista.",
-  "the mech state could not be read": "Mechin tilaa ei voitu lukea"
+  "the mech state could not be read": "Mechin tilaa ei voitu lukea",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ Tälle kontille ei ole määritetty tietoja.",
+  "ℹ️ No active containers have information configured.": "ℹ️ Yhdelläkään aktiivisella kontilla ei ole määritettyjä tietoja.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ Toinen toiminto on käynnissä. Yritä uudelleen.",
+  "❌ Error loading mech history. Please try again later.": "❌ Virhe Mech-historian lataamisessa. Yritä myöhemmin uudelleen.",
+  "❌ Error processing donation request. Please try again later.": "❌ Virhe lahjoituspyynnön käsittelyssä. Yritä myöhemmin uudelleen.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ Virhe virheenkorjauslokien haussa. Yritä myöhemmin uudelleen.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Virhe Mech-tietojen haussa. Yritä myöhemmin uudelleen.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Virhe Mech-tilatietojen haussa. Yritä myöhemmin uudelleen.",
+  "❌ Could not retrieve debug logs for this container.": "❌ Tämän kontin virheenkorjauslokeja ei voitu hakea.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ Virhe lahjoituksen käsittelyssä. Käytä suoraan `/donate`.",
+  "❌ Mech system is currently disabled.": "❌ Mech-järjestelmä on tällä hetkellä poissa käytöstä.",
+  "❌ You don't have permission to view container info in this channel.": "❌ Sinulla ei ole oikeutta tarkastella kontin tietoja tässä kanavassa.",
+  "📦 No active containers found.": "📦 Aktiivisia kontteja ei löytynyt.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Sinulla ei ole oikeutta käyttää järjestelmänvalvojan hallintaa."
 }

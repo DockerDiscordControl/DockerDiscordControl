@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "ไม่สามารถดำเนินคำสั่งให้เสร็จสิ้นได้ เหตุผลอยู่ในบันทึกของ DDC",
-  "the mech state could not be read": "ไม่สามารถอ่านสถานะของ Mech ได้"
+  "the mech state could not be read": "ไม่สามารถอ่านสถานะของ Mech ได้",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ ยังไม่ได้ตั้งค่าข้อมูลสำหรับคอนเทนเนอร์นี้",
+  "ℹ️ No active containers have information configured.": "ℹ️ ไม่มีคอนเทนเนอร์ที่ใช้งานอยู่ที่ตั้งค่าข้อมูลไว้",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ มีการดำเนินการอื่นอยู่ กรุณาลองใหม่อีกครั้ง",
+  "❌ Error loading mech history. Please try again later.": "❌ เกิดข้อผิดพลาดขณะโหลดประวัติ Mech กรุณาลองใหม่ภายหลัง",
+  "❌ Error processing donation request. Please try again later.": "❌ เกิดข้อผิดพลาดขณะประมวลผลคำขอบริจาค กรุณาลองใหม่ภายหลัง",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ เกิดข้อผิดพลาดขณะดึงบันทึกดีบัก กรุณาลองใหม่ภายหลัง",
+  "❌ Error retrieving mech details. Please try again later.": "❌ เกิดข้อผิดพลาดขณะดึงรายละเอียด Mech กรุณาลองใหม่ภายหลัง",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ เกิดข้อผิดพลาดขณะดึงรายละเอียดสถานะ Mech กรุณาลองใหม่ภายหลัง",
+  "❌ Could not retrieve debug logs for this container.": "❌ ไม่สามารถดึงบันทึกดีบักของคอนเทนเนอร์นี้ได้",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ เกิดข้อผิดพลาดในการประมวลผลการบริจาค กรุณาใช้ `/donate` โดยตรง",
+  "❌ Mech system is currently disabled.": "❌ ขณะนี้ระบบ Mech ถูกปิดใช้งาน",
+  "❌ You don't have permission to view container info in this channel.": "❌ คุณไม่มีสิทธิ์ดูข้อมูลคอนเทนเนอร์ในช่องนี้",
+  "📦 No active containers found.": "📦 ไม่พบคอนเทนเนอร์ที่ใช้งานอยู่",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ คุณไม่ได้รับอนุญาตให้ใช้การควบคุมของผู้ดูแลระบบ"
 }

@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "Perintah tidak dapat diselesaikan. Sebabnya ada dalam log DDC.",
-  "the mech state could not be read": "status Mech tidak dapat dibaca"
+  "the mech state could not be read": "status Mech tidak dapat dibaca",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ Tiada maklumat dikonfigurasikan untuk bekas ini.",
+  "ℹ️ No active containers have information configured.": "ℹ️ Tiada bekas aktif yang mempunyai maklumat dikonfigurasikan.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ Interaksi lain sedang berjalan. Sila cuba lagi.",
+  "❌ Error loading mech history. Please try again later.": "❌ Ralat semasa memuatkan sejarah Mech. Sila cuba lagi kemudian.",
+  "❌ Error processing donation request. Please try again later.": "❌ Ralat semasa memproses permintaan derma. Sila cuba lagi kemudian.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ Ralat semasa mendapatkan log nyahpepijat. Sila cuba lagi kemudian.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Ralat semasa mendapatkan butiran Mech. Sila cuba lagi kemudian.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Ralat semasa mendapatkan butiran status Mech. Sila cuba lagi kemudian.",
+  "❌ Could not retrieve debug logs for this container.": "❌ Tidak dapat mendapatkan log nyahpepijat bagi bekas ini.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ Ralat memproses derma. Sila guna `/donate` secara terus.",
+  "❌ Mech system is currently disabled.": "❌ Sistem Mech kini dilumpuhkan.",
+  "❌ You don't have permission to view container info in this channel.": "❌ Anda tiada kebenaran untuk melihat maklumat bekas dalam saluran ini.",
+  "📦 No active containers found.": "📦 Tiada bekas aktif ditemui.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Anda tidak dibenarkan menggunakan kawalan pentadbir."
 }

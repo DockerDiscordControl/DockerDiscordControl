@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "Comanda nu a putut fi finalizată. Motivul se află în jurnalul DDC.",
-  "the mech state could not be read": "starea Mech-ului nu a putut fi citită"
+  "the mech state could not be read": "starea Mech-ului nu a putut fi citită",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ Nu sunt configurate informații pentru acest container.",
+  "ℹ️ No active containers have information configured.": "ℹ️ Niciun container activ nu are informații configurate.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ O altă interacțiune este în curs. Încercați din nou.",
+  "❌ Error loading mech history. Please try again later.": "❌ Eroare la încărcarea istoricului Mech. Încercați din nou mai târziu.",
+  "❌ Error processing donation request. Please try again later.": "❌ Eroare la procesarea cererii de donație. Încercați din nou mai târziu.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ Eroare la preluarea jurnalelor de depanare. Încercați din nou mai târziu.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Eroare la preluarea detaliilor Mech. Încercați din nou mai târziu.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Eroare la preluarea detaliilor de stare Mech. Încercați din nou mai târziu.",
+  "❌ Could not retrieve debug logs for this container.": "❌ Jurnalele de depanare ale acestui container nu au putut fi preluate.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ Eroare la procesarea donației. Folosiți direct `/donate`.",
+  "❌ Mech system is currently disabled.": "❌ Sistemul Mech este dezactivat momentan.",
+  "❌ You don't have permission to view container info in this channel.": "❌ Nu aveți permisiunea de a vedea informațiile containerului pe acest canal.",
+  "📦 No active containers found.": "📦 Nu au fost găsite containere active.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Nu sunteți autorizat să folosiți comenzile de administrare."
 }

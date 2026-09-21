@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "Ukaza ni bilo mogoče dokončati. Razlog je v dnevniku DDC.",
-  "the mech state could not be read": "stanja Mecha ni bilo mogoče prebrati"
+  "the mech state could not be read": "stanja Mecha ni bilo mogoče prebrati",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ Za ta vsebnik ni nastavljenih informacij.",
+  "ℹ️ No active containers have information configured.": "ℹ️ Noben aktiven vsebnik nima nastavljenih informacij.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ Poteka druga interakcija. Poskusite znova.",
+  "❌ Error loading mech history. Please try again later.": "❌ Napaka pri nalaganju zgodovine Mecha. Poskusite znova pozneje.",
+  "❌ Error processing donation request. Please try again later.": "❌ Napaka pri obdelavi zahteve za donacijo. Poskusite znova pozneje.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ Napaka pri pridobivanju razhroščevalnih dnevnikov. Poskusite znova pozneje.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Napaka pri pridobivanju podrobnosti Mecha. Poskusite znova pozneje.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Napaka pri pridobivanju podrobnosti o stanju Mecha. Poskusite znova pozneje.",
+  "❌ Could not retrieve debug logs for this container.": "❌ Razhroščevalnih dnevnikov tega vsebnika ni bilo mogoče pridobiti.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ Napaka pri obdelavi donacije. Uporabite neposredno `/donate`.",
+  "❌ Mech system is currently disabled.": "❌ Sistem Mech je trenutno onemogočen.",
+  "❌ You don't have permission to view container info in this channel.": "❌ Nimate dovoljenja za ogled informacij o vsebniku v tem kanalu.",
+  "📦 No active containers found.": "📦 Ni najdenih aktivnih vsebnikov.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Nimate dovoljenja za uporabo skrbniških kontrolnikov."
 }

@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "לא ניתן היה להשלים את הפקודה. הסיבה מופיעה ביומן של DDC.",
-  "the mech state could not be read": "לא ניתן היה לקרוא את מצב ה-Mech"
+  "the mech state could not be read": "לא ניתן היה לקרוא את מצב ה-Mech",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ לא הוגדר מידע עבור מכל זה.",
+  "ℹ️ No active containers have information configured.": "ℹ️ לאף מכל פעיל לא הוגדר מידע.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ פעולה אחרת מתבצעת כעת. נסה שוב.",
+  "❌ Error loading mech history. Please try again later.": "❌ שגיאה בטעינת היסטוריית ה-Mech. נסה שוב מאוחר יותר.",
+  "❌ Error processing donation request. Please try again later.": "❌ שגיאה בעיבוד בקשת התרומה. נסה שוב מאוחר יותר.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ שגיאה באחזור יומני הניפוי. נסה שוב מאוחר יותר.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ שגיאה באחזור פרטי ה-Mech. נסה שוב מאוחר יותר.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ שגיאה באחזור פרטי מצב ה-Mech. נסה שוב מאוחר יותר.",
+  "❌ Could not retrieve debug logs for this container.": "❌ לא ניתן היה לאחזר את יומני הניפוי של מכל זה.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ שגיאה בעיבוד התרומה. השתמש ישירות ב-`/donate`.",
+  "❌ Mech system is currently disabled.": "❌ מערכת ה-Mech מושבתת כעת.",
+  "❌ You don't have permission to view container info in this channel.": "❌ אין לך הרשאה לצפות במידע על המכל בערוץ זה.",
+  "📦 No active containers found.": "📦 לא נמצאו מכלים פעילים.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ אינך מורשה להשתמש בפקדי הניהול."
 }

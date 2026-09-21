@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "Командата не можа да бъде изпълнена. Причината е в дневника на DDC.",
-  "the mech state could not be read": "състоянието на Mech не можа да бъде прочетено"
+  "the mech state could not be read": "състоянието на Mech не можа да бъде прочетено",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ За този контейнер не е конфигурирана информация.",
+  "ℹ️ No active containers have information configured.": "ℹ️ Нито един активен контейнер няма конфигурирана информация.",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ В момента тече друго действие. Моля, опитайте отново.",
+  "❌ Error loading mech history. Please try again later.": "❌ Грешка при зареждане на историята на Mech. Моля, опитайте отново по-късно.",
+  "❌ Error processing donation request. Please try again later.": "❌ Грешка при обработка на заявката за дарение. Моля, опитайте отново по-късно.",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ Грешка при извличане на дневниците за отстраняване на грешки. Моля, опитайте отново по-късно.",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Грешка при извличане на подробностите за Mech. Моля, опитайте отново по-късно.",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Грешка при извличане на подробностите за състоянието на Mech. Моля, опитайте отново по-късно.",
+  "❌ Could not retrieve debug logs for this container.": "❌ Дневниците за отстраняване на грешки на този контейнер не могат да бъдат извлечени.",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ Грешка при обработка на дарението. Използвайте директно `/donate`.",
+  "❌ Mech system is currently disabled.": "❌ Системата Mech в момента е изключена.",
+  "❌ You don't have permission to view container info in this channel.": "❌ Нямате права да виждате информация за контейнера в този канал.",
+  "📦 No active containers found.": "📦 Не са намерени активни контейнери.",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ Нямате право да използвате административните контроли."
 }

@@ -1635,5 +1635,19 @@
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "コマンドを完了できませんでした。理由は DDC のログに記録されています。",
-  "the mech state could not be read": "Mech の状態を読み取れませんでした"
+  "the mech state could not be read": "Mech の状態を読み取れませんでした",
+  "ℹ️ Container info is not configured for this container.": "ℹ️ このコンテナには情報が設定されていません。",
+  "ℹ️ No active containers have information configured.": "ℹ️ 情報が設定されているアクティブなコンテナはありません。",
+  "⏰ Another interaction is in progress. Please try again.": "⏰ 別の操作が進行中です。もう一度お試しください。",
+  "❌ Error loading mech history. Please try again later.": "❌ Mech の履歴の読み込みでエラーが発生しました。 しばらくしてからもう一度お試しください。",
+  "❌ Error processing donation request. Please try again later.": "❌ 寄付リクエストの処理でエラーが発生しました。 しばらくしてからもう一度お試しください。",
+  "❌ Error retrieving debug logs. Please try again later.": "❌ デバッグログの取得でエラーが発生しました。 しばらくしてからもう一度お試しください。",
+  "❌ Error retrieving mech details. Please try again later.": "❌ Mech の詳細の取得でエラーが発生しました。 しばらくしてからもう一度お試しください。",
+  "❌ Error retrieving mech status details. Please try again later.": "❌ Mech のステータス詳細の取得でエラーが発生しました。 しばらくしてからもう一度お試しください。",
+  "❌ Could not retrieve debug logs for this container.": "❌ このコンテナのデバッグログを取得できませんでした。",
+  "❌ Error processing donation. Please try `/donate` directly.": "❌ 寄付の処理でエラーが発生しました。`/donate` を直接お使いください。",
+  "❌ Mech system is currently disabled.": "❌ Mech システムは現在無効です。",
+  "❌ You don't have permission to view container info in this channel.": "❌ このチャンネルでコンテナ情報を表示する権限がありません。",
+  "📦 No active containers found.": "📦 アクティブなコンテナが見つかりません。",
+  "🛠️ You are not authorized to use admin controls.": "🛠️ 管理者コントロールを使用する権限がありません。"
 }
