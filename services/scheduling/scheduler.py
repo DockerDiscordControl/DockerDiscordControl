@@ -32,7 +32,7 @@ datetime, timedelta, timezone, time = get_datetime_imports()
 # Import time class from datetime module as datetime_time to avoid conflict
 from datetime import time as datetime_time
 import pytz
-from utils.atomic_io import atomic_write_text
+from utils.atomic_io import atomic_write_json, atomic_write_text
 
 json, _using_ujson = import_ujson()
 uvloop, _using_uvloop = import_uvloop()
@@ -1068,41 +1068,30 @@ def _save_raw_tasks_to_file(tasks_data: List[Dict[str, Any]]) -> bool:
             # Create directory if needed
             _runtime.ensure_layout()
 
-            # Use a proper atomic write pattern for more resilience on network file systems
-            import tempfile
+            # The shared helper, not a fourth hand-rolled temp-and-rename. This
+            # one was written before utils/atomic_io.py existed and never moved
+            # onto it, and it differed in three ways that matter (review E1):
+            #
+            #   - mkstemp creates its file 0600, and the rename then made THAT
+            #     the mode of tasks.json. The file is written by two processes,
+            #     the bot and the web panel, and every save re-stamped it.
+            #   - the cleanup sat under (json.JSONDecodeError, ValueError,
+            #     TypeError, UnicodeEncodeError), so a full disk during the dump
+            #     or the fsync left the temp file behind - and the retry loop
+            #     below then made three of them per save, on every save.
+            #   - the non-posix branch used shutil.move onto an existing file,
+            #     which is a copy and not a replace. atomic_io uses os.replace,
+            #     which is atomic on both.
+            #
+            # indent=4 and ensure_ascii=False keep the file byte-for-byte the
+            # shape it had, which the unchanged-check above compares against.
+            atomic_write_json(TASKS_FILE_PATH, tasks_data, indent=4)
 
-            # Create temporary file in the same directory
-            temp_dir = str(TASKS_FILE_PATH.parent)
-            fd, temp_path = tempfile.mkstemp(dir=temp_dir, text=True)
-
-            try:
-                with os.fdopen(fd, 'w', encoding='utf-8') as f:
-                    json.dump(tasks_data, f, indent=4, ensure_ascii=False)
-                    f.flush()
-                    os.fsync(f.fileno())  # Ensure data is written to disk
-
-                # Perform atomic rename (on Unix systems) or copy+delete (on Windows)
-                if os.name == 'posix':
-                    os.rename(temp_path, TASKS_FILE_PATH)
-                else:
-                    import shutil
-                    shutil.move(temp_path, TASKS_FILE_PATH)
-
-                # Update cache and modified time after successful save
-                _runtime.invalidate_caches()
-                _runtime.record_current_file_state()
-                logger.debug("Tasks successfully saved to %s.", TASKS_FILE_PATH)
-                return True
-
-            except (json.JSONDecodeError, ValueError, TypeError, UnicodeEncodeError) as e:
-                # JSON/data/encoding errors (JSON dump failed, file encoding issues)
-                logger.error(f"Data/encoding error writing tasks file: {e}", exc_info=True)
-                # Clean up the temporary file in case of error
-                try:
-                    os.unlink(temp_path)
-                except (OSError, IOError) as cleanup_error:
-                    logger.debug(f"Failed to cleanup temporary file {temp_path}: {cleanup_error}")
-                raise e
+            # Update cache and modified time after successful save
+            _runtime.invalidate_caches()
+            _runtime.record_current_file_state()
+            logger.debug("Tasks successfully saved to %s.", TASKS_FILE_PATH)
+            return True
 
         except (IOError, OSError) as e:
             if attempt < max_retries - 1:

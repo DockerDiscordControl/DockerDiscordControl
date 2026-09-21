@@ -164,11 +164,11 @@ services/scheduling/donation_message_service.py:1-215
 services/scheduling/runtime.py:1-201
 services/scheduling/schedule_helpers.py:1-71
 
-## Section 26  (1995 lines, 1 piece)
-services/scheduling/scheduler.py:1-1995
+## Section 26  (1984 lines, 1 piece)
+services/scheduling/scheduler.py:1-1984
 
 ## Section 27  (1613 lines, 6 pieces)
-services/scheduling/scheduler.py:1996-2166
+services/scheduling/scheduler.py:1985-2155
 services/scheduling/scheduler_service.py:1-552
 services/status/__init__.py:1-13
 services/status/status_cache_service.py:1-225
