@@ -35,6 +35,8 @@ Pass E is the read of the files that no earlier pass ever covered
 |---|---|---|---|
 | **E22** | **Opening the Discord-admin dialog when the admin file could not be read showed "no users configured" — and pressing Save then deleted every admin and every container assignment.** A read error turning into a write that erases what it failed to read. | The route answered a read failure with HTTP **200** and an error body. `fetch()` does not reject on a 200, so the panel read the error as an empty admin list. | `8d9ab03` |
 
+| **E25** | **A container you stopped on purpose could be restarted by an Auto-Action** — the "only if running" switch was silently not honoured when the container's state could not be read, and nothing anywhere said so. | Three-state answer, two-state check: only a confirmed "not running" skipped. **Semantics deliberately left alone** (it is a real trade-off and it is yours to decide — see `reviews/AUTOMATION_SERVICE.md`); what was fixed is the silence. | `80657ac` |
+
 ## Under the floor — no symptom yet, but a trap
 
 | # | What | Commit |

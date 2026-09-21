@@ -7,7 +7,7 @@ around the two mechanical scans.
 
 | # | What | Commit |
 |---|---|---|
-| E25 | The **"only if running" safety switch could be silently not honoured.** When a container's state cannot be determined, the action runs anyway - so a container the operator stopped on purpose gets RESTARTed, which is exactly what the switch exists to prevent - and nothing said so. | `TBD` |
+| E25 | The **"only if running" safety switch could be silently not honoured.** When a container's state cannot be determined, the action runs anyway - so a container the operator stopped on purpose gets RESTARTed, which is exactly what the switch exists to prevent - and nothing said so. | `80657ac` |
 
 ## ⚠️ One question for the operator, deliberately left open
 
