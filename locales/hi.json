@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ सिस्टम विसंगति मिली – विकास डेटा दूषित",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ डेटा भ्रष्टता पाई गई – प्रसारण अस्थिर",
   "❌ No music available for Mech Level {level}": "❌ Mech स्तर {level} के लिए कोई संगीत उपलब्ध नहीं",
-  "⏰ No tasks found for {name} to delete.": "⏰ {name} के लिए हटाने हेतु कोई कार्य नहीं मिला।"
+  "⏰ No tasks found for {name} to delete.": "⏰ {name} के लिए हटाने हेतु कोई कार्य नहीं मिला।",
+  "*No information configured for this container.*": "*इस कंटेनर के लिए कोई जानकारी कॉन्फ़िगर नहीं है।*",
+  "🛠️ Admin Control: {name}": "🛠️ व्यवस्थापक नियंत्रण: {name}"
 }

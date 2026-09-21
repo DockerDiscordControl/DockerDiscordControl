@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Aptikta sistemos anomalija – Evoliucijos duomenys sugadinti",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ APTIKTAS DUOMENŲ SUGADINIMAS – PERDAVIMAS NESTABILUS",
   "❌ No music available for Mech Level {level}": "❌ Mech lygiui {level} muzikos nėra",
-  "⏰ No tasks found for {name} to delete.": "⏰ Nerasta užduočių, kurias būtų galima ištrinti {name}."
+  "⏰ No tasks found for {name} to delete.": "⏰ Nerasta užduočių, kurias būtų galima ištrinti {name}.",
+  "*No information configured for this container.*": "*Šiam konteineriui informacija nesukonfigūruota.*",
+  "🛠️ Admin Control: {name}": "🛠️ Administratoriaus valdymas: {name}"
 }

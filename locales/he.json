@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ זוהתה חריגה במערכת – נתוני ההתפתחות פגומים",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ זוהה נזק לנתונים – השידור אינו יציב",
   "❌ No music available for Mech Level {level}": "❌ אין מוזיקה לרמת Mech {level}",
-  "⏰ No tasks found for {name} to delete.": "⏰ לא נמצאו משימות למחיקה עבור {name}."
+  "⏰ No tasks found for {name} to delete.": "⏰ לא נמצאו משימות למחיקה עבור {name}.",
+  "*No information configured for this container.*": "*לא הוגדר מידע עבור מכל זה.*",
+  "🛠️ Admin Control: {name}": "🛠️ בקרת ניהול: {name}"
 }

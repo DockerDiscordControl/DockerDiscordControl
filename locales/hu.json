@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Rendszeranomália észlelve – Az evolúciós adatok sérültek",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ ADATSÉRÜLÉS ÉSZLELVE – AZ ÁTVITEL INSTABIL",
   "❌ No music available for Mech Level {level}": "❌ Nincs zene a(z) {level}. Mech szinthez",
-  "⏰ No tasks found for {name} to delete.": "⏰ Nem található törölhető feladat a(z) {name} számára."
+  "⏰ No tasks found for {name} to delete.": "⏰ Nem található törölhető feladat a(z) {name} számára.",
+  "*No information configured for this container.*": "*Ehhez a konténerhez nincs információ beállítva.*",
+  "🛠️ Admin Control: {name}": "🛠️ Admin vezérlés: {name}"
 }

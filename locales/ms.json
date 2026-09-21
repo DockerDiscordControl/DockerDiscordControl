@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Anomali sistem dikesan – Data evolusi rosak",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ KEROSAKAN DATA DIKESAN – PENGHANTARAN TIDAK STABIL",
   "❌ No music available for Mech Level {level}": "❌ Tiada muzik untuk Mech tahap {level}",
-  "⏰ No tasks found for {name} to delete.": "⏰ Tiada tugasan untuk dipadam bagi {name}."
+  "⏰ No tasks found for {name} to delete.": "⏰ Tiada tugasan untuk dipadam bagi {name}.",
+  "*No information configured for this container.*": "*Tiada maklumat dikonfigurasikan untuk bekas ini.*",
+  "🛠️ Admin Control: {name}": "🛠️ Kawalan pentadbir: {name}"
 }

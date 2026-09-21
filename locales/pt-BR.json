@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Anomalia do sistema detectada – Dados de evolução corrompidos",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ CORRUPÇÃO DE DADOS DETECTADA – TRANSMISSÃO INSTÁVEL",
   "❌ No music available for Mech Level {level}": "❌ Nenhuma música disponível para o nível Mech {level}",
-  "⏰ No tasks found for {name} to delete.": "⏰ Nenhuma tarefa para excluir encontrada para {name}."
+  "⏰ No tasks found for {name} to delete.": "⏰ Nenhuma tarefa para excluir encontrada para {name}.",
+  "*No information configured for this container.*": "*Não há informações configuradas para este contêiner.*",
+  "🛠️ Admin Control: {name}": "🛠️ Controle de administrador: {name}"
 }

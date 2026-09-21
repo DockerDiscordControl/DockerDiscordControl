@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ システム異常を検出 – 進化データが破損しています",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ データ破損を検出 – 通信が不安定です",
   "❌ No music available for Mech Level {level}": "❌ Mech レベル {level} の音楽はありません",
-  "⏰ No tasks found for {name} to delete.": "⏰ {name} に削除できるタスクはありません。"
+  "⏰ No tasks found for {name} to delete.": "⏰ {name} に削除できるタスクはありません。",
+  "*No information configured for this container.*": "*このコンテナには情報が設定されていません。*",
+  "🛠️ Admin Control: {name}": "🛠️ 管理者コントロール: {name}"
 }

@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Обнаружена системная аномалия – Данные эволюции повреждены",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ ОБНАРУЖЕНО ПОВРЕЖДЕНИЕ ДАННЫХ – ПЕРЕДАЧА НЕСТАБИЛЬНА",
   "❌ No music available for Mech Level {level}": "❌ Нет музыки для уровня Mech {level}",
-  "⏰ No tasks found for {name} to delete.": "⏰ Для {name} не найдено задач для удаления."
+  "⏰ No tasks found for {name} to delete.": "⏰ Для {name} не найдено задач для удаления.",
+  "*No information configured for this container.*": "*Для этого контейнера не настроена информация.*",
+  "🛠️ Admin Control: {name}": "🛠️ Администрирование: {name}"
 }

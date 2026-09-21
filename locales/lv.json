@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Konstatēta sistēmas anomālija – Evolūcijas dati bojāti",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ KONSTATĒTA DATU BOJĀŠANA – PĀRRAIDE NESTABILA",
   "❌ No music available for Mech Level {level}": "❌ Mech līmenim {level} nav pieejama mūzika",
-  "⏰ No tasks found for {name} to delete.": "⏰ Netika atrasti dzēšami uzdevumi priekš {name}."
+  "⏰ No tasks found for {name} to delete.": "⏰ Netika atrasti dzēšami uzdevumi priekš {name}.",
+  "*No information configured for this container.*": "*Šim konteineram nav konfigurēta informācija.*",
+  "🛠️ Admin Control: {name}": "🛠️ Administratora vadība: {name}"
 }

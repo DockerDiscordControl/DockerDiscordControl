@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Zaznana sistemska anomalija – Podatki o evoluciji poškodovani",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ ZAZNANA POŠKODBA PODATKOV – PRENOS NESTABILEN",
   "❌ No music available for Mech Level {level}": "❌ Za stopnjo Mecha {level} ni glasbe",
-  "⏰ No tasks found for {name} to delete.": "⏰ Za {name} ni bilo najdenih opravil za brisanje."
+  "⏰ No tasks found for {name} to delete.": "⏰ Za {name} ni bilo najdenih opravil za brisanje.",
+  "*No information configured for this container.*": "*Za ta vsebnik ni nastavljenih informacij.*",
+  "🛠️ Admin Control: {name}": "🛠️ Skrbniški nadzor: {name}"
 }

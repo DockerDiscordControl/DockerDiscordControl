@@ -603,8 +603,13 @@ class ActionButton(Button):
                                     self.cog.expanded_states[self.docker_name] = True
                                     self.server_config['_is_admin_control'] = True
 
-                                    # Generate admin control embed
-                                    admin_embed, _, _ = await self.cog._generate_status_embed_and_view(
+                                    # Generate admin control embed.
+                                    # NOT `_`: this function calls the translation
+                                    # function, and binding `_` anywhere makes it
+                                    # local for the WHOLE scope (review E38 - the
+                                    # same mistake as E34, caught by the same
+                                    # guard two hours later).
+                                    admin_embed, _view, _running = await self.cog._generate_status_embed_and_view(
                                         interaction.channel.id,
                                         self.display_name,
                                         self.server_config,
@@ -633,7 +638,7 @@ class ActionButton(Button):
                                     )
 
                                     if admin_embed:
-                                        admin_embed.title = f"🛠️ Admin Control: {self.display_name}"
+                                        admin_embed.title = _("🛠️ Admin Control: {name}").format(name=self.display_name)
                                         if not fresh_status_data or isinstance(fresh_status_data, Exception):
                                             admin_embed.color = discord.Color.gold()
                                         elif is_running:
@@ -651,7 +656,7 @@ class ActionButton(Button):
                             else:
                                 # Update normal control message
                                 try:
-                                    normal_embed, normal_view, _ = await self.cog._generate_status_embed_and_view(
+                                    normal_embed, normal_view, _running = await self.cog._generate_status_embed_and_view(
                                         interaction.channel.id,
                                         self.display_name,
                                         self.server_config,
@@ -676,7 +681,7 @@ class ActionButton(Button):
                                                 if channel:
                                                     message = await channel.fetch_message(msg_data['message_id'])
                                                     if message:
-                                                        embed, view, _ = await self.cog._generate_status_embed_and_view(
+                                                        embed, view, _running = await self.cog._generate_status_embed_and_view(
                                                             channel_id,
                                                             self.display_name,
                                                             server_config_for_update,
@@ -1376,7 +1381,7 @@ class InfoButton(Button):
         if description_parts:
             embed.description = "\n".join(description_parts)
         else:
-            embed.description = "*No information configured for this container.*"
+            embed.description = _("*No information configured for this container.*")
 
         embed.set_footer(text="https://ddc.bot")
         return embed
@@ -2275,7 +2280,7 @@ class AdminContainerDropdown(discord.ui.Select):
                 )
 
                 # Add admin header to embed
-                embed.title = f"🛠️ Admin Control: {display_name}"
+                embed.title = _("🛠️ Admin Control: {name}").format(name=display_name)
 
                 # Dynamic color based on container status
                 if not status_known:
@@ -2635,8 +2640,8 @@ class MechExpandButton(Button):
         config = load_config()
         if not config:
             # Fallback embed
-            embed = discord.Embed(title="Server Overview", color=discord.Color.blue())
-            embed.description = "Error: Could not load configuration."
+            embed = discord.Embed(title=_("Server Overview"), color=discord.Color.blue())
+            embed.description = _("Error: Could not load configuration.")
             return embed, None
 
         # SERVICE FIRST: Use ServerConfigService instead of direct config access
@@ -2742,8 +2747,8 @@ class MechCollapseButton(Button):
         config = load_config()
         if not config:
             # Fallback embed
-            embed = discord.Embed(title="Server Overview", color=discord.Color.blue())
-            embed.description = "Error: Could not load configuration."
+            embed = discord.Embed(title=_("Server Overview"), color=discord.Color.blue())
+            embed.description = _("Error: Could not load configuration.")
             return embed, None
 
         # SERVICE FIRST: Use ServerConfigService instead of direct config access

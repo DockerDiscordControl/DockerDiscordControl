@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ 偵測到系統異常 – 進化資料已損毀",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ 偵測到資料損毀 – 傳輸不穩定",
   "❌ No music available for Mech Level {level}": "❌ 沒有適用於 Mech 等級 {level} 的音樂",
-  "⏰ No tasks found for {name} to delete.": "⏰ 找不到 {name} 可刪除的任務。"
+  "⏰ No tasks found for {name} to delete.": "⏰ 找不到 {name} 可刪除的任務。",
+  "*No information configured for this container.*": "*此容器未設定任何資訊。*",
+  "🛠️ Admin Control: {name}": "🛠️ 管理員控制：{name}"
 }

@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ ناهنجاری سیستمی شناسایی شد – داده‌های تکامل خراب است",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ خرابی داده شناسایی شد – انتقال ناپایدار است",
   "❌ No music available for Mech Level {level}": "❌ موسیقی برای سطح Mech {level} موجود نیست",
-  "⏰ No tasks found for {name} to delete.": "⏰ هیچ وظیفه‌ای برای حذف برای {name} یافت نشد."
+  "⏰ No tasks found for {name} to delete.": "⏰ هیچ وظیفه‌ای برای حذف برای {name} یافت نشد.",
+  "*No information configured for this container.*": "*برای این کانتینر اطلاعاتی پیکربندی نشده است.*",
+  "🛠️ Admin Control: {name}": "🛠️ کنترل مدیریت: {name}"
 }

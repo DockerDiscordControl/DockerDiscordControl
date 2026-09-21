@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Εντοπίστηκε ανωμαλία συστήματος – Κατεστραμμένα δεδομένα εξέλιξης",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ ΕΝΤΟΠΙΣΤΗΚΕ ΑΛΛΟΙΩΣΗ ΔΕΔΟΜΕΝΩΝ – ΑΣΤΑΘΗΣ ΜΕΤΑΔΟΣΗ",
   "❌ No music available for Mech Level {level}": "❌ Δεν υπάρχει μουσική για το επίπεδο Mech {level}",
-  "⏰ No tasks found for {name} to delete.": "⏰ Δεν βρέθηκαν εργασίες προς διαγραφή για {name}."
+  "⏰ No tasks found for {name} to delete.": "⏰ Δεν βρέθηκαν εργασίες προς διαγραφή για {name}.",
+  "*No information configured for this container.*": "*Δεν έχουν ρυθμιστεί πληροφορίες για αυτό το container.*",
+  "🛠️ Admin Control: {name}": "🛠️ Έλεγχος διαχειριστή: {name}"
 }

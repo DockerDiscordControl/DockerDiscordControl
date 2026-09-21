@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Järjestelmäpoikkeama havaittu – Kehitystiedot vioittuneet",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ DATAVAURIO HAVAITTU – SIIRTO EPÄVAKAA",
   "❌ No music available for Mech Level {level}": "❌ Mech-tasolle {level} ei ole musiikkia",
-  "⏰ No tasks found for {name} to delete.": "⏰ Kohteelle {name} ei löytynyt poistettavia tehtäviä."
+  "⏰ No tasks found for {name} to delete.": "⏰ Kohteelle {name} ei löytynyt poistettavia tehtäviä.",
+  "*No information configured for this container.*": "*Tälle kontille ei ole määritetty tietoja.*",
+  "🛠️ Admin Control: {name}": "🛠️ Järjestelmänvalvojan hallinta: {name}"
 }

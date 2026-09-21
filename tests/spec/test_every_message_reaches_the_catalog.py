@@ -22,8 +22,16 @@ when it has FEWER, so the list can only shrink and never lies. Translating
 forty-two messages into forty languages is 1,680 entries; doing it in one
 commit would be a worse change than the defect.
 
-**THE FIRST VERSION OF THIS TEST WAS BLIND TO EMBEDS, and reported zero while
-33 untranslated texts sat in them** (review E35). Most of what DDC shows is an
+**THIS TEST HAS BEEN WIDENED TWICE AFTER REPORTING ZERO, both times because a
+hand-read found what it could not see.** First it watched only
+``send_message(...)`` and missed 33 texts inside embeds (review E35). Then it
+watched embeds only as CONSTRUCTOR ARGUMENTS and missed five more written as
+``embed.description = "..."`` (review E38). Each time the number it printed
+was zero and each time that was false.
+
+That is worth leaving in the docstring rather than tidying away: a guard is
+only ever as wide as the shapes somebody thought of, and the way the missing
+shapes were found both times was reading the code by hand. Most of what DDC shows is an
 embed - the title, the description, the footer, the fields - so a guard that
 only watched ``send_message(...)`` gave exactly the false comfort this whole
 programme exists to remove. It was found by reading
@@ -119,6 +127,20 @@ def _plain_literals(path: Path):
 
         for arg in candidates:
             for text in _literal_parts(arg):
+                if _reads_as_a_message(text):
+                    found.append((node.lineno, text.strip()))
+
+    # `embed.description = "..."` is the same thing said differently, and the
+    # second version of this test could not see it (review E38).
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign):
+            continue
+        for target in node.targets:
+            if not isinstance(target, ast.Attribute):
+                continue
+            if target.attr not in EMBED_TEXT_ARGS:
+                continue
+            for text in _literal_parts(node.value):
                 if _reads_as_a_message(text):
                     found.append((node.lineno, text.strip()))
     return found

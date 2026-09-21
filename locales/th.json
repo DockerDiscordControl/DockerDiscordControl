@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ ตรวจพบความผิดปกติของระบบ – ข้อมูลวิวัฒนาการเสียหาย",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ ตรวจพบข้อมูลเสียหาย – การส่งไม่เสถียร",
   "❌ No music available for Mech Level {level}": "❌ ไม่มีเพลงสำหรับ Mech ระดับ {level}",
-  "⏰ No tasks found for {name} to delete.": "⏰ ไม่พบงานที่จะลบสำหรับ {name}"
+  "⏰ No tasks found for {name} to delete.": "⏰ ไม่พบงานที่จะลบสำหรับ {name}",
+  "*No information configured for this container.*": "*ยังไม่ได้ตั้งค่าข้อมูลสำหรับคอนเทนเนอร์นี้*",
+  "🛠️ Admin Control: {name}": "🛠️ การควบคุมผู้ดูแลระบบ: {name}"
 }

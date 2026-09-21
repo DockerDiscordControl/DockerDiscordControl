@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Systemanomali registreret – Evolutionsdata beskadiget",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ DATAKORRUPTION REGISTRERET – TRANSMISSION USTABIL",
   "❌ No music available for Mech Level {level}": "❌ Ingen musik tilgængelig til Mech-niveau {level}",
-  "⏰ No tasks found for {name} to delete.": "⏰ Der blev ikke fundet nogen opgaver at slette for {name}."
+  "⏰ No tasks found for {name} to delete.": "⏰ Der blev ikke fundet nogen opgaver at slette for {name}.",
+  "*No information configured for this container.*": "*Der er ikke konfigureret oplysninger for denne container.*",
+  "🛠️ Admin Control: {name}": "🛠️ Administratorkontrol: {name}"
 }

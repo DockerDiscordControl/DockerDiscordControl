@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Tuvastati süsteemi anomaalia – Arenguandmed rikutud",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ TUVASTATI ANDMETE RIKE – EDASTUS EBASTABIILNE",
   "❌ No music available for Mech Level {level}": "❌ Mechi taseme {level} jaoks pole muusikat",
-  "⏰ No tasks found for {name} to delete.": "⏰ {name} jaoks ei leitud kustutatavaid ülesandeid."
+  "⏰ No tasks found for {name} to delete.": "⏰ {name} jaoks ei leitud kustutatavaid ülesandeid.",
+  "*No information configured for this container.*": "*Selle konteineri jaoks pole teavet seadistatud.*",
+  "🛠️ Admin Control: {name}": "🛠️ Administraatori juhtimine: {name}"
 }

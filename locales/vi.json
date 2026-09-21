@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ Phát hiện bất thường hệ thống – Dữ liệu tiến hóa bị hỏng",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ PHÁT HIỆN HỎNG DỮ LIỆU – TRUYỀN TẢI KHÔNG ỔN ĐỊNH",
   "❌ No music available for Mech Level {level}": "❌ Không có nhạc cho Mech cấp {level}",
-  "⏰ No tasks found for {name} to delete.": "⏰ Không tìm thấy tác vụ nào để xoá cho {name}."
+  "⏰ No tasks found for {name} to delete.": "⏰ Không tìm thấy tác vụ nào để xoá cho {name}.",
+  "*No information configured for this container.*": "*Chưa cấu hình thông tin cho container này.*",
+  "🛠️ Admin Control: {name}": "🛠️ Điều khiển quản trị: {name}"
 }

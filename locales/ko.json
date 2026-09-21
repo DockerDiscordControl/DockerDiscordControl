@@ -1671,5 +1671,7 @@
   "⚠️ System anomaly detected - Evolution data corrupted": "⚠️ 시스템 이상 감지 – 진화 데이터가 손상되었습니다",
   "⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE": "⚠️ 데이터 손상 감지 – 전송 불안정",
   "❌ No music available for Mech Level {level}": "❌ Mech 레벨 {level}에 사용할 음악이 없습니다",
-  "⏰ No tasks found for {name} to delete.": "⏰ {name}에 삭제할 작업이 없습니다."
+  "⏰ No tasks found for {name} to delete.": "⏰ {name}에 삭제할 작업이 없습니다.",
+  "*No information configured for this container.*": "*이 컨테이너에 설정된 정보가 없습니다.*",
+  "🛠️ Admin Control: {name}": "🛠️ 관리자 제어: {name}"
 }
