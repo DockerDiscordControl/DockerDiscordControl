@@ -1348,13 +1348,18 @@ def get_mech_display_info():
                 except ValueError:
                     continue
 
+        # No 'cache_directory' here. This route carries no login on purpose -
+        # its sibling /api/mech/display/<level>/<type> serves the pre-rendered
+        # images straight to Discord, which fetches them without credentials -
+        # so the absolute filesystem path of the server's cache directory went
+        # to any caller on the open internet. Nothing in the project ever read
+        # the field (review D8).
         return jsonify({
             'success': True,
             'available_levels': list(range(1, 12)),
             'available_types': ['shadow', 'unlocked'],
             'cached_images': available_images,
-            'total_cached': len(cache_files),
-            'cache_directory': str(display_cache_service.cache_dir)
+            'total_cached': len(cache_files)
         })
 
     except (ImportError, AttributeError, RuntimeError) as e:
