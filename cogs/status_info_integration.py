@@ -955,14 +955,17 @@ class StatusInfoButton(discord.ui.Button):
         """Get IP information for the container."""
         custom_ip = info_config.get('custom_ip', '').strip()
         custom_port = info_config.get('custom_port', '').strip()
+        # At method level, not inside the branch below: the WAN branch appends
+        # the same port and is only reached when custom_ip is empty, so an
+        # import inside the custom_ip branch would never have run for it.
+        from .control_helpers import validate_custom_address, validate_custom_port
 
         if custom_ip:
             # Validate custom IP/hostname format for security
-            from .control_helpers import validate_custom_address
             if validate_custom_address(custom_ip):
                 # Add port if provided
                 address = custom_ip
-                if custom_port and custom_port.isdigit():
+                if validate_custom_port(custom_port):
                     address = f"{custom_ip}:{custom_port}"
                 return f"🔗 **Custom Address:** {address}"
             else:
@@ -976,7 +979,7 @@ class StatusInfoButton(discord.ui.Button):
             if wan_ip:
                 # Add port if provided
                 address = wan_ip
-                if custom_port and custom_port.isdigit():
+                if validate_custom_port(custom_port):
                     address = f"{wan_ip}:{custom_port}"
                 return f"**Public IP:** {address}"
         except (OSError, RuntimeError, ValueError) as e:

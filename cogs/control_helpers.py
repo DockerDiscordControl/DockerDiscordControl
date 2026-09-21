@@ -181,25 +181,47 @@ def validate_custom_address(address: str) -> bool:
     import re
 
     # Limit length to prevent abuse
-    if len(address) > 255:
+    if not isinstance(address, str) or len(address) > 255:
         return False
+
+    # Split the port off FIRST, so the host is judged by the same rule whether
+    # or not one is attached. It used to be the other way round: the IP pattern
+    # below had no port group, so an address WITH a port never matched it and
+    # fell through to the hostname pattern - which does not look at numbers at
+    # all. 999.999.999.999 was refused and 999.999.999.999:80 was accepted
+    # (review D28).
+    host = address
+    if ':' in address:
+        host, _, port = address.rpartition(':')
+        if not validate_custom_port(port):
+            return False
 
     # Allow IPs
     ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
-    if re.match(ip_pattern, address):
+    if re.match(ip_pattern, host):
         # Validate IP octets
-        octets = address.split('.')
-        for octet in octets:
-            if int(octet) > 255:
-                return False
-        return True
+        return all(int(octet) <= 255 for octet in host.split('.'))
 
-    # Allow hostnames with ports
-    hostname_pattern = r'^[a-zA-Z0-9.-]+(\:[0-9]{1,5})?$'
-    if re.match(hostname_pattern, address):
+    # Allow hostnames
+    hostname_pattern = r'^[a-zA-Z0-9.-]+$'
+    if re.match(hostname_pattern, host):
         # Additional validation: no double dots, no leading/trailing dots
-        if '..' in address or address.startswith('.') or address.endswith('.'):
+        if '..' in host or host.startswith('.') or host.endswith('.'):
             return False
         return True
 
     return False
+
+
+def validate_custom_port(port: str) -> bool:
+    """Whether a port is a port - the value, not the number of digits.
+
+    The pattern this replaces read ``[0-9]{1,5}``, which counts digits, so
+    99999 and 0 came through. Both callers of validate_custom_address append
+    the separate ``custom_port`` field to the address they show with nothing
+    but ``str.isdigit()`` in front of it, which is the same hole one line
+    further down - so the rule lives here, once, and both use it (review D28).
+    """
+    if not isinstance(port, str) or not port.isdigit():
+        return False
+    return 1 <= int(port) <= 65535

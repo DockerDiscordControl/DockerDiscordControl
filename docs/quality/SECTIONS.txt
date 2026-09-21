@@ -8,17 +8,17 @@
 # tests/spec/test_stage4_sections.py checks: every source file lies in exactly
 # one section, without gaps or overlaps.
 
-## Section 01  (1107 lines, 4 pieces)
+## Section 01  (1129 lines, 4 pieces)
 cogs/__init__.py:1-7
 cogs/admin_overview.py:1-821
 cogs/auto_action_monitor.py:1-74
-cogs/control_helpers.py:1-205
+cogs/control_helpers.py:1-227
 
 ## Section 02  (1929 lines, 1 piece)
 cogs/control_ui.py:1-1929
 
-## Section 03  (1587 lines, 1 piece)
-cogs/control_ui.py:1930-3516
+## Section 03  (1590 lines, 1 piece)
+cogs/control_ui.py:1930-3519
 
 ## Section 04  (1946 lines, 1 piece)
 cogs/docker_control.py:1-1946
@@ -38,8 +38,8 @@ cogs/status_handlers.py:1-1380
 ## Section 09  (1978 lines, 1 piece)
 cogs/status_info_integration.py:1-1978
 
-## Section 10  (1697 lines, 8 pieces)
-cogs/status_info_integration.py:1979-2364
+## Section 10  (1700 lines, 8 pieces)
+cogs/status_info_integration.py:1979-2367
 cogs/translation_manager.py:1-117
 cogs/translation_monitor.py:1-97
 services/__init__.py:1-51
