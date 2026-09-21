@@ -4875,6 +4875,15 @@ class DonationBroadcastModal(discord.ui.Modal):
                     old_state_result = mech_service.get_mech_state_service(old_state_request)
                     if not old_state_result.success:
                         logger.error("Failed to get old mech state")
+                        # This used to be a bare return. The callback has already
+                        # answered "⏳ Processing..." to close the modal, so every
+                        # path after it owes the donor a replacement - and the
+                        # booking failure three branches down does exactly that.
+                        # Somebody who has just given money and is told nothing
+                        # assumes it did not work, and gives again (review E19).
+                        await interaction.edit_original_response(
+                            content=_("❌ Donation processing failed: {error}").format(
+                                error=_("the mech state could not be read")))
                         return
                     old_evolution_level = old_state_result.level
 
@@ -4935,6 +4944,11 @@ class DonationBroadcastModal(discord.ui.Modal):
                         new_state_result = mech_service.get_mech_state_service(new_state_request)
                         if not new_state_result.success:
                             logger.error("Failed to get new mech state")
+                            # Same as above (review E19): a bare return left the
+                            # donor at "⏳ Processing..." for ever.
+                            await interaction.edit_original_response(
+                                content=_("❌ Donation processing failed: {error}").format(
+                                    error=_("the mech state could not be read")))
                             return
 
                     # For donation cases, the new_state is returned from add_donation methods
@@ -5100,8 +5114,17 @@ class DonationBroadcastModal(discord.ui.Modal):
                 except Exception:
                     pass  # Ignore if already deleted or expired
 
-        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
-            logger.error(f"Error in donation broadcast modal: {e}", exc_info=True)
+        except Exception as e:  # noqa: BLE001
+            # Broad on purpose. Everything below this line exists to give the
+            # donor an answer and to remove the public "Processing a $X
+            # donation" message, and the tuple that stood here - (DiscordException,
+            # RuntimeError, ValueError) - did not include what the mech service
+            # actually raises: MechStateError -> MechServiceError ->
+            # DDCBaseException. So a mech failure left the callback entirely,
+            # past the cleanup and past the answer, and the donor watched
+            # "⏳ Processing..." for ever (review E19).
+            logger.error("Error in donation broadcast modal: %s: %s",
+                         type(e).__name__, e, exc_info=True)
 
             # Clean up processing message even if error occurred
             if processing_msg:

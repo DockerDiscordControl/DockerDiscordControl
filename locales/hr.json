@@ -1634,5 +1634,6 @@
   "js.admin.of": "of",
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
-  "The command could not be completed. The reason is in the DDC log.": "Naredbu nije bilo moguće dovršiti. Razlog se nalazi u DDC zapisniku."
+  "The command could not be completed. The reason is in the DDC log.": "Naredbu nije bilo moguće dovršiti. Razlog se nalazi u DDC zapisniku.",
+  "the mech state could not be read": "stanje Mecha nije bilo moguće pročitati"
 }

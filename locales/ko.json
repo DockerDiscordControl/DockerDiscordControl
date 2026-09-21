@@ -1634,5 +1634,6 @@
   "js.admin.of": "of",
   "js.admin.no_containers_to_assign": "No containers configured yet",
   "web.permissions.admin_modal_scope": "A container assignment narrows this: tick off \"All containers\" for an admin to give them only the ones you choose. An admin without an assignment keeps every container, including ones added later.",
-  "The command could not be completed. The reason is in the DDC log.": "명령을 완료할 수 없습니다. 이유는 DDC 로그에 기록되어 있습니다."
+  "The command could not be completed. The reason is in the DDC log.": "명령을 완료할 수 없습니다. 이유는 DDC 로그에 기록되어 있습니다.",
+  "the mech state could not be read": "Mech 상태를 읽을 수 없습니다"
 }
