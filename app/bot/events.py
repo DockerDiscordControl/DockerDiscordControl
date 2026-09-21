@@ -117,7 +117,13 @@ def register_event_handlers(bot: discord.Bot, runtime: BotRuntime) -> None:
             # thing the user always notices (review E14).
             logger.error("Unexpected Command Error in '%s': %s", ctx.command, error,
                          exc_info=True)
-            await answer(_("Error during execution: {error}").format(error=error))
+            # Generic on purpose, unlike the branch above. An ApplicationCommandError
+            # carries a message written to be read; an arbitrary exception carries
+            # whatever it happens to carry - a path, a URL with a query string, the
+            # contents of a config value. The user needs to know the command failed,
+            # which is the whole of E14; they do not need the repr.
+            await answer(_("The command could not be completed. The reason is in the "
+                           "DDC log."))
 
     @bot.event
     async def on_command_error(ctx: commands.Context, error: Exception) -> None:

@@ -1633,5 +1633,6 @@
   "js.admin.controls_nothing": "steuert nichts",
   "js.admin.of": "von",
   "js.admin.no_containers_to_assign": "Noch keine Container konfiguriert",
-  "web.permissions.admin_modal_scope": "Eine Container-Zuordnung schränkt das ein: Haken bei „Alle Container“ entfernen, um einem Admin nur ausgewählte zu geben. Ein Admin ohne Zuordnung behält alle Container, auch später hinzugefügte."
+  "web.permissions.admin_modal_scope": "Eine Container-Zuordnung schränkt das ein: Haken bei „Alle Container“ entfernen, um einem Admin nur ausgewählte zu geben. Ein Admin ohne Zuordnung behält alle Container, auch später hinzugefügte.",
+  "The command could not be completed. The reason is in the DDC log.": "Der Befehl konnte nicht ausgeführt werden. Der Grund steht im DDC-Log."
 }
