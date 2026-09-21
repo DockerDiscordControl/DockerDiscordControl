@@ -44,6 +44,8 @@ Pass E is the read of the files that no earlier pass ever covered
 
 | **E38** | **Five more English texts**, behind a third blind spot in the same guard: `embed.description = "..."` rather than `Embed(description=...)`. One of them is the message shown when the configuration cannot be loaded — the one you are most likely to meet on a bad day. | The guard has now been widened **twice after reporting zero**, and its docstring says so. Both times a hand-read found what it could not see. | `97c3298` |
 
+| **E39** | **Nine more, including your `/help` text** — bold English labels wrapped around German values ("**Container Control:** Klicke auf …"), six raw "Create Task:" titles while the correct key sat two functions away, and the footer under protected information naming the reader in English. | The guard judged an f-string by its fragments, so `f"❌ Container '{name}' not found"` was two invisible crumbs. It judges the whole message now. | `1ec59cc` |
+
 ## Web panel
 
 | # | What you would have seen | Cause | Commit |
