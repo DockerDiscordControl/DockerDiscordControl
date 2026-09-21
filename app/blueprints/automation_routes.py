@@ -262,6 +262,11 @@ def get_channels():
 
     except Exception as e:
         logger.error(f"Error fetching channels: {e}", exc_info=True)
-        # Edge Case: Return empty list on error to prevent UI crash
-        # Return generic error to prevent information exposure (CodeQL py/stack-trace-exposure)
-        return jsonify({'channels': [], 'error': 'Failed to fetch channels'})
+        # 500, not 200. The two empty answers above are deliberate - the panel
+        # should show an empty list while the bot is still connecting - and this
+        # one used to look exactly like them, so a caller reading `channels`
+        # could not tell a failure from "this server has no channels I may
+        # read". Every other route in this file answers a failure with a status
+        # of its own (review D23). The message stays generic on purpose: no
+        # stack trace to the client.
+        return jsonify({'channels': [], 'error': 'Failed to fetch channels'}), 500
