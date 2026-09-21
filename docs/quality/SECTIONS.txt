@@ -93,11 +93,11 @@ services/docker_service/status_cache_runtime.py:1-101
 services/docker_status/__init__.py:1-34
 services/docker_status/fetch_service.py:1-251
 
-## Section 17  (1766 lines, 13 pieces)
+## Section 17  (1775 lines, 13 pieces)
 services/docker_status/models.py:1-376
 services/docker_status/performance_service.py:1-234
 services/donation/__init__.py:1-24
-services/donation/donation_config.py:1-41
+services/donation/donation_config.py:1-50
 services/donation/donation_management_service.py:1-446
 services/donation/donation_utils.py:1-62
 services/donation/notification_service.py:1-79
@@ -155,12 +155,12 @@ services/mech/progress_paths.py:1-189
 ## Section 24  (1740 lines, 1 piece)
 services/mech/progress_service.py:1-1740
 
-## Section 25  (1263 lines, 7 pieces)
+## Section 25  (1276 lines, 7 pieces)
 services/mech/speed_levels.py:1-427
 services/member_count/__init__.py:1-17
 services/member_count/service.py:1-296
 services/scheduling/__init__.py:1-36
-services/scheduling/donation_message_service.py:1-215
+services/scheduling/donation_message_service.py:1-228
 services/scheduling/runtime.py:1-201
 services/scheduling/schedule_helpers.py:1-71
 

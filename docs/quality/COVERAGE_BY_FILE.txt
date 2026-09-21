@@ -130,7 +130,7 @@ services/docker_status/fetch_service.py	251	pass1:s16:1-251
 services/docker_status/models.py	376	pass1:s17:plan pass2:s17:1-376
 services/docker_status/performance_service.py	234	pass1:s17:plan pass2:s17:1-234
 services/donation/__init__.py	24	pass2:s17:1-24
-services/donation/donation_config.py	41	pass1:s17:plan pass2:s17:1-41
+services/donation/donation_config.py	50	pass1:s17:plan pass2:s17:1-41
 services/donation/donation_management_service.py	446	pass1:s17:plan pass2:s17:1-440  [6 of 446 lines never in a package]
 services/donation/donation_utils.py	62	pass1:s17:plan pass2:s17:1-62
 services/donation/notification_service.py	79	pass1:s17:plan pass2:s17:1-79
@@ -177,7 +177,7 @@ services/mech/speed_levels.py	427	pass1:s24:plan pass1:s25:1-413  [14 of 427 lin
 services/member_count/__init__.py	17	pass1:s25:1-17
 services/member_count/service.py	296	pass1:s25:1-287  [9 of 296 lines never in a package]
 services/scheduling/__init__.py	36	pass1:s25:1-36
-services/scheduling/donation_message_service.py	215	pass1:s25:1-196  [19 of 215 lines never in a package]
+services/scheduling/donation_message_service.py	228	pass1:s25:1-196  [19 of 215 lines never in a package]
 services/scheduling/runtime.py	201	pass1:s25:1-201
 services/scheduling/schedule_helpers.py	71	pass1:s25:1-248
 services/scheduling/scheduler.py	2260	pass1:s27:1996-2165  [2090 of 2260 lines never in a package]
