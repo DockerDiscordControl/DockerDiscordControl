@@ -1735,7 +1735,7 @@ class ContainerInfoDropdown(discord.ui.Select):
 
             if not container_data:
                 await interaction.response.edit_message(
-                    content=f"❌ Container '{selected_container}' not found",
+                    content=_("❌ Container '{name}' not found").format(name=selected_container),
                     embed=None,
                     view=None
                 )

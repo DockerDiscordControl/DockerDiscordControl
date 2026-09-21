@@ -1673,5 +1673,9 @@
   "❌ No music available for Mech Level {level}": "❌ Tidak ada musik untuk Mech level {level}",
   "⏰ No tasks found for {name} to delete.": "⏰ Tidak ada tugas untuk dihapus bagi {name}.",
   "*No information configured for this container.*": "*Tidak ada informasi yang dikonfigurasi untuk kontainer ini.*",
-  "🛠️ Admin Control: {name}": "🛠️ Kontrol admin: {name}"
+  "🛠️ Admin Control: {name}": "🛠️ Kontrol admin: {name}",
+  "❌ Container '{name}' not found": "❌ Kontainer '{name}' tidak ditemukan",
+  "Container Control": "Kontrol kontainer",
+  "Task Management": "Manajemen tugas",
+  "Accessed by {user} • Container: {container}": "Diakses oleh {user} • Kontainer: {container}"
 }

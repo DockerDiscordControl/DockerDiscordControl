@@ -1673,5 +1673,9 @@
   "❌ No music available for Mech Level {level}": "❌ Nema glazbe za Mech razinu {level}",
   "⏰ No tasks found for {name} to delete.": "⏰ Nisu pronađeni zadaci za brisanje za {name}.",
   "*No information configured for this container.*": "*Za ovaj spremnik nisu konfigurirane informacije.*",
-  "🛠️ Admin Control: {name}": "🛠️ Administratorska kontrola: {name}"
+  "🛠️ Admin Control: {name}": "🛠️ Administratorska kontrola: {name}",
+  "❌ Container '{name}' not found": "❌ Spremnik '{name}' nije pronađen",
+  "Container Control": "Upravljanje spremnikom",
+  "Task Management": "Upravljanje zadacima",
+  "Accessed by {user} • Container: {container}": "Pristupio {user} • Spremnik: {container}"
 }

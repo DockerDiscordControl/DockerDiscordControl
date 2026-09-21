@@ -1673,5 +1673,9 @@
   "❌ No music available for Mech Level {level}": "❌ Nincs zene a(z) {level}. Mech szinthez",
   "⏰ No tasks found for {name} to delete.": "⏰ Nem található törölhető feladat a(z) {name} számára.",
   "*No information configured for this container.*": "*Ehhez a konténerhez nincs információ beállítva.*",
-  "🛠️ Admin Control: {name}": "🛠️ Admin vezérlés: {name}"
+  "🛠️ Admin Control: {name}": "🛠️ Admin vezérlés: {name}",
+  "❌ Container '{name}' not found": "❌ A(z) '{name}' konténer nem található",
+  "Container Control": "Konténer vezérlés",
+  "Task Management": "Feladatkezelés",
+  "Accessed by {user} • Container: {container}": "Megtekintette: {user} • Konténer: {container}"
 }

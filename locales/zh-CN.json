@@ -1673,5 +1673,9 @@
   "❌ No music available for Mech Level {level}": "❌ 没有适用于 Mech 等级 {level} 的音乐",
   "⏰ No tasks found for {name} to delete.": "⏰ 未找到 {name} 可删除的任务。",
   "*No information configured for this container.*": "*此容器未配置任何信息。*",
-  "🛠️ Admin Control: {name}": "🛠️ 管理员控制：{name}"
+  "🛠️ Admin Control: {name}": "🛠️ 管理员控制：{name}",
+  "❌ Container '{name}' not found": "❌ 未找到容器 '{name}'",
+  "Container Control": "容器控制",
+  "Task Management": "任务管理",
+  "Accessed by {user} • Container: {container}": "访问者：{user} • 容器：{container}"
 }

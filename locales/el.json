@@ -1673,5 +1673,9 @@
   "❌ No music available for Mech Level {level}": "❌ Δεν υπάρχει μουσική για το επίπεδο Mech {level}",
   "⏰ No tasks found for {name} to delete.": "⏰ Δεν βρέθηκαν εργασίες προς διαγραφή για {name}.",
   "*No information configured for this container.*": "*Δεν έχουν ρυθμιστεί πληροφορίες για αυτό το container.*",
-  "🛠️ Admin Control: {name}": "🛠️ Έλεγχος διαχειριστή: {name}"
+  "🛠️ Admin Control: {name}": "🛠️ Έλεγχος διαχειριστή: {name}",
+  "❌ Container '{name}' not found": "❌ Το container '{name}' δεν βρέθηκε",
+  "Container Control": "Έλεγχος container",
+  "Task Management": "Διαχείριση εργασιών",
+  "Accessed by {user} • Container: {container}": "Προσπελάστηκε από {user} • Container: {container}"
 }

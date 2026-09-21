@@ -1673,5 +1673,9 @@
   "❌ No music available for Mech Level {level}": "❌ אין מוזיקה לרמת Mech {level}",
   "⏰ No tasks found for {name} to delete.": "⏰ לא נמצאו משימות למחיקה עבור {name}.",
   "*No information configured for this container.*": "*לא הוגדר מידע עבור מכל זה.*",
-  "🛠️ Admin Control: {name}": "🛠️ בקרת ניהול: {name}"
+  "🛠️ Admin Control: {name}": "🛠️ בקרת ניהול: {name}",
+  "❌ Container '{name}' not found": "❌ המכל '{name}' לא נמצא",
+  "Container Control": "בקרת מכל",
+  "Task Management": "ניהול משימות",
+  "Accessed by {user} • Container: {container}": "נצפה על ידי {user} • מכל: {container}"
 }

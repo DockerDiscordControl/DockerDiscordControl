@@ -1673,5 +1673,9 @@
   "❌ No music available for Mech Level {level}": "❌ Ingen musik tilgængelig til Mech-niveau {level}",
   "⏰ No tasks found for {name} to delete.": "⏰ Der blev ikke fundet nogen opgaver at slette for {name}.",
   "*No information configured for this container.*": "*Der er ikke konfigureret oplysninger for denne container.*",
-  "🛠️ Admin Control: {name}": "🛠️ Administratorkontrol: {name}"
+  "🛠️ Admin Control: {name}": "🛠️ Administratorkontrol: {name}",
+  "❌ Container '{name}' not found": "❌ Containeren '{name}' blev ikke fundet",
+  "Container Control": "Containerstyring",
+  "Task Management": "Opgavestyring",
+  "Accessed by {user} • Container: {container}": "Tilgået af {user} • Container: {container}"
 }

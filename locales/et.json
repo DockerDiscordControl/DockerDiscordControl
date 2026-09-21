@@ -1673,5 +1673,9 @@
   "❌ No music available for Mech Level {level}": "❌ Mechi taseme {level} jaoks pole muusikat",
   "⏰ No tasks found for {name} to delete.": "⏰ {name} jaoks ei leitud kustutatavaid ülesandeid.",
   "*No information configured for this container.*": "*Selle konteineri jaoks pole teavet seadistatud.*",
-  "🛠️ Admin Control: {name}": "🛠️ Administraatori juhtimine: {name}"
+  "🛠️ Admin Control: {name}": "🛠️ Administraatori juhtimine: {name}",
+  "❌ Container '{name}' not found": "❌ Konteinerit '{name}' ei leitud",
+  "Container Control": "Konteineri juhtimine",
+  "Task Management": "Ülesannete haldus",
+  "Accessed by {user} • Container: {container}": "Avas {user} • Konteiner: {container}"
 }

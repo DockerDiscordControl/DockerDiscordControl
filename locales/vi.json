@@ -1673,5 +1673,9 @@
   "❌ No music available for Mech Level {level}": "❌ Không có nhạc cho Mech cấp {level}",
   "⏰ No tasks found for {name} to delete.": "⏰ Không tìm thấy tác vụ nào để xoá cho {name}.",
   "*No information configured for this container.*": "*Chưa cấu hình thông tin cho container này.*",
-  "🛠️ Admin Control: {name}": "🛠️ Điều khiển quản trị: {name}"
+  "🛠️ Admin Control: {name}": "🛠️ Điều khiển quản trị: {name}",
+  "❌ Container '{name}' not found": "❌ Không tìm thấy container '{name}'",
+  "Container Control": "Điều khiển container",
+  "Task Management": "Quản lý tác vụ",
+  "Accessed by {user} • Container: {container}": "Được truy cập bởi {user} • Container: {container}"
 }

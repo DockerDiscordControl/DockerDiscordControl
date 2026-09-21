@@ -1673,5 +1673,9 @@
   "❌ No music available for Mech Level {level}": "❌ Mech-tasolle {level} ei ole musiikkia",
   "⏰ No tasks found for {name} to delete.": "⏰ Kohteelle {name} ei löytynyt poistettavia tehtäviä.",
   "*No information configured for this container.*": "*Tälle kontille ei ole määritetty tietoja.*",
-  "🛠️ Admin Control: {name}": "🛠️ Järjestelmänvalvojan hallinta: {name}"
+  "🛠️ Admin Control: {name}": "🛠️ Järjestelmänvalvojan hallinta: {name}",
+  "❌ Container '{name}' not found": "❌ Konttia '{name}' ei löytynyt",
+  "Container Control": "Kontin hallinta",
+  "Task Management": "Tehtävien hallinta",
+  "Accessed by {user} • Container: {container}": "Avannut {user} • Kontti: {container}"
 }

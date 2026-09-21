@@ -1673,5 +1673,9 @@
   "❌ No music available for Mech Level {level}": "❌ Geen muziek beschikbaar voor Mech-niveau {level}",
   "⏰ No tasks found for {name} to delete.": "⏰ Geen te verwijderen taken gevonden voor {name}.",
   "*No information configured for this container.*": "*Er is geen informatie ingesteld voor deze container.*",
-  "🛠️ Admin Control: {name}": "🛠️ Beheerdersbediening: {name}"
+  "🛠️ Admin Control: {name}": "🛠️ Beheerdersbediening: {name}",
+  "❌ Container '{name}' not found": "❌ Container '{name}' niet gevonden",
+  "Container Control": "Containerbediening",
+  "Task Management": "Taakbeheer",
+  "Accessed by {user} • Container: {container}": "Geraadpleegd door {user} • Container: {container}"
 }

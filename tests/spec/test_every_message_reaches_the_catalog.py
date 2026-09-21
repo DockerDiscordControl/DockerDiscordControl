@@ -26,8 +26,11 @@ commit would be a worse change than the defect.
 hand-read found what it could not see.** First it watched only
 ``send_message(...)`` and missed 33 texts inside embeds (review E35). Then it
 watched embeds only as CONSTRUCTOR ARGUMENTS and missed five more written as
-``embed.description = "..."`` (review E38). Each time the number it printed
-was zero and each time that was false.
+``embed.description = "..."`` (review E38). And then it judged an f-string by
+its FRAGMENTS, so ``f"❌ Container '{name}' not found"`` came apart into
+``"❌ Container '"`` and ``"' not found"`` - both under the fifteen-character
+floor, both invisible, while the message a user reads is neither (review E39).
+Each time the number it printed was zero and each time that was false.
 
 That is worth leaving in the docstring rather than tidying away: a guard is
 only ever as wide as the shapes somebody thought of, and the way the missing
@@ -53,6 +56,7 @@ that actually occur.
 """
 
 import ast
+import re
 from pathlib import Path
 
 import pytest
@@ -73,6 +77,13 @@ DELIBERATE_GLITCH = {
     "💀 Epilogue: W#!sp*r of th3 [ERROR_CODE_11]",
 }
 
+
+def _is_glitch(text: str) -> bool:
+    """The glitch strings, whatever shape they were reassembled into."""
+    stripped = text.strip()
+    return any(stripped == g or g.startswith(stripped) or stripped.startswith(g)
+               for g in DELIBERATE_GLITCH)
+
 # Plain literals still sent per file. ONLY EVER SHRINKS.
 #
 # The ``send_message(...)`` half reached zero on 2026-09-21 (review E34): of 42
@@ -92,20 +103,45 @@ KNOWN = {
 
 
 def _literal_parts(node):
-    """The plain text this expression carries, including f-string parts."""
+    """The message as a READER sees it, as one string.
+
+    An f-string is joined, with each interpolation standing in as ``{}``,
+    because that is the message - not its crumbs. Judging the crumbs is how
+    ``f"❌ Container '{name}' not found"`` stayed invisible: both halves are
+    under the floor and the sentence is not (review E39).
+    """
     if isinstance(node, ast.Constant) and isinstance(node.value, str):
         return [node.value]
     if isinstance(node, ast.JoinedStr):
-        return [v.value for v in node.values
-                if isinstance(v, ast.Constant) and isinstance(v.value, str)]
+        return ["".join(v.value if isinstance(v, ast.Constant) and isinstance(v.value, str)
+                        else "{}" for v in node.values)]
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        left = _literal_parts(node.left)
+        right = _literal_parts(node.right)
+        if left or right:
+            return ["".join(left) + "".join(right)]
     return []
 
 
+def _prose(text: str) -> str:
+    """What is left once placeholders and markup are taken out.
+
+    ``{}`` is a value somebody else already translated, and a `code span` is a
+    command name. What remains is what has to be language, and the floor is
+    applied to THAT - otherwise a frame like "`/ss` - {}" reads as a message
+    and every help embed becomes a false alarm.
+    """
+    text = re.sub(r"\{[^}]*\}", " ", text)
+    text = re.sub(r"`[^`]*`", " ", text)
+    text = re.sub(r"[*_~#\u2022\u00b7\u200b]", " ", text)
+    return " ".join(text.split())
+
+
 def _reads_as_a_message(text: str) -> bool:
-    stripped = text.strip()
-    return (len(stripped) > 15 and " " in stripped
-            and any(c.isalpha() for c in stripped)
-            and stripped not in DELIBERATE_GLITCH)
+    if _is_glitch(text):
+        return False
+    prose = _prose(text)
+    return len(prose) > 15 and " " in prose and any(c.isalpha() for c in prose)
 
 
 def _plain_literals(path: Path):
@@ -218,4 +254,32 @@ def test_the_detector_ignores_a_translated_one(tmp_path):
 
     assert not _plain_literals(clean), (
         "a properly translated message was reported as untranslated"
+    )
+
+
+def test_a_message_split_across_an_f_string_is_still_seen(tmp_path):
+    """Review E39: both halves are under the floor, the sentence is not."""
+    split = tmp_path / "split.py"
+    split.write_text(
+        "async def handler(interaction, name):\n"
+        "    await interaction.response.send_message(f\"❌ Container '{name}' not found\")\n",
+        encoding="utf-8")
+
+    assert _plain_literals(split), (
+        "an f-string whose literal halves are each under fifteen characters "
+        "was not seen, although the message a user reads is twenty-seven"
+    )
+
+
+def test_a_frame_of_translated_values_is_not_a_message(tmp_path):
+    """Counter-check: `/ss` - {translated} must not read as untranslated text."""
+    frame = tmp_path / "frame.py"
+    frame.write_text(
+        "async def handler(interaction, a, b):\n"
+        "    await interaction.response.send_message(f\"`/ss` - {a}\\n`/control` - {b}\")\n",
+        encoding="utf-8")
+
+    assert not _plain_literals(frame), (
+        "a frame holding nothing but command names and already-translated "
+        "values was reported as an untranslated message"
     )

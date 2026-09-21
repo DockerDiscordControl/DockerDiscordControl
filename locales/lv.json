@@ -1673,5 +1673,9 @@
   "❌ No music available for Mech Level {level}": "❌ Mech līmenim {level} nav pieejama mūzika",
   "⏰ No tasks found for {name} to delete.": "⏰ Netika atrasti dzēšami uzdevumi priekš {name}.",
   "*No information configured for this container.*": "*Šim konteineram nav konfigurēta informācija.*",
-  "🛠️ Admin Control: {name}": "🛠️ Administratora vadība: {name}"
+  "🛠️ Admin Control: {name}": "🛠️ Administratora vadība: {name}",
+  "❌ Container '{name}' not found": "❌ Konteiners '{name}' netika atrasts",
+  "Container Control": "Konteinera vadība",
+  "Task Management": "Uzdevumu pārvaldība",
+  "Accessed by {user} • Container: {container}": "Skatīja {user} • Konteiners: {container}"
 }

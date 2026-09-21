@@ -2200,7 +2200,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         embed.add_field(name=f"**{_('Status Channel Commands')}**", value=f"`/serverstatus` or `/ss` - {_('Displays the status of all configured Docker containers.')}\n`/info <container>` - {_('Shows detailed container information.')}" + "\n\u200b", inline=False)
 
         # Control Channel Commands
-        embed.add_field(name=f"**{_('Control Channel Commands')}**", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n**Container Control:** {_('Click control buttons under container status panels to start, stop, or restart.')}\n**Task Management:** {_('Click ⏰ button under container control panels to add/delete scheduled tasks.')}" + "\n\u200b", inline=False)
+        embed.add_field(name=f"**{_('Control Channel Commands')}**", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n**{_('Container Control')}:** {_('Click control buttons under container status panels to start, stop, or restart.')}\n**{_('Task Management')}:** {_('Click ⏰ button under container control panels to add/delete scheduled tasks.')}" + "\n\u200b", inline=False)
 
         # Add status indicators explanation
         embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n❓ {_('Container not found')}\n🔄 {_('Container status loading')}" + "\n\u200b", inline=False)
@@ -2209,7 +2209,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         embed.add_field(name=f"**{_('Info System')}**", value=f"ℹ️ {_('Click for container details')}\n🔒 {_('Protected info (control channels only)')}\n🔓 {_('Public info available')}" + "\n\u200b", inline=False)
 
         # Add task management explanation
-        embed.add_field(name=f"**{_('Task Scheduling')}**", value=f"⏰ {_('Click to manage scheduled tasks')}\n➕ **Add Task** - {_('Schedule container actions (daily, weekly, monthly, yearly, once)')}\n❌ **Delete Tasks** - {_('Remove scheduled tasks for the container')}" + "\n\u200b", inline=False)
+        embed.add_field(name=f"**{_('Task Scheduling')}**", value=f"⏰ {_('Click to manage scheduled tasks')}\n➕ **{_('Add Task')}** - {_('Schedule container actions (daily, weekly, monthly, yearly, once)')}\n❌ **{_('Delete Tasks')}** - {_('Remove scheduled tasks for the container')}" + "\n\u200b", inline=False)
 
         # Add control buttons explanation (no spacing after last field)
         embed.add_field(name=f"**{_('Control Buttons (Admin Channels)')}**", value=f"📝 {_('Edit container info text')}\n📋 {_('View container logs')}", inline=False)

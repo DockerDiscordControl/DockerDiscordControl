@@ -1673,5 +1673,9 @@
   "❌ No music available for Mech Level {level}": "❌ Pro úroveň Mecha {level} není k dispozici hudba",
   "⏰ No tasks found for {name} to delete.": "⏰ Pro {name} nebyly nalezeny žádné úlohy ke smazání.",
   "*No information configured for this container.*": "*Pro tento kontejner nejsou nastaveny žádné informace.*",
-  "🛠️ Admin Control: {name}": "🛠️ Správa: {name}"
+  "🛠️ Admin Control: {name}": "🛠️ Správa: {name}",
+  "❌ Container '{name}' not found": "❌ Kontejner '{name}' nenalezen",
+  "Container Control": "Ovládání kontejneru",
+  "Task Management": "Správa úloh",
+  "Accessed by {user} • Container: {container}": "Zobrazil {user} • Kontejner: {container}"
 }

@@ -672,7 +672,8 @@ class PasswordValidationModal(DDCModal):
                 inline=False
             )
 
-            embed.set_footer(text=f"Accessed by {interaction.user.display_name} • Container: {self.container_name}")
+            embed.set_footer(text=_("Accessed by {user} • Container: {container}").format(
+                user=interaction.user.display_name, container=self.container_name))
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
             logger.info(f"Protected info accessed for {self.container_name} by {interaction.user}")

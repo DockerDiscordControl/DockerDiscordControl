@@ -1673,5 +1673,9 @@
   "❌ No music available for Mech Level {level}": "❌ Нема музике за Mech ниво {level}",
   "⏰ No tasks found for {name} to delete.": "⏰ Нису пронађени задаци за брисање за {name}.",
   "*No information configured for this container.*": "*За овај контејнер нису подешене информације.*",
-  "🛠️ Admin Control: {name}": "🛠️ Администраторска контрола: {name}"
+  "🛠️ Admin Control: {name}": "🛠️ Администраторска контрола: {name}",
+  "❌ Container '{name}' not found": "❌ Контејнер '{name}' није пронађен",
+  "Container Control": "Управљање контејнером",
+  "Task Management": "Управљање задацима",
+  "Accessed by {user} • Container: {container}": "Приступио {user} • Контејнер: {container}"
 }
