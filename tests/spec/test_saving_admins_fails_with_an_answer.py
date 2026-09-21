@@ -37,7 +37,9 @@ class _AdminService:
             raise self._on_get
         return {"discord_admin_users": ["1"], "admin_notes": {}}
 
-    def save_admin_data(self, users, notes):
+    # The third parameter came with the per-admin container assignment
+    # (review F1/F5); the route passes it on every save.
+    def save_admin_data(self, users, notes, admin_containers=None):
         if self._on_save:
             raise self._on_save
         return True

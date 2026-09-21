@@ -423,6 +423,26 @@ may see the channel), not with DDC. *Confirmed by the operator on 2026-09-16.*
 that admins may also do things where channel membership alone permits nothing.
 *Confirmed by the operator on 2026-09-16.*
 
+*Refined 2026-09-21 (operator):* an admin may be tied to certain containers.
+`admins.json` carries `admin_containers: {"<user id>": ["valheim", ...]}`; **no entry means every
+container** (the upgrade default, and not negotiable — anything else strips every existing admin
+the moment it ships), an empty list means none, and somebody who is not an admin gets nothing.
+It narrows this rule and this rule only: **B1 is untouched**, the channel branch is asked first
+and whoever may write in a control channel still does everything there. Per container, not per
+container-and-action — which actions are allowed stays with the container's own `allowed_actions`.
+Seeing is not narrowed: a status channel shows every container to everybody, and only the controls
+follow the assignment. The ephemeral admin dropdown offers only the assigned containers, because
+that message is per-user; the shared overview above it cannot be and is not.
+*Covered by* `tests/spec/test_an_admin_may_be_scoped_to_containers.py`,
+`tests/spec/test_an_assigned_admin_controls_only_his_containers.py`,
+`tests/spec/test_the_dropdown_offers_only_what_he_may_use.py`.
+
+**READ THIS BEFORE "FIXING" THE BULK BUTTONS OR THE ADMIN PATHS:** both review passes independently
+reported the missing channel check on the admin paths as a critical hole, and both were wrong. The
+decision is above, it is the operator's, and adding a channel check there refuses the operator in
+their own status channels — which already happened once, on 2026-09-16/17, and had to be undone.
+*Pinned by* `tests/spec/test_the_bulk_buttons_answer_to_the_admin_list.py`.
+
 **B3 — `SESSION_COOKIE_SECURE` stays `False`.**
 Most installations run as plain HTTP on the LAN, where a `Secure` cookie would never be sent
 (`app/web/config.py:36`). `SameSite=Lax` instead of `Strict`, so that a link from Discord does not

@@ -30,6 +30,49 @@ def _validate_admin_users(admin_users: List[str]) -> Dict[str, Any]:
     return {"success": True}
 
 
+def _validate_admin_containers(admin_containers: Any,
+                               admin_users: List[str]) -> Dict[str, Any]:
+    """Check a per-admin container assignment before it is written (review F5).
+
+    Every name is checked against the configured containers, because a typo
+    does not fail - it silently means "this admin may control nothing on that
+    one", and nothing would ever say so. The admin is simply refused later and
+    nobody connects it to a letter. So an unknown name is refused here, by name.
+
+    An id that is not on the admin list is refused as well: this mapping
+    narrows a right, and writing one for somebody who has none is a statement
+    nobody can act on.
+    """
+    if admin_containers is None:
+        return {"success": True}
+    if not isinstance(admin_containers, dict):
+        return {"success": False, "error": "admin_containers must be an object"}
+
+    try:
+        from services.config.server_config_service import get_server_config_service
+        known = {str(server.get("docker_name")) for server in
+                 get_server_config_service().get_all_servers()
+                 if isinstance(server, dict) and server.get("docker_name")}
+    except (AttributeError, IOError, OSError, RuntimeError, TypeError, ValueError) as e:
+        # A list of containers that cannot be read is not a reason to wave an
+        # assignment through: it would be written with names nobody checked.
+        return {"success": False,
+                "error": f"The configured containers could not be read: {e}"}
+
+    for user_id, containers in admin_containers.items():
+        if str(user_id) not in {str(u) for u in admin_users}:
+            return {"success": False,
+                    "error": f"{user_id} is not on the admin list"}
+        if not isinstance(containers, list):
+            return {"success": False,
+                    "error": f"The assignment for {user_id} is not a list"}
+        for name in containers:
+            if str(name) not in known:
+                return {"success": False,
+                        "error": f"No container is called '{name}'"}
+    return {"success": True}
+
+
 def register_routes(app: Flask) -> None:
     """Attach the admin management and health routes."""
 
@@ -49,7 +92,23 @@ def register_routes(app: Flask) -> None:
 
         if request.method == "GET":
             try:
-                return jsonify(admin_service.get_admin_data())
+                data = admin_service.get_admin_data()
+                # The names the panel may offer, from the SAME source the save
+                # validates against, so a form cannot offer what the save then
+                # refuses. An extra, not the point of this route: if the
+                # container config cannot be read the admin list still goes out
+                # and the choices are simply empty (review F5).
+                try:
+                    from services.config.server_config_service import get_server_config_service
+                    data["available_containers"] = sorted(
+                        {str(server.get("docker_name")) for server in
+                         get_server_config_service().get_all_servers()
+                         if isinstance(server, dict) and server.get("docker_name")})
+                except _STORAGE_ERRORS as e:
+                    app.logger.error("Container list for the admin panel could not be "
+                                     "read: %s", e, exc_info=True)
+                    data["available_containers"] = []
+                return jsonify(data)
             except _STORAGE_ERRORS as e:
                 app.logger.error("Error reading admin data: %s", e, exc_info=True)
                 return jsonify({"success": False,
@@ -59,12 +118,21 @@ def register_routes(app: Flask) -> None:
             data = request.json or {}
             admin_users = data.get("discord_admin_users", [])
             admin_notes = data.get("admin_notes", {})
+            # None, not {}: left out it means "leave the assignment on disk
+            # alone". An empty mapping would DELETE every assignment, and every
+            # caller that predates this feature passes nothing (review F5).
+            admin_containers = data.get("admin_containers")
 
             validation = _validate_admin_users(admin_users)
             if not validation.get("success"):
                 return jsonify(validation)
 
-            success = admin_service.save_admin_data(admin_users, admin_notes)
+            validation = _validate_admin_containers(admin_containers, admin_users)
+            if not validation.get("success"):
+                return jsonify(validation)
+
+            success = admin_service.save_admin_data(admin_users, admin_notes,
+                                                    admin_containers=admin_containers)
             if success:
                 return jsonify({"success": True})
             return jsonify({"success": False, "error": "Failed to save admin data"})

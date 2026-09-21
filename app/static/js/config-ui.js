@@ -628,6 +628,11 @@ function markConfigurationChanged() {
 let adminUsers = [];
 let adminNotes = {};
 let pendingAdminChanges = [];
+// Per-admin container assignment. A user id that is ABSENT means every
+// container - that is the default and it must stay one, so the UI never writes
+// an entry the operator did not make. An empty array means "none".
+let adminContainers = {};
+let availableContainers = [];
 
 function openAdminModal() {
     // Load admin users from server
@@ -636,6 +641,8 @@ function openAdminModal() {
         .then(data => {
             adminUsers = data.discord_admin_users || [];
             adminNotes = data.admin_notes || {};
+            adminContainers = data.admin_containers || {};
+            availableContainers = data.available_containers || [];
             pendingAdminChanges = [];
             renderAdminUsers();
             const modal = new bootstrap.Modal(document.getElementById('adminModal'));
@@ -658,17 +665,82 @@ function renderAdminUsers() {
 
     adminUsers.forEach((userId, index) => {
         const note = adminNotes[userId] || '';
+        const assigned = adminContainers[userId];        // undefined = every container
         const item = document.createElement('div');
-        item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center bg-dark text-white';
+        item.className = 'list-group-item bg-dark text-white';
         item.innerHTML = `
-            <div>
-                <strong>${escapeHtmlConfigUI(userId)}</strong>
-                ${note ? `<span class="text-muted ms-2">(${escapeHtmlConfigUI(note)})</span>` : ''}
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${escapeHtmlConfigUI(userId)}</strong>
+                    ${note ? `<span class="text-muted ms-2">(${escapeHtmlConfigUI(note)})</span>` : ''}
+                </div>
+                <button class="btn btn-sm btn-danger" onclick="removeAdminUser(${index})">${t('admin.remove_btn')}</button>
             </div>
-            <button class="btn btn-sm btn-danger" onclick="removeAdminUser(${index})">${t('admin.remove_btn')}</button>
+            <div class="mt-2 small">${renderAdminContainers(userId, assigned)}</div>
         `;
         listContainer.appendChild(item);
     });
+}
+
+// The container assignment of one admin. Three states, and they are NOT the
+// same thing: no entry at all (every container, the default), a list, and an
+// empty list (none). The UI has to be able to say all three, because the rule
+// distinguishes them - see SPEC.md B2.
+function renderAdminContainers(userId, assigned) {
+    if (!availableContainers.length) {
+        return `<span class="text-muted">${t('admin.no_containers_to_assign')}</span>`;
+    }
+    const scoped = Array.isArray(assigned);
+    const safeId = escapeHtmlConfigUI(userId);
+    const boxes = availableContainers.map(name => {
+        const checked = (!scoped || assigned.indexOf(name) !== -1) ? 'checked' : '';
+        const disabled = scoped ? '' : 'disabled';
+        return `<label class="me-3 text-nowrap">
+            <input type="checkbox" ${checked} ${disabled}
+                   onchange="toggleAdminContainer('${safeId}', '${escapeHtmlConfigUI(name)}', this.checked)">
+            ${escapeHtmlConfigUI(name)}
+        </label>`;
+    }).join('');
+    const summary = scoped
+        ? (assigned.length
+            ? `${assigned.length} ${t('admin.of')} ${availableContainers.length}`
+            : `<span class="text-warning">${t('admin.controls_nothing')}</span>`)
+        : `<span class="text-success">${t('admin.all_containers')}</span>`;
+    return `
+        <div class="d-flex align-items-center flex-wrap">
+            <label class="me-3 text-nowrap">
+                <input type="checkbox" ${scoped ? '' : 'checked'}
+                       onchange="setAdminUnscoped('${safeId}', this.checked)">
+                <strong>${t('admin.all_containers')}</strong>
+            </label>
+            <span class="text-muted me-3">${summary}</span>
+        </div>
+        <div class="mt-1">${boxes}</div>`;
+}
+
+// "Every container" is the ABSENCE of an entry, not a full list: a list would
+// freeze today's containers and silently exclude the next one somebody adds.
+function setAdminUnscoped(userId, unscoped) {
+    if (unscoped) {
+        delete adminContainers[userId];
+    } else {
+        adminContainers[userId] = availableContainers.slice();
+    }
+    renderAdminUsers();
+}
+
+function toggleAdminContainer(userId, name, checked) {
+    if (!Array.isArray(adminContainers[userId])) {
+        return;    // unscoped: the boxes are disabled, nothing to change
+    }
+    const current = adminContainers[userId];
+    const at = current.indexOf(name);
+    if (checked && at === -1) {
+        current.push(name);
+    } else if (!checked && at !== -1) {
+        current.splice(at, 1);
+    }
+    renderAdminUsers();
 }
 
 function addAdminUser() {
@@ -716,9 +788,20 @@ function removeAdminUser(index) {
 }
 
 function saveAdminUsers() {
+    // Assignments for people who are no longer admins would be refused by the
+    // route, and rightly - this mapping narrows a right and cannot be written
+    // for somebody who has none.
+    const containers = {};
+    Object.keys(adminContainers).forEach(userId => {
+        if (adminUsers.indexOf(userId) !== -1) {
+            containers[userId] = adminContainers[userId];
+        }
+    });
+
     const data = {
         discord_admin_users: adminUsers,
-        admin_notes: adminNotes
+        admin_notes: adminNotes,
+        admin_containers: containers
     };
 
     // /api/admin-users is registered on the app itself, not on a blueprint, so it is not

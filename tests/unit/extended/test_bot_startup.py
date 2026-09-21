@@ -1018,7 +1018,7 @@ class TestWebRoutes:
         admin_data = {"discord_admin_users": ["111"], "admin_notes": {"111": "founder"}}
         admin_service = SimpleNamespace(
             get_admin_data=lambda: admin_data,
-            save_admin_data=lambda u, n: True,
+            save_admin_data=lambda u, n, admin_containers=None: True,
         )
         monkeypatch.setattr(web_routes, "get_admin_service", lambda: admin_service)
         web_routes.register_routes(app)
@@ -1032,7 +1032,7 @@ class TestWebRoutes:
         monkeypatch.setattr(web_routes.auth, "login_required", lambda f: f)
         admin_service = SimpleNamespace(
             get_admin_data=lambda: {},
-            save_admin_data=lambda u, n: True,
+            save_admin_data=lambda u, n, admin_containers=None: True,
         )
         monkeypatch.setattr(web_routes, "get_admin_service", lambda: admin_service)
         web_routes.register_routes(app)
@@ -1050,7 +1050,7 @@ class TestWebRoutes:
         monkeypatch.setattr(web_routes.auth, "login_required", lambda f: f)
         admin_service = SimpleNamespace(
             get_admin_data=lambda: {},
-            save_admin_data=lambda u, n: True,
+            save_admin_data=lambda u, n, admin_containers=None: True,
         )
         monkeypatch.setattr(web_routes, "get_admin_service", lambda: admin_service)
         web_routes.register_routes(app)
@@ -1066,7 +1066,7 @@ class TestWebRoutes:
         monkeypatch.setattr(web_routes.auth, "login_required", lambda f: f)
         admin_service = SimpleNamespace(
             get_admin_data=lambda: {},
-            save_admin_data=lambda u, n: False,
+            save_admin_data=lambda u, n, admin_containers=None: False,
         )
         monkeypatch.setattr(web_routes, "get_admin_service", lambda: admin_service)
         web_routes.register_routes(app)
