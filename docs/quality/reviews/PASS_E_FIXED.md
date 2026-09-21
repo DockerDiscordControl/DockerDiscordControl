@@ -64,6 +64,8 @@ Pass E is the read of the files that no earlier pass ever covered
 
 | **E41** | **A dict claiming to count loop runs and failures, that nothing ever wrote to or read.** Anyone reading it would conclude DDC tracks loop health — and E17 is what actually happened when a loop died. Three more dead attributes went with it. | No symptom; a misleading artifact removed. The probe is in the commit, including why an attribute scan alone would have deleted a live one. | `e8b583c` |
 
+| **E42** | **The admin panel header was built twice**, the first one thrown away — and the discarded version was the one that would have shown you `Online: {online}` in words if the rebuild ever stopped running. | No symptom today. The waste is gone and the outcome is pinned by a test that was probed the other way round: deleting the rebuild turns it red. | `fafe61f` |
+
 ## Under the floor — no symptom yet, but a trap
 
 | # | What | Commit |
