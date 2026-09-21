@@ -132,10 +132,13 @@ class ChannelConfigService:
             Dict with channel IDs as keys and config dicts as values
         """
         channels = {}
+        unreadable = []
+        seen_files = 0
 
         try:
             # Read each JSON file in channels directory
             for json_file in self.channels_dir.glob('*.json'):
+                seen_files += 1
                 try:
                     filename = json_file.stem  # filename without .json
                     with open(json_file, 'r') as f:
@@ -189,10 +192,34 @@ class ChannelConfigService:
                     logger.debug(f"Loaded channel config: {channel_id}")
 
                 except json.JSONDecodeError as e:
+                    unreadable.append(json_file.name)
                     logger.error(f"Invalid JSON in {json_file}: {e}")
                 except (IOError, OSError, PermissionError, UnicodeDecodeError, KeyError, ValueError) as e:
                     # File I/O errors (read errors, permissions, decode errors, data errors)
+                    unreadable.append(json_file.name)
                     logger.error(f"File error reading {json_file}: {e}")
+
+            if unreadable:
+                # Said once, with what it MEANS (review E28). Per-file errors are
+                # above and they name the cause; this names the effect, which is
+                # the part an operator can act on. A channel whose file could not
+                # be read is simply absent from the answer, and absent means it
+                # has no permissions - the bot does not post status messages
+                # there and a command used there is refused. Nothing else in DDC
+                # would say so: the fallback in config_loader_service only fires
+                # when the result is COMPLETELY empty, so a partial loss passes
+                # straight through.
+                #
+                # Not routed into config_read_errors on purpose: that key decides
+                # in app/auth.py whether the login may fall back to admin/setup,
+                # and a corrupt channel file has nothing to do with the Web UI
+                # password.
+                logger.error(
+                    "%d of %d channel configuration files could not be read (%s). "
+                    "Those channels have NO permissions this run: DDC will not "
+                    "post status messages in them and commands used there are "
+                    "refused. Fix the files and restart - nothing was deleted.",
+                    len(unreadable), seen_files, ", ".join(sorted(unreadable)))
 
             logger.info(f"Loaded {len(channels)} channel configurations")
 
