@@ -151,8 +151,13 @@ moot by an earlier removal, 0 still open** as of 2026-09-21, plus five things fo
 while reading that the report did not have (C56, C57, C61, C71, and the
 cancellation class of C60).
 
-With that, every section of the code base has been read once. The test suite
-grew from 4,895 to 5,214 passing tests across the three stages.
+**Corrected 2026-09-21:** this used to read "with that, every section of the
+code base has been read once". It is not true. Counting the three stages'
+coverage tables against `SECTIONS.txt` gives 34 of 37 sections; **13, 26 and 37
+were never reviewed** - the configuration services, `scheduler.py`, and the
+token encryption. Nobody checked the claim until a recommendation was built on
+it. The test suite grew from 4,895 to 5,214 passing tests across the three
+stages.
 
 **Pass 2** then went over the eight sensitive sections a second time
 (`reviews/PASS2_STAGE_A.md`): 374 of 374 names judged, **38 findings**, of which

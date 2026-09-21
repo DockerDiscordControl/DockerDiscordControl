@@ -131,8 +131,25 @@ with a different real repair found underneath.**
 
 ## What this pass does NOT say
 
-- **29 of 38 sections have not been reviewed in either pass.** The eight were
-  chosen; the rest were not looked at.
+- **Three sections have never been reviewed by anyone: 13, 26 and 37.**
+  Counted on 2026-09-21 out of the coverage tables of the three pass-1
+  reports against `SECTIONS.txt`: stage A took 01 02 14 17 18 24 31 32, stage B
+  03-11, stage C 12 15 16 19-23 25 27-30 33-36. That is 34 of 37. Missing are
+  section 13 (`config_service.py` and the config services, 1,806 lines),
+  section 26 (`scheduler.py`, 1,995 lines - the path that starts and stops
+  containers on a timetable, without anybody pressing anything) and section 37
+  (`token_security.py`, `key_crypto.py`, `performance_metrics.py`).
+  Section 38 is not a gap: it was carved out of 32 on 2026-09-21 and its
+  content was reviewed as part of it.
+- **The first version of this line said "29 of 38 sections have not been
+  reviewed in either pass", and `STAGE4_REVIEW.md` said "every section of the
+  code base has been read once". Both were wrong, in opposite directions**, and
+  neither was checked against the reports until the operator pushed back on a
+  recommendation built on them. 26 sections have had exactly one look, 8 have
+  had two, 3 have had none.
+- So the eight sensitive sections have now been read twice while three
+  sections central to configuration, scheduling and token encryption have not
+  been read at all. That is the next work, not a release.
 - Each of the eight was looked at once more, by one reviewer. A third pass
   would find fewer new things than this one - 29 % overlap after one repeat
   suggests the seam is not exhausted, but it is narrowing.
