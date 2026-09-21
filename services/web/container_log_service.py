@@ -391,6 +391,19 @@ class ContainerLogService:
 
             return LogResult(success=True, content=filtered_logs)
 
+        except ContainerLogError as e:
+            # The logs could not be read, and that is NOT "no such container" -
+            # it gets its own answer next to the 404 above, the same way
+            # get_container_logs answers it (review C18, E46). Without this the
+            # exception walks out of the service and out of the route, and the
+            # log tab fills with Flask's HTML error page at the exact moment the
+            # operator opened it to find out what was wrong.
+            self.logger.error(f"Could not read logs for the filtered view: {e}")
+            return LogResult(
+                success=False,
+                error=f"Could not read container logs: {e}",
+                status_code=500
+            )
         except (AttributeError, TypeError, RuntimeError, ValueError) as e:
             # Async/data errors (attribute errors, type errors, runtime/async errors, value errors)
             self.logger.error(f"Error getting filtered container logs: {e}", exc_info=True)

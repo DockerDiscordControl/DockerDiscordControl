@@ -179,8 +179,8 @@ services/web/__init__.py:1-12
 services/web/configuration_page_service.py:1-554
 services/web/configuration_save_service.py:1-565
 
-## Section 29  (1882 lines, 7 pieces)
-services/web/container_log_service.py:1-470
+## Section 29  (1895 lines, 7 pieces)
+services/web/container_log_service.py:1-483
 services/web/container_refresh_service.py:1-207
 services/web/diagnostics_service.py:1-263
 services/web/donation_service.py:1-314
