@@ -151,6 +151,14 @@ moot by an earlier removal, 0 still open** as of 2026-09-21, plus five things fo
 while reading that the report did not have (C56, C57, C61, C71, and the
 cancellation class of C60).
 
+**The three sections nobody had read** are being worked through since
+2026-09-21, by hand rather than with a reviewer package. Section 26
+(`scheduler.py`) is done: **5 findings, 1 refuted, 2 noted without repair**
+(`reviews/SECTION_26_SCHEDULER.md`). Three of the five findings were the same
+sentence - a failure that looks like an empty result - which is what made a
+mechanical scan of every falsy-answering handler worth doing. Sections 13 and
+37 are still unread.
+
 **Corrected 2026-09-21:** this used to read "with that, every section of the
 code base has been read once". It is not true. Counting the three stages'
 coverage tables against `SECTIONS.txt` gives 34 of 37 sections; **13, 26 and 37
