@@ -1079,7 +1079,11 @@ class TestAdminServiceFileIO:
         self._patch_admins_path(monkeypatch, tmp_path)
         svc = AdminService()
         data = svc.get_admin_data()
-        assert data == {"discord_admin_users": [], "admin_notes": {}}
+        # admin_containers came with the per-admin container assignment: a
+        # user with no entry keeps every container, so an empty mapping
+        # is the same default this test always meant (review F1).
+        assert data == {"discord_admin_users": [], "admin_notes": {},
+                        "admin_containers": {}}
 
     def test_get_admin_data_returns_full_payload(self, monkeypatch, tmp_path):
         admins_file = self._patch_admins_path(monkeypatch, tmp_path)
@@ -1102,7 +1106,11 @@ class TestAdminServiceFileIO:
         admins_file.write_text("{nope", encoding="utf-8")
         svc = AdminService()
         data = svc.get_admin_data()
-        assert data == {"discord_admin_users": [], "admin_notes": {}}
+        # admin_containers came with the per-admin container assignment: a
+        # user with no entry keeps every container, so an empty mapping
+        # is the same default this test always meant (review F1).
+        assert data == {"discord_admin_users": [], "admin_notes": {},
+                        "admin_containers": {}}
 
     def test_save_admin_data_writes_file(self, monkeypatch, tmp_path):
         admins_file = self._patch_admins_path(monkeypatch, tmp_path)
