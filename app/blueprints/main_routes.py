@@ -659,17 +659,36 @@ def game_query_retest():
         from services.infrastructure import game_query_support_service as support
         support.set_testing(container_name, True)
 
-        # Use any configured manual host/port override for this container
-        host, port = '', 0
+        # From here on the flag is set, and the ONLY thing that ever clears it
+        # is the worker's own finally block. So everything between here and a
+        # started worker has to take the flag back itself if it falls over -
+        # otherwise the container keeps its spinner for good: the flag lives in
+        # the verdicts file, survives a restart and is read again when the
+        # configuration page is rendered. "can't start new thread" is the
+        # realistic way in, and it is a RuntimeError, which the handler below
+        # does not list (review D24).
         try:
-            from services.config.server_config_service import get_server_config_service
-            srv = get_server_config_service().get_server_by_docker_name(container_name) or {}
-            host, port = srv.get('query_host', ''), srv.get('query_port', 0)
-        except (ImportError, RuntimeError, AttributeError, KeyError) as e:
-            current_app.logger.debug(f"[GAME_QUERY] retest config lookup failed for {container_name}: {e}")
+            # Use any configured manual host/port override for this container
+            host, port = '', 0
+            try:
+                from services.config.server_config_service import get_server_config_service
+                srv = get_server_config_service().get_server_by_docker_name(container_name) or {}
+                host, port = srv.get('query_host', ''), srv.get('query_port', 0)
+            except (ImportError, RuntimeError, AttributeError, KeyError) as e:
+                current_app.logger.debug(f"[GAME_QUERY] retest config lookup failed for {container_name}: {e}")
 
-        import threading
-        threading.Thread(target=_run_game_query_retest, args=(container_name, host, port), daemon=True).start()
+            import threading
+            threading.Thread(target=_run_game_query_retest, args=(container_name, host, port), daemon=True).start()
+        except BaseException:
+            # Not "except Exception": a worker that never started must not keep
+            # the spinner alive even when the request is being torn down.
+            try:
+                support.set_testing(container_name, False)
+            except Exception as clear_error:  # noqa: BLE001
+                current_app.logger.error(
+                    f"[GAME_QUERY] retest for {container_name} could not be started AND the "
+                    f"testing flag could not be cleared: {clear_error}", exc_info=True)
+            raise
         return jsonify({'success': True, 'status': 'testing'})
     except (ValueError, TypeError, KeyError) as e:
         current_app.logger.error(f"[GAME_QUERY] retest request error: {e}", exc_info=True)
