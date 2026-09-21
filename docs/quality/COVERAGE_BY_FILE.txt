@@ -107,7 +107,7 @@ services/automation/auto_action_state_service.py	364	passE:bothscans+E25
 services/automation/automation_service.py	556	passE:bothscans+E25
 services/config/__init__.py	16	NONE
 services/config/channel_config_service.py	576	passE:E28+bothscans:126-300
-services/config/config_cache_service.py	142	NONE
+services/config/config_cache_service.py	177	passE:E29:read-in-full
 services/config/config_form_parser_service.py	517	pass1:s12:1-483  [23 of 506 lines never in a package]
 services/config/config_loader_service.py	481	pass1:s12:1-468  [13 of 481 lines never in a package]
 services/config/config_migration_service.py	466	pass1:s12:1-406  [60 of 466 lines never in a package]
