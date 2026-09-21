@@ -36,7 +36,15 @@ def execute_sync_donation(mech_service, request) -> Any:
     return mech_service.add_donation(
         amount=float(request.amount),
         donor=request.donor_name,
-        channel_id=request.discord_guild_id,
+        # The channel, not the guild. Both sit on the request - the factory in
+        # unified/service.py fills them side by side - and the guild one was
+        # passed here under the name channel_id, so it went into the ledger and
+        # from there into the append-only DonationAdded payload. Nothing reads
+        # that field today, which is why nothing broke and why it was worth
+        # correcting now: the events are kept forever and replayed on every
+        # rebuild. The guild is recorded separately by emit_donation_event
+        # (review D10).
+        channel_id=request.discord_channel_id,
         idempotency_key=request.idempotency_key,
     )
 
@@ -53,7 +61,7 @@ async def execute_async_donation(
     return await mech_service.add_donation_async(
         amount=float(request.amount),
         donor=request.donor_name,
-        channel_id=request.discord_guild_id,
+        channel_id=request.discord_channel_id,   # see execute_sync_donation (review D10)
         guild=guild,
         member_count=member_count,
         idempotency_key=request.idempotency_key,
