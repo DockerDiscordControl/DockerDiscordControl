@@ -403,47 +403,70 @@ class ChannelCleanupService:
             result.timeout_errors += 1
             result.method_used = "purge timeout -> fallback"
             logger.warning(f"⚠️ CLEANUP: Purge timeout after {request.purge_timeout}s, using fallback method")
-
-            # Fallback: manual deletion with limit for safety
-            deleted_count = 0
-            messages_checked = 0
-
-            async for message in request.channel.history(limit=min(request.message_limit, 50)):
-                messages_checked += 1
-
-                if request.custom_filter and request.custom_filter(message):
-                    try:
-                        await message.delete()
-                        deleted_count += 1
-                        await asyncio.sleep(0.1)  # Rate limiting
-                    except discord.NotFound:
-                        # Already gone - that is the wanted end state.
-                        pass
-                    except discord.Forbidden:
-                        # Counted, not swallowed. Both were caught by one
-                        # `pass` here, so a fallback that was refused every
-                        # single message reported a pure timeout and the
-                        # operator never heard the one thing they could fix
-                        # (review D4).
-                        result.permission_errors += 1
-                elif not request.custom_filter:
-                    result.messages_preserved += 1
-
-                if messages_checked >= 50:  # Hard safety limit
-                    break
-
-            result.individually_deleted = deleted_count
-            logger.info(f"🧹 CLEANUP: Fallback deleted {deleted_count}/{messages_checked} messages")
+            await self._delete_one_by_one(request, result)
 
         except discord.Forbidden:
+            # NOT "no action", which is what this used to be. purge() needs
+            # 'Manage Messages' because it deletes in BULK; deleting its own
+            # messages is something a bot may do without that permission. So
+            # the shortcut being refused says nothing about the work itself,
+            # and giving up here told the operator a cleanup had failed for a
+            # permission they never needed to grant. Both neighbours already
+            # knew better - the timeout branch above falls back, and
+            # _bulk_delete_messages falls back on this very exception
+            # (review D33).
             result.permission_errors += 1
-            result.method_used = "purge forbidden -> no action"
-            logger.warning(f"⚠️ CLEANUP: Missing 'Manage Messages' permission for purge in channel {request.channel.id}")
+            result.method_used = "purge forbidden -> deleting one by one"
+            logger.warning(f"⚠️ CLEANUP: No 'Manage Messages' for purge in channel "
+                           f"{request.channel.id} - deleting the bot's own messages one by one")
+            await self._delete_one_by_one(request, result)
 
         except (RuntimeError, discord.HTTPException, discord.NotFound) as e:
             result.method_used = f"purge error -> {str(e)[:50]}"
             logger.warning(f"⚠️ CLEANUP: Purge failed with error: {e}")
             raise  # Re-raise to be handled by main cleanup method
+
+    async def _delete_one_by_one(
+        self,
+        request: ChannelCleanupRequest,
+        result: ChannelCleanupResult
+    ) -> None:
+        """Walk the channel and delete the matching messages singly.
+
+        What to do when the purge shortcut is not available - because it timed
+        out, or because the bot may not bulk-delete here. Extracted so both
+        reasons take the same road: it sat inline in the timeout branch, and
+        the Forbidden branch beside it did nothing at all (review D33).
+        """
+        deleted_count = 0
+        messages_checked = 0
+
+        async for message in request.channel.history(limit=min(request.message_limit, 50)):
+            messages_checked += 1
+
+            if request.custom_filter and request.custom_filter(message):
+                try:
+                    await message.delete()
+                    deleted_count += 1
+                    await asyncio.sleep(0.1)  # Rate limiting
+                except discord.NotFound:
+                    # Already gone - that is the wanted end state.
+                    pass
+                except discord.Forbidden:
+                    # Counted, not swallowed. Both were caught by one
+                    # `pass` here, so a fallback that was refused every
+                    # single message reported a pure timeout and the
+                    # operator never heard the one thing they could fix
+                    # (review D4).
+                    result.permission_errors += 1
+            elif not request.custom_filter:
+                result.messages_preserved += 1
+
+            if messages_checked >= 50:  # Hard safety limit
+                break
+
+        result.individually_deleted = deleted_count
+        logger.info(f"🧹 CLEANUP: Deleted {deleted_count}/{messages_checked} messages one by one")
 
 
 # Singleton instance
