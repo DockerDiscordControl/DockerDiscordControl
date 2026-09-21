@@ -68,11 +68,11 @@ services/config/config_form_parser_service.py:1-517
 services/config/config_loader_service.py:1-481
 services/config/config_migration_service.py:1-466
 
-## Section 13  (1843 lines, 5 pieces)
+## Section 13  (1863 lines, 5 pieces)
 services/config/config_service.py:1-1248
 services/config/config_validation_service.py:1-212
 services/config/container_config_save_service.py:1-150
-services/config/server_config_service.py:1-213
+services/config/server_config_service.py:1-233
 services/discord/__init__.py:1-20
 
 ## Section 14  (1523 lines, 6 pieces)
