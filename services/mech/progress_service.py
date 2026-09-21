@@ -1638,12 +1638,31 @@ class ProgressService:
 # ---------------------
 # Global instance
 # ---------------------
-_progress_service: Optional[ProgressService] = None
+# One instance per mech, not one per process - see get_progress_service
+# (review D12). Tests clear it through reset_progress_services().
+_progress_services: Dict[str, ProgressService] = {}
+
+
+def reset_progress_services() -> None:
+    """Drop every cached progress service (tests, and a full config reload)."""
+    _progress_services.clear()
 
 
 def get_progress_service(mech_id: str = "main") -> ProgressService:
-    """Get the global progress service instance"""
-    global _progress_service
-    if _progress_service is None:
-        _progress_service = ProgressService(mech_id)
-    return _progress_service
+    """Get the progress service of ``mech_id``, built once per mech.
+
+    One instance per mech, not one per process. This used to keep a single
+    instance and build it only ``if _progress_service is None``, so the
+    argument was honoured on the very first call and silently ignored ever
+    after: a later caller asking for another mech got the first one's service,
+    and with it the first one's ledger. There is one mech today, so nothing
+    was wrong in the running application - what was wrong is that the
+    signature promised something it did not do, while MechServiceAdapter
+    stores self.mech_id next to a service that might carry a different one
+    (review D12).
+    """
+    service = _progress_services.get(mech_id)
+    if service is None:
+        service = ProgressService(mech_id)
+        _progress_services[mech_id] = service
+    return service

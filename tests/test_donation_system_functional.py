@@ -50,7 +50,7 @@ def donation_env(tmp_path, monkeypatch):
     clear_progress_paths_cache()
 
     progress_service = importlib.reload(importlib.import_module("services.mech.progress_service"))
-    progress_service._progress_service = None
+    progress_service.reset_progress_services()
 
     runtime = progress_service.runtime
 
@@ -112,7 +112,7 @@ def donation_env(tmp_path, monkeypatch):
 
     donation_service_module._unified_donation_service = None
     mech_adapter_module._mech_service_adapter = None
-    progress_service._progress_service = None
+    progress_service.reset_progress_services()
     reset_progress_runtime()
     clear_progress_paths_cache()
     monkeypatch.delenv("DDC_PROGRESS_DATA_DIR", raising=False)

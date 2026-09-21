@@ -53,7 +53,7 @@ def progress_env(tmp_path, monkeypatch):
     progress_service = importlib.reload(
         importlib.import_module("services.mech.progress_service")
     )
-    progress_service._progress_service = None
+    progress_service.reset_progress_services()
 
     runtime = progress_service.runtime
     config = _make_config()
@@ -84,7 +84,7 @@ def progress_env(tmp_path, monkeypatch):
 
     yield progress_service
 
-    progress_service._progress_service = None
+    progress_service.reset_progress_services()
     reset_progress_runtime()
     clear_progress_paths_cache()
 
@@ -752,10 +752,15 @@ def test_deterministic_gift_1_3_in_range(progress_env):
 # ---------------------------------------------------------------------------
 
 def test_get_progress_service_singleton(progress_env):
+    # This used to assert `a is b` with the comment "Singleton: second call
+    # returns the FIRST instance, ignoring new mech_id" - the defect of review
+    # D12 written down as the contract. One instance PER MECH: the same id
+    # gives the same service, a different id gives its own.
     a = progress_env.get_progress_service("foo")
     b = progress_env.get_progress_service("bar")
-    # Singleton: second call returns the FIRST instance, ignoring new mech_id
-    assert a is b
+    assert a is not b
+    assert a.mech_id == "foo" and b.mech_id == "bar"
+    assert progress_env.get_progress_service("foo") is a
 
 
 # ---------------------------------------------------------------------------

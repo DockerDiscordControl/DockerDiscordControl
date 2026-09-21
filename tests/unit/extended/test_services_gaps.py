@@ -3081,7 +3081,7 @@ def progress_env_v2(tmp_path, monkeypatch):
     progress_service = importlib.reload(
         importlib.import_module("services.mech.progress_service")
     )
-    progress_service._progress_service = None
+    progress_service.reset_progress_services()
 
     runtime = progress_service.runtime
     config = {
@@ -3115,7 +3115,7 @@ def progress_env_v2(tmp_path, monkeypatch):
 
     yield progress_service
 
-    progress_service._progress_service = None
+    progress_service.reset_progress_services()
     reset_progress_runtime()
     clear_progress_paths_cache()
 

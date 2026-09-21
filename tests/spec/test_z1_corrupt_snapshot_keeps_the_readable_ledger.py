@@ -36,7 +36,7 @@ def ps(tmp_path, monkeypatch):
     reset_progress_runtime()
     clear_progress_paths_cache()
     module = importlib.reload(importlib.import_module("services.mech.progress_service"))
-    module._progress_service = None
+    module.reset_progress_services()
     config = {
         "timezone": "UTC",
         "difficulty_bins": [0, 50],
@@ -58,7 +58,7 @@ def ps(tmp_path, monkeypatch):
                                     success=True, use_dynamic=True, difficulty_multiplier=1.0)),
         raising=False)
     yield module
-    module._progress_service = None
+    module.reset_progress_services()
     reset_progress_runtime()
     clear_progress_paths_cache()
 

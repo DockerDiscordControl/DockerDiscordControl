@@ -38,7 +38,7 @@ def progress(tmp_path, monkeypatch):
     clear_progress_paths_cache()
 
     module = importlib.reload(importlib.import_module("services.mech.progress_service"))
-    module._progress_service = None
+    module.reset_progress_services()
     config = {"timezone": "UTC", "difficulty_bins": [0, 50],
               "level_base_costs": {str(level): 100000 for level in range(1, 12)},
               "bin_to_dynamic_cost": {str(b): 0 for b in range(1, 22)},
@@ -60,7 +60,7 @@ def progress(tmp_path, monkeypatch):
     try:
         yield module.get_progress_service()
     finally:
-        module._progress_service = None
+        module.reset_progress_services()
         reset_progress_runtime()
         clear_progress_paths_cache()
 
