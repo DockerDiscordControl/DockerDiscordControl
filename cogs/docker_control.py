@@ -39,7 +39,7 @@ from services.docker_service.status_cache_runtime import get_docker_status_cache
 # Scheduler imports removed - unused in this module
 
 # Import outsourced parts
-from .translation_manager import _, get_translations
+from .translation_manager import _
 from .control_helpers import get_guild_id, container_select, _channel_has_permission
 # control_ui imports removed - unused in this module
 
@@ -341,29 +341,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             logger.error(f"[DEBUG INIT] Step 8 FAILED: {e}", exc_info=True)
             raise
 
-        # Initialize translations
-        logger.debug("Step 9: Initializing translations...")
-        try:
-            self.translations = get_translations()
-            logger.debug("Step 9 complete: Translations initialized")
-        except Exception as e:
-            logger.error(f"[DEBUG INIT] Step 9 FAILED: {e}", exc_info=True)
-            raise
-
-        # Initialize self as status handler
-        self.status_handlers = self
-
-        # Initialize performance monitoring
-        self._loop_stats = {
-            'status_update': {'runs': 0, 'errors': 0, 'last_duration': 0},
-            'message_edit': {'runs': 0, 'errors': 0, 'last_duration': 0},
-            'inactivity': {'runs': 0, 'errors': 0, 'last_duration': 0},
-            'cache_clear': {'runs': 0, 'errors': 0, 'last_duration': 0},
-            'heartbeat': {'runs': 0, 'errors': 0, 'last_duration': 0}
-        }
-
         # Initialize task tracking
-        logger.debug("Step 10: Initializing asyncio locks...")
+        logger.debug("Step 9: Initializing asyncio locks...")
         try:
             self._active_tasks = set()
             self._task_lock = asyncio.Lock()
@@ -376,9 +355,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # (regenerate, recreate, recovery, /ss, /control, initial send) so two concurrent
             # paths can never post a duplicate overview into the same channel.
             self._channel_locks: Dict[int, asyncio.Lock] = {}
-            logger.debug("Step 10 complete: Asyncio locks initialized")
+            logger.debug("Step 9 complete: Asyncio locks initialized")
         except Exception as e:
-            logger.error(f"[DEBUG INIT] Step 10 FAILED: {e}", exc_info=True)
+            logger.error(f"[DEBUG INIT] Step 9 FAILED: {e}", exc_info=True)
             raise
 
         # NOTE: Background loops are started in cog_load() hook, not in __init__
@@ -391,7 +370,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             'box_elements': {},
             'last_cache_clear': datetime.now(timezone.utc)
         }
-        self._EMBED_CACHE_TTL = 300  # 5 minutes cache for embed elements
 
         logger.info("Ensuring other potential loops (if any residues from old structure) are cancelled.")
         if hasattr(self, 'heartbeat_send_loop') and self.heartbeat_send_loop.is_running(): self.heartbeat_send_loop.cancel()
