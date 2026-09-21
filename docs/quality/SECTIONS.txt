@@ -197,9 +197,9 @@ app/blueprints/action_log_routes.py:1-86
 app/blueprints/automation_routes.py:1-272
 app/blueprints/log_routes.py:1-242
 
-## Section 32  (1814 lines, 2 pieces)
+## Section 32  (1828 lines, 2 pieces)
 app/blueprints/main_routes.py:1-1514
-app/blueprints/tasks_bp.py:1-300
+app/blueprints/tasks_bp.py:1-314
 
 ## Section 33  (1936 lines, 25 pieces)
 app/blueprints/translation_routes.py:1-363
