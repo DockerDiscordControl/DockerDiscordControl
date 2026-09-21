@@ -29,6 +29,8 @@ Pass E is the read of the files that no earlier pass ever covered
 | **E23** | **Expanding a mech panel in one channel could delete and repost the overview in another**, moving that message to the bottom with a new id. Which channels it hit looked random. | The edit-or-recreate flag was the function's own parameter, reassigned inside the per-channel loop. The first channel that said "recreate" said it for all the rest, in dictionary order. | `71bf189` |
 | **E18** | **Your refresh interval was ignored** when a helper service was unavailable: the overview was edited every minute instead of every 5 / 30 / 60 as configured. | Two branches taking the same decision had two different fallbacks; nobody decided they should differ. | `92fe615` |
 
+| **E26** | **If the bot could not log in, the log said the opposite.** An encrypted token with no Web UI password was handed to Discord as-is, and DDC reported "Successfully decrypted token for usage" — sending you after a wrong token instead of a missing password. | `_decrypt_token_if_needed` fell through to `return token` when there was no password hash. It now answers None and names which of the two situations it is. | `22a93cc` |
+
 ## Web panel
 
 | # | What you would have seen | Cause | Commit |
