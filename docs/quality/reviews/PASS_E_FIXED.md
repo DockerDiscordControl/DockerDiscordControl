@@ -47,7 +47,7 @@ Pass E is the read of the files that no earlier pass ever covered
 
 | **E31** | **1.2 seconds off every start.** Importing any service imported five of them, because the package re-exported names that nothing in the codebase uses. Measured before: 1199 ms and 23 modules. After: **0 ms, 0 modules.** | It also meant an ImportError in the mech service made `services.config` unimportable — a mech problem becoming a config problem, one layer below E8. | `b269adf` |
 
-| **E32** | **Every message on the server cost two config file reads.** Anyone typing anything, in any channel, made DDC open and parse `channel_translations.json` twice — to work out the message had nothing to do with it. Measured: 0.20 ms and 2.0 reads per message. | The translation monitor listens to every message and the config had no cache. Now cached on the file's mtime, handing out a copy so a failed save cannot leave a phantom setting in memory. | `574b913` |
+| **E32** | **Every message on the server cost two config file reads.** Anyone typing anything, in any channel, made DDC open and parse `channel_translations.json` twice — to work out the message had nothing to do with it. Measured: 0.20 ms and 2.0 reads per message. | The translation monitor listens to every message and the config had no cache. Now cached on the file's mtime, handing out a copy so a failed save cannot leave a phantom setting in memory. **Verified after deploying: 0.066 ms and 0 file opens per message.** | `574b913` |
 
 ## Under the floor — no symptom yet, but a trap
 
