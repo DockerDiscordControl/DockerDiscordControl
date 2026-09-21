@@ -651,6 +651,25 @@ class ActionButton(Button):
             # Remove from pending_actions - use docker_name as key!
             if self.docker_name in self.cog.pending_actions:
                 del self.cog.pending_actions[self.docker_name]
+        except BaseException:
+            # Anything else: take the mark back, then let it travel on. The
+            # clause above reports what it knows how to report and swallows it;
+            # this one changes NOTHING about what is swallowed, it only undoes
+            # the mark. Without it a KeyError or TypeError from
+            # _get_pending_embed or log_user_action left the container marked
+            # as pending for an action that never ran - its control buttons
+            # gone, a yellow "Pending" in their place. Not forever:
+            # docker_control sweeps an entry older than 120 s on the next
+            # render. Two minutes of a state the user is shown and that is not
+            # true (review D17).
+            #
+            # Deliberately NOT `except Exception` with a log-and-swallow: two
+            # spec tests prove the permission gate by raising a marker through
+            # this method, and swallowing it here would hide a real error as
+            # well as their marker.
+            if self.docker_name in self.cog.pending_actions:
+                del self.cog.pending_actions[self.docker_name]
+            raise
 
 # =============================================================================
 # ULTRA-OPTIMIZED TOGGLE BUTTON CLASS WITH ALL 6 OPTIMIZATIONS

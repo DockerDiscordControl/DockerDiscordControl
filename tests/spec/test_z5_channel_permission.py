@@ -31,6 +31,11 @@ a background task (``create_task``), and checking for it would be brittle. The
 entry in ``pending_actions``, by contrast, is set synchronously at :329, before
 anything starts in the background - if the action is refused, it stays absent.
 
+That holds for the REFUSED direction and only for it. Since review D17 a press
+that falls over takes its own mark back again, so a surviving entry is no
+longer evidence that the gate was passed - the tripwire firing is. The allowed
+case below checks that and the absence of a refusal instead.
+
 COUNTER-CHECK (performed 2026-09-16):
 
 Before the fix, ``test_admin_title_does_not_replace_the_revoked_channel_permission``
@@ -186,6 +191,12 @@ async def test_with_channel_permission_it_proceeds(environment, monkeypatch):
     with pytest.raises(_GatePassed):
         await button.callback(inter)
 
-    assert button.cog.pending_actions.get("nginx"), (
-        "With channel permission the action should have been queued"
-    )
+    # The tripwire firing IS the evidence that the gate was passed. This used
+    # to also assert that the entry in pending_actions survived - it does not
+    # any more, and must not: since review D17 a press that falls over takes
+    # its own mark back, or the container would show "Pending" for an action
+    # that never ran. What is checked instead is that no refusal was sent,
+    # which is the other half of "the gate let it through".
+    sent = " ".join(str(argument) for call in inter.followup.send.await_args_list
+                    for argument in call.args)
+    assert "not allowed in this channel" not in sent, sent
