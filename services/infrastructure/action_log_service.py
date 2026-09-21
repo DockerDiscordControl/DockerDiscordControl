@@ -83,6 +83,15 @@ _TEXT_LOG_BACKUP_COUNT = 3
 # waitress threads and the bot event loop at the same time.
 _JSON_LOG_LOCK = threading.Lock()
 
+# The same reason, for the text log. It had no lock at all, neither around the
+# size check and the numbered renames of the rotation nor around the append
+# after them. Two writers could both pass the size check and both rename the
+# live file onto user_actions.log.1, so the second rename overwrote what the
+# first had just rotated away. Measured: 15 of 80 lines gone (review D13). A
+# lock of its own rather than the JSON one - the two files are independent and
+# holding one lock across both would serialise more than the problem needs.
+_TEXT_LOG_LOCK = threading.Lock()
+
 # The ONE place that names the action log files. action_logger.ACTION_LOG_FILE and
 # app/utils/web_helpers.ACTION_LOG_FILE refer to DEFAULT_TEXT_LOG_FILE. They used to
 # name the file themselves, and one drifted to logs/action_log.json - a file nothing
@@ -280,11 +289,13 @@ class ActionLogService:
             # Format for text log
             text_line = f"{entry.action}|{entry.target}|{entry.user}|{entry.source}|{entry.details}\n"
 
-            self._rotate_text_log_if_needed()
+            # Rotation and append together under one lock: a rename between
+            # the two would move the file out from under this append.
+            with _TEXT_LOG_LOCK:
+                self._rotate_text_log_if_needed()
 
-            # Append to text file
-            with open(self.text_log_file, 'a', encoding='utf-8') as f:
-                f.write(text_line)
+                with open(self.text_log_file, 'a', encoding='utf-8') as f:
+                    f.write(text_line)
 
             return ServiceResult(success=True)
 
